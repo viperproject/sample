@@ -33,7 +33,7 @@ object PrettyPrinter {
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
         case VariableDefinition(variable, _) => "var " + apply(variable) + " {}"
         case TableDefinition(ident, typName, _, _) => "table " + apply(ident) + " { type = \"" + typName + "\" }"
-        case LibraryDefinition(name, pub, usages, resolves) =>
+        case LibraryDefinition(name, pub, usages, _, _, resolves) =>
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
             "usage " + "{\n    " + (usages map apply).mkString("\n    ") + "\n  }" + "\n  " +
             (resolves map apply).mkString("\n  ") + "\n}"

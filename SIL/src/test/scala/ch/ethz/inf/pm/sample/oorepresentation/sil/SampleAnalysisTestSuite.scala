@@ -65,6 +65,10 @@ class SampleVerifier() extends SimpleVerifier {
       }).toSeq)
     }
   }
+
+  override def start(): Unit = ???
+
+  override def stop(): Unit = ???
 }
 
 case class SampleAssertFailed(pos: Position) extends AbstractError {

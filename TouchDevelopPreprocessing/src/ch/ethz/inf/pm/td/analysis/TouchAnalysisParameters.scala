@@ -5,6 +5,8 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
+  val numberOfVersions = 2
+
   /**
    * Lets the analysis timeout after a number of seconds
    */
@@ -198,7 +200,7 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
                          * IMPORTANT: This parameter is ONLY respected when using
                          * TouchApronRun/TestRunner (important for test suites), but not the GUI.
                          */
-                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.Octagons
+                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.Pentagons
                          )
 
 object NumericDomainChoice extends Enumeration {
@@ -208,6 +210,7 @@ object NumericDomainChoice extends Enumeration {
   val Octagons = Value
   val Polyhedra = Value
   val StrictPolyhedra = Value
+  val Pentagons = Value
 }
 
 case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = false,

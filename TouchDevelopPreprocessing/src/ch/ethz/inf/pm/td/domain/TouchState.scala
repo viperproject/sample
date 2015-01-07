@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
-import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, ApiField}
 
 import scala.collection.immutable.Set
 
@@ -309,15 +309,27 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val fieldIdentifierObjects = fieldIdentifiers.filter(_.typ.isObject)
     val fieldAssignment = fieldIdentifierObjects.map( _ -> Set.empty[HeapIdentifier] )
 
-    val res = copy(
+    val result = copy(
       forwardMay = forwardMay ++ fieldAssignment,
       forwardMust = forwardMust ++ fieldAssignment,
       versions = versions + ((pp,typ) -> newVersions),
       valueState = valueState.createVariables(fieldIdentifiers),
       expr = new ExpressionSet(typ).add(id)
-    )
+    ).boundVersions.canonicalizeEnvironment
 
-    res
+    // POST CONDITIONS
+    if (SystemParameters.DEBUG) {
+      // May not contains versions higher than k
+      for (id <- result.ids) {
+        id match {
+          case x:HeapIdentifier =>
+            assert (x.unique < TouchAnalysisParameters.numberOfVersions)
+          case _ => ()
+        }
+      }
+    }
+
+    result
   }
 
   /**
@@ -376,8 +388,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       left.isTop || right.isTop
     )
 
-    // Garbage collection invariant
+    // POST CONDITIONS
     if (SystemParameters.DEBUG) {
+
+      // Garbage collection invariant
       for ( (k,v) <- result.backwardMay ) {
         assert(v.nonEmpty)
       }
@@ -400,7 +414,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     val (left,right) = adaptEnvironments(this,other)
 
-    val widened = factory(
+    val result = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
       MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
@@ -410,34 +424,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       left.isTop || right.isTop
     )
 
-    // Cut sequences and merge to summary nodes
-   val replacement = new Replacement()
-    for ((pp,typ) <- widened.versions.keys) {
-      val versions = widened.versions.getOrElse((pp,typ),Seq.empty)
-      if (versions.length > 2) {
-
-        // Merge objects
-        val summaryID = HeapIdentifier(pp,typ,summary = true,versions.head.unique)
-        val objectsToBeMerged = versions.take(versions.length - 1).toSet[Identifier]
-        replacement.value += (objectsToBeMerged -> Set[Identifier](summaryID))
-
-        // Merge fields
-        val fieldsToBeMerged = for (field <- typ.representedFields) {
-          val summaryField = FieldIdentifier(summaryID,field.getField.get,field.typ)
-          val fieldsToBeMerged = objectsToBeMerged.map{x => FieldIdentifier(x.asInstanceOf[HeapIdentifier],field.getField.get,field.typ)}.toSet[Identifier]
-          replacement.value += (fieldsToBeMerged -> Set[Identifier](summaryField))
-        }
-
-      }
-    }
-
-    val result = widened.merge(replacement).canonicalizeEnvironment
-
-    // Garbage collection invariant
+    // POST CONDITIONS
     if (SystemParameters.DEBUG) {
+
+      // Garbage collection invariant
       for ( (k,v) <- result.backwardMay ) {
         assert(v.nonEmpty)
       }
+
     }
 
     if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.widening")
@@ -489,13 +483,11 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       // compute the lub of everything on the left side
       val lub = left.foldLeft(Set.empty[HeapIdentifier])((s,l) => l match { case a:Identifier => s ++ map.getOrElse(a,Set.empty); case _ => s })
       // assign it to everything on the right side
-      if (lub.nonEmpty) {
-        for (r <- right) {
-          r match {
-            case a: HeapIdentifier => ()
-            case a: Identifier => result = result + (a -> lub)
-            case _ => ()
-          }
+      for (r <- right) {
+        r match {
+          case a: HeapIdentifier => ()
+          case a: Identifier => result = result + (a -> lub)
+          case _ => ()
         }
       }
       // update local reverse map
@@ -807,6 +799,36 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   /**
+   * Cut sequences and merge to summary nodes
+   * @return
+   */
+  def boundVersions:T = {
+
+    val replacement = new Replacement()
+
+    for ((pp,typ) <- versions.keys) {
+      val theseVersions = versions.getOrElse((pp,typ),Seq.empty)
+      if (theseVersions.length > TouchAnalysisParameters.numberOfVersions) {
+
+        // Merge objects
+        val summaryID = HeapIdentifier(pp,typ,summary = true,theseVersions.head.unique)
+        val objectsToBeMerged = theseVersions.take(theseVersions.length - TouchAnalysisParameters.numberOfVersions + 1).toSet[Identifier]
+        replacement.value += (objectsToBeMerged -> Set[Identifier](summaryID))
+
+        // Merge fields
+        for (field <- typ.representedFields) {
+          val summaryField = FieldIdentifier(summaryID,field.getField.get,field.typ)
+          val fieldsToBeMerged = objectsToBeMerged.map{x => FieldIdentifier(x.asInstanceOf[HeapIdentifier],field.getField.get,field.typ)}.toSet[Identifier]
+          replacement.value += (fieldsToBeMerged -> Set[Identifier](summaryField))
+        }
+
+      }
+    }
+
+    merge(replacement)
+  }
+
+  /**
    * Makes sure that versions are called according to their indexes in the list
    */
   def canonicalizeEnvironment:T = {
@@ -832,19 +854,21 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }
     }
 
+
+    // POST Conditions
     if (SystemParameters.DEBUG) {
+
       for ( (k,v) <- curState.versions ) {
         for ((x, i) <- v.view.zipWithIndex) {
           assert (x.unique == i)
         }
       }
-    }
 
-    // Garbage collection invariant
-    if (SystemParameters.DEBUG) {
+      // Garbage collection invariant
       for ( (k,v) <- curState.backwardMay ) {
         assert(v.nonEmpty)
       }
+
     }
 
     if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.canonicalizeEnvironment")

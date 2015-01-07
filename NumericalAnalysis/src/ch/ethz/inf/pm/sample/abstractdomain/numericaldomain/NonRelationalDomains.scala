@@ -37,10 +37,10 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 
 }
 
-class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
-                                                                              val map: Map[Identifier, N] = Map.empty[Identifier, N],
+case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
+                                                                              map: Map[Identifier, N] = Map.empty[Identifier, N],
                                                                               override val isBottom: Boolean = false,
-                                                                              val isTop: Boolean = false)
+                                                                              isTop: Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
   with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
   with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
@@ -374,7 +374,7 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
 
 }
 
-class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDomain[Interval] {
+case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[Interval] {
 
   override def asConstraint(id: Identifier): Option[Expression] = {
     if (this.isBottom()) return None
@@ -395,8 +395,11 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
 
   final override def factory() = top()
 
+  def isTop = left == Integer.MIN_VALUE && right == Integer.MAX_VALUE
+
   override def toString: String = {
     if (this.isBottom) return "⊥"
+    if (this.isTop) return "T"
     var result: String = "["
     if (left == Integer.MIN_VALUE)
       result = result + "-oo"
@@ -501,7 +504,7 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     val b = managedMultiply(leftExpr.left, rightExpr.right)
     val c = managedMultiply(leftExpr.right, rightExpr.left)
     val d = managedMultiply(leftExpr.right, rightExpr.right)
-    var result = new Interval(min(a, b, c, d), max(a, b, c, d))
+    val result = new Interval(min(a, b, c, d), max(a, b, c, d))
     return result
   }
 

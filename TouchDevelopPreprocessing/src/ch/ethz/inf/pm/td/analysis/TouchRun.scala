@@ -7,7 +7,7 @@ import apron.{Box, OptOctagon, Polka}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
@@ -21,7 +21,7 @@ object TouchDevelopEntryStateBuilder {
 
   type HeapId = ProgramPointHeapIdentifier
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[ApronInterface.Default], NonrelationalStringDomain[StringKSetDomain]]
+  type SemanticDomainType = StringsAnd[InvalidAnd[NonDeterminismWrapper[SummaryNodeWrapper[Pentagons]]], NonrelationalStringDomain[StringKSetDomain]]
 
   type NonRelHeapType = NonRelationalHeapDomain[HeapId]
   type SummaryHeapType = NonRelationalSummaryCollectionHeapDomain[HeapId]
@@ -110,17 +110,18 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
-        case NumericDomainChoice.Intervals => new Box()
-        case NumericDomainChoice.Octagons => new OptOctagon()
-        case NumericDomainChoice.Polyhedra => new Polka(false)
-        case NumericDomainChoice.StrictPolyhedra => new Polka(true)
+        case NumericDomainChoice.Pentagons => Pentagons(BoxedNonRelationalNumericalDomain[Interval](Interval(1,1)),UpperBound())
+//        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
+//        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
+//        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
+//        case NumericDomainChoice.StrictPolyhedra => ApronInterface.Default(None, new Polka(true), env = Set.empty).factory()
       }
-    new StringsAnd(
-      new InvalidAnd(
-        new ApronInterface.Default(None, domain, env = Set.empty).factory()
+    StringsAnd(
+      InvalidAnd(
+        NonDeterminismWrapper(SummaryNodeWrapper(domain))
       ),
-      new NonrelationalStringDomain(
-        new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)
+      NonrelationalStringDomain(
+        StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)
       )
     )
   }

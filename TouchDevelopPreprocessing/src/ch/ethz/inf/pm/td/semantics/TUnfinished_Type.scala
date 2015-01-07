@@ -4,5 +4,6 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 object TUnfinished_Type extends AAny {
 
-  override def typeName: TypeName = TypeName("Unfinished Type")
+  override lazy val typeName: TypeName = TypeName("Unfinished Type")
+
 }

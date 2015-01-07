@@ -56,7 +56,7 @@ object Typer {
             TypeList.addTouchType(objectType)
             TypeList.addTouchType(objectCollection)
             TypeList.addTouchType(objectConstructor)
-            TypeList.addRecordsMember(ident, objectConstructor)
+            TypeList.addRecord(ident, objectConstructor)
 
           case "table" =>
 
@@ -65,7 +65,7 @@ object Typer {
 
             TypeList.addTouchType(rowTyp)
             TypeList.addTouchType(tableType)
-            TypeList.addRecordsMember(ident + " table", tableType)
+            TypeList.addRecord(ident + " table", tableType)
 
           case "index" =>
 
@@ -81,7 +81,7 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(indexType)
-            TypeList.addRecordsMember(ident + " index", indexType)
+            TypeList.addRecord(ident + " index", indexType)
 
           case "decorator" =>
 
@@ -96,12 +96,12 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)
-            TypeList.addRecordsMember(decoratedType + " decorator", decoratorType)
+            TypeList.addRecord(decoratedType + " decorator", decoratorType)
 
           case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
         }
-      case LibraryDefinition(libName, pub, usages, resolves) =>
+      case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
         for (usage <- usages) {
           usage match {
             case ActionUsage(name, in, out) => st.addLibAction(libName, name, in, out)

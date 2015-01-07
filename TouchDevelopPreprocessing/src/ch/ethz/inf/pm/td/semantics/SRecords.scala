@@ -20,7 +20,8 @@ object SRecords extends ASingleton {
 
   lazy val typeName = TypeName("records")
 
-  override def declarations = super.declarations ++ TypeList.recordsMembers
+  override def declarations = super.declarations ++ mkGetterSetters(TypeList.records.toList)
+  override def possibleFields = super.possibleFields ++ TypeList.records
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

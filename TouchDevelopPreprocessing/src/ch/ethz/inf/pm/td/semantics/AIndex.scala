@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler._

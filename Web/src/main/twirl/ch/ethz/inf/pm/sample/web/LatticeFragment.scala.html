@@ -1,5 +1,6 @@
 @(state: ch.ethz.inf.pm.sample.abstractdomain.Lattice[_])
 @import ch.ethz.inf.pm.sample.abstractdomain._
+@import ch.ethz.inf.pm.td.domain._
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
@@ -30,10 +31,19 @@
         @LatticeDescription("Values")
         @ApronInterface(a)
     }
+    case s: StringsAnd[_,_] => {
+        @PerId(s)
+    }
+    case s: InvalidAnd[_] => {
+        @PerId(s)
+    }
     case c: CartesianProductDomain[_, _, _] => {
         @CartesianProductDomain(List(c._1, c._2))
     }
     case s: SetDomain[_, _] => {
+        @s
+    }
+    case s: Interval => {
         @s
     }
     case f: FunctionalDomain[_, _, _] => {
@@ -80,6 +90,19 @@
                 }
             </ul>
         }
+    }
+}
+
+
+@PerId(a:SemanticDomain[_]) = {
+    @if(a.isBottom) {
+        @Bottom()
+    } else {
+        <ul class="list-unstyled">
+            @a.ids.toList.sortBy(_.toString).map { id =>
+            <li>@id → @a.getStringOfId(id)</li>
+            }
+        </ul>
     }
 }
 

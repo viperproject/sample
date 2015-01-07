@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.{RichExpression}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
@@ -62,6 +62,21 @@ trait ALinearCollection extends ACollection {
 
   def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     index >= 0 && index < collectionSize[S](collection)
+  }
+
+  /**
+   * This overrides the definition of collection insert in general collections.
+   * Generally, there is no need to represent the entries of a linear collection separately.
+   * Instead, we always use the same pp for all collections.
+   */
+  override def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = New[S](entryType, initials = Map(
+      entryType.field_key -> index,
+      entryType.field_value -> right
+    ))(curState, DummyProgramPoint)
+    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, pp)
+    curState
   }
 
   object InvalidateKeysSemantics extends ApiMemberSemantics {

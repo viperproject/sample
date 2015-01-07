@@ -17,8 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
-  extends Lattice[T]
-  with LatticeHelpers[T] {
+  extends Lattice[T] {
   this: T =>
 
   def isBottom: Boolean

@@ -13,10 +13,10 @@ trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { t
  * @param dom An instance of the value domain. Only for factory purposes
  * @tparam T The type of the value domain
  */
-class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
-                                                          val map:Map[Identifier, T] = Map.empty[Identifier, T],
+case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
+                                                          map:Map[Identifier, T] = Map.empty[Identifier, T],
                                                           override val isBottom:Boolean = false,
-                                                          val isTop:Boolean = false)
+                                                          isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
   with StringDomain[NonrelationalStringDomain[T]] {
 

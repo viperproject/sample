@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, MaybeHeapIdSetDomain, NegatedBooleanExpression, ReferenceComparisonExpression, UnaryArithmeticExpression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, Constant, MaybeHeapIdSetDomain, NegatedBooleanExpression, UnaryArithmeticExpression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
@@ -250,11 +250,6 @@ trait ApronInterface[T <: ApronInterface[T]]
         oldApronPre = oldApronPre.changeEnvironmentCopy(domain, env, false)
       }
 
-      // for non-deterministic expressions, we fall back to simply forgetting the variable
-      if (!isDeterministicExpr(expr)) {
-        return this.setToTop(variable)
-      }
-
       // handle multiple tree expressions (due to HeapIdSetDomain expressions)
       val texprs = toTexpr1Intern(expr, post.getEnvironment)
       val backwardAssignedState =
@@ -342,81 +337,49 @@ trait ApronInterface[T <: ApronInterface[T]]
         return bottom()
       }
 
-      nondeterminismWrapper(expr, this, (someExpr, someState) => {
+      // (1) Create left side variable if it does not exist
+      var newState = instantiateState()
+      if (!newState.getEnvironment.hasVar(variable.getName)) {
+        val env = addToEnvironment(newState.getEnvironment, variable.typ, variable.getName)
+        newState = newState.changeEnvironmentCopy(domain, env, false)
+      }
 
-        // (1) Create left side variable if it does not exist
-        var newState = someState.instantiateState()
-        if (!newState.getEnvironment.hasVar(variable.getName)) {
-          val env = addToEnvironment(newState.getEnvironment, variable.typ, variable.getName)
-          newState = newState.changeEnvironmentCopy(domain, env, false)
+      // (2) Create right side variables which do not exist
+      // Not all declared variables will be represented in APRON. This creates top values for all variables
+      // that are currently not declared
+      var newEnv = newState.getEnvironment
+      for (id <- Normalizer.getIdsForExpression(expr)) {
+
+        if (!ids.contains(id)) {
+          println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+          return bottom()
         }
 
-        // (2) Create right side variables which do not exist
-        // Not all declared variables will be represented in APRON. This creates top values for all variables
-        // that are currently not declared
-        var newEnv = newState.getEnvironment
-        for (id <- Normalizer.getIdsForExpression(someExpr)) {
+        if (!newEnv.hasVar(id.getName)) {
+          newEnv = addToEnvironment(newEnv, id.typ, id.getName)
+        }
 
-          if (!someState.ids.contains(id)) {
-            println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
-            return bottom()
+      }
+      if (newEnv != newState.getEnvironment) {
+        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+      }
+
+      // (3) Perform a strong update on the state
+      val exprIntern = this.toTexpr1Intern(expr, newState.getEnvironment)
+      val assignedState =
+        if (exprIntern.size > 1) {
+          var curState = new Abstract1(domain, newState.getEnvironment, true)
+          for (e <- exprIntern) {
+            curState = curState.joinCopy(domain, newState.assignCopy(domain, variable.getName, e, null))
           }
-
-          if (!newEnv.hasVar(id.getName)) {
-            newEnv = addToEnvironment(newEnv, id.typ, id.getName)
-          }
-
-        }
-        if (newEnv != newState.getEnvironment) {
-          newState = newState.changeEnvironmentCopy(domain, newEnv, false)
-        }
-
-        // (3) Perform a strong update on the state
-        val expr = this.toTexpr1Intern(someExpr, newState.getEnvironment)
-        val assignedState =
-          if (expr.size > 1) {
-            var curState = new Abstract1(domain, newState.getEnvironment, true)
-            for (e <- expr) {
-              curState = curState.joinCopy(domain, newState.assignCopy(domain, variable.getName, e, null))
-            }
-            curState
-          } else if (expr.size == 1) {
-            newState.assignCopy(domain, variable.getName, expr.head, null)
-          } else {
-            throw new ApronException("Empty expression set created")
-          }
-
-        // (4) Handling of summary nodes on the left side
-        // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
-        if (!variable.representsSingleVariable) {
-          assignedState.join(domain, newState)
-        }
-
-        // (5) Handling of summary nodes on the right side
-        // If the right side contains one or more summary nodes, create copies of those values by
-        //   (1) Rename all appearing summary nodes in the resulting state (assignedState), call result (materializedState)
-        //   (2) Remove the left side from the original state (someState), call result (summaryState)
-        //   (3) Compute the least upper bound of materializedState and summaryState
-        //   (4) Remove all renamed summary nodes
-        // This way, we infer every thing we can about the "materialized" value
-
-        val rightSummaryNodes = (someExpr.ids filter (!_.representsSingleVariable)) - variable
-        if (rightSummaryNodes.nonEmpty) {
-
-          val rightSummaryNodesNames = rightSummaryNodes.toList
-          val newSummaryNodeNames = rightSummaryNodesNames map { x: Identifier => SimpleApronIdentifier(x.getName + "__TEMP", !x.representsSingleVariable, x.typ, x.pp)}
-          val materializedState = factory(Some(assignedState), domain, env = someState.env).rename(rightSummaryNodesNames, newSummaryNodeNames)
-          val summaryState = factory(Some(newState), domain, env = someState.env).removeVariable(variable)
-
-          val resultState = materializedState.lub(summaryState)
-          resultState.removeVariables(newSummaryNodeNames.map(_.getName).toArray)
-
+          curState
+        } else if (exprIntern.size == 1) {
+          newState.assignCopy(domain, variable.getName, exprIntern.head, null)
         } else {
-
-          factory(Some(assignedState), domain, env = someState.env ++ Normalizer.getIdsForExpression(someExpr) + variable)
-
+          throw new ApronException("Empty expression set created")
         }
-      })
+
+      factory(Some(assignedState), domain, env = env ++ Normalizer.getIdsForExpression(expr) + variable)
 
     } else this
   }
@@ -483,34 +446,29 @@ trait ApronInterface[T <: ApronInterface[T]]
       case _ =>
 
         // Assume the expression
-        summaryNodeWrapper(expr, this, (someExpr1, someState1) => {
-          nondeterminismWrapper(someExpr1, someState1, (someExpr2, someState2) => {
+        val expIds = Normalizer.getIdsForExpression(expr)
+        var tmp = instantiateState()
+        var expEnv = new Environment()
+        for (id <- expIds) {
+          expEnv = addToEnvironment(expEnv, id.typ, id.getName)
+        }
+        val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
+        if (!unionEnv.isIncluded(tmp.getEnvironment)) {
+          tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
+        }
 
-            val expIds = Normalizer.getIdsForExpression(someExpr2)
-            var tmp = someState2.instantiateState()
-            var expEnv = new Environment()
-            for (id <- expIds) {
-              expEnv = addToEnvironment(expEnv, id.typ, id.getName)
+        this.toTcons1(expr, unionEnv) match {
+
+          case x :: xs =>
+            var result = tmp.meetCopy(domain, x)
+            for (xMore <- xs) {
+              result = result.joinCopy(domain, tmp.meetCopy(domain, xMore))
             }
-            val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
-            if (!unionEnv.isIncluded(tmp.getEnvironment)) {
-              tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
-            }
+            factory(Some(result), domain, env = env ++ expIds)
 
-            this.toTcons1(someExpr2, unionEnv) match {
+          case Nil => throw new ApronException("empty set of constraints generated")
 
-              case x :: xs =>
-                var result = tmp.meetCopy(domain, x)
-                for (xMore <- xs) {
-                  result = result.joinCopy(domain, tmp.meetCopy(domain, xMore))
-                }
-                factory(Some(result), domain, env = someState2.env ++ expIds)
-
-              case Nil => throw new ApronException("empty set of constraints generated")
-
-            }
-          })
-        })
+        }
     }
   }
 
@@ -813,137 +771,6 @@ trait ApronInterface[T <: ApronInterface[T]]
     false
   }
 
-  private def isDeterministicExpr(expr: Expression): Boolean = {
-    expr match {
-      case BinaryArithmeticExpression(left, right, op, typ) =>
-        isDeterministicExpr(left) && isDeterministicExpr(right)
-      case BinaryBooleanExpression(left, right, op, typ) =>
-        isDeterministicExpr(left) && isDeterministicExpr(right)
-      case ReferenceComparisonExpression(left, right, op, typ) =>
-        isDeterministicExpr(left) && isDeterministicExpr(right)
-      case NegatedBooleanExpression(left) =>
-        isDeterministicExpr(left)
-      case UnaryArithmeticExpression(left, op, ret) =>
-        isDeterministicExpr(left)
-      case BinaryNondeterministicExpression(left, right, op, returnType) =>
-        false
-      case x: Expression => true
-    }
-  }
-
-  private def removeNondeterminism(label: String, expr: Expression): (Expression, List[(Identifier, BinaryNondeterministicExpression)]) = {
-    expr match {
-      case BinaryArithmeticExpression(left, right, op, typ) =>
-        val (expL, varL) = removeNondeterminism(label + "L", left)
-        val (expR, varR) = removeNondeterminism(label + "R", right)
-        (BinaryArithmeticExpression(expL, expR, op, typ), varL ::: varR)
-      case BinaryBooleanExpression(left, right, op, typ) =>
-        val (expL, varL) = removeNondeterminism(label + "L", left)
-        val (expR, varR) = removeNondeterminism(label + "R", right)
-        (BinaryBooleanExpression(expL, expR, op, typ), varL ::: varR)
-      case ReferenceComparisonExpression(left, right, op, typ) =>
-        val (expL, varL) = removeNondeterminism(label + "L", left)
-        val (expR, varR) = removeNondeterminism(label + "R", right)
-        (ReferenceComparisonExpression(expL, expR, op, typ), varL ::: varR)
-      case NegatedBooleanExpression(left) =>
-        val (expL, varL) = removeNondeterminism(label, left)
-        (NegatedBooleanExpression(expL), varL)
-      case UnaryArithmeticExpression(left, op, ret) =>
-        val (expL, varL) = removeNondeterminism(label, left)
-        (UnaryArithmeticExpression(expL, op, ret), varL)
-      case BinaryNondeterministicExpression(left, right, op, returnType) =>
-        val (expL, varL) = removeNondeterminism(label + "L", left)
-        val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label)(expr.typ, expr.pp)
-        (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
-      case x: Expression => (x, Nil)
-    }
-  }
-
-  private def nondeterminismWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
-
-    // Extract all non-deterministic expressions and store them in temporary variables
-    var newState = state
-    val (newExpr, tempAssigns) = removeNondeterminism("tmp", expr)
-
-    // Add all temporary variables
-    for ((id, _) <- tempAssigns) {
-      newState = newState.createVariable(id)
-    }
-
-    for ((id, ndExpr) <- tempAssigns) {
-      ndExpr.op match {
-        case NondeterministicOperator.or =>
-          val newStateLeft = newState.assign(id, ndExpr.left)
-          val newStateRight = newState.assign(id, ndExpr.right)
-          newState = newStateLeft.lub(newStateRight)
-        case NondeterministicOperator.to =>
-          newState = newState.
-            assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ)).
-            assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.typ))
-      }
-    }
-
-    newState = someFunc(newExpr, newState)
-
-    // Remove all temporary variables
-    for ((id, _) <- tempAssigns) {
-      newState = newState.removeVariable(id)
-    }
-
-    newState
-  }
-
-  /**
-   * This corresponds to the summarization technqiue
-   * Gopan et al. "Numeric Domains with Summarized Dimensions"
-   *
-   * Materializes all summary nodes in Expression. Then calls someFunc.
-   * Then, performs a clean-up.
-   *
-   * @param expr The expression to be expanded
-   * @param state The current state
-   * @param someFunc The function to be executed
-   * @return The modified state, the set of temporary variables
-   */
-  private def summaryNodeWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
-
-    if (expr.ids.filter(x => !x.representsSingleVariable).nonEmpty) {
-
-      // We have a summary node.
-
-      var temporaryCounter = 0
-      val expandTemporaryVariables: Replacement = new Replacement(isPureExpanding = true)
-      val removeTemporaryVariables: Replacement = new Replacement(isPureRemoving = true)
-
-      val transformedExpression = expr.transform({
-        case x: Identifier =>
-          if (!x.representsSingleVariable) {
-            val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.typ, x.pp)
-            temporaryCounter = temporaryCounter + 1
-            expandTemporaryVariables.value(Set(x)) =
-              expandTemporaryVariables.value.get(Set(x)) match {
-                case Some(s) => s ++ Set(x, newIdentifier)
-                case None => Set(x, newIdentifier)
-              }
-            removeTemporaryVariables.value += (Set(newIdentifier.asInstanceOf[Identifier]) -> Set.empty[Identifier])
-            newIdentifier
-          } else x
-        case x: Expression => x
-      })
-      val preState = state.merge(expandTemporaryVariables)
-      val postState = someFunc(transformedExpression, preState)
-      val cleanPostState = postState.merge(removeTemporaryVariables)
-
-      cleanPostState
-
-    } else {
-
-      someFunc(expr, state)
-
-    }
-
-  }
 
   private def toTexpr1Intern(e: Expression, env: apron.Environment): List[Texpr1Intern] = {
     val e1 = this.toTexpr1Node(e)
@@ -1162,12 +989,12 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface.Default] {
 
 class ApronException(s: String) extends Exception(s)
 
-case class SimpleApronIdentifier(
+case class SimpleNumericalIdentifier(
                                   name: String,
                                   summary: Boolean,
                                   typ: Type,
                                   pp: ProgramPoint)
-  extends HeapIdentifier[SimpleApronIdentifier] {
+  extends HeapIdentifier[SimpleNumericalIdentifier] {
 
   def getName: String = name
 

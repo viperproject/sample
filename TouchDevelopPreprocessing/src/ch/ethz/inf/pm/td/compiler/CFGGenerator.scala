@@ -70,7 +70,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     //detectUnsupportedScripts(script)
     curPubID = pubID
     libDef match {
-      case Some(LibraryDefinition(name, _, _, _)) => curScriptName = libraryIdent(name)
+      case Some(LibraryDefinition(name, _, _, _, _, _)) => curScriptName = libraryIdent(name)
       case None => curScriptName = libraryIdent(pubID)
     }
     val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)

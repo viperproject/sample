@@ -16,20 +16,20 @@ object TypeList  {
 
   def reset() {
     userTypes = Map.empty
-    recordsMembers = Map.empty
+    records = Set.empty
   }
 
   var userTypes: Map[TypeName, AAny] = Map.empty
-  var recordsMembers: Map[String, ApiMember] = Map.empty
+  var records: Set[ApiField] = Set.empty
 
   def addTouchType(semantics: AAny) {
     TypeList.userTypes += semantics.typeName -> semantics
   }
 
-  def addRecordsMember(name:String, returnType:AAny) {
-    TypeList.recordsMembers += name -> ApiMember(name,Nil,ApiParam(SRecords),returnType,DefaultSemantics)
+  def addRecord(name:String, typ:AAny) {
+    TypeList.records += ApiField(name,typ)
   }
-
+  
   def getSingletons = List(SBazaar,SBox,SCloud_Data,SCloud_Storage,
     SColors,SHome,SLanguages,SLocations,SMedia,SPlayer,SRadio,SRecords,SSenses,SSocial,STime,SWall,SWeb)
 
