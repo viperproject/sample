@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  *
  * Gives Non-Deterministic expression support to a relational domain.
  *
- * (A non-deterministic expression is something like 5 to 100)
+ * A non-deterministic expression is something like assume( x * (1 to 3) == 5 or 10 or 15 ) )
  *
  * @author Lucas Brutschy
  */
@@ -30,10 +30,10 @@ case class NonDeterminismWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
 
     // for non-deterministic expressions, we fall back to simply forgetting the variable
     if (!isDeterministicExpr(expr)) {
-      return this.setToTop(variable)
+      return wrapperFactory(wrapped.setToTop(variable))
     }
 
-    super.backwardAssign(oldPre,variable,expr)
+    wrapperFactory(wrapped.backwardAssign(oldPre.wrapped,variable,expr))
 
   }
 

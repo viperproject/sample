@@ -71,15 +71,15 @@ object BooleanOperator extends Enumeration {
  * @since 0.1
  */
 object AbstractOperatorIdentifiers extends Enumeration {
-  val isInstanceOf = Value("isInstanceOf");
-  val asInstanceOf = Value("asInstanceOf");
-  val == = Value("==");
-  val stringConcatenation = Value("StringConcat");
-  val stringIndexof = Value("StringIndexof");
-  val stringLastindexof = Value("StringLastindexof");
-  val stringSubstring = Value("StringSubstring");
-  val stringContains = Value("StringContains");
-  val arrayApply = Value("arrayApply");
+  val isInstanceOf = Value("isInstanceOf")
+  val asInstanceOf = Value("asInstanceOf")
+  val == = Value("==")
+  val stringConcatenation = Value("StringConcat")
+  val stringIndexof = Value("StringIndexof")
+  val stringLastindexof = Value("StringLastindexof")
+  val stringSubstring = Value("StringSubstring")
+  val stringContains = Value("StringContains")
+  val arrayApply = Value("arrayApply")
 }
 
 
@@ -166,14 +166,14 @@ case class AbstractOperator(
   def typ = returntyp
 
   def ids: Set[Identifier] = thisExpr.ids ++ {
-    var result: Set[Identifier] = Set.empty;
+    var result: Set[Identifier] = Set.empty
     for (p <- parameters) {
       result ++= p.ids
     }
     result
   }
 
-  override def hashCode(): Int = thisExpr.hashCode();
+  override def hashCode(): Int = thisExpr.hashCode()
 
   override def equals(o: Any) = o match {
     case AbstractOperator(l, p, t, o, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(o)
@@ -209,7 +209,7 @@ case class BinaryBooleanExpression(
 
   def ids: Set[Identifier] = left.ids ++ right.ids
 
-  override def hashCode(): Int = left.hashCode();
+  override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
     case BinaryBooleanExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
@@ -290,7 +290,7 @@ case class BinaryArithmeticExpression(
 
   def ids = left.ids ++ right.ids
 
-  override def hashCode(): Int = left.hashCode();
+  override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
     case BinaryArithmeticExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
@@ -339,7 +339,7 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
 
   def ids = left.ids
 
-  override def hashCode(): Int = left.hashCode();
+  override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
     case UnaryArithmeticExpression(l, o, ty) => left.equals(l) && op.equals(o)
@@ -369,7 +369,7 @@ case class Constant(
 
   def ids = Set.empty
 
-  override def hashCode(): Int = constant.hashCode();
+  override def hashCode(): Int = constant.hashCode()
 
   override def equals(o: Any) = o match {
     case Constant(c, t, pp) => constant.equals(c) && typ.equals(t)
@@ -589,9 +589,9 @@ object Normalizer {
         !left.typ.isNumericalType || !right.typ.isNumericalType)
         return None
 
-      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
-      val r: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(right);
-      if (l.equals(None) || r.equals(None)) return None;
+      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left)
+      val r: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(right)
+      if (l.equals(None) || r.equals(None)) return None
       op match {
 
         case ArithmeticOperator.>= =>
@@ -626,21 +626,21 @@ object Normalizer {
     */
   def arithmeticExpressionToMonomes[I <: HeapIdentifier[I]](exp: Expression): Option[(List[(Int, Identifier)], Int)] = exp match {
     case BinaryArithmeticExpression(left, right, op, typ) =>
-      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
-      val r: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(right);
-      if (l.equals(None) || r.equals(None)) return None;
+      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left)
+      val r: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(right)
+      if (l.equals(None) || r.equals(None)) return None
       op match {
         case ArithmeticOperator.+ => return Some((l.get._1 ::: r.get._1, l.get._2 + r.get._2))
 
         case ArithmeticOperator.- => return Some((l.get._1 ::: transform(r.get._1, (x: Int) => -x), l.get._2 - r.get._2))
 
         case ArithmeticOperator.* =>
-          if (r.get._1.equals(Nil)) return Some(transform(l.get._1, (x: Int) => x * r.get._2), l.get._2 * r.get._2);
-          else if (l.get._1.equals(Nil)) return Some(transform(r.get._1, (x: Int) => x * l.get._2), l.get._2 * r.get._2);
+          if (r.get._1.equals(Nil)) return Some(transform(l.get._1, (x: Int) => x * r.get._2), l.get._2 * r.get._2)
+          else if (l.get._1.equals(Nil)) return Some(transform(r.get._1, (x: Int) => x * l.get._2), l.get._2 * r.get._2)
           else return None;
 
         case ArithmeticOperator./ =>
-          if (r.get._1.equals(Nil)) return Some(transform(l.get._1, (x: Int) => x / r.get._2), l.get._2 / r.get._2);
+          if (r.get._1.equals(Nil)) return Some(transform(l.get._1, (x: Int) => x / r.get._2), l.get._2 / r.get._2)
           else return None;
 
         case _ => None
@@ -648,8 +648,8 @@ object Normalizer {
       }
 
     case UnaryArithmeticExpression(left, op, typ) =>
-      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
-      if (l.equals(None)) return None;
+      val l: Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left)
+      if (l.equals(None)) return None
       op match {
         case ArithmeticOperator.- => return Some(transform(l.get._1, (x: Int) => -x), -l.get._2)
 
@@ -672,7 +672,7 @@ object Normalizer {
     case x: Identifier => return Some(((1, x) :: Nil, 0))
 
     case x: HeapIdSetDomain[I] =>
-      if (x.value.size != 1) return None;
+      if (x.value.size != 1) return None
       else return Some(((1, x.value.iterator.next()) :: Nil, 0))
 
     case _ => None
@@ -697,31 +697,31 @@ object Normalizer {
   def normalizeToCoefVarCost(exp: Expression): Option[Expression] = {
     exp match {
       case x: Constant => {
-        return Some(exp);
+        return Some(exp)
       }
       case _ => {
         Normalizer.arithmeticExpressionToMonomes(exp) match {
           case None => {
-            return None;
+            return None
           }
           case Some((monomes, const)) => {
-            val constExp = new Constant(const.toString, exp.typ, exp.pp);
+            val constExp = new Constant(const.toString, exp.typ, exp.pp)
             monomes.length match {
               case 0 => {
-                return Some(constExp);
+                return Some(constExp)
               }
               // TODO: this should be reimplemented - ugly
               case 1 => {
-                var result: BinaryArithmeticExpression = null;
+                var result: BinaryArithmeticExpression = null
                 for ((coef, id) <- monomes) {
-                  val coefExp = new Constant(coef.toString, exp.typ, exp.pp);
-                  val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ);
-                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ);
+                  val coefExp = new Constant(coef.toString, exp.typ, exp.pp)
+                  val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ)
+                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ)
                 }
-                return Some(result);
+                return Some(result)
               }
               case _ => {
-                return None;
+                return None
               }
             }
           }
@@ -757,9 +757,9 @@ object Normalizer {
 
     case x: HeapIdSetDomain[I] => {
       if (id.isInstanceOf[I]) {
-        return x.value.contains(id.asInstanceOf[I]);
+        return x.value.contains(id.asInstanceOf[I])
       } else {
-        return false;
+        return false
       }
     }
 
@@ -799,7 +799,7 @@ object Normalizer {
    */
   def substitute[I <: HeapIdentifier[I]](exp: Expression, id: Identifier, subExp: Expression): Expression = {
     if (exp.typ.equals(subExp.typ)) {
-      throw new Exception("Can not substitute an expression of different type to an expression.");
+      throw new Exception("Can not substitute an expression of different type to an expression.")
     }
 
     if (contains[I](exp, id)) {
@@ -822,17 +822,17 @@ object Normalizer {
         // I assume that the identifiers are the same if they have the same name.
         case x: Identifier => {
           if (x.getName.equals(id.getName)) {
-            return subExp;
+            return subExp
           } else {
-            return exp;
+            return exp
           }
         }
 
         case x: HeapIdSetDomain[I] => {
           if (exp.isInstanceOf[I] && id.isInstanceOf[I] && x.value.contains(id.asInstanceOf[I])) {
-            return x.remove(id.asInstanceOf[I]).add(exp.asInstanceOf[I]);
+            return x.remove(id.asInstanceOf[I]).add(exp.asInstanceOf[I])
           } else {
-            return exp;
+            return exp
           }
         }
 
@@ -865,7 +865,7 @@ object Normalizer {
         case _ => throw new Exception("Can not substitute " + subExp.toString + " for " + id.getName + " in " + exp.toString);
       }
     } else {
-      return exp;
+      return exp
     }
   }
 

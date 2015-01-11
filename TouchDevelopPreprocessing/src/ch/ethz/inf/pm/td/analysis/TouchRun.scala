@@ -21,7 +21,7 @@ object TouchDevelopEntryStateBuilder {
 
   type HeapId = ProgramPointHeapIdentifier
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[NonDeterminismWrapper[SummaryNodeWrapper[Pentagons]]], NonrelationalStringDomain[StringKSetDomain]]
+  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[DoublePentagons]]], NonrelationalStringDomain[StringKSetDomain]]
 
   type NonRelHeapType = NonRelationalHeapDomain[HeapId]
   type SummaryHeapType = NonRelationalSummaryCollectionHeapDomain[HeapId]
@@ -110,7 +110,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
-        case NumericDomainChoice.Pentagons => Pentagons(BoxedNonRelationalNumericalDomain[Interval](Interval(1,1)),UpperBound())
+        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval(1,1)),UpperBound())
 //        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
 //        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
 //        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
@@ -118,7 +118,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
       }
     StringsAnd(
       InvalidAnd(
-        NonDeterminismWrapper(SummaryNodeWrapper(domain))
+        SummaryNodeWrapper(NonDeterminismWrapper(domain))
       ),
       NonrelationalStringDomain(
         StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)

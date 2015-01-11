@@ -37,11 +37,11 @@ case class InvertedIdSet(
 }
 
 /**
- * Does not store an environment - ids are unknown.
+ * Does not store an environment - is not defined for all existing identifiers
  *
- * @param map
- * @param isBottom
- * @param isTop
+ * @param map Maps some identifiers to upper bounds (other identifiers)
+ * @param isBottom Sets the domain explicitly to top
+ * @param isTop Sets the domain explicitly to bottom
  */
 case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier, InvertedIdSet],
                       override val isBottom: Boolean = false,
@@ -108,7 +108,7 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
       else if (from.size == 1 && to.size == 1) cur = cur.rename(from.head, to.head)
       else if (to.size == 0) cur = cur.remove(from)
       else if (from.size == 0) cur = cur.add(to)
-      else ???
+      else new NotImplementedError("This domain only supports fold, expand, rename, remove and add; No general replacement support.")
     }
     return cur
   }
@@ -147,8 +147,20 @@ case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperB
 {
 
   override def getStringOfId(id: Identifier) =
-    this._1.getStringOfId(id) + ", bounds[" + this._2.getStringOfId(id) + "]"
+    this._1.getStringOfId(id) + ", " + this._2.getStringOfId(id)
 
   override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: UpperBound) = Pentagons(a, b)
+
+}
+
+case class DoublePentagons(_1: BoxedNonRelationalNumericalDomain[DoubleInterval], _2: UpperBound)
+  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[DoubleInterval], UpperBound, DoublePentagons]
+  with RelationalNumericalDomain[DoublePentagons]
+{
+
+  override def getStringOfId(id: Identifier) =
+    this._1.getStringOfId(id) + ", " + this._2.getStringOfId(id)
+
+  override def factory(a: BoxedNonRelationalNumericalDomain[DoubleInterval], b: UpperBound) = DoublePentagons(a, b)
 
 }
