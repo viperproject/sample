@@ -71,4 +71,7 @@ case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) ext
   override def toString: String = vertex.name
 
   def transform(f: (Expression) => Expression): Expression = f(this)
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
+
 }

@@ -219,6 +219,8 @@ final case class PredicateInstanceState(name: String) extends Expression {
   def typ = PredType
 
   override def toString = name
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
 object PredicateInstanceState {

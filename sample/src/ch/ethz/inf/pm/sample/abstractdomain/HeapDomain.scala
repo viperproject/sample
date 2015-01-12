@@ -516,6 +516,7 @@ case class CollectionContainsExpression(collection: Expression, key: Expression,
     f(CollectionContainsExpression(f(collection), f(key), f(value), returnTyp, pp))
   }
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || collection.contains(f) || key.contains(f) || value.contains(f)
 }
 
 trait HeapIdSetDomain[I <: HeapIdentifier[I]]
@@ -563,6 +564,8 @@ trait HeapIdSetDomain[I <: HeapIdentifier[I]]
   def combinator[S <: Lattice[S]](s1: S, s2: S): S
 
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement)
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || value.map(_.contains(f)).foldLeft(false)(_ || _)
 
 }
 

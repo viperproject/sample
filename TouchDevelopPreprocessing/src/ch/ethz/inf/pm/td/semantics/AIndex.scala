@@ -10,8 +10,6 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 trait AIndex extends ALinearCollection {
 
-  override def keyType = TNumber
-
   def member_clear = ApiMember(
     name = "clear",
     paramTypes = List(),
@@ -30,8 +28,6 @@ trait AIndex extends ALinearCollection {
     /** Gets the i-th element */
     case "at index" =>
       val List(index) = parameters
-      // Check disabled -- ALWAYS FALSE ALARM!
-      // CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - 1, "at index", "index")
       Return[S](collectionAllValues[S](this0))
 
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we

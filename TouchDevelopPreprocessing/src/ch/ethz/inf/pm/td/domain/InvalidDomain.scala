@@ -28,9 +28,20 @@ T <: NumericWithInvalidDomain[N, I, T]]
 
   override def _1canHandle(id: Identifier) = id.typ.isNumericalType
 
+  override def assume(expr:Expression) = {
+    val v = containsValidInvalidExpression(expr)
+    if (v) factory(_1, _2.assume(expr)) else factory(_1.assume(expr), _2)
+  }
+
   def numericalDomain: N = _1
 
   def invalidDomain: I = _2
+
+  def containsValidInvalidExpression(expr:Expression) = expr.contains({
+    case a:InvalidExpression => true
+    case a:ValidExpression => true
+    case _ => false
+  })
 
   override def toString = "Numeric:\n" + ToStringUtilities.indent(this._1.toString) + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
 
@@ -48,6 +59,8 @@ case class InvalidExpression(typ: Type, explanation: String, pp: ProgramPoint) e
   override def toString = "invalid(" + explanation + ")"
 
   def transform(f: (Expression) => Expression): Expression = f(this)
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
 /**
@@ -61,4 +74,6 @@ case class ValidExpression(typ: Type, pp: ProgramPoint) extends Expression {
   override def toString = "valid"
 
   def transform(f: (Expression) => Expression): Expression = f(this)
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }

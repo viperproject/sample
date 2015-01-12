@@ -28,4 +28,6 @@ case class MultiValExpression(left : Expression, right:Expression, returnTyp : T
   override def transform(f:(Expression => Expression)):Expression =
     f(MultiValExpression(left.transform(f),right.transform(f),returnTyp))
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+
 }

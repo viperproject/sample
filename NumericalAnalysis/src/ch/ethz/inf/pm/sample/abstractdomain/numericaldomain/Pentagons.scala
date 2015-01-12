@@ -149,6 +149,8 @@ case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperB
   override def getStringOfId(id: Identifier) =
     this._1.getStringOfId(id) + ", " + this._2.getStringOfId(id)
 
+  override def toString = ids map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
+
   override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: UpperBound) = Pentagons(a, b)
 
 }
@@ -160,6 +162,8 @@ case class DoublePentagons(_1: BoxedNonRelationalNumericalDomain[DoubleInterval]
 
   override def getStringOfId(id: Identifier) =
     this._1.getStringOfId(id) + ", " + this._2.getStringOfId(id)
+
+  override def toString = ids map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
 
   override def factory(a: BoxedNonRelationalNumericalDomain[DoubleInterval], b: UpperBound) = DoublePentagons(a, b)
 

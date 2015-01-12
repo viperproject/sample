@@ -125,6 +125,11 @@ trait Expression {
    * @return the transformed expression
    */
   def transform(f: (Expression => Expression)): Expression
+
+  /**
+   * Checks if function f evaluates to true for any sub-expression
+   */
+  def contains(f: (Expression => Boolean)): Boolean
 }
 
 
@@ -140,6 +145,8 @@ case class NegatedBooleanExpression(exp: Expression) extends Expression {
 
   def transform(f: (Expression => Expression)): Expression =
     f(NegatedBooleanExpression(exp.transform(f)))
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || exp.contains(f)
 }
 
 /**
@@ -185,6 +192,7 @@ case class AbstractOperator(
   override def transform(f: (Expression => Expression)): Expression =
     f(AbstractOperator(thisExpr.transform(f), parameters.map(_.transform(f)), typeparameters, op, returntyp))
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || thisExpr.contains(f) || parameters.map(_.contains(f)).foldLeft(false)(_ || _)
 }
 
 /**
@@ -220,6 +228,8 @@ case class BinaryBooleanExpression(
 
   override def transform(f: (Expression => Expression)): Expression =
     f(BinaryBooleanExpression(left.transform(f), right.transform(f), op, returntyp))
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
 }
 
@@ -266,6 +276,8 @@ case class ReferenceComparisonExpression(
   override def transform(f: (Expression => Expression)): Expression =
     f(copy(left = left.transform(f), right = right.transform(f)))
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+
 }
 
 /**
@@ -301,6 +313,8 @@ case class BinaryArithmeticExpression(
 
   override def transform(f: (Expression => Expression)): Expression =
     f(BinaryArithmeticExpression(left.transform(f), right.transform(f), op, returntyp))
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
 }
 
@@ -351,6 +365,8 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
   override def transform(f: (Expression => Expression)): Expression =
     f(UnaryArithmeticExpression(left.transform(f), op, returntyp))
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f)
+
 }
 
 /**
@@ -379,6 +395,8 @@ case class Constant(
   override def toString = constant
 
   override def transform(f: (Expression => Expression)): Expression = f(this)
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 
 }
 
@@ -415,6 +433,8 @@ trait Identifier extends Expression with Assignable {
   override def toString = getName
 
   def sanitizedName = getName.replaceAll("[^a-z0-9A-Z]*","")
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
 /**
@@ -488,7 +508,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
   override def hashCode(): Int = 0
 
   override def equals(o: Any) = o match {
-    case UnitExpression(_,_) => true
+    case UnitExpression(_, _) => true
     case _ => false
   }
 
@@ -496,6 +516,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 
   override def transform(f: (Expression => Expression)): Expression = f(this)
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
 case class AccessPathIdentifier(path: List[Identifier])
@@ -969,4 +990,5 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
   override def transform(f: (Expression => Expression)): Expression =
     f(BinaryNondeterministicExpression(left.transform(f), right.transform(f), op, returnType))
 
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 }

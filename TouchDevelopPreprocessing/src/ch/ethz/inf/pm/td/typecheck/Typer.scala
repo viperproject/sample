@@ -74,7 +74,8 @@ object Typer {
             val indexMember = GIndexMember(TypeName(ident), keyMembers, fieldMembers)
             val indexType =
               if (keyMembers.size > 0) {
-                GIndex(indexMember)
+                if (keyMembers.size > 1) throw new NotImplementedError("No support for multi-key indexes")
+                GIndex(keyMembers.head.typ,indexMember)
               } else {
                 GSingletonIndex(indexMember)
               }
@@ -92,7 +93,7 @@ object Typer {
             val indexMember = GIndexMember(TypeName(ident),keyMembers,fieldMembers)
 
             val decoratedType = keyMembers.head
-            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"),indexMember)
+            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"), decoratedType.typ, indexMember)
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)

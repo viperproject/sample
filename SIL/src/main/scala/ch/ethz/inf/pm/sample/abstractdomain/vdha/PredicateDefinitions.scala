@@ -256,6 +256,8 @@ final case class PredicateBody(
     */
   def requiredIdMergeOption: Option[PredicateIdentifierMerge] =
     map.values.map(_.requiredIdMergeOption).flatten.headOption
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
 /** Basically an inverse 1-set domain with must semantics. */

@@ -25,6 +25,7 @@ trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
   override def top(): T = wrapperFactory(wrapped.top())
   override def lub(other: T): T = wrapperFactory(wrapped.lub(other.wrapped))
   override def glb(other: T): T = wrapperFactory(wrapped.glb(other.wrapped))
+  override def toString:String = wrapped.toString
 }
 
 trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X,T]]
