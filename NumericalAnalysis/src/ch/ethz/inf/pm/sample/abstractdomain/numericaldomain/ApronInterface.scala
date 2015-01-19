@@ -348,7 +348,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       // Not all declared variables will be represented in APRON. This creates top values for all variables
       // that are currently not declared
       var newEnv = newState.getEnvironment
-      for (id <- Normalizer.getIdsForExpression(expr)) {
+      for (id <- expr.ids) {
 
         if (!ids.contains(id)) {
           println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
@@ -379,7 +379,7 @@ trait ApronInterface[T <: ApronInterface[T]]
           throw new ApronException("Empty expression set created")
         }
 
-      factory(Some(assignedState), domain, env = env ++ Normalizer.getIdsForExpression(expr) + variable)
+      factory(Some(assignedState), domain, env = env ++ expr.ids + variable)
 
     } else this
   }
@@ -389,7 +389,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (isBottom) return this
 
     // Check if we assume something about non-numerical values - if so, return
-    val ids = Normalizer.getIdsForExpression(expr)
+    val ids = expr.ids
     for (id <- ids) {
       if (!id.typ.isNumericalType) {
         return this
@@ -446,7 +446,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       case _ =>
 
         // Assume the expression
-        val expIds = Normalizer.getIdsForExpression(expr)
+        val expIds = expr.ids
         var tmp = instantiateState()
         var expEnv = new Environment()
         for (id <- expIds) {

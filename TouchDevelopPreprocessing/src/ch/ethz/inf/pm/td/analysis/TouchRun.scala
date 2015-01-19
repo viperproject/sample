@@ -180,6 +180,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
         x.printStackTrace(pw)
         Exporters.setDebugInformation(x.toString + x.getMessage + sw.toString)
         Exporters.setStatus("Failed")
+        TouchRun.threadFailed = true
         throw x
 
     }
@@ -189,7 +190,15 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
 object TouchRun {
 
+  /**
+   * We use this to communicate if something bad happened inside the analysis thread.
+   * We then assert that this flag is false, if we want to crash for failed analyses (e.g. in tests)
+   */
+  var threadFailed:Boolean = false
+
   def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+
+    threadFailed = false
 
     this.synchronized {
       val t = new AnalysisThread(file, customTouchParams)

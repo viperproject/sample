@@ -20,8 +20,6 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   extends Lattice[T] {
   this: T =>
 
-  def isBottom: Boolean
-
   def isTop: Boolean
 
   def map: Map[K, V]
@@ -262,8 +260,6 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   def value: Set[V]
 
   def isTop: Boolean
-
-  def isBottom: Boolean
 
   /**
    * Constructs a new set domain of the concrete type
@@ -570,6 +566,8 @@ T <: CartesianProductDomain[T1, T2, T]]
   def lub(other: T): T = factory(_1.lub(other._1), _2.lub(other._2))
 
   def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
+
+  def isBottom = _1.isBottom || _2.isBottom
 
   override def strictGlb(other: T): T = factory(_1.strictGlb(other._1), _2.strictGlb(other._2))
 

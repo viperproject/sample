@@ -33,8 +33,8 @@ object TTile extends Default_TTile {
 
   /** Gets the height in pixels */
   lazy val field_height = new ApiField("height", TNumber,
-    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
-    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
+    default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   /** Gets the icon picture */
   lazy val field_icon = ApiField("icon", TPicture)
@@ -47,8 +47,8 @@ object TTile extends Default_TTile {
 
   /** Gets the width in pixels */
   lazy val field_width = new ApiField("width", TNumber,
-    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
-    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
+    default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   override def possibleFields = super.possibleFields ++ List(
     field_back_icon,

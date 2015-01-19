@@ -73,7 +73,7 @@ object SMath extends Default_SMath {
     /** Returns the cosine of the specified angle (in radians) */
     case "cos" =>
       val List(angle) = parameters // Number
-      Return[S](-1 ndTo 1)
+      Return[S](-1 ndToIncl 1)
 
     /** Returns the hyperbolic cosine of the specified angle (in radians) */
     case "cosh" =>
@@ -200,7 +200,7 @@ object SMath extends Default_SMath {
 
     case "rand" =>
       val List(upperBound) = parameters
-      Return[S](toRichExpression(0) ndTo (upperBound - 1))
+      Return[S](toRichExpression(0) ndToIncl (upperBound - 1))
 
     /** Returns a random integral number x bounded between limit and 0, not including limit unless it is 0 */
     case "random" =>
@@ -208,31 +208,31 @@ object SMath extends Default_SMath {
       If[S](upperBound equal 0, { s: S =>
         Return[S](toRichExpression(0))(s, pp)
       }, { s: S =>
-        Return[S](toRichExpression(0) ndTo (upperBound - 1))(s, pp)
+        Return[S](toRichExpression(0) ndToIncl (upperBound - 1))(s, pp)
       })
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "rand norm" =>
-      Return[S](toRichExpression(0) ndTo toRichExpression(1 - NumericalAnalysisConstants.epsilon))
+      Return[S](toRichExpression(0) ndToExcl toRichExpression(1))
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "random normalized" =>
-      Return[S](toRichExpression(0) ndTo toRichExpression(1 - NumericalAnalysisConstants.epsilon))
+      Return[S](toRichExpression(0) ndToExcl toRichExpression(1))
 
     /** Returns a random integral number between `min` and `max` included. */
     case "random range" =>
       val List(min, max) = parameters // Number,Number
-      Return[S](min ndTo max)
+      Return[S](min ndToIncl max)
 
     /** Rounds a number to the nearest integral value */
     case "round" =>
       val List(x) = parameters // Number
-      Return[S](x - 0.5 ndTo x + 0.5)
+      Return[S](x - 0.5 ndToExcl x + 0.5)
 
     /** Rounds a number to a specified number of fractional digits. */
     case "round with precision" =>
       val List(x, digits) = parameters // Number,Number
-      Return[S](x - 0.5 ndTo x + 0.5)
+      Return[S](x - 0.5 ndToExcl x + 0.5)
 
     /** Returns a value indicating the sign of a number */
     case "sign" =>
@@ -242,7 +242,7 @@ object SMath extends Default_SMath {
     /** Returns the sine of the specified angle (in radians) */
     case "sin" =>
       val List(angle) = parameters // Number
-      Return[S](-1 ndTo 1)
+      Return[S](-1 ndToIncl 1)
 
     /** Returns the hyperbolic sine of the specified angle (in radians) */
     case "sinh" =>
@@ -254,7 +254,7 @@ object SMath extends Default_SMath {
       val List(x) = parameters // Number
       if (TouchAnalysisParameters.reportNumericalErrors)
         Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
-      Return[S]((0 ndTo x), (x ndTo 1)) // PRECISION: This is very rough
+      Return[S](0 ndToIncl x, x ndToIncl 1) // PRECISION: This is very rough
 
     /** Returns the tangent of the specified angle (in radians) */
     case "tan" =>

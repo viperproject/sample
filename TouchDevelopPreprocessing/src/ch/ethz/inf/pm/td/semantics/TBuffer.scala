@@ -48,7 +48,7 @@ object TBuffer extends Default_TBuffer {
     case "set" =>
       val List(index, value) = parameters // Number,Number
       If[S](collectionIndexInRange[S](this0, index), Then = (state) => {
-        val newState = CollectionRemove[S](this0, index)(state, pp)
+        val newState = collectionRemoveAt[S](this0, index)(state, pp)
         collectionInsert[S](this0, index, value)(newState, pp)
       }, Else = (state) => {
         state

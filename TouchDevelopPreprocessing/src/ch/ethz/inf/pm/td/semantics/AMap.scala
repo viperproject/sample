@@ -1,15 +1,39 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler._
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
  * Represents a map collection in TouchDevelop
  */
 trait AMap extends ACollection {
+
+  lazy val keyCollectionTyp = this match {
+    case TString_Map => TString_Collection
+    case TNumber_Map => TNumber_Collection
+    case TJson_Object => TString_Collection
+    case TJson_Builder => TString_Collection
+    case _ => throw new SemanticException("keys() operation is not supported for that object")
+  }
+
+  /**
+   * This is imprecise, because we do not keep the relation between the collection
+   * and its key collection
+   */
+  def collectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = New[S](keyCollectionTyp)(curState,pp)
+    val keyCollection = curState.expr
+    curState = keyCollectionTyp.collectionInsert(
+      keyCollection,
+      Valid(TNumber),
+      this.collectionAllKeys[S](collection)(curState,pp)
+    )(curState,pp)
+    Return[S](keyCollection)(curState,pp)
+  }
 
   /** Frequently used: Gets the value at a given key; invalid if not found */
   def member_at = ApiMember(
@@ -18,6 +42,18 @@ trait AMap extends ACollection {
     thisType = ApiParam(this),
     returnType = valueType,
     semantics = DefaultSemantics
+  )
+
+  /** Frequently used: Gets the value at a given key; invalid if not found */
+  def member_keys = ApiMember(
+    name = "keys",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = keyCollectionTyp,
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S =
+        collectionExtractKeys[S](this0)
+    }
   )
 
   /** Rarely used: Removes the value at a given key */
@@ -60,6 +96,7 @@ trait AMap extends ACollection {
     "at" -> member_at,
     "clear" -> member_clear,
     "is invalid" -> member_is_invalid,
+    "keys" -> member_keys,
     "post to wall" -> member_post_to_wall,
     "remove" -> member_remove,
     "set at" -> member_set_at,
@@ -102,14 +139,11 @@ trait AMap extends ACollection {
     case "remove" =>
       val List(key) = parameters
       If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-        val newState = CollectionRemove[S](this0, key)(state, pp)
+        val newState = collectionRemoveAt[S](this0, key)(state, pp)
         collectionDecreaseLength[S](this0)(newState, pp)
       }, Else = {
-        CollectionRemove[S](this0, key)(_, pp)
+        collectionRemoveAt[S](this0, key)(_, pp)
       })
-
-    case "keys" =>
-      CollectionExtractKeys[S](this0)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

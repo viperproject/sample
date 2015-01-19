@@ -9,26 +9,41 @@ import scala.collection.JavaConverters
 trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
   this: N =>
 
-  def evalConstant(value: Int): N
+  def evalConstant(value: Double): N
 
   def evalConstant(value: Constant): N
 
-  def sum(leftExpr: N, rightExpr: N): N
+  def sum(rightExpr: N): N
 
-  def subtract(leftExpr: N, rightExpr: N): N
+  def subtract(rightExpr: N): N
 
-  def multiply(leftExpr: N, rightExpr: N): N
+  def multiply(rightExpr: N): N
 
-  def divide(leftExpr: N, rightExpr: N): N
+  def divide(rightExpr: N): N
 
-  def valueGEQ(value: N): N
+  /**
+   * Returns a value representing (an overapproximation of) all values greater or equal than this value
+   */
+  def valueGEQ: N
 
-  def valueLEQ(value: N): N
+  /**
+   * Returns a value representing (an overapproximation of) all values less or equal than this value
+   */
+  def valueLEQ: N
 
-  def valueLess(value: N): N
+  /**
+   * Returns a value representing (an overapproximation of) all values less than this value
+   */
+  def valueLess: N
 
-  def valueGreater(value: N): N
+  /**
+   * Returns a value representing (an overapproximation of) all values greater than this value
+   */
+  def valueGreater: N
 
+  /**
+   * Returns true if value ranges overlap
+   */
   def overlapsWith(value: N): Boolean
 
   /**
@@ -42,20 +57,28 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 
 case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
                                                                               map: Map[Identifier, N] = Map.empty[Identifier, N],
-                                                                              override val isBottom: Boolean = false,
+                                                                              isPureBottom: Boolean = false,
                                                                               isTop: Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
   with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
   with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
 
-  def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
-    new BoxedNonRelationalNumericalDomain[N](dom, _value, _isBottom, _isTop)
+  def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isPureBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
+    new BoxedNonRelationalNumericalDomain[N](dom, _value, _isPureBottom, _isTop)
+
+  /**
+   * Domain is bottom if any of its values is bottom. Should this be generalized to boxed domains?
+   */
+  override def isBottom:Boolean = {
+    if (isPureBottom) return true
+    for ((k,v) <- map) if (v.isBottom) return true
+    return false
+  }
 
   def get(key: Identifier): N = map.get(key) match {
     case None => dom.bottom()
     case Some(x) => x
   }
-
 
   override def createVariable(variable: Identifier, typ: Type): BoxedNonRelationalNumericalDomain[N] = {
     if (variable.typ.isNumericalType) {
@@ -95,31 +118,55 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   override def backwardAccess(field: Identifier) = this
 
-  def eval(expr: Expression): N = expr match {
-    case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => return dom.sum(eval(left), eval(right))
-    case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return dom.multiply(eval(left), eval(right))
-    case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return dom.divide(eval(left), eval(right))
-    case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return dom.subtract(eval(left), eval(right))
-    case BinaryArithmeticExpression(left, right, op, typ) => dom.top()
-    case c@Constant(constant, typ, pp) => dom.evalConstant(c)
-    case x: Identifier => this.get(x)
-    case xs: HeapIdSetDomain[_] =>
-      var result = dom.bottom()
-      for (x <- xs.value) result = result.lub(this.get(x))
-      result
-    case x: Expression => dom.top()
+  def evalBoolean(expr: Expression): N = {
+    // Implicit conversion from boolean types
+    val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
+    val mayBeFalse = if (!this.assume(NegatedBooleanExpression(expr)).isBottom) dom.evalConstant(0) else dom.bottom()
+    return mayBeTrue.lub(mayBeFalse)
+  }
+
+  def eval(expr: Expression): N = {
+
+    expr match {
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => return eval(left).sum(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return eval(left).multiply(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return eval(left).divide(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return eval(left).subtract(eval(right))
+      case BinaryArithmeticExpression(left, right, op, typ) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
+      case BinaryBooleanExpression(left, right, _, typ) => evalBoolean(expr)
+      case NegatedBooleanExpression(left) => evalBoolean(expr)
+      case BinaryArithmeticExpression(left, right, op, typ) => dom.top()
+      case c@Constant(constant, typ, pp) => dom.evalConstant(c)
+      case x: Identifier => this.get(x)
+      case xs: HeapIdSetDomain[_] =>
+        var result = dom.bottom()
+        for (x <- xs.value) result = result.lub(this.get(x))
+        result
+      case x: Expression =>
+        dom.top()
+    }
   }
 
   override def assume(expr: Expression): BoxedNonRelationalNumericalDomain[N] =
 
     expr match {
 
+      // Boolean constants
+      case Constant("true",_,_) => this
+      case Constant("false",_,_) => this.bottom()
+      case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false",_,_)) => this
+
       // Boolean variables
       case x: Identifier =>
         assert(x.typ.isBooleanType)
-        assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        return res
+
       case NegatedBooleanExpression(x: Identifier) =>
-        assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+        assert(x.typ.isBooleanType)
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+        return res
 
       // And and Or
       case BinaryBooleanExpression(left, right, op, _) => op match {
@@ -143,25 +190,39 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.==, typ)) =>
         val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
         val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-        assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+        return res
+
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
         val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
         val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-        assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+        return res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
+        assume(BinaryArithmeticExpression(left,right,ArithmeticOperator.negate(op),typ))
 
       // Handling of monomes
       case _ => Normalizer.conditionalExpressionToMonomes(expr) match {
         case None =>
           expr match {
             case BinaryArithmeticExpression(left, right, op, typ) =>
+              if (!left.typ.isNumericalType || !right.typ.isNumericalType) return this
+
               val l: N = this.eval(left)
               val r: N = this.eval(right)
+
               op match {
-                case ArithmeticOperator.== => if (!l.overlapsWith(r)) return this.bottom()
-                case ArithmeticOperator.<= => if (!l.overlapsWith(l.valueLEQ(r))) return this.bottom()
-                case ArithmeticOperator.>= => if (!l.overlapsWith(l.valueGEQ(r))) return this.bottom()
-                case ArithmeticOperator.> => if (!l.overlapsWith(l.valueGreater(r))) return this.bottom()
-                case ArithmeticOperator.< => if (!l.overlapsWith(l.valueLess(r))) return this.bottom()
+                case ArithmeticOperator.== =>
+                  var curState = this
+                  left match  { case lId:Identifier => curState = curState.add(lId,l.glb(r)); case _ => () }
+                  right match { case rId:Identifier => curState = curState.add(rId,l.glb(r)); case _ => () }
+                  return curState
+                case ArithmeticOperator.<= => if (!l.overlapsWith(r.valueLEQ)) return this.bottom()
+                case ArithmeticOperator.>= => if (!l.overlapsWith(r.valueGEQ)) return this.bottom()
+                case ArithmeticOperator.> => if (!l.overlapsWith(r.valueGreater)) return this.bottom()
+                case ArithmeticOperator.< => if (!l.overlapsWith(r.valueLess)) return this.bottom()
                 case _ => return this
               }
             case _ => return this
@@ -179,22 +240,22 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
             var result = dom.evalConstant(constant)
             for (monome1 <- monomes) {
               if (!monome.equals(monome1))
-                result = dom.sum(result, dom.multiply(dom.evalConstant(monome1._1), eval(monome1._2)))
+                result = result sum dom.evalConstant(monome1._1).multiply(eval(monome1._2))
             }
             if (index >= 0) {
               //k*x+n >= 0 => x >= -(n/k)
-              result = dom.divide(result, dom.evalConstant(index))
-              result = dom.subtract(dom.evalConstant(0), result)
-              val newValue = get(variable).glb(dom.valueGEQ(result))
+              result = result.divide(dom.evalConstant(index))
+              result = dom.evalConstant(0).subtract(result)
+              val newValue = get(variable) glb result.valueGEQ
               if (newValue.lessEqual(newValue.bottom()))
                 return stateResult.bottom()
               stateResult = stateResult.add(variable, newValue)
             }
             else {
               //-k*x+n >= 0 => x <= n/-k
-              result = dom.divide(result, dom.evalConstant(-index))
+              result = result.divide(dom.evalConstant(-index))
               val oldValue = this.get(variable)
-              val newRestraint = dom.valueLEQ(result)
+              val newRestraint = result.valueLEQ
               val newValue = oldValue.glb(newRestraint)
               if (newValue.lessEqual(newValue.bottom()))
                 return stateResult.bottom()
@@ -223,6 +284,8 @@ class Top extends NonRelationalNumericalDomain[Top] {
 
   override def toString = "⊤"
 
+  def isBottom: Boolean = false
+
   def top(): Top = this
 
   def bottom(): Top = this
@@ -237,25 +300,25 @@ class Top extends NonRelationalNumericalDomain[Top] {
 
   override def equals(o: Any) = true
 
-  def evalConstant(value: Int): Top = this
+  def evalConstant(value: Double): Top = this
 
   def evalConstant(value: Constant): Top = this
 
-  def sum(leftExpr: Top, rightExpr: Top): Top = this
+  def sum(other: Top): Top = this
 
-  def subtract(leftExpr: Top, rightExpr: Top): Top = this
+  def subtract(other: Top): Top = this
 
-  def multiply(leftExpr: Top, rightExpr: Top): Top = this
+  def multiply(other: Top): Top = this
 
-  def divide(leftExpr: Top, rightExpr: Top): Top = this
+  def divide(other: Top): Top = this
 
-  def valueGEQ(value: Top): Top = this
+  def valueGEQ: Top = this
 
-  def valueLEQ(value: Top): Top = this
+  def valueLEQ: Top = this
 
-  def valueLess(value: Top): Top = this
+  def valueLess: Top = this
 
-  def valueGreater(value: Top): Top = this
+  def valueGreater: Top = this
 
   def overlapsWith(value: Top): Boolean = true
 
@@ -270,7 +333,9 @@ object SignValues extends Enumeration {
   val BOT = Value("⊥")
 }
 
-class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sign] {
+case class Sign(value: SignValues.Value) extends NonRelationalNumericalDomain[Sign] {
+
+  def isBottom: Boolean = value == SignValues.BOT
 
   def overlapsWith(value: Sign): Boolean = {
     if (this.value == SignValues.BOT || value.value == SignValues.BOT) return false
@@ -283,9 +348,9 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
 
   override def toString = value.toString
 
-  def top(): Sign = new Sign(SignValues.T)
+  def top(): Sign = Sign(SignValues.T)
 
-  def bottom(): Sign = new Sign(SignValues.BOT)
+  def bottom(): Sign = Sign(SignValues.BOT)
 
   def lub(other: Sign): Sign = {
     if (value == SignValues.T || other.value == SignValues.T) return top()
@@ -317,48 +382,48 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
     case _ => false
   }
 
-  def sum(leftExpr: Sign, rightExpr: Sign): Sign = {
-    if (leftExpr.value == SignValues.BOT || rightExpr.value == SignValues.BOT) return new Sign(SignValues.BOT)
-    if (leftExpr.value == SignValues.T || rightExpr.value == SignValues.T) return new Sign(SignValues.T)
-    if (leftExpr.value == rightExpr.value) return new Sign(leftExpr.value)
-    if (leftExpr.value == SignValues.ZERO) return new Sign(rightExpr.value)
-    if (rightExpr.value == SignValues.ZERO) return new Sign(leftExpr.value)
-    return new Sign(SignValues.T)
+  def sum(other: Sign): Sign = {
+    if (value == SignValues.BOT || other.value == SignValues.BOT) return Sign(SignValues.BOT)
+    if (value == SignValues.T || other.value == SignValues.T) return Sign(SignValues.T)
+    if (value == other.value) return Sign(value)
+    if (value == SignValues.ZERO) return Sign(other.value)
+    if (other.value == SignValues.ZERO) return Sign(value)
+    return Sign(SignValues.T)
   }
 
-  def subtract(leftExpr: Sign, rightExpr: Sign): Sign = {
-    if (leftExpr.value == SignValues.BOT || rightExpr.value == SignValues.BOT) return new Sign(SignValues.BOT)
-    if (leftExpr.value == SignValues.T || rightExpr.value == SignValues.T) return new Sign(SignValues.T)
-    if (leftExpr.value == SignValues.ZERO) {
-      if (rightExpr.value == SignValues.ZERO) return new Sign(SignValues.ZERO)
-      else if (rightExpr.value == SignValues.+) return new Sign(SignValues.-)
-      else return new Sign(SignValues.+)
+  def subtract(other: Sign): Sign = {
+    if (value == SignValues.BOT || other.value == SignValues.BOT) return Sign(SignValues.BOT)
+    if (value == SignValues.T || other.value == SignValues.T) return Sign(SignValues.T)
+    if (value == SignValues.ZERO) {
+      if (other.value == SignValues.ZERO) return Sign(SignValues.ZERO)
+      else if (other.value == SignValues.+) return Sign(SignValues.-)
+      else return Sign(SignValues.+)
     }
-    if (leftExpr.value != rightExpr.value && leftExpr.value == SignValues.+) return new Sign(SignValues.+)
-    if (leftExpr.value != rightExpr.value && leftExpr.value == SignValues.-) return new Sign(SignValues.-)
-    return new Sign(SignValues.T)
+    if (value != other.value && value == SignValues.+) return Sign(SignValues.+)
+    if (value != other.value && value == SignValues.-) return Sign(SignValues.-)
+    return Sign(SignValues.T)
   }
 
-  def multiply(leftExpr: Sign, rightExpr: Sign): Sign = {
-    if (leftExpr.value == SignValues.BOT || rightExpr.value == SignValues.BOT) return new Sign(SignValues.BOT)
-    if (leftExpr.value == SignValues.ZERO || leftExpr.value == SignValues.ZERO) return new Sign(SignValues.ZERO)
-    if (leftExpr.value == SignValues.T || rightExpr.value == SignValues.T) return new Sign(SignValues.T)
-    if (leftExpr.value == rightExpr.value) return new Sign(SignValues.+)
-    return new Sign(SignValues.-)
+  def multiply(other: Sign): Sign = {
+    if (value == SignValues.BOT || other.value == SignValues.BOT) return Sign(SignValues.BOT)
+    if (value == SignValues.ZERO || value == SignValues.ZERO) return Sign(SignValues.ZERO)
+    if (value == SignValues.T || other.value == SignValues.T) return Sign(SignValues.T)
+    if (value == other.value) return Sign(SignValues.+)
+    return Sign(SignValues.-)
   }
 
-  def divide(leftExpr: Sign, rightExpr: Sign): Sign = {
-    if (leftExpr.value == SignValues.BOT || rightExpr.value == SignValues.BOT || rightExpr.value == SignValues.ZERO) return new Sign(SignValues.BOT)
-    if (leftExpr.value == SignValues.ZERO) return new Sign(SignValues.ZERO)
-    if (leftExpr.value == SignValues.T || rightExpr.value == SignValues.T) return new Sign(SignValues.T)
-    if (leftExpr.value == rightExpr.value) return new Sign(SignValues.+)
-    return new Sign(SignValues.-)
+  def divide(other: Sign): Sign = {
+    if (value == SignValues.BOT || other.value == SignValues.BOT || other.value == SignValues.ZERO) return Sign(SignValues.BOT)
+    if (value == SignValues.ZERO) return Sign(SignValues.ZERO)
+    if (value == SignValues.T || other.value == SignValues.T) return Sign(SignValues.T)
+    if (value == other.value) return Sign(SignValues.+)
+    return Sign(SignValues.-)
   }
 
-  def evalConstant(value: Int): Sign = {
-    if (value > 0) return new Sign(SignValues.+)
-    else if (value == 0) return new Sign(SignValues.ZERO)
-    else return new Sign(SignValues.-)
+  def evalConstant(value: Double): Sign = {
+    if (value > 0) Sign(SignValues.+)
+    else if (value == 0) Sign(SignValues.ZERO)
+    else Sign(SignValues.-)
   }
 
   def evalConstant(value: Constant): Sign = {
@@ -370,33 +435,23 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
     }
   }
 
-  def valueGEQ(value: Sign): Sign = {
-    if (value.value == SignValues.+)
-      return new Sign(SignValues.+)
-    else return new Sign(SignValues.T)
-  }
+  def valueGEQ: Sign =
+    if (value == SignValues.+) Sign(SignValues.+)
+    else Sign(SignValues.T)
 
-  def valueLEQ(value: Sign): Sign = {
-    if (value.value == SignValues.-)
-      return new Sign(SignValues.-)
-    else return this
-  }
+  def valueLEQ: Sign =
+    if (value == SignValues.-) Sign(SignValues.-)
+    else this
 
-  def valueLess(value: Sign): Sign = {
-    if (value.value == SignValues.- || value.value == SignValues.ZERO)
-      return new Sign(SignValues.-)
-    else return this
-  }
+  def valueLess: Sign =
+    if (value == SignValues.- || value == SignValues.ZERO) Sign(SignValues.-)
+    else this
 
-  def valueGreater(value: Sign): Sign = {
-    if (value.value == SignValues.+ || value.value == SignValues.ZERO)
-      return new Sign(SignValues.+)
-    else return this
-  }
+  def valueGreater: Sign =
+    if (value == SignValues.+ || value == SignValues.ZERO) Sign(SignValues.+)
+    else this
 
 }
-
-
 
 case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[Interval] {
 
@@ -481,8 +536,8 @@ case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[
     case _ => false
   }
 
-  def evalConstant(value: Int): Interval = {
-     return new Interval(value, value)
+  def evalConstant(value: Double): Interval = {
+     return new Interval(value.toInt, value.toInt)
   }
 
   def evalConstant(value: Constant): Interval = {
@@ -493,27 +548,27 @@ case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[
     }
   }
 
-  def sum(leftExpr: Interval, rightExpr: Interval): Interval = {
-    if (leftExpr.isBottom || rightExpr.isBottom) return new Interval(1, 0)
-    var left = leftExpr.left + rightExpr.left
-    var right = leftExpr.right + rightExpr.right
-    if (leftExpr.left == Integer.MIN_VALUE || rightExpr.left == Integer.MIN_VALUE)
-      left = Integer.MIN_VALUE
-    if (leftExpr.right == Integer.MAX_VALUE || rightExpr.right == Integer.MAX_VALUE || (rightExpr.right + leftExpr.right) < rightExpr.right) //Last case for overflow
-      right = Integer.MAX_VALUE
-    return new Interval(left, right)
+  def sum(other: Interval): Interval = {
+    if (isBottom || other.isBottom) return new Interval(1, 0)
+    var newLeft = left + other.left
+    var newRight = right + other.right
+    if (left == Integer.MIN_VALUE || other.left == Integer.MIN_VALUE)
+      newLeft = Integer.MIN_VALUE
+    if (right == Integer.MAX_VALUE || other.right == Integer.MAX_VALUE || (other.right + right) < other.right) //Last case for overflow
+      newRight = Integer.MAX_VALUE
+    return new Interval(newLeft, newRight)
 
   }
 
-  def subtract(leftExpr: Interval, rightExpr: Interval): Interval = {
-    if (leftExpr.isBottom || rightExpr.isBottom) return new Interval(1, 0)
-    var left = leftExpr.left - rightExpr.left
-    var right = leftExpr.right - rightExpr.right
-    if (leftExpr.left == Integer.MIN_VALUE || rightExpr.left == Integer.MIN_VALUE || (rightExpr.right - leftExpr.right) > rightExpr.right) //Last case for underflow
-      left = Integer.MIN_VALUE
-    if (leftExpr.right == Integer.MAX_VALUE || rightExpr.right == Integer.MAX_VALUE)
-      right = Integer.MAX_VALUE
-    return new Interval(left, right)
+  def subtract(other: Interval): Interval = {
+    if (isBottom || other.isBottom) return new Interval(1, 0)
+    var newLeft = left - other.left
+    var newRight = right - other.right
+    if (left == Integer.MIN_VALUE || other.left == Integer.MIN_VALUE || (other.right - right) > other.right) //Last case for underflow
+      newLeft = Integer.MIN_VALUE
+    if (right == Integer.MAX_VALUE || other.right == Integer.MAX_VALUE)
+      newRight = Integer.MAX_VALUE
+    return new Interval(newLeft, newRight)
   }
 
   private def max(a: Int, b: Int, c: Int, d: Int): Int = max(max(a, b), max(c, d))
@@ -532,41 +587,41 @@ case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[
     return result
   }
 
-  def multiply(leftExpr: Interval, rightExpr: Interval): Interval = {
-    val a = managedMultiply(leftExpr.left, rightExpr.left)
-    val b = managedMultiply(leftExpr.left, rightExpr.right)
-    val c = managedMultiply(leftExpr.right, rightExpr.left)
-    val d = managedMultiply(leftExpr.right, rightExpr.right)
+  def multiply(other: Interval): Interval = {
+    val a = managedMultiply(left, other.left)
+    val b = managedMultiply(left, other.right)
+    val c = managedMultiply(right, other.left)
+    val d = managedMultiply(right, other.right)
     val result = new Interval(min(a, b, c, d), max(a, b, c, d))
     return result
   }
 
-  def divide(leftExpr: Interval, rightExpr: Interval): Interval = {
-    if (rightExpr.left == 0 && rightExpr.right == 0) return leftExpr.bottom()
-    val a = leftExpr.left / (if (rightExpr.left == 0) 1 else rightExpr.left)
-    val b = leftExpr.left / (if (rightExpr.right == 0) 0 - 1 else rightExpr.right)
-    val c = leftExpr.right / (if (rightExpr.left == 0) 1 else rightExpr.left)
-    val d = leftExpr.right / (if (rightExpr.right == 0) 0 - 1 else rightExpr.right)
+  def divide(other: Interval): Interval = {
+    if (other.left == 0 && other.right == 0) return bottom()
+    val a = left / (if (other.left == 0) 1 else other.left)
+    val b = left / (if (other.right == 0) 0 - 1 else other.right)
+    val c = right / (if (other.left == 0) 1 else other.left)
+    val d = right / (if (other.right == 0) 0 - 1 else other.right)
     var result = new Interval(min(a, b, c, d), max(a, b, c, d))
-    if (leftExpr.left < 0 && leftExpr.right > 0) //It contains 0
+    if (left < 0 && right > 0) //It contains 0
       result = result.lub(new Interval(0, 0))
-    if (rightExpr.left < 0 && rightExpr.right > 0) {
+    if (other.left < 0 && other.right > 0) {
       //It contains 0
-      if (leftExpr.right > 0)
+      if (right > 0)
         result = new Interval(result.left, Integer.MAX_VALUE)
-      if (leftExpr.left < 0)
+      if (left < 0)
         result = new Interval(Integer.MIN_VALUE, result.right)
     }
     return result
   }
 
-  def valueGEQ(value: Interval): Interval = return new Interval(value.left, Integer.MAX_VALUE)
+  def valueGEQ: Interval = Interval(left, Integer.MAX_VALUE)
 
-  def valueLEQ(value: Interval): Interval = new Interval(Integer.MIN_VALUE, value.right)
+  def valueLEQ: Interval = Interval(Integer.MIN_VALUE, right)
 
-  def valueGreater(value: Interval): Interval = return new Interval(value.right + 1, Integer.MAX_VALUE)
+  def valueGreater: Interval = Interval(right + 1, Integer.MAX_VALUE)
 
-  def valueLess(value: Interval): Interval = new Interval(Integer.MIN_VALUE, value.left - 1)
+  def valueLess: Interval = Interval(Integer.MIN_VALUE, left - 1)
 }
 
 case class DoubleInterval(left: Double, right: Double) extends NonRelationalNumericalDomain[DoubleInterval] {
@@ -652,8 +707,6 @@ case class DoubleInterval(left: Double, right: Double) extends NonRelationalNume
     case _ => false
   }
 
-  def evalConstant(value: Int): DoubleInterval = return new DoubleInterval(value, value)
-
   def evalConstant(value: Double): DoubleInterval = return new DoubleInterval(value, value)
 
   def evalConstant(value: Constant): DoubleInterval = {
@@ -665,29 +718,29 @@ case class DoubleInterval(left: Double, right: Double) extends NonRelationalNume
     }
   }
 
-  def sum(leftExpr: DoubleInterval, rightExpr: DoubleInterval): DoubleInterval = {
-    if (leftExpr.isBottom || rightExpr.isBottom) return new DoubleInterval(1, 0)
-    var left = leftExpr.left + rightExpr.left
-    var right = leftExpr.right + rightExpr.right
-    if (leftExpr.left == Double.MinValue || rightExpr.left == Double.MinValue)
-      left = Double.MinValue
-    if (leftExpr.right == Double.MaxValue || rightExpr.right == Double.MaxValue
-      || (rightExpr.right + leftExpr.right) < rightExpr.right) // Last case for overflow
-      right = Double.MaxValue
-    return new DoubleInterval(left, right)
+  def sum(other: DoubleInterval): DoubleInterval = {
+    if (isBottom || other.isBottom) return new DoubleInterval(1, 0)
+    var newLeft = left + other.left
+    var newRight = right + other.right
+    if (left == Double.MinValue || other.left == Double.MinValue)
+      newLeft = Double.MinValue
+    if (right == Double.MaxValue || other.right == Double.MaxValue
+      || (other.right + right) < other.right) // Last case for overflow
+      newRight = Double.MaxValue
+    return new DoubleInterval(newLeft, newRight)
 
   }
 
-  def subtract(leftExpr: DoubleInterval, rightExpr: DoubleInterval): DoubleInterval = {
-    if (leftExpr.isBottom || rightExpr.isBottom) return new DoubleInterval(1, 0)
-    var left = leftExpr.left - rightExpr.left
-    var right = leftExpr.right - rightExpr.right
-    if (leftExpr.left == Double.MinValue || rightExpr.left == Double.MinValue
-      || (rightExpr.right - leftExpr.right) > rightExpr.right) //Last case for underflow
-      left = Double.MinValue
-    if (leftExpr.right == Double.MaxValue || rightExpr.right == Double.MaxValue)
-      right = Double.MaxValue
-    return new DoubleInterval(left, right)
+  def subtract(other: DoubleInterval): DoubleInterval = {
+    if (isBottom || other.isBottom) return new DoubleInterval(1, 0)
+    var newLeft = left - other.left
+    var newRight = right - other.right
+    if (left == Double.MinValue || other.left == Double.MinValue
+      || (other.right - right) > other.right) //Last case for underflow
+      newLeft = Double.MinValue
+    if (right == Double.MaxValue || other.right == Double.MaxValue)
+      newRight = Double.MaxValue
+    return new DoubleInterval(newLeft, newRight)
   }
 
   private def max(a: Double, b: Double, c: Double, d: Double): Double = max(max(a, b), max(c, d))
@@ -706,41 +759,41 @@ case class DoubleInterval(left: Double, right: Double) extends NonRelationalNume
     return result
   }
 
-  def multiply(leftExpr: DoubleInterval, rightExpr: DoubleInterval): DoubleInterval = {
-    val a = managedMultiply(leftExpr.left, rightExpr.left)
-    val b = managedMultiply(leftExpr.left, rightExpr.right)
-    val c = managedMultiply(leftExpr.right, rightExpr.left)
-    val d = managedMultiply(leftExpr.right, rightExpr.right)
+  def multiply(other: DoubleInterval): DoubleInterval = {
+    val a = managedMultiply(left, other.left)
+    val b = managedMultiply(left, other.right)
+    val c = managedMultiply(right, other.left)
+    val d = managedMultiply(right, other.right)
     val result = new DoubleInterval(min(a, b, c, d), max(a, b, c, d))
     return result
   }
 
-  def divide(leftExpr: DoubleInterval, rightExpr: DoubleInterval): DoubleInterval = {
-    if (rightExpr.left == 0 && rightExpr.right == 0) return leftExpr.bottom()
-    val a = leftExpr.left / (if (rightExpr.left == 0) 1 else rightExpr.left)
-    val b = leftExpr.left / (if (rightExpr.right == 0) 0 - 1 else rightExpr.right)
-    val c = leftExpr.right / (if (rightExpr.left == 0) 1 else rightExpr.left)
-    val d = leftExpr.right / (if (rightExpr.right == 0) 0 - 1 else rightExpr.right)
+  def divide(other: DoubleInterval): DoubleInterval = {
+    if (other.left == 0 && other.right == 0) return bottom()
+    val a = left / (if (other.left == 0) 1 else other.left)
+    val b = left / (if (other.right == 0) 0 - 1 else other.right)
+    val c = right / (if (other.left == 0) 1 else other.left)
+    val d = right / (if (other.right == 0) 0 - 1 else other.right)
     var result = new DoubleInterval(min(a, b, c, d), max(a, b, c, d))
-    if (leftExpr.left < 0 && leftExpr.right > 0) //It contains 0
+    if (left < 0 && right > 0) //It contains 0
       result = result.lub(new DoubleInterval(0, 0))
-    if (rightExpr.left < 0 && rightExpr.right > 0) {
+    if (other.left < 0 && other.right > 0) {
       //It contains 0
-      if (leftExpr.right > 0)
+      if (right > 0)
         result = new DoubleInterval(result.left, Double.MaxValue)
-      if (leftExpr.left < 0)
+      if (left < 0)
         result = new DoubleInterval(Double.MinValue, result.right)
     }
     return result
   }
 
-  def valueGEQ(value: DoubleInterval): DoubleInterval = return new DoubleInterval(value.left, Double.MaxValue)
+  def valueGEQ: DoubleInterval = DoubleInterval(left, Double.MaxValue)
 
-  def valueLEQ(value: DoubleInterval): DoubleInterval = new DoubleInterval(Double.MinValue, value.right)
+  def valueLEQ: DoubleInterval = DoubleInterval(Double.MinValue, right)
 
-  def valueGreater(value: DoubleInterval): DoubleInterval = return new DoubleInterval(value.right + 1, Double.MaxValue)
+  def valueGreater: DoubleInterval = DoubleInterval(right + 1, Double.MaxValue)
 
-  def valueLess(value: DoubleInterval): DoubleInterval = new DoubleInterval(Double.MinValue, value.left - 1)
+  def valueLess: DoubleInterval = DoubleInterval(Double.MinValue, left - 1)
 
 }
 

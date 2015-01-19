@@ -396,7 +396,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
    def assume(expr : Expression) : Bricks = {
      if(isBottom || !expr.typ.isStringType)return this
      // Check if we assume something about non-numerical values - if so, return
-     val ids = Normalizer.getIdsForExpression(expr)
+     val ids = expr.ids
      for (id <- ids) {
        if (!id.typ.isStringType) {
          return this

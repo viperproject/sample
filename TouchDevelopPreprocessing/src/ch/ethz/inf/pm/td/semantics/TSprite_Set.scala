@@ -42,7 +42,7 @@ object TSprite_Set extends Default_TSprite_Set {
     case "index of" =>
       val List(item) = parameters
       If[S](collectionContainsValue[S](this0, item) equal True, Then = {
-        Return[S](0 ndTo collectionSize[S](this0) - 1)(_, pp)
+        Return[S](0 ndToIncl collectionSize[S](this0) - 1)(_, pp)
       }, Else = {
         Return[S](-1)(_, pp)
       })
@@ -50,13 +50,13 @@ object TSprite_Set extends Default_TSprite_Set {
     /** Remove sprite that was added to set first. */
     case "remove first" =>
       If[S](collectionSize[S](this0) > 0, Then = (state) => {
-        val result = state.getCollectionValue(collectionAt[S](this0, toRichExpression(0))(state, pp)).expr
-        var newState = CollectionRemove[S](this0, toRichExpression(0))(state, pp)
+        val result = Field[S](collectionAt[S](this0, toRichExpression(0))(state,pp),entryType.field_value)(state,pp)
+        var newState = collectionRemoveAt[S](this0, toRichExpression(0))(state, pp)
         newState = collectionDecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
+        Return[S](Invalid(valueType, "collection may be empty"))(_, pp)
       })
 
     case _ =>

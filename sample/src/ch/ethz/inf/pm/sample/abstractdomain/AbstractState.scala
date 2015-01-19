@@ -123,7 +123,7 @@ case class ExpressionSet(
 
   def isTop = this._2.isTop
 
-  def isBottom = {
+  override def isBottom = {
     // `SetDomain` objects may currently have an empty set, while both
     // `isTop` and `isBottom` are set to `false`, which is inconsistent.
     // Unfortunately, we cannot easily forbid such inconsistent `SetDomain`

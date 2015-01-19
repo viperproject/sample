@@ -38,9 +38,9 @@ object TVector3 extends Default_TVector3 {
     /** Restricts the vector in the specified range */
     case "clamp" =>
       val List(min,max) = parameters // Vector3,Vector3
-      val x = Field[S](min,TVector3.field_x) ndTo Field[S](max,TVector3.field_x)
-      val y = Field[S](min,TVector3.field_y) ndTo Field[S](max,TVector3.field_y)
-      val z = Field[S](min,TVector3.field_z) ndTo Field[S](max,TVector3.field_z)
+      val x = Field[S](min,TVector3.field_x) ndToIncl Field[S](max,TVector3.field_x)
+      val y = Field[S](min,TVector3.field_y) ndToIncl Field[S](max,TVector3.field_y)
+      val z = Field[S](min,TVector3.field_z) ndToIncl Field[S](max,TVector3.field_z)
       // PRECISION: Here we are not using the original value of the vector.
       New[S](TVector3,Map(
         TVector3.field_x -> x,
@@ -74,7 +74,7 @@ object TVector3 extends Default_TVector3 {
       val z = Field[S](this0,TVector3.field_z) - Field[S](other,TVector3.field_z)
       val disSquare = x * x + y * y + z * z
       // PRECISION: Imprecise square root
-      Return[S](0 ndTo disSquare, 0 ndTo 1)
+      Return[S](0 ndToIncl disSquare, 0 ndToIncl 1)
 
     /** Gets the length of the vector */
     case "length" =>
@@ -83,7 +83,7 @@ object TVector3 extends Default_TVector3 {
       val thisZ = Field[S](this0,TVector3.field_z)
       val lenSquare = thisX * thisX + thisY * thisY + thisZ * thisZ
       // PRECISION: Imprecise square root
-      Return[S](0 ndTo lenSquare,0 ndTo 1)
+      Return[S](0 ndToIncl lenSquare,0 ndToIncl 1)
 
     /** Linear interpolation between two vectors */
     case "linear interpolation" =>
@@ -123,9 +123,9 @@ object TVector3 extends Default_TVector3 {
     case "normalize" =>
       // PRECISION: There is a more precise way to do this
       New[S](TVector3,Map(
-        TVector3.field_x -> (-1 ndTo 1),
-        TVector3.field_y -> (-1 ndTo 1),
-        TVector3.field_z -> (-1 ndTo 1)
+        TVector3.field_x -> (-1 ndToIncl 1),
+        TVector3.field_y -> (-1 ndToIncl 1),
+        TVector3.field_z -> (-1 ndToIncl 1)
       ))
 
     /** Multiplies with a scaling factor */

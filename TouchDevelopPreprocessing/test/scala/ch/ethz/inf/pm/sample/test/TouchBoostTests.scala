@@ -7,6 +7,10 @@ class TouchBoostTests extends TouchBoostTestSuite {
 
   def testDirectories: Seq[String] = Seq("automated_tests")
 
-  def runOnFile(file: String): Seq[SampleMessage] = TouchRun.runSingle(file, Some(touchBoostOptions))
+  def runOnFile(file: String): Seq[SampleMessage] = {
+    val res = TouchRun.runSingle(file, Some(touchBoostOptions))
+    assert(!TouchRun.threadFailed)
+    res
+  }
 
 }

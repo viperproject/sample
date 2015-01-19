@@ -2,11 +2,17 @@ package ch.ethz.inf.pm.td.domain
 
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, ApiField}
 
 import scala.collection.immutable.Set
+
+object HeapIdentifier {
+
+  def makeDummy(typ:Type) = HeapIdentifier(DummyProgramPoint,typ,summary = false,0)
+
+}
 
 case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier {
   override val getName: String = pp + (if (summary) "Σ" else "") + "[v"+unique+"]" + typ.toString
@@ -150,12 +156,16 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     case _ => bottom()
   }
 
-  /** TODO: Is this enough?
-    *
-    * Returns May / Must information
-    *
-    * */
-  def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): (Set[HeapIdentifier],Set[HeapIdentifier]) = {
+  /**
+   * Returns all objects pointed to by the field which may / must match the given filter
+   *
+   * @param obj An expression containing objects
+   * @param field  The name of the field
+   * @param typ    The type of the field
+   * @param filter The filter, that, given an object and a state, returns whether it matches
+   * @return       A may set and a must set of object
+   */
+  def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter:(Identifier,T) => Boolean): (Set[Identifier],Set[Identifier]) = {
     assert (typ.isObject)
 
     val objs = obj match {
@@ -167,17 +177,26 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val valsMay = (for (o <- objs) yield {
       val fieldTargets = forwardMay.getOrElse(FieldIdentifier(o,field,typ),Set.empty)
       fieldTargets.filter{filter(_,this)}
-    }).flatten
+    }).flatten.toSet[Identifier]
 
     val valsMust = (for (o <- objs) yield {
       val fieldTargets = forwardMust.getOrElse(FieldIdentifier(o,field,typ),Set.empty)
       fieldTargets.filter{filter(_,this)}
-    }).flatten
+    }).flatten.toSet[Identifier]
 
     (valsMay,valsMust)
   }
 
-  def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): (Set[HeapIdentifier],Set[HeapIdentifier]) = {
+  /**
+   * Returns all objects pointed to by the field which may / must match the given filter
+   *
+   * @param objSet An expression set containing objects
+   * @param field  The name of the field
+   * @param typ    The type of the field
+   * @param filter The filter, that, given an object and a state, returns whether it matches
+   * @return       A may set and a must set of object
+   */
+  override def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(Identifier,T) => Boolean): (Set[Identifier],Set[Identifier]) = {
     val (left,right) = objSet.getSetOfExpressions.map(getFieldValueWhere(_, field, typ, filter)).unzip
     val (newLeft,newRight) = (left.flatten,right.flatten)
     (newLeft,newRight)
@@ -606,7 +625,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     cur
   }
 
-  def merge(r:Replacement):T = {
+  override def merge(r:Replacement):T = {
 
     if (r.isEmpty()) return this
 
@@ -740,14 +759,15 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   def strongUpdateValue(left:Identifier, right:Expression): T = {
     // reference object
-    copy(
+    val res = copy(
       forwardMay,
       forwardMust,
       backwardMay,
       versions,
       valueState.assign(left,right),
       ExpressionFactory.unitExpr
-    ) // TODO: Correct?
+    )
+    res
   }
 
   def weakUpdateReference(left:Identifier, right:HeapIdentifier): T = {

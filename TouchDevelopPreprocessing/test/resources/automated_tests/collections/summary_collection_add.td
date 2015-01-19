@@ -1,4 +1,3 @@
-//:: IgnoreFile(/TouchBoost/issue/0/)
 action main() {
     $s1 := code->create_coll();
     $s2 := code->create_coll();

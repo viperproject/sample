@@ -9,5 +9,5 @@ action doSomething(p: Picture) {
     $p3 := $p2;
     $p4 := $p3;
 
-    contract->assert(not $p4->is_invalid, "");
+    contract->assert(not($p4->is_invalid), "");
 }

@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{SetDomain, ExpressionSet, Identifier, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{TouchDevelopEntryStateBuilder, RichExpression, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, TouchState}
+import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchState}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -107,7 +107,7 @@ trait ACollection extends AAny {
   }
 
   def collectionUpdate[S <: State[S]](collection: RichExpression, key: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    val newState = CollectionRemove[S](collection, key)(state, pp)
+    val newState = collectionRemoveAt[S](collection, key)(state, pp)
     collectionInsert[S](collection, key, value)(newState, pp)
   }
 
@@ -128,36 +128,46 @@ trait ACollection extends AAny {
   }
 
   def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    state match {
-      case tS: TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType] =>
-        new ExpressionSet(entryType.field_value.typ,SetDomain.Default(
-          tS.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
-          {
-            (x:HeapIdentifier,s:TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]) =>
-              !s.assume(FieldIdentifier(x,entryType.field_key.getField.get,entryType.field_key.typ) equal key).isBottom
-          }
-          )._1.map(FieldIdentifier(_,entryType.field_value.getField.get,entryType.field_value.typ))))
-      case _ => collectionAllValues[S](collection)
+    Lattice.bigLub[ExpressionSet](
+      state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
+      {
+        (x:Identifier,s:S) =>
+          !s.assume(Field[S](x,entryType.field_key)(s,pp) equal key).isBottom
+      }
+      )._1.map({
+        x: Identifier => toExpressionSet(Field[S](x,entryType.field_value)(state,pp))
+      })
+    )
+  }
+
+  def collectionRemoveAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    // find all nodes which must match the key, and remove them
+    val (_,nodesToBeRemoved) =
+      state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
+      {
+        (x:Identifier,s:S) =>
+          s.assume(Field[S](x,entryType.field_key)(s,pp) unequal key).isBottom
+      })
+    val r = new Replacement(isPureRemoving = true)
+    for (n <- nodesToBeRemoved) {
+      r.value += (Set[Identifier](n) -> Set.empty[Identifier])
     }
+    val noEqualKey = Field[S](Field[S](collection,field_entry),entryType.field_key) unequal key
+
+    state.merge(r).assume(noEqualKey)
   }
 
   def collectionContainsKey[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    state match {
-      case tS: TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType] =>
+    val (mayMatching,mustMatching) = state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
+      {
+        (x:Identifier,s:S) =>
+          !s.assume(Field[S](x,entryType.field_key)(s,pp) equal key).isBottom
+      }
+    )
 
-        val (mayMatching,mustMatching) = tS.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
-          {
-            (x:HeapIdentifier,s:TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]) =>
-              !s.assume(FieldIdentifier(x,entryType.field_key.getField.get,entryType.field_key.typ) equal key).isBottom
-          }
-          )
-
-        if (mayMatching.nonEmpty) True
-        else if (mustMatching.isEmpty) False
-        else True or False
-
-      case _ => True or False
-    }
+    if (mayMatching.nonEmpty) True
+    else if (mustMatching.isEmpty) False
+    else True or False
   }
 
   def collectionRemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {

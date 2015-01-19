@@ -24,13 +24,13 @@ object TPicture extends Default_TPicture {
 
   /** Gets the width in pixels */
   lazy val field_width = new ApiField("width", TNumber,
-    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
-    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
+    default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   /** Gets the height in pixels */
   lazy val field_height = new ApiField("height", TNumber,
-    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
-    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
+    default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
   lazy val field_location = new ApiField("location", TLocation, InvalidInitializer("picture may not have a location"))

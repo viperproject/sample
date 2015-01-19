@@ -85,7 +85,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     if (isBottom) return this
 
     // Check if we assume something about non-numerical values - if so, return
-    val ids = Normalizer.getIdsForExpression(expr)
+    val ids = expr.ids
       for (id <- ids) {
       if (!id.typ.isStringType) {
         return this

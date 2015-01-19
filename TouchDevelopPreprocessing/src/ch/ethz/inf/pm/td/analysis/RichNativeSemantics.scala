@@ -271,13 +271,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   }
 
-  private def getKeyCollectionTyp(colTyp: ACollection) = colTyp match {
-    case TString_Map => Some(TString_Collection)
-    case TNumber_Map => Some(TNumber_Collection)
-    case TJson_Object => Some(TString_Collection)
-    case _ => None
-  }
-
   /*-- Collections --*/
 //
 //  def CollectionSize[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
@@ -303,27 +296,27 @@ object RichNativeSemantics extends RichExpressionImplicits {
 //
 //    newState.setExpression(expression)
 //  }
+////
+//  def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+//    val collectionTyp = collection.getType().asInstanceOf[ACollection]
+//    val keyType = collectionTyp.keyType
 //
-  def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    val collectionTyp = collection.getType().asInstanceOf[ACollection]
-    val keyType = collectionTyp.keyType
-
-    val newCollectionTyp = getKeyCollectionTyp(collectionTyp) match {
-      case Some(x) => x
-      case None => throw new SemanticException("keys() operation is not supported for that object")
-    }
-
-    var newState = state.extractCollectionKeys(collection, 0 ndTo (collection.getType().asInstanceOf[ACollection].collectionSize[S](collection) - 1), collectionTyp, newCollectionTyp, TNumber, keyType, TNumber, pp)
-    val newCollection = newState.expr
-    // Make sure that our value is "valid"  now
-    newState = newState.assignVariable(newCollection, Valid(newCollectionTyp))
-    newState = newState.assignField(newCollection, "orig", collection)
-    newState = newState.assignField(collection, "keys", newCollection)
-
-
-    newState.setExpression(newCollection)
-  }
+//    val newCollectionTyp = getKeyCollectionTyp(collectionTyp) match {
+//      case Some(x) => x
+//      case None => throw new SemanticException("keys() operation is not supported for that object")
+//    }
 //
+//    var newState = state.extractCollectionKeys(collection, 0 ndTo (collection.getType().asInstanceOf[ACollection].collectionSize[S](collection) - 1), collectionTyp, newCollectionTyp, TNumber, keyType, TNumber, pp)
+//    val newCollection = newState.expr
+//    // Make sure that our value is "valid"  now
+//    newState = newState.assignVariable(newCollection, Valid(newCollectionTyp))
+//    newState = newState.assignField(newCollection, "orig", collection)
+//    newState = newState.assignField(collection, "keys", newCollection)
+//
+//
+//    newState.setExpression(newCollection)
+//  }
+////
 //  def CollectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
 //    state.assignAllCollectionKeys(collection, 0 ndTo CollectionSize[S](collection) - 1)
 //  }
@@ -356,14 +349,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
 //    result
 //  }
 
-  def CollectionRemove[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    var result = state.removeCollectionValueByKey(collection, index)
-    val keysCollection = result.getKeysCollection(collection).expr
-    if (!keysCollection.isBottom && keysCollection.getType().isInstanceOf[ACollection]) {
-      result = result.removeCollectionKeyConnection(collection, keysCollection)
-    }
-    result
-  }
+//  def CollectionRemove[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+//    var result = state.removeCollectionValueByKey(collection, index)
+//    val keysCollection = result.getKeysCollection(collection).expr
+//    if (!keysCollection.isBottom && keysCollection.getType().isInstanceOf[ACollection]) {
+//      result = result.removeCollectionKeyConnection(collection, keysCollection)
+//    }
+//    result
+//  }
 
   def CollectionRemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {
     state.removeFirstCollectionValueByValue(collection, value)
@@ -439,7 +432,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val rightExprs = getMultiValAsList(value)
 
     if (leftExprs.length != rightExprs.length) {
-      Reporter.reportImprecision("A multival assignment has an unmatching number of values - going to top", pp)
+      Reporter.reportImprecision("An assignment has an unmatching number of values - going to top", pp)
       return state.top()
     }
 

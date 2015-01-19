@@ -80,7 +80,7 @@ case class ConstrainedPolyhedra(
 			    	} else {
 			    		 for(monome <- monomes) {
 			    			 val (index, variable) = monome
-			    			 if (   (checkCoef && !coefficients.contains(index))  
+			    			 if (   (checkCoef && !coefficients.contains(index.toInt))
 			    				 || (checkVariableSet && !setOfStringOfID.contains(variable.getName))) {
 			    				 //-------------------------- Comment out----
 			    				 //println(index + " is not contained in " + coefficients.toString)

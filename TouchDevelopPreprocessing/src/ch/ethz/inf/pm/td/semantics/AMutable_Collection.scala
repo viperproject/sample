@@ -134,8 +134,10 @@ trait AMutable_Collection extends ALinearCollection {
     /** Adds an element */
     case "add" =>
       val List(value) = parameters // Element_Type
-      val newState = collectionInsert[S](this0,collectionSize[S](this0), value)
-      collectionIncreaseLength[S](this0)(newState, pp)
+      var curState = state
+      curState = collectionInsert[S](this0,collectionSize[S](this0), value)(curState,pp)
+      curState = collectionIncreaseLength[S](this0)(curState,pp)
+      curState
 
     /** Adds many elements at once */
     case "add many" =>
@@ -154,7 +156,7 @@ trait AMutable_Collection extends ALinearCollection {
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](collectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
-        Return[S](0 ndTo collectionSize[S](this0)-1)(_, pp)
+        Return[S](0 ndToIncl collectionSize[S](this0)-1)(_, pp)
       }, Else={
         Return[S](-1)(_, pp)
       })
@@ -213,11 +215,11 @@ trait AMutable_Collection extends ALinearCollection {
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
-        var newState = CollectionRemove[S](this0, index)(state, pp)
+        var newState = collectionRemoveAt[S](this0, index)(state, pp)
         newState = collectionDecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)
       }, Else={
-        CollectionRemove[S](this0, index)(_, pp)
+        collectionRemoveAt[S](this0, index)(_, pp)
       })
 
     /** Reverses the order of the elements. */

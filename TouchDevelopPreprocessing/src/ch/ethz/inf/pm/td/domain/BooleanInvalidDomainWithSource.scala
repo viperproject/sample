@@ -83,9 +83,9 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
    *
    */
   private def eval(expr: Expression): PositionedInvalidValueDomain = expr match {
-    case BinaryArithmeticExpression(left, right, _, typ) => eval(left).lub(eval(right))
-    case BinaryNondeterministicExpression(left, right, _, typ) => eval(left).lub(eval(right))
-    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => eval(left).lub(eval(right))
+    case BinaryArithmeticExpression(left, right, _, typ) => domValid
+    case BinaryNondeterministicExpression(left, right, _, typ) => domValid
+    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => domValid
     case InvalidExpression(typ, str, pp) => domInvalid(str, pp)
     case ValidExpression(typ,pp) => domValid
     case Constant(_, _, _) => domValid

@@ -41,13 +41,13 @@ object TColor extends Default_TColor  {
     case "equals" => Top[S](TBoolean)
     case "lighten" => Top[S](TColor)
     case "make transparent" => Top[S](TColor)
-    case "A" => Return[S](0 ndTo 1)
-    case "R" => Return[S](0 ndTo 1)
-    case "G" => Return[S](0 ndTo 1)
-    case "B" => Return[S](0 ndTo 1)
-    case "hue" => Return[S](0 ndTo 1)
-    case "saturation" => Return[S](0 ndTo 1)
-    case "brightness" => Return[S](0 ndTo 1)
+    case "A" => Return[S](0 ndToIncl 1)
+    case "R" => Return[S](0 ndToIncl 1)
+    case "G" => Return[S](0 ndToIncl 1)
+    case "B" => Return[S](0 ndToIncl 1)
+    case "hue" => Return[S](0 ndToIncl 1)
+    case "saturation" => Return[S](0 ndToIncl 1)
+    case "brightness" => Return[S](0 ndToIncl 1)
 
 //    /** Composes a new color using alpha blending */
 //    case "blend" =>

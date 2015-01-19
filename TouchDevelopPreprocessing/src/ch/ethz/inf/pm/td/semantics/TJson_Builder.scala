@@ -122,7 +122,7 @@ object TJson_Builder extends Default_TJson_Builder {
     /** Deletes named field */
     case "remove field" =>
       val List(name) = parameters // String
-      CollectionRemove[S](this0,name)
+      collectionRemoveAt[S](this0,name)
 
     // ---- ALL THE STANDARD STUFF
 

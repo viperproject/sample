@@ -23,13 +23,13 @@ object TSound extends Default_TSound {
   lazy val field_duration = ApiField("duration", TNumber)
 
   /** Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
-  lazy val field_pan = new ApiField("pan",TNumber,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pan = new ApiField("pan",TNumber,ExpressionInitializer(-1 ndToIncl 1))
 
   /** Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
-  lazy val field_pitch = new ApiField("pitch",TNumber,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pitch = new ApiField("pitch",TNumber,ExpressionInitializer(-1 ndToIncl 1))
 
   /** Gets the volume from 0 (silent) to 1 (full volume) */
-  lazy val field_volume = new ApiField("volume",TNumber,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_volume = new ApiField("volume",TNumber,ExpressionInitializer(-1 ndToIncl 1))
 
   override def possibleFields = super.possibleFields ++ List(field_duration, field_pan, field_pitch, field_volume)
 

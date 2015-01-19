@@ -41,8 +41,11 @@ case class RichExpression(thisExpr : ExpressionSet) extends RichExpressionImplic
   def or (thatExpr : RichExpression) : RichExpression =
     RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.or,thisExpr.getType()))
 
-  def ndTo (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.to,TNumber))
+  def ndToIncl (thatExpr : RichExpression) : RichExpression =
+    RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.toIncl,TNumber))
+
+  def ndToExcl (thatExpr : RichExpression) : RichExpression =
+    RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.toExcl,TNumber))
 
   def && (thatExpr : RichExpression) : RichExpression =
     RichExpression(ExpressionFactory.createBooleanBinaryExpression(thisExpr,thatExpr,BooleanOperator.&&,TBoolean))

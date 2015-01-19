@@ -1,8 +1,9 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.domain.HeapIdentifier
 import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
@@ -55,6 +56,8 @@ object RequiredLibraryFragmentAnalysis {
 class AccessCollectingState(myType: Type) extends State[AccessCollectingState] with CollectingState {
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.getType().top())
+
+  def isBottom = myType.isBottom
 
   def setType(typ: Type): AccessCollectingState = new AccessCollectingState(typ)
 
@@ -192,4 +195,14 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def undoPruneUnreachableHeap(preState: AccessCollectingState): AccessCollectingState = this
 
+  override def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter: (Identifier, AccessCollectingState) => Boolean): (Set[Identifier], Set[Identifier]) = {
+    RequiredLibraryFragmentAnalysis.spottedFields =
+      RequiredLibraryFragmentAnalysis.spottedFields +
+        (objs.getType().toString + "." + field) +
+        objs.getType().toString
+    filter(HeapIdentifier.makeDummy(typ),this)
+    (Set(HeapIdentifier.makeDummy(typ)),Set(HeapIdentifier.makeDummy(typ)))
+  }
+
+  override def merge(r: Replacement): AccessCollectingState = this
 }

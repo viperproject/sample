@@ -82,7 +82,7 @@ object TMap extends Default_TMap {
     case "view pushpins" =>
       // TODO: Check if already posted
       // PRECISION: We could implement this
-      val state1 = AssignField(this0, TMap.field_zoom, 1 ndTo 21)
+      val state1 = AssignField(this0, TMap.field_zoom, 1 ndToIncl 21)
       val state2 = Top[S](TLocation)(state1, pp)
       AssignField(this0, TMap.field_center, state2.expr)(state2, pp)
 

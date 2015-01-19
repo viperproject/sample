@@ -3,6 +3,8 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
 
+import scala.collection.immutable.Set
+
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
  *
@@ -12,6 +14,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
  */
 trait Lattice[T <: Lattice[T]] {
   this: T =>
+
   /**
    * Returns a new instance of the lattice
    *
@@ -73,12 +76,19 @@ trait Lattice[T <: Lattice[T]] {
     * we won't have access to those and we also want to preserve the old behavior.
     */
   def strictGlb(other: T): T = glb(other)
+
+  /**
+   * Checks whether the given domain element is equivalent to bottom ("false")
+   * @return bottom
+   */
+  def isBottom:Boolean
+
 }
 
 object Lattice {
   /** Returns the least upper bound of one or more lattice elements. */
   def bigLub[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(!elements.isEmpty, "there must be at least one element")
+    require(elements.nonEmpty, "there must be at least one element")
     elements.reduceLeft(_ lub _)
   }
 
@@ -90,13 +100,13 @@ object Lattice {
 
   /** Returns the greatest lower bound of one or more lattice elements. */
   def bigGlb[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(!elements.isEmpty, "there must be at least one element")
+    require(elements.nonEmpty, "there must be at least one element")
     elements.reduceLeft(_ glb _)
   }
 
   /** Returns the widening of multiple one or more elements. */
   def bigWidening[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(!elements.isEmpty, "there must be at least one element")
+    require(elements.nonEmpty, "there must be at least one element")
     elements.reduceLeft(_ widening _)
   }
 
@@ -133,11 +143,6 @@ object Lattice {
 
 }
 
-trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] {
-  self: T =>
-  def isBottom: Boolean = lessEqual(bottom())
-}
-
 /**
  * The representation of a state of our analysis.
  * Two main components can be distinguished:
@@ -151,7 +156,7 @@ trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] {
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
+trait State[S <: State[S]] extends Lattice[S] {
   this: S =>
 
   /**
@@ -655,6 +660,21 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
    */
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): S
 
+
+  /**
+   * Returns all objects pointed to by the field which may / must match the given filter
+   *
+   * @param objs An expression containing objects
+   * @param field  The name of the field
+   * @param typ    The type of the field
+   * @param filter The filter, that, given an object and a state, returns whether it matches
+   * @return       A may set and a must set of object
+   */
+  def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter:(Identifier,S) => Boolean): (Set[Identifier],Set[Identifier]) =
+    (Set.empty,Set.empty)
+
+  def merge(r:Replacement):S = this
+
 }
 
 trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] extends SimpleState[S] {
@@ -929,11 +949,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   def testFalse(): S =
     assume(expr.not()).setUnitExpression()
-
-  /** Returns whether this state is bottom.
-    * @todo move method to `Lattice`
-    */
-  def isBottom: Boolean
 
   /** Executes the given function only if this state and the given
     * `ExpressionSet` is not bottom. */

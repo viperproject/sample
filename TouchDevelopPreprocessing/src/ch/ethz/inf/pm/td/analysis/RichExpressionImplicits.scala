@@ -15,7 +15,7 @@ trait RichExpressionImplicits {
     RichExpression(value)
 
   implicit def toRichExpression(value:Inclusive) : RichExpression =
-    toRichExpression(value.head) ndTo toRichExpression(value.last)
+    toRichExpression(value.head) ndToIncl toRichExpression(value.last)
 
   implicit def toRichExpression(value:Int) : RichExpression =
     RichExpression(new ExpressionSet(TNumber).add(new Constant(value.toString,TNumber)))

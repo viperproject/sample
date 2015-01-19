@@ -57,7 +57,7 @@ trait ALinearCollection extends ACollection {
   }
 
   def collectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    Assign[S](collectionAllKeys[S](collection),0 ndTo collectionSize[S](collection) - 1)
+    Assign[S](collectionAllKeys[S](collection),0 ndToIncl (collectionSize[S](collection) - 1))
   }
 
   def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {

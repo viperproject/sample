@@ -71,7 +71,7 @@ object TString extends Default_TString {
     /** Gets the length of the string */
     case "count" =>
       Dummy[S](this0, method)
-      Return[S](0 ndTo PositiveInfinity)
+      Return[S](0 ndToIncl PositiveInfinity)
 
     /** Concatenates two pieces of text */
     case "concat" =>

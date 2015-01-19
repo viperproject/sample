@@ -250,24 +250,24 @@ object TBoard extends Default_TBoard {
     // Current touch point
     case "touch current" =>
       New(TVector3, Map(
-        TVector3.field_x -> (0 ndTo Field[S](this0, TBoard.field_width)),
-        TVector3.field_y -> (0 ndTo Field[S](this0, TBoard.field_height)),
+        TVector3.field_x -> (0 ndToIncl Field[S](this0, TBoard.field_width)),
+        TVector3.field_y -> (0 ndToIncl Field[S](this0, TBoard.field_height)),
         TVector3.field_z -> 0
       ))
 
     // Last touch end point
     case "touch end" =>
       New(TVector3, Map(
-        TVector3.field_x -> (0 ndTo Field[S](this0, TBoard.field_width)),
-        TVector3.field_y -> (0 ndTo Field[S](this0, TBoard.field_height)),
+        TVector3.field_x -> (0 ndToIncl Field[S](this0, TBoard.field_width)),
+        TVector3.field_y -> (0 ndToIncl Field[S](this0, TBoard.field_height)),
         TVector3.field_z -> 0
       ))
 
     // Last touch start point
     case "touch start" =>
       New(TVector3, Map(
-        TVector3.field_x -> (0 ndTo Field[S](this0, TBoard.field_width)),
-        TVector3.field_y -> (0 ndTo Field[S](this0, TBoard.field_height)),
+        TVector3.field_x -> (0 ndToIncl Field[S](this0, TBoard.field_width)),
+        TVector3.field_y -> (0 ndToIncl Field[S](this0, TBoard.field_height)),
         TVector3.field_z -> 0
       ))
 

@@ -86,6 +86,6 @@ case class SummaryNodeWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
 
   }
 
-  override def wrapperFactory(wrapped: X): SummaryNodeWrapper[X] = SummaryNodeWrapper(wrapped)
+  override def wrapperFactory(newWrapped: X): SummaryNodeWrapper[X] = SummaryNodeWrapper(newWrapped)
 
 }
