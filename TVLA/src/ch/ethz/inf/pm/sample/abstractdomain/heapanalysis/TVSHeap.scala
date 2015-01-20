@@ -570,50 +570,6 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
                                            typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
 
-  def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
-
-  def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
-
-  def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
-
-  def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionValueByKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionValueByValue[S <: SemanticDomain[S]](collection: Assignable, value: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionKeyByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionValueByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionTupleByKey(keyId: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionTupleByValue(valueId: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def isSummaryCollection(collectionId: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getOriginalCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getKeysCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionTuples(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionOverApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionUnderApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionKeys(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionValues(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def removeCollectionElement(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
-
-  def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (NodeName, TVSHeap) = ???

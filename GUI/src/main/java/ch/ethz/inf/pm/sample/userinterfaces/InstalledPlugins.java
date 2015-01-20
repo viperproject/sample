@@ -42,8 +42,6 @@ public class InstalledPlugins {
                 GuiRunner.createNonRelationalMayHeapDomain(new TopHeapIdentifier(null, null)),
                 GuiRunner.createNonRelationalMayHeapDomain(new ClassHeapIdentifier(null, null)),
                 GuiRunner.createNonRelationalMayHeapDomain((ProgramPointHeapIdentifier) new NullProgramPointHeapIdentifier(null, null, 0)),
-                GuiRunner.createNonRelationalMayAndMustHeapDomain((ProgramPointHeapIdentifier)new NullProgramPointHeapIdentifier(null, null, 0)),
-                GuiRunner.createNonRelationalSummaryCollectionHeapDomain((ProgramPointHeapIdentifier)new NullProgramPointHeapIdentifier(null, null, 0)),
                 new TVSHeap()
         };
 

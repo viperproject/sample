@@ -476,14 +476,10 @@ object ShowGraph {
   }
 
   private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: AbstractState[N, H, I]) = state match {
-    case _ if state.getHeapDomain.isInstanceOf[NonRelationalMayAndMustHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
     case _ if state.getHeapDomain.isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
-    case _ if state.getHeapDomain.isInstanceOf[NonRelationalSummaryCollectionHeapDomain[I]] => new ShowNonRelationalHeapState(state)
-    //case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
-    //case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
+    case _ if state.getHeapDomain.isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state)
     case _ => new Show(stateToString(state), false, -1, -1)
   }
-
 
   private def partitionedStateToJComponent[S <: State[S]](state: PartitionedState[S]) = new ShowPartitionedState(state)
 

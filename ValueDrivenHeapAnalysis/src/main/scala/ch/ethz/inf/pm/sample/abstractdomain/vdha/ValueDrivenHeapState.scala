@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.LocalVariableVertex
 trait ValueDrivenHeapState[
     S <: SemanticDomain[S],
     T <: ValueDrivenHeapState[S, T]]
-  extends SimpleState[T] with StateWithCollectionStubs[T] { self: T =>
+  extends SimpleState[T] { self: T =>
 
   val abstractHeap: HeapGraph[S]
   val generalValState: S

@@ -19,41 +19,9 @@ import ch.ethz.inf.pm.td.output.Exporters
 
 object TouchDevelopEntryStateBuilder {
 
-  type HeapId = ProgramPointHeapIdentifier
-
   type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[DoublePentagons]]], NonrelationalStringDomain[StringKSetDomain]]
 
-  type NonRelHeapType = NonRelationalHeapDomain[HeapId]
-  type SummaryHeapType = NonRelationalSummaryCollectionHeapDomain[HeapId]
-  type MayMustHeapType = NonRelationalMayAndMustHeapDomain[HeapId]
-
-  // Three different AbstractState instantiations (choice of heap)
-  type AnalysisMayCollectionStateType = AbstractState[SemanticDomainType, NonRelationalHeapDomain[HeapId], HeapId]
-  type AnalysisSummaryCollectionHeapStateType = AbstractState[SemanticDomainType, NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId]
-  type AnalysisMayMustCollectionStateHeapType = AbstractState[SemanticDomainType, NonRelationalMayAndMustHeapDomain[HeapId], HeapId]
-
-  // "lub" type of our different AbstractState type instantiations (ignores the heap)
-  type AnalysisBasicStateType = AbstractState[SemanticDomainType, _ <: HeapDomain[_, HeapId], HeapId]
-
 }
-
-//case class SummaryEntryStateBuilder(touchParams:TouchAnalysisParameters) extends TouchDevelopEntryStateBuilder[AnalysisSummaryCollectionHeapStateType](touchParams) {
-//
-//  override def topState = {
-//
-//    val entryValue = ExpressionSet()
-//    type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId]
-//
-//    val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
-//    heapDomain.setParameter("UnsoundEntryState", false)
-//
-//    val entryDomain = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId](numerical, heapDomain)
-//    new AbstractState(entryDomain, entryValue)
-//
-//  }
-//
-//}
-
 
 case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
   extends TouchDevelopEntryStateBuilder[TouchState.Default[SemanticDomainType]](touchParams) {
@@ -66,45 +34,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
 }
 
-//case class MayMustEntryStateBuilder(touchParams:TouchAnalysisParameters) extends TouchDevelopEntryStateBuilder[AnalysisMayMustCollectionStateHeapType](touchParams) {
-//
-//  override def topState = {
-//
-//    val entryValue = ExpressionSet()
-//    type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, MayMustHeapType, HeapId]
-//
-//    val mustHeapDomain = new NonRelationalMustHeapDomain[HeapId](new TupleIdSetDomain(), heapID)
-//    val mayHeapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
-//    val heapDomain: MayMustHeapType = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
-//    heapDomain.setParameter("UnsoundEntryState", false)
-//
-//    val entryDomain = HeapAndAnotherDomain[SemanticDomainType, MayMustHeapType, HeapId](numerical, heapDomain)
-//    new AbstractState(entryDomain, entryValue)
-//
-//  }
-//
-//}
-
-//case class MayEntryStateBuilder(touchParams:TouchAnalysisParameters) extends TouchDevelopEntryStateBuilder[AnalysisMayCollectionStateType](touchParams) {
-//
-//  override def topState = {
-//
-//    val entryValue = ExpressionSet()
-//    type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId]
-//
-//    val heapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
-//    heapDomain.setParameter("UnsoundEntryState", false)
-//
-//    val entryDomain = HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId](numerical, heapDomain)
-//    new AbstractState(entryDomain, entryValue)
-//
-//  }
-//
-//}
-
 abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAnalysisParameters) extends EntryStateBuilder[S]() {
-
-  def heapID:HeapId = new SimpleProgramPointHeapIdentifier(null, SystemParameters.typ)
 
   def numerical:SemanticDomainType = {
     val numericalDomainChoice = touchParams.domains.numericalDomain
@@ -152,19 +82,9 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
       SystemParameters.compiler.compile(file)
       SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
-//      if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
-//        val entryState = new SummaryEntryStateBuilder(touchParams).topState
-//        val analysis = new TouchAnalysis[ApronInterface.Default, NonrelationalStringDomain[StringKSetDomain]]
-//        analysis.analyze(entryState)
-//      } else if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
-        val entryState = new TouchEntryStateBuilder(touchParams).topState
-        val analysis = new TouchAnalysis[ApronInterface.Default, NonrelationalStringDomain[StringKSetDomain]]
-        analysis.analyze(entryState)
-//      } else {
-//        val entryState = new MayEntryStateBuilder(touchParams).topState
-//        val analysis = new TouchAnalysis[ApronInterface.Default,NonrelationalStringDomain[StringKSetDomain]]
-//        analysis.analyze(entryState)
-//      }
+      val entryState = new TouchEntryStateBuilder(touchParams).topState
+      val analysis = new TouchAnalysis[ApronInterface.Default, NonrelationalStringDomain[StringKSetDomain]]
+      analysis.analyze(entryState)
 
       Exporters.setStatus("Done")
       messages = Reporter.seenErrors ++ Reporter.seenInfos

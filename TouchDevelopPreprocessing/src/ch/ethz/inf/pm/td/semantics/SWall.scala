@@ -162,7 +162,7 @@ object SWall extends Default_SWall {
       val List(style) = parameters // String
     val pages = Field[S](this0, SWall.field_pages)
       If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(CollectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
+        Return[S](True)(TPage_Collection.collectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })

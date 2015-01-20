@@ -27,8 +27,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException
  * @version 0.1
  */
 class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
-  extends State[PartitionedState[D]]
-  with StateWithCollectionStubs[PartitionedState[D]] {
+  extends State[PartitionedState[D]] {
 
   require(partitioning != null)
 

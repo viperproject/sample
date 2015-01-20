@@ -32,7 +32,6 @@ case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifie
  */
 trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   extends SimpleState[T]
-  with StateWithCollectionStubs[T]
   with StateWithBackwardAnalysisStubs[T]
 {
   self:T =>

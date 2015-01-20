@@ -25,20 +25,4 @@ object GuiRunner {
     new NonRelationalHeapDomain[I](env, heap, ids, id)
   }
 
-  def createNonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](id: I): NonRelationalMayAndMustHeapDomain[I] = {
-    val mayHeap: NonRelationalHeapDomain[I] = createNonRelationalMayHeapDomain(id)
-    val mustIds: TupleIdSetDomain[I] = new TupleIdSetDomain[I]
-    val mustEnv: VariableEnv[I] = new VariableEnv[I](mustIds)
-    val mustHeapEnv: HeapEnv[I] = new HeapEnv[I](mustIds)
-    val mustHeap: NonRelationalMustHeapDomain[I] = new NonRelationalMustHeapDomain[I](mustEnv, mustHeapEnv, mustIds, id)
-    new NonRelationalMayAndMustHeapDomain[I](mayHeap, mustHeap)
-  }
-
-  def createNonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[I]](id: I): NonRelationalSummaryCollectionHeapDomain[I] = {
-    val ids: MaybeHeapIdSetDomain[I] = new MaybeHeapIdSetDomain[I]
-    val env: VariableEnv[I] = new VariableEnv[I](ids)
-    val heap: HeapEnv[I] = new HeapEnv[I](ids)
-    new NonRelationalSummaryCollectionHeapDomain[I](env, heap, ids, id)
-  }
-
 }

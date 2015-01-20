@@ -58,7 +58,4 @@ case class RichExpression(thisExpr : ExpressionSet) extends RichExpressionImplic
 
   def not () : RichExpression =
     RichExpression(ExpressionFactory.createNegatedBooleanExpression(thisExpr))
-
-  def contains (key: RichExpression, value: RichExpression, pp: ProgramPoint) : RichExpression =
-    RichExpression(ExpressionFactory.createCollectionContains(thisExpr, key, value, TBoolean, pp))
 }
