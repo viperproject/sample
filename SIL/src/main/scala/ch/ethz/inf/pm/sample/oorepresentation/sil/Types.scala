@@ -55,6 +55,8 @@ abstract class AbstractType(val name: String) extends Type {
     case _ if this == other => this
     case _ => top()
   }
+
+  def isBottom = this == BottomType
 }
 
 case object TopType extends AbstractType("Top") {

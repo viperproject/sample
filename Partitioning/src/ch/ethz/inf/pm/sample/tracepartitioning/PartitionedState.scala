@@ -179,6 +179,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     partitioning.lessEqual(r.partitioning)
   }
 
+  override def isBottom = partitioning.isBottom
+
   /**
    * Creates an object in all leaf states.
    *

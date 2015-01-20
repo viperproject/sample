@@ -297,6 +297,7 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 		StringBlock.border((s \\ t \\ s \\ b).toString).toString
 	}
 
+	override def isBottom = children.forall(_.isBottom)
 }
 
 
@@ -312,7 +313,7 @@ case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
 	
 	override def lessEqual(p: Partitioning[D]): Boolean = p match {
 		case Top() => true
-		case Bottom() => value.lessEqual(value.bottom)
+		case Bottom() => value.lessEqual(value.bottom())
 		case Node(_, _) => value.lessEqual(p.lubState)
 		case Leaf(v) => value.lessEqual(v)
 	}
@@ -366,6 +367,8 @@ case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
   override def directives: List[Directive[D]] = Nil
 
   override def toString: String = StringBlock.border(value.toString).toString
+
+	override def isBottom = value.isBottom
 }
 
 
@@ -428,6 +431,8 @@ case class Bottom[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
 	override def widening(p: Partitioning[D]): Partitioning[D] = p
 
   override def toString: String = StringBlock.border(" B ").toString
+
+	override def isBottom = true
 }
 
 
@@ -453,6 +458,8 @@ case class Top[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
 	override def widening(p: Partitioning[D]): Partitioning[D] = this
 
 	override def toString: String = StringBlock.border(" T ").toString
+
+	override def isBottom = false
 }
 
 
