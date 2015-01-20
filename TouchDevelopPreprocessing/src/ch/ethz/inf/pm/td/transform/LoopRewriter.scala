@@ -23,20 +23,20 @@ import ch.ethz.inf.pm.td.parser.For
 
 object LoopRewriter {
 
-  def apply(s: Script): Script = Script(s.declarations map (apply _),s.isLibrary)
+  def apply(s: Script): Script = Script(s.declarations map apply,s.isLibrary)
 
   def apply(d: Declaration): Declaration = {
     d match {
-      case a:ActionDefinition => a.copy(body = (a.body map (apply _)).flatten).copyPos(a)
-      case a:ActionType => a.copy(body = (a.body map (apply _)).flatten).copyPos(a)
-      case a:PageDefinition => a.copy(initBody = (a.initBody map (apply _)).flatten, displayBody = (a.displayBody map (apply _)).flatten).copyPos(a)
+      case a:ActionDefinition => a.copy(body = (a.body map apply).flatten).copyPos(a)
+      case a:ActionType => a.copy(body = (a.body map apply).flatten).copyPos(a)
+      case a:PageDefinition => a.copy(initBody = (a.initBody map apply).flatten, displayBody = (a.displayBody map apply).flatten).copyPos(a)
       case _ => d
     }
   }
 
   def replace(inlineAction: InlineAction, from: Expression, to: Expression): InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body.map(replace(_, from, to)))))
+    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters, inlineAction.body.map(replace(_, from, to))))
   }
 
   def replace(e: Expression, from: Expression, to: Expression) : Expression = e match {
@@ -93,7 +93,7 @@ object LoopRewriter {
         val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
         val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
-        indexInit :: upperBoundStore :: While(condition, (body map (apply _)).flatten ::: bodyPostfix :: Nil) :: Nil
+        indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
 
       case f@Foreach(elem, coll, guards, body) =>
 
@@ -119,7 +119,7 @@ object LoopRewriter {
         val collectionStore = pos(ExpressionStatement(pos(Access(storedCollection, Identifier(":="), List(pos(Access(coll,pos(Identifier("copy")),Nil)))))))
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         val atIndexExpr = pos(Access(storedCollection, pos(Identifier("at index")), List(idxExp)))
-        val rewrittenBody = ((body map (apply _)).flatten).map(replace(_, elemExp, atIndexExpr))
+        val rewrittenBody = (body map apply).flatten.map(replace(_, elemExp, atIndexExpr))
 
         val conditionalBody = guards match {
           case Literal(_,"true")::Nil => rewrittenBody
@@ -134,13 +134,13 @@ object LoopRewriter {
         indexInit :: collectionStore :: whileLoop :: Nil
 
       case i@If(cond,thenBody,elseBody) =>
-        List(pos(If(cond,(thenBody map (apply _)).flatten,(elseBody map (apply _)).flatten)))
+        List(pos(If(cond,(thenBody map apply).flatten,(elseBody map apply).flatten)))
       case w@While(cond,body) =>
-        List(pos(While(cond,(body map (apply _)).flatten)))
+        List(pos(While(cond,(body map apply).flatten)))
       case w@Box(body) =>
-        List(pos(Box((body map (apply _)).flatten)))
+        List(pos(Box((body map apply).flatten)))
       case w@WhereStatement(expr,handlers) =>
-        List(pos(WhereStatement(expr,handlers map (apply _))))
+        List(pos(WhereStatement(expr,handlers map apply)))
       case _ =>
         List(s)
     }
@@ -148,7 +148,7 @@ object LoopRewriter {
 
   def apply(inlineAction:InlineAction):InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map (apply _)).flatten))
+    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map apply).flatten))
   }
 
   def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2

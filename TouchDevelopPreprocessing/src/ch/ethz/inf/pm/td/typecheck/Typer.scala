@@ -74,8 +74,7 @@ object Typer {
             val indexMember = GIndexMember(TypeName(ident), keyMembers, fieldMembers)
             val indexType =
               if (keyMembers.size > 0) {
-                if (keyMembers.size > 1) throw new NotImplementedError("No support for multi-key indexes")
-                GIndex(keyMembers.head.typ,indexMember)
+                GIndex(keyMembers.map{_.typ},indexMember)
               } else {
                 GSingletonIndex(indexMember)
               }
