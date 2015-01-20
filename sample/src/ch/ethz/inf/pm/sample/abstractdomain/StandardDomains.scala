@@ -809,10 +809,33 @@ trait ReducedSemanticProductDomain[
 T1 <: SemanticDomain[T1],
 T2 <: SemanticDomain[T2],
 T <: ReducedSemanticProductDomain[T1, T2, T]]
+  extends SelectiveReducedSemanticProductDomain[T1, T2, T] {
+  this: T =>
+
+  def reduce(ids:Set[Identifier]): T = reduce()
+}
+
+/**
+ * Reduced Cartesian product supporting the operations of the semantic domain.
+ * After each semantic operation the reduction is applied.
+ *
+ * This reduced product is selectively applied to the given identifiers
+ *
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
+ * @author Pietro Ferrara
+ */
+trait SelectiveReducedSemanticProductDomain[
+T1 <: SemanticDomain[T1],
+T2 <: SemanticDomain[T2],
+T <: SelectiveReducedSemanticProductDomain[T1, T2, T]]
   extends SemanticCartesianProductDomain[T1, T2, T] {
   this: T =>
 
   def reduce(): T
+
+  def reduce(ids:Set[Identifier]): T
 
   override def lub(other: T): T =
     super.lub(other).reduce()
@@ -821,39 +844,40 @@ T <: ReducedSemanticProductDomain[T1, T2, T]]
     super.glb(other).reduce()
 
   override def setToTop(variable: Identifier): T =
-    super.setToTop(variable).reduce()
+    super.setToTop(variable).reduce(Set(variable))
 
   override def assign(variable: Identifier, expr: Expression): T =
-    super.assign(variable, expr).reduce()
+    super.assign(variable, expr).reduce(expr.ids + variable)
 
   override def setArgument(variable: Identifier, expr: Expression): T =
-    super.setArgument(variable, expr).reduce()
+    super.setArgument(variable, expr).reduce(expr.ids + variable)
 
   override def assume(expr: Expression): T =
-    super.assume(expr).reduce()
+    super.assume(expr).reduce(expr.ids)
 
   override def createVariable(variable: Identifier, typ: Type): T =
-    super.createVariable(variable, typ).reduce()
+    super.createVariable(variable, typ).reduce(Set(variable))
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     val (result, i) = super.createVariableForArgument(variable, typ, path)
-    (result.reduce(), i)
+    (result.reduce(Set(variable)), i)
   }
 
   override def removeVariable(variable: Identifier): T =
-    super.removeVariable(variable).reduce()
+    super.removeVariable(variable).reduce(Set(variable))
 
   override def access(field: Identifier): T =
-    super.access(field).reduce()
+    super.access(field).reduce(Set(field))
 
   override def backwardAccess(field: Identifier): T =
-    super.backwardAccess(field).reduce()
+    super.backwardAccess(field).reduce(Set(field))
 
-  override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = super.backwardAssign(oldPreState, variable, expr).reduce()
+  override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
+    super.backwardAssign(oldPreState, variable, expr).reduce(expr.ids + variable)
 
   override def merge(r: Replacement): T = {
     if (r.isEmpty()) return this
-    super.merge(r).reduce()
+    super.merge(r).reduce(r.ids)
   }
 
 }

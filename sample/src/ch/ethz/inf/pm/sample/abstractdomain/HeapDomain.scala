@@ -72,9 +72,9 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
 
   def keySet() = value.keySet
 
-  def ids = value flatMap {
+  def ids:Set[Identifier] = (value flatMap {
     x => x._1 ++ x._2
-  }
+  }).toSet
 
   def apply(k: Set[Identifier]) = value.apply(k)
 

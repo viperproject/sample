@@ -15,7 +15,8 @@ case class InvertedIdSet(
                           value: Set[Identifier] = Set.empty[Identifier],
                           isTop: Boolean = false,
                           isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, InvertedIdSet] {
+  extends InverseSetDomain[Identifier, InvertedIdSet]
+  with Lattice.Must[InvertedIdSet] {
 
   def fold(idA: Set[Identifier], id: Identifier): InvertedIdSet =
     if (idA.subsetOf(value)) copy(value = (value -- idA) + id)
@@ -38,124 +39,6 @@ case class InvertedIdSet(
 
 }
 
-trait RelationLattice[T <: RelationLattice[T]] extends SimplifiedSemanticDomain[T] {
-  this : T =>
-
-  val relation: Relation[Identifier,Identifier]
-
-  def relationFactory(relation:Relation[Identifier,Identifier]):T
-
-  /**
-   * For each set of identifiers in the domain of f, this method merges these identifiers
-   * into the given one.
-   *
-   * @param f The identifiers to merge
-   * @return the state after the merge
-   */
-  override def merge(f: Replacement): T = ???
-
-  override def setToTop(id: Identifier): T = relationFactory(relation.removeLeft(id).removeRight(id)) // TODO: Empty?
-  override def removeVariable(id: Identifier): T = relationFactory(relation.removeLeft(id).removeRight(id))
-
-  /** Returns all identifiers over whom the `SemanticDomain` is defined. */
-  override def ids: Set[Identifier] = ???
-
-  /**
-   * This method assumes that a given expression hold
-   *
-   * @param expr the expression to be assumed
-   * @return the state after this action
-   */
-  override def assume(expr: Expression): T = ???
-
-  /**
-   * This method creates a variable.
-   *
-   * @param variable the variable to be created
-   * @param typ its type
-   * @return the state after this action
-   */
-  override def createVariable(variable: Identifier, typ: Type): T = ???
-
-  /**
-   * This method assigns a given variable to the given expression
-   *
-   * @param variable the variable to be assigned
-   * @param expr the expression to be assigned
-   * @return the state after this action
-   */
-  override def assign(variable: Identifier, expr: Expression): T = ???
-
-  /**
-   * This method returns representing the value of the given identifier
-   *
-   * @param id the identifier
-   * @return the string representing its state
-   */
-  override def getStringOfId(id: Identifier): String = ???
-
-  /**
-   * Returns the bottom value of the lattice
-   *
-   * @return The bottom value, that is, a value x that is less or equal than any other value
-   */
-  override def bottom(): T = ???
-
-  /**
-   * Computes widening of two elements
-   *
-   * @param other The new value
-   * @return The widening of <code>left</code> and <code>right</code>
-   */
-  override def widening(other: T): T = ???
-
-  /**
-   * Returns true iff <code>this</code> is less or equal than <code>r</code>
-   *
-   * @param r The value to compare
-   * @return true iff <code>this</code> is less or equal than <code>r</code>
-   */
-  override def lessEqual(r: T): Boolean = ???
-
-  /**
-   * Returns the top value of the lattice
-   *
-   * @return The top value, that is, a value x that is greater or equal than any other value
-   */
-  override def top(): T = ???
-
-  /**
-   * Computes the upper bound of two elements
-   *
-   * @param other The other value
-   * @return The least upper bound, that is, an element that is greater or equal than the two arguments
-   */
-  override def lub(other: T): T = ???
-
-  /**
-   * Returns a new instance of the lattice
-   *
-   * @return A new instance of the current object
-   */
-  override def factory(): T = ???
-
-  /**
-   * Computes the greatest lower bound of two elements
-   *
-   * @param other The other value
-   * @return The greatest upper bound, that is, an element that is less or equal than the two arguments,
-   *         and greater or equal than any other lower bound of the two arguments
-   */
-  override def glb(other: T): T = ???
-
-  /**
-   * Checks whether the given domain element is equivalent to bottom ("false")
-   * @return bottom
-   */
-  override def isBottom: Boolean = ???
-}
-
-
 /**
  * Does not store an environment - is not defined for all existing identifiers
  *
@@ -163,21 +46,21 @@ trait RelationLattice[T <: RelationLattice[T]] extends SimplifiedSemanticDomain[
  * @param isBottom Sets the domain explicitly to top
  * @param isTop Sets the domain explicitly to bottom
  */
-case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier, InvertedIdSet],
+case class StrictUpperBounds(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier, InvertedIdSet],
                       override val isBottom: Boolean = false,
                       isTop: Boolean = false)
-  extends BoxedDomain[InvertedIdSet, UpperBound]
-  with SimplifiedSemanticDomain[UpperBound]
-  with RelationalNumericalDomain[UpperBound] {
+  extends BoxedDomain[InvertedIdSet, StrictUpperBounds]
+  with SimplifiedSemanticDomain[StrictUpperBounds]
+  with RelationalNumericalDomain[StrictUpperBounds] {
 
   def functionalFactory(_value: Map[Identifier, InvertedIdSet] = Map.empty[Identifier, InvertedIdSet],
                         _isBottom: Boolean = false,
-                        _isTop: Boolean = false): UpperBound =
-    new UpperBound(_value, _isBottom, _isTop)
+                        _isTop: Boolean = false): StrictUpperBounds =
+    new StrictUpperBounds(_value, _isBottom, _isTop)
 
   override def get(key: Identifier): InvertedIdSet = this.map.getOrElse(key,InvertedIdSet.bottom)
 
-  override def factory() = new UpperBound()
+  override def factory() = new StrictUpperBounds()
 
   override def getStringOfId(id: Identifier): String = {
     if (isBottom) return "⊥"
@@ -185,13 +68,13 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
     map.getOrElse(id, InvertedIdSet.bottom).value.mkString(",")
   }
 
-  override def setToTop(id: Identifier): UpperBound =
+  override def setToTop(id: Identifier): StrictUpperBounds =
     copy(map = map + (id -> InvertedIdSet.top))
 
-  override def assign(variable: Identifier, expr: Expression): UpperBound =
+  override def assign(variable: Identifier, expr: Expression): StrictUpperBounds =
     copy(map = map + (variable -> eval(expr)))
 
-  override def assume(expr: Expression): UpperBound =
+  override def assume(expr: Expression): StrictUpperBounds =
     expr match {
       case Constant("true",_,_) => this
       case Constant("false",_,_) => this.bottom()
@@ -235,7 +118,7 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
    * @param f The identifiers to merge
    * @return the state after the merge
    */
-  override def merge(f: Replacement): UpperBound = {
+  override def merge(f: Replacement): StrictUpperBounds = {
     var cur = this
     for ((from, to) <- f.value) {
       if (from.size == 1 && to.size > 1) cur = cur.expand(from.head, to)
@@ -248,25 +131,25 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
     return cur
   }
 
-  def expand(idA: Identifier, idsB: Set[Identifier]): UpperBound =
+  def expand(idA: Identifier, idsB: Set[Identifier]): StrictUpperBounds =
     copy(map = (map - idA ++ idsB.map { x => x -> map.getOrElse(idA, InvertedIdSet.top)}).mapValues(_.expand(idA, idsB)))
 
-  def rename(idA: Identifier, idB: Identifier): UpperBound =
+  def rename(idA: Identifier, idB: Identifier): StrictUpperBounds =
     copy(map = (map - idA + (idB -> map.getOrElse(idA, InvertedIdSet.top))).mapValues(_.rename(idA, idB)))
 
-  def remove(ids: Set[Identifier]): UpperBound =
+  def remove(ids: Set[Identifier]): StrictUpperBounds =
     copy(map = (map -- ids).mapValues(_.remove(ids)))
 
-  def fold(idsA: Set[Identifier], idB: Identifier): UpperBound =
+  def fold(idsA: Set[Identifier], idB: Identifier): StrictUpperBounds =
     copy(map = (map -- idsA + (idB -> idsA.foldRight(InvertedIdSet.bottom)(map.getOrElse(_, InvertedIdSet.top).lub(_)))).mapValues(_.fold(idsA, idB)))
 
-  def add(ids: Set[Identifier]): UpperBound =
+  def add(ids: Set[Identifier]): StrictUpperBounds =
     copy(map = map ++ ids.map { x => x -> InvertedIdSet.top})
 
-  override def createVariable(variable: Identifier, typ: Type): UpperBound =
+  override def createVariable(variable: Identifier, typ: Type): StrictUpperBounds =
     copy(map = map + (variable -> InvertedIdSet.top))
 
-  override def removeVariable(id: Identifier): UpperBound =
+  override def removeVariable(id: Identifier): StrictUpperBounds =
     copy(map = (map - id).mapValues(_.remove(id)))
 
   override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
@@ -278,7 +161,7 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
   /**
    * Adds a bound
    */
-  def addBound(lower: Identifier, upper: Identifier): UpperBound = {
+  def addBound(lower: Identifier, upper: Identifier): StrictUpperBounds = {
     val currentBounds = get(lower)
     copy(map = map + (lower -> currentBounds.add(upper)))
   }
@@ -312,8 +195,8 @@ case class UpperBound(map: Map[Identifier, InvertedIdSet] = Map.empty[Identifier
 
 }
 
-case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperBound)
-  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[Interval], UpperBound, Pentagons]
+case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: StrictUpperBounds)
+  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[Interval], StrictUpperBounds, Pentagons]
   with RelationalNumericalDomain[Pentagons]
 {
 
@@ -322,12 +205,13 @@ case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperB
 
   override def toString = ids map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
 
-  override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: UpperBound) = Pentagons(a, b)
+  override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: StrictUpperBounds) = Pentagons(a, b)
+
 
 }
 
-case class DoublePentagons(_1: BoxedNonRelationalNumericalDomain[DoubleInterval], _2: UpperBound)
-  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[DoubleInterval], UpperBound, DoublePentagons]
+case class DoublePentagons(_1: BoxedNonRelationalNumericalDomain[DoubleInterval], _2: StrictUpperBounds)
+  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[DoubleInterval], StrictUpperBounds, DoublePentagons]
   with RelationalNumericalDomain[DoublePentagons]
 {
 
@@ -336,6 +220,6 @@ case class DoublePentagons(_1: BoxedNonRelationalNumericalDomain[DoubleInterval]
 
   override def toString = ids map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
 
-  override def factory(a: BoxedNonRelationalNumericalDomain[DoubleInterval], b: UpperBound) = DoublePentagons(a, b)
+  override def factory(a: BoxedNonRelationalNumericalDomain[DoubleInterval], b: StrictUpperBounds) = DoublePentagons(a, b)
 
 }
