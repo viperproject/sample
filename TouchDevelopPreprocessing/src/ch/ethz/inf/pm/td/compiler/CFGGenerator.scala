@@ -96,6 +96,7 @@ class CFGGenerator(compiler: TouchCompiler) {
         case v@parser.VariableDefinition(variable, flags) =>
           val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, v)
           val modifiers: List[Modifier] = (flags flatMap {
+            case ("is resource", "true") => Some(ResourceModifier)
             case ("is_resource", "true") => Some(ResourceModifier)
             case ("readonly", "true") => Some(ReadOnlyModifier)
             case _ => None
