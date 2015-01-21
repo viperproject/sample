@@ -171,7 +171,11 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       // And and Or
       case BinaryBooleanExpression(left, right, op, _) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => assume(left).lub(assume(right))
+        case BooleanOperator.|| =>
+          val l = assume(left)
+          val r = assume(right)
+          val res = l lub r
+          res
       }
 
       // Double-Negation + De-Morgan
@@ -216,7 +220,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
               op match {
                 case ArithmeticOperator.== =>
                   var curState = this
-                  left match  { case lId:Identifier => curState = curState.add(lId,l.glb(r)); case _ => () }
+                  left  match { case lId:Identifier => curState = curState.add(lId,l.glb(r)); case _ => () }
                   right match { case rId:Identifier => curState = curState.add(rId,l.glb(r)); case _ => () }
                   return curState
                 case ArithmeticOperator.<= => if (!l.overlapsWith(r.valueLEQ)) return this.bottom()

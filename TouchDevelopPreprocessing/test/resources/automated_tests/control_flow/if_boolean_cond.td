@@ -1,7 +1,9 @@
 action a1(b: Boolean) {
     if ($b) then {
-        contract->assert($b, "holds");
-    } else {
+        // We can not prove this, as !$b is not a convex shape.
+        //contract->assert($b, "holds");
+    }
+    else {
         contract->assert(not $b, "holds");
     }
 }

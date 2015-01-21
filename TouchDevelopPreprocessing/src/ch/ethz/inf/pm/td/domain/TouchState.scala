@@ -398,7 +398,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val (left,right) = adaptEnvironments(this,other)
     val result = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
-      MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
+      MapUtil.mapToSetIntersectionKeepUndefined(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
       MapUtil.mapToSeqKeepLonger(left.versions,right.versions),
       left.valueState.lub(right.valueState),
@@ -434,7 +434,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     val result = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
-      MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
+      MapUtil.mapToSetIntersectionKeepUndefined(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
       MapUtil.mapToSeqKeepLonger(left.versions,right.versions),
       left.valueState.widening(right.valueState),

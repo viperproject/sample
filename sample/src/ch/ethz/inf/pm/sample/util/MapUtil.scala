@@ -47,16 +47,26 @@ object MapUtil {
     })
 
   /**
-   * For maps to sets, merge two maps, taking the union of all sets
+   * For maps to sets, merge two maps, taking the intersection of all sets
    * Keys that only appear in one map will be kept as-is in the result
    */
-  def mapToSetIntersection[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
+  def mapToSetIntersectionKeepUndefined[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
     MapUtil.mergeMaps2(left,right)({
       case (None, x) => x
       case (x, None) => x
       case (Some(b1), Some(b2)) => Some(b1 intersect b2)
     })
 
+  /**
+   * For maps to sets, merge two maps, taking the intersection of all sets
+   * Keys that only appear in one map will be kept as-is in the result
+   */
+  def mapToSetIntersection[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
+    MapUtil.mergeMaps2(left,right)({
+      case (None, x) => None
+      case (x, None) => None
+      case (Some(b1), Some(b2)) => Some(b1 intersect b2)
+    })
 
   /**
    * For maps to sets, merge two maps, taking the union of all sets

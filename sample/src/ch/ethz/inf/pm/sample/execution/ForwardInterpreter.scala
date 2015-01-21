@@ -45,7 +45,7 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
     var blocksToProcessIds = mutable.LinkedHashSet(startBlockId)
     var iterationCountAtBlock = Map.empty[Int, Int]
 
-    while (!blocksToProcessIds.isEmpty) {
+    while (blocksToProcessIds.nonEmpty) {
       val currentBlockId = blocksToProcessIds.head
       blocksToProcessIds.remove(currentBlockId)
 

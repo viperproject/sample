@@ -78,9 +78,11 @@ object MethodSummaries {
             // Get the result of the previous recursion depth and join it with the local state
             val summary = s.asInstanceOf[MethodSummary[S]]
             val prevExitState = summary.cfgState.exitState()
-            val exitedState = exitFunction(callPoint, callTarget, prevExitState, parameters)
-            val localState = pruneGlobalState(entryState)
-            exitedState.lub(localState)
+            if (!prevExitState.isBottom) {
+              val exitedState = exitFunction(callPoint, callTarget, prevExitState, parameters)
+              val localState = pruneGlobalState(entryState)
+              exitedState.lub(localState)
+            } else prevExitState.bottom()
 
           case None =>
 

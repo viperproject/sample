@@ -5,6 +5,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.util.Relation
 
 /**
  * Domain that is represented by a function whose codomain is a lattice.
@@ -189,6 +190,116 @@ object FunctionalDomain {
     def functionalFactory(value: Map[K, V], isBottom: Boolean, isTop: Boolean) =
       Default(value, isTop, isBottom, defaultValue)
   }
+
+}
+
+/**
+ * Simplifies the implementation of the merge function by restricting the set of allowed replacements
+ */
+trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends SemanticDomain[T] {
+  this : T =>
+
+  /**
+   * For each set of identifiers in the domain of f, this method merges these identifiers
+   * into the given one.
+   *
+   * @param f The identifiers to merge
+   * @return the state after the merge
+   */
+  override def merge(f: Replacement): T = {
+    var cur = this
+    for ((from, to) <- f.value) {
+      if (from.size == 1 && to.size > 1) cur = cur.expand(from.head, to)
+      else if (from.size > 1 && to.size == 1) cur = cur.fold(from, to.head)
+      else if (from.size == 1 && to.size == 1) cur = cur.rename(from.head, to.head)
+      else if (to.size == 0) cur = cur.remove(from)
+      else if (from.size == 0) cur = cur.add(to)
+      else new NotImplementedError("This domain only supports fold, expand, rename, remove and add; No general replacement support.")
+    }
+    return cur
+  }
+
+  def expand(idA: Identifier, idsB: Set[Identifier]): T
+  def rename(idA: Identifier, idB: Identifier): T
+  def remove(ids: Set[Identifier]): T
+  def fold(idsA: Set[Identifier], idB: Identifier): T
+  def add(ids: Set[Identifier]): T
+
+}
+
+trait RelationalDomain[T <: RelationalDomain[T]]
+  extends SimplifiedSemanticDomain[T]
+  with SimplifiedMergeDomain[T]
+{
+  this : T =>
+
+  protected val _elements: Relation[Identifier]
+  protected def factory(rel:Relation[Identifier]): T
+
+  /**
+   * Use this to access the relation elements
+   * Checks if we are bottom - do not access the _elements field when you are bottom
+   */
+  def elements:Relation[Identifier] = {
+    if (SystemParameters.DEBUG) assert(!isBottom)
+    _elements
+  }
+
+  def isTop: Boolean = !isBottom && elements.isEmpty
+
+  override def expand(idA: Identifier, idsB: Set[Identifier]): T =
+    if (isBottom) this
+    else factory(elements.expand(idA,idsB))
+
+  override def rename(idA: Identifier, idB: Identifier): T =
+    if (isBottom) this
+    else factory(elements.rename(idA,idB))
+
+  override def remove(ids: Set[Identifier]): T =
+    if (isBottom) this
+    else factory(elements.remove(ids))
+
+  override def fold(idsA: Set[Identifier], idB: Identifier): T =
+    if (isBottom) this
+    else factory(elements.fold(idsA,idB))
+
+  override def add(ids: Set[Identifier]): T =
+    this
+
+  override def setToTop(variable: Identifier): T =
+    removeVariable(variable)
+
+  override def removeVariable(id: Identifier): T =
+    if (isBottom) this
+    else factory(elements.remove(id))
+
+  override def ids: Set[Identifier] =
+    if (isBottom) Set.empty
+    else elements.getAll
+
+  override def widening(other: T): T =
+    lub(other)
+
+  override def lessEqual(r: T): Boolean =
+    if (this.isBottom) true
+    else if (r.isBottom) false
+    else r.elements.subSetOf(elements)
+
+  override def top(): T =
+    factory(Relation.empty[Identifier])
+
+  override def lub(other: T): T =
+    if (isBottom) other
+    else if (other.isBottom) this
+    else factory(elements.intersect(other.elements))
+
+  override def factory(): T =
+    factory(Relation.empty[Identifier])
+
+  override def glb(other: T): T =
+    if (isBottom) this
+    else if (other.isBottom) other
+    else factory(elements.union(other.elements))
 
 }
 
