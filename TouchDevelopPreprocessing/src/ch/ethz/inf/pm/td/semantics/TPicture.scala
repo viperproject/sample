@@ -87,7 +87,8 @@ object TPicture extends Default_TPicture {
 
     /** Returns a copy of the image */
     case "clone" =>
-      Clone[S](this0)
+      Return[S](this0)
+      //Clone[S](this0)
 
     /** Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */
     case "colorize" =>

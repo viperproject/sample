@@ -34,7 +34,8 @@ object TMatrix extends Default_TMatrix {
 
     /** Creates a deep copy of the matrix. */
     case "clone" =>
-      Clone[S](this0,recursive = true)
+      Return[S](this0)
+      //Clone[S](this0,recursive = true)
 
     /** Gets the value at a given location. Returns invalid if outside of the array dimensions */
     case "at2" =>

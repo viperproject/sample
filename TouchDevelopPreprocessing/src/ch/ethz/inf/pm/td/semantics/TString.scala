@@ -86,7 +86,8 @@ object TString extends Default_TString {
 
     /** Concatenates two pieces of text */
     case "copy" =>
-      Clone[S](this0)
+      Return[S](this0)
+      //Clone[S](this0)
 
     /** Stores text in the clipboard */
     case "copy to clipboard" =>

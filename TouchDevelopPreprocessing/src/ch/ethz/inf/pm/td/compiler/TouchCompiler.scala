@@ -2,10 +2,10 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.td.analysis.{ApiField, Dispatcher}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, ApiField, Dispatcher}
 import ch.ethz.inf.pm.td.parser.{LibraryDefinition, Script, _}
 import ch.ethz.inf.pm.td.semantics._
-import ch.ethz.inf.pm.td.transform.LoopRewriter
+import ch.ethz.inf.pm.td.transform.{LoopUnroller, LoopRewriter}
 import ch.ethz.inf.pm.td.typecheck.Typer
 import ch.ethz.inf.pm.td.webapi.{ScriptQuery, WebASTImporter}
 
@@ -126,7 +126,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
-    val rewrittenScript = LoopRewriter(script)
+    val rewrittenScript = LoopUnroller.unroll(LoopRewriter(script),TouchAnalysisParameters.numberOfUnrollings)
     Typer.processScript(rewrittenScript)
     parsedTouchScripts += ((pubID, rewrittenScript))
     val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)

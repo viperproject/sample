@@ -179,7 +179,8 @@ trait ACollection extends AAny {
 
     /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */
     case "copy" =>
-      Clone[S](this0)
+      Return[S](this0)
+      // Clone[S](this0)
 
     /** [**dbg**] Exports a JSON representation of the contents. */
     case "to json" =>

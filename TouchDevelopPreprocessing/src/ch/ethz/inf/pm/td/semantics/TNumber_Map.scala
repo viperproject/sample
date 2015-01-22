@@ -49,7 +49,8 @@ object TNumber_Map extends Default_TNumber_Map {
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
       val List(start,end) = parameters // Number,Number
-      Clone[S](this0)
+      Return[S](this0)
+      //Clone[S](this0)
 
     /** Computes the sum of the values */
     case "sum" =>

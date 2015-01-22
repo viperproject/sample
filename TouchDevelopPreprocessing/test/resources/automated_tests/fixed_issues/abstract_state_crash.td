@@ -8,8 +8,6 @@ action main() {
   data→ss→add($sprite);
 
   $sprite2 := data->ss->at(0);
-  // The following line is to make the test suite happy. Ideally we would be more precise, then we can remove it
-  //:: ExpectedOutput(assert.failed)
   data→ss→at(0)->move(10, 10);
 }
 

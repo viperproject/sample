@@ -57,23 +57,14 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 
 case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
                                                                               map: Map[Identifier, N] = Map.empty[Identifier, N],
-                                                                              isPureBottom: Boolean = false,
+                                                                              isBottom: Boolean = false,
                                                                               isTop: Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
   with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
   with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
 
-  def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isPureBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
-    new BoxedNonRelationalNumericalDomain[N](dom, _value, _isPureBottom, _isTop)
-
-  /**
-   * Domain is bottom if any of its values is bottom. Should this be generalized to boxed domains?
-   */
-  override def isBottom:Boolean = {
-    if (isPureBottom) return true
-    for ((k,v) <- map) if (v.isBottom) return true
-    return false
-  }
+  def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
+    new BoxedNonRelationalNumericalDomain[N](dom, _value, _isBottom, _isTop)
 
   def get(key: Identifier): N = map.get(key) match {
     case None => dom.bottom()
@@ -123,6 +114,18 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
     val mayBeFalse = if (!this.assume(NegatedBooleanExpression(expr)).isBottom) dom.evalConstant(0) else dom.bottom()
     return mayBeTrue.lub(mayBeFalse)
+  }
+
+
+  /**
+   * Adds [key->value] to the domain
+   * @param key The key
+   * @param value The value
+   * @return The state of the domain after the assignment
+   */
+  override def add(key: Identifier, value: N): BoxedNonRelationalNumericalDomain[N] = {
+    if (value.isBottom) bottom()
+    else super.add(key,value)
   }
 
   def eval(expr: Expression): N = {

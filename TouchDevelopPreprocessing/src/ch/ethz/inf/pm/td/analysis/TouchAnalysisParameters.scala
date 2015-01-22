@@ -7,6 +7,8 @@ object TouchAnalysisParameters {
 
   val numberOfVersions = 2
 
+  val numberOfUnrollings = 0
+
   /**
    * Lets the analysis timeout after a number of seconds
    */
@@ -118,7 +120,7 @@ case class ExecutionModelParams(
                                  /**
                                   * Context-sensitivity in the interprocedural analysis.
                                   */
-                                 contextSensitiveInterproceduralAnalysis: Boolean = false,
+                                 contextSensitiveInterproceduralAnalysis: Boolean = true,
 
                                  /**
                                   * The default behavior of TouchBoost is to initialize the global state to invalid

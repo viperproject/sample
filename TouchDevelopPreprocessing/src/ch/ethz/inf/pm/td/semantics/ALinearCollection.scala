@@ -49,6 +49,10 @@ trait ALinearCollection extends ACollection {
   )
 
   def collectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    // Improve precision: Always true if collection size must be empty
+    if (Assume[S](collectionSize[S](collection) > 0).isBottom) {
+      return False
+    }
     If[S](collectionAllValues[S](collection) equal value, { then: S =>
       Return[S](True)
     }, { els: S =>

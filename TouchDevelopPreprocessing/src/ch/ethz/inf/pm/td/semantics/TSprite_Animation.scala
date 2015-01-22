@@ -58,7 +58,8 @@ object TSprite_Animation extends Default_TSprite_Animation {
 
     /** Starts a new animation and continues with the current animation */
     case "fork" =>
-      Clone[S](this0)
+      Return[S](this0)
+      //Clone[S](this0)
 
     /** Sets a different frame from the sprite sheet */
     case "frame" =>

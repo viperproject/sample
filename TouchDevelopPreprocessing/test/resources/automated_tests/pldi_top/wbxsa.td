@@ -1,3 +1,8 @@
+// The root of the imprecision in this program is missing context sensitivity
+
+
+
+
 meta version "v2.2,js,ctx,refs,localcloud,unicodemodel,allasync";
 meta name "CloudHopper";
 meta icon "weather";
@@ -18,7 +23,6 @@ event gameloop() {
     $tilt := senses→acceleration_quick→scale(700);
     data→ball→set_speed_x($tilt→x);
     data→ball→set_angular_speed(math→sign($tilt→x) * 360);
-    //:: ExpectedOutput(assert.failed)
     $hits := data→ball→overlap_with(data→clouds);
     if $hits→count > 0 `and` data→ball→speed_y > 200 then {
       $hit := $hits→at(0);
@@ -86,7 +90,6 @@ event gameloop() {
     $level := math→floor(data→score / 1000) + 1;
     if $level > data→level then {
       data→level := $level;
-      //:: ExpectedOutput(assert.failed)
       data→ball→set_picture(code→getIcon);
       if data→curSpacer < data→spacer * 2 then {
         data→curSpacer := data→curSpacer + 10;
