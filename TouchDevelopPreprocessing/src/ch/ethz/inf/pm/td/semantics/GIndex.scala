@@ -26,7 +26,13 @@ case class GIndex(keyTypes:List[AAny], valueType:AAny) extends AIndex {
 
         assert(parameters.size == tupleType.sortedKeyFields.size)
 
-        // Create a tuple representing the key that is accessed
+        // Only distinguish elements if we have a single key
+//        val key = if (parameters.size == 1) {
+//          toRichExpression(parameters.head)
+//        } else {
+//          Valid(keyType)
+//        }
+
         var curState = state
         curState = New[S](keyType, tupleType.sortedKeyFields.zip(parameters.map(toRichExpression)).toMap)(curState,pp)
         val key = curState.expr

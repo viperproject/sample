@@ -105,7 +105,18 @@ class SymbolTable(script:Script) {
             case None =>
               TypeList.types(typ).declarations.get(symbol) match {
                 case Some(member) => List(member.returnType.typeName)
-                case None => throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
+                case None =>
+
+                  // Implicit conversion to a reference?
+                  TypeList.types(TypeName("Ref",List(typ))).declarations.get(symbol) match {
+
+                    case Some(member) =>
+                      List(member.returnType.typeName)
+                    case None =>
+                      throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
+
+                  }
+
               }
           }
         }

@@ -65,14 +65,15 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     semantics = DefaultSemantics
   )
 
-  def declarations:Map[String,ApiMember] = Map(
-    "," -> member_comma,
-    ":=" -> member_:=,
-    "∥" -> member_∥,
-    "async" -> member_async,
-    "is invalid" -> member_is_invalid,
-    "post to wall" -> member_post_to_wall
-  )
+  def declarations:Map[String,ApiMember] =
+    Map(
+      "," -> member_comma,
+      ":=" -> member_:=,
+      "∥" -> member_∥,
+      "async" -> member_async,
+      "is invalid" -> member_is_invalid,
+      "post to wall" -> member_post_to_wall
+    )
 
   def isSingleton = false
   def isImmutable = true
@@ -247,7 +248,20 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
               case Some(res) =>
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
-                Unimplemented[S](this.toString + "." + method)
+
+                // Try implicit conversion to Ref
+                if (!this.isInstanceOf[GRef]) {
+                  val refType = GRef(this)
+                  refType.declarations.get(method) match {
+                    case Some(x) =>
+                      x.semantics.forwardSemantics[S](this0,x,parameters)
+                    case None =>
+                      Unimplemented[S](this.toString + "." + method)
+                  }
+
+                } else {
+                  Unimplemented[S](this.toString + "." + method)
+                }
             }
 
         }

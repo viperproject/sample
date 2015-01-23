@@ -124,7 +124,8 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
    * @return The state of the domain after the assignment
    */
   override def add(key: Identifier, value: N): BoxedNonRelationalNumericalDomain[N] = {
-    if (value.isBottom) bottom()
+    if (value.isBottom)
+      bottom()
     else super.add(key,value)
   }
 
@@ -633,174 +634,133 @@ case class Interval(left: Int, right: Int) extends NonRelationalNumericalDomain[
 
 case class DoubleInterval(left: Double, right: Double) extends NonRelationalNumericalDomain[DoubleInterval] {
 
-  final override def factory() = top()
+  final override def factory() =
+    top()
 
-  def top(): DoubleInterval = new DoubleInterval(Double.MinValue, Double.MaxValue)
+  def top(): DoubleInterval =
+    DoubleInterval(Double.NegativeInfinity, Double.PositiveInfinity)
 
-  def bottom(): DoubleInterval = new DoubleInterval(1, 0)
+  def bottom(): DoubleInterval =
+    DoubleInterval(1, 0)
 
-  def isBottom: Boolean = left > right
+  def isBottom: Boolean =
+    left > right
 
-  /** Returns the constraint expressed by this interval on a given identifier, if some (None if unconstrained) */
-  override def asConstraint(id: Identifier): Option[Expression] = {
-    if (this.isBottom) return None
-    if (left == Double.MinValue && right == Double.MaxValue) return None
-    val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ), id, ArithmeticOperator.<=)
-    val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ), ArithmeticOperator.<=)
-    if (right == Double.MaxValue) return Some(lowerBound)
-    if (left == Double.MinValue) return Some(upperBound)
-    Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
-  }
+  def isTop =
+    left == Double.NegativeInfinity && right == Double.PositiveInfinity
 
-  def overlapsWith(value: DoubleInterval): Boolean = {
-    if (this.right < value.left || value.right < this.left) return false
-    else return true
-  }
+  def overlapsWith(value: DoubleInterval): Boolean =
+    if (this.right < value.left || value.right < this.left) false
+    else true
 
-
-  def isTop = left == Double.MinValue && right == Double.MaxValue
-
-  override def toString: String = {
-    if (this.isBottom) return "⊥"
-    if (this.isTop) return "T"
-    var result: String = "["
-    if (left == Double.MinValue)
-      result = result + "-oo"
-    else result = result + left.toString
-    result = result + ".."
-    if (right == Double.MaxValue)
-      result = result + "+oo"
-    else result = result + right.toString
-    result + "]"
-  }
-
-
-  private def min(left: Double, right: Double) = if (left < right) left else right
-
-  private def max(left: Double, right: Double) = if (left > right) left else right
-
-  def lub(other: DoubleInterval): DoubleInterval = {
+  def lub(other: DoubleInterval): DoubleInterval =
     if (isBottom) return other
-    if (other.isBottom) return this
-    return new DoubleInterval(min(left, other.left), max(right, other.right))
-  }
+    else if (other.isBottom) return this
+    else DoubleInterval(Math.min(left, other.left), Math.max(right, other.right))
 
-
-  def glb(other: DoubleInterval): DoubleInterval = {
+  def glb(other: DoubleInterval): DoubleInterval =
     if (isBottom || other.isBottom) return bottom()
-    return new DoubleInterval(max(left, other.left), min(right, other.right))
-  }
+    else DoubleInterval(Math.max(left, other.left), Math.min(right, other.right))
 
   def widening(other: DoubleInterval): DoubleInterval = {
     var result = lub(other)
     if (other.left < left)
-      result = new DoubleInterval(Double.MinValue, result.right)
+      result = new DoubleInterval(Double.NegativeInfinity, result.right)
     if (other.right > right)
-      result = new DoubleInterval(result.left, Double.MaxValue)
+      result = new DoubleInterval(result.left, Double.PositiveInfinity)
     result
   }
 
-  def lessEqual(other: DoubleInterval): Boolean = {
-    val that: DoubleInterval = this
-    if (that.isBottom) return true
-    if (other.isBottom) return false
-    if (that.left >= other.left && that.right <= other.right)
-      return true
-    else return false
-  }
+  def lessEqual(other: DoubleInterval): Boolean =
+    if (this.isBottom) true
+    else if (other.isBottom) false
+    else if (this.left >= other.left && this.right <= other.right) true
+    else false
 
   override def equals(o: Any) = o match {
     case x: DoubleInterval => x.left == this.left && x.right == this.right
     case _ => false
   }
 
-  def evalConstant(value: Double): DoubleInterval = return new DoubleInterval(value, value)
+  def evalConstant(value: Double): DoubleInterval =
+    DoubleInterval(value, value)
 
   def evalConstant(value: Constant): DoubleInterval = {
     try {
-      val convertedVal: Double = value.constant.toDouble
-      evalConstant(convertedVal)
+      evalConstant(value.constant.toDouble)
     } catch {
       case e: NumberFormatException => top()
     }
   }
 
-  def sum(other: DoubleInterval): DoubleInterval = {
-    if (isBottom || other.isBottom) return new DoubleInterval(1, 0)
-    var newLeft = left + other.left
-    var newRight = right + other.right
-    if (left == Double.MinValue || other.left == Double.MinValue)
-      newLeft = Double.MinValue
-    if (right == Double.MaxValue || other.right == Double.MaxValue
-      || (other.right + right) < other.right) // Last case for overflow
-      newRight = Double.MaxValue
-    return new DoubleInterval(newLeft, newRight)
+  def sum(other: DoubleInterval): DoubleInterval =
+    if (isBottom || other.isBottom) return bottom()
+    else DoubleInterval(left + other.left, right + other.right)
 
-  }
-
-  def subtract(other: DoubleInterval): DoubleInterval = {
-    if (isBottom || other.isBottom) return new DoubleInterval(1, 0)
-    var newLeft = left - other.left
-    var newRight = right - other.right
-    if (left == Double.MinValue || other.left == Double.MinValue
-      || (other.right - right) > other.right) //Last case for underflow
-      newLeft = Double.MinValue
-    if (right == Double.MaxValue || other.right == Double.MaxValue)
-      newRight = Double.MaxValue
-    return new DoubleInterval(newLeft, newRight)
-  }
-
-  private def max(a: Double, b: Double, c: Double, d: Double): Double = max(max(a, b), max(c, d))
-
-  private def min(a: Double, b: Double, c: Double, d: Double): Double = min(min(a, b), min(c, d))
-
-  private def managedMultiply(a: Double, b: Double): Double = {
-    if (a == 0 || b == 0) return 0
-    var result: Double = a * b
-    if (result / a != b) {
-      //Overflow
-      if (a >= 0 && b >= 0) result = Double.MaxValue
-      else if (a <= 0 && b <= 0) result = Double.MaxValue
-      else result = Double.MinValue
-    }
-    return result
-  }
+  def subtract(other: DoubleInterval): DoubleInterval =
+    if (isBottom || other.isBottom) bottom()
+    else DoubleInterval(left - other.right, right - other.left)
 
   def multiply(other: DoubleInterval): DoubleInterval = {
-    val a = managedMultiply(left, other.left)
-    val b = managedMultiply(left, other.right)
-    val c = managedMultiply(right, other.left)
-    val d = managedMultiply(right, other.right)
-    val result = new DoubleInterval(min(a, b, c, d), max(a, b, c, d))
-    return result
+    val a = left * other.left
+    val b = left * other.right
+    val c = right * other.left
+    val d = right * other.right
+    DoubleInterval(min(a, b, c, d), max(a, b, c, d))
   }
 
   def divide(other: DoubleInterval): DoubleInterval = {
     if (other.left == 0 && other.right == 0) return bottom()
-    val a = left / (if (other.left == 0) 1 else other.left)
-    val b = left / (if (other.right == 0) 0 - 1 else other.right)
-    val c = right / (if (other.left == 0) 1 else other.left)
-    val d = right / (if (other.right == 0) 0 - 1 else other.right)
-    var result = new DoubleInterval(min(a, b, c, d), max(a, b, c, d))
-    if (left < 0 && right > 0) //It contains 0
-      result = result.lub(new DoubleInterval(0, 0))
-    if (other.left < 0 && other.right > 0) {
-      //It contains 0
-      if (right > 0)
-        result = new DoubleInterval(result.left, Double.MaxValue)
-      if (left < 0)
-        result = new DoubleInterval(Double.MinValue, result.right)
-    }
-    return result
+    val a = left / (if (other.left == 0) NumericalAnalysisConstants.epsilon else other.left)
+    val b = left / (if (other.right == 0) -NumericalAnalysisConstants.epsilon else other.right)
+    val c = right / (if (other.left == 0) NumericalAnalysisConstants.epsilon else other.left)
+    val d = right / (if (other.right == 0) -NumericalAnalysisConstants.epsilon else other.right)
+    DoubleInterval(min(a, b, c, d), max(a, b, c, d))
   }
 
-  def valueGEQ: DoubleInterval = DoubleInterval(left, Double.MaxValue)
+  def valueGEQ: DoubleInterval =
+    DoubleInterval(left, Double.PositiveInfinity)
 
-  def valueLEQ: DoubleInterval = DoubleInterval(Double.MinValue, right)
+  def valueLEQ: DoubleInterval =
+    DoubleInterval(Double.NegativeInfinity, right)
 
-  def valueGreater: DoubleInterval = DoubleInterval(right + 1, Double.MaxValue)
+  def valueGreater: DoubleInterval =
+    DoubleInterval(right + NumericalAnalysisConstants.epsilon, Double.PositiveInfinity)
 
-  def valueLess: DoubleInterval = DoubleInterval(Double.MinValue, left - 1)
+  def valueLess: DoubleInterval =
+    DoubleInterval(Double.NegativeInfinity, left - NumericalAnalysisConstants.epsilon)
+
+
+  /** Returns the constraint expressed by this interval on a given identifier, if some (None if unconstrained) */
+  override def asConstraint(id: Identifier): Option[Expression] = {
+    if (this.isBottom) return None
+    if (left == Double.NegativeInfinity && right == Double.PositiveInfinity) return None
+    val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ), id, ArithmeticOperator.<=)
+    val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ), ArithmeticOperator.<=)
+    if (right == Double.PositiveInfinity) return Some(lowerBound)
+    if (left == Double.NegativeInfinity) return Some(upperBound)
+    Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
+  }
+
+  override def toString: String = {
+    if (this.isBottom) return "⊥"
+    if (this.isTop) return "T"
+    var result: String = "["
+    if (left == Double.NegativeInfinity)
+      result = result + "-oo"
+    else result = result + left.toString
+    result = result + ".."
+    if (right == Double.PositiveInfinity)
+      result = result + "+oo"
+    else result = result + right.toString
+    result + "]"
+  }
+
+  private def max(a: Double, b: Double, c: Double, d: Double): Double =
+    Math.max(Math.max(a, b), Math.max(c, d))
+
+  private def min(a: Double, b: Double, c: Double, d: Double): Double =
+    Math.min(Math.min(a, b), Math.min(c, d))
 
 }
 
