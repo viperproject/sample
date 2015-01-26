@@ -50,7 +50,7 @@ object TSprite_Set extends Default_TSprite_Set {
     /** Remove sprite that was added to set first. */
     case "remove first" =>
       If[S](collectionSize[S](this0) > 0, Then = (state) => {
-        val result = Field[S](collectionAt[S](this0, toRichExpression(0))(state,pp),entryType.field_value)(state,pp)
+        val result = collectionAt[S](this0, toRichExpression(0))(state,pp)
         var newState = collectionRemoveAt[S](this0, toRichExpression(0))(state, pp)
         newState = collectionDecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)

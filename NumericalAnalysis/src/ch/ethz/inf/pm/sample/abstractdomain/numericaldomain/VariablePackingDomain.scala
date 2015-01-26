@@ -183,6 +183,13 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
     this.copy(cheap = cheap.merge(f), exp = exp.setForAllIdentifiers(mergedState))
   }
 
+  override def isTop: Boolean = {
+    if (!cheap.isTop) return false
+    for (x <- exp.map.values) {
+      if (!x.isTop) return false
+    }
+    return true
+  }
 
   override def isBottom: Boolean = {
     if (cheap.isBottom) return true

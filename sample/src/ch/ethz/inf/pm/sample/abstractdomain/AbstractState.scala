@@ -110,7 +110,7 @@ case class ExpressionSet(
 
   def getSetOfExpressions = this._2.value
 
-  def isTop = this._2.isTop
+  override def isTop = this._2.isTop
 
   override def isBottom = {
     // `SetDomain` objects may currently have an empty set, while both
@@ -227,8 +227,6 @@ I <: HeapIdentifier[I]](
   def _2 = expr
 
   def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
-
-  override def isBottom: Boolean = domain.lessEqual(domain.bottom()) || expr.lessEqual(expr.bottom())
 
   def getStringOfId(id: Identifier): String = domain.getStringOfId(id)
 

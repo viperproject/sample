@@ -64,10 +64,10 @@ trait Lattice[T <: Lattice[T]] {
   /**
    * Returns true iff <code>this</code> is less or equal than <code>r</code>
    *
-   * @param r The value to compare
+   * @param other The value to compare
    * @return true iff <code>this</code> is less or equal than <code>r</code>
    */
-  def lessEqual(r: T): Boolean
+  def lessEqual(other: T): Boolean
 
 
   /** Glb as implemented in many domains is not "strict" enough in that
@@ -82,6 +82,38 @@ trait Lattice[T <: Lattice[T]] {
    * @return bottom
    */
   def isBottom:Boolean
+
+  /**
+   * Checks whether the given domain element is equivalent to bottom ("false")
+   * @return bottom
+   */
+  def isTop:Boolean
+
+}
+
+trait TopLattice[S <: Lattice[S]] extends Lattice[S] {
+  this:S =>
+
+  override def isTop: Boolean = true
+  override def isBottom: Boolean = false
+  override def lessEqual(other: S): Boolean = other.isTop
+  override def lub(other: S): S = this
+  override def widening(other: S): S = this
+  override def glb(other: S): S = other
+  override def toString = "⊤"
+
+}
+
+trait BottomLattice[S <: Lattice[S]] extends Lattice[S] {
+  this:S =>
+
+  override def isTop: Boolean = false
+  override def isBottom: Boolean = true
+  override def lessEqual(r: S): Boolean = true
+  override def lub(other: S): S = other
+  override def widening(other: S): S = other
+  override def glb(other: S): S = this
+  override def toString = "⊥"
 
 }
 

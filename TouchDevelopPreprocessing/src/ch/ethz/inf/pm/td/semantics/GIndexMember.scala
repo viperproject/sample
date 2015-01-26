@@ -14,9 +14,21 @@ import RichNativeSemantics._
  */
 case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFields: List[ApiField]) extends AAny {
 
-  override def possibleFields = super.possibleFields ++ keyFields ++ valueFields
+  def member_clear_fields = ApiMember(
+    name = "clear fields",
+    paramTypes = List(),
+    thisType = ApiParam(this,isMutated = true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
 
-  override lazy val declarations = super.declarations ++ mkGetterSetters(keyFields ::: valueFields)
+  override def possibleFields =
+    super.possibleFields ++ keyFields ++ valueFields
+
+  override lazy val declarations =
+    super.declarations ++ mkGetterSetters(keyFields ::: valueFields) +
+      ("clear fields" -> member_clear_fields)
+
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

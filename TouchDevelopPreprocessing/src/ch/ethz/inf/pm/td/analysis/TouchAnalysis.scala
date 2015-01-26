@@ -50,8 +50,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
   def getInitialState(): StringsAnd[InvalidAnd[D], R] = {
     val numericSubDomain = domain match {
-      case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
-      case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
+      case "Sign" => new BoxedNonRelationalNumericalDomain(TopSign.asInstanceOf[Sign]).asInstanceOf[D]
+      case "Interval" => new BoxedNonRelationalNumericalDomain(TopIntegerInterval.asInstanceOf[IntegerInterval]).asInstanceOf[D]
       case "ApronInterval" =>
         val man = new Box()
         ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]

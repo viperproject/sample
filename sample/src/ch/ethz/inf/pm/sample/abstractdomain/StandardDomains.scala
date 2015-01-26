@@ -353,6 +353,26 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   def ids = map.keySet
 }
 
+//
+//trait TopSetDomain[V, T <: SetDomain[V,T]]
+//  extends SetDomain[V,T]
+//  with TopLattice[T] {
+//  this : T =>
+//
+//
+//
+//}
+//
+//trait BottomSetDomain[V, T <: SetDomain[V,T]]
+//  extends SetDomain[V,T]
+//  with BottomLattice[T] {
+//  this : T =>
+//
+//
+//
+//}
+
+
 /**
  * A domain that is represented by a set.
  *
@@ -679,6 +699,7 @@ T <: CartesianProductDomain[T1, T2, T]]
   def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
 
   def isBottom = _1.isBottom || _2.isBottom
+  def isTop = _1.isTop && _2.isTop
 
   override def strictGlb(other: T): T = factory(_1.strictGlb(other._1), _2.strictGlb(other._2))
 

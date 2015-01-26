@@ -40,6 +40,8 @@ I <: HeapIdentifier[I]](
 
   def isBottom = _1.isBottom || _2.isBottom
 
+  def isTop = _1.isTop && _2.isTop
+
   def ids = _1.ids ++ _2.ids
 
   def factory(semantic: N, heap: H): T = HeapAndAnotherDomain[N, H, I](semantic, heap)

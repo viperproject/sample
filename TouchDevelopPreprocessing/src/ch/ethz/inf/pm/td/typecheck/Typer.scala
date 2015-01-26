@@ -91,8 +91,8 @@ object Typer {
             val fieldMembers = toTouchField(fields)
             val indexMember = GIndexMember(TypeName(ident),keyMembers,fieldMembers)
 
-            val decoratedType = keyMembers.head
-            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"), decoratedType.typ, indexMember)
+            val decoratedType = keyMembers.head.typ
+            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"), decoratedType, indexMember)
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)

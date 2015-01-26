@@ -343,9 +343,12 @@ trait DummyType extends Type {
 
 /** A dummy object type with no proper hierarchy for testing. */
 trait DummyObjectType extends DummyType {
-  def isObject = true
 
   def isBottom = false
+
+  def isTop = false
+
+  def isObject = true
 
   def isNumericalType = false
 }
@@ -355,6 +358,8 @@ case object DummyNumericalType extends DummyType {
   def name = "Int"
 
   def isBottom = false
+
+  def isTop = false
 
   def isObject = false
 
@@ -368,6 +373,8 @@ case object DummyBooleanType extends DummyType {
   def name = "Bool"
 
   def isBottom = false
+
+  def isTop = false
 
   def isObject = false
 

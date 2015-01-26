@@ -307,8 +307,8 @@ case class StrictUpperBounds(map: Map[Identifier, InvertedIdSet] = Map.empty[Ide
 
 }
 
-case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperBoundRelation)
-  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[Interval], UpperBoundRelation, Pentagons]
+case class Pentagons(_1: BoxedNonRelationalNumericalDomain[IntegerInterval], _2: UpperBoundRelation)
+  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[IntegerInterval], UpperBoundRelation, Pentagons]
   with RelationalNumericalDomain[Pentagons]
 {
 
@@ -317,7 +317,7 @@ case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperB
 
   override def toString = ids map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
 
-  override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: UpperBoundRelation) = Pentagons(a, b)
+  override def factory(a: BoxedNonRelationalNumericalDomain[IntegerInterval], b: UpperBoundRelation) = Pentagons(a, b)
 
   override def ids = _1.ids
 

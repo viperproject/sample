@@ -57,6 +57,8 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.getType().top())
 
+  def isTop = myType.isTop
+
   def isBottom = myType.isBottom
 
   def setType(typ: Type): AccessCollectingState = new AccessCollectingState(typ)
@@ -179,7 +181,6 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def widening(other: AccessCollectingState): AccessCollectingState =
     new AccessCollectingState(getType.widening(other.getType))
-
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AccessCollectingState = this
 

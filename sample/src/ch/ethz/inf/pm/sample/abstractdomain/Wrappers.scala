@@ -19,6 +19,7 @@ trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
   def wrapperFactory(wrapped:X):T
 
   override def isBottom: Boolean = wrapped.isBottom
+  override def isTop: Boolean = wrapped.isTop
   override def factory(): T = wrapperFactory(wrapped.factory())
   override def bottom(): T = wrapperFactory(wrapped.bottom())
   override def widening(other: T): T = wrapperFactory(wrapped.widening(other.wrapped))
