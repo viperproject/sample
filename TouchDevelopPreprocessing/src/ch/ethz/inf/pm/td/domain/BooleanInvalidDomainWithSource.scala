@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain.{AbstractOperator, BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, NegatedBooleanExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
+import ch.ethz.inf.pm.td.domain.ValiditySet._
 import ch.ethz.inf.pm.td.semantics.TBoolean
 
 
@@ -13,19 +13,19 @@ import ch.ethz.inf.pm.td.semantics.TBoolean
  * Time: 10:50 AM
  * 
  */
-class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map.empty[Identifier, ValiditySet],
                                       override val isBottom:Boolean = false,
                                       val isTop:Boolean = false)
-  extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource]
+  extends BoxedDomain[ValiditySet,BooleanInvalidDomainWithSource]
   with InvalidDomain[BooleanInvalidDomainWithSource] {
 
-  def functionalFactory(_value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+  def functionalFactory(_value:Map[Identifier, ValiditySet] = Map.empty[Identifier, ValiditySet],
                         _isBottom:Boolean = false,
                         _isTop:Boolean = false) : BooleanInvalidDomainWithSource =
     new BooleanInvalidDomainWithSource(_value,_isBottom,_isTop)
 
-  def get(key : Identifier) : PositionedInvalidValueDomain = map.get(key) match {
-    case None => domBottom
+  def get(key : Identifier) : ValiditySet = map.get(key) match {
+    case None => Bottom
     case Some(x) => x
   }
 
@@ -36,14 +36,14 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     var result = Map.empty[Identifier, List[String]]
     result = result + ((variable, path ::: variable.toString :: Nil))
-    (this.add(variable, domTop), result)
+    (this.add(variable, Top), result)
   }
 
   override def setToTop(variable: Identifier): BooleanInvalidDomainWithSource = {
     // Check necessary, otherwise bottomness of state is lost
     if (this.isBottom) return this
 
-    this.add(variable, domTop)
+    this.add(variable, Top)
   }
 
   override def removeVariable(variable: Identifier): BooleanInvalidDomainWithSource = {
@@ -58,11 +58,12 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
   }
 
   override def assign(variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
-    val res = eval(expr)
-    if (!res.isTop && (res.isBottom || res.value.isEmpty))
-      bottom()
-    else if (variable.representsSingleVariable) this.add(variable, res)
-    else this.add(variable, get(variable).lub(res))
+    eval(expr) match {
+      case ValiditySet.Bottom => bottom()
+      case res:ValiditySet =>
+        if (variable.representsSingleVariable) this.add(variable, res)
+        else this.add(variable, get(variable).lub(res))
+    }
   }
 
   override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
@@ -82,22 +83,18 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
    * 2) Invalid constant = invalid, all other constants = valid
    *
    */
-  private def eval(expr: Expression): PositionedInvalidValueDomain = expr match {
-    case BinaryArithmeticExpression(left, right, _, typ) => domValid
-    case BinaryNondeterministicExpression(left, right, _, typ) => domValid
-    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => domValid
-    case InvalidExpression(typ, str, pp) => domInvalid(str, pp)
-    case ValidExpression(typ,pp) => domValid
-    case Constant(_, _, _) => domValid
-    case x:BinaryBooleanExpression => domValid
-    case x:NegatedBooleanExpression => domValid
-    case h: HeapIdentifier => domValid
+  private def eval(expr: Expression): ValiditySet = expr match {
+    case BinaryArithmeticExpression(left, right, _, typ) => Valid
+    case BinaryNondeterministicExpression(left, right, _, typ) => Valid
+    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => Valid
+    case InvalidExpression(typ, str, pp) => Invalid(str, pp)
+    case ValidExpression(typ,pp) => Valid
+    case Constant(_, _, _) => Valid
+    case x:BinaryBooleanExpression => Valid
+    case x:NegatedBooleanExpression => Valid
+    case h: HeapIdentifier => Valid
     case x: Identifier => this.get(x)
-    case xs: HeapIdSetDomain[_] =>
-      var result = domBottom
-      for (x <- xs.value) result = result.lub(get(x))
-      result
-    case x: Expression => domTop
+    case x: Expression => Top
   }
 
   /**
@@ -122,12 +119,10 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
         var cur = this
         a match {
           case x:Identifier => cur = cur.add(x,left.onlyIf(right))
-          case xs: HeapIdSetDomain[_] => for (x <- xs.value) cur = cur.add(x, left.onlyIf(right))
           case _ => ()
         }
         b match {
           case x:Identifier => cur = cur.add(x,right.onlyIf(left))
-          case xs: HeapIdSetDomain[_] => for (x <- xs.value) cur = cur.add(x, right.onlyIf(left))
           case _ => ()
         }
         cur
@@ -141,15 +136,13 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
         var cur = this
         if (right.mustBeInvalid && left.canBeInvalid) {
           a match {
-            case x:Identifier => cur = cur.add(x,left.onlyIf(domValid))
-            case xs: HeapIdSetDomain[_] => for (x <- xs.value) cur = cur.add(x, left.onlyIf(domValid))
+            case x:Identifier => cur = cur.add(x,left.onlyIf(Valid))
             case _ => ()
           }
         }
         if (left.mustBeInvalid && right.canBeInvalid) {
           b match {
-            case x:Identifier => cur = cur.add(x,right.onlyIf(domValid))
-            case xs: HeapIdSetDomain[_] => for (x <- xs.value) cur = cur.add(x, right.onlyIf(domValid))
+            case x:Identifier => cur = cur.add(x,right.onlyIf(Valid))
             case _ => ()
           }
         }
@@ -211,9 +204,13 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
       case BinaryArithmeticExpression(a: Identifier, InvalidExpression(_, _, _), ArithmeticOperator.==, _) =>
 
         val left = eval(a)
-        left.value flatMap {
-          case InvalidDomainValue(explanation, pp) => Some(explanation, pp)
-          case _ => None
+        left match {
+          case ValiditySet.Inner(set) =>
+            set flatMap {
+              case InvalidDomainValue(explanation, pp) => Some(explanation, pp)
+              case _ => None
+            }
+          case _ => Set.empty
         }
 
       case _ => Set.empty
@@ -225,68 +222,86 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
 }
 
 
-object PositionedInvalidValueDomain {
-
-  // Helper values
-  lazy val domBottom = new PositionedInvalidValueDomain().bottom()
-
-  def domInvalid(explanation: String, pp: ProgramPoint) = new PositionedInvalidValueDomain().add(InvalidDomainValue(explanation, pp))
-
-  lazy val domValid = new PositionedInvalidValueDomain().add(ValidDomainValue())
-  lazy val domTop = new PositionedInvalidValueDomain().top()
-
-}
 
 /**
  * Attaches a position to every invalid value
  *
- * Lucas Brutschy
- * Date: 06/09/13
- * Time: 10:49 AM
+ * @author Lucas Brutschy
  */
-case class PositionedInvalidValueDomain(
-                                         value: Set[ValidnessDomainValue] = Set.empty[ValidnessDomainValue],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends SetDomain[ValidnessDomainValue, PositionedInvalidValueDomain] {
+trait ValiditySet extends SetDomain[ValiditySetValue,ValiditySet] {
 
-  def setFactory(
-                  value: Set[ValidnessDomainValue] = Set.empty[ValidnessDomainValue],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    PositionedInvalidValueDomain(value, isTop, isBottom)
+  def bottom() = ValiditySet.Bottom
+  def top() = ValiditySet.Top
+  def factory(value:Set[ValiditySetValue]) =
+    if (value.isEmpty) ValiditySet.Bottom else ValiditySet.Inner(value)
 
-  def canBeInvalid = isTop || value.exists { case InvalidDomainValue(_, _) => true; case _ => false}
-
-  def canBeValid = isTop || value.exists { case ValidDomainValue() => true; case _ => false}
-  def mustBeInvalid = canBeInvalid && !canBeValid
-  def mustBeValid = canBeValid && !canBeInvalid
-
-  // intersection corresponds to glb
-  def onlyIf(x : PositionedInvalidValueDomain):PositionedInvalidValueDomain = {
-    if (x.isTop) return this
-    if (this.isTop) return this
-    var res = new PositionedInvalidValueDomain()
-    if (x.canBeValid) res = res.setFactory(res.value ++ this.value.collect { case x@ValidDomainValue() => x})
-    if (x.canBeInvalid) res = res.setFactory(res.value ++ this.value.collect { case x@InvalidDomainValue(_, _) => x})
-    if (res.value.isEmpty) return bottom()
-    res
-  }
-
-  override def toString:String = {
-    if (isTop) return "Valid or Invalid with unknown cause"
-    if (isBottom || value.isEmpty) return "⊥"
-    if (mustBeValid) return "Valid"
-    value.map({
-      case ValidDomainValue() => "Valid"
-      case InvalidDomainValue(cause, ss) => "Invalid, since " + cause + " at " + ss
-    }).mkString(" or ")
-  }
+  def canBeInvalid: Boolean
+  def canBeValid: Boolean
+  def mustBeInvalid: Boolean
+  def mustBeValid: Boolean
+  def onlyIf(x : ValiditySet):ValiditySet
 
 }
 
-trait ValidnessDomainValue
+object ValiditySet {
 
-case class ValidDomainValue() extends ValidnessDomainValue
+  def Invalid(explanation: String, pp: ProgramPoint) = Inner(Set(InvalidDomainValue(explanation, pp)))
 
-case class InvalidDomainValue(explanation: String, source: ProgramPoint) extends ValidnessDomainValue
+  lazy val Valid = Inner(Set(ValidDomainValue()))
+
+  object Bottom extends ValiditySet
+    with SetDomain.Bottom[ValiditySetValue,ValiditySet] {
+
+    def canBeInvalid  = false
+    def canBeValid    = false
+    def mustBeInvalid = false
+    def mustBeValid   = false
+    def onlyIf(x : ValiditySet) = this
+    override def toString = "⊥"
+
+  }
+
+  object Top extends ValiditySet
+    with SetDomain.Top[ValiditySetValue,ValiditySet] {
+
+    def canBeInvalid  = true
+    def canBeValid    = true
+    def mustBeInvalid = false
+    def mustBeValid   = false
+    def onlyIf(x: ValiditySet) = this
+    override def toString = "Valid or Invalid with unknown cause"
+  }
+
+  case class Inner(value: Set[ValiditySetValue] = Set.empty[ValiditySetValue])
+    extends ValiditySet
+    with SetDomain.Inner[ValiditySetValue,ValiditySet,Inner] {
+
+    def canBeInvalid  = value.exists { case InvalidDomainValue(_, _) => true; case _ => false}
+    def canBeValid    = value.exists { case ValidDomainValue() => true; case _ => false}
+    def mustBeInvalid = canBeInvalid && !canBeValid
+    def mustBeValid   = canBeValid && !canBeInvalid
+
+    def onlyIf(x : ValiditySet) = {
+      var res:ValiditySet = ValiditySet.Bottom
+      if (x.canBeValid)   res = res lub factory(value.collect { case x@ValidDomainValue() => x})
+      if (x.canBeInvalid) res = res lub factory(value.collect { case x@InvalidDomainValue(_, _) => x})
+      res
+    }
+
+    override def toString:String = {
+      if (mustBeValid) return "Valid"
+      value.map({
+        case ValidDomainValue() => "Valid"
+        case InvalidDomainValue(cause, ss) => "Invalid, since " + cause + " at " + ss
+      }).mkString(" or ")
+    }
+
+  }
+
+  trait ValiditySetValue
+
+  case class ValidDomainValue() extends ValiditySetValue
+
+  case class InvalidDomainValue(explanation: String, source: ProgramPoint) extends ValiditySetValue
+
+}

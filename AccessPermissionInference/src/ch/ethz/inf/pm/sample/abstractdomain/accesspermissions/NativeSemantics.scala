@@ -21,7 +21,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			      for(exp <- ids)
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.typ.name, castedState)
-			    	    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleInvariants(exp.asInstanceOf[MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]], exp.typ.name, castedState)
+			    	    case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result = Annotation.exhaleInvariants(exp.asInstanceOf[HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier]], exp.typ.name, castedState)
 			    	  }
 		    case "unshare" => 
 		      /*if(ids.size == 1) 
@@ -34,19 +34,19 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			      for(exp <- ids)
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.inhaleInvariants(id, exp.typ.name, castedState)
-                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhaleInvariants(id, exp.typ.name, castedState)
+                case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result=Annotation.inhaleInvariants(id, exp.typ.name, castedState)
 			    	  }
 		    case "release" =>  
 			      for(exp <- ids)
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.exhaleInvariants(id, exp.typ.name, castedState)
-                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.exhaleInvariants(id, exp.typ.name, castedState)
+                case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result=Annotation.exhaleInvariants(id, exp.typ.name, castedState)
 			    	  }
 		    case "free" =>
 		    	  for(exp <- ids)
 		    	 	  exp match {
 		    	 	  	case id : Identifier => result = Annotation.exhaleEverything(id, castedState)
-		    	 	  	case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleEverything(id, castedState)
+		    	 	  	case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result = Annotation.exhaleEverything(id, castedState)
 		    	  	  }
 	      }
     
@@ -62,13 +62,13 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 					      for(exp <- ids)
 					    	  exp match {
 					    	    case id : Identifier => result = Annotation.exhalePredicate(id, s, castedState)
-                    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
+                    case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
 					    	  }
 		         case "unfold" =>  
 					  for(exp <- ids)
 					  	  exp match {
 					   	    case id : Identifier => result = Annotation.inhalePredicate(id, s, castedState)
-                  case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
+                  case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
 					  	  }
 			    case "fork" =>
 			      if(y.getSetOfExpressions.size != 1) return None;
@@ -80,7 +80,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
-                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
+                        case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
 							    	  }
 				        val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
@@ -104,7 +104,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
-                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
+                        case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
 							    	  }
 				        val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
@@ -142,12 +142,12 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
     for(exp <- thisExpr.getSetOfExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
-        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
+        case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
 		  }
     for(exp <- thisExpr.getSetOfExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
-		    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
+		    case id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier] => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
 		  }
     val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 	  val entryvalue =thisExpr.top()
@@ -172,8 +172,8 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	* Inhale several permissions (the ones that are in a pre or post condition) on a state
 	*/
 	private def inhale[S<:State[S], P <: PermissionsDomain[P]](cond : Map[ExpressionSet, Int], state : S) : Option[S]= {
-	  //I suppose the state is AbstractState[PermissionsDomain, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]
-	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
+	  //I suppose the state is AbstractState[PermissionsDomain, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier]]
+	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
 	      val id = s.getExpressions().head
@@ -191,8 +191,8 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	* Inhale several permissions on a state
 	*/
 	private def exhale[S<:State[S], P <: PermissionsDomain[P]](cond : Map[ExpressionSet, Int], state : S) : Option[S] = {
-	  //I suppose the state is AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]
-	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
+	  //I suppose the state is AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier]]
+	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
 	      val id = s.getExpressions().head

@@ -101,10 +101,6 @@ object LinearExpressionFactory {
         }
         catch { case nfe : NumberFormatException => false }
       }
-      case m: MaybeHeapIdSetDomain[Any] => {
-        coefficients.put(new PubsVariable(m.toString, false), if (negated) new Rational(-1) else new Rational(1))
-        true
-      }
       case v: VariableIdentifier => {
         coefficients.put(new PubsVariable(v.getName, false), if (negated) new Rational(-1) else new Rational(1))
         true

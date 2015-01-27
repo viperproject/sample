@@ -55,13 +55,23 @@ case class NonDeterminismWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
           val newStateRight = newState.assign(id, ndExpr.right)
           newState = newStateLeft.lub(newStateRight)
         case NondeterministicOperator.toExcl =>
-          newState = newState.
-            assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ)).
-            assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<, ndExpr.typ))
+          ndExpr.left match {
+            case Constant("neginfty", _, _) => ()
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ))
+          }
+          ndExpr.right match {
+            case Constant("posinfty", _, _) => ()
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<, ndExpr.typ))
+          }
         case NondeterministicOperator.toIncl =>
-          newState = newState.
-            assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ)).
-            assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.typ))
+          ndExpr.left match {
+            case Constant("neginfty", _, _) => ()
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ))
+          }
+          ndExpr.right match {
+            case Constant("posinfty",_,_) => ()
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.typ))
+          }
       }
     }
 

@@ -281,7 +281,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val nestedPredId = PredicateIdentifier.make()
           val nestedPredBody = PredicateBody().top()
           result = result.assignVariable(nestedPredId, nestedPredBody)
-          recvPredBody = recvPredBody.add(field, NestedPredicatesDomain(Set(nestedPredId), isTop = false))
+          recvPredBody = recvPredBody.add(field, NestedPredicatesDomain().bottom().add(nestedPredId))
         } else {
           recvPredBody = recvPredBody.addPerm(field)
         }

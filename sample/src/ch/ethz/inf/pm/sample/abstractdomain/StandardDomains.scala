@@ -353,25 +353,6 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   def ids = map.keySet
 }
 
-//
-//trait TopSetDomain[V, T <: SetDomain[V,T]]
-//  extends SetDomain[V,T]
-//  with TopLattice[T] {
-//  this : T =>
-//
-//
-//
-//}
-//
-//trait BottomSetDomain[V, T <: SetDomain[V,T]]
-//  extends SetDomain[V,T]
-//  with BottomLattice[T] {
-//  this : T =>
-//
-//
-//
-//}
-
 
 /**
  * A domain that is represented by a set.
@@ -381,288 +362,200 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  *
  * @tparam V The type of the values contained in the set
  * @tparam T The type of the current set domain
- * @author Pietro Ferrara, Lucas Brutschy
- *
- * @todo do not allow `value` to be empty while both `isTop` and `isBottom` are `false`
- * @todo ideally, one should not allow access to `value` when the object is top
+ * @author Lucas Brutschy, Pietro Ferrara
  */
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   this: T =>
-  def value: Set[V]
-
-  def isTop: Boolean
 
   /**
    * Constructs a new set domain of the concrete type
    *
+   * This has to make sure that the corresponding top or bottom element is returned
+   *
    * @return a fresh, empty instance of the set domain
    */
-  def setFactory(
-                  value: Set[V] = Set.empty[V],
-                  isTop: Boolean = false,
-                  isBottom: Boolean = false): T
-
-  override def factory() = setFactory()
-
-  final def top(): T = setFactory(isTop = true)
-
-  final def bottom(): T = setFactory(isBottom = true)
+  def factory(value: Set[V] = Set.empty[V]): T
 
   /**
    * Removes an element from the set. Formally, return = old(this)\setminus {v}
    * @param v The element to be removed
    * @return The abstract state without the given element.
    */
-  def remove(v: V): T = {
-    if (this.isTop) return this.top()
-    if (this.isBottom) return this.bottom()
-    val newSet = this.value.-(v)
-    setFactory(newSet, isBottom = newSet.isEmpty)
-  }
+  def remove(v: V): T
 
   /**
    * Removes a set from the set. Formally, return = old(this) \setminus v
    * @param v The element to be removed
    * @return The abstract state without the given set of elements.
    */
-  def remove(v: SetDomain[V, T]): T = {
-    if (this.isBottom) return bottom()
-    if (v.isTop) return bottom()
-    if (this.isTop) return top()
-    val newSet = this.value -- v.value
-    setFactory(newSet, isBottom = newSet.isEmpty)
-  }
+  def remove(v: T): T
 
   /**
    * Adds an element to the set. Formally, return = old(this) \cup {v}
    * @param v The element to be added
    * @return The abstract state with the given element as well.
    */
-  def add(v: V): T = {
-    if (this.isTop) return this.top()
-    setFactory(value + v)
-  }
+  def add(v: V): T
 
   /**
    * Adds an element to the set. Formally, return = old(this) \cup V
    * @param v The element to be added
    * @return The abstract state with the given element as well.
    */
-  def add(v: T): T = {
-    if (this.isTop || v.isTop) return top()
-    if (this.isBottom) return v
-    setFactory(this.value ++ v.value)
-  }
+  def add(v: T): T
 
-  def lub(other: T): T = {
-    if (this.isTop || other.isTop) return top()
-    if (this.isBottom) return other
-    if (other.isBottom) return this
-    setFactory(this.value ++ other.value)
-  }
+  override def factory(): T = top()
 
-  def glb(other: T): T = {
-    if (this.isBottom || other.isBottom) return bottom()
-    if (this.isTop) return other
-    if (other.isTop) return this
-    val newSet = this.value.intersect(other.value)
-    setFactory(newSet, isBottom = newSet.isEmpty)
-  }
-
-  def widening(other: T): T = this.lub(other)
-
-  def lessEqual(other: T): Boolean = {
-    if (this.isBottom) return true
-    if (other.isTop) return true
-    if (other.isBottom) return false
-    if (this.isTop) return false
-    this.value.subsetOf(other.value)
-  }
-
-  override def toString: String = {
-    if (this.isBottom) return "⊥"
-    if (this.isTop) return "⊤"
-    ToStringUtilities.setToString(value)
-  }
-
-  override def equals(a: Any): Boolean = a match {
-    case x: SetDomain[V, T] =>
-      if (this.isBottom && x.isBottom) return true
-      if (this.isTop && x.isTop) return true
-      if (this.isBottom || x.isBottom || this.isTop || x.isTop) return false
-      if (this.value.size != x.value.size) return false
-      for (el <- this.value)
-        if (!x.value.contains(el)) return false
-      true
-    case _ => false
-  }
-
-  override def hashCode(): Int = {
-    var result: Int = 0
-    for (el <- this.value)
-      result = result + el.hashCode()
-    result
-  }
 }
 
 object SetDomain {
 
+  trait Top[V, T <: SetDomain[V,T]]
+    extends SetDomain[V,T]
+    with TopLattice[T] {
+    this : T =>
+
+    def remove(v: V) = this
+    def remove(v: T) = if (v.isTop) bottom() else this
+    def add(v: V)    = this
+    def add(v: T): T = this
+
+  }
+
+  trait Bottom[V, T <: SetDomain[V,T]]
+    extends SetDomain[V,T]
+    with BottomLattice[T] {
+    this : T =>
+
+    def remove(v: V) = this
+    def remove(v: T) = this
+    def add(v: V) =    factory(Set(v))
+    def add(v: T): T = v
+
+  }
+
+  trait Inner[V, T <: SetDomain[V,T], I <: Inner[V,T,I]]
+    extends SetDomain[V,T]
+    with InnerLattice[T,I] {
+    this : T =>
+
+    // This should be bottom
+    assert {!value.isEmpty}
+
+    def value: Set[V]
+
+    def remove(v: T): T = v match {
+      case a:Bottom[V,T]   => top()
+      case a:Top[V,T]      => bottom()
+      case a:Inner[V,T,I]  => factory(value -- a.value)
+    }
+
+    def remove(v: V) =              factory(value - v)
+    def add(v: V) =                 factory(value + v)
+    def add(v: T) =                 lub(v)
+    def lubInner(other: I) =        factory(value ++ other.value)
+    def glbInner(other: I) =        factory(value intersect other.value)
+    def wideningInner(other: I) =   lubInner(other)
+    def lessEqualInner(other: I) =  value subsetOf other.value
+
+    override def toString = ToStringUtilities.setToString(value)
+
+  }
+
   /** Simple implementation of `SetDomain`. Cannot be extended. */
-  final case class Default[V](
-                               value: Set[V] = Set.empty[V],
-                               isTop: Boolean = false,
-                               isBottom: Boolean = false)
-    extends SetDomain[V, Default[V]] {
+  sealed trait Default[V] extends SetDomain[V,Default[V]] {
 
-    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
-      Default(value, isTop, isBottom)
+    override def top()     = Default.Top()
+    override def bottom()  = Default.Bottom()
+
+    override def factory(value: Set[V]): Default[V] =
+      if(value.isEmpty) bottom() else Default.Inner(value)
+
   }
+  
+  object Default {
 
-}
+    final case class Inner[V](value: Set[V])
+      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]]
 
-/**
- * A set domain which is bounded by a given K.
- *
- * @tparam V the values stored
- * @tparam T the type itself
- * @author Lucas Brutschy
- */
-trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] {
-  this: T =>
+    final case class Bottom[V]()
+      extends Default[V] with SetDomain.Bottom[V, Default[V]]
 
-  /** The maximum number of represented elements. */
-  def K: Int
+    final case class Top[V]()
+      extends Default[V] with SetDomain.Top[V, Default[V]]
 
-  /**
-   * Adds an element to the set. Formally, return = old(this) \cup {v}
-   * Returns top if the cardinality of the result is > k
-   * @param v The element to be added
-   * @return The abstract state with the given element as well.
-   */
-  override def add(v: V): T = {
-    if (this.isTop) return this.top()
-    val result = setFactory(value + v)
-    if (result.value.size > K) return this.top()
-    result
   }
 
   /**
-   * Adds an element to the set. Formally, return = old(this) \cup {v}
-   * Returns top if the cardinality of the result is > k
-   * @param v The set to be added
-   * @return The abstract state with the given element as well.
+   * A set domain which is bounded by a given function
+   *
+   * @tparam V the values stored
+   * @tparam T the type itself
+   * @author Lucas Brutschy
    */
-  override def add(v: T): T = {
-    if (this.isTop || v.isTop) return top()
-    if (this.isBottom) return v
-    val result: T = setFactory(this.value ++ v.value)
-    if (result.value.size > K) return this.top()
-    result
-  }
+  trait Bounded[V, T <: Bounded[V, T]]
+    extends SetDomain[V, T] {
+    this: T =>
 
-  override def lub(other: T): T = {
-    if (this.isBottom) return other
-    if (other.isBottom) return this
-    if (this.isTop || other.isTop) return top()
-    val result: T = setFactory(this.value ++ other.value)
-    if (result.value.size > K) return this.top()
-    result
+    /**
+     * Returns a version of this set which restricts the bounds
+     */
+    def cap:T
+
   }
+  
+  object Bounded {
+
+    trait Bottom[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Bottom[V,T] {
+      this:T =>
+      override def cap = this
+    }
+
+    trait Top[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Top[V,T] {
+      this: T =>
+      override def cap = this
+    }
+
+    trait Inner[V, T <: Bounded[V,T], I <: Inner[V,T,I]] extends Bounded[V,T] with SetDomain.Inner[V,T,I] {
+      this:T =>
+
+      override def lubInner(other: I): T =      super.lubInner(other).cap
+      override def wideningInner(other: I): T = super.wideningInner(other).cap
+
+      override def add(v: T): T =    super.add(v).cap
+      override def add(v: V): T =    super.add(v).cap
+
+    }
+
+    trait Default[V] extends Bounded[V,Default[V]] {
+
+      /** The bound of the set */
+      val k:Int
+
+      override def bottom()                = Default.Bottom(k)
+      override def top()                   = Default.Top(k)
+      override def factory(value: Set[V])  = Default.Inner(k,value)
+
+    }
+
+    object Default {
+
+      case class Inner[V](k: Int, value: Set[V]) extends Default[V] with Bounded.Inner[V, Default[V], Inner[V]] {
+
+        override def cap = if (value.size > k) top() else this
+
+      }
+
+      case class Bottom[V](k: Int) extends Default[V] with Bounded.Bottom[V, Default[V]]
+      case class Top[V](k: Int) extends Default[V] with Bounded.Top[V, Default[V]]
+
+    }
+
+  }
+  
 }
 
-object KSetDomain {
 
-  /** Simple implementation of `KSetDomain`. Cannot be extended. */
-  case class Default[V](
-                         K: Int,
-                         value: Set[V] = Set.empty[V],
-                         isTop: Boolean = false,
-                         isBottom: Boolean = false)
-    extends KSetDomain[V, Default[V]] {
-
-    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
-      Default(K, value, isTop, isBottom)
-  }
-
-}
-
-/**
- * A domain that is represented by a set, and whose lattice operators are
- * the inversed one. Formally, the upper bound is the intersection,
- * the lower bound the union, and so on.
- *
- * @tparam V The type of the values contained in the set
- * @tparam T The type of the current set domain
- * @author Pietro Ferrara, Lucas Brutschy
- */
-trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
-  this: T =>
-
-  // TODO: There are other methods that need overriding
-  // SetDomain and InverseSetDomain are in desperate need of a refactoring
-
-  override def add(el: V): T = {
-    if (this.isBottom) return this.bottom()
-    setFactory(value + el, isTop = false, isBottom = isBottom)
-  }
-
-  override def remove(v: V): T = {
-    if (this.isTop) return this.top()
-    if (this.isBottom) return this.bottom()
-    val newSet = this.value.-(v)
-    setFactory(newSet, isTop = newSet.isEmpty)
-  }
-
-  override def lub(other: T): T = {
-    if (this.isTop || other.isTop) return top()
-    if (this.isBottom) return other
-    if (other.isBottom) return this
-    setFactory(this.value.intersect(other.value))
-  }
-
-  override def glb(other: T): T = {
-    if (this.isBottom || other.isBottom) return bottom()
-    if (this.isTop) return other
-    if (other.isTop) return this
-    setFactory(this.value ++ other.value)
-  }
-
-  override def widening(other: T): T = this.lub(other)
-
-  override def lessEqual(other: T): Boolean = {
-    if (this.isBottom) return true
-    if (other.isTop) return true
-    if (other.isBottom) return false
-    if (this.isTop) return false
-    other.value.subsetOf(this.value)
-  }
-}
-
-object InverseSetDomain {
-
-  /** Simple implementation of `InverseSetDomain`. Cannot be extended. */
-  final case class Default[V](
-                               value: Set[V] = Set.empty[V],
-                               isTop: Boolean = false,
-                               isBottom: Boolean = false)
-    extends InverseSetDomain[V, Default[V]] {
-
-    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
-      Default(value, isTop, isBottom)
-  }
-
-  /** Simple implementation of a must-`InverseSetDomain`. Cannot be extended. */
-  final case class Must[V](
-                            value: Set[V] = Set.empty[V],
-                            isTop: Boolean = false,
-                            isBottom: Boolean = false)
-    extends InverseSetDomain[V, Must[V]] with Lattice.Must[Must[V]] {
-
-    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
-      Must(value, isTop, isBottom)
-  }
-
-}
 
 /**
  * A lattice domain that combines two other lattices without

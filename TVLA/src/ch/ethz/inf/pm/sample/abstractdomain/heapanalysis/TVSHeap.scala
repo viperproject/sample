@@ -162,7 +162,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    */
   private def extractHeapId(tempvar: String, typ: Type): TVSHeapIDSet = {
     val ids: Set[NodeName] = structures.flatMap(_.programVariables(tempvar).value)
-    new TVSHeapIDSet(tempvar, ids)
+    TVSHeapIDSet.Inner(tempvar, ids)
   }
 
   /**
@@ -568,7 +568,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
 
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
-                                           typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
+                                           typ: Type): (HeapIdSetDomain.Definite[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
 
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
 
@@ -599,8 +599,25 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
  * nodes in the TVS again.
  *
  */
-class TVSHeapIDSet(val pointedBy: String, _value: Set[NodeName] = Set.empty[NodeName], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends DefiniteHeapIdSetDomain[NodeName](null, _value, _isTop, _isBottom)
+trait TVSHeapIDSet extends HeapIdSetDomain.MayBe[NodeName] {
+  def pointedBy:String
+}
+
+object TVSHeapIDSet {
+
+  object Bottom extends TVSHeapIDSet with HeapIdSetDomain.Bottom[NodeName] {
+    val pointedBy = ""
+  }
+  object Top extends TVSHeapIDSet with HeapIdSetDomain.Top[NodeName] {
+    val pointedBy = ""
+  }
+
+  case class Inner(pointedBy: String, value: Set[NodeName] = Set.empty[NodeName])
+    extends TVSHeapIDSet with HeapIdSetDomain.Inner[NodeName] {
+    override def pp: ProgramPoint = null
+  }
+
+}
 
 /**
  * Used to make a distinction between temporaries and normal variables

@@ -56,7 +56,7 @@ trait PreciseValueDrivenHeapState[
             val freshId = PreciseValueDrivenHeapState.makeFreshGhostVariableId()
             outgoingEdges.zipWithIndex.map {
               case (edge, index) =>
-                val newIdState = edge.state.edgeAmbiguityState.add(freshId, SetDomain.Default[Int](Set(index)))
+                val newIdState = edge.state.edgeAmbiguityState.add(freshId, SetDomain.Default.Inner[Int](Set(index)))
                 edge.copy(state = edge.state.copy(edgeAmbiguityState = newIdState))
             }
           } else outgoingEdges
@@ -121,9 +121,9 @@ case class EdgeAmbiguityState(
 
   def defaultValue: SetDomain.Default[Int] = {
     if (isBottom)
-      SetDomain.Default[Int](isBottom = true)
+      SetDomain.Default.Bottom[Int]
     else
-      SetDomain.Default[Int](isTop = true)
+      SetDomain.Default.Top[Int]
   }
 
   def functionalFactory(

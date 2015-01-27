@@ -361,7 +361,6 @@ case class MethodCall(
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     val body: Statement = method.normalize()
-    var result: S = state.bottom()
     //Method call used to represent a goto statement to a while label
     body match {
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")

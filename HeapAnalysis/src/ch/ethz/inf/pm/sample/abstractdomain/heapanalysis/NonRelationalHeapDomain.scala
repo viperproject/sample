@@ -258,7 +258,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[
     return false
   }
 
-  def getVariables = map.keySet;
+  def getVariables = map.keySet
 
   private var getAddressesCache: Option[Set[I]] = None
 
@@ -428,27 +428,27 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[
 }
 
 trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends HeapIdentifier[I] {
-  def getLabel(): String;
+  def getLabel(): String
 
-  def createAddress(typ: Type, pp: ProgramPoint): I;
+  def createAddress(typ: Type, pp: ProgramPoint): I
 
-  def createAddressForArgument(typ: Type, p: ProgramPoint): I;
+  def createAddressForArgument(typ: Type, p: ProgramPoint): I
 
-  def extractField(obj: I, field: String, typ: Type): I;
+  def extractField(obj: I, field: String, typ: Type): I
 
-  def getArrayCell(array: Assignable, index: Expression): I;
+  def getArrayCell(array: Assignable, index: Expression): I
 
-  def getArrayLength(array: Assignable): I;
+  def getArrayLength(array: Assignable): I
 
-  def createArray(length: Expression, typ: Type, p: ProgramPoint): I = this.createAddress(typ, p);
+  def createArray(length: Expression, typ: Type, p: ProgramPoint): I = this.createAddress(typ, p)
 
-  def accessStaticObject(typ: Type, p: ProgramPoint): I;
+  def accessStaticObject(typ: Type, p: ProgramPoint): I
 
-  def getNullNode(p: ProgramPoint): I;
+  def getNullNode(p: ProgramPoint): I
 
-  def isNormalized(): Boolean;
+  def isNormalized(): Boolean
 
-  def factory(): I;
+  def factory(): I
 
   def toSummaryNode: I
 
@@ -488,8 +488,8 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
 
   def dom: I
 
-  protected var alreadyInitialized: Set[I] = Set.empty[I];
-  protected var fieldsInitialized: Set[I] = Set.empty[I];
+  protected var alreadyInitialized: Set[I] = Set.empty[I]
+  protected var fieldsInitialized: Set[I] = Set.empty[I]
 
   override def endOfAssignment() = (this.asInstanceOf[H], new Replacement())
 
@@ -529,12 +529,12 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   }
 
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type) =
-    (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this.asInstanceOf[H], new Replacement);
+    (HeapIdSetDomain.MayBe.Bottom().convert(dom.getArrayCell(arrayIdentifier, index)), this.asInstanceOf[H], new Replacement)
 
   override def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S) =
-    (new MaybeHeapIdSetDomain().convert(dom.createArray(length, typ, pp)), this.asInstanceOf[H], new Replacement);
+    (HeapIdSetDomain.MayBe.Bottom().convert(dom.createArray(length, typ, pp)), this.asInstanceOf[H], new Replacement)
 
-  override def getArrayLength(id: Assignable) = (new MaybeHeapIdSetDomain().convert(dom.getArrayLength(id)), this.asInstanceOf[H], new Replacement)
+  override def getArrayLength(id: Assignable) = (HeapIdSetDomain.MayBe.Bottom().convert(dom.getArrayLength(id)), this.asInstanceOf[H], new Replacement)
 
   override def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = {
     var result = this.bottom()
@@ -544,11 +544,11 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     (result, new Replacement)
   }
 
-  override def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil;
+  override def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
   def getDomainLabel(): String = dom.getLabel()
 
-  override def parameters(): List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10))
+  override def parameters(): List[(String, Any)] = List(("UnsoundEntryState", true), ("MaxEntryNodes", 10))
 
   override def setParameter(label: String, value: Any): Unit = label match {
     case "UnsoundEntryState" => value match {
@@ -583,7 +583,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     result
   }
 
-  def get(key: I): HeapIdSetDomain[I] = this._2.get(key);
+  def get(key: I): HeapIdSetDomain[I] = this._2.get(key)
 
   override def createVariable(variable: Assignable, typ: Type) = {
     if (!hasId(variable.asInstanceOf[Identifier])) {
@@ -599,19 +599,19 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   override def createVariableForArgument(variable: Assignable, typ: Type, path: List[String]) = variable match {
     case x: VariableIdentifier =>
       if (typ.isObject) {
-        var (result, r) = this.createVariable(variable, typ);
+        var (result, r) = this.createVariable(variable, typ)
         //r will be always empty, so I ignore it
-        var ids: Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
-        alreadyInitialized = Set.empty[I];
-        this.initializeObject(x, dom.createAddressForArgument(typ, x.pp), typ, result, path ::: variable.toString :: Nil);
+        var ids: Map[Identifier, List[String]] = Map.empty[Identifier, List[String]]
+        alreadyInitialized = Set.empty[I]
+        this.initializeObject(x, dom.createAddressForArgument(typ, x.pp), typ, result, path ::: variable.toString :: Nil)
       }
       else {
-        var result = Map.empty[Identifier, List[String]];
+        var result = Map.empty[Identifier, List[String]]
         result = result + ((x, variable.toString :: Nil))
-        (factory(this._1.add(x, cod.bottom()), this._2), result, new Replacement);
+        (factory(this._1.add(x, cod.bottom()), this._2), result, new Replacement)
       }
     case x: HeapIdentifier[I] => {
-      throw new Exception("This should not happen!");
+      throw new Exception("This should not happen!")
     }
   }
 
@@ -630,7 +630,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       }
 
       alreadyInitialized = alreadyInitialized + obj
-      val c = typ.possibleFields;
+      val c = typ.possibleFields
       for (field <- c) {
         val adds = cod.convert(dom.createAddressForArgument(field.typ, x.pp))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier
@@ -638,8 +638,8 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
         val (fieldAdd, newHeap, rep) = result.getFieldIdentifier(obj, field.getName, field.typ, field.pp)
         for (id: I <- fieldAdd.value) {
           result = factory(result._1, result._2.add(id, adds))
-          ids = ids + ((id, path ::: (field.getName) :: Nil))
-          val r = initializeObject(id, id, id.typ, result, path ::: (field.getName) :: Nil)
+          ids = ids + ((id, path ::: field.getName :: Nil))
+          val r = initializeObject(id, id, id.typ, result, path ::: field.getName :: Nil)
           alreadyInitialized = alreadyInitialized + id
           result = r._1
           ids = r._2 ++ ids; //This order is quite important: in this way we keep the shortest path to arrive to an abstract node!
@@ -882,7 +882,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     a match {
       case id: VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(_1.get(id)), f)
       case ids: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(ids), f)
-      case id: I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(new MaybeHeapIdSetDomain().convert(id)), f)
+      case id: I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(HeapIdSetDomain.MayBe.Bottom().convert(id)), f)
       case _ => f(a)
     }
   }
@@ -894,14 +894,14 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     case obj: VariableIdentifier => return extractField(this.get(obj), field, typ)
 
     case obj: HeapIdSetDomain[I] => {
-      var result: HeapIdSetDomain[I] = cod.bottom();
+      var result: HeapIdSetDomain[I] = cod.bottom()
       for (simplepp: I <- obj.value)
         result = result.lub(extractField(simplepp, field, typ))
 
       //If I don't have any information, I return a top identifier
       if (result.isBottom)
         return result.top()
-      return result;
+      return result
     }
     //case obj : I => return extractField(this.get(obj.asInstanceOf[I]), field, typ)
     case obj: I => return extractField(obj.asInstanceOf[I], field, typ)
@@ -912,39 +912,39 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   }
 
   def extractField(obj: I, field: String, typ: Type): HeapIdSetDomain[I] = {
-    var result: HeapIdSetDomain[I] = cod.bottom();
+    var result: HeapIdSetDomain[I] = cod.bottom()
     for (id <- this.normalize(cod.convert(obj)).value)
-      result = result.add(dom.extractField(id, field, typ));
+      result = result.add(dom.extractField(id, field, typ))
     if (result.isBottom) return result.top()
     result
   }
 
   protected def normalize(id: HeapIdSetDomain[I]): HeapIdSetDomain[I] = {
-    var result = id.factory();
+    var result = id.factory()
     for (add <- id.value)
       if (add.isNormalized)
-        result = result.add(add);
-      else result = result.add(this._2.get(add));
-    return result;
+        result = result.add(add)
+      else result = result.add(this._2.get(add))
+    return result
   }
 
   protected def extractField(obj: HeapIdSetDomain[I], field: String, typ: Type): HeapIdSetDomain[I] = {
-    var result: HeapIdSetDomain[I] = cod.bottom();
-    if (obj.isBottom) return result.bottom();
+    var result: HeapIdSetDomain[I] = cod.bottom()
+    if (obj.isBottom) return result.bottom()
     if (obj.isTop) {
       //We manage the case in which we use the object to access a static object -> useful in Scala
       if (typ != null && typ.isStatic) {
-        typ.isStatic;
-        return result.add(dom.accessStaticObject(typ, obj.pp));
+        typ.isStatic
+        return result.add(dom.accessStaticObject(typ, obj.pp))
       }
     }
-    val accessed = this.normalize(obj);
+    val accessed = this.normalize(obj)
     for (node <- accessed.value)
-      result = result.add(dom.extractField(node, field, typ));
+      result = result.add(dom.extractField(node, field, typ))
     //If I don't have any information, I return a top identifier
     if (result.isBottom)
-      return result.top();
-    return result;
+      return result.top()
+    return result
   }
 
   protected def eval[S <: State[S]](expr: Expression): HeapIdSetDomain[I] = expr match {

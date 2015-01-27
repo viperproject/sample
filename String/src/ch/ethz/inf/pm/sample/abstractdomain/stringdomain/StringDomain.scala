@@ -52,8 +52,9 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     if (variable.typ.isStringType) {
       val res = eval(expr)
       //if (res.isBottom) bottom()
-      if (variable.representsSingleVariable) this.add(variable, res)
-      else this.add(variable, get(variable).lub(res))
+      val ret = if (variable.representsSingleVariable) this.add(variable, res)
+                else this.add(variable, get(variable).lub(res))
+      ret
     } else this
   }
 
@@ -70,10 +71,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
       eval(left).concat(eval(right))
     case x: Identifier =>
       this.get(x)
-    case xs: HeapIdSetDomain[_] =>
-      var result = dom.bottom()
-      for (x <- xs.value) result = result.lub(get(x))
-      result
     case x: Expression => dom.top()
   }
 
@@ -82,7 +79,8 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
    */
   override def assume(expr: Expression): NonrelationalStringDomain[T] = {
 
-    if (isBottom) return this
+    if (isBottom)
+      return this
 
     // Check if we assume something about non-numerical values - if so, return
     val ids = expr.ids
@@ -93,6 +91,10 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     }
     expr match {
 
+      // DOUBLE NEGATION
+      case NegatedBooleanExpression(NegatedBooleanExpression(n)) =>
+        assume(n)
+
       // Comparison
       case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
 
@@ -101,15 +103,20 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
         val intersection = dom.intersect(left,right)
 
-        if (intersection.isBottom) bottom()
+        if (intersection.isBottom)
+          bottom()
         else (a,b) match {
           case (x:Identifier, y:Identifier) =>
-            this.add(x,intersection).add(y,intersection)
+            val res = this.restrict(x,intersection).restrict(y,intersection)
+            res
           case (x:Identifier, y:Expression) =>
-            this.add(x,intersection)
+            val res = this.restrict(x,intersection)
+            res
           case (y:Expression, x:Identifier) =>
-            this.add(x,intersection)
-          case _ => this
+            val res = this.restrict(x,intersection)
+            res
+          case _ =>
+            this
         }
 
       // Negated comparison
@@ -122,8 +129,8 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
         // We can only assume anything about inequalities if left or right is a singleton
         var curState = this
-        if (a.isInstanceOf[Identifier] && right.isSingleton) curState = curState.add(a.asInstanceOf[Identifier],diff)
-        if (b.isInstanceOf[Identifier] && left.isSingleton) curState = curState.add(b.asInstanceOf[Identifier],diff)
+        if (a.isInstanceOf[Identifier] && right.isSingleton) curState = curState.restrict(a.asInstanceOf[Identifier],diff)
+        if (b.isInstanceOf[Identifier] && left.isSingleton) curState = curState.restrict(b.asInstanceOf[Identifier],diff)
         if (right.isSingleton && left.isSingleton && diff.isBottom) curState = curState.bottom()
         curState
 
@@ -136,12 +143,17 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
       // AND, OR
       case BinaryBooleanExpression(left,right,op,typ) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => assume(left).lub(assume(right))
+        case BooleanOperator.|| => assume(left) lub assume(right)
       }
 
-      case _ => this
+      case _ =>
+        this
     }
 
+  }
+
+  private def restrict(id:Identifier,a:T): NonrelationalStringDomain[T] = {
+    copy(map = map + (id -> (map.getOrElse(id,dom.bottom()) glb (a))))
   }
 
 }
@@ -168,37 +180,60 @@ trait StringValueSetDomain[T <: StringValueSetDomain[T]] extends StringValueDoma
 
 }
 
-case class StringKSetDomain(
-    K: Int,
-    value: Set[String] = Set.empty[String],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends KSetDomain[String, StringKSetDomain]
+trait StringKSetDomain extends SetDomain.Bounded[String, StringKSetDomain]
   with StringValueSetDomain[StringKSetDomain] {
 
-  def setFactory(
-      value: Set[String] = Set.empty[String],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    StringKSetDomain(K, value, isTop, isBottom)
+  val k:Int
 
-  def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
+  def bottom() = StringKSetDomain.Bottom(k)
+  def top() = StringKSetDomain.Top(k)
+  def factory(v:Set[String]) = if (v.isEmpty) bottom() else StringKSetDomain.Inner(k,v)
 
-  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = {
-    a.remove(b).lub(b.remove(a))
+  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = (a remove b) lub (b remove a)
+
+  def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain =
+    a glb b
+
+  def singleton(a: String): StringKSetDomain = bottom().add(a)
+
+  def concat(other:StringKSetDomain):StringKSetDomain
+
+  def isSingleton:Boolean
+
+}
+
+object StringKSetDomain {
+
+  case class Top(k:Int) extends StringKSetDomain with SetDomain.Bounded.Top[String,StringKSetDomain] {
+    def isSingleton = false
+    def concat(other:StringKSetDomain) = if (other.isBottom) bottom() else this
   }
 
-  def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = a.glb(b)
-
-  def singleton(a: String): StringKSetDomain = factory().add(a)
-
-  def concat(other:StringKSetDomain):StringKSetDomain = {
-    var ret = factory()
-    for (left <- this.value)
-      for (right <- other.value)
-        ret = ret.add(left + right)
-    ret
+  case class Bottom(k:Int) extends StringKSetDomain with SetDomain.Bounded.Bottom[String,StringKSetDomain] {
+    def isSingleton = false
+    def concat(other:StringKSetDomain) = this
   }
+
+  case class Inner(k:Int, value: Set[String] = Set.empty[String]) extends StringKSetDomain
+    with SetDomain.Bounded.Inner[String,StringKSetDomain,Inner] {
+
+    def isSingleton = value.size == 1
+
+    def concat(other:StringKSetDomain):StringKSetDomain = other match {
+      case Bottom(_) => bottom()
+      case Top(_) => top()
+      case Inner(_,oValue) =>
+        var ret:StringKSetDomain = bottom()
+        for (left <- value)
+          for (right <- oValue)
+            ret = ret.add(left + right)
+        ret
+    }
+
+    override def cap: StringKSetDomain = if (value.size > k) top() else this
+
+  }
+
 }
 
 trait NumericWithStringDomain[

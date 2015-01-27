@@ -16,10 +16,10 @@ object GuiRunner {
     ShowGraph.Show[S](a.analyze(methods,state,o))
   }
 
-  def createEmptyValue(): ExpressionSet = new ExpressionSet(SystemParameters.getType.top, SetDomain.Default())
+  def createEmptyValue(): ExpressionSet = new ExpressionSet(SystemParameters.getType.top, SetDomain.Default.Top())
 
   def createNonRelationalMayHeapDomain[I <: NonRelationalHeapIdentifier[I]](id: I): NonRelationalHeapDomain[I] = {
-    val ids: MaybeHeapIdSetDomain[I] = new MaybeHeapIdSetDomain[I]
+    val ids: HeapIdSetDomain.MayBe[I] = HeapIdSetDomain.MayBe.Top()
     val env: VariableEnv[I] = new VariableEnv[I](ids)
     val heap: HeapEnv[I] = new HeapEnv[I](ids)
     new NonRelationalHeapDomain[I](env, heap, ids, id)

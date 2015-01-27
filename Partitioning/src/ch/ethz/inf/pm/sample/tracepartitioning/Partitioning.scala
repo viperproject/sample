@@ -168,6 +168,8 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 	require(children.length > 0)
 	require(children.exists(!_.isSupremum))
 	require(children.length == tokens.length)
+
+	val isTop = children.foldLeft(false)(_ && _.isTop)
 	
 	override def lessEqual(p: Partitioning[D]): Boolean = p match {
 		case Top() => true
@@ -310,7 +312,9 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
  * @version 0.1
  */
 case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
-	
+
+	def isTop = value.isTop
+
 	override def lessEqual(p: Partitioning[D]): Boolean = p match {
 		case Top() => true
 		case Bottom() => value.lessEqual(value.bottom())
@@ -421,7 +425,9 @@ trait Supremum[D <: State[D]] extends Partitioning[D] {
  * @version 0.1
  */
 case class Bottom[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
-	
+
+	def isTop = false
+
 	override def lessEqual(p: Partitioning[D]): Boolean = true
 	
 	override def glb(p: Partitioning[D]): Partitioning[D] = Bottom()
@@ -445,7 +451,9 @@ case class Bottom[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
  * @version 0.1
  */
 case class Top[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
-	
+
+	def isTop = true
+
 	override def lessEqual(p: Partitioning[D]): Boolean = p match {
 		case Top() => true
 		case _ => false

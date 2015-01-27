@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, Constant, MaybeHeapIdSetDomain, NegatedBooleanExpression, UnaryArithmeticExpression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, Constant, NegatedBooleanExpression, UnaryArithmeticExpression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
@@ -410,11 +410,6 @@ trait ApronInterface[T <: ApronInterface[T]]
         assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
       case NegatedBooleanExpression(x: Identifier) =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
-
-      // Sets of boolean variables
-      case ids: MaybeHeapIdSetDomain[_] =>
-        if (ids.isBottom || ids.isTop) return this
-        Lattice.bigLub(ids.ids map (id => assume(id)))
 
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {

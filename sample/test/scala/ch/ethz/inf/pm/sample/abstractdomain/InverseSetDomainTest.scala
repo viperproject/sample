@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 
+
 /** Tests `InverseSetDomain`. */
 class InverseSetDomainTest extends FunSuite with ShouldMatchers {
-  val dom = InverseSetDomain.Default[Int]()
+  val dom = InvertedSetDomain.Default[Int]()
   val bottom = dom.bottom()
   val top = dom.top()
   val one = top.add(1)

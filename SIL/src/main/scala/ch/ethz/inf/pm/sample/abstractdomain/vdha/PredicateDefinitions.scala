@@ -1,10 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.util.Predef._
 import org.slf4s.Logging
 
 /** Domain that represents (candidate) predicate definitions.
@@ -261,35 +261,23 @@ final case class PredicateBody(
 }
 
 /** Basically an inverse 1-set domain with must semantics. */
-final case class NestedPredicatesDomain(
-    value: Set[PredicateIdentifier] = Set.empty,
-    isTop: Boolean = true,
-    isBottom: Boolean = false)
-  extends InverseSetDomain[PredicateIdentifier, NestedPredicatesDomain]
-  with Lattice.Must[NestedPredicatesDomain] {
+final case class NestedPredicatesDomain(wrapped: SetDomain.Default[PredicateIdentifier] = SetDomain.Default.Top())
+  extends InvertedSetDomain[PredicateIdentifier, NestedPredicatesDomain] {
 
-  // For object fields, the set should never be empty.
-  // There should always be a nested predicate ID.
+  /**
+   * Code accessing this should distinguish between bottom and top and inner!
+   */
+  @Deprecated
+  def value:Set[PredicateIdentifier] = wrapped match {
+    case SetDomain.Default.Inner(x) => x
+    case _ => Set.empty
+  }
 
-  // The following sanity checks should be part of `InverseSetDomain`.
-  require(value.isEmpty implies (isTop || isBottom),
-    "an empty set must only represent top or bottom")
-
-  require(isTop implies value.isEmpty,
-    "top must be represented by an empty set")
-
-  require(isBottom implies value.isEmpty,
-    "bottom must be represented by an empty set")
-
-  override def setFactory(
-      value: Set[PredicateIdentifier],
-      isTop: Boolean,
-      isBottom: Boolean) =
-    NestedPredicatesDomain(value, isTop, isBottom)
-
-  def merge(predIdMerge: PredicateIdentifierMerge): NestedPredicatesDomain = {
-    if (value.intersect(predIdMerge.predIds).isEmpty) this
-    else copy(value = value -- predIdMerge.predIds + predIdMerge.target)
+  def merge(predIdMerge: PredicateIdentifierMerge): NestedPredicatesDomain = wrapped match {
+    case SetDomain.Default.Inner(value) =>
+      if (value.intersect(predIdMerge.predIds).isEmpty) this
+      else wrapperFactory(wrapped.factory(value = value -- predIdMerge.predIds + predIdMerge.target))
+    case _ => this
   }
 
   /** Removes all given predicate identifiers from the set. */
@@ -299,9 +287,15 @@ final case class NestedPredicatesDomain(
   /** If there is more than one nested predicate ID,
     * returns them so they can be merged, None otherwise.
     */
-  def requiredIdMergeOption: Option[PredicateIdentifierMerge] =
-    if (value.size > 1) Some(PredicateIdentifierMerge(value))
-    else None
+  def requiredIdMergeOption: Option[PredicateIdentifierMerge] = wrapped match {
+    case SetDomain.Default.Inner(value) =>
+      if (value.size > 1) Some(PredicateIdentifierMerge(value))
+      else None
+    case _ => None
+  }
+
+  override def wrapperFactory(wrapped: Default[PredicateIdentifier]): NestedPredicatesDomain = NestedPredicatesDomain(wrapped)
+
 }
 
 /** Represents a merge of a set of predicates.

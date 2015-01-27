@@ -118,6 +118,10 @@ object Normalizer {
         case _ => None
       }
 
+    case Constant("true", t, pp) => Some(Nil,1.0)
+
+    case Constant("false", t, pp) => Some(Nil,0.0)
+
     case Constant(c, t, pp) => try {
       Some(Nil, c.toDouble)
     } catch {

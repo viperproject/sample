@@ -145,12 +145,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = obj match {
     case h:HeapIdentifier =>
       copy(
-        expr = new ExpressionSet(typ,SetDomain.Default(Set(FieldIdentifier(h,field,typ))))
+        expr = new ExpressionSet(typ,SetDomain.Default.Inner(Set(FieldIdentifier(h,field,typ))))
       )
     case a:Identifier =>
       val objects = forwardMay.getOrElse(a,Set.empty)
       copy(
-        expr = new ExpressionSet(typ,SetDomain.Default(objects.map(FieldIdentifier(_,field,typ))))
+        expr = new ExpressionSet(typ,SetDomain.Default.Inner(objects.map(FieldIdentifier(_,field,typ))))
       )
     case _ => bottom()
   }

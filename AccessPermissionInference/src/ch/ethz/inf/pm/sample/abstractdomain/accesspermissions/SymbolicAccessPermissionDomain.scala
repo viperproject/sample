@@ -227,7 +227,8 @@ class CountedSymbolicValues(val n : DoubleOrTop, val s : SymbolicValue) {
 
 class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with LevelPermission {
   var value : Set[CountedSymbolicValues] = Set.empty[CountedSymbolicValues]
-  var isBottom : Boolean = false; 
+  var isBottom : Boolean = false;
+  var isTop : Boolean = false
   def this(s : Set[CountedSymbolicValues]) = {
     this();
     value=s;

@@ -356,101 +356,151 @@ trait HeapIdSetDomain[I <: HeapIdentifier[I]]
   extends SetDomain[I, HeapIdSetDomain[I]]
   with Expression {
 
-  override def equals(x: Any): Boolean = x match {
-    case x: I => if (value.size == 1) return x.equals(value.head); else return false;
-    case _ => return super.equals(x);
-  }
-
-  def convert(add: I): HeapIdSetDomain[I]
-
-  def merge(rep: Replacement): HeapIdSetDomain[I] = {
-
-    if (this.isBottom || this.isTop || this.value.isEmpty) return this
-
-    var result = this.value
-    for ((froms, tos) <- rep.value) {
-
-      val fromsI = froms collect {
-        case x: I => x
-      }
-      val tosI = tos collect {
-        case x: I => x
-      }
-
-      if (!this.value.intersect(fromsI).isEmpty) {
-        result = result -- fromsI
-        result = result ++ tosI
-      }
-
-    }
-
-    setFactory(result)
-  }
-
-  override def transform(f: (Expression => Expression)): Expression =
-    this.setFactory(this.value.map(x => f(x).asInstanceOf[I]))
-
-  def lubWithReplacement[S <: SemanticDomain[S]](other: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
-    (super.lub(other), new Replacement)
-
   // Used to know if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1: S, s2: S): S
 
+  def convert(add: I): HeapIdSetDomain[I]
+
+  @Deprecated
+  def value:Set[I]
+
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement)
 
-  def contains(f: (Expression => Boolean)): Boolean = f(this) || value.map(_.contains(f)).foldLeft(false)(_ || _)
-
+  def merge(rep: Replacement): HeapIdSetDomain[I]
 }
 
-case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
-                                                         pp: ProgramPoint,
-                                                         value: Set[I] = Set.empty[I],
-                                                         isTop: Boolean = false,
-                                                         isBottom: Boolean = false)
-  extends HeapIdSetDomain[I] {
+object HeapIdSetDomain {
 
-  def this() = this(null)
+  trait Top[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Top[I, HeapIdSetDomain[I]] {
 
-  def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new MaybeHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
+    def ids = ??? // TODO: Not well-defined
 
-  def convert(add: I): HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
+    def typ = DummyBooleanType.top() // TODO: Not well-defined
 
-  override def typ: Type = {
-    var res = SystemParameters.getType().bottom()
-    for (a <- this.value) res = res.lub(a.typ)
-    res
+    override def transform(f: (Expression => Expression)): Expression = this
+
+    def pp = DummyProgramPoint // TODO: Not well-defined
+
+    def contains(f: (Expression => Boolean)): Boolean = f(this)
+
+    def value = Set.empty // TODO: Not well-defined
+
+    def merge(rep: Replacement): HeapIdSetDomain[I] = this
+
   }
 
-  def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.lub(s2)
+  trait Bottom[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Bottom[I, HeapIdSetDomain[I]] {
 
-  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
+    def ids = Set.empty
 
-  def ids = this.value.asInstanceOf[Set[Identifier]]
-}
+    def typ = DummyBooleanType.bottom() // TODO: Not well-defined
 
-case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
-                                                            pp: ProgramPoint,
-                                                            value: Set[I] = Set.empty[I],
-                                                            isTop: Boolean = false,
-                                                            isBottom: Boolean = false)
-  extends HeapIdSetDomain[I] {
+    override def transform(f: (Expression => Expression)): Expression = this
 
-  def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new DefiniteHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
+    def pp = DummyProgramPoint // TODO: Not well-defined
 
-  def convert(add: I): HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
+    def contains(f: (Expression => Boolean)): Boolean = f(this)
 
-  override def typ: Type = {
-    var res = SystemParameters.getType().top()
-    for (a <- this.value)
-      res = res.glb(a.typ)
-    res
+    def value = Set.empty
+
+    def merge(rep: Replacement): HeapIdSetDomain[I] = this
+
   }
 
-  def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
+  trait Inner[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Inner[I, HeapIdSetDomain[I], Inner[I]] {
 
-  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
+    override def equals(x: Any): Boolean = x match {
+      case x: I => if (value.size == 1) return x.equals(value.head); else return false;
+      case _ => return super.equals(x);
+    }
 
-  def ids = this.value.asInstanceOf[Set[Identifier]]
+    def merge(rep: Replacement): HeapIdSetDomain[I] = {
+
+      if (this.isBottom || this.isTop || this.value.isEmpty) return this
+
+      var result = this.value
+      for ((froms, tos) <- rep.value) {
+
+        val fromsI = froms collect {
+          case x: I => x
+        }
+        val tosI = tos collect {
+          case x: I => x
+        }
+
+        if (value.intersect(fromsI).nonEmpty) {
+          result = result -- fromsI
+          result = result ++ tosI
+        }
+
+      }
+
+      factory(result)
+    }
+
+    override def transform(f: (Expression => Expression)): Expression = factory(value.map(x => f(x).asInstanceOf[I]))
+
+    def lubWithReplacement[S <: SemanticDomain[S]](other: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
+      (super.lub(other), new Replacement)
+
+    def contains(f: (Expression => Boolean)): Boolean = f(this) || value.map(_.contains(f)).foldLeft(false)(_ || _)
+
+    def ids = this.value.asInstanceOf[Set[Identifier]]
+
+    def typ = value.foldLeft(DummyBooleanType.bottom())(_ lub _.typ)
+  }
+
+  trait MayBe[I <: HeapIdentifier[I]]
+    extends HeapIdSetDomain[I] {
+
+    def bottom() = MayBe.Bottom()
+    def top() = MayBe.Top()
+    def factory(v:Set[I]) = MayBe.Inner(pp,v)
+
+    def convert(add: I): HeapIdSetDomain[I] = MayBe.Inner(add.pp).add(add)
+
+    def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.lub(s2)
+
+    def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
+
+  }
+
+  object MayBe {
+
+    case class Top[I <: HeapIdentifier[I]]() extends MayBe[I] with HeapIdSetDomain.Top[I]
+    case class Bottom[I <: HeapIdentifier[I]]() extends MayBe[I] with HeapIdSetDomain.Bottom[I]
+
+    case class Inner[I <: HeapIdentifier[I]](pp: ProgramPoint, value: Set[I] = Set.empty[I])
+      extends Definite[I] with HeapIdSetDomain.Inner[I] {
+
+    }
+
+  }
+
+  trait Definite[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
+
+    def bottom() = Definite.Bottom()
+    def top() = Definite.Top()
+    def factory(v:Set[I]) = Definite.Inner(pp,v)
+
+    def convert(add: I): HeapIdSetDomain[I] = Definite.Inner(add.pp).add(add)
+
+    def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
+
+    def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
+  }
+
+  object Definite {
+
+    case class Top[I <: HeapIdentifier[I]]() extends Definite[I] with HeapIdSetDomain.Top[I]
+    case class Bottom[I <: HeapIdentifier[I]]() extends Definite[I] with HeapIdSetDomain.Bottom[I]
+
+    case class Inner[I <: HeapIdentifier[I]](pp: ProgramPoint, value: Set[I] = Set.empty[I])
+      extends Definite[I] with HeapIdSetDomain.Inner[I] {
+
+    }
+
+  }
+
+
 }

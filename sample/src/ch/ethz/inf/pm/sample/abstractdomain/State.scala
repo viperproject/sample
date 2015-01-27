@@ -94,30 +94,83 @@ trait Lattice[T <: Lattice[T]] {
 trait TopLattice[S <: Lattice[S]] extends Lattice[S] {
   this:S =>
 
-  override def isTop: Boolean = true
-  override def isBottom: Boolean = false
-  override def lessEqual(other: S): Boolean = other.isTop
-  override def lub(other: S): S = this
-  override def widening(other: S): S = this
-  override def glb(other: S): S = other
+  override final def isTop: Boolean = true
+  override final def isBottom: Boolean = false
+  override final def lessEqual(other: S): Boolean = other.isTop
+  override final def lub(other: S): S = this
+  override final def widening(other: S): S = this
+  override final def glb(other: S): S = other
   override def toString = "⊤"
 
 }
 
+
+trait InnerLattice[S <: Lattice[S], I <: InnerLattice[S,I]] extends Lattice[S] {
+  this:S =>
+
+  assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
+  assert { lessEqual(top()) && !top().lessEqual(this) }
+
+  override final def isTop: Boolean = false
+  override final def isBottom: Boolean = false
+
+  def lub(other: S): S = other match {
+    case _ if other.isBottom => this
+    case _ if other.isTop    => other
+    case a:I                 => lubInner(a)
+  }
+  def lubInner(other:I):S
+
+  def glb(other: S): S = other match {
+    case _ if other.isBottom => other
+    case _ if other.isTop    => this
+    case a:I                 => glbInner(a)
+  }
+  def glbInner(other:I):S
+
+  def widening(other: S): S = other match {
+    case _ if other.isBottom => this
+    case _ if other.isTop    => other
+    case a:I                 => wideningInner(a)
+  }
+  def wideningInner(other:I):S
+
+  def lessEqual(other: S): Boolean = other match {
+    case _ if other.isBottom => false
+    case _ if other.isTop    => true
+    case a:I                 => lessEqualInner(a)
+  }
+  def lessEqualInner(other:I): Boolean
+
+}
+
+
 trait BottomLattice[S <: Lattice[S]] extends Lattice[S] {
   this:S =>
 
-  override def isTop: Boolean = false
-  override def isBottom: Boolean = true
-  override def lessEqual(r: S): Boolean = true
-  override def lub(other: S): S = other
-  override def widening(other: S): S = other
-  override def glb(other: S): S = this
+  override final def isTop: Boolean = false
+  override final def isBottom: Boolean = true
+  override final def lessEqual(r: S): Boolean = true
+  override final def lub(other: S): S = other
+  override final def widening(other: S): S = other
+  override final def glb(other: S): S = this
   override def toString = "⊥"
 
 }
 
 object Lattice {
+
+  /** Mixin that causes a lattice to have a must semantics, where the
+    * join operator uses the greatest lower bound.
+    *
+    * @tparam T the self-type of the lattice
+    */
+  @Deprecated
+  trait Must[T <: Must[T]] extends Lattice[T] {
+    this: T =>
+    override def lub(other: T) = glb(other)
+  }
+
   /** Returns the least upper bound of one or more lattice elements. */
   def bigLub[S <: Lattice[S]](elements: Iterable[S]): S = {
     require(elements.nonEmpty, "there must be at least one element")
@@ -161,16 +214,6 @@ object Lattice {
     }
 
     cur
-  }
-
-  /** Mixin that causes a lattice to have a must semantics, where the
-    * join operator uses the greatest lower bound.
-    *
-    * @tparam T the self-type of the lattice
-    */
-  trait Must[T <: Must[T]] extends Lattice[T] {
-    this: T =>
-    override def lub(other: T) = glb(other)
   }
 
 }
@@ -685,7 +728,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   def assume(condSet: ExpressionSet): S = {
     // Return this, not bottom, when set of conditions is empty
-    if (isBottom || condSet.isBottom || condSet.isTop) this
+    if (isBottom || condSet.isBottom || condSet.isTop || condSet._2.isTop) this
     else {
       Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
     }

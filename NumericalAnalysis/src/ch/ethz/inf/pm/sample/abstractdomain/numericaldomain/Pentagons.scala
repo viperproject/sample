@@ -1,40 +1,62 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.Relation
 
 
 object InvertedIdSet {
-  val top = InvertedIdSet(isTop = true)
-  val bottom = InvertedIdSet(isBottom = true)
+  val top = InvertedIdSet().bottom()
+  val bottom = InvertedIdSet().top()
 }
 
-case class InvertedIdSet(
-                          value: Set[Identifier] = Set.empty[Identifier],
-                          isTop: Boolean = false,
-                          isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, InvertedIdSet]
-  with Lattice.Must[InvertedIdSet] {
+case class InvertedIdSet(wrapped: SetDomain.Default[Identifier] = SetDomain.Default.Bottom[Identifier]())
+  extends InvertedSetDomain[Identifier, InvertedIdSet] {
 
-  def fold(idA: Set[Identifier], id: Identifier): InvertedIdSet =
-    if (idA.subsetOf(value)) copy(value = (value -- idA) + id)
-    else copy(value = value -- idA)
 
-  def expand(idA: Identifier, idsB: Set[Identifier]): InvertedIdSet =
-    if (value.contains(idA)) copy(value = (value - idA) ++ idsB) else this
 
-  def rename(idA: Identifier, idB: Identifier): InvertedIdSet =
-    if (value.contains(idA)) copy(value = (value - idA) + idB) else this
+  def fold(idA: Set[Identifier], id: Identifier): InvertedIdSet = wrapped match {
+    case SetDomain.Default.Bottom() => this
+    case SetDomain.Default.Top() => this
+    case x@SetDomain.Default.Inner(value) =>
+      if (idA.subsetOf(value)) wrapperFactory(x.copy(value = (value -- idA) + id))
+      else wrapperFactory(x.copy(value = value -- idA))
+  }
 
-  def remove(ids: Set[Identifier]): InvertedIdSet =
-    copy(value = value -- ids)
+  def expand(idA: Identifier, idsB: Set[Identifier]): InvertedIdSet = wrapped match {
+    case SetDomain.Default.Bottom() => this
+    case SetDomain.Default.Top() => this
+    case x@SetDomain.Default.Inner(value) =>
+    if (value.contains(idA)) wrapperFactory(x.copy(value = (value - idA) ++ idsB)) else this
+  }
 
-  def setFactory(
-                  value: Set[Identifier] = Set.empty[Identifier],
-                  isTop: Boolean = false,
-                  isBottom: Boolean = false) =
-    InvertedIdSet(value, isTop, isBottom)
+  def rename(idA: Identifier, idB: Identifier): InvertedIdSet = wrapped match {
+    case SetDomain.Default.Bottom() => this
+    case SetDomain.Default.Top() => this
+    case x@SetDomain.Default.Inner(value) =>
+      if (value.contains(idA)) wrapperFactory(x.copy(value = (value - idA) + idB)) else this
+  }
+
+  def remove(ids: Set[Identifier]): InvertedIdSet =wrapped match {
+    case SetDomain.Default.Bottom() => this
+    case SetDomain.Default.Top() => this
+    case x@SetDomain.Default.Inner(value) => wrapperFactory(x.copy(value = value -- ids))
+  }
+
+  override def toString:String = wrapped match {
+    case SetDomain.Default.Bottom() => "Bottom"
+    case SetDomain.Default.Top() =>    "Top"
+    case SetDomain.Default.Inner(value) => value.mkString(",")
+  }
+
+  def getConstraints(id:Identifier):Set[Expression] = wrapped match {
+    case SetDomain.Default.Bottom() =>      Set.empty
+    case SetDomain.Default.Top() =>         Set.empty
+    case SetDomain.Default.Inner(value) =>  for (v <- value) yield BinaryArithmeticExpression(id, v, ArithmeticOperator.<)
+  }
+
+  override def wrapperFactory(wrapped: Default[Identifier]): InvertedIdSet = InvertedIdSet(wrapped)
 
 }
 
@@ -198,7 +220,7 @@ case class StrictUpperBounds(map: Map[Identifier, InvertedIdSet] = Map.empty[Ide
   override def getStringOfId(id: Identifier): String = {
     if (isBottom) return "⊥"
     if (isTop || map.getOrElse(id, InvertedIdSet.bottom).isTop) return "T"
-    map.getOrElse(id, InvertedIdSet.bottom).value.mkString(",")
+    map.getOrElse(id, InvertedIdSet.bottom).toString
   }
 
   override def setToTop(id: Identifier): StrictUpperBounds =
@@ -265,9 +287,9 @@ case class StrictUpperBounds(map: Map[Identifier, InvertedIdSet] = Map.empty[Ide
     copy(map = (map - id).mapValues(_.remove(id)))
 
   override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
-    for (id <- ids; bound <- this.map.getOrElse(id, InvertedIdSet.top).value) yield {
-      BinaryArithmeticExpression(id, bound, ArithmeticOperator.<)
-    }
+    (for (id <- ids) yield {
+      this.map.getOrElse(id, InvertedIdSet.top).getConstraints(id)
+    }).flatten
   }
 
   /**

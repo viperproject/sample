@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
@@ -106,13 +107,7 @@ case class PredicateInstancesDomain(
 
       val to = toSet.head
 
-      // Do not use Lattice.bigLub here.
-      // When we have the replacement {p0, p1} -> {p0}
-      // and the current state is {p0 -> folded, p1 -> unfolded}
-      // then the result should be {p0 -> bottom}, not {p0 -> top}.
-      val newStates = s.map(this.get).flatMap(_.value)
-
-      result = result.add(to, PredicateInstanceDomain().setFactory(newStates))
+      Lattice.bigLub(s.map(this.get))
     }
 
     result
@@ -140,45 +135,17 @@ case class PredicateInstancesDomain(
 /** Inverse set domain with empty set as top element and
   * {`Folded`, `Unfolded`} as bottom element.
   */
-case class PredicateInstanceDomain(
-    value: Set[PredicateInstanceState] = Set.empty,
-    isTop: Boolean = true,
-    isBottom: Boolean = false)
-  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain] {
+case class PredicateInstanceDomain(wrapped: SetDomain.Default[PredicateInstanceState] = SetDomain.Default.Top())
+  extends InvertedSetDomain[PredicateInstanceState, PredicateInstanceDomain] {
 
-  import PredicateInstanceState.{Folded, Unfolded}
-
-  require(value.isEmpty implies (isTop && !isBottom))
-  require(value.size == 1 implies (!isTop && !isBottom))
-  require(value.size == 2 implies (!isTop && isBottom))
-
-  override def glb(other: PredicateInstanceDomain) = lub(other)
-
-  def setFactory(
-      value: Set[PredicateInstanceState],
-      isTop: Boolean,
-      isBottom: Boolean) = {
-    var newValue = value
-    var newIsTop = isTop
-    var newIsBottom = isBottom
-
-    // InverseSetDomain does not properly set the `isTop` and `isBottom`
-    // fields
-    if (value.isEmpty && isBottom) {
-      newValue = Set(Folded, Unfolded)
-    } else if (!isBottom && !isTop) {
-      newIsTop = value.size == 0
-      newIsBottom = value.size == 2
-    }
-
-    PredicateInstanceDomain(value = newValue, isTop = newIsTop, isBottom = newIsBottom)
+  @Deprecated
+  def value:Set[PredicateInstanceState] = wrapped match {
+    case SetDomain.Default.Inner(v) => v
+    case _ => Set.empty
   }
 
-  override def toString = {
-    // Do not put curly braces around the set
-    if (isTop || isBottom) super.toString
-    else value.mkString(", ")
-  }
+  override def wrapperFactory(wrapped: SetDomain.Default[PredicateInstanceState]): PredicateInstanceDomain =
+    PredicateInstanceDomain(wrapped)
 }
 
 /** Ghost field identifier that combines a predicate definition identifier

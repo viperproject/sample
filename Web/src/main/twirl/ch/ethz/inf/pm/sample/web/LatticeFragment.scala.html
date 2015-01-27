@@ -43,7 +43,7 @@
     case s: SetDomain[_, _] => {
         @s
     }
-    case s: Interval => {
+    case s: IntegerInterval => {
         @s
     }
     case f: FunctionalDomain[_, _, _] => {
@@ -131,7 +131,7 @@
         @if(s.isTop) {
             @Top()
         } else {
-            @s.value.mkString(", ")
+            @s.toString
         }
     }
 }

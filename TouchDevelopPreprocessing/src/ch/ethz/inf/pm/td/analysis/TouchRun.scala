@@ -40,7 +40,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
-        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](TopDoubleInterval),UpperBoundRelation())
+        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
 //        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
 //        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
 //        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
@@ -51,7 +51,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
         SummaryNodeWrapper(NonDeterminismWrapper(domain))
       ),
       NonrelationalStringDomain(
-        StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)
+        StringKSetDomain.Top(TouchAnalysisParameters.stringRepresentationBound)
       )
     )
   }

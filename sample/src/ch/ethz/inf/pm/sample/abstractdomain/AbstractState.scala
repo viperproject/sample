@@ -88,7 +88,7 @@ object ExpressionFactory {
 
 case class ExpressionSet(
                           initialTyp: Type,
-                          s: SetDomain.Default[Expression] = SetDomain.Default())
+                          s: SetDomain.Default[Expression] = SetDomain.Default.Bottom())
   extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
   def _1 = initialTyp
@@ -100,7 +100,7 @@ case class ExpressionSet(
       if (getType() == null) {
         if (SystemParameters.typ != null) SystemParameters.typ.top(); else null
       } else getType().top(),
-      SetDomain.Default()
+      SetDomain.Default.Top()
     )
 
   def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
@@ -108,24 +108,11 @@ case class ExpressionSet(
   // TODO: rf: this method is highly suspicious. Why should _1 ever be inconsistent with the computed type?
   def getType(): Type = this._1.glb(this.computeType())
 
-  def getSetOfExpressions = this._2.value
-
-  override def isTop = this._2.isTop
-
-  override def isBottom = {
-    // `SetDomain` objects may currently have an empty set, while both
-    // `isTop` and `isBottom` are set to `false`, which is inconsistent.
-    // Unfortunately, we cannot easily forbid such inconsistent `SetDomain`
-    // objects, since there is quite some code in Sample that produces such
-    // inconsistent objects, especially for `ExpressionSet`s.
-
-    // Quite some methods in `AbstractState` already make the
-    // the assumption that when the set is empty and `isTop` is `false`,
-    // then this means that the `SetDomain` object is actually bottom.
-
-    // Thus, make that assumption here as well, until the whole `ExpressionSet`
-    // mess is cleaned up properly.
-    _2.isBottom || (_2.value.isEmpty && !_2.isTop)
+  @Deprecated
+  def getSetOfExpressions = this._2 match {
+    case SetDomain.Default.Bottom() => Set.empty
+    case SetDomain.Default.Top()    => Set.empty
+    case SetDomain.Default.Inner(v) => v
   }
 
   private def computeType(): Type = {
@@ -151,7 +138,7 @@ case class ExpressionSet(
   }
 
   def not(): ExpressionSet = {
-    var result = this._2.factory()
+    var result:SetDomain.Default[Expression] = this._2.bottom()
     for (key <- getSetOfExpressions)
       result = result.add(new NegatedBooleanExpression(key))
     new ExpressionSet(getType(), result)
@@ -159,22 +146,24 @@ case class ExpressionSet(
 
   override def toString: String = "Type " + _1.toString + ": " + _2.toString
 
-  def merge(r: Replacement): ExpressionSet = {
+  def merge(r: Replacement): ExpressionSet = this._2 match {
+    case SetDomain.Default.Bottom() => this
+    case SetDomain.Default.Top()    => this
+    case SetDomain.Default.Inner(v) =>
 
-    if (r.isEmpty()) return this
+      if (r.isEmpty()) return this
 
-    var newSet = this._2.value
+      var newSet = v
 
-    for ((froms, tos) <- r.value; from <- froms) {
-      // HACK: replace does not work with replacements that remove variables ({h1, h2} -> {})
-      if (!tos.isEmpty)
-        newSet = (for (to <- tos) yield {
-          newSet.map(_.replace(from, to))
-        }).flatten.toSet
-    }
+      for ((froms, tos) <- r.value; from <- froms) {
+        // HACK: replace does not work with replacements that remove variables ({h1, h2} -> {})
+        if (tos.nonEmpty)
+          newSet = (for (to <- tos) yield {
+            newSet.map(_.replace(from, to))
+          }).flatten.toSet
+      }
 
-    new ExpressionSet(getType(), SetDomain.Default[Expression](newSet))
-
+      new ExpressionSet(getType(), SetDomain.Default.Inner(newSet))
   }
 
   def isUnitExprSet: Boolean = this == ExpressionFactory.unitExpr
@@ -186,7 +175,7 @@ object ExpressionSet {
     apply(Seq(exp))
 
   def apply(exprs: Seq[Expression]): ExpressionSet = {
-    require(!exprs.isEmpty)
+    require(exprs.nonEmpty)
 
     var es = ExpressionSet()
     for (exp <- exprs) {
@@ -196,7 +185,7 @@ object ExpressionSet {
   }
 
   def flatten(exprSets: Seq[ExpressionSet]): ExpressionSet = {
-    require(!exprSets.isEmpty)
+    require(exprSets.nonEmpty)
 
     var es = ExpressionSet()
     for (set <- exprSets) {

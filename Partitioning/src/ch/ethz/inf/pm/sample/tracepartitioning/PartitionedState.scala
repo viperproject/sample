@@ -31,6 +31,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   require(partitioning != null)
 
+  def isTop = partitioning.isTop
+
   /**
    * Auxiliary constructor for a single state.
    * @param s The state

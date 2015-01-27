@@ -126,7 +126,7 @@ object Annotation {
 	}
 
  	def inhalePredicate[P <: PermissionsDomain[P]](
- 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+ 					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       predicate : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
@@ -148,7 +148,7 @@ object Annotation {
 	}
 
   def exhalePredicate[P <: PermissionsDomain[P]](
- 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+ 					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       predicate : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
@@ -170,7 +170,7 @@ object Annotation {
 	}
    
  	def inhaleInvariants[P <: PermissionsDomain[P]](
-					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       t : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
@@ -197,7 +197,7 @@ object Annotation {
 
 
   def exhalePrecondition[P <: PermissionsDomain[P]](
-                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       className : String,
                       methodName : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
@@ -226,7 +226,7 @@ object Annotation {
 
 
   def inhalePrecondition[P <: PermissionsDomain[P]](
- 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+ 					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       className : String,
                       methodName : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
@@ -254,7 +254,7 @@ object Annotation {
 	}
 
   def exhalePostcondition[P <: PermissionsDomain[P]](
-                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       className : String,
                       methodName : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
@@ -281,7 +281,7 @@ object Annotation {
 	}
 
   def inhalePostcondition[P <: PermissionsDomain[P]](
- 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+ 					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       className : String,
                       methodName : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
@@ -336,7 +336,7 @@ object Annotation {
 
 
   def exhaleInvariants[P <: PermissionsDomain[P]](
- 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+ 					  id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       t : String,
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
@@ -364,7 +364,7 @@ object Annotation {
 
 
   def exhaleEverything[P <: PermissionsDomain[P]](
-                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      id : HeapIdSetDomain.MayBe[ProgramPointHeapIdentifier],
                       s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
     var result = s._1._1.bottom();

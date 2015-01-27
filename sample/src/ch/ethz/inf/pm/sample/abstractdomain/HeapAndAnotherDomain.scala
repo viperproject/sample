@@ -195,13 +195,13 @@ I <: HeapIdentifier[I]](
 
     if (!leftEqualsRight.lessEqual(this.bottom()) && leftNotEqualsRight.lessEqual(this.bottom())) {
       // must be equal
-      return BooleanDomain.domTrue
+      return BooleanDomain.True
     } else if (leftEqualsRight.lessEqual(this.bottom())) {
       // must be not equal
-      return BooleanDomain.domFalse
+      return BooleanDomain.False
     }
 
-    BooleanDomain.domTop
+    BooleanDomain.Top
   }
 
   def createVariable(variable: Assignable, typ: Type): T = {
