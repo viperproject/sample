@@ -82,7 +82,7 @@ object SMath extends Default_SMath {
 
     /** OBSOLETE: Creates an empty number collection */
     case "create number collection" =>
-      New[S](TNumber_Collection)
+      New[S](GCollection(TNumber))
 
     /** OBSOLETE: Creates an empty number map */
     case "create number map" =>

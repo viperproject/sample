@@ -31,7 +31,7 @@ trait Default_SInvalid extends ASingleton {
     name = "appointment collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TAppointment_Collection,
+    returnType = GCollection(TAppointment),
     semantics = DefaultSemantics
   )
 
@@ -41,15 +41,6 @@ trait Default_SInvalid extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TAppointment,
-    semantics = DefaultSemantics
-  )
-
-  /** Never used: [**dbg**] Creates an invalid BlueTooth LE Device instance */
-  def member_bluetoothLE_device = ApiMember(
-    name = "bluetooth LE device",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = TBluetooth_Le_Device,
     semantics = DefaultSemantics
   )
 
@@ -103,7 +94,7 @@ trait Default_SInvalid extends ASingleton {
     name = "contact collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TContact_Collection,
+    returnType = GCollection(TContact),
     semantics = DefaultSemantics
   )
 
@@ -125,16 +116,16 @@ trait Default_SInvalid extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Device Collection instance */
+  /** Never used: [**obsolete**] Creates an invalid Device Collection instance */
   def member_device_collection = ApiMember(
     name = "device collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TDevice_Collection,
+    returnType = GCollection(TDevice),
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Device instance */
+  /** Never used: [**obsolete**] Creates an invalid Device instance */
   def member_device = ApiMember(
     name = "device",
     paramTypes = List(),
@@ -184,7 +175,7 @@ trait Default_SInvalid extends ASingleton {
     name = "link collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -202,7 +193,7 @@ trait Default_SInvalid extends ASingleton {
     name = "location collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TLocation_Collection,
+    returnType = GCollection(TLocation),
     semantics = DefaultSemantics
   )
 
@@ -233,16 +224,16 @@ trait Default_SInvalid extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Link Collection instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Link Collection instance */
   def member_media_link_collection = ApiMember(
     name = "media link collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMedia_Link_Collection,
+    returnType = GCollection(TMedia_Link),
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Link instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Link instance */
   def member_media_link = ApiMember(
     name = "media link",
     paramTypes = List(),
@@ -251,16 +242,16 @@ trait Default_SInvalid extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Player Collection instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Player Collection instance */
   def member_media_player_collection = ApiMember(
     name = "media player collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMedia_Player_Collection,
+    returnType = GCollection(TMedia_Player),
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Player instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Player instance */
   def member_media_player = ApiMember(
     name = "media player",
     paramTypes = List(),
@@ -269,16 +260,16 @@ trait Default_SInvalid extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Server Collection instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Server Collection instance */
   def member_media_server_collection = ApiMember(
     name = "media server collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMedia_Server_Collection,
+    returnType = GCollection(TMedia_Server),
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Media Server instance */
+  /** Never used: [**obsolete**] Creates an invalid Media Server instance */
   def member_media_server = ApiMember(
     name = "media server",
     paramTypes = List(),
@@ -301,7 +292,7 @@ trait Default_SInvalid extends ASingleton {
     name = "message collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMessage_Collection,
+    returnType = GCollection(TMessage),
     semantics = DefaultSemantics
   )
 
@@ -328,7 +319,7 @@ trait Default_SInvalid extends ASingleton {
     name = "number collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TNumber_Collection,
+    returnType = GCollection(TNumber),
     semantics = DefaultSemantics
   )
 
@@ -373,7 +364,7 @@ trait Default_SInvalid extends ASingleton {
     name = "page collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPage_Collection,
+    returnType = GCollection(TPage),
     semantics = DefaultSemantics
   )
 
@@ -427,7 +418,7 @@ trait Default_SInvalid extends ASingleton {
     name = "place collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPlace_Collection,
+    returnType = GCollection(TPlace),
     semantics = DefaultSemantics
   )
 
@@ -467,16 +458,16 @@ trait Default_SInvalid extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Printer Collection instance */
+  /** Never used: [**obsolete**] Creates an invalid Printer Collection instance */
   def member_printer_collection = ApiMember(
     name = "printer collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPrinter_Collection,
+    returnType = GCollection(TPrinter),
     semantics = DefaultSemantics
   )
 
-  /** Never used: Creates an invalid Printer instance */
+  /** Never used: [**obsolete**] Creates an invalid Printer instance */
   def member_printer = ApiMember(
     name = "printer",
     paramTypes = List(),
@@ -580,7 +571,7 @@ trait Default_SInvalid extends ASingleton {
     name = "string collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -697,7 +688,6 @@ trait Default_SInvalid extends ASingleton {
     "action" -> member_action,
     "appointment collection" -> member_appointment_collection,
     "appointment" -> member_appointment,
-    "bluetooth LE device" -> member_bluetoothLE_device,
     "bluetooth device" -> member_bluetooth_device,
     "board" -> member_board,
     "boolean" -> member_boolean,

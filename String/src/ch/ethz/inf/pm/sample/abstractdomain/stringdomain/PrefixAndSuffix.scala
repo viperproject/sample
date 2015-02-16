@@ -3,8 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 
 case class PrefixAndSuffix(_1: Prefix, _2: Suffix)
-  extends SemanticCartesianProductDomain[Prefix, Suffix, PrefixAndSuffix]
-  with SimplifiedSemanticDomain[PrefixAndSuffix] {
+  extends SemanticCartesianProductDomain[Prefix, Suffix, PrefixAndSuffix] {
 
   def factory(a: Prefix, b: Suffix) = new PrefixAndSuffix(a, b)
 

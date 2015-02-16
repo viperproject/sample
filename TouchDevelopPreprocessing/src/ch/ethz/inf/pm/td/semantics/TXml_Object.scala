@@ -47,7 +47,7 @@ object TXml_Object extends Default_TXml_Object {
 
     /** Gets the list of attribute names */
     case "attr names" =>
-      CallApi[S](Field[S](this0, TXml_Object.field_attributes), "keys", Nil, TString_Collection)
+      CallApi[S](Field[S](this0, TXml_Object.field_attributes), "keys", Nil, GCollection(TString))
 
     /** Gets a first child element matching the fully qualified name */
     case "child" =>

@@ -29,7 +29,7 @@ trait Default_TMap extends AAny {
   /** Rarely used: Adds a polyline that passes through various geocoordinates */
   def member_add_line = ApiMember(
     name = "add line",
-    paramTypes = List(ApiParam(TLocation_Collection), ApiParam(TColor), ApiParam(TNumber)),
+    paramTypes = List(ApiParam(GCollection(TLocation)), ApiParam(TColor), ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
     semantics = DefaultSemantics
@@ -101,7 +101,7 @@ trait Default_TMap extends AAny {
   /** Never used: Fills a region with a color */
   def member_fill_region = ApiMember(
     name = "fill region",
-    paramTypes = List(ApiParam(TLocation_Collection), ApiParam(TColor), ApiParam(TColor), ApiParam(TNumber)),
+    paramTypes = List(ApiParam(GCollection(TLocation)), ApiParam(TColor), ApiParam(TColor), ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
     semantics = DefaultSemantics

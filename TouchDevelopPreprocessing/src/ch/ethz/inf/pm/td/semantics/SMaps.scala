@@ -33,7 +33,7 @@ object SMaps extends Default_SMaps {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not(), "directions",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLocation_Collection, "direction service may be unreachable")
+      TopWithInvalid[S](GCollection(TLocation), "direction service may be unreachable")
 
     /** Shows the directions in the Bing map application. If search term is provided, location is ignored.
         Provide search term or location for start and end. */

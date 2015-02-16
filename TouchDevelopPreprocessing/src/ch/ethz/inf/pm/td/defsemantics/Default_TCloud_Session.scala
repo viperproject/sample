@@ -17,15 +17,6 @@ trait Default_TCloud_Session extends AAny {
 
   lazy val typeName = TypeName("Cloud Session")
           
-  /** Never used: Checks if this cloud session is the same as another one */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TCloud_Session)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Sometimes used: Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */
   def member_id = ApiMember(
     name = "id",
@@ -73,7 +64,6 @@ trait Default_TCloud_Session extends AAny {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "equals" -> member_equals,
     "id" -> member_id,
     "is owned" -> member_is_owned,
     "owner" -> member_owner,

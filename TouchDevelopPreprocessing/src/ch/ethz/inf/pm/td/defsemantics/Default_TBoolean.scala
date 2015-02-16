@@ -26,15 +26,6 @@ trait Default_TBoolean extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Frequently used: Indicates that the two values are equal */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TBoolean)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Very frequently used: Negates the boolean expression */
   def member_not = ApiMember(
     name = "not",
@@ -83,7 +74,6 @@ trait Default_TBoolean extends AAny {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "and" -> member_and,
-    "equals" -> member_equals,
     "not" -> member_not,
     "or" -> member_or,
     "to json" -> member_to_json,

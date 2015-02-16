@@ -739,8 +739,11 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     */
   def assume(cond: Expression): S
 
-  def testTrue(): S =
-    assume(expr).setUnitExpression()
+  def testTrue(): S = {
+    val res = assume(expr)
+    res.setUnitExpression()
+  }
+
 
   def testFalse(): S =
     assume(expr.not()).setUnitExpression()

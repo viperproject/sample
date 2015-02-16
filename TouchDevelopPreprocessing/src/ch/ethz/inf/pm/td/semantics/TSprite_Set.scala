@@ -41,11 +41,12 @@ object TSprite_Set extends Default_TSprite_Set {
 
     case "index of" =>
       val List(item) = parameters
-      If[S](collectionContainsValue[S](this0, item) equal True, Then = {
+      val ret = If[S](collectionContainsValue[S](this0, item) equal True, Then = {
         Return[S](0 ndToIncl collectionSize[S](this0) - 1)(_, pp)
       }, Else = {
         Return[S](-1)(_, pp)
       })
+      ret
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>

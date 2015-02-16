@@ -17,15 +17,6 @@ trait Default_SApp extends ASingleton {
 
   lazy val typeName = TypeName("App")
           
-  /** Never used: [**dbg**] When exported client-side, adds the Cordova plugin to the client build */
-  def member_cordova_import = ApiMember(
-    name = "cordova import",
-    paramTypes = List(ApiParam(TString), ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Creates a specialized logger */
   def member_create_logger = ApiMember(
     name = "create logger",
@@ -71,7 +62,16 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] When exported server-side, run `script` instead of the body of the action */
+  /** Never used: Imports a dependent package which may be versioned. Package managers may be Node.JS npm, Apache cordova, Python Pip and TouchDevelop plugins. */
+  def member_import_ = ApiMember(
+    name = "import",
+    paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: When exported, run `script` instead of the body of the action */
   def member_javascript_async = ApiMember(
     name = "javascript async",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
@@ -80,16 +80,7 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] When exported server-side, make `module` available in `app->javascript` calls; if `version` is non-empty it will be installed with npm */
-  def member_javascript_import = ApiMember(
-    name = "javascript import",
-    paramTypes = List(ApiParam(TString), ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
-
-  /** Never used: [**dbg**] When exported server-side, run `script` instead of the body of the action */
+  /** Never used: When exported, run `script` instead of the body of the action */
   def member_javascript = ApiMember(
     name = "javascript",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
@@ -107,7 +98,7 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Return runtime information about functions and types defined in script and its libraries */
+  /** Never used: [**beta**] Return runtime information about functions and types defined in script and its libraries */
   def member_reflect = ApiMember(
     name = "reflect",
     paramTypes = List(ApiParam(TString)),
@@ -122,6 +113,15 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: [**beta**] Runs a shell command. This action is only available when the script is running from a local web server. */
+  def member_run_command = ApiMember(
+    name = "run command",
+    paramTypes = List(ApiParam(TString), ApiParam(TJson_Object)),
+    thisType = ApiParam(this),
+    returnType = TJson_Object,
     semantics = DefaultSemantics
   )
 
@@ -143,12 +143,21 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**beta**] When exported server-side, retreives the value of a setting stored on the server. If not optional, fails if missing. Returns invalid if missing. */
+  /** Never used: When exported server-side, retreives the value of a setting stored on the server. If not optional, fails if missing. Returns invalid if missing. */
   def member_server_setting = ApiMember(
     name = "server setting",
     paramTypes = List(ApiParam(TString), ApiParam(TBoolean)),
     thisType = ApiParam(this),
     returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: [**beta**] Shows a dialog with the logs */
+  def member_show_logs = ApiMember(
+    name = "show logs",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
     semantics = DefaultSemantics
   )
 
@@ -163,21 +172,22 @@ trait Default_SApp extends ASingleton {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "cordova import" -> member_cordova_import,
     "create logger" -> member_create_logger,
     "current handler" -> member_current_handler,
     "editor" -> member_editor,
     "env" -> member_env,
     "fail if not" -> member_fail_if_not,
+    "import" -> member_import_,
     "javascript async" -> member_javascript_async,
-    "javascript import" -> member_javascript_import,
     "javascript" -> member_javascript,
     "log" -> member_log,
     "reflect" -> member_reflect,
     "restart" -> member_restart,
+    "run command" -> member_run_command,
     "server request" -> member_server_request,
     "server response" -> member_server_response,
     "server setting" -> member_server_setting,
+    "show logs" -> member_show_logs,
     "stop" -> member_stop
   )
             

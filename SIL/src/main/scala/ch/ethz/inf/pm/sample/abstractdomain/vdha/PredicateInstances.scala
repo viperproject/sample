@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
@@ -130,6 +130,7 @@ case class PredicateInstancesDomain(
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
   def access(field: Identifier) = ???
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
 }
 
 /** Inverse set domain with empty set as top element and

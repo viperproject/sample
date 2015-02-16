@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.td.parser
 
+import ch.ethz.inf.pm.td.typecheck.Typer
+
 import util.parsing.combinator._
 import org.apache.commons.lang3.StringEscapeUtils
 import ch.ethz.inf.pm.td.compiler.TouchException
@@ -158,7 +160,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val whereStmt: PackratParser[Statement] = positioned (
     (expression <~ ";") ~ rep1("where" ~> actionHeader ~ block)  ^^
-      { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b) }) }
+      { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b,inParametersToActionType(in)) }) }
   )
 
   // Composed expressions with operator preferences
@@ -328,6 +330,23 @@ object ScriptParser extends RegexParsers with PackratParsers {
       case Success(x,_) => x
       case y:ParseResult[Script] => throw new TouchException("Parsing failed "+y)
     }
+  }
+
+  def inParametersToActionType(params: List[Parameter]): TypeName = {
+    TypeName(params match {
+      case Nil => "Action"
+      case List(Parameter(_, TypeName("Boolean",_))) => "Boolean Action"
+      case List(Parameter(_, TypeName("Number",_))) => "Number Action"
+      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Position Action"
+      case List(Parameter(_, TypeName("String",_))) => "Text Action"
+      case List(Parameter(_, TypeName("Sprite",_))) => "Sprite Action"
+      case List(Parameter(_, TypeName("Sprite Set",_))) => "Sprite Set Action"
+      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Vector Action"
+      case List(Parameter(_, TypeName("Web Response",_))) => "Web Response Action"
+      case List(Parameter(_, TypeName("Message Collection",_))) => "Message Collection Action"
+      case List(Parameter(_, TypeName(s,_))) => s + " action"
+      case _ => println("Unknown action type, falling back to Action: " + params); "Action"
+    })
   }
 
 }

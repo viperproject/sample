@@ -45,7 +45,7 @@ object TServer_Request extends Default_TServer_Request {
     /** [**beta**] Gets the names of the headers */
     case "header names" =>
       val List() = parameters //
-      Top[S](TString_Collection)
+      Top[S](GCollection(TString))
 
     /** [**beta**] Gets the value of a given header */
     case "header" =>
@@ -60,10 +60,10 @@ object TServer_Request extends Default_TServer_Request {
     /** [**beta**] Gets the names of the query string parameters */
     // case "query names" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TString_Collection)
+    //   TopWithInvalid[S](GCollection(TString))
     // DECLARATION AS FIELD: 
     //   /** [**beta**] Gets the names of the query string parameters */
-    //   lazy val field_query_names = new TouchField("query names",TString_Collection.typeName)
+    //   lazy val field_query_names = new TouchField("query names",GCollection(TString).typeName)
 
     /** [**beta**] Gets the value of a given query string parameter */
     // case "query" => 

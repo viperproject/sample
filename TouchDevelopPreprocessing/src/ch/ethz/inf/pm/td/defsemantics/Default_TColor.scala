@@ -80,15 +80,6 @@ trait Default_TColor extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Frequently used: Checks if the color is equal to the other */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TColor)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Sometimes used: Gets the hue component of the color. */
   def member_hue = ApiMember(
     name = "hue",
@@ -143,7 +134,6 @@ trait Default_TColor extends AAny {
     "blend" -> member_blend,
     "brightness" -> member_brightness,
     "darken" -> member_darken,
-    "equals" -> member_equals,
     "hue" -> member_hue,
     "lighten" -> member_lighten,
     "make transparent" -> member_make_transparent,

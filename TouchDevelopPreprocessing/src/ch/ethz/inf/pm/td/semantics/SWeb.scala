@@ -103,7 +103,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "feed",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TMessage_Collection, "server may be unreachable")
+      TopWithInvalid[S](GCollection(TMessage), "server may be unreachable")
 
     /** Decodes a string that has been HTML-encoded */
     case "html decode" =>
@@ -184,7 +184,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "feed",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TMessage_Collection, "server may be unreachable")
+      TopWithInvalid[S](GCollection(TMessage), "server may be unreachable")
 
     /** Searching the web using Bing */
     case "search" =>
@@ -192,7 +192,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Searching images using Bing */
     case "search images" =>
@@ -200,7 +200,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search images",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Searching images near a location using Bing. Distance in meters, negative to ignore. */
     case "search images nearby" =>
@@ -208,7 +208,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search images nearby",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Searching the web near a location using Bing. Distance in meters, negative to ignore. */
     case "search nearby" =>
@@ -216,7 +216,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search nearby",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Searching news using Bing */
     case "search news" =>
@@ -224,7 +224,7 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search news",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Searching news near a location using Bing. Distance in meters, negative to ignore. */
     case "search news nearby" =>
@@ -232,12 +232,12 @@ object SWeb extends Default_SWeb {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](this0, SWeb.field_is_connected).not, "search news nearby",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */
     case "search phone numbers nearby" =>
       val List(query, location, distance) = parameters // String,Location,Number
-      TopWithInvalid[S](TLink_Collection, "Bing may be unreachable")
+      TopWithInvalid[S](GCollection(TLink), "Bing may be unreachable")
 
     /** Uploads text to an internet page (http post) */
     case "upload" =>

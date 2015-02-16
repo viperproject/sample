@@ -17,7 +17,7 @@ trait Default_TMedia_Player extends AAny {
 
   lazy val typeName = TypeName("Media Player")
           
-  /** Rarely used: [**not implemented**] Gets the uri of the media currently active */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the uri of the media currently active */
   def member_active_media = ApiMember(
     name = "active media",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the detailled information about this device */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the detailled information about this device */
   def member_device = ApiMember(
     name = "device",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Indicates the media can be played, paused, resumed */
+  /** Rarely used: [**not implemented**] [**obsolete**] Indicates the media can be played, paused, resumed */
   def member_is_control_supported = ApiMember(
     name = "is control supported",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Indicates if the player is paused */
+  /** Rarely used: [**not implemented**] [**obsolete**] Indicates if the player is paused */
   def member_is_paused = ApiMember(
     name = "is paused",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Indicates if the player is playing */
+  /** Rarely used: [**not implemented**] [**obsolete**] Indicates if the player is playing */
   def member_is_playing = ApiMember(
     name = "is playing",
     paramTypes = List(),
@@ -62,7 +62,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Indicates if the player is stopped */
+  /** Rarely used: [**not implemented**] [**obsolete**] Indicates if the player is stopped */
   def member_is_stopped = ApiMember(
     name = "is stopped",
     paramTypes = List(),
@@ -71,7 +71,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Indicates if volume can be changed */
+  /** Rarely used: [**not implemented**] [**obsolete**] Indicates if volume can be changed */
   def member_is_volume_supported = ApiMember(
     name = "is volume supported",
     paramTypes = List(),
@@ -80,7 +80,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the name of the audio/video player */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the name of the audio/video player */
   def member_name = ApiMember(
     name = "name",
     paramTypes = List(),
@@ -89,7 +89,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Moves the player to the next media in the queue. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Moves the player to the next media in the queue. */
   def member_next = ApiMember(
     name = "next",
     paramTypes = List(),
@@ -98,7 +98,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Pauses the current media if any. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Pauses the current media if any. */
   def member_pause = ApiMember(
     name = "pause",
     paramTypes = List(),
@@ -107,7 +107,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Plays a media from the home network. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Plays a media from the home network. */
   def member_play_home_media = ApiMember(
     name = "play home media",
     paramTypes = List(ApiParam(TMedia_Link)),
@@ -116,7 +116,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Plays the media at the 'url' internet address. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Plays the media at the 'url' internet address. */
   def member_play_media = ApiMember(
     name = "play media",
     paramTypes = List(ApiParam(TString)),
@@ -125,7 +125,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Gets the position in seconds whithin the active media */
+  /** Never used: [**not implemented**] [**obsolete**] Gets the position in seconds whithin the active media */
   def member_play_position = ApiMember(
     name = "play position",
     paramTypes = List(),
@@ -134,7 +134,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Plays the current media from the start. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Plays the current media from the start. */
   def member_play = ApiMember(
     name = "play",
     paramTypes = List(),
@@ -143,7 +143,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Moves the player to the previous media in the queue. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Moves the player to the previous media in the queue. */
   def member_previous = ApiMember(
     name = "previous",
     paramTypes = List(),
@@ -152,7 +152,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Resumes playing the current media if any. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Resumes playing the current media if any. */
   def member_resume = ApiMember(
     name = "resume",
     paramTypes = List(),
@@ -161,7 +161,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the current value */
+  /** Rarely used: [**obsolete**] Sets the current value */
   def member_set_volume = ApiMember(
     name = "set volume",
     paramTypes = List(ApiParam(TNumber)),
@@ -170,7 +170,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the status of the player */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the status of the player */
   def member_status = ApiMember(
     name = "status",
     paramTypes = List(),
@@ -179,7 +179,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Stops the current media if any. */
+  /** Rarely used: [**not implemented**] [**obsolete**] Stops the current media if any. */
   def member_stop = ApiMember(
     name = "stop",
     paramTypes = List(),
@@ -188,7 +188,7 @@ trait Default_TMedia_Player extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the current volume */
+  /** Rarely used: [**obsolete**] Gets the current volume */
   def member_volume = ApiMember(
     name = "volume",
     paramTypes = List(),

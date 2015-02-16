@@ -5,6 +5,10 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
+  val reportUnanalyzedFunctions: Boolean = true
+
+  val printScriptFirst: Boolean = false
+
   val numberOfVersions = 2
 
   val numberOfUnrollings = 0
@@ -202,7 +206,7 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
                          * IMPORTANT: This parameter is ONLY respected when using
                          * TouchApronRun/TestRunner (important for test suites), but not the GUI.
                          */
-                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.Pentagons
+                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.OptOctagons
                          )
 
 object NumericDomainChoice extends Enumeration {
@@ -210,6 +214,7 @@ object NumericDomainChoice extends Enumeration {
 
   val Intervals = Value
   val Octagons = Value
+  val OptOctagons = Value
   val Polyhedra = Value
   val StrictPolyhedra = Value
   val Pentagons = Value

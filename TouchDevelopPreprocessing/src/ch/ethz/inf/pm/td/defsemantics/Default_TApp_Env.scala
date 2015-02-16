@@ -26,6 +26,15 @@ trait Default_TApp_Env extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: [**beta**] Indicates if the `app->run_command` action can be used to run shell commands or manipulate the file system. */
+  def member_has_shell = ApiMember(
+    name = "has shell",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Initial URL used to launch the website; invalid when `->runtime kind` is "editor" */
   def member_initial_url = ApiMember(
     name = "initial url",
@@ -65,6 +74,7 @@ trait Default_TApp_Env extends AAny {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "form factor" -> member_form_factor,
+    "has shell" -> member_has_shell,
     "initial url" -> member_initial_url,
     "operating system" -> member_operating_system,
     "runtime kind" -> member_runtime_kind,

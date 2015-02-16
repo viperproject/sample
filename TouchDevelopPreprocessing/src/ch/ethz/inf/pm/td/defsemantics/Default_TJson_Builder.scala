@@ -66,6 +66,15 @@ trait Default_TJson_Builder extends AMap {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Copy all fields from given JSON object */
+  def member_copy_from = ApiMember(
+    name = "copy from",
+    paramTypes = List(ApiParam(TJson_Object)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Gets a value by name */
   def member_field = ApiMember(
     name = "field",
@@ -219,6 +228,15 @@ trait Default_TJson_Builder extends AMap {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Converts to a collection of JsonBuilders (type must be array) */
+  def member_to_collection = ApiMember(
+    name = "to collection",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(TJson_Builder),
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Converts to a number (type must be number) */
   def member_to_number = ApiMember(
     name = "to number",
@@ -253,6 +271,7 @@ trait Default_TJson_Builder extends AMap {
     "add" -> member_add,
     "boolean" -> member_boolean,
     "contains key" -> member_contains_key,
+    "copy from" -> member_copy_from,
     "field" -> member_field,
     "kind" -> member_kind,
     "number" -> member_number,
@@ -270,6 +289,7 @@ trait Default_TJson_Builder extends AMap {
     "string" -> member_string,
     "time" -> member_time,
     "to boolean" -> member_to_boolean,
+    "to collection" -> member_to_collection,
     "to number" -> member_to_number,
     "to string" -> member_to_string,
     "to time" -> member_to_time

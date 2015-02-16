@@ -35,15 +35,6 @@ trait Default_TGamepad extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Indicates if the gamepad data are identical */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TGamepad)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Gets the gamepad identifier */
   def member_id = ApiMember(
     name = "id",
@@ -93,7 +84,6 @@ trait Default_TGamepad extends AAny {
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "axes" -> member_axes,
     "button value" -> member_button_value,
-    "equals" -> member_equals,
     "id" -> member_id,
     "index" -> member_index,
     "is button pressed" -> member_is_button_pressed,

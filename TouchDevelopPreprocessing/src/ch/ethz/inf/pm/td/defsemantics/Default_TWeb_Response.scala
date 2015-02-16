@@ -76,7 +76,7 @@ trait Default_TWeb_Response extends AAny {
     name = "header names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 

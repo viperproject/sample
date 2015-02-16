@@ -120,6 +120,15 @@ trait Default_TJson_Object extends AMap {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Converts to a collection of JsonObjects (type must be array) */
+  def member_to_collection = ApiMember(
+    name = "to collection",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(TJson_Object),
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Copy current JSON object into a Json Builder so it can be modified */
   def member_to_json_builder = ApiMember(
     name = "to json builder",
@@ -169,6 +178,7 @@ trait Default_TJson_Object extends AMap {
     "string" -> member_string,
     "time" -> member_time,
     "to boolean" -> member_to_boolean,
+    "to collection" -> member_to_collection,
     "to json builder" -> member_to_json_builder,
     "to number" -> member_to_number,
     "to string" -> member_to_string,

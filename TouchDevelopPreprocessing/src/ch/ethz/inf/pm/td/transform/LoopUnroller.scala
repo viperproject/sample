@@ -58,7 +58,7 @@ object LoopUnroller {
     def unrollInlineAction(inlineAction: InlineAction): InlineAction = {
       implicit val defPos = inlineAction
       val transformed = InlineAction(inlineAction.handlerName, inlineAction.inParameters,
-        inlineAction.outParameters, (inlineAction.body map unrollStatement).flatten)
+        inlineAction.outParameters, (inlineAction.body map unrollStatement).flatten,inlineAction.typ)
       transformed.copyPos(inlineAction)
     }
 
@@ -98,7 +98,7 @@ object LoopUnroller {
     def renameInlineActionPos(inlineAction: InlineAction, suffix: String): InlineAction = {
       val renameS = renameStatementPos(_: Statement, suffix)
       InlineAction(inlineAction.handlerName, inlineAction.inParameters, inlineAction.outParameters,
-        inlineAction.body map renameS)
+        inlineAction.body map renameS,inlineAction.typ)
     }
 
     def renameExpressionPos(e: Expression, suffix: String): Expression = {

@@ -26,15 +26,6 @@ trait Default_TUser extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets a value idincating if the user is the same as the other. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TUser)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Indicates if the user has a picture */
   def member_has_picture = ApiMember(
     name = "has picture",
@@ -92,7 +83,6 @@ trait Default_TUser extends AAny {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "about" -> member_about,
-    "equals" -> member_equals,
     "has picture" -> member_has_picture,
     "id" -> member_id,
     "name" -> member_name,

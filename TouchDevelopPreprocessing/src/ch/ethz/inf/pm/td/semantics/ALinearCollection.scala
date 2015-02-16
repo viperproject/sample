@@ -53,11 +53,12 @@ trait ALinearCollection extends ACollection {
     if (Assume[S](collectionSize[S](collection) > 0).isBottom) {
       return False
     }
-    If[S](collectionAllValues[S](collection) equal value, { then: S =>
+    val x = If[S](collectionAllValues[S](collection) equal value, { then: S =>
       Return[S](True)
     }, { els: S =>
       Return[S](False)
     }).expr
+    x
   }
 
   def collectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {

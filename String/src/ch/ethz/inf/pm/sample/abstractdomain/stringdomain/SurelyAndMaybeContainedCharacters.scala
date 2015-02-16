@@ -8,8 +8,7 @@ case class SurelyAndMaybeContainedCharacters(
   extends SemanticCartesianProductDomain[
     SurelyContainedCharacters,
     MaybeContainedCharacters,
-    SurelyAndMaybeContainedCharacters]
-  with SimplifiedSemanticDomain[SurelyAndMaybeContainedCharacters] {
+    SurelyAndMaybeContainedCharacters] {
       override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r));
 
        def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)

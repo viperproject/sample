@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 import apron._
@@ -61,14 +62,14 @@ case class ConstrainedPolyhedra(
 			/* Now we check whether the expressions is within the given constraints 
 			 * (coefficients and number of variables per inequality)
 			 */ 
-			Normalizer.conditionalExpressionToMonomes(expr) match {
+			Normalizer.conditionalExpressionToMonomial(expr) match {
 			    case None => {
 					//TODO: implement this properly, uncomment the two lines below and comment the last one
 			    	//System.out.println(expr.getClass.toString + " " + expr.toString  + " is not supproted or is not of a right type")
 					//return false
 			    	return true
 			    }
-			    case Some((monomes, constant)) => {
+			    case Some(Monomial(monomes, constant)) => {
 			    	if (checkNumOfVariables && monomes.length > numOfVariables) {
 			    		
 			    		//-------------------------- Comment out----

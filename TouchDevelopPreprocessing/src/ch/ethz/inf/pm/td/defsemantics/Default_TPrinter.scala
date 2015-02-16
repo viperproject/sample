@@ -17,7 +17,7 @@ trait Default_TPrinter extends AAny {
 
   lazy val typeName = TypeName("Printer")
           
-  /** Never used: [**not implemented**] Gets the detailled information about this device */
+  /** Never used: [**not implemented**] [**obsolete**] Gets the detailled information about this device */
   def member_device = ApiMember(
     name = "device",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Indicates if new jobs can start processing immediately without waiting. */
+  /** Never used: [**not implemented**] [**obsolete**] Indicates if new jobs can start processing immediately without waiting. */
   def member_is_idle = ApiMember(
     name = "is idle",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */
+  /** Never used: [**not implemented**] [**obsolete**] Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */
   def member_is_processing = ApiMember(
     name = "is processing",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Indicates if no jobs can be processed and intervention is needed. */
+  /** Never used: [**not implemented**] [**obsolete**] Indicates if no jobs can be processed and intervention is needed. */
   def member_is_stopped = ApiMember(
     name = "is stopped",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Gets the name of the printer */
+  /** Never used: [**not implemented**] [**obsolete**] Gets the name of the printer */
   def member_name = ApiMember(
     name = "name",
     paramTypes = List(),
@@ -62,7 +62,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Queues a job to print the text. */
+  /** Never used: [**not implemented**] [**obsolete**] Queues a job to print the text. */
   def member_print_text = ApiMember(
     name = "print text",
     paramTypes = List(ApiParam(TString)),
@@ -71,7 +71,7 @@ trait Default_TPrinter extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Indicates additional information about why the Printer is in its current state. */
+  /** Never used: [**not implemented**] [**obsolete**] Indicates additional information about why the Printer is in its current state. */
   def member_state_reason = ApiMember(
     name = "state reason",
     paramTypes = List(),

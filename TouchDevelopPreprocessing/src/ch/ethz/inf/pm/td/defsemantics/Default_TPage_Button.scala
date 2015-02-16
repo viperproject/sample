@@ -17,15 +17,6 @@ trait Default_TPage_Button extends AAny {
 
   lazy val typeName = TypeName("Page Button")
           
-  /** Rarely used: Gets a value indicating if both instances are equal */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TPage_Button)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Frequently used: Gets the icon name */
   def member_icon = ApiMember(
     name = "icon",
@@ -55,7 +46,6 @@ trait Default_TPage_Button extends AAny {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "equals" -> member_equals,
     "icon" -> member_icon,
     "page" -> member_page,
     "text" -> member_text

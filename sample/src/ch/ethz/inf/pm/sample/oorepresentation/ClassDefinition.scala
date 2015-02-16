@@ -38,6 +38,8 @@ case class DummyMethodIdentifier(name: String) extends MethodIdentifier {
 /** A modifier of a field, parameters or method (e.g. static or abstract). */
 abstract class Modifier
 
+case object ClosureModifier extends Modifier
+
 case object CovariantModifier extends Modifier
 
 case object ContravariantModifier extends Modifier

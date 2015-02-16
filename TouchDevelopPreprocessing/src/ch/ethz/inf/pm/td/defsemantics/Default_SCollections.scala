@@ -40,7 +40,7 @@ trait Default_SCollections extends ASingleton {
     name = "create link collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -49,7 +49,7 @@ trait Default_SCollections extends ASingleton {
     name = "create location collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TLocation_Collection,
+    returnType = GCollection(TLocation),
     semantics = DefaultSemantics
   )
 
@@ -58,7 +58,7 @@ trait Default_SCollections extends ASingleton {
     name = "create message collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMessage_Collection,
+    returnType = GCollection(TMessage),
     semantics = DefaultSemantics
   )
 
@@ -67,7 +67,7 @@ trait Default_SCollections extends ASingleton {
     name = "create number collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TNumber_Collection,
+    returnType = GCollection(TNumber),
     semantics = DefaultSemantics
   )
 
@@ -94,7 +94,7 @@ trait Default_SCollections extends ASingleton {
     name = "create place collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPlace_Collection,
+    returnType = GCollection(TPlace),
     semantics = DefaultSemantics
   )
 
@@ -112,7 +112,7 @@ trait Default_SCollections extends ASingleton {
     name = "create string collection",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 

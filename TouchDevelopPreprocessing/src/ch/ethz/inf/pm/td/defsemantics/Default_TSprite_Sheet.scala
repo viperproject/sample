@@ -20,7 +20,7 @@ trait Default_TSprite_Sheet extends AAny {
   /** Never used: Defines an animation as a custom sequence of frames. */
   def member_add_animation = ApiMember(
     name = "add animation",
-    paramTypes = List(ApiParam(TString), ApiParam(TString_Collection), ApiParam(TNumber), ApiParam(TNumber), ApiParam(TBoolean)),
+    paramTypes = List(ApiParam(TString), ApiParam(GCollection(TString)), ApiParam(TNumber), ApiParam(TNumber), ApiParam(TBoolean)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
     semantics = DefaultSemantics

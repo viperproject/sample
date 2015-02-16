@@ -17,9 +17,9 @@ trait Default_SCreate extends ASingleton {
 
   lazy val typeName = TypeName("Create")
           
-  /** Never used: [**beta**] Creates an empty collection of arbitrary type */
-  def member_collection_of = ApiMember(
-    name = "collection of",
+  /** Never used: Creates an empty collection of arbitrary type */
+  def member_Collection_of = ApiMember(
+    name = "Collection of",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUnfinished_Type,
@@ -28,7 +28,7 @@ trait Default_SCreate extends ASingleton {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "collection of" -> member_collection_of
+    "Collection of" -> member_Collection_of
   )
             
 

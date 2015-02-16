@@ -57,6 +57,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     semantics = DefaultSemantics
   )
 
+  def member_equals = ApiMember(
+    name = "equals",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = ValidPureSemantics
+  )
+
   def member_post_to_wall = ApiMember(
     name = "post to wall",
     paramTypes = List(),
@@ -65,6 +73,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     semantics = DefaultSemantics
   )
 
+  def getDeclaration(s: String) = declarations.get(s)
+
   def declarations:Map[String,ApiMember] =
     Map(
       "," -> member_comma,
@@ -72,7 +82,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       "∥" -> member_∥,
       "async" -> member_async,
       "is invalid" -> member_is_invalid,
-      "post to wall" -> member_post_to_wall
+      "post to wall" -> member_post_to_wall,
+      "equals" -> member_equals
     )
 
   def isSingleton = false
@@ -244,7 +255,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         mutedFieldResult match {
           case Some(res) => res
           case None =>
-            declarations.get(method) match {
+            getDeclaration(method) match {
               case Some(res) =>
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
@@ -252,7 +263,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                 // Try implicit conversion to Ref
                 if (!this.isInstanceOf[GRef]) {
                   val refType = GRef(this)
-                  refType.declarations.get(method) match {
+                  refType.getDeclaration(method) match {
                     case Some(x) =>
                       x.semantics.forwardSemantics[S](this0,x,parameters)
                     case None =>

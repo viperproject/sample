@@ -20,7 +20,7 @@ import RichNativeSemantics._
 object SWall extends Default_SWall {
 
   /** Gets the list of available page button names. */
-  lazy val field_button_icon_names = ApiField("button icon names", TString_Collection)
+  lazy val field_button_icon_names = ApiField("button icon names", GCollection(TString))
 
   /** Gets the width of the screen (in pixels). */
   lazy val field_width = ApiField("width", TNumber)
@@ -53,7 +53,7 @@ object SWall extends Default_SWall {
   lazy val field_title = ApiField("title", TBoolean)
 
   /** Returns the current back stack of pages, starting from the current page to the bottom page. */
-  lazy val field_pages = ApiField("pages", TPage_Collection)
+  lazy val field_pages = ApiField("pages", GCollection(TPage))
 
   /** Indicates whether to show or hide the search icon */
   lazy val field_display_search = ApiField("display search", TBoolean)
@@ -81,7 +81,7 @@ object SWall extends Default_SWall {
     case "add button" =>
       val List(icon, text) = parameters // String,String
     val pages = Field[S](this0, SWall.field_pages)
-      val currentPage = TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1)
+      val currentPage = GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1)
       New[S](TPage_Button, initials = Map(
         TPage_Button.field_icon -> icon,
         TPage_Button.field_text -> text,
@@ -114,7 +114,7 @@ object SWall extends Default_SWall {
     /** Gets the current page displayed on the wall */
     case "current page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      Return[S](TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))
+      Return[S](GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))
 
     /** Clears the application bar buttons and hides the bar */
     case "clear buttons" =>
@@ -149,8 +149,8 @@ object SWall extends Default_SWall {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text, caption, values) = parameters // String,String,String_Collection
-      If(TString_Collection.collectionSize[S](values) > 0,
-        Then = { s: S => Return[S](0 ndToIncl (TString_Collection.collectionSize[S](values) - 1))(s, pp)},
+      If(GCollection(TString).collectionSize[S](values) > 0,
+        Then = { s: S => Return[S](0 ndToIncl (GCollection(TString).collectionSize[S](values) - 1))(s, pp)},
         Else = { s: S => Error[S](True, "pick string", "User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
@@ -162,8 +162,8 @@ object SWall extends Default_SWall {
     case "pop page with transition" =>
       val List(style) = parameters // String
     val pages = Field[S](this0, SWall.field_pages)
-      If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(TPage_Collection.collectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](GCollection(TPage).collectionSize[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(GCollection(TPage).collectionRemoveFirst[S](pages, GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -171,8 +171,8 @@ object SWall extends Default_SWall {
     /** Pops the current page and restores the previous wall page. Returns false if already on the default page. */
     case "pop page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(TPage_Collection.collectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](GCollection(TPage).collectionSize[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(GCollection(TPage).collectionRemoveFirst[S](pages, GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -188,8 +188,8 @@ object SWall extends Default_SWall {
       var curState = state
       curState = New[S](TPage)(curState, pp)
       val newPage = curState.expr
-      curState = TPage_Collection.collectionInsert[S](pages, TPage_Collection.collectionSize[S](pages), newPage)(curState, pp)
-      curState = TPage_Collection.collectionIncreaseLength[S](pages)(curState, pp)
+      curState = GCollection(TPage).collectionInsert[S](pages, GCollection(TPage).collectionSize[S](pages), newPage)(curState, pp)
+      curState = GCollection(TPage).collectionIncreaseLength[S](pages)(curState, pp)
       Return[S](newPage)(curState, pp)
 
     /** Takes a screenshot of the wall. */

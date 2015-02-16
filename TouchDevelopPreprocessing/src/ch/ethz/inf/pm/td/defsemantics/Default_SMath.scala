@@ -283,7 +283,7 @@ trait Default_SMath extends ASingleton {
     name = "normalize",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TNothing,
+    returnType = TNumber,
     semantics = DefaultSemantics
   )
 
@@ -350,7 +350,7 @@ trait Default_SMath extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Return numbers between `start` and `start + length - 1` inclusively */
+  /** Never used: Return numbers between `start` and `start + length - 1` inclusively */
   def member_range = ApiMember(
     name = "range",
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),

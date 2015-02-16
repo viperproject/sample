@@ -58,11 +58,14 @@ object MethodSummaries {
 
     /**
      * If this is a closure, we may get local variable from the local scope of closure creation
+     *
+     * If not, we don't.
      */
-    enteredState = localHandlerScope match {
-      case Some(x) =>
-        enteredState.lub(x)
-      case None => enteredState
+    if (callTarget.modifiers.contains(ClosureModifier)) {
+      enteredState = localHandlerScope match {
+        case Some(x) => if (x.isBottom) return entryState.bottom() else enteredState.lub(x)
+        case None => return entryState.bottom()
+      }
     }
 
     val result = entriesOnStack.get(identifyingPP) match {

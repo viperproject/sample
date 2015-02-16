@@ -4,10 +4,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
-import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, Parameter, TableDefinition, TypeName, WhereStatement, _}
-import ch.ethz.inf.pm.td.semantics._
-import ch.ethz.inf.pm.td.typecheck.Typer
 
 import scala.collection.mutable
 import scala.util.parsing.input.{NoPosition, Position}
@@ -98,8 +95,9 @@ class CFGGenerator(compiler: TouchCompiler) {
           val modifiers: List[Modifier] = (flags flatMap {
             case ("is resource", "true") => Some(ResourceModifier)
             case ("is_resource", "true") => Some(ResourceModifier)
-            case ("readonly", "true") => Some(ReadOnlyModifier)
-            case _ => None
+            case ("readonly", "true") =>    Some(ReadOnlyModifier)
+            case ("readonly", "false") =>   None
+            case x:Any => println("Unhandled flag: "+x); None
           }).toList
           val name: Variable = parameterToVariable(variable)
           val typ: Type = typeNameToType(variable.typeName)
@@ -137,8 +135,7 @@ class CFGGenerator(compiler: TouchCompiler) {
           val modifiers: List[Modifier] = Nil
           val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = false, isPrivate = isPriv)
           val parametricType: List[Type] = Nil
-          val arguments: List[List[VariableDeclaration]] =
-            List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
+          val arguments: List[List[VariableDeclaration]] = List(Nil,Nil) // We ignore parameters of pages - they ware initialized in the display code
           val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
         val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
           val (_, _, handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)
@@ -171,7 +168,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
-  private def typeNameToType(typeName: parser.TypeName): TouchType = TypeList.getType(typeName)
+  private def typeNameToType(typeName: parser.TypeName): TouchType = TypeList.getTypeOrFail(typeName)
 
   private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
                                  currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {
@@ -247,14 +244,14 @@ class CFGGenerator(compiler: TouchCompiler) {
         val wPP = makeTouchProgramPoint(curPubID, w)
 
         val handlerSet =
-          for (InlineAction(handlerName, inParameters, _, _) <- handlerDefs) yield {
-            (handlerName, handlerIdent(handlerName + wPP), Typer.inParametersToActionType(inParameters))
+          for (InlineAction(handlerName, inParameters, _, _, typ) <- handlerDefs) yield {
+            (handlerName, handlerIdent(handlerName + wPP), typ)
           }
 
-        val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body) <- handlerDefs) yield {
+        val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body, typ) <- handlerDefs) yield {
           val handlerMethodName = handlerIdent(handlerName + wPP)
           val programPoint: ProgramPoint = wPP
-          val modifiers: List[Modifier] = Nil
+          val modifiers: List[Modifier] = List(ClosureModifier)
           val name: MethodIdentifier = TouchMethodIdentifier(handlerMethodName, isEvent = true, isPrivate = true)
           val parametricType: List[Type] = Nil
           val arguments: List[List[VariableDeclaration]] =

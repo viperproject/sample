@@ -25,6 +25,11 @@ object PrettyPrinter {
   def apply(d: Declaration)(implicit ppPrinter:((IdPositional,String) => String)): String = {
     ppPrinter(d,
       d match {
+        case ActionType(ident, in, out, body, isPrivate) =>
+          (if (isPrivate) "private " else "") +
+            ("action type") +
+            apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
+            " {\n" + apply(body) + "\n}"
         case ActionDefinition(ident, in, out, body, isEvent, isPrivate) =>
           (if (isPrivate) "private " else "") +
             (if (isEvent) "event " else "action ") +

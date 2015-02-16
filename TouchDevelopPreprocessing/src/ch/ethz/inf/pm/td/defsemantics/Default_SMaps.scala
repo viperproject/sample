@@ -40,7 +40,7 @@ trait Default_SMaps extends ASingleton {
     name = "directions",
     paramTypes = List(ApiParam(TLocation), ApiParam(TLocation), ApiParam(TBoolean)),
     thisType = ApiParam(this),
-    returnType = TLocation_Collection,
+    returnType = GCollection(TLocation),
     semantics = DefaultSemantics
   )
 

@@ -26,7 +26,7 @@ trait Default_TXml_Object extends ALinearCollection {
     name = "attr names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 

@@ -599,20 +599,9 @@ T <: CartesianProductDomain[T1, T2, T]]
   def widening(other: T): T = factory(_1.widening(other._1), _2.widening(other._2))
 
   def lessEqual(other: T): Boolean = {
-    if (_1.lessEqual(_1.bottom()) || _2.lessEqual(_2.bottom())) return true
-    if (other._1.lessEqual(other._1.bottom()) || other._2.lessEqual(other._2.bottom())) return false
+    if (isBottom) return true
+    if (other.isBottom) return false
     _1.lessEqual(other._1) && _2.lessEqual(other._2)
-  }
-
-  override def equals(a: Any): Boolean = a match {
-    case other: T =>
-      if (_1.equals(_1.bottom()) || _2.equals(_2.bottom())) {
-        if (other._1.equals(other._1.bottom()) || other._2.equals(other._2.bottom()))
-          return true
-        else return false
-      }
-      _1.equals(other._1) && _2.equals(other._2)
-    case _ => false
   }
 
   override def toString =

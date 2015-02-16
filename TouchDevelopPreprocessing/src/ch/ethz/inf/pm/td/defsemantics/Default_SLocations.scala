@@ -22,7 +22,7 @@ trait Default_SLocations extends ASingleton {
     name = "create location list",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TLocation_Collection,
+    returnType = GCollection(TLocation),
     semantics = DefaultSemantics
   )
 

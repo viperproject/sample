@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
@@ -149,9 +150,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       )
     case a:Identifier =>
       val objects = forwardMay.getOrElse(a,Set.empty)
-      copy(
-        expr = new ExpressionSet(typ,SetDomain.Default.Inner(objects.map(FieldIdentifier(_,field,typ))))
-      )
+      if (!objects.isEmpty) {
+        copy(
+          expr = new ExpressionSet(typ, SetDomain.Default.Inner(objects.map(FieldIdentifier(_, field, typ))))
+        )
+      } else {
+        copy(expr = expr.bottom())
+      }
     case _ => bottom()
   }
 
@@ -205,10 +210,21 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can already assume that this state is non-bottom.
     */
   override def assume(cond: Expression): T = {
-    val result = copy(
-      valueState = valueState.assume(cond)
-    )
-    result
+    cond match {
+      case BinaryArithmeticExpression(left,right,ArithmeticOperator.==,_)
+        if left.typ.isObject && left.isInstanceOf[Identifier]
+        && right.typ.isObject && right.isInstanceOf[Identifier] => // TODO: Reference equality?
+        if ((forwardMay.getOrElse(left.asInstanceOf[Identifier],Set.empty)
+          intersect forwardMay.getOrElse(right.asInstanceOf[Identifier],Set.empty)).isEmpty) {
+          bottom()
+        } else this
+      case _ =>
+        val result = copy(
+          valueState = valueState.assume(cond)
+        )
+        result
+    }
+
   }
 
   /** Assigns an expression to a variable.

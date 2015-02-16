@@ -36,7 +36,7 @@ object LoopRewriter {
 
   def replace(inlineAction: InlineAction, from: Expression, to: Expression): InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters, inlineAction.body.map(replace(_, from, to))))
+    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters, inlineAction.body.map(replace(_, from, to)),inlineAction.typ))
   }
 
   def replace(e: Expression, from: Expression, to: Expression) : Expression = e match {
@@ -148,7 +148,7 @@ object LoopRewriter {
 
   def apply(inlineAction:InlineAction):InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map apply).flatten))
+    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map apply).flatten,inlineAction.typ))
   }
 
   def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2

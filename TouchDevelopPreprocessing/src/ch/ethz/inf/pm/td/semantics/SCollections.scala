@@ -38,19 +38,19 @@ object SCollections extends Default_SCollections {
 
     /** Creates an empty link collection */
     case "create link collection" =>
-      New[S](TLink_Collection)
+      New[S](GCollection(TLink))
 
     /** Creates an empty location collection */
     case "create location collection" =>
-      New[S](TLocation_Collection)
+      New[S](GCollection(TLocation))
 
     /** Creates an empty message collection */
     case "create message collection" =>
-      New[S](TMessage_Collection)
+      New[S](GCollection(TMessage))
 
     /** Creates an empty number collection */
     case "create number collection" =>
-      New[S](TNumber_Collection)
+      New[S](GCollection(TNumber))
 
     /** Creates an empty number map */
     case "create number map" =>
@@ -58,11 +58,11 @@ object SCollections extends Default_SCollections {
 
     /** Creates an empty place collection */
     case "create place collection" =>
-      New[S](TPlace_Collection)
+      New[S](GCollection(TPlace))
 
     /** Creates an empty string collection */
     case "create string collection" =>
-      New[S](TString_Collection)
+      New[S](GCollection(TString))
 
     /** Creates an empty string map (case and culture sensitive) */
     case "create string map" =>

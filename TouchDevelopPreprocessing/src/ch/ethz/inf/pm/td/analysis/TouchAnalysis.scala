@@ -225,6 +225,13 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
     yield (mdecl.classDef.typ, mdecl, cfgState)
 
+    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
+      val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
+      for (un <- unanalyzed) {
+        println(" Did not analyze "+un.name+" (may be unreachable)")
+      }
+    }
+
     if (SystemParameters.property != null) {
       SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results, output)
@@ -430,7 +437,7 @@ class BottomVisitor extends Visitor {
       // if all children of the statement are bottom, do not report any of them
       def transitive(x: Statement): Set[Statement] = x.getChildren.foldLeft(Set.empty[Statement])(_ ++ transitive(_)) + x
       childrenNotToReport = childrenNotToReport ++ transitive(statement)
-      Reporter.reportBottom("Unreachable code", statement.getPC())
+      Reporter.reportBottom("Unreachable code at statement "+statement.toString, statement.getPC())
       printer.add(WarningProgramPoint(statement.getPC(), "Unreachable code"))
     }
   }

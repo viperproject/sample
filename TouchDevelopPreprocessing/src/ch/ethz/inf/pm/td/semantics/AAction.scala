@@ -18,7 +18,7 @@ trait AAction extends AAny {
     name = "run",
     paramTypes = actionArguments,
     thisType = ApiParam(this),
-    returnType = TNothing,
+    returnType = actionReturnValue,
     semantics = DefaultSemantics
   )
 
@@ -27,6 +27,7 @@ trait AAction extends AAny {
   )
 
   def actionArguments: List[ApiParam]
+  def actionReturnValue: AAny = TNothing
 
   /** Stores a string representing the handler in the code. When an action is defined in the code, the
     * corresponding action is created with a unique name (e.g. program point based) and this object is

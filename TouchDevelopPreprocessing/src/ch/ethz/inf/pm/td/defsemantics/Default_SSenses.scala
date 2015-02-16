@@ -53,15 +53,6 @@ trait Default_SSenses extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Get the list of Bluetooth LE devices paired with your device. */
-  def member_bluetoothLE_devices = ApiMember(
-    name = "bluetooth LE devices",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = GCollection(TBluetooth_Le_Device),
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Get the list of Bluetooth widgets paired with your device. */
   def member_bluetooth_devices = ApiMember(
     name = "bluetooth devices",
@@ -311,7 +302,6 @@ trait Default_SSenses extends ASingleton {
     "acceleration smooth" -> member_acceleration_smooth,
     "acceleration stable" -> member_acceleration_stable,
     "battery level" -> member_battery_level,
-    "bluetooth LE devices" -> member_bluetoothLE_devices,
     "bluetooth devices" -> member_bluetooth_devices,
     "camera" -> member_camera,
     "current location accurate" -> member_current_location_accurate,

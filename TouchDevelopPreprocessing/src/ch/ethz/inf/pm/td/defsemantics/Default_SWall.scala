@@ -58,7 +58,7 @@ trait Default_SWall extends ASingleton {
     name = "button icon names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -130,7 +130,7 @@ trait Default_SWall extends ASingleton {
     name = "icon names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -139,7 +139,7 @@ trait Default_SWall extends ASingleton {
     name = "pages",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPage_Collection,
+    returnType = GCollection(TPage),
     semantics = DefaultSemantics
   )
 
@@ -155,7 +155,7 @@ trait Default_SWall extends ASingleton {
   /** Frequently used: Prompts the user to pick a string from a list. Returns the selected index. */
   def member_pick_string = ApiMember(
     name = "pick string",
-    paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString_Collection)),
+    paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(GCollection(TString))),
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
@@ -323,15 +323,6 @@ trait Default_SWall extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Use CSS for layout */
-  def member_use_css_layout = ApiMember(
-    name = "use css layout",
-    paramTypes = List(ApiParam(TString_Collection)),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Gets the width of the screen (in pixels). */
   def member_width = ApiMember(
     name = "width",
@@ -377,7 +368,6 @@ trait Default_SWall extends ASingleton {
     "set transform matrix" -> member_set_transform_matrix,
     "show back button" -> member_show_back_button,
     "show title bar" -> member_show_title_bar,
-    "use css layout" -> member_use_css_layout,
     "width" -> member_width
   )
             

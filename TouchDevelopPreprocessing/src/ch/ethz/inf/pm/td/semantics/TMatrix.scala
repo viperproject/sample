@@ -8,7 +8,6 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_TMatrix
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 
 /**
  * Specifies the abstract semantics of Matrix

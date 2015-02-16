@@ -28,7 +28,9 @@ object ApronInterface {
 }
 
 trait ApronInterface[T <: ApronInterface[T]]
-  extends RelationalNumericalDomain[T] {
+  extends RelationalNumericalDomain[T]
+  with BooleanExpressionSimplifier[T]
+  with SimplifiedSemanticDomain[T] {
   self: T =>
 
   def state: Option[Abstract1]
@@ -333,7 +335,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     } else if (variable.typ.isNumericalType) {
 
       if (!ids.contains(variable)) {
-        println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
+        //println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
         return bottom()
       }
 
@@ -351,7 +353,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       for (id <- expr.ids) {
 
         if (!ids.contains(id)) {
-          println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+//          println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
           return bottom()
         }
 
@@ -384,9 +386,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     } else this
   }
 
-  override def assume(expr: Expression): T = {
-
-    if (isBottom) return this
+  override def assumeSimplified(expr: Expression): T = {
 
     // Check if we assume something about non-numerical values - if so, return
     val ids = expr.ids
@@ -401,38 +401,8 @@ trait ApronInterface[T <: ApronInterface[T]]
     }
 
     expr match {
-      // Boolean variables
-      case x: Identifier =>
-        // ApronInterface used to assume x != 0 here, which it struggles
-        // to handle properly (it is transformed to x < 0 || x > 0).
-        // Assuming the value to be equal to 1 is handled much better and
-        // is consistent with how ApronInterface treats boolean literals.
-        assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
-      case NegatedBooleanExpression(x: Identifier) =>
-        assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
-
-      // And, Or, De-Morgan, Double Negation
-      case BinaryBooleanExpression(left, right, op, typ) => op match {
-        case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => assume(left).lub(assume(right))
-      }
-      case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
-        assume(x)
-      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
-        val nl = NegatedBooleanExpression(left)
-        val nr = NegatedBooleanExpression(right)
-        val nop = op match {
-          case BooleanOperator.&& => BooleanOperator.||
-          case BooleanOperator.|| => BooleanOperator.&&
-        }
-        assume(BinaryBooleanExpression(nl, nr, nop, typ))
 
       // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
-
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.==, typ)) =>
-        val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-        val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-        assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
         val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
         val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
@@ -452,7 +422,7 @@ trait ApronInterface[T <: ApronInterface[T]]
           tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
         }
 
-        this.toTcons1(expr, unionEnv) match {
+        val res = this.toTcons1(expr, unionEnv) match {
 
           case x :: xs =>
             var result = tmp.meetCopy(domain, x)
@@ -464,6 +434,9 @@ trait ApronInterface[T <: ApronInterface[T]]
           case Nil => throw new ApronException("empty set of constraints generated")
 
         }
+
+        res
+
     }
   }
 

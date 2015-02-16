@@ -183,7 +183,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    * @param expr An error-expression that should be infeasible but exposes an error
    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
    */
-  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
+  def explainError(expr: Expression): Set[(String, ProgramPoint)]
 
 }
 
@@ -220,6 +220,8 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
   def getStringOfId(id: Identifier): String = ""
 
   def merge(f: Replacement) = this
+
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
 }
 
 /**
@@ -245,6 +247,8 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
   override def backwardAccess(field: Identifier): T = throw new SymbolicSemanticException("Backward analysis not supported")
 
   override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = throw new SymbolicSemanticException("Backward analysis not supported")
+
+  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
 }
 
 

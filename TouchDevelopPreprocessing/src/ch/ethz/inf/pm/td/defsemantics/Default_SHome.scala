@@ -17,7 +17,7 @@ trait Default_SHome extends ASingleton {
 
   lazy val typeName = TypeName("Home")
           
-  /** Rarely used: [**not implemented**] Choose a media player on the current wireless network */
+  /** Rarely used: [**not implemented**] [**obsolete**] Choose a media player on the current wireless network */
   def member_choose_player = ApiMember(
     name = "choose player",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_SHome extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Choose a printer on the current wireless network */
+  /** Never used: [**not implemented**] [**obsolete**] Choose a printer on the current wireless network */
   def member_choose_printer = ApiMember(
     name = "choose printer",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_SHome extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Choose a media server on the current wireless network */
+  /** Rarely used: [**not implemented**] [**obsolete**] Choose a media server on the current wireless network */
   def member_choose_server = ApiMember(
     name = "choose server",
     paramTypes = List(),
@@ -44,30 +44,30 @@ trait Default_SHome extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the media players on the current wireless network */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the media players on the current wireless network */
   def member_players = ApiMember(
     name = "players",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMedia_Player_Collection,
+    returnType = GCollection(TMedia_Player),
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Gets the printers on the current wireless network */
+  /** Never used: [**not implemented**] [**obsolete**] Gets the printers on the current wireless network */
   def member_printers = ApiMember(
     name = "printers",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TPrinter_Collection,
+    returnType = GCollection(TPrinter),
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the media servers on the home network */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the media servers on the home network */
   def member_servers = ApiMember(
     name = "servers",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TMedia_Server_Collection,
+    returnType = GCollection(TMedia_Server),
     semantics = DefaultSemantics
   )
 

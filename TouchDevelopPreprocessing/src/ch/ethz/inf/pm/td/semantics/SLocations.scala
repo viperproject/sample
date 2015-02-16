@@ -30,7 +30,7 @@ object SLocations extends Default_SLocations {
 
     /** Creates an empty list of locations */
     case "create location list" =>
-      New[S](TLocation_Collection)
+      New[S](GCollection(TLocation))
 
     /** Looks for an address near a location using Bing. */
     case "describe location" =>

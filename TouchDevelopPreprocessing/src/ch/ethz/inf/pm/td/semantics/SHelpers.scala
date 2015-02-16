@@ -46,7 +46,7 @@ object SHelpers extends ASingleton {
         case "web response action" =>
           New[S](TWeb_Response_Action,Map(TWeb_Response_Action.field_handlerName -> String(handlerName)))
         case "message collection action" =>
-          New[S](TMessage_Collection_Action,Map(TMessage_Collection_Action.field_handlerName -> String(handlerName)))
+          New[S](TCollection_Message_Action,Map(TCollection_Message_Action.field_handlerName -> String(handlerName)))
         case _ =>
           super.forwardSemantics(this0,method,parameters,returnedType)
       }

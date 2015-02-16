@@ -53,6 +53,15 @@ trait Default_TEditor extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: [**dbg**] Compiles and packages the current script. */
+  def member_package_current_script = ApiMember(
+    name = "package current script",
+    paramTypes = List(ApiParam(TJson_Object)),
+    thisType = ApiParam(this),
+    returnType = TJson_Object,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Replace standard 'running plugin' message with something else */
   def member_progress = ApiMember(
     name = "progress",
@@ -80,15 +89,26 @@ trait Default_TEditor extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Authenticates the user for the given app name and returns the token if successful. The identity of the token is contructed with ``{app name} - {user id}``. */
+  def member_user_token = ApiMember(
+    name = "user token",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "annotate ast" -> member_annotate_ast,
     "current script ast" -> member_current_script_ast,
     "current script id" -> member_current_script_id,
     "deployment settings" -> member_deployment_settings,
+    "package current script" -> member_package_current_script,
     "progress" -> member_progress,
     "tutorial step completed" -> member_tutorial_step_completed,
-    "upload json" -> member_upload_json
+    "upload json" -> member_upload_json,
+    "user token" -> member_user_token
   )
             
 

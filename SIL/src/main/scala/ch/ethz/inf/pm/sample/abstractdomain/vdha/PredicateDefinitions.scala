@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import org.slf4s.Logging
@@ -135,6 +135,7 @@ case class PredicateDefinitionsDomain(
   def backwardAccess(field: Identifier) = ???
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def access(field: Identifier) = ???
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
 
   def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (!r.isEmpty())

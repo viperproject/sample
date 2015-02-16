@@ -178,7 +178,8 @@ object WebASTImporter {
     InlineAction(jInlineAction.reference.name,
       jInlineAction.inParameters map convert,
       jInlineAction.outParameters map convert,
-      convert(jInlineAction.body)).setId(jInlineAction.id)
+      convert(jInlineAction.body),
+      makeTypeName(jInlineAction.reference.`type`)).setId(jInlineAction.id)
   }
 
   def makeTypeName(value:JValue): TypeName = {

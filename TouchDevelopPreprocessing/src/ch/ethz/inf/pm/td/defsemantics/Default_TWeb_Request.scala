@@ -17,21 +17,12 @@ trait Default_TWeb_Request extends AAny {
 
   lazy val typeName = TypeName("Web Request")
           
-  /** Never used: Indicates if both requests are the same instance. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TWeb_Request)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Gets the names of the headers */
   def member_header_names = ApiMember(
     name = "header names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -208,7 +199,6 @@ trait Default_TWeb_Request extends AAny {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "equals" -> member_equals,
     "header names" -> member_header_names,
     "header" -> member_header,
     "method" -> member_method,

@@ -135,6 +135,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
     isInLibraryMode = script.isLibrary
 
+    if (TouchAnalysisParameters.printScriptFirst) {
+      for (p <- parsedTouchScripts) {
+        println(p._2)
+      }
+    }
+
     newCFG
   }
 
@@ -244,5 +250,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     SystemParameters.typ = TNothing.top()
   }
 
-  override def allMethods: List[MethodDeclaration] = ???
+  override def allMethods: List[MethodDeclaration] = (publicMethods ++ privateMethods ++ events).toList
+
 }

@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain._
@@ -112,6 +113,8 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case Constant("false",_,_) => this.bottom()
       case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
       case NegatedBooleanExpression(Constant("false",_,_)) => this
+      case BinaryArithmeticExpression(Constant(a,_,_),Constant(b,_,_),ArithmeticOperator.==,_) =>
+        if (a == b) return this else return bottom()
 
       // Boolean variables
       case x: Identifier =>
@@ -161,10 +164,11 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
       // Inverting of operators
       case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-        assume(BinaryArithmeticExpression(left,right,ArithmeticOperator.negate(op),typ))
+        val res = assume(BinaryArithmeticExpression(left,right,ArithmeticOperator.negate(op),typ))
+        res
 
       // Handling of monomes
-      case _ => Normalizer.conditionalExpressionToMonomes(expr) match {
+      case _ => Normalizer.conditionalExpressionToMonomial(expr) match {
         case None =>
           expr match {
             case BinaryArithmeticExpression(left, right, op, typ) =>
@@ -173,38 +177,39 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
               val l: N = this.eval(left)
               val r: N = this.eval(right)
 
-              op match {
-                case ArithmeticOperator.== =>
-                  var curState = this
-                  left  match { case lId:Identifier => curState = curState.add(lId,l.glb(r)); case _ => () }
-                  right match { case rId:Identifier => curState = curState.add(rId,l.glb(r)); case _ => () }
-                  return curState
-                case ArithmeticOperator.<= => if (!l.overlapsWith(r.valueLEQ)) return this.bottom()
-                case ArithmeticOperator.>= => if (!l.overlapsWith(r.valueGEQ)) return this.bottom()
-                case ArithmeticOperator.> => if (!l.overlapsWith(r.valueGreater)) return this.bottom()
-                case ArithmeticOperator.< => if (!l.overlapsWith(r.valueLess)) return this.bottom()
+              val (newLeft,newRight) = op match {
+                case ArithmeticOperator.== => (l.glb(r),r.glb(l))
+                case ArithmeticOperator.<= => (l.glb(r.valueLEQ),r.glb(l.valueGreater))
+                case ArithmeticOperator.>= => (l.glb(r.valueGEQ),r.glb(l.valueLess))
+                case ArithmeticOperator.> =>  (l.glb(r.valueGreater),r.glb(l.valueLEQ))
+                case ArithmeticOperator.< =>  (l.glb(r.valueLess),r.glb(l.valueGEQ))
                 case _ => return this
               }
+
+              var curState = this
+              left  match { case lId:Identifier => curState = curState.add(lId,newLeft); case _ => () }
+              right match { case rId:Identifier => curState = curState.add(rId,newRight); case _ => () }
+              return curState
             case _ => return this
           }
           return this
-        case Some((monomes, constant)) =>
+        case Some(Monomial(weightedVariables, constant)) =>
           var stateResult: BoxedNonRelationalNumericalDomain[N] = this
 
           // Check if it is trivially false, e.g. -1 >= 0
-          if (monomes.isEmpty && constant < 0)
+          if (weightedVariables.isEmpty && constant < 0)
             return stateResult.bottom()
 
-          for (monome <- monomes) {
-            val (index, variable) = monome
+          for (weightedVariable <- weightedVariables) {
+            val (weight, variable) = weightedVariable
             var result = dom.evalConstant(constant)
-            for (monome1 <- monomes) {
-              if (!monome.equals(monome1))
-                result = result sum dom.evalConstant(monome1._1).multiply(eval(monome1._2))
+            for (weightedVariable1 <- weightedVariables) {
+              if (!weightedVariable.equals(weightedVariable1))
+                result = result sum dom.evalConstant(weightedVariable1._1).multiply(eval(weightedVariable1._2))
             }
-            if (index >= 0) {
+            if (weight >= 0) {
               //k*x+n >= 0 => x >= -(n/k)
-              result = result.divide(dom.evalConstant(index))
+              result = result.divide(dom.evalConstant(weight))
               result = dom.evalConstant(0).subtract(result)
               val newValue = get(variable) glb result.valueGEQ
               if (newValue.lessEqual(newValue.bottom()))
@@ -213,7 +218,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
             }
             else {
               //-k*x+n >= 0 => x <= n/-k
-              result = result.divide(dom.evalConstant(-index))
+              result = result.divide(dom.evalConstant(-weight))
               val oldValue = this.get(variable)
               val newRestraint = result.valueLEQ
               val newValue = oldValue.glb(newRestraint)
@@ -781,7 +786,8 @@ object DoubleInterval {
             val b = left * oRight
             val c = right * oLeft
             val d = right * oRight
-            factory(min(a, b, c, d), max(a, b, c, d))
+            if (a.isNaN || b.isNaN || c.isNaN || d.isNaN) top() // loses prec.
+            else factory(min(a, b, c, d), max(a, b, c, d))
           }
       }
 

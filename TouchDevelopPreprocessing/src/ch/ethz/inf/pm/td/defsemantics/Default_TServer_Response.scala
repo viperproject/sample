@@ -17,21 +17,12 @@ trait Default_TServer_Response extends AAny {
 
   lazy val typeName = TypeName("Server Response")
           
-  /** Never used: [**beta**] Indicates if both responses are the same instance. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TServer_Response)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: [**beta**] Gets the names of the headers */
   def member_header_names = ApiMember(
     name = "header names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -127,7 +118,6 @@ trait Default_TServer_Response extends AAny {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "equals" -> member_equals,
     "header names" -> member_header_names,
     "header" -> member_header,
     "request" -> member_request,

@@ -98,15 +98,6 @@ trait Default_TDateTime extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Sometimes used: Compares dates for equality */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TDateTime)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Converts into text that describes the elapsed time in a friendly way. */
   def member_from_now = ApiMember(
     name = "from now",
@@ -298,7 +289,6 @@ trait Default_TDateTime extends AAny {
     "add years" -> member_add_years,
     "date" -> member_date,
     "day" -> member_day,
-    "equals" -> member_equals,
     "from now" -> member_from_now,
     "greater or equal" -> member_greater_or_equal,
     "greater" -> member_greater,

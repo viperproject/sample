@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Replacement, Expression, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{SimplifiedSemanticDomain, Replacement, Expression, Identifier}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.Predef._
@@ -73,7 +73,9 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
                                                                                     cheap: C,
                                                                                     relFactory: R,
                                                                                     exp: PackStorage[R]
-                                                                                    ) extends NumericalDomain[VariablePackingDomain[C, R]] {
+                                                                                    )
+  extends NumericalDomain[VariablePackingDomain[C, R]]
+  with SimplifiedSemanticDomain[VariablePackingDomain[C, R]] {
 
   // INVARIANT: The cheap domain covers a superset of the identifiers in the relational domain
   if (SystemParameters.DEBUG) {

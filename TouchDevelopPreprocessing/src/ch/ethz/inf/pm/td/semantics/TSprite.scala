@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Lattice, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, ApiField}
+import ch.ethz.inf.pm.td.analysis.{RichExpression, ExpressionInitializer, ApiField}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_TSprite
@@ -203,13 +203,43 @@ object TSprite extends Default_TSprite {
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
-      Dummy[S](this0, method)
-      Top[S](TSprite_Set)
+//      val matches = state.getFieldValueWhere(sprites,TSprite_Set.field_entry.getField.get,TSprite_Set.field_entry.typ,
+//      {
+//        (x:Identifier,s:S) =>
+//          val sprite = Field[S](x,TSprite_Set.entryType.field_value)(s,pp)
+//          val overlapCheck = CallApi[S](sprite,"overlaps with",List(this0),TBoolean)(s,pp)
+//          !Assume[S](overlapCheck.expr)(overlapCheck,pp).isBottom
+//      }
+//      )._1.map({
+//        x: Identifier => toExpressionSet(Field[S](x,TSprite_Set.entryType.field_value))
+//      })
+//
+//      if (matches.size == 0) {
+//        New[S](TSprite_Set)
+//      } else {
+//        val overlappingEntries = Lattice.bigLub[ExpressionSet](matches)
+//        New[S](TSprite_Set, initialCollectionValue = Some(overlappingEntries), initialCollectionSize = Some(toRichExpression(matches.size)))
+//      }
+      New[S](TSprite_Set) lub Return[S](sprites)
 
     /** Do the sprites overlap */
     case "overlaps with" =>
       val List(other) = parameters // Sprite
-      Dummy[S](this0, method)
+//      val ret = Return[S](Lattice.bigLub[ExpressionSet](
+//        (for (this0Expr <- this0.getSetOfExpressions) yield {
+//          for (otherExpr <- other.getSetOfExpressions) yield {
+//            val RectAX1 = Field[S](this0Expr, field_x)
+//            val RectAX2 = Field[S](this0Expr, field_x) + Field[S](this0Expr, field_width)
+//            val RectAY1 = Field[S](this0Expr, field_y)
+//            val RectAY2 = Field[S](this0Expr, field_y) + Field[S](this0Expr, field_height)
+//            val RectBX1 = Field[S](otherExpr, field_x)
+//            val RectBX2 = Field[S](otherExpr, field_x) + Field[S](otherExpr, field_width)
+//            val RectBY1 = Field[S](otherExpr, field_y)
+//            val RectBY2 = Field[S](otherExpr, field_y) + Field[S](otherExpr, field_height)
+//            toExpressionSet((RectAX1 < RectBX2) && (RectAX2 > RectBX1) && (RectAY1 < RectBY2) && (RectAY2 > RectBY1))
+//          }
+//        }).flatten
+//      ))
       Top[S](TBoolean)
 
     /** Sets the acceleration in pixels/sec^2 */

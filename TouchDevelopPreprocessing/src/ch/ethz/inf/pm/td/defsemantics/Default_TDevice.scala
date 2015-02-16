@@ -17,7 +17,7 @@ trait Default_TDevice extends AAny {
 
   lazy val typeName = TypeName("Device")
           
-  /** Rarely used: [**not implemented**] Browses to the device control panel */
+  /** Rarely used: [**not implemented**] [**obsolete**] Browses to the device control panel */
   def member_browse = ApiMember(
     name = "browse",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TDevice extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**not implemented**] Checks if the device is connected */
+  /** Never used: [**not implemented**] [**obsolete**] Checks if the device is connected */
   def member_is_connected = ApiMember(
     name = "is connected",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TDevice extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: [**not implemented**] Gets the manfacturer name */
+  /** Rarely used: [**not implemented**] [**obsolete**] Gets the manfacturer name */
   def member_manufacturer = ApiMember(
     name = "manufacturer",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TDevice extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the friendly name of the device */
+  /** Rarely used: [**obsolete**] Gets the friendly name of the device */
   def member_name = ApiMember(
     name = "name",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TDevice extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the friendly name of the device */
+  /** Rarely used: [**obsolete**] Sets the friendly name of the device */
   def member_set_name = ApiMember(
     name = "set name",
     paramTypes = List(ApiParam(TString)),

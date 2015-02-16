@@ -98,15 +98,6 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Sometimes used: Are these the same sprite */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TSprite)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Fits the bounding box to the size of the text */
   def member_fit_text = ApiMember(
     name = "fit text",
@@ -721,7 +712,6 @@ trait Default_TSprite extends AAny {
     "create animation" -> member_create_animation,
     "delete" -> member_delete_,
     "elasticity" -> member_elasticity,
-    "equals" -> member_equals,
     "fit text" -> member_fit_text,
     "font size" -> member_font_size,
     "friction" -> member_friction,

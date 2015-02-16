@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.analysis
 
 import java.io.{PrintWriter, StringWriter}
 
-import apron.{Box, OptOctagon, Polka}
+import apron.{Octagon, Box, OptOctagon, Polka}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -19,7 +19,7 @@ import ch.ethz.inf.pm.td.output.Exporters
 
 object TouchDevelopEntryStateBuilder {
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[DoublePentagons]]], NonrelationalStringDomain[StringKSetDomain]]
+  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[ApronInterface.Default]]], NonrelationalStringDomain[StringKSetDomain]]
 
 }
 
@@ -40,11 +40,12 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
-        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
-//        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
-//        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
-//        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
-//        case NumericDomainChoice.StrictPolyhedra => ApronInterface.Default(None, new Polka(true), env = Set.empty).factory()
+//        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
+        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
+        case NumericDomainChoice.OptOctagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
+        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new Octagon(), env = Set.empty).factory()
+        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
+        case NumericDomainChoice.StrictPolyhedra => ApronInterface.Default(None, new Polka(true), env = Set.empty).factory()
       }
     StringsAnd(
       InvalidAnd(

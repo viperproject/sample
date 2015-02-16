@@ -202,7 +202,7 @@ trait Default_SWeb extends ASingleton {
     name = "feed",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TMessage_Collection,
+    returnType = GCollection(TMessage),
     semantics = DefaultSemantics
   )
 
@@ -341,6 +341,15 @@ trait Default_SWeb extends ASingleton {
     semantics = DefaultSemantics
   )
 
+  /** Never used: [**dbg**] Creates a web socket */
+  def member_open_web_socket = ApiMember(
+    name = "open web socket",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TWeb_Socket,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Creates a picture from a web address. The resulting picture cannot be modified, use clone if you want to change it. */
   def member_picture = ApiMember(
     name = "picture",
@@ -382,7 +391,7 @@ trait Default_SWeb extends ASingleton {
     name = "rss",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TMessage_Collection,
+    returnType = GCollection(TMessage),
     semantics = DefaultSemantics
   )
 
@@ -391,7 +400,7 @@ trait Default_SWeb extends ASingleton {
     name = "search images nearby",
     paramTypes = List(ApiParam(TString), ApiParam(TLocation), ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -400,7 +409,7 @@ trait Default_SWeb extends ASingleton {
     name = "search images",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -409,7 +418,7 @@ trait Default_SWeb extends ASingleton {
     name = "search nearby",
     paramTypes = List(ApiParam(TString), ApiParam(TLocation), ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -418,7 +427,7 @@ trait Default_SWeb extends ASingleton {
     name = "search news nearby",
     paramTypes = List(ApiParam(TString), ApiParam(TLocation), ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -427,7 +436,7 @@ trait Default_SWeb extends ASingleton {
     name = "search news",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -436,7 +445,7 @@ trait Default_SWeb extends ASingleton {
     name = "search phone numbers nearby",
     paramTypes = List(ApiParam(TString), ApiParam(TLocation), ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -445,7 +454,7 @@ trait Default_SWeb extends ASingleton {
     name = "search phone numbers",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -454,7 +463,7 @@ trait Default_SWeb extends ASingleton {
     name = "search",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TLink_Collection,
+    returnType = GCollection(TLink),
     semantics = DefaultSemantics
   )
 
@@ -559,6 +568,7 @@ trait Default_SWeb extends ASingleton {
     "oauth v2" -> member_oauth_v2,
     "on received message from parent" -> member_on_received_message_from_parent,
     "open connection settings" -> member_open_connection_settings,
+    "open web socket" -> member_open_web_socket,
     "picture" -> member_picture,
     "play media" -> member_play_media,
     "post message to parent" -> member_post_message_to_parent,

@@ -4,11 +4,9 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TJson_Builder
-import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 
 /**
  * Specifies the abstract semantics of Json Builder
@@ -21,7 +19,7 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 object TJson_Builder extends Default_TJson_Builder {
 
   /** Gets the list of keys */
-  lazy val field_keys = ApiField("keys", TString_Collection)
+  lazy val field_keys = ApiField("keys", GCollection(TString))
 
   /** Gets a json kind (string, number, object, array, boolean, null) */
   lazy val field_kind = ApiField("kind", TString)
@@ -40,6 +38,15 @@ object TJson_Builder extends Default_TJson_Builder {
 
   override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
     field_to_string, field_to_time)
+
+  /** Sometimes used: Gets the list of keys */
+  override def member_keys = ApiMember(
+    name = "keys",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(TString),
+    semantics = DefaultSemantics
+  )
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

@@ -44,21 +44,12 @@ trait Default_TServer_Request extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**beta**] Indicates if both requests are the same instance. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TServer_Request)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: [**beta**] Gets the names of the headers */
   def member_header_names = ApiMember(
     name = "header names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -85,7 +76,7 @@ trait Default_TServer_Request extends AAny {
     name = "query names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -130,7 +121,6 @@ trait Default_TServer_Request extends AAny {
     "content as buffer" -> member_content_as_buffer,
     "content as json" -> member_content_as_json,
     "content" -> member_content,
-    "equals" -> member_equals,
     "header names" -> member_header_names,
     "header" -> member_header,
     "method" -> member_method,

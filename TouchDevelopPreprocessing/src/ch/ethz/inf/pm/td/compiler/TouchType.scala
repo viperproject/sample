@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, ApiField}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics.{AAny, TNothing}
 
@@ -142,6 +142,8 @@ object DefaultSemantics extends ApiMemberSemantics {
     assert (parameters.length == method.paramTypes.length)
 
     var curState = state
+
+    RichNativeSemantics.Dummy[S](this0,method.toString)(state,pp)
 
     // Is this just a getter of a field?
     if (!method.thisType.isMutated && parameters.isEmpty) { // FIXME: Faster access

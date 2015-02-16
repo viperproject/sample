@@ -18,7 +18,11 @@ trait Typed {
 
 trait Scope
 
-case class Script (declarations:List[Declaration], isLibrary:Boolean) extends IdPositional
+case class Script (declarations:List[Declaration], isLibrary:Boolean) extends IdPositional {
+
+  override def toString = PrettyPrinter(this)
+
+}
 
 sealed trait Declaration extends IdPositional with Scope
 
@@ -157,7 +161,8 @@ case class WhereStatement(expr:Expression,handlers:List[InlineAction])
 case class InlineAction(handlerName:String,
                         inParameters:List[Parameter],
                         outParameters:List[Parameter],
-                        body:List[Statement])
+                        body:List[Statement],
+                        typ:TypeName)
   extends IdPositional
 
 sealed trait Expression extends IdPositional with Typed

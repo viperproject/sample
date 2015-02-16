@@ -57,7 +57,7 @@ object TWeb_Response extends Default_TWeb_Response {
 
     /** Gets the names of the headers */
     case "header names" =>
-      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"keys",Nil,TString_Collection)
+      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"keys",Nil,GCollection(TString))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

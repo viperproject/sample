@@ -12,7 +12,7 @@ trait NumericalDomain[T <: NumericalDomain[T]] extends SemanticDomain[T] {
 }
 
 trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]]
-  extends SimplifiedSemanticDomain[T]
+  extends SemanticDomain[T]
   with NumericalDomain[T] {
   this: T =>
 

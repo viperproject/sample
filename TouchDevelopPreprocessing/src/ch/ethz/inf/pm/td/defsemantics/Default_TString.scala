@@ -17,12 +17,21 @@ trait Default_TString extends AAny {
 
   lazy val typeName = TypeName("String")
           
-  /** Sometimes used: Gets the character at a specified index */
+  /** Sometimes used: Gets the character at a specified index. Returns invalid if out of bounds. */
   def member_at = ApiMember(
     name = "at",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Gets the charecter unicode value at a given index. Returns NaN if out of bounds */
+  def member_code_at = ApiMember(
+    name = "code at",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNumber,
     semantics = DefaultSemantics
   )
 
@@ -80,15 +89,6 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Very frequently used: Checks if two strings are the same */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Frequently used: Returns the index of the first occurence if found starting at a given position */
   def member_index_of = ApiMember(
     name = "index of",
@@ -139,7 +139,7 @@ trait Default_TString extends AAny {
     name = "match",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -148,7 +148,7 @@ trait Default_TString extends AAny {
     name = "matches",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -202,7 +202,7 @@ trait Default_TString extends AAny {
     name = "split",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 
@@ -362,13 +362,13 @@ trait Default_TString extends AAny {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "at" -> member_at,
+    "code at" -> member_code_at,
     "compare" -> member_compare,
     "concat" -> member_concat,
     "contains" -> member_contains,
     "copy to clipboard" -> member_copy_to_clipboard,
     "count" -> member_count,
     "ends with" -> member_ends_with,
-    "equals" -> member_equals,
     "index of" -> member_index_of,
     "insert" -> member_insert,
     "is empty" -> member_is_empty,

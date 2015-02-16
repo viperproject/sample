@@ -40,7 +40,7 @@ trait Default_SSocial extends ASingleton {
     name = "contacts",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TContact_Collection,
+    returnType = GCollection(TContact),
     semantics = DefaultSemantics
   )
 
@@ -112,7 +112,7 @@ trait Default_SSocial extends ASingleton {
     name = "search appointments",
     paramTypes = List(ApiParam(TDateTime), ApiParam(TDateTime)),
     thisType = ApiParam(this),
-    returnType = TAppointment_Collection,
+    returnType = GCollection(TAppointment),
     semantics = DefaultSemantics
   )
 
@@ -121,7 +121,7 @@ trait Default_SSocial extends ASingleton {
     name = "search contacts",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TContact_Collection,
+    returnType = GCollection(TContact),
     semantics = DefaultSemantics
   )
 
@@ -130,7 +130,7 @@ trait Default_SSocial extends ASingleton {
     name = "search places nearby",
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TLocation), ApiParam(TNumber)),
     thisType = ApiParam(this),
-    returnType = TPlace_Collection,
+    returnType = GCollection(TPlace),
     semantics = DefaultSemantics
   )
 
@@ -139,7 +139,7 @@ trait Default_SSocial extends ASingleton {
     name = "search",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
-    returnType = TMessage_Collection,
+    returnType = GCollection(TMessage),
     semantics = DefaultSemantics
   )
 

@@ -62,7 +62,7 @@ object SampleBuild extends Build {
     id = "sample-web",
     base = file("Web"),
     settings =
-      Defaults.defaultSettings ++
+      Defaults.coreDefaultSettings ++
       ScalatraPlugin.scalatraSettings ++
       Twirl.settings) dependsOn(
     core, numerical, valuedrivenheap, sil, touchdevelop)

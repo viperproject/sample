@@ -17,7 +17,7 @@ trait Default_TMedia_Link extends AAny {
 
   lazy val typeName = TypeName("Media Link")
           
-  /** Rarely used: Gets the album if available */
+  /** Rarely used: [**obsolete**] Gets the album if available */
   def member_album = ApiMember(
     name = "album",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the author if available */
+  /** Rarely used: [**obsolete**] Gets the author if available */
   def member_author = ApiMember(
     name = "author",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the date if available */
+  /** Rarely used: [**obsolete**] Gets the date if available */
   def member_date = ApiMember(
     name = "date",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets the duration in seconds (0 for pictures) */
+  /** Never used: [**obsolete**] Gets the duration in seconds (0 for pictures) */
   def member_duration = ApiMember(
     name = "duration",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the kind of media (video, song, picture) */
+  /** Rarely used: [**obsolete**] Gets the kind of media (video, song, picture) */
   def member_kind = ApiMember(
     name = "kind",
     paramTypes = List(),
@@ -62,7 +62,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Plays or displays the media on the phone */
+  /** Rarely used: [**obsolete**] Plays or displays the media on the phone */
   def member_play = ApiMember(
     name = "play",
     paramTypes = List(),
@@ -71,7 +71,7 @@ trait Default_TMedia_Link extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Gets the title if available */
+  /** Rarely used: [**obsolete**] Gets the title if available */
   def member_title = ApiMember(
     name = "title",
     paramTypes = List(),

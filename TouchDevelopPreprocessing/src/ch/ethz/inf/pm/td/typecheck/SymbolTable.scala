@@ -103,12 +103,12 @@ class SymbolTable(script:Script) {
           resolveUsertypeAccess(typ, symbol, args) match {
             case Some(x) => x
             case None =>
-              TypeList.types(typ).declarations.get(symbol) match {
+              TypeList.getTypeOrFail(typ).getDeclaration(symbol) match {
                 case Some(member) => List(member.returnType.typeName)
                 case None =>
 
                   // Implicit conversion to a reference?
-                  TypeList.types(TypeName("Ref",List(typ))).declarations.get(symbol) match {
+                  TypeList.getTypeOrFail(TypeName("Ref",List(typ))).getDeclaration(symbol) match {
 
                     case Some(member) =>
                       List(member.returnType.typeName)

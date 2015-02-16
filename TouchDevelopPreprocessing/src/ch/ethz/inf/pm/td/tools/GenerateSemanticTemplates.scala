@@ -138,7 +138,7 @@ object GenerateSemanticTemplates {
         case "TAction" => superClass = "AAction"; actionArgs = List()
         case "TBoolean_Action" => superClass = "AAction"; actionArgs = List("TBoolean_Action")
         case "TJson_Action" => superClass = "AAction"; actionArgs = List("TJson_Action")
-        case "TMessage_Collection_Action" => superClass = "AAction"; actionArgs = List("TMessage_Collection")
+        case "TCollection_Message_Action" => superClass = "AAction"; actionArgs = List("GCollection(TMessage)")
         case "TNumber_Action" => superClass = "AAction"; actionArgs = List("TNumber")
         case "TPosition_Action" => superClass = "AAction"; actionArgs = List("TNumber","TNumber")
         case "TVector_Action" => superClass = "AAction"; actionArgs = List("TNumber","TNumber","TNumber","TNumber")
@@ -149,13 +149,13 @@ object GenerateSemanticTemplates {
         case _ => ()
       }
 
-      var filter = Set("is invalid", "post to wall",",",":=","async","equals")
+      var filter = Set("is invalid", "post to wall",",",":",":=","async","equals")
       superClass match {
         case "AAction" => filter = filter + "run"
         case "ACollection" => filter = filter ++ Set("count","copy","to json","from json","at index")
         case "ALinearCollection" => filter = filter ++  Set("count","copy","to json","from json","at","random","rand")
         case "AMap" => filter = filter ++ Set("count","copy","to json","from json","at","set at","set many",
-          "remove","clear")
+          "remove","clear","keys")
         case "AMutable_Collection" => filter = filter ++ Set("count","copy","to json","from json","at","random","rand","set at",
           "remove","add","add many","clear","index of","insert at","remove","remove at","reverse",
           "sort","contains")

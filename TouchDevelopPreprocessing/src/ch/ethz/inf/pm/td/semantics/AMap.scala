@@ -12,10 +12,10 @@ import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 trait AMap extends ACollection {
 
   lazy val keyCollectionTyp = this match {
-    case TString_Map => TString_Collection
-    case TNumber_Map => TNumber_Collection
-    case TJson_Object => TString_Collection
-    case TJson_Builder => TString_Collection
+    case TString_Map => GCollection(TString)
+    case TNumber_Map => GCollection(TNumber)
+    case TJson_Object => GCollection(TString)
+    case TJson_Builder => GCollection(TString)
     case _ => throw new SemanticException("keys() operation is not supported for that object")
   }
 

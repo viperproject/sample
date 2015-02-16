@@ -16,6 +16,7 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_GRef extends AAny {
 
   def TT:AAny
+           
 
   lazy val typeName = TypeName("Ref", List(TT.typeName))
           

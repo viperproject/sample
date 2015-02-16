@@ -33,7 +33,7 @@ object SSocial extends Default_SSocial {
     /** Retrieves the list of contacts */
     case "contacts" =>
       val List(network) = parameters // String
-      TopWithInvalid[S](TContact_Collection, "device may not have a contacts library")
+      TopWithInvalid[S](GCollection(TContact), "device may not have a contacts library")
 
     /** Creates a new contact */
     case "create contact" =>
@@ -84,24 +84,24 @@ object SSocial extends Default_SSocial {
     /** Searches for recent messages in a social network (twitter, facebook) */
     case "search" =>
       val List(network, terms) = parameters // String,String
-      TopWithInvalid[S](TMessage_Collection, "social network may not be reachable")
+      TopWithInvalid[S](GCollection(TMessage), "social network may not be reachable")
 
     /** Searches for appointments in a given time range */
     case "search appointments" =>
       val List(start, end) = parameters // DateTime,DateTime
-      Top[S](TAppointment_Collection)
+      Top[S](GCollection(TAppointment))
 
     /** Searches for contacts by name. */
     case "search contacts" =>
       val List(prefix) = parameters // String
-      Top[S](TContact_Collection)
+      Top[S](GCollection(TContact))
 
     /** Searches for places nearby. The distance is in meters. */
     case "search places nearby" =>
       val List(network, terms, location, distance) = parameters // String,String,Location,Number
       Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not, "search places nearby",
         "Check first if an internet connection is available")
-      Top[S](TPlace_Collection)
+      Top[S](GCollection(TPlace))
 
     /** Opens the mail client */
     case "send email" =>

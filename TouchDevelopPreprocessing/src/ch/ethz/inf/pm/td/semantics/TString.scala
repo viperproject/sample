@@ -41,11 +41,15 @@ object TString extends Default_TString {
   )
 
   /** Returns the number of characters */
-  //TODO lazy val field_count = new TouchField("count",TNumber.typeName)
+  //lazy val field_count = new TouchField("count",TNumber.typeName)
 
-  override def possibleFields = super.possibleFields ++ List(/*TODO field_count*/)
+  override def possibleFields = super.possibleFields ++ List(
+    // field_count
+  )
 
-  override def declarations = super.declarations ++ Map ("copy" -> member_copy, "at index" -> member_at_index)
+  override def declarations = super.declarations ++ Map (
+    "copy" -> member_copy, "at index" -> member_at_index
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -138,13 +142,13 @@ object TString extends Default_TString {
     /** Gets the groups from the matching the regex expression (pattern) */
     case "match" =>
       val List(pattern) = parameters // String
-      Top[S](TString_Collection)
+      Top[S](GCollection(TString))
 
     /** Gets the strings matching the regex expression (pattern) */
     case "matches" =>
       Dummy[S](this0, method)
       val List(pattern) = parameters // String
-      Top[S](TString_Collection)
+      Top[S](GCollection(TString))
 
     /** Returns the string with characters removed starting at a given index */
     case "remove" =>
@@ -176,9 +180,9 @@ object TString extends Default_TString {
       val List(separator) = parameters // String
     // No matter what the arguments are, the resulting set has at least one element!
     var curState = state
-      curState = Top[S](TString_Collection)(curState, pp)
+      curState = Top[S](GCollection(TString))(curState, pp)
       val obj = curState.expr
-      curState = Assume(TString_Collection.collectionSize[S](obj) >= 1)(curState, pp)
+      curState = Assume(GCollection(TString).collectionSize[S](obj) >= 1)(curState, pp)
       Return[S](obj)(curState, pp)
 
     /** Determines whether the beginning matches the specified string */

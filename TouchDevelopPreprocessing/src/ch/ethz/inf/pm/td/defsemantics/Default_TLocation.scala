@@ -44,15 +44,6 @@ trait Default_TLocation extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Indicates if this instance is equal to the other */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TLocation)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Sometimes used: Gets the horizontal accuracy of the coordinate */
   def member_hor_accuracy = ApiMember(
     name = "hor accuracy",
@@ -121,7 +112,6 @@ trait Default_TLocation extends AAny {
     "altitude" -> member_altitude,
     "course" -> member_course,
     "distance" -> member_distance,
-    "equals" -> member_equals,
     "hor accuracy" -> member_hor_accuracy,
     "latitude" -> member_latitude,
     "longitude" -> member_longitude,

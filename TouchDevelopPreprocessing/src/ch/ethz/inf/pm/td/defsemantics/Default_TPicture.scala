@@ -179,15 +179,6 @@ trait Default_TPicture extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Checks if the picture is the same instance as the other picture. This action does not check that pixels are the same between two different pictures. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TPicture)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Frequently used: Fills a ellipse with a given color */
   def member_fill_ellipse = ApiMember(
     name = "fill ellipse",
@@ -397,7 +388,6 @@ trait Default_TPicture extends AAny {
     "draw path" -> member_draw_path,
     "draw rect" -> member_draw_rect,
     "draw text" -> member_draw_text,
-    "equals" -> member_equals,
     "fill ellipse" -> member_fill_ellipse,
     "fill path" -> member_fill_path,
     "fill rect" -> member_fill_rect,

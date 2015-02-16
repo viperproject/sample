@@ -23,13 +23,13 @@ import RichNativeSemantics._
 object SHome extends Default_SHome {
 
   /** Gets the media players on the current wireless network */
-  lazy val field_players = ApiField("players", TMedia_Player_Collection)
+  lazy val field_players = ApiField("players", GCollection(TMedia_Player))
 
   /** Gets the printers on the current wireless network */
-  lazy val field_printers = ApiField("printers", TPrinter_Collection)
+  lazy val field_printers = ApiField("printers", GCollection(TPrinter))
 
   /** Gets the media servers on the home network */
-  lazy val field_servers = ApiField("servers", TMedia_Server_Collection)
+  lazy val field_servers = ApiField("servers", GCollection(TMedia_Server))
 
   override def possibleFields = super.possibleFields ++ List(field_players, field_printers, field_servers)
 
@@ -38,28 +38,28 @@ object SHome extends Default_SHome {
 
     /** Choose a media player on the current wireless network */
     case "choose player" =>
-      val ret = If[S](TMedia_Player_Collection.collectionSize[S](Field[S](this0, SHome.field_players)) equal 0, Then = {
+      val ret = If[S](GCollection(TMedia_Player).collectionSize[S](Field[S](this0, SHome.field_players)) equal 0, Then = {
         Return[S](Invalid(TMedia_Player, "user may abort the player selection"))(_, pp)
       }, Else = {
-        Return[S](TPrinter_Collection.collectionAllValues[S](Field[S](this0, SHome.field_players)))(_, pp)
+        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_players)))(_, pp)
       })
       ret
 
     /** Choose a printer on the current wireless network */
     case "choose printer" =>
-      val ret = If[S](TPrinter_Collection.collectionSize[S](Field[S](this0, SHome.field_printers)) equal 0, Then = {
+      val ret = If[S](GCollection(TPrinter).collectionSize[S](Field[S](this0, SHome.field_printers)) equal 0, Then = {
         Return[S](Invalid(TPrinter, "user may abort the printer selection"))(_, pp)
       }, Else = {
-        Return[S](TPrinter_Collection.collectionAllValues[S](Field[S](this0, SHome.field_printers)))(_, pp)
+        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_printers)))(_, pp)
       })
       ret
 
     /** Choose a media server on the current wireless network */
     case "choose server" =>
-      val ret = If[S](TMedia_Server_Collection.collectionSize[S](Field[S](this0, SHome.field_servers)) equal 0, Then = {
+      val ret = If[S](GCollection(TMedia_Server).collectionSize[S](Field[S](this0, SHome.field_servers)) equal 0, Then = {
         Return[S](Invalid(TMedia_Server, "user may abort the media server selection"))(_, pp)
       }, Else = {
-        Return[S](TPrinter_Collection.collectionAllValues[S](Field[S](this0, SHome.field_servers)))(_, pp)
+        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_servers)))(_, pp)
       })
       ret
 

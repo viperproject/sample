@@ -165,15 +165,6 @@ trait Default_TBoard extends AMutable_Collection {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Checks if the board is the same instance as the other board. */
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(TBoard)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Frequently used: Update positions of sprites on board. */
   def member_evolve = ApiMember(
     name = "evolve",
@@ -381,7 +372,6 @@ trait Default_TBoard extends AMutable_Collection {
     "create sprite set" -> member_create_sprite_set,
     "create sprite sheet" -> member_create_sprite_sheet,
     "create text" -> member_create_text,
-    "equals" -> member_equals,
     "evolve" -> member_evolve,
     "frame timer" -> member_frame_timer,
     "height" -> member_height,

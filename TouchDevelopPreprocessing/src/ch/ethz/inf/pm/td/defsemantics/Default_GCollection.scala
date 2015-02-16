@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_GCollection extends AMutable_Collection {
 
   def TT:AAny
-           
+
 
   lazy val typeName = TypeName("Collection", List(TT.typeName))
           
@@ -42,6 +42,15 @@ trait Default_GCollection extends AMutable_Collection {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the identifier of the next set of items (if any) */
+  def member_continuation = ApiMember(
+    name = "continuation",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Concatenates the separator and items into a string */
   def member_join = ApiMember(
     name = "join",
@@ -51,7 +60,7 @@ trait Default_GCollection extends AMutable_Collection {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**beta**] Applies `converter` on all elements of the input collection and returns a collection of results */
+  /** Never used: Applies `converter` on all elements of the input collection and returns a collection of results */
   def member_map_to = ApiMember(
     name = "map to",
     paramTypes = List(),
@@ -120,6 +129,15 @@ trait Default_GCollection extends AMutable_Collection {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TT,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Sets the identifier of the next set of items */
+  def member_set_continuation = ApiMember(
+    name = "set continuation",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
     semantics = DefaultSemantics
   )
 
@@ -199,6 +217,7 @@ trait Default_GCollection extends AMutable_Collection {
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "avg of" -> member_avg_of,
     "avg" -> member_avg,
+    "continuation" -> member_continuation,
     "join" -> member_join,
     "map to" -> member_map_to,
     "max of" -> member_max_of,
@@ -208,6 +227,7 @@ trait Default_GCollection extends AMutable_Collection {
     "ordered by string" -> member_ordered_by_string,
     "ordered by" -> member_ordered_by,
     "pick entry" -> member_pick_entry,
+    "set continuation" -> member_set_continuation,
     "slice" -> member_slice,
     "sort by date" -> member_sort_by_date,
     "sort by distance" -> member_sort_by_distance,

@@ -22,7 +22,7 @@ trait Default_TAppointment extends AAny {
     name = "attendees",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TContact_Collection,
+    returnType = GCollection(TContact),
     semantics = DefaultSemantics
   )
 

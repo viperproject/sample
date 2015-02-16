@@ -17,6 +17,21 @@ trait Default_TUnknown extends AAny {
 
   lazy val typeName = TypeName("Unknown")
           
+  /** Rarely used:  */
+  def member_fun = ApiMember(
+    name = "fun",
+    paramTypes = List(ApiParam(TUnknown)),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "fun" -> member_fun
+  )
+
 
 }
           
+

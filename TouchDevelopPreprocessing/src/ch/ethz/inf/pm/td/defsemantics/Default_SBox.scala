@@ -26,15 +26,6 @@ trait Default_SBox extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Specify a CSS class name for this box */
-  def member_add_css_class = ApiMember(
-    name = "add css class",
-    paramTypes = List(ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Display editable text, bound to the given string reference. */
   def member_edit_ref = ApiMember(
     name = "edit ref",
@@ -260,15 +251,6 @@ trait Default_SBox extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Specify an HTML element name for this box */
-  def member_set_tag_name = ApiMember(
-    name = "set tag name",
-    paramTypes = List(ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Set whether to break long lines, and specify what length is too short for breaking */
   def member_set_text_wrapping = ApiMember(
     name = "set text wrapping",
@@ -353,7 +335,6 @@ trait Default_SBox extends ASingleton {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "add background picture" -> member_add_background_picture,
-    "add css class" -> member_add_css_class,
     "edit ref" -> member_edit_ref,
     "edit text" -> member_edit_text,
     "edit" -> member_edit,
@@ -379,7 +360,6 @@ trait Default_SBox extends ASingleton {
     "set margins" -> member_set_margins,
     "set padding" -> member_set_padding,
     "set scrolling" -> member_set_scrolling,
-    "set tag name" -> member_set_tag_name,
     "set text wrapping" -> member_set_text_wrapping,
     "set vertical align" -> member_set_vertical_align,
     "set vertical alignment" -> member_set_vertical_alignment,

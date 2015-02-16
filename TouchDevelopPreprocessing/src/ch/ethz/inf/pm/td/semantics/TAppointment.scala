@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TAppointment extends Default_TAppointment {
 
   /** Gets the list of attendees. Each contact contains a name and email address. */
-  lazy val field_attendees = ApiField("attendees", TContact_Collection)
+  lazy val field_attendees = ApiField("attendees", GCollection(TContact))
 
   /** Gets the details */
   lazy val field_details = new ApiField("details", TString, topDefault = TopWithInvalidInitializer("appointment may not have details"))

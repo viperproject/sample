@@ -17,7 +17,7 @@ import RichNativeSemantics._
 object SMedia extends Default_SMedia {
 
   /** Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */
-  lazy val field_icon_names = ApiField("icon names", TString_Collection)
+  lazy val field_icon_names = ApiField("icon names", GCollection(TString))
 
   /** Gets the picture albums */
   lazy val field_picture_albums = ApiField("picture albums", TPicture_Albums)

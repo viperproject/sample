@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -22,13 +22,21 @@ case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFiel
     semantics = DefaultSemantics
   )
 
+
+  def member_is_deleted = ApiMember(
+    name = "is deleted",
+    paramTypes = List(),
+    thisType = ApiParam(this,isMutated = true),
+    returnType = TBoolean,
+    semantics = ValidPureSemantics
+  )
+
   override def possibleFields =
     super.possibleFields ++ keyFields ++ valueFields
 
   override lazy val declarations =
     super.declarations ++ mkGetterSetters(keyFields ::: valueFields) +
-      ("clear fields" -> member_clear_fields)
-
+      ("clear fields" -> member_clear_fields, "is deleted" -> member_is_deleted)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

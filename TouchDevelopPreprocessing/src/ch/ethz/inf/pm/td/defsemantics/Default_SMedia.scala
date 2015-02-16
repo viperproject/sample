@@ -76,7 +76,7 @@ trait Default_SMedia extends ASingleton {
     name = "icon names",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TString_Collection,
+    returnType = GCollection(TString),
     semantics = DefaultSemantics
   )
 

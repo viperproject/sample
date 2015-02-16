@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /**
  *
@@ -72,6 +72,7 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   override def access(id: Identifier): T = wrapperFactory(wrapped.access(id))
   override def backwardAssign(oldPreState: T, id: Identifier, expr: Expression): T = wrapperFactory(wrapped.backwardAssign(oldPreState.wrapped,id,expr))
   override def getStringOfId(id: Identifier): String = wrapped.getStringOfId(id)
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = wrapped.explainError(expr)
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {
     val (arg1,arg2) = wrapped.createVariableForArgument(variable,typ,path)

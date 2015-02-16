@@ -26,13 +26,13 @@ object TMedia_Server extends Default_TMedia_Server {
   lazy val field_name = ApiField("name", TString)
 
   /** Gets a list of all pictures */
-  lazy val field_pictures = ApiField("pictures", TMedia_Link_Collection)
+  lazy val field_pictures = ApiField("pictures", GCollection(TMedia_Link))
 
   /** Gets a list of all songs */
-  lazy val field_songs = ApiField("songs", TMedia_Link_Collection)
+  lazy val field_songs = ApiField("songs", GCollection(TMedia_Link))
 
   /** Gets a list of all videos */
-  lazy val field_videos = ApiField("videos", TMedia_Link_Collection)
+  lazy val field_videos = ApiField("videos", GCollection(TMedia_Link))
 
   override def possibleFields = super.possibleFields ++ List(field_device, field_name, field_pictures, field_songs, field_videos)
 
@@ -54,22 +54,22 @@ object TMedia_Server extends Default_TMedia_Server {
     /** Searches for pictures in a particular date range. */
     case "search pictures by date" =>
       val List(start, end) = parameters // DateTime,DateTime
-      Top[S](TMedia_Link_Collection)
+      Top[S](GCollection(TMedia_Link))
 
     /** Searches for pictures in a particular date range. */
     case "search videos by date" =>
       val List(start, end) = parameters // DateTime,DateTime
-      Top[S](TMedia_Link_Collection)
+      Top[S](GCollection(TMedia_Link))
 
     /** Searches for songs */
     case "search songs" =>
       val List(term) = parameters // String
-      Top[S](TMedia_Link_Collection)
+      Top[S](GCollection(TMedia_Link))
 
     /** Searches for videos */
     case "search videos" =>
       val List(term) = parameters // String
-      Top[S](TMedia_Link_Collection)
+      Top[S](GCollection(TMedia_Link))
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

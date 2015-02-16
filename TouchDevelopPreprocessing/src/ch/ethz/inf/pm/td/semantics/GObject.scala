@@ -10,14 +10,6 @@ import RichNativeSemantics._
 
 case class GObject(typeName:TypeName, fields:List[ApiField]) extends AAny {
 
-  def member_equals = ApiMember(
-    name = "equals",
-    paramTypes = List(ApiParam(this)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = ValidPureSemantics
-  )
-
   override def possibleFields = super.possibleFields ++ fields
 
   override lazy val declarations = super.declarations ++ mkGetterSetters(fields) ++ Map("equals" -> member_equals)

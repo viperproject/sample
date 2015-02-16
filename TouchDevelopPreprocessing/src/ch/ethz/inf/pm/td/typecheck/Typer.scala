@@ -34,15 +34,17 @@ object Typer {
 
     def toTouchField(fields: List[Parameter]): List[ApiField] = {
       for (field <- fields) yield {
-        ApiField(field.ident, TypeList.types(field.typeName))
+        ApiField(field.ident, TypeList.getTypeOrFail(field.typeName))
       }
     }
 
     thing match {
+      case a@ActionType(name, in, out, body, isPrivate) =>
+        TypeList.addTouchType(GAction(TypeName(name),in map {x:Parameter => TypeList.getTypeOrFail(x.typeName)},out map {x:Parameter => TypeList.getTypeOrFail(x.typeName)}))
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
       case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
-        st.addAction(name, inParameters, outParameters)
+        st.addAction(name, Nil, Nil) // We ignore parameters of pages - they ware initialized in the display code
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case TableDefinition(ident, typeName, keys, fields) =>
@@ -142,7 +144,7 @@ object Typer {
       case s@WhereStatement(expr, handlers) =>
         for (h <- handlers) {
           st(s) = ScopeSymbolTable(s, scope, Map.empty) ++ h.inParameters ++ h.outParameters
-          st(scope) = st(scope) + (h.handlerName -> inParametersToActionType(h.inParameters))
+          st(scope) = st(scope) + (h.handlerName -> h.typ)
           for (smt <- h.body) processStatement(s, st, smt)
         }
         processMultiValExpression(scope, st, expr)
@@ -150,23 +152,6 @@ object Typer {
         processMultiValExpression(scope, st, expr)
       case _ => Unit
     }
-  }
-
-  def inParametersToActionType(params: List[Parameter]): TypeName = {
-    TypeName(params match {
-      case Nil => "Action"
-      case List(Parameter(_, TypeName("Boolean",_))) => "Boolean Action"
-      case List(Parameter(_, TypeName("Number",_))) => "Number Action"
-      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Position Action"
-      case List(Parameter(_, TypeName("String",_))) => "Text Action"
-      case List(Parameter(_, TypeName("Sprite",_))) => "Sprite Action"
-      case List(Parameter(_, TypeName("Sprite Set",_))) => "Sprite Set Action"
-      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Vector Action"
-      case List(Parameter(_, TypeName("Web Response",_))) => "Web Response Action"
-      case List(Parameter(_, TypeName("Message Collection",_))) => "Message Collection Action"
-      case List(Parameter(_, TypeName(s,_))) => s + " action"
-      case _ => println("Unknown action type, falling back to Action: " + params); "Action"
-    })
   }
 
   def processExpression(scope: Scope, st: SymbolTable, expr: Expression): TypeName = {
