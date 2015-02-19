@@ -94,5 +94,12 @@ object SampleBuild extends Build {
     fork := true,
     javaOptions <+= apronLibPath map {
       p => "-Djava.library.path=" + p
-    })
+    },
+    scalacOptions in Compile ++= Seq(
+      "-optimise",
+      "-Xelide-below", "3000",
+      "-Xdisable-assertions"
+    )
+  )
+
 }

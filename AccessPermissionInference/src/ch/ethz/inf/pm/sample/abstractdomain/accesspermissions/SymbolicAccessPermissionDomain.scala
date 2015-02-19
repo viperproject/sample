@@ -568,8 +568,14 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
 		  }
     } else return (this, result)
   }
-  
-  
+
+  /**
+   * May try to explain an error
+   *
+   * @param expr An error-expression that should be infeasible but exposes an error
+   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+   */
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
 }
 
 class PermissionsException(s : String) extends Exception(s)

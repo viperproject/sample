@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchDevelopEntryStateBuilder, RichExpression, ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchState}
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -50,7 +50,15 @@ trait ACollection extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = this,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        if (TouchAnalysisParameters.assumeCollectionsNotModifiedDuringIteration) {
+          Return[S](this0)
+        } else {
+          Clone[S](this0)
+        }
+      }
+    }
   )
 
   /** Never used: Clears the values from the map */
@@ -174,25 +182,4 @@ trait ACollection extends AAny {
     state // TODO
   }
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
-
-    /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */
-    case "copy" =>
-      Return[S](this0)
-      // Clone[S](this0)
-
-    /** [**dbg**] Exports a JSON representation of the contents. */
-    case "to json" =>
-      Top[S](TJson_Object)
-
-    /** [**dbg**] Imports a JSON representation of the contents. */
-    case "from json" =>
-      val List(jobj) = parameters // Json_Object UNSOUND
-      Skip
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-  }
 }

@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 
@@ -43,12 +44,12 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
 
     // Boolean variables
     case x: Identifier =>
-      assert(x.typ.isBooleanType)
+      if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
       val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
       return res
 
     case NegatedBooleanExpression(x: Identifier) =>
-      assert(x.typ.isBooleanType)
+      if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
       val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
       return res
 

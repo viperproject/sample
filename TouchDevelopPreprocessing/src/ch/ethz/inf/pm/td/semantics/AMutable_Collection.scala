@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import RichNativeSemantics._
 
 /**
@@ -28,7 +28,15 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(valueType)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(value) = parameters // Element_Type
+        var curState = state
+        curState = collectionInsert[S](this0,collectionSize[S](this0), value)(curState,pp)
+        curState = collectionIncreaseLength[S](this0)(curState,pp)
+        curState
+      }
+    }
   )
 
   /** Never used: Removes all objects from the collection */
@@ -37,7 +45,11 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        collectionClear[S](this0)
+      }
+    }
   )
 
   /** Never used: Checks if the item is in the collection */
@@ -46,7 +58,16 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(valueType)),
     thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(item) = parameters
+        If[S](collectionAllKeys[S](this0) equal item, Then={
+          Return[S](True)(_,pp)
+        }, Else={
+          Return[S](False)(_,pp)
+        })
+      }
+    }
   )
 
   /** Never used: Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */
@@ -55,7 +76,20 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(valueType), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(item,start) = parameters // Element_Type,Number
+
+        if (start.getType() != TNumber)
+          throw new SemanticException("This is not a linear collection " + this0)
+
+        If[S](collectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
+          Return[S](0 ndToIncl collectionSize[S](this0)-1)(_, pp)
+        }, Else={
+          Return[S](-1)(_, pp)
+        })
+      }
+    }
   )
 
   /** Never used: Inserts an object at position index. Does nothing if index is out of range. */
@@ -64,7 +98,24 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(TNumber), ApiParam(valueType)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+        val List(index,item) = parameters // Number,Element_Type
+
+        if (index.getType() != TNumber)
+          throw new SemanticException("This is not a linear collection " + this0)
+
+        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
+          var newState = collectionInvalidateKeys[S](this0)(state, pp)
+          newState = collectionInsert[S](this0, index, item)(newState, pp)
+          collectionIncreaseLength[S](this0)(newState, pp)
+        }, Else=(state) => {
+          state
+        })
+
+      }
+    }
   )
 
   /** Never used: Removes the object at position index. */
@@ -73,7 +124,24 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+        val List(index) = parameters // Number
+
+        if (index.getType() != TNumber)
+          throw new SemanticException("This is not a linear collection " + this0)
+
+        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
+          var newState = collectionRemoveAt[S](this0, index)(state, pp)
+          newState = collectionDecreaseLength[S](this0)(newState, pp)
+          collectionInvalidateKeys[S](this0)(newState, pp)
+        }, Else={
+          collectionRemoveAt[S](this0, index)(_, pp)
+        })
+
+      }
+    }
   )
 
   /** Never used: Removes the first occurence of an object. Returns true if removed. */
@@ -82,7 +150,22 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(valueType)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TBoolean,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(item) = parameters // Element_Type
+
+        //TODO
+        //If[S](collectionContainsValue[S](this0, item) equal True, Then=(state) => {
+        //  var newState = CollectionRemoveFirst[S](this0, item)(state, pp)
+        //  newState = collectionDecreaseLength[S](this0)(newState, pp)
+        //  newState = collectionInvalidateKeys(this0)(newState, pp)
+        //  Return[S](True)(newState, pp)
+        //}, Else= {
+        //  Return[S](False)(_, pp)
+        //})
+        Return[S](False)(state, pp)
+      }
+    }
   )
 
   /** Never used: Reverses the order of objects in the collection */
@@ -91,7 +174,11 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        collectionInvalidateKeys[S](this0)
+      }
+    }
   )
 
   /** Never used: Sets the object at position index. Does nothing if the index is out of range. */
@@ -100,7 +187,25 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(ApiParam(TNumber), ApiParam(valueType)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+        val List(index, value) = parameters // Number,Element_Type
+
+        if (index.getType() != TNumber)
+          throw new SemanticException("This is not a linear collection " + this0)
+
+        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
+          //val newState = CollectionRemove[S](this0, index)(state, pp)
+          //CollectionInsert[S](this0, index, value)(newState, pp)
+          // FIXME: This is broken
+          collectionInsert[S](this0, index, value)(state,pp)
+        }, Else=(state) => {
+          state
+        })
+
+      }
+    }
   )
 
   /** Never used: Sorts the strings in this collection */
@@ -109,7 +214,11 @@ trait AMutable_Collection extends ALinearCollection {
     paramTypes = List(),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        collectionInvalidateKeys[S](this0)
+      }
+    }
   )
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
@@ -128,116 +237,4 @@ trait AMutable_Collection extends ALinearCollection {
     "sort" -> member_sort
   )
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                              (implicit pp:ProgramPoint,state:S):S = method match {
-
-    /** Adds an element */
-    case "add" =>
-      val List(value) = parameters // Element_Type
-      var curState = state
-      curState = collectionInsert[S](this0,collectionSize[S](this0), value)(curState,pp)
-      curState = collectionIncreaseLength[S](this0)(curState,pp)
-      curState
-
-    /** Adds many elements at once */
-    case "add many" =>
-      val List(value) = parameters // Collection_Type
-      Skip; // TODO: implement
-
-    /** Clears the collection */
-    case "clear" =>
-      collectionClear[S](this0)
-
-    /** Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */
-    case "index of" =>
-      val List(item,start) = parameters // Element_Type,Number
-
-      if (start.getType() != TNumber)
-        throw new SemanticException("This is not a linear collection " + this0)
-
-      If[S](collectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
-        Return[S](0 ndToIncl collectionSize[S](this0)-1)(_, pp)
-      }, Else={
-        Return[S](-1)(_, pp)
-      })
-
-    /** Inserts an element at position index. Does nothing if index is out of range. */
-    case "insert at" =>
-      val List(index,item) = parameters // Number,Element_Type
-
-      if (index.getType() != TNumber)
-        throw new SemanticException("This is not a linear collection " + this0)
-
-      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
-        var newState = collectionInvalidateKeys[S](this0)(state, pp)
-        newState = collectionInsert[S](this0, index, item)(newState, pp)
-        collectionIncreaseLength[S](this0)(newState, pp)
-      }, Else=(state) => {
-        state
-      })
-
-    /** Sets the i-th element */
-    case "set at" =>
-      val List(index, value) = parameters // Number,Element_Type
-
-      if (index.getType() != TNumber)
-        throw new SemanticException("This is not a linear collection " + this0)
-
-      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
-        //val newState = CollectionRemove[S](this0, index)(state, pp)
-        //CollectionInsert[S](this0, index, value)(newState, pp)
-        // FIXME: This is broken
-        collectionInsert[S](this0, index, value)(state,pp)
-      }, Else=(state) => {
-        state
-      })
-
-    /** Removes the first occurance of the element. Returns true if removed. */
-    case "remove" =>
-      val List(item) = parameters // Element_Type
-
-      //TODO
-      //If[S](collectionContainsValue[S](this0, item) equal True, Then=(state) => {
-      //  var newState = CollectionRemoveFirst[S](this0, item)(state, pp)
-      //  newState = collectionDecreaseLength[S](this0)(newState, pp)
-      //  newState = collectionInvalidateKeys(this0)(newState, pp)
-      //  Return[S](True)(newState, pp)
-      //}, Else= {
-      //  Return[S](False)(_, pp)
-      //})
-      Return[S](False)(state, pp)
-
-    /** Removes the element at position index. */
-    case "remove at" =>
-      val List(index) = parameters // Number
-
-      if (index.getType() != TNumber)
-        throw new SemanticException("This is not a linear collection " + this0)
-
-      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
-        var newState = collectionRemoveAt[S](this0, index)(state, pp)
-        newState = collectionDecreaseLength[S](this0)(newState, pp)
-        collectionInvalidateKeys[S](this0)(newState, pp)
-      }, Else={
-        collectionRemoveAt[S](this0, index)(_, pp)
-      })
-
-    /** Reverses the order of the elements. */
-    case "reverse" =>
-      collectionInvalidateKeys[S](this0)
-
-    case "sort" =>
-      collectionInvalidateKeys[S](this0)
-
-    case "contains" =>
-      val List(item) = parameters
-      If[S](collectionAllKeys[S](this0) equal item, Then={
-        Return[S](True)(_,pp)
-      }, Else={
-        Return[S](False)(_,pp)
-      })
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-  }
 }

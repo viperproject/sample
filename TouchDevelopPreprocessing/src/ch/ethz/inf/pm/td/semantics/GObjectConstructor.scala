@@ -20,7 +20,6 @@ case class GObjectConstructor(objectTyp:AAny) extends AAny {
     semantics = NewSemantics
   )
 
-
   def member_create_collection = ApiMember(
     name = "create collection",
     paramTypes = Nil,
@@ -37,6 +36,7 @@ case class GObjectConstructor(objectTyp:AAny) extends AAny {
     semantics = InvalidSemantics
   )
 
-  override lazy val declarations = super.declarations ++ Set(member_invalid,member_create,member_create_collection).map{x => x.name -> x}
+  override lazy val declarations = super.declarations ++
+    Set(member_invalid,member_create,member_create_collection).map{x => x.name -> x}
 
 }

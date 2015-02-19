@@ -96,6 +96,7 @@ class CFGGenerator(compiler: TouchCompiler) {
             case ("is resource", "true") => Some(ResourceModifier)
             case ("is_resource", "true") => Some(ResourceModifier)
             case ("readonly", "true") =>    Some(ReadOnlyModifier)
+            case ("transient", "true") =>   Some(TransientModifier)
             case ("readonly", "false") =>   None
             case x:Any => println("Unhandled flag: "+x); None
           }).toList
@@ -480,3 +481,8 @@ case class DeepeningProgramPoint(pp: ProgramPoint, path: List[String]) extends P
 case object ResourceModifier extends Modifier
 
 case object ReadOnlyModifier extends Modifier
+
+/**
+ * Does not persist between executions
+ */
+case object TransientModifier extends Modifier

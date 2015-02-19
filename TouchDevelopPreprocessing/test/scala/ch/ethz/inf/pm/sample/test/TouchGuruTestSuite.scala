@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 
 import scala.io.Source
 
-abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
+abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
 
   def systemsUnderTest: Seq[SystemUnderTest] = Seq(TouchAnalysisUnderTest)
 
@@ -34,7 +34,7 @@ abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
   }
 
   private object TouchAnalysisUnderTest extends SystemUnderTest {
-    val projectName: String = "TouchBoost"
+    val projectName: String = "TouchGuru"
 
     def run(input: AnnotatedTestInput): Seq[AbstractOutput] = {
       val fp = input.file
@@ -45,7 +45,7 @@ abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
 
   def runOnFile(file: String): Seq[SampleMessage]
 
-  def touchBoostOptions: TouchAnalysisParameters = {
+  def touchGuruOptions: TouchAnalysisParameters = {
     TouchAnalysisParameters(reporting = ReportingParams(silent = true))
   }
 }

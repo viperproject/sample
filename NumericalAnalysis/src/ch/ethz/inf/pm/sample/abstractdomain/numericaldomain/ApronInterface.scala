@@ -188,8 +188,10 @@ trait ApronInterface[T <: ApronInterface[T]]
    * @return state after substituting variables from first list to variables in second list
    */
   override def rename(from: List[Identifier], to: List[Identifier]): T = {
-    assert(from.size == to.size)
-    assert(from.distinct.equals(from) && to.distinct.equals(to))
+    if (SystemParameters.DEBUG) {
+      assert(from.size == to.size)
+      assert(from.distinct.equals(from) && to.distinct.equals(to))
+    }
     if (from.isEmpty)
       return this
     if (this.isBottom)
@@ -515,7 +517,9 @@ trait ApronInterface[T <: ApronInterface[T]]
           val presentVariablesToRemove = fromVarsAsString.intersect(startingState.getEnvironment.getVars)
           varsToRemove = varsToRemove ++ fromVarsAsString ++ toVarsAsString
           if (presentVariablesToRemove.size > 0) {
-            assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
+            if (SystemParameters.DEBUG) {
+              assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
+            }
             var tempState = startingState.expandCopy(domain, presentVariablesToRemove(0), Array(tempVal))
             val toFold = Array(tempVal) ++ presentVariablesToRemove
             tempState = tempState.foldCopy(domain, toFold)

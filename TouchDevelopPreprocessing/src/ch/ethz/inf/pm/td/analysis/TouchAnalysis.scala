@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.AAny
 
 /**
@@ -166,6 +165,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.variable.getName))(v.typ, v.programpoint)
       val leftExpr = ExpressionSet(variable)
       curState = curState.createVariable(leftExpr, v.typ, v.programpoint)
+      val newTyp = v.typ.asInstanceOf[AAny]
+      import RichNativeSemantics._
 
       val rightVal =
         if (!TouchAnalysisParameters.generalPersistentState && !compiler.isInLibraryMode) {
@@ -177,35 +178,30 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
           //  (2) Global objects that are read-only and are initialized to some default object (Tile)
           //  (3) Global objects that represents read-only artwork that is initialized from some URL.
           if (v.modifiers.contains(ResourceModifier)) {
-            curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState, v.programpoint)
-            curState.expr
+            curState = Top[S](newTyp)(curState, v.programpoint)
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
-            curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState, v.programpoint)
-            curState.expr
+            curState = New[S](newTyp)(curState, v.programpoint)
           } else {
-            toExpressionSet(toRichExpression(v.typ.name match {
-              case "String" => Constant("", v.typ, v.programpoint)
-              case "Number" => Constant("0", v.typ, v.programpoint)
-              case "Boolean" => Constant("false", v.typ, v.programpoint)
-              case _ => InvalidExpression(v.typ.asInstanceOf[TouchType], "global data may be uninitialized", v.programpoint)
-            }))
+            curState = Default[S](newTyp)(curState, v.programpoint)
           }
 
+          curState.expr
         } else {
 
           // We analyze one execution in top state.
           if (v.modifiers.contains(ResourceModifier)) {
-            curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState, v.programpoint)
-            curState.expr
+            curState = Top[S](newTyp)(curState, v.programpoint)
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
-            curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState, v.programpoint)
-            curState.expr
+            curState = New[S](newTyp)(curState, v.programpoint)
+          } else if (v.modifiers.contains(TransientModifier)) {
+            // Transient data is always "default" at beginning in every execution
+            curState = Default[S](newTyp)(curState, v.programpoint)
           } else {
-            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType], "global variable may be invalid")(curState,
+            curState = TopWithInvalid[S](newTyp, "global variable may be invalid")(curState,
               if (TouchAnalysisParameters.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
-            curState.expr
           }
 
+          curState.expr
         }
 
       curState = curState.createVariable(leftExpr, leftExpr.getType(), v.programpoint)
@@ -213,14 +209,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       curState
     }
 
+    // == CORE ANALYSIS IS STARTING HERE
     // The first fixpoint, which is computed over several executions of the same script
     if (!TouchAnalysisParameters.generalPersistentState && !TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
       Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
     else
       analyzeExecution(compiler, methods)(curState)
 
-    val summaries = MethodSummaries.getSummaries[S]
     // Check properties on the results
+    val summaries = MethodSummaries.getSummaries[S]
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
     yield (mdecl.classDef.typ, mdecl, cfgState)

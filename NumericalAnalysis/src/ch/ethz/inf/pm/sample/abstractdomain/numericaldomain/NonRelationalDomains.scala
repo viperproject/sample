@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
@@ -118,12 +119,12 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
       // Boolean variables
       case x: Identifier =>
-        assert(x.typ.isBooleanType)
+        if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
         val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
         return res
 
       case NegatedBooleanExpression(x: Identifier) =>
-        assert(x.typ.isBooleanType)
+        if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
         val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
         return res
 
@@ -713,11 +714,13 @@ object DoubleInterval {
     extends DoubleInterval
     with NonRelationalNumericalDomain.Inner[DoubleInterval,Inner] {
 
-    assert {left <= right}
-    assert {!right.isPosInfinity || !left.isPosInfinity}
-    assert {!left.isNaN && !right.isNaN}
-    assert {!right.isNegInfinity}
-    assert {!left.isPosInfinity}
+    if (SystemParameters.DEBUG) {
+      assert {left <= right}
+      assert {!right.isPosInfinity || !left.isPosInfinity}
+      assert {!left.isNaN && !right.isNaN}
+      assert {!right.isNegInfinity}
+      assert {!left.isPosInfinity}
+    }
 
     def factory(newLeft:Double, newRight: Double):DoubleInterval = {
       if (newLeft.isPosInfinity && newRight.isNegInfinity) Top

@@ -19,9 +19,16 @@ case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFiel
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        var curState = state
+        for (valueField <- valueFields) {
+          curState = AssignField[S](this0, valueField, Invalid(valueField.typ, "fields may have been cleared"))(curState, pp)
+        }
+        curState
+      }
+    }
   )
-
 
   def member_is_deleted = ApiMember(
     name = "is deleted",
@@ -37,20 +44,5 @@ case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFiel
   override lazy val declarations =
     super.declarations ++ mkGetterSetters(keyFields ::: valueFields) +
       ("clear fields" -> member_clear_fields, "is deleted" -> member_is_deleted)
-
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
-                                              (implicit pp: ProgramPoint, state: S): S = method match {
-
-    case "clear fields" =>
-      var curState = state
-      for (valueField <- valueFields) {
-        curState = AssignField[S](this0, valueField, Invalid(valueField.typ, "fields may have been cleared"))(curState, pp)
-      }
-      curState
-
-    case _ =>
-      super.forwardSemantics(this0, method, parameters, returnedType)
-
-  }
 
 }

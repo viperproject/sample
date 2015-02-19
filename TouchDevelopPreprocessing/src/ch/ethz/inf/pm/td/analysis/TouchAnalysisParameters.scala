@@ -5,6 +5,8 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
+  val assumeCollectionsNotModifiedDuringIteration: Boolean = true
+
   val reportUnanalyzedFunctions: Boolean = true
 
   val printScriptFirst: Boolean = false
@@ -81,7 +83,7 @@ object TouchAnalysisParameters {
 }
 
 /**
- * Parameters for the TouchBoost Analysis
+ * Parameters for the TouchGuru Analysis
  *
  * They are kept in case classes for several reasons:
  * 1) Individual settings are immutable and type-safe like vals in an object.
@@ -124,10 +126,10 @@ case class ExecutionModelParams(
                                  /**
                                   * Context-sensitivity in the interprocedural analysis.
                                   */
-                                 contextSensitiveInterproceduralAnalysis: Boolean = true,
+                                 contextSensitiveInterproceduralAnalysis: Boolean = false,
 
                                  /**
-                                  * The default behavior of TouchBoost is to initialize the global state to invalid
+                                  * The default behavior of TouchGuru is to initialize the global state to invalid
                                   * ("first run") and then compute the fixpoint over an arbitrary number of
                                   * script executions.
                                   *
@@ -158,7 +160,7 @@ case class ExecutionModelParams(
                                  resetEnv: Boolean = false,
 
                                  /**
-                                  * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary
+                                  * The default behavior of TouchGuru is to compute the fixpoint over an arbitrary
                                   * number of event occurrences for each execution.
                                   *
                                   * When this option is set to true, we will analyze each event once with the

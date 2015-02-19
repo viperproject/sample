@@ -1,8 +1,7 @@
 package ch.ethz.inf.pm.td.parser
 
-import ch.ethz.inf.pm.td.typecheck.Typer
-
-import util.parsing.combinator._
+import scala.util.matching.Regex
+import scala.util.parsing.combinator._
 import org.apache.commons.lang3.StringEscapeUtils
 import ch.ethz.inf.pm.td.compiler.TouchException
 
@@ -14,7 +13,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Top Level and Meta Information
 
   lazy val script: PackratParser[Script] = positioned (
-    declaration.* ^^ (Script(_,false))
+    declaration.* ^^ (Script(_,isLibrary = false))
   )
 
   lazy val declaration: PackratParser[Declaration] = positioned (
@@ -31,8 +30,8 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val actionDefinition: PackratParser[Declaration] = positioned (
     ("action" ~ actionHeader ~ block | "event" ~ actionHeader ~ block) ^^ {
-      case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,false,false)
-      case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,true,false)
+      case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = false,isPrivate = false)
+      case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = true,isPrivate = false)
     }
   )
 
@@ -48,11 +47,11 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val typeName: PackratParser[TypeName] = positioned (
-    ident ^^ (TypeName(_))
+    ident ^^ (mkTypeName(_))
   )
 
   lazy val variableDefinition: PackratParser[Declaration] = positioned (
-    "var" ~ parameter ~ "{" ~ variableFlag.* ~ "}" ^^ {case _~a~_~b~_ => VariableDefinition(a,b toMap)}
+    "var" ~ parameter ~ "{" ~ variableFlag.* ~ "}" ^^ {case _~a~_~b~_ => VariableDefinition(a,b.toMap)}
   )
 
   lazy val variableFlag: PackratParser[(String,Any)] = (ident ~ "=" ~ stringLiteral ~ ";" | ident ~ "=" ~ booleanLiteral ~ ";") ^^ { case (a ~ _ ~ b ~ _) => (a, b)}
@@ -348,5 +347,25 @@ object ScriptParser extends RegexParsers with PackratParsers {
       case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }
+
+  def mkTypeName(s: String):TypeName = {
+    implicit class Regex(sc: StringContext) {
+      def r = new scala.util.matching.Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)
+    }
+    s match {
+      case r"(.*)$h Collection" => TypeName("Collection",List(mkTypeName(h)))
+      case r"(.*)$h Task" => TypeName("Task",List(mkTypeName(h)))
+      case r"(.*)$h Action1" => TypeName("Action1",List(mkTypeName(h)))
+      case r"(.*)$h Atomic Action1" => TypeName("Atomic Action1",List(mkTypeName(h)))
+      case r"(.*)$h Entry" => TypeName("Entry",List(mkTypeName(h)))
+      case r"(.*)$h Comparison" => TypeName("Comparison",List(mkTypeName(h)))
+      case r"(.*)$h Predicate" => TypeName("Predicate",List(mkTypeName(h)))
+      case r"(.*)$h Number Converter" => TypeName("Number Converter",List(mkTypeName(h)))
+      case r"(.*)$h String Converter" => TypeName("String Converter",List(mkTypeName(h)))
+      case r"(.*)$h Ref" => TypeName("Ref",List(mkTypeName(h)))
+      case _ => TypeName(s)
+    }
+  }
+
 
 }

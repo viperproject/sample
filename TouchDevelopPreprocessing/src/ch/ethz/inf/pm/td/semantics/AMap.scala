@@ -35,13 +35,34 @@ trait AMap extends ACollection {
     Return[S](keyCollection)(curState,pp)
   }
 
+  override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      val List(index) = parameters
+      // Check disabled -- ALWAYS FALSE ALARM!
+      //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
+      Return[S](collectionAllKeys[S](this0))
+    }
+  })
+
   /** Frequently used: Gets the value at a given key; invalid if not found */
   def member_at = ApiMember(
     name = "at",
     paramTypes = List(ApiParam(keyType)),
     thisType = ApiParam(this),
     returnType = valueType,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(key) = parameters // Key_Type
+
+        val result = If[S](collectionContainsKey[S](this0, key) equal True, Then = {
+          Return[S](collectionAt[S](this0, key))(_, pp)
+        }, Else = {
+          Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
+        })
+
+        result
+      }
+    }
   )
 
   /** Frequently used: Gets the value at a given key; invalid if not found */
@@ -62,7 +83,17 @@ trait AMap extends ACollection {
     paramTypes = List(ApiParam(keyType)),
     thisType = ApiParam(this),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(key) = parameters
+        If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
+          val newState = collectionRemoveAt[S](this0, key)(state, pp)
+          collectionDecreaseLength[S](this0)(newState, pp)
+        }, Else = {
+          collectionRemoveAt[S](this0, key)(_, pp)
+        })
+      }
+    }
   )
 
   /** Frequently used: Sets the value at a given key; invalid if not found */
@@ -71,7 +102,19 @@ trait AMap extends ACollection {
     paramTypes = List(ApiParam(keyType), ApiParam(valueType)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(key, value) = parameters // Number,Element_Type
+        If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
+          val s = collectionUpdate[S](this0, key, value)(state, pp)
+          s
+        }, Else = (state) => {
+          val newState = collectionInsert[S](this0, key, value)(state, pp)
+          val s = collectionIncreaseLength[S](this0)(newState, pp)
+          s
+        })
+      }
+    }
   )
 
   /** Rarely used: Sets many elements at once. */
@@ -102,50 +145,5 @@ trait AMap extends ACollection {
     "set at" -> member_set_at,
     "set many" -> member_set_many
   )
-
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
-                                              (implicit pp: ProgramPoint, state: S): S = method match {
-
-    case "at" =>
-      val List(key) = parameters // Key_Type
-
-      val result = If[S](collectionContainsKey[S](this0, key) equal True, Then = {
-        Return[S](collectionAt[S](this0, key))(_, pp)
-      }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
-      })
-
-      result
-
-    /** Gets the i-th key */
-    case "at index" =>
-      val List(index) = parameters
-      // Check disabled -- ALWAYS FALSE ALARM!
-      //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](collectionAllKeys[S](this0))
-
-    case "set at" =>
-      val List(key, value) = parameters // Number,Element_Type
-      If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-        val s = collectionUpdate[S](this0, key, value)(state, pp)
-        s
-      }, Else = (state) => {
-        val newState = collectionInsert[S](this0, key, value)(state, pp)
-        val s = collectionIncreaseLength[S](this0)(newState, pp)
-        s
-      })
-
-    /** Removes the element at the given key **/
-    case "remove" =>
-      val List(key) = parameters
-      If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-        val newState = collectionRemoveAt[S](this0, key)(state, pp)
-        collectionDecreaseLength[S](this0)(newState, pp)
-      }, Else = {
-        collectionRemoveAt[S](this0, key)(_, pp)
-      })
-
-    case _ =>
-      super.forwardSemantics(this0, method, parameters, returnedType)
-  }
+  
 }

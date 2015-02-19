@@ -22,3 +22,5 @@ libraryDependencies += "org.mongodb" %% "casbah" % "2.7.4"
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0"
 
+
+

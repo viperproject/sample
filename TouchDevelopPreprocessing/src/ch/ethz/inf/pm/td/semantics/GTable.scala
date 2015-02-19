@@ -44,7 +44,6 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
     semantics = InvalidSemantics
   )
 
-
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++
     Map(
       "add row" -> member_add_row,

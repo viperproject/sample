@@ -5,9 +5,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableI
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{TouchState, MultiValExpression}
-import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression}
 import ch.ethz.inf.pm.td.semantics._
+
+import scala.Error
+
 /**
  *
  * This class defines a richer interface to interact with the current state. This enables us to specify the
@@ -88,6 +90,15 @@ object RichNativeSemantics extends RichExpressionImplicits {
       val res = thenRes.lub(elseRes)
       res
     }
+  }
+
+  def Default[S <: State[S]](typ: TouchType)(implicit s: S, pp: ProgramPoint): S = {
+    s.setExpression(typ.name match {
+      case "String" => ExpressionSet(Constant("", typ, pp))
+      case "Number" => ExpressionSet(Constant("0", typ, pp))
+      case "Boolean" => ExpressionSet(Constant("false", typ, pp))
+      case _ => ExpressionSet(InvalidExpression(typ, "May be uninitialized", pp))
+    })
   }
 
   /**
