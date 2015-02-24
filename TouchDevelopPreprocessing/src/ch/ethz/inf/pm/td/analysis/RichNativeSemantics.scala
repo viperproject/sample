@@ -8,8 +8,6 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression}
 import ch.ethz.inf.pm.td.semantics._
 
-import scala.Error
-
 /**
  *
  * This class defines a richer interface to interact with the current state. This enables us to specify the
@@ -40,7 +38,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
-    if (!state.isInstanceOf[AccessCollectingState]) {
+    if (!state.isInstanceOf[AccessCollectingState] && (TouchAnalysisParameters.checkPropertiesDuringAnalysis || Reporter.currentlyPropertyChecking)) {
       val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
       if (!errorState.isBottom) {
         val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
@@ -373,13 +371,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def AssignField[S <: State[S]](obj: RichExpression, field: String, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     if (obj.getType().representedFields.exists(x => x.getField match { case None => false; case Some(y) => y == field})) {
-
-      if (TouchAnalysisParameters.topFields.contains(field)) {
-        state.assignField(obj, field, Valid(value.getType()))
-      } else {
-        state.assignField(obj, field, value)
-      }
-
+      state.assignField(obj, field, value)
     } else state
   }
 

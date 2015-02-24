@@ -5,6 +5,8 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
+  val checkPropertiesDuringAnalysis = true
+
   val assumeCollectionsNotModifiedDuringIteration: Boolean = true
 
   val reportUnanalyzedFunctions: Boolean = true
@@ -68,17 +70,13 @@ object TouchAnalysisParameters {
 
   def silent = currentParams.reporting.silent
 
-  def enableCollectionMustAnalysis = currentParams.domains.enableCollectionMustAnalysis
-
-  def enableCollectionSummaryAnalysis = currentParams.domains.enableCollectionSummaryAnalysis
+  def collectionsSummarizeLinearElements = currentParams.domains.collectionsSummarizeLinearElements
+  
+  def collectionsSummarizeElements = currentParams.domains.collectionsSummarizeElements
 
   def printValuesInWarnings = currentParams.reporting.printValuesInWarnings
 
   def reportOnlyAlarmsInMainScript = currentParams.reporting.reportOnlyAlarmsInMainScript
-
-  // TODO: Move to muted fields
-  def topFields = currentParams.topFields
-
 
 }
 
@@ -103,12 +101,8 @@ case class TouchAnalysisParameters(
                                      * If this is enabled, only relevant fields (i.e. that are read in the program) of
                                      * objects from the library will be represented.
                                      */
-                                    libraryFieldPruning: Boolean = true,
+                                    libraryFieldPruning: Boolean = true
 
-                                    // Fields that are always TOP
-                                    topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
-                                      "speed z", "width", "height", "acceleration x", "acceleration y", "angle", "radius",
-                                      "angular speed", "leaderboard score", "opacity", "duration", "font size", "text", "item", "speed")
                                     )
 
 case class ExecutionModelParams(
@@ -126,7 +120,7 @@ case class ExecutionModelParams(
                                  /**
                                   * Context-sensitivity in the interprocedural analysis.
                                   */
-                                 contextSensitiveInterproceduralAnalysis: Boolean = false,
+                                 contextSensitiveInterproceduralAnalysis: Boolean = true,
 
                                  /**
                                   * The default behavior of TouchGuru is to initialize the global state to invalid
@@ -194,8 +188,8 @@ case class ExecutionModelParams(
 
                                  )
 
-case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
-                        enableCollectionSummaryAnalysis: Boolean = false,
+case class DomainParams(collectionsSummarizeLinearElements: Boolean = true,
+                        collectionsSummarizeElements: Boolean = true,
 
                         /**
                          * Maximum number of possible string values represented for a single variable

@@ -92,7 +92,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def possibleFields = Set.empty
 
   override def representedFields =
-    if (TouchAnalysisParameters.libraryFieldPruning) {
+    if (TouchAnalysisParameters.libraryFieldPruning && !SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.isEmpty) {
       val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
       val typFields = possibleFields -- mutedFields
       typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName)}).toSet[Identifier]
@@ -216,7 +216,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     val fieldResult =
       if (parameters.length == 0)
       // Getters
-        possibleFields.find(_.getName == method) match {
+        representedFields.find(_.getName == method) match {
           case Some(field) =>
             val stateWithExpr = state.getFieldValue(this0,method,field.typ)
             if (stateWithExpr.isBottom) Some(state.setExpression(new ExpressionSet(field.typ).top()))
@@ -225,7 +225,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         }
       else if (parameters.length == 1)
         // Setters
-        possibleFields.find("set " + _.getName == method) match {
+        representedFields.find("set " + _.getName == method) match {
           case Some(field) =>
             Some(AssignField[S](this0, field, parameters.head))
           case None => None

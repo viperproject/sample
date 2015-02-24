@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, Constant, 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
+import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 
 object ApronInterface {
 
@@ -390,6 +391,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   override def assumeSimplified(expr: Expression): T = {
 
+
     // Check if we assume something about non-numerical values - if so, return
     val ids = expr.ids
     for (id <- ids) {
@@ -402,6 +404,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       }
     }
 
+
     expr match {
 
       // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
@@ -411,6 +414,8 @@ trait ApronInterface[T <: ApronInterface[T]]
         assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
 
       case _ =>
+
+        if (SystemParameters.TIME) AccumulatingTimer.start("ApronInterface.assumeSimplified")
 
         // Assume the expression
         val expIds = expr.ids
@@ -436,6 +441,8 @@ trait ApronInterface[T <: ApronInterface[T]]
           case Nil => throw new ApronException("empty set of constraints generated")
 
         }
+
+        if (SystemParameters.TIME) AccumulatingTimer.stop("ApronInterface.assumeSimplified")
 
         res
 

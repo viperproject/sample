@@ -3,6 +3,9 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.property.{OutputCollector, SingleStatementProperty}
+import ch.ethz.inf.pm.sample.util.AccumulatingTimer
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.HeapIdentifier
 import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -24,9 +27,12 @@ object RequiredLibraryFragmentAnalysis {
 
   var spottedFields = Set.empty[String]
 
-  def apply(classes: List[ClassDefinition]): Set[String] = {
-    spottedFields = Set.empty[String]
+  def apply(classes: List[ClassDefinition], output: OutputCollector) = {
+    //SystemParameters.progressOutput.begin("Library fragment analysis")
+    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
+    spottedFields = Set.empty[String]
+    compiler.relevantLibraryFields = Set.empty
     SystemParameters.resetOutput()
     MethodSummaries.reset[AccessCollectingState]()
     Reporter.disableAllOutputs()
@@ -40,7 +46,25 @@ object RequiredLibraryFragmentAnalysis {
 
     }
 
-    spottedFields
+    SystemParameters.resetOutput()
+    val summaries = MethodSummaries.getSummaries[AccessCollectingState]
+    val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+    val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
+    yield (mdecl.classDef.typ, mdecl, cfgState)
+
+    // now check if we see anything suspicious
+    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
+      val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
+      for (un <- unanalyzed) {
+        println(" Did not analyze "+un.name+" (may be unreachable)")
+      }
+    }
+
+    new SingleStatementProperty(new BottomVisitor()).check(results,output)
+
+    compiler.relevantLibraryFields = spottedFields ++ Set("data", "art", "records", "code")
+    SystemParameters.resetOutput()
+    //SystemParameters.progressOutput.end()
   }
 
 }

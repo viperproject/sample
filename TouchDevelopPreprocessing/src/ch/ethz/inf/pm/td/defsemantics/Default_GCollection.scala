@@ -17,7 +17,6 @@ trait Default_GCollection extends AMutable_Collection {
 
   def TT:AAny
 
-
   lazy val typeName = TypeName("Collection", List(TT.typeName))
           
   def keyType = TNumber

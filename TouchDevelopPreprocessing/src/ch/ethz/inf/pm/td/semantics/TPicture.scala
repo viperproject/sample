@@ -40,6 +40,8 @@ object TPicture extends Default_TPicture {
 
   override def possibleFields = super.possibleFields ++ List(field_width, field_height, field_location, field_date)
 
+  override def mutedFields = super.mutedFields ++ List(field_width, field_height)
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 

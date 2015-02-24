@@ -123,15 +123,12 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     SystemParameters.progressOutput.begin(" ANALYZING " + compiler.main.name)
 
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
-    //SystemParameters.progressOutput.begin("Library fragment analysis")
     if (TouchAnalysisParameters.libraryFieldPruning) {
-      compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
-      compiler.relevantLibraryFields = compiler.relevantLibraryFields ++ Set("data", "art", "records", "code")
-      SystemParameters.resetOutput()
+      RequiredLibraryFragmentAnalysis(compiler.parsedScripts,output)
       MethodSummaries.reset[S]()
     }
-    //SystemParameters.progressOutput.end()
 
+    println(compiler.relevantLibraryFields)
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
@@ -229,6 +226,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       }
     }
 
+    if (!TouchAnalysisParameters.checkPropertiesDuringAnalysis) {
+      Reporter.currentlyPropertyChecking = true
+      println("Checking properties...")
+      if (SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.PropertyChecking")
+      analyzeExecution(compiler, methods)(curState)
+      if (SystemParameters.TIME) AccumulatingTimer.stop("TouchAnalysis.PropertyChecking")
+        Reporter.currentlyPropertyChecking = false
+    }
+
     if (SystemParameters.property != null) {
       SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results, output)
@@ -294,16 +300,16 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     var cur = s
     for (mdecl <- compiler.events) {
-      cur = cur.lub(analyzeMethod(mdecl, s, localHandlerScope = MethodSummaries.getClosureEntry[S](mdecl.name.toString)))
+      cur = cur.lub(analyzeMethod(mdecl, s))
     }
 
     resetEnv(cur)
   }
 
 
-  private def analyzeMethod[S <: State[S]](callTarget: MethodDeclaration, entryState: S, localHandlerScope: Option[S] = None): S = {
+  private def analyzeMethod[S <: State[S]](callTarget: MethodDeclaration, entryState: S): S = {
 
-    val exitState = MethodSummaries.collect[S](callTarget.programpoint, callTarget, entryState, Nil, localHandlerScope = localHandlerScope)
+    val exitState = MethodSummaries.collect[S](callTarget.programpoint, callTarget, entryState, Nil)
 
     resetEnv(exitState)
 

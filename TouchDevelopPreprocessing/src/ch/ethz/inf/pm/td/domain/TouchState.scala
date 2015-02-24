@@ -249,6 +249,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }
     case leftField:FieldIdentifier =>
       assignField(leftField.o,leftField.f,right)
+    case _:ValidExpression =>
+      this
+    case _:InvalidExpression =>
+      this
   }
 
   /** Assigns an expression to a field.

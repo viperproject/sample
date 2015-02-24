@@ -19,6 +19,8 @@ object TVector3 extends Default_TVector3 {
   lazy val field_y = ApiField("y", TNumber)
   lazy val field_z = ApiField("z", TNumber)
 
+  override def mutedFields = super.mutedFields ++ List(field_x,field_y,field_z)
+
   override def possibleFields = super.possibleFields ++ List(field_x,field_y,field_z)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {

@@ -161,7 +161,7 @@ object SWall extends Default_SWall {
     /** Same as `wall->pop_page`, but lets you use specific animation. */
     case "pop page with transition" =>
       val List(style) = parameters // String
-    val pages = Field[S](this0, SWall.field_pages)
+      val pages = Field[S](this0, SWall.field_pages)
       If[S](GCollection(TPage).collectionSize[S](pages) > 0, Then = { s: S =>
         Return[S](True)(GCollection(TPage).collectionRemoveFirst[S](pages, GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {

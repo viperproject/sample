@@ -73,7 +73,7 @@ object Main {
     TouchAnalysisParameters.set(
       TouchAnalysisParameters(
         execution = ExecutionModelParams(singleEventOccurrence = true),
-        domains = DomainParams(enableCollectionMustAnalysis = false, enableCollectionSummaryAnalysis = true,
+        domains = DomainParams(collectionsSummarizeElements = true, collectionsSummarizeLinearElements = true,
            numericalDomain = NumericDomainChoice.Intervals)
       )
     )

@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
-import ch.ethz.inf.pm.td.analysis.{RichExpression}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichExpression}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.TouchState
@@ -13,6 +13,14 @@ import ch.ethz.inf.pm.td.domain.TouchState
  * have linear integer keys.
  **/
 trait ALinearCollection extends ACollection {
+
+  override def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    if (TouchAnalysisParameters.collectionsSummarizeElements) {
+      collectionAllValues[S](collection)
+    } else {
+      super.collectionAt[S](collection,key)
+    }
+  }
 
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
@@ -108,11 +116,12 @@ trait ALinearCollection extends ACollection {
    */
   override def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
+    val idPP = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right
-    ))(curState, DummyProgramPoint)
-    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, pp)
+    ))(curState, idPP)
+    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, idPP)
     curState
   }
 

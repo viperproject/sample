@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchState}
@@ -106,11 +106,12 @@ trait ACollection extends AAny {
 
   def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
+    val idPP = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right
-    ))(curState, pp)
-    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, pp)
+    ))(curState, idPP)
+    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, idPP)
     curState
   }
 
@@ -136,16 +137,19 @@ trait ACollection extends AAny {
   }
 
   def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    Lattice.bigLub[ExpressionSet](
-      state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
-      {
-        (x:Identifier,s:S) =>
-          !s.assume(Field[S](x,entryType.field_key)(s,pp) equal key).isBottom
-      }
-      )._1.map({
-        x: Identifier => toExpressionSet(Field[S](x,entryType.field_value)(state,pp))
-      })
-    )
+    if (TouchAnalysisParameters.collectionsSummarizeElements) {
+      collectionAllValues[S](collection)
+    } else {
+      Lattice.bigLub[ExpressionSet](
+        state.getFieldValueWhere(collection, field_entry.getField.get, field_entry.typ, {
+          (x: Identifier, s: S) =>
+            !s.assume(Field[S](x, entryType.field_key)(s, pp) equal key).isBottom
+        }
+        )._1.map({
+          x: Identifier => toExpressionSet(Field[S](x, entryType.field_value)(state, pp))
+        })
+      )
+    }
   }
 
   def collectionRemoveAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): S = {

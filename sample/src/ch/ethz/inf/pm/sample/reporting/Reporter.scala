@@ -5,6 +5,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object Reporter {
 
+  /**
+   * Current
+   */
+  var currentlyPropertyChecking: Boolean = false
+
   var seenErrors = Set.empty[SampleError]
   var seenInfos = Set.empty[SampleInfo]
   var seenImprecision = Set[(String,ProgramPoint)]()
@@ -88,6 +93,7 @@ object Reporter {
     seenInfos = Set.empty[SampleInfo]
     seenBottom = Set.empty[(String,ProgramPoint)]
     seenImprecision = Set.empty[(String,ProgramPoint)]
+    currentlyPropertyChecking = false
   }
 
 }

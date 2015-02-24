@@ -58,6 +58,16 @@ object TBoard extends Default_TBoard {
   lazy val field_touch_down_handler = ApiField("touch down handler", TPosition_Action)
   lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
 
+  override def mutedFields = super.mutedFields ++ List(
+    field_width,
+    field_height,
+    field_debug_mode,
+    field_friction,
+    field_gravity_x,
+    field_gravity_y,
+    field_is_landscape
+  )
+
   override def possibleFields = super.possibleFields ++ List(
     field_width,
     field_height,

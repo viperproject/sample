@@ -21,8 +21,8 @@ object TSprite extends Default_TSprite {
   override lazy val member_fit_text = super.member_fit_text.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       var curState = state
-      curState = SetToTop[S](Field[S](this0,field_width))(curState,pp)
-      curState = SetToTop[S](Field[S](this0,field_height))(curState,pp)
+      curState = SetToTop[S](Field[S](this0, field_width))(curState, pp)
+      curState = SetToTop[S](Field[S](this0, field_height))(curState, pp)
       curState
     }
   })
@@ -83,6 +83,23 @@ object TSprite extends Default_TSprite {
   lazy val field_touch_down_handler = ApiField("touch down handler", TPosition_Action)
   lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
   lazy val field_every_frame_handler = ApiField("every frame handler", TAction)
+
+  override def mutedFields = super.mutedFields ++ List(
+    field_speed_x,
+    field_speed_y,
+    field_height,
+    field_width,
+    field_acceleration_x,
+    field_acceleration_y,
+    field_angle,
+    field_scale,
+    field_x,
+    field_y,
+    field_z_index,
+    field_friction,
+    field_elasticity,
+    field_opacity
+  )
 
   override def possibleFields = super.possibleFields ++ List(
     field_acceleration_x,
@@ -203,55 +220,55 @@ object TSprite extends Default_TSprite {
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
-//      val matches = state.getFieldValueWhere(sprites,TSprite_Set.field_entry.getField.get,TSprite_Set.field_entry.typ,
-//      {
-//        (x:Identifier,s:S) =>
-//          val sprite = Field[S](x,TSprite_Set.entryType.field_value)(s,pp)
-//          val overlapCheck = CallApi[S](sprite,"overlaps with",List(this0),TBoolean)(s,pp)
-//          !Assume[S](overlapCheck.expr)(overlapCheck,pp).isBottom
-//      }
-//      )._1.map({
-//        x: Identifier => toExpressionSet(Field[S](x,TSprite_Set.entryType.field_value))
-//      })
-//
-//      if (matches.size == 0) {
-//        New[S](TSprite_Set)
-//      } else {
-//        val overlappingEntries = Lattice.bigLub[ExpressionSet](matches)
-//        New[S](TSprite_Set, initialCollectionValue = Some(overlappingEntries), initialCollectionSize = Some(toRichExpression(matches.size)))
-//      }
+      //      val matches = state.getFieldValueWhere(sprites,TSprite_Set.field_entry.getField.get,TSprite_Set.field_entry.typ,
+      //      {
+      //        (x:Identifier,s:S) =>
+      //          val sprite = Field[S](x,TSprite_Set.entryType.field_value)(s,pp)
+      //          val overlapCheck = CallApi[S](sprite,"overlaps with",List(this0),TBoolean)(s,pp)
+      //          !Assume[S](overlapCheck.expr)(overlapCheck,pp).isBottom
+      //      }
+      //      )._1.map({
+      //        x: Identifier => toExpressionSet(Field[S](x,TSprite_Set.entryType.field_value))
+      //      })
+      //
+      //      if (matches.size == 0) {
+      //        New[S](TSprite_Set)
+      //      } else {
+      //        val overlappingEntries = Lattice.bigLub[ExpressionSet](matches)
+      //        New[S](TSprite_Set, initialCollectionValue = Some(overlappingEntries), initialCollectionSize = Some(toRichExpression(matches.size)))
+      //      }
       New[S](TSprite_Set) lub Return[S](sprites)
 
     /** Do the sprites overlap */
     case "overlaps with" =>
       val List(other) = parameters // Sprite
-//      val ret = Return[S](Lattice.bigLub[ExpressionSet](
-//        (for (this0Expr <- this0.getSetOfExpressions) yield {
-//          for (otherExpr <- other.getSetOfExpressions) yield {
-//            val RectAX1 = Field[S](this0Expr, field_x)
-//            val RectAX2 = Field[S](this0Expr, field_x) + Field[S](this0Expr, field_width)
-//            val RectAY1 = Field[S](this0Expr, field_y)
-//            val RectAY2 = Field[S](this0Expr, field_y) + Field[S](this0Expr, field_height)
-//            val RectBX1 = Field[S](otherExpr, field_x)
-//            val RectBX2 = Field[S](otherExpr, field_x) + Field[S](otherExpr, field_width)
-//            val RectBY1 = Field[S](otherExpr, field_y)
-//            val RectBY2 = Field[S](otherExpr, field_y) + Field[S](otherExpr, field_height)
-//            toExpressionSet((RectAX1 < RectBX2) && (RectAX2 > RectBX1) && (RectAY1 < RectBY2) && (RectAY2 > RectBY1))
-//          }
-//        }).flatten
-//      ))
+      //      val ret = Return[S](Lattice.bigLub[ExpressionSet](
+      //        (for (this0Expr <- this0.getSetOfExpressions) yield {
+      //          for (otherExpr <- other.getSetOfExpressions) yield {
+      //            val RectAX1 = Field[S](this0Expr, field_x)
+      //            val RectAX2 = Field[S](this0Expr, field_x) + Field[S](this0Expr, field_width)
+      //            val RectAY1 = Field[S](this0Expr, field_y)
+      //            val RectAY2 = Field[S](this0Expr, field_y) + Field[S](this0Expr, field_height)
+      //            val RectBX1 = Field[S](otherExpr, field_x)
+      //            val RectBX2 = Field[S](otherExpr, field_x) + Field[S](otherExpr, field_width)
+      //            val RectBY1 = Field[S](otherExpr, field_y)
+      //            val RectBY2 = Field[S](otherExpr, field_y) + Field[S](otherExpr, field_height)
+      //            toExpressionSet((RectAX1 < RectBX2) && (RectAX2 > RectBX1) && (RectAY1 < RectBY2) && (RectAY2 > RectBY1))
+      //          }
+      //        }).flatten
+      //      ))
       Top[S](TBoolean)
 
-    /** Sets the acceleration in pixels/sec^2 */
+    /** Sets the acceleration in pixels/(sec squared) */
     case "set acceleration" =>
       val List(vx, vy) = parameters // Number,Number
-    val curState = AssignField[S](this0, TSprite.field_acceleration_x, vx)
+      val curState = AssignField[S](this0, TSprite.field_acceleration_x, vx)
       AssignField[S](this0, TSprite.field_acceleration_y, vy)(curState, pp)
 
     /** Sets the clipping area for an image sprite (if it is an image sprite) */
     case "set clip" =>
       val List(left, top, width, height) = parameters // Number,Number,Number,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, TSprite.field_clip_left, left)(curState, pp)
       curState = AssignField[S](this0, TSprite.field_clip_top, top)(curState, pp)
       curState = AssignField[S](this0, TSprite.field_clip_width, width)(curState, pp)
@@ -261,7 +278,7 @@ object TSprite extends Default_TSprite {
     /** Sets the position in pixels */
     case "set pos" =>
       val List(x, y) = parameters // Number,Number
-      val curState = AssignField[S](this0, TSprite.field_x, x)
+    val curState = AssignField[S](this0, TSprite.field_x, x)
       AssignField[S](this0, TSprite.field_y, y)(curState, pp)
 
     /** Sets the speed in pixels/sec */

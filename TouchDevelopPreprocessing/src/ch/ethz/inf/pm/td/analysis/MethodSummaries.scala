@@ -49,7 +49,7 @@ object MethodSummaries {
    * @return The exit state of the method
    */
   def collect[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
-                             parameters: List[ExpressionSet], localHandlerScope: Option[S] = None): S = {
+                             parameters: List[ExpressionSet]): S = {
     val identifyingPP =
       if (TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
       else callTarget.programpoint
@@ -62,9 +62,20 @@ object MethodSummaries {
      * If not, we don't.
      */
     if (callTarget.modifiers.contains(ClosureModifier)) {
-      enteredState = localHandlerScope match {
-        case Some(x) => if (x.isBottom) return entryState.bottom() else enteredState.lub(x)
-        case None => return entryState.bottom()
+      enteredState = MethodSummaries.getClosureEntry[S](callTarget.name.toString) match {
+        case Some(x) =>
+          if (x.isBottom)
+            return entryState.bottom()
+          else
+            enteredState.lub(x)
+        case None =>
+          if (entryState.isInstanceOf[AccessCollectingState]) {
+            entryState
+          } else {
+            // FIXME: This is not really correct: We may miss certain handler executions if our fixpoints
+            //        Terminate really quickly
+            return entryState.bottom()
+          }
       }
     }
 

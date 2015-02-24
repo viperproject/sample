@@ -56,7 +56,6 @@ trait TouchType extends Named with Type {
   def isFloatingPointType = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
   def isStringType = name == "String"
   def isStatic = isSingleton
-  def possibleTouchFields: Set[ApiField] = possibleFields map (_.asInstanceOf[ApiField])
   def arrayElementsType = None
 
 }
