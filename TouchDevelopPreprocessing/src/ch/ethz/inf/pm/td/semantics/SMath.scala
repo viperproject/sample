@@ -279,11 +279,9 @@ object SMath extends Default_SMath {
       val List(rows, columns) = parameters // Number,Number
       New[S](TMatrix, Map(
         TMatrix.field_column_count -> columns,
-        TMatrix.field_row_count -> rows
-      ),
-        initialCollectionSize = Some(toExpressionSet(rows * columns)),
-        initialCollectionValue = Some(toExpressionSet(0))
-      )
+        TMatrix.field_row_count -> rows,
+        TMatrix.field_count -> toExpressionSet(rows * columns)
+      ))
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

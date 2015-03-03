@@ -82,19 +82,25 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
 
     val currentBlockStates = cfgState.statesOfBlock(index)
     val previousEntry = currentBlockStates.head
-    if (it > SystemParameters.wideningLimit) {
-      // Widen with previous result
-      result = previousEntry.widening(result)
-    } else {
-      // Taking the least upper bound with the previous result here may seem
-      // redundant, but some analyses (for example the SIL spec inference) do
-      // depend on it, in order to trigger certain changes to the state.
-      // Also, in the case of must-analyses, taking the least upper bound
-      // here may lead to reaching the fix-point faster.
 
-      // The old ControlFlowExecution code also used to perform this operation.
-      // TODO: Maybe make this call optional (configurable).
-      result = previousEntry.lub(result)
+    // Taking the least upper bound with the previous result here may seem
+    // redundant, but some analyses (for example the SIL spec inference) do
+    // depend on it, in order to trigger certain changes to the state.
+    // Also, in the case of must-analyses, taking the least upper bound
+    // here may lead to reaching the fix-point faster.
+    if (SystemParameters.isValueDrivenHeapAnalysis) {
+      if (it > SystemParameters.wideningLimit) {
+        // Widen with previous result
+        result = previousEntry.widening(result)
+      } else {
+        // The old ControlFlowExecution code also used to perform this operation.
+        result = previousEntry.lub(result)
+      }
+    } else {
+      // Default (fast) case. Do not lub with previous result. Only widen at loop heads.
+      if (cfg.entryEdges(index).size > 1 && it > SystemParameters.wideningLimit) {
+        result = previousEntry.widening(result)
+      }
     }
 
     result

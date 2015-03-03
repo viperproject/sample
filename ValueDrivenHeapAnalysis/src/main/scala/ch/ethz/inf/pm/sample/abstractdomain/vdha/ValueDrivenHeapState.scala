@@ -654,10 +654,10 @@ trait ValueDrivenHeapState[
   def pruneUnreachableHeap(): T = ???
   def factory(): T = ???
   def removeObject(oldPreState: T, obj: ExpressionSet, fields: Option[Set[Identifier]]): T = ???
-  def undoPruneVariables(unprunedPreState: T, filter: (Identifier) => Boolean): T = ???
+  def undoPruneVariables(unprunedPreState: T, filter: (VariableIdentifier) => Boolean): T = ???
   def undoPruneUnreachableHeap(preState: T): T = ???
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
-  def pruneVariables(filter: (Identifier) => Boolean): T = ???
+  def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
   def optimizeSummaryNodes(): T = ???
   def backwardGetVariableValue(id: Assignable): T = ???
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???

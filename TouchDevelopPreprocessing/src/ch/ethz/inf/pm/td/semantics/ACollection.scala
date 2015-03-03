@@ -81,7 +81,7 @@ trait ACollection extends AAny {
   lazy val entryType = GEntry(keyType,valueType)
 
   lazy val field_count = ApiField("count",TNumber)
-  lazy val field_entry = ApiField("entries",entryType)
+  lazy val field_entry = ApiField("entries",entryType,isAccumulating = true)
 
   override def isSingleton: Boolean = false
 

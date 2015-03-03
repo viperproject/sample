@@ -455,13 +455,13 @@ I <: HeapIdentifier[I]](
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter: Identifier => Boolean): AbstractState[N, H, I] = {
+  def pruneVariables(filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = {
 
     var curState = domain
     for (id <- domain.ids) {
       id match {
 
-        case va: Identifier =>
+        case va: VariableIdentifier =>
           if (filter(va)) {
             curState = curState.removeVariable(id)
           }
@@ -474,22 +474,7 @@ I <: HeapIdentifier[I]](
     factory(curState, expr)
   }
 
-  override def undoPruneVariables(unprunedPreState: AbstractState[N, H, I], filter: Identifier => Boolean): AbstractState[N, H, I] = {
-    var curState = domain
-    for (id <- unprunedPreState.domain.ids) {
-      id match {
-        case va: Identifier =>
-          if (filter(va)) {
-            curState = curState.createVariable(id, id.typ)
-            curState = curState.setToTop(id)
-          }
-        case _ => ()
-
-      }
-    }
-
-    factory(curState, expr)
-  }
+  override def undoPruneVariables(unprunedPreState: AbstractState[N, H, I], filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = ???
 
   override def undoPruneUnreachableHeap(preState: AbstractState[N, H, I]): AbstractState[N, H, I] = {
     val unreachable = preState.domain.heap.getUnreachableHeap
@@ -507,17 +492,7 @@ I <: HeapIdentifier[I]](
   /**
    * Performs abstract garbage collection
    */
-  def pruneUnreachableHeap(): AbstractState[N, H, I] = {
-
-    val unreachable = domain.heap.getUnreachableHeap
-    val pruned = pruneVariables({
-      case a: I => unreachable.contains(a)
-      case _ => false
-    })
-
-    pruned
-
-  }
+  def pruneUnreachableHeap(): AbstractState[N, H, I] = ???
 
   override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
     if (isBottom) return (other, new Replacement())

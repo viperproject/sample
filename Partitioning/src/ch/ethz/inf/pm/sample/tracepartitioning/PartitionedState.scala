@@ -449,7 +449,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     map(_.removeExpression)
   }
 
-  def pruneVariables(filter:Identifier => Boolean) : PartitionedState[D] = {
+  def pruneVariables(filter:VariableIdentifier => Boolean) : PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
@@ -648,7 +648,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   def backwardAssignField(oldPreState: PartitionedState[D], obj: ExpressionSet, field: String, right: ExpressionSet): PartitionedState[D] = ???
 
-  def undoPruneVariables(unprunedPreState: PartitionedState[D], filter: (Identifier) => Boolean): PartitionedState[D] = ???
+  def undoPruneVariables(unprunedPreState: PartitionedState[D], filter: (VariableIdentifier) => Boolean): PartitionedState[D] = ???
 
   def undoPruneUnreachableHeap(preState: PartitionedState[D]): PartitionedState[D] = ???
 

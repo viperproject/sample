@@ -121,7 +121,7 @@ trait ALinearCollection extends ACollection {
       entryType.field_key -> index,
       entryType.field_value -> right
     ))(curState, idPP)
-    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, idPP)
+    curState = AssignField[S](collection, field_entry, curState.expr)(curState, idPP)
     curState
   }
 

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
+import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
 import ch.ethz.inf.pm.td.domain.MultiValExpression
@@ -80,30 +81,6 @@ object MethodSummaries {
     }
 
     val result = entriesOnStack.get(identifyingPP) match {
-      case Some(oldEntryState) =>
-
-        // Join the entry state and continue with previously recorded
-        // exit + entryState (updates inside recursive calls are weak)
-        val newEntryState = oldEntryState.asInstanceOf[S].widening(enteredState)
-        entriesOnStack += ((identifyingPP, newEntryState))
-        summaries.get(identifyingPP) match {
-          case Some(s) =>
-
-            // Get the result of the previous recursion depth and join it with the local state
-            val summary = s.asInstanceOf[MethodSummary[S]]
-            val prevExitState = summary.cfgState.exitState()
-            if (!prevExitState.isBottom) {
-              val exitedState = exitFunction(callPoint, callTarget, prevExitState, parameters)
-              val localState = pruneGlobalState(entryState)
-              exitedState.lub(localState)
-            } else prevExitState.bottom()
-
-          case None =>
-
-            // We do not have a result for our recursion yet. Bottom.
-            entryState.bottom()
-
-        }
 
       case None =>
 
@@ -134,10 +111,46 @@ object MethodSummaries {
 
         if ( currentSummary.cfgState.exitState().isBottom ) return currentSummary.cfgState.exitState().bottom()
 
+        if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.exitFunction")
         val exitState = exitFunction(callPoint, callTarget, currentSummary.cfgState.exitState(), parameters)
+        if (SystemParameters.TIME) AccumulatingTimer.stop("MethodSummaries.exitFunction")
+        if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.pruneGlobalState")
         val localState = pruneGlobalState(entryState)
+        if (SystemParameters.TIME) AccumulatingTimer.stop("MethodSummaries.pruneGlobalState")
+        if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.lub")
+        val result = localState.lub(exitState)
+        if (SystemParameters.TIME) AccumulatingTimer.stop("MethodSummaries.lub")
 
-        localState.lub(exitState)
+
+        result
+
+      case Some(oldEntryState) =>
+
+        // This is 2nd or nth level call
+
+        // Join the entry state and continue with previously recorded
+        // exit + entryState (updates inside recursive calls are weak)
+        val newEntryState = oldEntryState.asInstanceOf[S].widening(enteredState)
+        entriesOnStack += ((identifyingPP, newEntryState))
+        summaries.get(identifyingPP) match {
+          case Some(s) =>
+
+            // Get the result of the previous recursion depth and join it with the local state
+            val summary = s.asInstanceOf[MethodSummary[S]]
+            val prevExitState = summary.cfgState.exitState()
+            if (!prevExitState.isBottom) {
+              val exitedState = exitFunction(callPoint, callTarget, prevExitState, parameters)
+              val localState = pruneGlobalState(entryState)
+              exitedState.lub(localState)
+            } else prevExitState.bottom()
+
+          case None =>
+
+            // We do not have a result for our recursion yet. Bottom.
+            entryState.bottom()
+
+        }
+
     }
 
     result
@@ -151,10 +164,9 @@ object MethodSummaries {
     var curState = exitState.removeExpression()
 
     curState = curState.pruneVariables({
-      case id: VariableIdentifier =>
+      id: VariableIdentifier =>
         !id.typ.asInstanceOf[TouchType].isSingleton &&
           !CFGGenerator.isGlobalReferenceIdent(id.toString)
-      case _ => false
     })
     curState = curState.pruneUnreachableHeap()
 
@@ -255,12 +267,11 @@ object MethodSummaries {
 
     var curState = entryState
     curState = curState.pruneVariables({
-      case id: VariableIdentifier =>
+      id: VariableIdentifier =>
         id.typ.asInstanceOf[TouchType].isSingleton ||
           CFGGenerator.isGlobalReferenceIdent(id.toString) ||
           CFGGenerator.isParamIdent(id.toString) ||
           CFGGenerator.isReturnIdent(id.toString)
-      case _ => false
     })
 
     curState = curState.pruneUnreachableHeap()
@@ -306,11 +317,10 @@ object MethodSummaries {
       // Prune non-parameters and non-globals (reach. based localization)
       if (TouchAnalysisParameters.localizeStateOnMethodCall) {
         curState = curState.pruneVariables({
-          case id: VariableIdentifier =>
+          id: VariableIdentifier =>
             !id.typ.asInstanceOf[TouchType].isSingleton &&
               !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
               !CFGGenerator.isParamIdent(id.toString)
-          case _ => false
         })
       }
 
@@ -324,8 +334,8 @@ object MethodSummaries {
 
       // Prune temporary variables
       curState = curState.pruneVariables({
-        case id: VariableIdentifier => CFGGenerator.isParamIdent(id.toString)
-        case _ => false
+        id: VariableIdentifier =>
+          CFGGenerator.isParamIdent(id.toString)
       })
 
       // Prune unreachable heap locations
@@ -340,10 +350,9 @@ object MethodSummaries {
 
       // Prune local state
       curState = curState.pruneVariables({
-        case id: VariableIdentifier =>
+        id: VariableIdentifier =>
           !id.typ.asInstanceOf[TouchType].isSingleton &&
             !CFGGenerator.isGlobalReferenceIdent(id.toString)
-        case _ => false
       })
       curState = curState.pruneUnreachableHeap()
 
@@ -419,12 +428,11 @@ object MethodSummaries {
 
     // Prune the local state from the called function
     curState = curState.pruneVariables({
-      case id: VariableIdentifier =>
+      id: VariableIdentifier =>
         // Belongs to scope of call target
         id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
           // Is not a return value
           !CFGGenerator.isReturnIdent(id.toString)
-      case _ => false
     })
     curState = curState.pruneUnreachableHeap()
     curState

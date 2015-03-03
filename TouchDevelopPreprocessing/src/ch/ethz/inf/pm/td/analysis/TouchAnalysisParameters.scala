@@ -5,7 +5,7 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
-  val checkPropertiesDuringAnalysis = true
+  val variablePacking: Boolean = true
 
   val assumeCollectionsNotModifiedDuringIteration: Boolean = true
 
@@ -13,7 +13,7 @@ object TouchAnalysisParameters {
 
   val printScriptFirst: Boolean = false
 
-  val numberOfVersions = 2
+  var numberOfVersions = 2
 
   val numberOfUnrollings = 0
 

@@ -33,9 +33,6 @@ object RequiredLibraryFragmentAnalysis {
 
     spottedFields = Set.empty[String]
     compiler.relevantLibraryFields = Set.empty
-    SystemParameters.resetOutput()
-    MethodSummaries.reset[AccessCollectingState]()
-    Reporter.disableAllOutputs()
 
     for (clazz <- classes; method <- clazz.methods) {
 
@@ -155,7 +152,7 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def isSummaryCollection(collectionSet: ExpressionSet) = false
 
-  def pruneVariables(filter: Identifier => Boolean): AccessCollectingState = this
+  def pruneVariables(filter: VariableIdentifier => Boolean): AccessCollectingState = this
 
   def pruneUnreachableHeap(): AccessCollectingState = this
 
@@ -216,7 +213,7 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def setCollectionToTop(collectionSet: ExpressionSet): AccessCollectingState = this
 
-  def undoPruneVariables(unprunedPreState: AccessCollectingState, filter: (Identifier) => Boolean): AccessCollectingState = this
+  def undoPruneVariables(unprunedPreState: AccessCollectingState, filter: (VariableIdentifier) => Boolean): AccessCollectingState = this
 
   def undoPruneUnreachableHeap(preState: AccessCollectingState): AccessCollectingState = this
 

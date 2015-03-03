@@ -44,12 +44,12 @@ object TBluetooth_Device extends Default_TBluetooth_Device {
     /** Read at most `max_length` bytes from the device */
     case "read buffer at most" =>
       val List(max_length) = parameters // Number
-      Top[S](TBuffer, initialCollectionSize = Some(0 ndToIncl max_length))
+      Top[S](TBuffer, initials = Map(TBuffer.field_count -> (0 ndToIncl max_length)))
 
     /** Read exactly `length` bytes from the device */
     case "read buffer" =>
       val List(length) = parameters // Number
-      Top[S](TBuffer, initialCollectionSize = Some(0 ndToIncl length))
+      Top[S](TBuffer, initials = Map(TBuffer.field_count -> (0 ndToIncl length)))
 
     /** Send the `buffer` to the device */
     case "write buffer" =>

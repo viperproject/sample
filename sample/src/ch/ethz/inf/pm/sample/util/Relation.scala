@@ -95,10 +95,45 @@ class Relation[V](protected val forward:Map[V,Set[V]], protected val backward:Ma
 
   def add(k:V,vs:Set[V]):Relation[V] = vs.foldLeft(this)(_.add(k,_))
   def add(ks:Set[V],v:V):Relation[V] = ks.foldLeft(this)(_.add(_,v))
+  def add(ks:Set[V],vs:Set[V]):Relation[V] = ks.foldLeft(this){ (x,k) => vs.foldLeft(x)(_.add(k,_)) }
 
   def setLeft(k:V,v:V):Relation[V] = removeLeft(k).add(k,v)
   def setLeft(k:V,vs:Set[V]):Relation[V] = removeLeft(k).add(k,vs)
   def setRight(k:V,v:V):Relation[V] = removeRight(v).add(k,v)
   def setRight(ks:Set[V],v:V):Relation[V] = removeRight(v).add(ks,v)
+
+  def closure(el: V):Set[V] = {
+    var toVisit = Set(el)
+    var visited = Set.empty[V]
+    while (toVisit.nonEmpty) {
+      val first = toVisit.head
+      visited = visited + first
+      toVisit = (toVisit ++ forward.getOrElse(first,Set.empty) ++ backward.getOrElse(first,Set.empty)) -- visited
+    }
+    return visited
+  }
+
+  def leftClosure(left: V):Set[V] = {
+    var toVisit = Set(left)
+    var visited = Set.empty[V]
+    while (toVisit.nonEmpty) {
+      val first = toVisit.head
+      visited = visited + first
+      toVisit = (toVisit ++ forward.getOrElse(first,Set.empty)) - first
+    }
+    return visited
+  }
+
+  def rightClosure(right: V):Set[V] = {
+    var toVisit = Set(right)
+    var visited = Set.empty[V]
+    while (toVisit.nonEmpty) {
+      val first = toVisit.head
+      visited = visited + first
+      toVisit = (toVisit ++ backward.getOrElse(right,Set.empty)) - right
+    }
+    return visited
+  }
+
 
 }

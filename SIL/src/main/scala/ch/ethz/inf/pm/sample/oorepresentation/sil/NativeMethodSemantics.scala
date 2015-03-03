@@ -54,7 +54,7 @@ object RichNativeMethodSemantics extends ForwardNativeMethodSemantics {
     val nativeMethod = NativeMethods.values.find(_.toString == operator)
     nativeMethod match {
       // Semantics of conditional expressions like '(cond) ? a : b'
-      case Some(NativeMethods.cond_exp) => {
+      case Some(NativeMethods.cond_exp) =>
         val thenState = state.assume(thisExpr)
         val elseState = state.assume(thisExpr.not())
         val thenExpr :: elseExpr :: Nil = parameters
@@ -64,7 +64,6 @@ object RichNativeMethodSemantics extends ForwardNativeMethodSemantics {
           Some(thenState.setExpression(thenExpr))
         else
           Some(thenState.setExpression(thenExpr).lub(elseState.setExpression(elseExpr)))
-      }
       // Speeds up the analysis if there is in fact an assertion violation
       case Some(NativeMethods.assert) =>
         val assertedState = state.setExpression(thisExpr)

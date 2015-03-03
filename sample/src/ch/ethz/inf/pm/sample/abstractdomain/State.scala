@@ -219,6 +219,31 @@ object Lattice {
 }
 
 /**
+ * A Lattice that does not do anything useful except for preserving its one value
+ */
+trait DummyLattice[T <: DummyLattice[T]] extends Lattice[T] {
+  this:T =>
+
+}
+
+object DummyLattice {
+
+  trait Bottom[T <: DummyLattice[T]] extends DummyLattice[T] with BottomLattice[T] {
+    this:T =>
+
+  }
+
+  trait Top[T <: DummyLattice[T]] extends DummyLattice[T] with TopLattice[T] {
+    this:T =>
+
+  }
+
+}
+
+
+
+
+/**
  * The representation of a state of our analysis.
  * Two main components can be distinguished:
  * - a SymbolicAbstractValue that is aimed at representing the expression returned by the previous statement
@@ -472,7 +497,7 @@ trait State[S <: State[S]] extends Lattice[S] {
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter: Identifier => Boolean): S
+  def pruneVariables(filter: VariableIdentifier => Boolean): S
 
   /**
    * Undoes the effect of `pruneVariables`.
@@ -484,7 +509,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @param filter the filter that was used to prune variables
    * @return state with pruned variables created again
    */
-  def undoPruneVariables(unprunedPreState: S, filter: Identifier => Boolean): S
+  def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
 
 
   /**
@@ -559,7 +584,7 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type) = ???
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean)  = ???
   def undoPruneUnreachableHeap(preState: S) = ???
-  def undoPruneVariables(unprunedPreState: S, filter: Identifier => Boolean) = ???
+  def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean) = ???
 
 }
 
@@ -754,7 +779,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     if (isBottom) {
       bottom()
     } else if (set.isBottom) {
-      println("set is Bottom")
       bottom()
     }
     else f

@@ -185,7 +185,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
   private def trueEdge(exitEdges: Set[(Int, Int, Option[Boolean])]) : Set[(Int, Int, Option[Boolean])] = {
     var result : Set[(Int, Int, Option[Boolean])] = Set.empty
     for((i1, i2, w) <- exitEdges)
-      if (w.getOrElse(false) == true)
+      if (w.getOrElse(false))
         result += ((i1,i2,w))
     result
   }
@@ -224,7 +224,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
           edgeWeight = cfg.entryEdges(node).head._3
           node = cfg.entryEdges(node).head._1
         }
-        else if (isLoop(node) && splitCount == 0 && edgeWeight.getOrElse(false) == true ) {
+        else if (isLoop(node) && splitCount == 0 && edgeWeight.getOrElse(false) ) {
           // success: parent found
           done = true
           controlStructures(node).addInnerCs(cs.nodeId, true)
@@ -348,14 +348,14 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
         val rhs = LinearExpressionFactory.fromExpression(bae.right)
         if (lhs == null || rhs == null) result = false
 
-        if (result == true && operator == "!=") {
+        if (result && operator == "!=") {
           val r1 = new LinearRelation(lhs, "<", rhs)
           val r2 = new LinearRelation(lhs, ">", rhs)
           val cond = new OrCondition(id)
           cond.setChild1(new BaseCondition(id+"1", r1))
           cond.setChild2(new BaseCondition(id+"2", r2))
           cond
-        } else if (result == true) {
+        } else if (result) {
           val r = new LinearRelation(lhs, operator, rhs)
           new BaseCondition(id, r)
         }  else null
@@ -410,14 +410,14 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
         val lhs = LinearExpressionFactory.fromExpression(bae.left)
         val rhs = LinearExpressionFactory.fromExpression(bae.right)
         if (lhs == null || rhs == null) result = false
-        if (result == true && operator == "!=") {
+        if (result && operator == "!=") {
           val r1 = new LinearRelation(lhs, "<", rhs)
           val r2 = new LinearRelation(lhs, ">", rhs)
           val cond = new OrCondition(id)
           cond.setChild1(new BaseCondition(id+"1", r1))
           cond.setChild2(new BaseCondition(id+"2", r2))
           cond
-        } else if (result == true) {
+        } else if (result) {
           val r = new LinearRelation(lhs, operator, rhs)
           new BaseCondition(id, r)
         }  else null
@@ -545,7 +545,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     var count = 0
     while (count > oldCount) {
       oldCount = count
-      for (i <- loop.variables if i.update != null && i.updateIncreasing == false) {
+      for (i <- loop.variables if i.update != null && !i.updateIncreasing) {
         if (i.update.isIncUpdate(i.sourceName, increasingVariables)) {
           i.updateIncreasing = true
           increasingVariables += i.sourceName
@@ -560,7 +560,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     count = 0
     while (count > oldCount) {
       oldCount = count
-      for (i <- loop.variables if i.update != null && i.updateDecreasing == false) {
+      for (i <- loop.variables if i.update != null && !i.updateDecreasing) {
         if (i.update.isDecUpdate(i.sourceName, decreasingVariables)) {
           i.updateDecreasing = true
           decreasingVariables += i.sourceName
@@ -590,9 +590,9 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
             var definedVariable : String = null // the variable whose value is defined by this lincons
             var linconOk = true // true iff definedVariable is unambiguous
             for (v <- vars
-                 if (!l.getCoeff(v).isZero &&
+                 if !l.getCoeff(v).isZero &&
                    !LoopCostHelper.isArgument(NameEncoder.getVariableName(v)) &&
-                   loop.getVariable(NameEncoder.getVariableName(v)) != null)) {
+                   loop.getVariable(NameEncoder.getVariableName(v)) != null) {
               if (definedVariable != null) linconOk = false
               else definedVariable = v
             }
@@ -600,7 +600,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
             if (linconOk && definedVariable != null) {
               val coefficients : mutable.HashMap[PubsVariable, Rational] = mutable.HashMap.empty
               val iCoeff = getCoeff(l, definedVariable).toInt
-              for (v <- vars if (v != definedVariable)) {
+              for (v <- vars if v != definedVariable) {
                 val value = new Rational(-getCoeff(l, v).toInt, iCoeff)
                 if (!value.isZero) {
                   coefficients.put(new PubsVariable(v, false), value)

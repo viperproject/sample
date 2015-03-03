@@ -40,7 +40,25 @@ object TDateTime extends Default_TDateTime {
   /** Gets the year */
   lazy val field_year = ApiField("year", TNumber)
 
-  override def possibleFields = super.possibleFields ++ List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year)
+  override def possibleFields = super.possibleFields ++ List(
+    field_day,
+    field_hour,
+    field_millisecond,
+    field_minute,
+    field_month,
+    field_second,
+    field_year
+  )
+
+  override def mutedFields = super.mutedFields ++ List(
+    field_day,
+    field_hour,
+    field_millisecond,
+    field_minute,
+    field_month,
+    field_second,
+    field_year
+  )
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

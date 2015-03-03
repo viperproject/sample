@@ -30,30 +30,45 @@ object Timer {
  */
 object AccumulatingTimer {
 
-  case class TimeEntry(sum:Long, openStartTime:Option[Long])
+  case class TimeEntry(num:Long, sum:Long, openStartTime:Option[Long])
 
   val times = new scala.collection.mutable.HashMap[String,TimeEntry]
 
   def start(s:String) {
     times.get(s) match {
-      case None => times(s) = TimeEntry(0,Some(System.currentTimeMillis))
-      case Some(TimeEntry(x,None)) => times(s) = TimeEntry(x,Some(System.currentTimeMillis))
-      case Some(TimeEntry(x,Some(y))) =>
+      case None => times(s) = TimeEntry(0, 0,Some(System.currentTimeMillis))
+      case Some(TimeEntry(n,x,None)) => times(s) = TimeEntry(n,x,Some(System.currentTimeMillis))
+      case Some(TimeEntry(n,x,Some(y))) =>
         println("Still had a running timer (did we crash?). Restarted!")
-        times(s) = TimeEntry(x,Some(System.currentTimeMillis))
+        times(s) = TimeEntry(n,x,Some(System.currentTimeMillis))
     }
   }
 
   def stop(s:String) {
     times.get(s) match {
-      case Some(TimeEntry(x,Some(y))) => times(s) = TimeEntry(x+(System.currentTimeMillis-y),None)
+      case Some(TimeEntry(n,x,Some(y))) => times(s) = TimeEntry(n+1,x+(System.currentTimeMillis-y),None)
+      case None => throw new RuntimeException("Stopping an entry that was never started")
+    }
+  }
+
+  def stopAndWrite(s:String) {
+    times.get(s) match {
+      case Some(TimeEntry(n,x,Some(y))) =>
+        val diff = (System.currentTimeMillis-y).toFloat/1000
+        println(s+" finished after "+f"$diff%2.2fs")
+        times(s) = TimeEntry(n+1,x+(System.currentTimeMillis-y),None)
     }
   }
 
   override def toString: String = {
-    times.map{x => x._1.toString + "\t" + x._2.sum.toString + "ms"}.mkString("\n")
+    times.map{ x =>
+      val (name,TimeEntry(n,s,_)) = x
+      val paddedName = name.padTo(40, ' ')
+      val sInSeconds = s.toFloat/1000
+      f"$paddedName%s\t$sInSeconds%2.2fs\t$n%s"
+    }.toList.sorted.mkString("\n")
   }
 
-  def reset = times.clear()
+  def reset() = times.clear()
 
 }

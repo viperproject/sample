@@ -1,11 +1,10 @@
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, ApiField}
+import ch.ethz.inf.pm.td.analysis.{TouchVariablePacking, TouchAnalysisParameters, ApiField}
 
 import scala.collection.immutable.Set
 
@@ -114,20 +113,20 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   /** Removes the given variable.
     * Implementations can assume this state is non-bottom
     */
-  override def removeVariable(va: VariableIdentifier): T = {
+  def removeVariables(va: Set[VariableIdentifier]): T = {
     val result = copy(
-      forwardMay - va,
-      forwardMust - va,
-      backwardMay.map( x => x._1 -> (x._2 - va) ),
+      forwardMay -- va,
+      forwardMust -- va,
+      backwardMay.map( x => x._1 -> (x._2 -- va) ),
       versions,
-      valueState.removeVariable(va)
+      valueState.removeVariables(va)
     )
-    val result2 = result.garbageCollect(forwardMay.getOrElse(va,Set.empty).toList)
+    val result2 = result.garbageCollect((va map (forwardMay.getOrElse(_,Set.empty))).flatten)
     val result3 = result2.canonicalizeEnvironment
 
     if (SystemParameters.DEBUG) {
       val ids = result3.ids
-      assert(!ids.contains(va))
+      assert(ids.intersect(va.toSet[Identifier]).isEmpty)
     }
 
     // Garbage collection invariant
@@ -140,6 +139,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     result3
   }
 
+
+  override def removeVariable(va: VariableIdentifier): T = removeVariables(Set(va))
+
   /** Returns a new state whose `ExpressionSet` holds the value of the given field.
     * Implementations can already assume that this state is non-bottom.
     */
@@ -150,7 +152,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       )
     case a:Identifier =>
       val objects = forwardMay.getOrElse(a,Set.empty)
-      if (!objects.isEmpty) {
+      if (objects.nonEmpty) {
         copy(
           expr = new ExpressionSet(typ, SetDomain.Default.Inner(objects.map(FieldIdentifier(_, field, typ))))
         )
@@ -210,6 +212,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can already assume that this state is non-bottom.
     */
   override def assume(cond: Expression): T = {
+
     cond match {
       case BinaryArithmeticExpression(left,right,ArithmeticOperator.==,_)
         if left.typ.isObject && left.isInstanceOf[Identifier]
@@ -260,8 +263,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     */
   override def assignField(obj: Expression, field: String, right: Expression): T = obj match {
     case leftHeap:HeapIdentifier =>
+      val declaration = obj.typ.representedFields.find(_.getName == field).get
       val leftField = fieldFromString(leftHeap,field)
-      if (leftHeap.representsSingleVariable) {
+      if (leftHeap.representsSingleVariable && !declaration.asInstanceOf[ApiField].isAccumulating) {
         // strong update
         right match {
           case rightHeap: HeapIdentifier => strongUpdateReference(leftField, rightHeap)
@@ -297,20 +301,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   /**
    * Removes all variables satisfying filter
    */
-  override def pruneVariables(filter: (Identifier) => Boolean): T = {
-
-    var cur = this
-    for (id <- ids) {
-      if (filter(id)) {
-        id match {
-          case v:VariableIdentifier =>
-            cur = cur.removeVariable(v)
-        }
-      }
-    }
-    cur
-
-  }
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T =
+    removeVariables (ids.collect {
+      case vs:VariableIdentifier if filter(vs) => vs
+    })
 
   /**
    * Evaluates a numerical constant
@@ -413,15 +407,44 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   override def lub(other: T): T = {
 
+    if (this eq other) return this
+    if (isBottom) return other
+    if (other.isBottom) return this
+    if (isTop) return this
+    if (other.isTop) return other
+
     if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub")
 
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.adaptEnv")
     val (left,right) = adaptEnvironments(this,other)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.adaptEnv")
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.valueState")
+    val valueStateLub = left.valueState.lub(right.valueState)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.valueState")
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.forward")
+    val forward = MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.forward")
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.must")
+    val must = MapUtil.mapToSetIntersectionKeepUndefined(left.forwardMust,right.forwardMust)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.must")
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.backward")
+    val backward = MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.backward")
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub.versions")
+    val versions = MapUtil.mapToSeqKeepLonger(left.versions,right.versions)
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub.versions")
+
     val result = factory(
-      MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
-      MapUtil.mapToSetIntersectionKeepUndefined(left.forwardMust,right.forwardMust),
-      MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
-      MapUtil.mapToSeqKeepLonger(left.versions,right.versions),
-      left.valueState.lub(right.valueState),
+      forward,
+      must,
+      backward,
+      versions,
+      valueStateLub,
       left.expr.lub(right.expr),
       left.isTop || right.isTop
     )
@@ -447,6 +470,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return The widening of <code>left</code> and <code>right</code>
    */
   override def widening(other: T): T = {
+
+    if (this eq other) return this
+    if (isBottom) return other
+    if (other.isBottom) return this
+    if (isTop) return this
+    if (other.isTop) return other
 
     if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.widening")
 
@@ -684,39 +713,31 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = ???
   override def throws(t: ExpressionSet): T = ???
 
+  def removeObjects(nodes:Set[HeapIdentifier]): T = {
+    val fields = nodes.map(fieldsOf).flatten
+    copy(
+    (forwardMay -- fields).map { x => x._1 -> (x._2 -- nodes) },
+    (forwardMust -- fields).map { x => x._1 -> (x._2 -- nodes) },
+    (backwardMay -- nodes).map { x => x._1 -> (x._2 -- fields) },
+    nodes.foldLeft(versions){
+      (curVersions,node) =>
+        val newVersions = curVersions.getOrElse((node.pp,node.typ),Seq.empty).filter( _ != node )
+        if (newVersions.nonEmpty)
+          curVersions + ((node.pp,node.typ) -> newVersions)
+        else
+          curVersions - ((node.pp, node.typ))
+    },
+    valueState.removeVariables(fields ++ nodes)
+    )
+  }
+
   /** Prune all objects that have no references, starting from startNode */
-  def garbageCollect(nodes: List[HeapIdentifier]): T = {
+  def garbageCollect(nodes: Set[HeapIdentifier]): T = {
 
     if (nodes.isEmpty) return this
-
-    def removeObject(node:HeapIdentifier): T = {
-      val fields = fieldsOf(node).toSet[Identifier]
-      copy(
-        (forwardMay -- fields).map { x => x._1 -> (x._2 - node) },
-        (forwardMust -- fields).map { x => x._1 -> (x._2 - node) },
-        (backwardMay - node).map { x => x._1 -> (x._2 -- fields) },
-        {
-          val newVersions = versions.getOrElse((node.pp,node.typ),Seq.empty).filter( _ != node )
-          if (newVersions.nonEmpty)
-            versions + ((node.pp,node.typ) -> newVersions)
-          else
-            versions - ((node.pp,node.typ))
-        },
-        valueState.removeVariables(fields + node)
-      )
-    }
-
-    val result = nodes match {
-      case x :: xs =>
-        if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
-          removeObject(x).garbageCollect(
-            (x.typ.representedFields map {
-              case field : ApiField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
-            }).flatten.toList ::: xs
-          )
-        } else { garbageCollect(xs) }
-      case Nil => this
-    }
+    val toRemove = nodes filter ( x => backwardMay.get(x) match { case None => true; case Some(objs) => objs.isEmpty })
+    val nextInLine = toRemove.map(fieldsOf).flatten.map(forwardMay.getOrElse(_,Set.empty)).flatten -- toRemove
+    val result = removeObjects(toRemove).garbageCollect(nextInLine)
 
     if (SystemParameters.DEBUG) {
         val ids = result.ids
@@ -757,7 +778,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       versions,
       valueState.assign(left,right),
       ExpressionFactory.unitExpr
-    ).garbageCollect(forwardMay.getOrElse(left,Set.empty).toList).canonicalizeEnvironment
+    ).garbageCollect(forwardMay.getOrElse(left,Set.empty)).canonicalizeEnvironment
   }
 
 
@@ -771,7 +792,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       valueState.assign(left,ValidExpression(left.typ,left.pp)),
       ExpressionFactory.unitExpr
     )
-    val afterGarbageCollect = afterUpdate.garbageCollect(forwardMay.getOrElse(left,Set.empty).toList)
+    val afterGarbageCollect = afterUpdate.garbageCollect(forwardMay.getOrElse(left,Set.empty))
     val canonicalized = afterGarbageCollect.canonicalizeEnvironment
     canonicalized
   }
@@ -1017,4 +1038,62 @@ object TouchState {
       Default(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
   }
+
+  trait VariableRelationCollectingDomain extends DummySemanticDomain[VariableRelationCollectingDomain] with DummyLattice[VariableRelationCollectingDomain] {
+
+    override def assign(id:Identifier,expr:Expression):VariableRelationCollectingDomain = {
+      TouchVariablePacking.pack(expr.ids + id)
+      super.assign(id,expr)
+    }
+
+    override def assume(cond: Expression): VariableRelationCollectingDomain = {
+      TouchVariablePacking.pack(cond.ids)
+      super.assume(cond)
+    }
+
+    override def merge(rep:Replacement): VariableRelationCollectingDomain = {
+      for (r <- rep.value) {
+        TouchVariablePacking.pack(r._1 ++ r._2)
+      }
+      super.merge(rep)
+    }
+
+    override def factory(): VariableRelationCollectingDomain = top()
+    override def bottom(): VariableRelationCollectingDomain = VariableRelationCollectingDomain.Bottom
+    override def top(): VariableRelationCollectingDomain = VariableRelationCollectingDomain.Top
+
+  }
+
+  object VariableRelationCollectingDomain {
+    object Top extends VariableRelationCollectingDomain with DummyLattice.Top[VariableRelationCollectingDomain]
+    object Bottom extends VariableRelationCollectingDomain with DummyLattice.Bottom[VariableRelationCollectingDomain]
+  }
+
+
+  /**
+   * Implements a touch state which does not track values at all
+   */
+  case class VariablePackingPreAnalysis(forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                      forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                      backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
+                      versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
+                      valueState:        VariableRelationCollectingDomain = VariableRelationCollectingDomain.Top,
+                      expr:              ExpressionSet = ExpressionFactory.unitExpr,
+                      isTop:             Boolean = false
+                       )
+    extends TouchState[VariableRelationCollectingDomain, VariablePackingPreAnalysis] {
+
+    def factory (
+                  forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                  forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                  backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
+                  versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
+                  valueState:        VariableRelationCollectingDomain,
+                  expr:              ExpressionSet = ExpressionFactory.unitExpr,
+                  isTop:             Boolean = false
+                  ):VariablePackingPreAnalysis =
+      VariablePackingPreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
+
+  }
+
 }

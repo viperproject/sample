@@ -6,7 +6,6 @@ import java.io.{PrintWriter, StringWriter}
 import apron.{Octagon, Box, OptOctagon, Polka}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
@@ -19,7 +18,7 @@ import ch.ethz.inf.pm.td.output.Exporters
 
 object TouchDevelopEntryStateBuilder {
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[ApronInterface.Default]]], NonrelationalStringDomain[StringKSetDomain]]
+  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[StaticVariablePackingDomain[BoxedNonRelationalNumericalDomain[DoubleInterval],ApronInterface.Default]]]], NonrelationalStringDomain[StringKSetDomain]]
 
 }
 
@@ -28,7 +27,13 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
   override def topState = {
 
-    TouchState.Default[SemanticDomainType](valueState = numerical)
+    TouchState.Default[SemanticDomainType](valueState = numerical(None))
+
+  }
+
+  def topStateWithClassifier(c:VariablePackingClassifier) = {
+
+    TouchState.Default[SemanticDomainType](valueState = numerical(Some(c)))
 
   }
 
@@ -36,8 +41,13 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
 abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAnalysisParameters) extends EntryStateBuilder[S]() {
 
-  def numerical:SemanticDomainType = {
+  def numerical(c:Option[VariablePackingClassifier]):SemanticDomainType = {
     val numericalDomainChoice = touchParams.domains.numericalDomain
+    val classifier =
+      c match {
+        case Some(x) => x
+        case None => VariablePackingClassifier.OnePacker
+      }
     val domain =
       numericalDomainChoice match {
 //        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
@@ -49,7 +59,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
       }
     StringsAnd(
       InvalidAnd(
-        SummaryNodeWrapper(NonDeterminismWrapper(domain))
+        SummaryNodeWrapper(NonDeterminismWrapper(StaticVariablePackingDomain(BoxedNonRelationalNumericalDomain(DoubleInterval.Top),VariablePackMap(classifier,domain,Map.empty))))
       ),
       NonrelationalStringDomain(
         StringKSetDomain.Top(TouchAnalysisParameters.stringRepresentationBound)

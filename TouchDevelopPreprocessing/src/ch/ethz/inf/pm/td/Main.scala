@@ -70,11 +70,20 @@ object Main {
 
   def setFastMode() {
 
+    TouchAnalysisParameters.numberOfVersions = 1
     TouchAnalysisParameters.set(
       TouchAnalysisParameters(
-        execution = ExecutionModelParams(singleEventOccurrence = true),
-        domains = DomainParams(collectionsSummarizeElements = true, collectionsSummarizeLinearElements = true,
-           numericalDomain = NumericDomainChoice.Intervals)
+        execution = ExecutionModelParams(
+          //localizeStateOnMethodCall = true, BUGGY
+          singleExecution = true,
+          prematureAbortion = false,
+          //singleEventOccurrence = true, BUGGY
+          contextSensitiveInterproceduralAnalysis = false
+        ),
+        domains = DomainParams(
+          collectionsSummarizeElements = true,
+          collectionsSummarizeLinearElements = true,
+          numericalDomain = NumericDomainChoice.Intervals)
       )
     )
 

@@ -22,7 +22,7 @@ object SystemParameters {
   /**
    * Enables costly debugging flags
    */
-  val TIME = true
+  val TIME = false
 
   /**
    * Flag that informs whether the running analysis is ValueDrivenHeapAnalysis
@@ -32,7 +32,7 @@ object SystemParameters {
   /**
   The number of iterations after whom widening is applied
     */
-  var wideningLimit: Int = 3
+  var wideningLimit: Int = 2
 
   /**
   The semantics of methods defined by hand
@@ -121,7 +121,6 @@ object SystemParameters {
     if (progressOutput != null) progressOutput.reset()
     if (analysisOutput != null) analysisOutput.reset()
     Reporter.reset()
-    AccumulatingTimer.reset
   }
 
 }

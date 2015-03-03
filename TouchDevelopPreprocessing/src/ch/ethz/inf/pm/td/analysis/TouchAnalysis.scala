@@ -9,11 +9,13 @@ import ch.ethz.inf.pm.sample.execution.CFGState
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.sample.util.AccumulatingTimer
+import ch.ethz.inf.pm.sample.util.{Relation, AccumulatingTimer}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import ch.ethz.inf.pm.td.semantics.AAny
+
+import scala.collection.mutable
 
 /**
  *
@@ -118,17 +120,72 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     // Set up the environment
-    SystemParameters.resetOutput()
-    MethodSummaries.reset[S]()
     SystemParameters.progressOutput.begin(" ANALYZING " + compiler.main.name)
+    if(SystemParameters.TIME) AccumulatingTimer.reset
 
+    // PRE-ANALYSIS: Discover required fragment
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
     if (TouchAnalysisParameters.libraryFieldPruning) {
+      SystemParameters.resetOutput()
+      MethodSummaries.reset[TouchState.VariablePackingPreAnalysis]()
+      Reporter.disableAllOutputs()
+      if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.LibraryFieldAnalysis")
       RequiredLibraryFragmentAnalysis(compiler.parsedScripts,output)
-      MethodSummaries.reset[S]()
+      if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.LibraryFieldAnalysis")
+      //println(compiler.relevantLibraryFields)
     }
 
-    println(compiler.relevantLibraryFields)
+    // PRE-ANALYSIS: Run only the heap analysis
+    val newEntryState = if (TouchAnalysisParameters.variablePacking) {
+      TouchVariablePacking.reset()
+      SystemParameters.resetOutput()
+      MethodSummaries.reset[TouchState.VariablePackingPreAnalysis]()
+      Reporter.disableAllOutputs()
+      val oldNumber = TouchAnalysisParameters.numberOfVersions
+      TouchAnalysisParameters.numberOfVersions = 1
+      if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
+      analyzeScript[TouchState.VariablePackingPreAnalysis](compiler,methods)(TouchState.VariablePackingPreAnalysis())
+      if (SystemParameters.TIME) println(AccumulatingTimer)
+      if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
+      TouchAnalysisParameters.numberOfVersions = oldNumber
+      //TouchVariablePacking.dump()
+      TouchEntryStateBuilder(TouchAnalysisParameters.get).topStateWithClassifier(TouchVariablePacking.makeClassifier).asInstanceOf[S]
+    } else entryState
+
+    // MAIN ANALYSIS
+    SystemParameters.resetOutput()
+    MethodSummaries.reset[S]()
+    analyzeScript(compiler,methods)(newEntryState)
+
+    // CHECK PROPERTIES
+    val summaries = MethodSummaries.getSummaries[S]
+    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+    val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mdecl.classDef.typ, mdecl, cfgState)
+    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
+      val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
+      for (un <- unanalyzed) {
+        println(" Did not analyze "+un.name+" (may be unreachable)")
+      }
+    }
+    if (SystemParameters.property != null) {
+      SystemParameters.propertyTimer.start()
+      SystemParameters.property.check(results, output)
+      SystemParameters.property.finalizeChecking(output)
+      SystemParameters.propertyTimer.stop()
+    }
+
+    Exporters(compiler)
+
+    if (SystemParameters.TIME) println(AccumulatingTimer)
+
+    SystemParameters.progressOutput.end()
+    results
+  }
+
+  /**
+   * Initializes global data, then calls analyzeExecution to analyze one or many executions of the script
+   */
+  private def analyzeScript[S <: State[S]](compiler: TouchCompiler, methods: List[String])(entryState: S): S = {
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
@@ -212,42 +269,6 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
     else
       analyzeExecution(compiler, methods)(curState)
-
-    // Check properties on the results
-    val summaries = MethodSummaries.getSummaries[S]
-    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
-    val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
-    yield (mdecl.classDef.typ, mdecl, cfgState)
-
-    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
-      val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
-      for (un <- unanalyzed) {
-        println(" Did not analyze "+un.name+" (may be unreachable)")
-      }
-    }
-
-    if (!TouchAnalysisParameters.checkPropertiesDuringAnalysis) {
-      Reporter.currentlyPropertyChecking = true
-      println("Checking properties...")
-      if (SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.PropertyChecking")
-      analyzeExecution(compiler, methods)(curState)
-      if (SystemParameters.TIME) AccumulatingTimer.stop("TouchAnalysis.PropertyChecking")
-        Reporter.currentlyPropertyChecking = false
-    }
-
-    if (SystemParameters.property != null) {
-      SystemParameters.propertyTimer.start()
-      SystemParameters.property.check(results, output)
-      SystemParameters.property.finalizeChecking(output)
-      SystemParameters.propertyTimer.stop()
-    }
-
-    Exporters(compiler)
-
-    if (SystemParameters.TIME) println(AccumulatingTimer)
-
-    SystemParameters.progressOutput.end()
-    results
   }
 
   private def analyzeExecution[S <: State[S]](compiler: TouchCompiler, methods: List[String])(initialState: S): S = {
@@ -323,13 +344,12 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
       // Remove Env
       curState = curState.pruneVariables({
-        case id: VariableIdentifier =>
+        id: VariableIdentifier =>
           id.typ.asInstanceOf[TouchType].isSingleton &&
             id.typ.name != "art" &&
             id.typ.name != "data" &&
             id.typ.name != "code" &&
             id.typ.name != "records"
-        case _ => false
       })
       curState = curState.pruneUnreachableHeap()
 
@@ -488,3 +508,55 @@ class NoProperty extends Property {
   def finalizeChecking(printer: OutputCollector) {}
 }
 
+/** Defines how variables should be packed */
+object TouchVariablePacking {
+
+  private var packed:Relation[Identifier] = Relation.empty[Identifier]
+
+  def makeClassifier:Classifier = {
+    var toPack = Map.empty[Identifier,VariablePack]
+    var toAssign = packed.getAll
+    while (toAssign.nonEmpty) {
+      val closure = packed.closure(toAssign.head)
+      toPack = closure.foldLeft(toPack)( (x,y) => x + (y -> Pack(closure)))
+      toAssign = toAssign -- closure
+    }
+    Classifier(toPack)
+  }
+
+  def pack(ids: Set[Identifier]) = {
+    val numerical = ids.map(normalize).filter(_.typ.isNumericalType)
+    if (numerical.size > 1)
+      packed = packed.add(numerical, numerical)
+  }
+
+  def reset() =
+    packed = Relation.empty[Identifier]
+
+  def dump() {
+    var toDump = packed.getAll
+    while (toDump.nonEmpty) {
+      val closure = packed.closure(toDump.head)
+      println("Variable pack: "+closure.mkString(","))
+      toDump = toDump -- closure
+    }
+  }
+
+  def normalize(id:Identifier):Identifier = {
+    id match {
+      case HeapIdentifier(pp,typ,_,_) => HeapIdentifier(pp,typ,summary = false,0)
+      case FieldIdentifier(HeapIdentifier(pp1,typ1,_,_),f,typ) => FieldIdentifier(HeapIdentifier(pp1,typ1,summary = false,0),f,typ)
+      case x:Identifier => x
+    }
+  }
+
+  case class Classifier(toPack:Map[Identifier,VariablePack]) extends VariablePackingClassifier {
+
+    override def classify(id: Set[Identifier]): Set[VariablePack] =
+      id.map( x => toPack.get(TouchVariablePacking.normalize(x))).flatten
+
+  }
+
+  case class Pack(id:Set[Identifier]) extends VariablePack
+
+}

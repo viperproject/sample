@@ -577,7 +577,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   override def lub(other: T): T = {
 
-    if (this == other)
+    if (this eq other)
       return this
     if (isBottom)
       return other
@@ -624,7 +624,7 @@ trait ApronInterface[T <: ApronInterface[T]]
   override def glb(other: T): T = {
 
     val newEnv: Set[Identifier] = ids intersect other.ids
-    if (this == other)
+    if (this eq other)
       return this
     if (isPureBottom)
       return this
@@ -681,7 +681,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   override def lessEqual(r: T): Boolean = {
 
-    if (this == r)
+    if (this eq r)
       return true
     if (this.isBottom)
       return true

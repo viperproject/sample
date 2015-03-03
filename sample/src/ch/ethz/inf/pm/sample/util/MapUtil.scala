@@ -1,7 +1,5 @@
 package ch.ethz.inf.pm.sample.util
 
-import ch.ethz.inf.pm.sample.abstractdomain.Identifier
-
 /**
  * A useful util class to operate on maps
  */
@@ -28,8 +26,8 @@ object MapUtil {
    * Gives more control whether keys will exist
    */
   def mergeMaps2[A, B](left: Map[A, B], right: Map[A, B])(f: (Option[B], Option[B]) => Option[B]): Map[A, B] = {
-    (left.keys ++ right.keys).flatMap{x =>
-      f(left.get(x),right.get(x)) match {
+    (left.keys ++ right.keys).flatMap { x =>
+      f(left.get(x), right.get(x)) match {
         case Some(b) => Some(x -> b)
         case None => None
       }
@@ -41,45 +39,55 @@ object MapUtil {
    * Keys that only appear in one map will be kept as-is in the result
    */
   def mapToSetUnion[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
-    MapUtil.mergeMaps2(left,right)({
-      (b1,b2) =>
+  {
+    if (left eq right) return left
+    MapUtil.mergeMaps2(left, right)({
+      (b1, b2) =>
         Some(b1.getOrElse(Set.empty) ++ b2.getOrElse(Set.empty))
     })
+  }
 
   /**
    * For maps to sets, merge two maps, taking the intersection of all sets
    * Keys that only appear in one map will be kept as-is in the result
    */
-  def mapToSetIntersectionKeepUndefined[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
-    MapUtil.mergeMaps2(left,right)({
+  def mapToSetIntersectionKeepUndefined[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] = {
+    if (left eq right) return left
+    MapUtil.mergeMaps2(left, right)({
       case (None, x) => x
       case (x, None) => x
       case (Some(b1), Some(b2)) => Some(b1 intersect b2)
     })
+  }
 
   /**
    * For maps to sets, merge two maps, taking the intersection of all sets
    * Keys that only appear in one map will be kept as-is in the result
    */
-  def mapToSetIntersection[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
-    MapUtil.mergeMaps2(left,right)({
+  def mapToSetIntersection[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] = {
+    if (left eq right) return left
+    MapUtil.mergeMaps2(left, right)({
       case (None, x) => None
       case (x, None) => None
       case (Some(b1), Some(b2)) => Some(b1 intersect b2)
     })
+  }
 
   /**
    * For maps to sets, merge two maps, taking the union of all sets
    * Keys that only appear in one map will be kept as-is in the result
    */
-  def mapToSeqKeepLonger[A, B](left: Map[A, Seq[B]], right: Map[A, Seq[B]]): Map[A, Seq[B]] =
-    MapUtil.mergeMaps2(left,right)({
+  def mapToSeqKeepLonger[A, B](left: Map[A, Seq[B]], right: Map[A, Seq[B]]): Map[A, Seq[B]] = {
+    if (left eq right) return left
+    MapUtil.mergeMaps2(left, right)({
       case (None, x) => x
       case (x, None) => x
       case (Some(b1), Some(b2)) => if (b1.length > b2.length) Some(b1) else Some(b2)
     })
+  }
 
   def mapToSetContainment[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Boolean = {
+    if (left eq right) return true
     for (id <- left.keySet ++ right.keySet)
       if (!left.getOrElse(id,Set.empty).subsetOf(right.getOrElse(id,Set.empty))) return false
     return true

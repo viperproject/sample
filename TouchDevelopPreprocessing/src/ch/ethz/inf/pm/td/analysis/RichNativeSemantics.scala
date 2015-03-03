@@ -38,7 +38,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
-    if (!state.isInstanceOf[AccessCollectingState] && (TouchAnalysisParameters.checkPropertiesDuringAnalysis || Reporter.currentlyPropertyChecking)) {
+    if (Reporter.enableOutputOfAlarms) {
       val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
       if (!errorState.isBottom) {
         val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
@@ -104,9 +104,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
    */
   def New[S <: State[S]](typ: TouchType,
                          initials: Map[ApiField, RichExpression] = Map.empty[ApiField, RichExpression],
-                         initializeFields: Boolean = true,
-                         initialCollectionSize: Option[RichExpression] = None,
-                         initialCollectionValue: Option[RichExpression] = None)(implicit s: S, pp: ProgramPoint): S = {
+                         initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     typ match {
       case TNumber => s.setExpression(ExpressionSet(Constant("0", TNumber, pp)))
@@ -117,22 +115,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
         val obj = curState.expr
 
         if (initializeFields) {
-          typ match {
-            case col: ACollection =>
-              initialCollectionValue match {
-                case None =>
-                // Remains bottom
-                case Some(x) =>
-                  //TODO: Can be more precise
-                  curState = Top[S](col.keyType)(curState, pp)
-                  curState = col.collectionInsert[S](obj, curState.expr, x)(curState, pp)
-              }
-
-              // Initialize collection size
-              curState = col.collectionSetSize[S](obj, initialCollectionSize.getOrElse(0))(curState, pp)
-            case _ => ()
-          }
-
           // Assign fields with given arguments
           for (f <- anyTyp.representedTouchFields) {
             val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
@@ -163,8 +145,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Top[S <: State[S]](typ: TouchType,
                          initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression],
-                         initializeFields: Boolean = true,
-                         initialCollectionSize: Option[RichExpression] = None)
+                         initializeFields: Boolean = true)
                         (implicit s: S, pp: ProgramPoint): S = {
     typ match {
       case TNumber => s.setExpression(Valid(TNumber))
@@ -181,29 +162,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
 //        curState = s.assignVariable(toRichExpression(tempVariable),obj)
 
         if (initializeFields) {
-          typ match {
-            case col: ACollection =>
-
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp, "colEntry_" + col.entryType.typeName)
-              curState = Top[S](col.entryType, initializeFields = !referenceLoop1)(curState, newPP1)
-              val entryTop = curState.expr
-
-              curState = AssignField[S](obj,col.field_entry,entryTop)(curState,newPP1)
-
-              // Initialize collection size
-              initialCollectionSize match {
-                case None =>
-                  val (newPP3, referenceLoop3) = DeepeningProgramPoint(pp, "__length")
-                  curState = Top[S](TNumber, initializeFields = !referenceLoop3)(curState, newPP3)
-                  val lengthTop = curState.expr
-                  curState = col.collectionSetSize[S](obj, lengthTop)(curState, newPP3)
-                case Some(x) =>
-                  curState = col.collectionSetSize[S](obj, x)(curState, pp)
-              }
-
-            case _ => ()
-          }
-
           // Assign fields with given arguments
           for (f <- anyType.representedTouchFields) {
             val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
@@ -392,11 +350,16 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
 }
 
+/**
+ * @param isAccumulating a field that refers to zero to many objects. These play a key role in the analysis and are
+ *                       used to model collections.
+ */
 case class ApiField(name: String,
                   typ: AAny,
                   default: Initializer = NewInitializer,
                   topDefault: Initializer = TopInitializer,
-                  isSummaryNode: Boolean = false)
+                  isSummaryNode: Boolean = false,
+                  isAccumulating: Boolean = false)
   extends Identifier {
 
   val pp = null

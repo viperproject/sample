@@ -100,7 +100,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
       _.ids
     }).flatten
     val extendedStates =
-      if (!uncoveredIDs.isEmpty) {
+      if (uncoveredIDs.nonEmpty) {
         var cur = relFactory.factory().createVariables(uncoveredIDs)
         for (constraint <- cheap.getConstraints(uncoveredIDs)) {
           cur = cur.assume(constraint)
