@@ -27,8 +27,9 @@ class WalaAnalysis  {
 
   def main(args:Array[String]) = {
 
-    this()
-
+    for (arg <- args) {
+      ScanDroidEngine.makeFromJar(arg)
+    }
 
   }
 
@@ -36,8 +37,8 @@ class WalaAnalysis  {
 
 object ScanDroidEngine {
 
-  var exclusions: String
-  var androidJar: String
+  var exclusions: String = getClass.getResource("/exclusions.txt").getPath
+  var androidJar: String = getClass.getResource("/android.jar").getPath
 
   def makeFromJar(jar: String):ScanDroidEngine = {
 
