@@ -1,4 +1,6 @@
-scalaSource in Compile := baseDirectory.value / "src"
+scalaSource in Compile := baseDirectory.value / "src" / "scala"
+
+resourceDirectory in Compile := baseDirectory.value / "src" / "resources"
 
 scalaSource in Test := baseDirectory.value / "test" / "scala"
 
