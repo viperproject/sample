@@ -39,12 +39,13 @@ object ScanDroidEngine {
 
   var exclusions: String = getClass.getResource("/exclusions.txt").getPath
   var androidJar: String = getClass.getResource("/android.jar").getPath
+  var regressions: String = getClass.getResource("/Java60RegressionExclusions.txt").getPath
 
   def makeFromJar(jar: String):ScanDroidEngine = {
 
     val time: Long = System.currentTimeMillis
     val path = jar
-    val scope: AnalysisScope = AndroidAnalysisScope.setUpAndroidAnalysisScope(androidJar, jar, CallGraphTestUtil.REGRESSION_EXCLUSIONS)
+    val scope: AnalysisScope = AndroidAnalysisScope.setUpAndroidAnalysisScope(androidJar, jar, regressions)
     val cha: IClassHierarchy = ClassHierarchy.make(scope)
     val cache: AnalysisCache = new AnalysisCache(new DexIRFactory)
     val flags: Set[AndroidEntryPointLocator.LocatorFlags] = Set(

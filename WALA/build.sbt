@@ -13,3 +13,5 @@ unmanagedJars in Compile <++= baseDirectory map { base =>
 }
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1"
+
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"
