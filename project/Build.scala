@@ -58,6 +58,11 @@ object SampleBuild extends Build {
     id = "sample-sil",
     base = file("SIL")) dependsOn(core, numerical, valuedrivenheap)
 
+  lazy val wala = Project(
+    id = "sample-wala",
+    base = file("WALA")
+  ) dependsOn(core, numerical)
+
   lazy val web = Project(
     id = "sample-web",
     base = file("Web"),
