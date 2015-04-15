@@ -81,7 +81,6 @@ public class WindowApplication {
 			public void itemStateChanged(ItemEvent e) {
 				if (e.getStateChange() == ItemEvent.SELECTED) {
 					try {
-						getSelectedCompiler().generateTopType();
                         if(getSelectedCompiler() instanceof TouchCompiler) {
                             tdPanel.setVisible(true);
                         } else {

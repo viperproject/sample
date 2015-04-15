@@ -74,6 +74,11 @@ case object StaticModifier extends Modifier
 
 case object PureModifier extends Modifier
 
+case object NativeModifier extends Modifier
+
+case object InitModifier extends Modifier
+
+
 /**
  * This class represents the declaration of a method.
  *

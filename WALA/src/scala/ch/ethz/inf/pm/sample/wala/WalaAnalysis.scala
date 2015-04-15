@@ -22,52 +22,14 @@ import scala.collection.JavaConverters._
  *
  * @author Lucas Brutschy
  */
-class WalaAnalysis  {
-
+object WalaAnalysis  {
 
   def main(args:Array[String]) = {
 
     for (arg <- args) {
-      ScanDroidEngine.makeFromJar(arg)
+      WalaCompiler.compileFile(arg)
     }
 
   }
 
 }
-
-object ScanDroidEngine {
-
-  var exclusions: String = getClass.getResource("/exclusions.txt").getPath
-  var androidJar: String = getClass.getResource("/android.jar").getPath
-  var regressions: String = getClass.getResource("/Java60RegressionExclusions.txt").getPath
-
-  def makeFromJar(jar: String):ScanDroidEngine = {
-
-    val time: Long = System.currentTimeMillis
-    val path = jar
-    val scope: AnalysisScope = AndroidAnalysisScope.setUpAndroidAnalysisScope(androidJar, jar, regressions)
-    val cha: IClassHierarchy = ClassHierarchy.make(scope)
-    val cache: AnalysisCache = new AnalysisCache(new DexIRFactory)
-    val flags: Set[AndroidEntryPointLocator.LocatorFlags] = Set(
-      LocatorFlags.INCLUDE_CALLBACKS,
-      LocatorFlags.EP_HEURISTIC,
-      LocatorFlags.WITH_CTOR,
-      LocatorFlags.WITH_SUPER,
-      LocatorFlags.CB_HEURISTIC
-    )
-    val eps: AndroidEntryPointLocator = new AndroidEntryPointLocator(flags.asJava)
-    val es: util.List[AndroidEntryPoint] = eps.getEntryPoints(cha)
-    val options: AnalysisOptions = new AnalysisOptions(scope, es)
-    options.setReflectionOptions(ReflectionOptions.NONE)
-    val cgb: SSAPropagationCallGraphBuilder = Util.makeZeroCFABuilder(options, cache, cha, scope)
-    val cg = cgb.makeCallGraph(options)
-    val ptr = cgb.getPointerAnalysis
-    val walaTime = System.currentTimeMillis - time
-    ScanDroidEngine(cg,ptr,path,walaTime)
-
-
-  }
-
-}
-
-case class ScanDroidEngine(cg: CallGraph,ptr: PointerAnalysis[_],path: String,walaTime:Long)

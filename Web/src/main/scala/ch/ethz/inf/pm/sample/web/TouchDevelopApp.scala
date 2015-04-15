@@ -46,7 +46,6 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 
   override def run(path: Path): List[AnalysisResult[S]] = {
     prepareContext()
-    compiler.generateTopType()
     val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
 
     SystemParameters.compiler.compile(path.toString)

@@ -91,6 +91,4 @@ trait Compiler {
     return output;
   }
 
-  def generateTopType()
-
 }
