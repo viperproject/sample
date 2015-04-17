@@ -1,7 +1,7 @@
 include Makefile.config
 
 LCFLAGS = \
--Lapron -Litv -Lbox -Loctagons -Lnewpolka -Ltaylor1plus \
+-Lapron -Litv -Lbox -loctagons -Loptoct -Lnewpolka -Ltaylor1plus \
 -L$(PPL_PREFIX)/lib -Lppl \
 -Lproducts \
 -L$(GMP_PREFIX)/lib -L$(MPFR_PREFIX)/lib \
@@ -25,6 +25,7 @@ c:
 	(cd newpolka; make all)
 	(cd box; make all)
 	(cd octagons; make MPQ D)
+	(cd optoctagon7; make)
 	(cd taylor1plus; make all)
 ifneq ($(HAS_PPL),)
 	(cd ppl; make)
@@ -64,6 +65,7 @@ ifneq ($(HAS_OCAML),)
 	(cd newpolka; make rebuild)
 	(cd box; make rebuild)
 	(cd octagons; make rebuild)
+	(cd optoctagon7; make rebuild)
 	(cd taylor1plus; make rebuild)
 	(cd ppl; make rebuild)
 	(cd products; make rebuild)
@@ -125,6 +127,8 @@ install:
 	(cd newpolka; make install)
 	(cd box; make install)
 	(cd octagons; make install)
+	(cd optoctagon7; make install)
+	(cd japron; make install)
 	(cd taylor1plus; make install)
 ifneq ($(HAS_PPL),)
 	(cd ppl; make install)
@@ -159,9 +163,11 @@ clean:
 	(cd box; make clean)
 	(cd newpolka; make clean)
 	(cd octagons; make clean)
+	(cd optoctagon7; make clean)
 	(cd taylor1plus; make clean)
 	(cd ppl; make clean)
 	(cd products; make clean)
+	(cd japron; make clean)
 	(cd apronxx; make clean)
 	(cd examples; make clean)
 	(cd test; make clean)
@@ -174,11 +180,13 @@ distclean: clean
 	(cd mlapronidl; make distclean)
 	(cd box; make distclean)
 	(cd octagons; make distclean)
+	(cd optoctagon7; make distclean)
 	(cd taylor1plus; make distclean)
 	(cd newpolka; make distclean)
 	(cd ppl; make distclean)
 	(cd products; make distclean)
 	(cd examples; make distclean)
+	(cd japron; make distclean)
 	(cd apronxx; make distclean)
 
 uninstall:
@@ -189,11 +197,13 @@ uninstall:
 	(cd box; make uninstall)
 	(cd newpolka; make uninstall)
 	(cd octagons; make uninstall)
+	(cd optoctagon7; make uninstall)
 	(cd taylor1plus; make uninstall)
 	(cd examples; make uninstall)
 	(cd ppl; make uninstall)
 	(cd products; make uninstall)
 	(cd apronxx; make uninstall)
+	(cd japron; make uninstall)
 	(cd $(APRON_PREFIX)/bin; rm -f apron*)
 ifneq ($(OCAMLFIND),)
 	$(OCAMLFIND) remove apron
@@ -212,7 +222,7 @@ endif
 
 PKGNAME  = apron-0.9.11
 PKGFILES = Makefile README README.windows README.mac AUTHORS COPYING Makefile.config.model Changes
-PKGDIRS  = apron num itv octagons box newpolka taylor1plus ppl products mlapronidl examples test apronxx
+PKGDIRS  = apron num itv octagons optoctagon7 box newpolka taylor1plus ppl products mlapronidl examples test apronxx
 
 dist:
 	$(MAKE) all
