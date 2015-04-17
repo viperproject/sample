@@ -127,7 +127,7 @@ class ScanDroidEngineTest extends FunSuite {
       |Threading/JavaThread1.apk
       |Threading/JavaThread2.apk
       |Threading/Looper1.apk
-    """.stripMargin.split("\\n").filter(_.nonEmpty)
+    """.replace(".apk", "-dex2jar.jar").stripMargin.split("\\n").filter(_.nonEmpty)
 
   for (test1 <- tests) {
     test(test1) {
