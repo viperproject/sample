@@ -1,4 +1,5 @@
-import ch.ethz.inf.pm.sample.wala.{WalaAnalysis, ScanDroidEngine}
+package ch.ethz.inf.pm.sample.wala
+
 import org.scalatest.FunSuite
 
 /**
