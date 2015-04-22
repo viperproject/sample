@@ -7,8 +7,7 @@ object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
     base = file(".")) aggregate(core, heap, numerical, touchdevelop,
-    scalapreproc, accessperm, partitioning, string, loops, tvla,
-    valuedrivenheap, sil, web, gui, test)
+    scalapreproc, partitioning, string, valuedrivenheap, sil, web)
 
   lazy val core = Project(
     id = "sample-core",
@@ -30,10 +29,6 @@ object SampleBuild extends Build {
     id = "sample-scala-preprocessing",
     base = file("ScalaPreprocessing")) dependsOn core
 
-  lazy val accessperm = Project(
-    id = "sample-access-permissions",
-    base = file("AccessPermissionInference")) dependsOn(core, heap)
-
   lazy val partitioning = Project(
     id = "sample-partitioning",
     base = file("Partitioning")) dependsOn(core, scalapreproc)
@@ -41,14 +36,6 @@ object SampleBuild extends Build {
   lazy val string = Project(
     id = "sample-string",
     base = file("String")) dependsOn(core, numerical)
-
-  lazy val loops = Project(
-    id = "sample-touchdevel-loops",
-    base = file("TouchDevelopLoops")) dependsOn(core, numerical, touchdevelop, heap)
-
-  lazy val tvla = Project(
-    id = "sample-tvla",
-    base = file("TVLA")) dependsOn(core, numerical)
 
   lazy val valuedrivenheap = Project(
     id = "sample-valuedriven-heap",
@@ -66,18 +53,6 @@ object SampleBuild extends Build {
       ScalatraPlugin.scalatraSettings ++
       Twirl.settings) dependsOn(
     core, numerical, valuedrivenheap, sil, touchdevelop)
-
-  lazy val gui = Project(
-    id = "sample-gui",
-    base = file("GUI")) dependsOn(core, numerical, heap,
-    touchdevelop, scalapreproc, accessperm, partitioning,
-    string, loops, tvla, valuedrivenheap)
-
-  lazy val test = Project(
-    id = "sample-test",
-    base = file("Test")) dependsOn(core, numerical, heap,
-    touchdevelop, scalapreproc, accessperm, partitioning,
-    string, loops, tvla, valuedrivenheap, gui)
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",

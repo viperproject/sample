@@ -11,7 +11,7 @@ import scala.io.Source
 
 object ScriptCache extends LazyLogging {
 
-  val CACHE_DIR = "Test" + File.separator + "test" + File.separator + "TouchDevelop" + File.separator + "cache"
+  val CACHE_DIR = "/tmp/td_cache"
 
   def get(pubID:String):Script = {
     val cache = new File(CACHE_DIR)
