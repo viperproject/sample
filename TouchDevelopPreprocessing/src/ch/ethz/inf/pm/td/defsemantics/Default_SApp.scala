@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SApp extends ASingleton {
 
-  lazy val typeName = TypeName("App")
+  lazy val typeName = TypeName("App", isSingleton = true)
           
   /** Never used: Creates a specialized logger */
   def member_create_logger = ApiMember(

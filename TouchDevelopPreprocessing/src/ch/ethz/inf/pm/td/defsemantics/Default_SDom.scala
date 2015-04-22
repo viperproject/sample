@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SDom extends ASingleton {
 
-  lazy val typeName = TypeName("Dom")
+  lazy val typeName = TypeName("Dom", isSingleton = true)
           
   /** Never used: [**beta**] Add a CSS class name to the current element. */
   def member_add_css_class = ApiMember(
@@ -80,7 +80,7 @@ trait Default_SDom extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**beta**] Use CSS for layout */
+  /** Never used: [**beta**] Use CSS for layout and import additional CSS stylesheets. Use string art resource to import urls. */
   def member_use_css = ApiMember(
     name = "use css",
     paramTypes = List(ApiParam(TString)),

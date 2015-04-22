@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.util
 
+import com.typesafe.scalalogging.LazyLogging
+
 
 /**
  * Utility class for measuring time
@@ -28,7 +30,7 @@ object Timer {
  * @author Lucas Brutschy
  *
  */
-object AccumulatingTimer {
+object AccumulatingTimer extends LazyLogging {
 
   case class TimeEntry(num:Long, sum:Long, openStartTime:Option[Long])
 
@@ -39,7 +41,7 @@ object AccumulatingTimer {
       case None => times(s) = TimeEntry(0, 0,Some(System.currentTimeMillis))
       case Some(TimeEntry(n,x,None)) => times(s) = TimeEntry(n,x,Some(System.currentTimeMillis))
       case Some(TimeEntry(n,x,Some(y))) =>
-        println("Still had a running timer (did we crash?). Restarted!")
+        logger.debug("Still had a running timer (did we crash?). Restarted!")
         times(s) = TimeEntry(n,x,Some(System.currentTimeMillis))
     }
   }
@@ -55,7 +57,7 @@ object AccumulatingTimer {
     times.get(s) match {
       case Some(TimeEntry(n,x,Some(y))) =>
         val diff = (System.currentTimeMillis-y).toFloat/1000
-        println(s+" finished after "+f"$diff%2.2fs")
+        logger.info(s+" finished after "+f"$diff%2.2fs")
         times(s) = TimeEntry(n+1,x+(System.currentTimeMillis-y),None)
     }
   }

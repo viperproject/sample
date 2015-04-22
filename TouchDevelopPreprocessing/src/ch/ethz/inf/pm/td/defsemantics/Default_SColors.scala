@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SColors extends ASingleton {
 
-  lazy val typeName = TypeName("Colors")
+  lazy val typeName = TypeName("Colors", isSingleton = true)
           
   /** Frequently used: Gets the accent color in the current theme */
   def member_accent = ApiMember(

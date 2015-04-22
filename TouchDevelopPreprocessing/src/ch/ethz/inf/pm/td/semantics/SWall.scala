@@ -4,7 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{TopTouchType, TouchType}
+import ch.ethz.inf.pm.td.compiler.{ValidPureSemantics, TopTouchType, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_SWall
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -18,6 +18,9 @@ import RichNativeSemantics._
  */
 
 object SWall extends Default_SWall {
+
+  override lazy val member_show_back_button = super.member_show_back_button.copy(semantics = ValidPureSemantics)
+  override lazy val member_show_title_bar = super.member_show_title_bar.copy(semantics = ValidPureSemantics)
 
   /** Gets the list of available page button names. */
   lazy val field_button_icon_names = ApiField("button icon names", GCollection(TString))

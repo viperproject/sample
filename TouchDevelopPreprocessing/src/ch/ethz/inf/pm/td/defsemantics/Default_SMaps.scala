@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SMaps extends ASingleton {
 
-  lazy val typeName = TypeName("Maps")
+  lazy val typeName = TypeName("Maps", isSingleton = true)
           
   /** Sometimes used: Creates a full screen Bing map. Use 'post to wall' to display it. */
   def member_create_full_map = ApiMember(

@@ -26,7 +26,7 @@ trait Default_TBuffer extends ALinearCollection {
     name = "clone",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = TNothing,
+    returnType = TBuffer,
     semantics = DefaultSemantics
   )
 

@@ -201,6 +201,15 @@ trait Default_TBoard extends AMutable_Collection {
     semantics = DefaultSemantics
   )
 
+  /** Never used: add an action that fires for every display frame. */
+  def member_on_every_frame = ApiMember(
+    name = "on every frame",
+    paramTypes = List(ApiParam(TAction)),
+    thisType = ApiParam(this),
+    returnType = TEvent_Binding,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: set the handler that is invoked when the board is swiped */
   def member_on_swipe = ApiMember(
     name = "on swipe",
@@ -376,6 +385,7 @@ trait Default_TBoard extends AMutable_Collection {
     "frame timer" -> member_frame_timer,
     "height" -> member_height,
     "is landscape" -> member_is_landscape,
+    "on every frame" -> member_on_every_frame,
     "on swipe" -> member_on_swipe,
     "on tap" -> member_on_tap,
     "on touch down" -> member_on_touch_down,

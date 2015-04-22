@@ -26,6 +26,7 @@ event gameloop() {
     $hits := data→ball→overlap_with(data→clouds);
     if $hits→count > 0 `and` data→ball→speed_y > 200 then {
       $hit := $hits→at(0);
+      //:: ExpectedOutput(assert.failed)
       $cloudNum := data→clouds→index_of($hit);
       if $cloudNum > 0 then {
         data→ball→set_y($hit→y - 20);
@@ -38,13 +39,11 @@ event gameloop() {
       }
     }
     $cloudMR := data→clouds→at(3);
-    //:: ExpectedOutput(assert.failed)
     $cloudMR→move(data→cloudSpeed, 0);
     if $cloudMR→x > data→board→width then {
       $cloudMR→set_x(0);
     }
     $cloudML := data→clouds→at(5);
-    //:: ExpectedOutput(assert.failed)
     $cloudML→move( - data→cloudSpeed, 0);
     if $cloudML→x < 0 then {
       $cloudML→set_x(data→board→width);
@@ -68,9 +67,7 @@ event gameloop() {
           if $i ≥ data→numClouds then {
             $i := 0;
           }
-          //:: ExpectedOutput(assert.failed)
           if data→clouds→at($i)→y > data→curSpacer `and` data→clouds→at($i)→y < data→board→height then {
-            //:: ExpectedOutput(assert.failed)
             $cloud→set_y(data→clouds→at($i)→y - data→curSpacer + (math→random(30) - 15));
             $cloud→set_x(math→random(data→board→width));
           }
@@ -136,7 +133,6 @@ action makeClouds() {
     $cloud→set_friction(1);
     data→clouds→add($cloud);
   }
-  //:: ExpectedOutput(assert.failed)
   data→clouds→at(data→clouds→count - 1)→set_x(data→board→width / 2);
   meta private;
 }

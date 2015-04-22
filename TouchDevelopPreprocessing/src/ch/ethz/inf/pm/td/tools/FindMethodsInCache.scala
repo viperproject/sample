@@ -1,10 +1,12 @@
+package ch.ethz.inf.pm.td.tools
+
 import java.io.{File, FileFilter}
 
-import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.compiler.{ScriptCache, TouchException}
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.transform.{LoopRewriter, Matcher}
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.WebASTImporter
+import ch.ethz.inf.pm.td.webapi.{URLFetcher, WebASTImporter}
 import net.liftweb.json.JsonParser.ParseException
 
 /**
@@ -18,7 +20,7 @@ object FindMethodsInCache {
 
   def main(args: Array[String]) {
 
-    val CACHE_DIR = "/var/cache/tb/"
+    val CACHE_DIR = ScriptCache.CACHE_DIR
 
     val files = new File(CACHE_DIR).listFiles(
       new FileFilter {

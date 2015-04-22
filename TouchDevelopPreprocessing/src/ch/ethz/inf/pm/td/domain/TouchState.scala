@@ -4,8 +4,10 @@ import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
-import ch.ethz.inf.pm.td.analysis.{TouchVariablePacking, TouchAnalysisParameters, ApiField}
+import ch.ethz.inf.pm.td.analysis
+import ch.ethz.inf.pm.td.analysis.{Localization, TouchVariablePacking, TouchAnalysisParameters, ApiField}
 
+import scala.Predef
 import scala.collection.immutable.Set
 
 object HeapIdentifier {
@@ -285,8 +287,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         case Some(set) if set.nonEmpty =>
           Lattice.bigLub(set.map{assignField(_,field,right)})
         case _ =>
-          println("assigning to something that is empty - not a good idea")
-          this
+          bottom()
       }
     case _ => bottom()
   }
@@ -771,7 +772,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     // copy references from other variable/field
     val newObjectsMay =  forwardMay.getOrElse (right,Set.empty)
     val newObjectsMust = forwardMust.getOrElse(right,Set.empty)
-    copy(
+    val result = copy(
       forwardMay +  (left -> newObjectsMay),
       forwardMust + (left -> newObjectsMust),
       (backwardMay map { x => x._1 -> (x._2 - left) }) ++ (newObjectsMay map { x => x -> (backwardMay.getOrElse(x,Set.empty) + left)}),
@@ -779,6 +780,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       valueState.assign(left,right),
       ExpressionFactory.unitExpr
     ).garbageCollect(forwardMay.getOrElse(left,Set.empty)).canonicalizeEnvironment
+    result
   }
 
 
@@ -1073,7 +1075,7 @@ object TouchState {
   /**
    * Implements a touch state which does not track values at all
    */
-  case class VariablePackingPreAnalysis(forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+  case class PreAnalysis(forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                       forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                       backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
                       versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
@@ -1081,7 +1083,7 @@ object TouchState {
                       expr:              ExpressionSet = ExpressionFactory.unitExpr,
                       isTop:             Boolean = false
                        )
-    extends TouchState[VariableRelationCollectingDomain, VariablePackingPreAnalysis] {
+    extends TouchState[VariableRelationCollectingDomain, PreAnalysis] {
 
     def factory (
                   forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
@@ -1091,8 +1093,43 @@ object TouchState {
                   valueState:        VariableRelationCollectingDomain,
                   expr:              ExpressionSet = ExpressionFactory.unitExpr,
                   isTop:             Boolean = false
-                  ):VariablePackingPreAnalysis =
-      VariablePackingPreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
+                  ):PreAnalysis =
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
+
+    override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis = {
+      analysis.Localization.collectAccess(obj.ids)
+      super.getFieldValue(obj, field, typ)
+    }
+
+    override def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter: (Identifier, PreAnalysis) => Boolean): (Predef.Set[Identifier], Predef.Set[Identifier]) = {
+      analysis.Localization.collectAccess(obj.ids)
+      super.getFieldValueWhere(obj, field, typ, filter)
+    }
+
+    override def assume(cond: Expression): PreAnalysis = {
+      analysis.Localization.collectAccess(cond.ids)
+      super.assume(cond)
+    }
+
+    override def assignVariable(left: Expression, right: Expression): PreAnalysis = {
+      analysis.Localization.collectAccess(left.ids ++ right.ids)
+      super.assignVariable(left, right)
+    }
+
+    override def assignField(obj: Expression, field: String, right: Expression): PreAnalysis = {
+      analysis.Localization.collectAccess(obj.ids ++ right.ids)
+      super.assignField(obj, field, right)
+    }
+
+    override def getVariableValue(id: Assignable): PreAnalysis = {
+      analysis.Localization.collectAccess(id.asInstanceOf[Identifier])
+      super.getVariableValue(id)
+    }
+
+    override def setVariableToTop(varExpr: Expression): PreAnalysis = {
+      analysis.Localization.collectAccess(varExpr.ids)
+      super.setVariableToTop(varExpr)
+    }
 
   }
 

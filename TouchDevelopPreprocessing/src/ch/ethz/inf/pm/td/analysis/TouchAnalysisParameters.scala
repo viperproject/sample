@@ -5,13 +5,17 @@ package ch.ethz.inf.pm.td.analysis
  */
 object TouchAnalysisParameters {
 
-  val variablePacking: Boolean = true
+  /** EXPERIMENTAL: Requires variable packing to be enabled! */
+  val accessBasedLocalization: Boolean = false
+
+  val defaultToUnsound: Boolean = true
+
+  /** EXPERIMENTAL */
+  val variablePacking: Boolean = false
 
   val assumeCollectionsNotModifiedDuringIteration: Boolean = true
 
   val reportUnanalyzedFunctions: Boolean = true
-
-  val printScriptFirst: Boolean = false
 
   var numberOfVersions = 2
 
@@ -58,7 +62,7 @@ object TouchAnalysisParameters {
 
   def stringRepresentationBound = currentParams.domains.stringRepresentationBound
 
-  def localizeStateOnMethodCall = currentParams.execution.localizeStateOnMethodCall
+  def reachabilityBasedLocalization = currentParams.execution.reachabilityBasedLocalization
 
   def reportNoncriticalParameterBoundViolations = currentParams.reporting.reportNoncriticalParameterBoundViolations
 
@@ -184,7 +188,7 @@ case class ExecutionModelParams(
                                   * true = less precision, more speed.
                                   * false = more precision, less speed.
                                   */
-                                 localizeStateOnMethodCall: Boolean = false
+                                 reachabilityBasedLocalization: Boolean = false
 
                                  )
 

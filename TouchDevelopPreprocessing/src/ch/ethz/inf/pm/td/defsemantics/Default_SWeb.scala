@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SWeb extends ASingleton {
 
-  lazy val typeName = TypeName("Web")
+  lazy val typeName = TypeName("Web", isSingleton = true)
           
   /** Never used: Decodes a string that has been base64-encoded */
   def member_base64_decode = ApiMember(

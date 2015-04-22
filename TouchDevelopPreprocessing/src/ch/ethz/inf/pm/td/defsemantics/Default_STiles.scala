@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_STiles extends ASingleton {
 
-  lazy val typeName = TypeName("Tiles")
+  lazy val typeName = TypeName("Tiles", isSingleton = true)
           
   /** Never used: Pins or updates the default tile. */
   def member_pin_default = ApiMember(

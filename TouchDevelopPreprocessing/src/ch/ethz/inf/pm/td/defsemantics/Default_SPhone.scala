@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SPhone extends ASingleton {
 
-  lazy val typeName = TypeName("Phone")
+  lazy val typeName = TypeName("Phone", isSingleton = true)
           
   /** Rarely used: Chooses an address from the contacts */
   def member_choose_address = ApiMember(

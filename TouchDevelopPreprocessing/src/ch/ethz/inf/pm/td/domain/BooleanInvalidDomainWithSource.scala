@@ -58,12 +58,13 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map
   }
 
   override def assign(variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
-    eval(expr) match {
+    val result = eval(expr) match {
       case ValiditySet.Bottom => bottom()
       case res:ValiditySet =>
         if (variable.representsSingleVariable) this.add(variable, res)
         else this.add(variable, get(variable).lub(res))
     }
+    result
   }
 
   override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {

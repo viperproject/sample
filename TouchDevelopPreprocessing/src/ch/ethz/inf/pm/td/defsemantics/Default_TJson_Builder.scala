@@ -57,6 +57,15 @@ trait Default_TJson_Builder extends AMap {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Creates a deep copy clone of the object */
+  def member_clone = ApiMember(
+    name = "clone",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TJson_Builder,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Indicates if the key exists */
   def member_contains_key = ApiMember(
     name = "contains key",
@@ -270,6 +279,7 @@ trait Default_TJson_Builder extends AMap {
     "add null" -> member_add_null,
     "add" -> member_add,
     "boolean" -> member_boolean,
+    "clone" -> member_clone,
     "contains key" -> member_contains_key,
     "copy from" -> member_copy_from,
     "field" -> member_field,

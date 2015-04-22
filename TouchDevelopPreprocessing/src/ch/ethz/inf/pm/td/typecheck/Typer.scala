@@ -47,7 +47,7 @@ object Typer {
         st.addAction(name, Nil, Nil) // We ignore parameters of pages - they ware initialized in the display code
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
-      case TableDefinition(ident, typeName, keys, fields) =>
+      case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
         typeName match {
           case "object" =>
 
@@ -141,16 +141,17 @@ object Typer {
       case s@Box(body) =>
         st(s) = ScopeSymbolTable(s, scope, Map.empty)
         for (smt <- body) processStatement(s, st, smt)
-      case s@WhereStatement(expr, handlers) =>
+      case s@WhereStatement(expr, handlers, optParams) =>
         for (h <- handlers) {
           st(s) = ScopeSymbolTable(s, scope, Map.empty) ++ h.inParameters ++ h.outParameters
           st(scope) = st(scope) + (h.handlerName -> h.typ)
           for (smt <- h.body) processStatement(s, st, smt)
         }
+        for (o <- optParams) processMultiValExpression(scope,st,o.expr)
         processMultiValExpression(scope, st, expr)
       case ExpressionStatement(expr) =>
         processMultiValExpression(scope, st, expr)
-      case _ => Unit
+      case _ => ()
     }
   }
 
@@ -219,13 +220,15 @@ object Typer {
         }
       case l@LocalReference(ident) =>
         // Interestingly, contract is a local variable, not a singleton.
-        if (ident == "contract") is(TypeName("Contract"))
+        if (ident == "contract") is(TypeName("Contract",isSingleton = true))
         else is(st.resolveLocal(scope, ident, l.pos))
       case SingletonReference(singleton, typX) =>
         if (CFGGenerator.isLibraryIdent(typX)) {
-          is(TypeName("♻"))
+          is(TypeName("♻",isSingleton = true))
+        } else if (singleton == "$skip") {
+          is(TypeName("Unknown"))
         } else {
-          is(TypeName(typX))
+          is(TypeName(typX,isSingleton = true))
         }
       case Literal(typX, _) =>
         is(typX)

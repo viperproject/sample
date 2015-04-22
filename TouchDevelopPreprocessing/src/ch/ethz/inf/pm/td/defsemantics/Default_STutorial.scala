@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_STutorial extends ASingleton {
 
-  lazy val typeName = TypeName("Tutorial")
+  lazy val typeName = TypeName("Tutorial", isSingleton = true)
           
   /** Never used: [**dbg**] Show a suggestion to the user (eg., an error description) */
   def member_show_hint = ApiMember(

@@ -4,7 +4,8 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
-import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, Parameter, TableDefinition, TypeName, WhereStatement, _}
+import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import scala.util.parsing.input.{NoPosition, Position}
@@ -56,7 +57,7 @@ object CFGGenerator {
 }
 
 
-class CFGGenerator(compiler: TouchCompiler) {
+class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
   import ch.ethz.inf.pm.td.compiler.CFGGenerator._
 
@@ -67,7 +68,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     //detectUnsupportedScripts(script)
     curPubID = pubID
     libDef match {
-      case Some(LibraryDefinition(name, _, _, _, _, _)) => curScriptName = libraryIdent(name)
+      case Some(LibraryDefinition(libName, _, _, _, _, _)) => curScriptName = libraryIdent(libName)
       case None => curScriptName = libraryIdent(pubID)
     }
     val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)
@@ -98,7 +99,7 @@ class CFGGenerator(compiler: TouchCompiler) {
             case ("readonly", "true") =>    Some(ReadOnlyModifier)
             case ("transient", "true") =>   Some(TransientModifier)
             case ("readonly", "false") =>   None
-            case x:Any => println("Unhandled flag: "+x); None
+            case x:Any => logger.debug("Unhandled flag: "+x); None
           }).toList
           val name: Variable = parameterToVariable(variable)
           val typ: Type = typeNameToType(variable.typeName)
@@ -240,7 +241,9 @@ class CFGGenerator(compiler: TouchCompiler) {
         newHandlers = newHandlers ::: handlersBody
         curNode = nextNode
 
-      case w@WhereStatement(expr, handlerDefs: List[InlineAction]) =>
+      case w@WhereStatement(expr, handlerDefs: List[InlineAction], optionalParamters: List[OptionalParameter]) =>
+
+        if (optionalParamters.nonEmpty) throw new TouchException("We do not support optional parameters yet")
 
         val wPP = makeTouchProgramPoint(curPubID, w)
 
@@ -270,6 +273,10 @@ class CFGGenerator(compiler: TouchCompiler) {
           expr.typeName = TypeName(typ)
           expr
         }
+        def sty(typ: String, expr: parser.Expression): parser.Expression = {
+          expr.typeName = TypeName(typ,isSingleton = true)
+          expr
+        }
 
         // Create a statement that creates the handler object and assigns the handler variable
         val handlerCreationStatements = handlerSet map {
@@ -280,7 +287,7 @@ class CFGGenerator(compiler: TouchCompiler) {
                 Identifier(":="),
                 List(
                   ty(handlerType.toString, parser.Access(
-                    ty("Helpers", parser.SingletonReference("helpers", "Helpers")),
+                    sty("Helpers", parser.SingletonReference("helpers", "Helpers")),
                     Identifier("create " + handlerType.ident.toLowerCase + " " + actionName),
                     Nil
                   ))

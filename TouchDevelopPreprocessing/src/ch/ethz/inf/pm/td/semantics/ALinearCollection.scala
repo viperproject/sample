@@ -15,11 +15,12 @@ import ch.ethz.inf.pm.td.domain.TouchState
 trait ALinearCollection extends ACollection {
 
   override def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    if (TouchAnalysisParameters.collectionsSummarizeElements) {
+    val res = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) {
       collectionAllValues[S](collection)
     } else {
       super.collectionAt[S](collection,key)
     }
+    res
   }
 
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {

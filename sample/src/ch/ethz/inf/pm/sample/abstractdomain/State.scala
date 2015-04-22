@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Set
 
@@ -158,7 +159,7 @@ trait BottomLattice[S <: Lattice[S]] extends Lattice[S] {
 
 }
 
-object Lattice {
+object Lattice extends LazyLogging {
 
   /** Mixin that causes a lattice to have a must semantics, where the
     * join operator uses the greatest lower bound.
@@ -205,8 +206,7 @@ object Lattice {
       iteration += 1
       if (iteration > wideningLimit) {
         if (iteration > wideningLimit + 10) {
-          println(cur)
-          System.err.println("Looks like we are not terminating here!")
+          logger.debug("Looks like we are not terminating here!" + cur.toString)
         }
         cur = prev.widening(f(prev))
       }

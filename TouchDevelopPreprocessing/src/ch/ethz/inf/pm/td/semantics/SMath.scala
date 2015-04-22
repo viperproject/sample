@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_SMath
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,6 +16,17 @@ import RichNativeSemantics._
  */
 
 object SMath extends Default_SMath {
+
+  /** Frequently used: Returns a random integral number bounded between limit and 0, not including limit unless it is 0 */
+  def member_rand = ApiMember(
+    name = "rand",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
+  override def declarations = super.declarations + ("rand" -> member_rand)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 

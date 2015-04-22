@@ -17,7 +17,7 @@ import RichNativeSemantics._
 
 object SCode extends ASingleton {
 
-  lazy val typeName = TypeName("code")
+  lazy val typeName = TypeName("code",isSingleton = true)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = {
 

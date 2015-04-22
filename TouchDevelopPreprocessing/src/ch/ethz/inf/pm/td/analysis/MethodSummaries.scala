@@ -6,7 +6,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
-import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.domain.TouchState.Default
+import ch.ethz.inf.pm.td.domain.{TouchState, MultiValExpression}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
@@ -55,7 +56,9 @@ object MethodSummaries {
       if (TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
       else callTarget.programpoint
 
-    var enteredState = enterFunction(callPoint, callTarget, entryState, parameters)
+    Localization.setCollectingFunction(identifyingPP)
+
+    var enteredState = enterFunction(identifyingPP, callPoint, callTarget, entryState, parameters)
 
     /**
      * If this is a closure, we may get local variable from the local scope of closure creation
@@ -115,7 +118,7 @@ object MethodSummaries {
         val exitState = exitFunction(callPoint, callTarget, currentSummary.cfgState.exitState(), parameters)
         if (SystemParameters.TIME) AccumulatingTimer.stop("MethodSummaries.exitFunction")
         if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.pruneGlobalState")
-        val localState = pruneGlobalState(entryState)
+        val localState = pruneGlobalState(identifyingPP,entryState)
         if (SystemParameters.TIME) AccumulatingTimer.stop("MethodSummaries.pruneGlobalState")
         if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.lub")
         val result = localState.lub(exitState)
@@ -140,7 +143,7 @@ object MethodSummaries {
             val prevExitState = summary.cfgState.exitState()
             if (!prevExitState.isBottom) {
               val exitedState = exitFunction(callPoint, callTarget, prevExitState, parameters)
-              val localState = pruneGlobalState(entryState)
+              val localState = pruneGlobalState(identifyingPP,entryState)
               exitedState.lub(localState)
             } else prevExitState.bottom()
 
@@ -263,7 +266,7 @@ object MethodSummaries {
    * @tparam S The type of the state.
    * @return The exit state of the local edge
    */
-  private def pruneGlobalState[S <: State[S]](entryState: S): S = {
+  private def pruneGlobalState[S <: State[S]](identifyingPP:ProgramPoint, entryState: S): S = {
 
     var curState = entryState
     curState = curState.pruneVariables({
@@ -271,7 +274,8 @@ object MethodSummaries {
         id.typ.asInstanceOf[TouchType].isSingleton ||
           CFGGenerator.isGlobalReferenceIdent(id.toString) ||
           CFGGenerator.isParamIdent(id.toString) ||
-          CFGGenerator.isReturnIdent(id.toString)
+          CFGGenerator.isReturnIdent(id.toString) ||
+          (TouchAnalysisParameters.variablePacking && !Localization.matches(identifyingPP,id)) // Access-Analysis based localization!
     })
 
     curState = curState.pruneUnreachableHeap()
@@ -289,6 +293,7 @@ object MethodSummaries {
    *
    * Again, we perform abstract garbage collection to prune unreachable heap - but also, to generalize our summaries.
    *
+   * @param identifyingPP The program point identifying the call (depends on context sensitivity setting)
    * @param callPoint The program point of the call
    * @param callTarget The called method
    * @param entryState The entry state of the call edge, that is, the entry state of the call node
@@ -297,13 +302,13 @@ object MethodSummaries {
    * @tparam S The type of the state
    * @return The exit state of the call edge, that is, the entry state of the function
    */
-  private def enterFunction[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
+  private def enterFunction[S <: State[S]](identifyingPP:ProgramPoint, callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                                            parameters: List[ExpressionSet]): S = {
     var curState = entryState
 
-    if (parameters.length == callTarget.arguments.apply(0).length) {
+    if (parameters.length == callTarget.arguments.head.length) {
 
-      val inParameters = callTarget.arguments(0)
+      val inParameters = callTarget.arguments.head
 
       // Initialize in-parameters to temporary variables
       val tempVars = for ((decl, value) <- inParameters.zip(parameters)) yield {
@@ -314,13 +319,13 @@ object MethodSummaries {
         tempVar
       }
 
-      // Prune non-parameters and non-globals (reach. based localization)
-      if (TouchAnalysisParameters.localizeStateOnMethodCall) {
+      // ===== REACHABILITY-BASED LOCALIZATION =====
+      if (TouchAnalysisParameters.reachabilityBasedLocalization) {
         curState = curState.pruneVariables({
           id: VariableIdentifier =>
             !id.typ.asInstanceOf[TouchType].isSingleton &&
-              !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
-              !CFGGenerator.isParamIdent(id.toString)
+            !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
+            !CFGGenerator.isParamIdent(id.toString)
         })
       }
 
@@ -338,13 +343,29 @@ object MethodSummaries {
           CFGGenerator.isParamIdent(id.toString)
       })
 
+      // ===== ACCESS-ANALYSIS BASED LOCALIZATION =====
+      if (TouchAnalysisParameters.accessBasedLocalization && Localization.isPruning) {
+        /// DEBUG CODE, REMOVE LATER
+        curState match {
+          case value: Default[_] =>
+            val diff = value.ids.collect {
+              case id: VariableIdentifier if !Localization.matches(callPoint, id) => id
+            }
+            if (diff.nonEmpty) println("LOCALIZATION: " + callTarget.name + " going to: " + diff.mkString(","))
+          case _ =>
+        }
+        curState = curState.pruneVariables({
+          id: VariableIdentifier => Localization.matches(callPoint,id)
+        })
+      }
+
       // Prune unreachable heap locations
       curState = curState.pruneUnreachableHeap()
 
     } else {
 
       // For an unknown reason, sometimes actions are called with no arguments, without the TouchDevelop
-      // environement recognizing this as an error, In these cases, as we don't know the intended behavior,
+      // environment recognizing this as an error, In these cases, as we don't know the intended behavior,
       // we initialize all in-parameters to top. (It seems these parameters are implicit in very restricted
       // settings, resulting from conversions of previous language features)
 
@@ -352,7 +373,8 @@ object MethodSummaries {
       curState = curState.pruneVariables({
         id: VariableIdentifier =>
           !id.typ.asInstanceOf[TouchType].isSingleton &&
-            !CFGGenerator.isGlobalReferenceIdent(id.toString)
+            !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
+            (!TouchAnalysisParameters.variablePacking || Localization.matches(identifyingPP,id)) // Access-Analysis based localization!
       })
       curState = curState.pruneUnreachableHeap()
 

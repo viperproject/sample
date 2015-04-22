@@ -27,7 +27,7 @@ object PrettyPrinter {
       d match {
         case ActionType(ident, in, out, body, isPrivate) =>
           (if (isPrivate) "private " else "") +
-            ("action type") +
+            "action type" +
             apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
             " {\n" + apply(body) + "\n}"
         case ActionDefinition(ident, in, out, body, isEvent, isPrivate) =>
@@ -37,7 +37,11 @@ object PrettyPrinter {
             " {\n" + apply(body) + "\n}"
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
         case VariableDefinition(variable, _) => "var " + apply(variable) + " {}"
-        case TableDefinition(ident, typName, _, _) => "table " + apply(ident) + " { type = \"" + typName + "\" }"
+        case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
+          "table " + apply(ident) +
+            " { type = \"" + typeName + "\"; " +
+            s"cloudenabled = $isCloudEnabled; cloudpartiallyenabled = $isCloudPartiallyEnabled; persistent = $isPersistent; exported = $isExported;" +
+            "keys = {\n"+(keys map apply)+"\n} fields = {\n"+(fields map apply)+"\n} }"
         case LibraryDefinition(name, pub, usages, _, _, resolves) =>
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
             "usage " + "{\n    " + (usages map apply).mkString("\n    ") + "\n  }" + "\n  " +
@@ -80,7 +84,7 @@ object PrettyPrinter {
   }
 
   def apply(s: List[Statement])(implicit ppPrinter:((IdPositional,String) => String)): String = {
-    ((s map apply map (_.split("\n")) flatten) map ("  " + _)).mkString("\n")
+    s.map(apply).map(_.split("\n")).flatten.map("  " + _).mkString("\n")
   }
 
   def apply(s: Statement)(implicit ppPrinter:((IdPositional,String) => String)): String = {
@@ -94,7 +98,7 @@ object PrettyPrinter {
         case MetaStatement(key, value) => "meta " + apply(key) + " \"" + value + "\";"
         case If(condition, thenBody, elseBody) => "if (" + apply(condition) + ") then {\n" + apply(thenBody) + "\n}" +
           (if (elseBody.length > 0) " else {\n" + apply(elseBody) + "\n}" else "")
-        case WhereStatement(expr, handlers) => apply(expr) + (handlers map apply).mkString("")
+        case WhereStatement(expr, handlers, optParams) => apply(expr) + (optParams map apply).mkString("") + (handlers map apply).mkString("")
       })
   }
 
@@ -106,7 +110,7 @@ object PrettyPrinter {
         case LocalReference(ident) => "$" + apply(ident)
         case SingletonReference(ident, typ) => apply(ident)
         case Literal(typ, value) => typ match {
-          case TypeName("String",_) => "\"" + value + "\""
+          case TypeName("String",_,_) => "\"" + value + "\""
           case _ => value
         }
       })
@@ -116,6 +120,11 @@ object PrettyPrinter {
     ppPrinter(a," where " + apply(a.handlerName) + " (" +
         (a.inParameters map apply).mkString(",") + ") returns (" +
         (a.outParameters map apply).mkString(",") + ") {\n" + apply(a.body) + "\n}")
+  }
+
+
+  def apply(a: OptionalParameter)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(a," where " + apply(a.name) + " = " + apply(a.expr))
   }
 
   def apply(s: TypeName)(implicit ppPrinter:((IdPositional,String) => String)): String = {

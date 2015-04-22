@@ -159,16 +159,16 @@ object TypeList  {
     case TXml_Object.typeName => Some(TXml_Object)
     case TUnknown.typeName => Some(TUnknown)
 
-    case TypeName("Task",List(elt)) => Some(GTask(TypeList.getTypeOrFail(elt)))
-    case TypeName("Action1",List(elt)) => Some(GAction1(TypeList.getTypeOrFail(elt)))
-    case TypeName("Atomic Action1",List(elt)) => Some(GAtomic_Action1(TypeList.getTypeOrFail(elt)))
-    case TypeName("Collection", List(elt)) => Some(GCollection(TypeList.getTypeOrFail(elt)))
-    case TypeName("Entry", List(key,value)) => Some(GEntry(TypeList.getTypeOrFail(key),TypeList.getTypeOrFail(value)))
-    case TypeName("Comparison", List(elt)) => Some(GComparison(TypeList.getTypeOrFail(elt)))
-    case TypeName("Predicate",List(elt)) => Some(GPredicate(TypeList.getTypeOrFail(elt)))
-    case TypeName("Number Converter",List(elt)) => Some(GNumber_Converter(TypeList.getTypeOrFail(elt)))
-    case TypeName("String Converter",List(elt)) => Some(GString_Converter(TypeList.getTypeOrFail(elt)))
-    case TypeName("Ref",List(elt)) => Some(GRef(TypeList.getTypeOrFail(elt)))
+    case TypeName("Task",List(elt),false) => Some(GTask(TypeList.getTypeOrFail(elt)))
+    case TypeName("Action1",List(elt),false) => Some(GAction1(TypeList.getTypeOrFail(elt)))
+    case TypeName("Atomic Action1",List(elt),false) => Some(GAtomic_Action1(TypeList.getTypeOrFail(elt)))
+    case TypeName("Collection", List(elt),false) => Some(GCollection(TypeList.getTypeOrFail(elt)))
+    case TypeName("Entry", List(key,value),false) => Some(GEntry(TypeList.getTypeOrFail(key),TypeList.getTypeOrFail(value)))
+    case TypeName("Comparison", List(elt),false) => Some(GComparison(TypeList.getTypeOrFail(elt)))
+    case TypeName("Predicate",List(elt),false) => Some(GPredicate(TypeList.getTypeOrFail(elt)))
+    case TypeName("Number Converter",List(elt),false) => Some(GNumber_Converter(TypeList.getTypeOrFail(elt)))
+    case TypeName("String Converter",List(elt),false) => Some(GString_Converter(TypeList.getTypeOrFail(elt)))
+    case TypeName("Ref",List(elt),false) => Some(GRef(TypeList.getTypeOrFail(elt)))
 
     case _ =>
       if (!CFGGenerator.isLibraryIdent(typ.ident)) {

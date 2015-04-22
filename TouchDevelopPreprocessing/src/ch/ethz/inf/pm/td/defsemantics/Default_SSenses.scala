@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SSenses extends ASingleton {
 
-  lazy val typeName = TypeName("Senses")
+  lazy val typeName = TypeName("Senses", isSingleton = true)
           
   /** Sometimes used: Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
   def member_acceleration_quick = ApiMember(

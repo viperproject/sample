@@ -15,6 +15,6 @@ libraryDependencies += "org.jgrapht" % "jgrapht-core" % "0.9.0"
 libraryDependencies += "org.jgrapht" % "jgrapht-ext" % "0.9.0"
 
 libraryDependencies ++= Seq(
-  "org.slf4s" %% "slf4s-api" % "1.7.7",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
   "ch.qos.logback" % "logback-classic" % "1.1.2"
 )

@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 object SLibs extends ASingleton {
 
-  lazy val typeName = TypeName("♻")
+  lazy val typeName = TypeName("♻",isSingleton = true)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {

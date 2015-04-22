@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SInvalid extends ASingleton {
 
-  lazy val typeName = TypeName("Invalid")
+  lazy val typeName = TypeName("Invalid", isSingleton = true)
           
   /** Never used: Creates an invalid Action instance */
   def member_action = ApiMember(

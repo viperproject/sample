@@ -14,8 +14,7 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import ch.ethz.inf.pm.td.semantics.AAny
-
-import scala.collection.mutable
+import com.typesafe.scalalogging.StrictLogging
 
 /**
  *
@@ -25,7 +24,7 @@ import scala.collection.mutable
  *
  */
 class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
-  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], R]] {
+  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], R]] with StrictLogging {
 
   val STRING_DOMAIN = "StringDomain"
   val NUMERICAL_DOMAIN = "Domain"
@@ -81,9 +80,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
   }
 
-  override def reset() {
-    Unit
-  }
+  override def reset() = ()
 
   override def getProperties: List[Property] = {
 
@@ -120,51 +117,74 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     // Set up the environment
-    SystemParameters.progressOutput.begin(" ANALYZING " + compiler.main.name)
-    if(SystemParameters.TIME) AccumulatingTimer.reset
+    logger.info(" ANALYZING " + compiler.main.name)
+    if(SystemParameters.TIME) AccumulatingTimer.reset()
 
     // PRE-ANALYSIS: Discover required fragment
+    //
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
+    // For more information, see Challenge 5 in OOPSLA 2014, Brutschy/Ferrara/Müller
+    //
     if (TouchAnalysisParameters.libraryFieldPruning) {
       SystemParameters.resetOutput()
-      MethodSummaries.reset[TouchState.VariablePackingPreAnalysis]()
+      MethodSummaries.reset[TouchState.PreAnalysis]()
       Reporter.disableAllOutputs()
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.LibraryFieldAnalysis")
       RequiredLibraryFragmentAnalysis(compiler.parsedScripts,output)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.LibraryFieldAnalysis")
-      //println(compiler.relevantLibraryFields)
+      logger.debug("Relevant Fields: "+compiler.relevantLibraryFields.mkString(","))
     }
 
     // PRE-ANALYSIS: Run only the heap analysis
+    //
+    // We collect
+    // (1) For each function which variables are accessed (for access-based localization, Oh/Brutschy/Yi, VMCAI 2011)
+    // (2) For each numerical variable, with which values it is compared (for variable packing, as in Astree)
+    //
     val newEntryState = if (TouchAnalysisParameters.variablePacking) {
+      Localization.reset()
       TouchVariablePacking.reset()
       SystemParameters.resetOutput()
-      MethodSummaries.reset[TouchState.VariablePackingPreAnalysis]()
+      MethodSummaries.reset[TouchState.PreAnalysis]()
       Reporter.disableAllOutputs()
       val oldNumber = TouchAnalysisParameters.numberOfVersions
       TouchAnalysisParameters.numberOfVersions = 1
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
-      analyzeScript[TouchState.VariablePackingPreAnalysis](compiler,methods)(TouchState.VariablePackingPreAnalysis())
-      if (SystemParameters.TIME) println(AccumulatingTimer)
+      analyzeScript[TouchState.PreAnalysis](compiler,methods)(TouchState.PreAnalysis())
+      //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
       TouchAnalysisParameters.numberOfVersions = oldNumber
-      //TouchVariablePacking.dump()
-      TouchEntryStateBuilder(TouchAnalysisParameters.get).topStateWithClassifier(TouchVariablePacking.makeClassifier).asInstanceOf[S]
+      logger.debug("Variable packing: "+TouchVariablePacking)
+      val classifier = TouchVariablePacking.makeClassifier
+      if (TouchAnalysisParameters.accessBasedLocalization) {
+        logger.debug("Localization "+Localization)
+        Localization.startPruning(variablePacker = Some(classifier))
+      }
+      TouchEntryStateBuilder(TouchAnalysisParameters.get).topStateWithClassifier(classifier).asInstanceOf[S]
     } else entryState
 
+    //
     // MAIN ANALYSIS
+    //
+    if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.MainAnalysis")
     SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
     analyzeScript(compiler,methods)(newEntryState)
+    if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.MainAnalysis")
 
+    //
     // CHECK PROPERTIES
+    //
+    // Most importantly, we are reporting on bottom values in the CFG here, for debugging and reporting of
+    // unreachable code.
+    //
     val summaries = MethodSummaries.getSummaries[S]
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
-    val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mdecl.classDef.typ, mdecl, cfgState)
+    val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
     if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
-      val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
-      for (un <- unanalyzed) {
-        println(" Did not analyze "+un.name+" (may be unreachable)")
+      val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
+      for (un <- unAnalyzed) {
+        logger.debug(" Did not analyze "+un.name+" (may be unreachable)")
       }
     }
     if (SystemParameters.property != null) {
@@ -176,9 +196,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     Exporters(compiler)
 
-    if (SystemParameters.TIME) println(AccumulatingTimer)
+    //if (SystemParameters.TIME) logger.debug(AccumulatingTimer.toString)
 
-    SystemParameters.progressOutput.end()
     results
   }
 
@@ -294,8 +313,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     }
 
     // Execute abstract semantics of each public method (or the ones selected in the GUI)
-    val exitStates = for (mdecl <- methodsToBeAnalyzed) yield {
-      Some(analyzeMethod(mdecl, initialState))
+    val exitStates = for (mDecl <- methodsToBeAnalyzed) yield {
+      Some(analyzeMethod(mDecl, initialState))
     }
 
     // Compute the least upper bound of all public method exit states
@@ -320,8 +339,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
   private def analyzeEvents[S <: State[S]](compiler: TouchCompiler, methods: List[String])(s: S): S = {
 
     var cur = s
-    for (mdecl <- compiler.events) {
-      cur = cur.lub(analyzeMethod(mdecl, s))
+    for (mDecl <- compiler.events) {
+      cur = cur.lub(analyzeMethod(mDecl, s))
     }
 
     resetEnv(cur)
@@ -533,13 +552,15 @@ object TouchVariablePacking {
   def reset() =
     packed = Relation.empty[Identifier]
 
-  def dump() {
+  override def toString:String = {
     var toDump = packed.getAll
+    var str = Set.empty[String]
     while (toDump.nonEmpty) {
       val closure = packed.closure(toDump.head)
-      println("Variable pack: "+closure.mkString(","))
+      str += "{"+closure.mkString(",")+"}"
       toDump = toDump -- closure
     }
+    str.mkString(",")
   }
 
   def normalize(id:Identifier):Identifier = {

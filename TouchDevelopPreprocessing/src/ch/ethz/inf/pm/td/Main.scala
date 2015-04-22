@@ -75,15 +75,16 @@ object Main {
       TouchAnalysisParameters(
         execution = ExecutionModelParams(
           //localizeStateOnMethodCall = true, BUGGY
-          singleExecution = true,
+          //singleExecution = true,
           prematureAbortion = false,
           //singleEventOccurrence = true, BUGGY
           contextSensitiveInterproceduralAnalysis = false
         ),
         domains = DomainParams(
           collectionsSummarizeElements = true,
-          collectionsSummarizeLinearElements = true,
-          numericalDomain = NumericDomainChoice.Intervals)
+          collectionsSummarizeLinearElements = true
+//          numericalDomain = NumericDomainChoice.Intervals
+        )
       )
     )
 

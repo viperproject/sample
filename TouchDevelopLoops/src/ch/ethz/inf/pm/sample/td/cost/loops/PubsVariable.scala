@@ -1,22 +1,22 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
 object NameEncoder {
-  private var sourceName2TranslatedNames = Map.empty[String, String];
-  private var index = 0;
+  private var sourceName2TranslatedNames = Map.empty[String, String]
+  private var index = 0
 
 
   def reset() = {
-    index = 0;
-    sourceName2TranslatedNames = Map.empty[String, String];
+    index = 0
+    sourceName2TranslatedNames = Map.empty[String, String]
   }
 
   def getVariableName (c: String) : String = {
-    if(sourceName2TranslatedNames.keySet.contains(c)) return sourceName2TranslatedNames.apply(c);
+    if(sourceName2TranslatedNames.keySet.contains(c)) return sourceName2TranslatedNames.apply(c)
     else {
-      val newName=getFreshVariableName();
+      val newName=getFreshVariableName()
       sourceName2TranslatedNames = sourceName2TranslatedNames + ((c, newName))
       //println("Variable "+c+" mapped to "+newName)
-      return newName;
+      return newName
     }
   }
 
@@ -25,14 +25,14 @@ object NameEncoder {
   }
 
   private def getFreshVariableName() = {
-    index=index+1;
+    index=index+1
     indexToString(index-1)
-  };
+  }
 
   private def indexToString(index : Int) : String = {
     if (index>=10)
-      intToChar(index%10)+indexToString(index/10);
-    else intToChar(index)+"";
+      intToChar(index%10)+indexToString(index/10)
+    else intToChar(index)+""
   }
 
   private def intToChar(i : Int) : Char = i match {
@@ -55,7 +55,7 @@ object NameEncoder {
 class PubsVariable (val sourceName: String, val isParameter: Boolean) {
   val name = NameEncoder.getVariableName(sourceName)
 
-  def getSourceName() = sourceName;
+  def getSourceName() = sourceName
 
   // null if this is an argument (or return value), or if we can't find a initial value
   var initialValue : LinearExpression = null

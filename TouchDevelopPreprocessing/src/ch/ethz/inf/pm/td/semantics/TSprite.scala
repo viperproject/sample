@@ -220,24 +220,25 @@ object TSprite extends Default_TSprite {
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
-      //      val matches = state.getFieldValueWhere(sprites,TSprite_Set.field_entry.getField.get,TSprite_Set.field_entry.typ,
-      //      {
-      //        (x:Identifier,s:S) =>
-      //          val sprite = Field[S](x,TSprite_Set.entryType.field_value)(s,pp)
-      //          val overlapCheck = CallApi[S](sprite,"overlaps with",List(this0),TBoolean)(s,pp)
-      //          !Assume[S](overlapCheck.expr)(overlapCheck,pp).isBottom
-      //      }
-      //      )._1.map({
-      //        x: Identifier => toExpressionSet(Field[S](x,TSprite_Set.entryType.field_value))
-      //      })
-      //
-      //      if (matches.size == 0) {
-      //        New[S](TSprite_Set)
-      //      } else {
-      //        val overlappingEntries = Lattice.bigLub[ExpressionSet](matches)
-      //        New[S](TSprite_Set, initialCollectionValue = Some(overlappingEntries), initialCollectionSize = Some(toRichExpression(matches.size)))
-      //      }
-      New[S](TSprite_Set) lub Return[S](sprites)
+//      val matches = state.getFieldValueWhere(sprites,TSprite_Set.field_entry.getField.get,TSprite_Set.field_entry.typ,
+//      {
+//        (x:Identifier,s:S) =>
+//          val sprite = Field[S](x,TSprite_Set.entryType.field_value)(s,pp)
+//          val overlapCheck = CallApi[S](sprite,"overlaps with",List(this0),TBoolean)(s,pp)
+//          !Assume[S](overlapCheck.expr)(overlapCheck,pp).isBottom
+//      }
+//      )._1.map({
+//        x: Identifier => toExpressionSet(Field[S](x,TSprite_Set.entryType.field_value))
+//      })
+//
+//      if (matches.size == 0) {
+//        New[S](TSprite_Set)
+//      } else {
+//        val overlappingEntries = Lattice.bigLub[ExpressionSet](matches)
+      New[S](TSprite_Set, initials = Map(
+        TSprite_Set.field_count -> 0.ndToExcl(Field[S](sprites,TSprite_Set.field_count)),
+        TSprite_Set.field_entry -> Field[S](sprites,TSprite_Set.field_entry)
+      ))
 
     /** Do the sprites overlap */
     case "overlaps with" =>

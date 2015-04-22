@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.td.typecheck
 import ch.ethz.inf.pm.td.parser._
 import scala.collection._
 import ch.ethz.inf.pm.td.compiler.{TypeList, CFGGenerator, TouchException}
-import util.parsing.input.Position
+
+import scala.util.parsing.input.Position
 
 /**
  *
@@ -91,10 +92,10 @@ class SymbolTable(script:Script) {
   def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
 
     typ match {
-      case TypeName("code",_) => resolveCode(symbol, args, pos)
-      case TypeName("♻",_) => List(TypeName(CFGGenerator.libraryIdent(symbol)))
-      case TypeName("data",_) => List(resolveData(symbol, pos))
-      case TypeName("art",_) => List(resolveData(symbol, pos))
+      case TypeName("code",_,_) => resolveCode(symbol, args, pos)
+      case TypeName("♻",_,_) => List(TypeName(CFGGenerator.libraryIdent(symbol)))
+      case TypeName("data",_,_) => List(resolveData(symbol, pos))
+      case TypeName("art",_,_) => List(resolveData(symbol, pos))
       case _ =>
         if (CFGGenerator.isLibraryIdent(typ.ident)) {
           val lib = CFGGenerator.getLibraryName(typ.ident)

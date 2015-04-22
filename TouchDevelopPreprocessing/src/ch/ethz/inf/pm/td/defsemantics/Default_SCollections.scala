@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SCollections extends ASingleton {
 
-  lazy val typeName = TypeName("Collections")
+  lazy val typeName = TypeName("Collections", isSingleton = true)
           
   /** Never used: Creates an empty Action collection */
   def member_create_action_collection = ApiMember(

@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SBazaar extends ASingleton {
 
-  lazy val typeName = TypeName("Bazaar")
+  lazy val typeName = TypeName("Bazaar", isSingleton = true)
           
   /** Never used: Returns the Abstract Syntax Tree JSON object for specified script */
   def member_ast_of = ApiMember(

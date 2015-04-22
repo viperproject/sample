@@ -59,12 +59,28 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Tables
 
   lazy val tableDefinition: PackratParser[Declaration] = positioned (
-    "table" ~ ident ~ "{" ~ tableContent ~ "}" ^^ {case _~a~_~b~_ => TableDefinition(a,b._1,b._2,b._3)}
+    "table" ~ ident ~ "{" ~ tableContent ~ "}" ^^ {case _~a~_~b~_ => TableDefinition(a,b._1,b._2,b._3,b._4,b._5,b._6,b._7)}
   )
 
-  lazy val tableContent: PackratParser[(String,List[Parameter],List[Parameter])] = (
-    ( "type" ~ "=" ~ stringLiteral ~ ";" ~ ("keys" ~ "{" ~ parameter.* ~ "}").? ~ ("fields" ~ "{" ~ parameter.* ~ "}").? )
-      ^^ {case _~_~a~_~b~c => (a.toLowerCase, b match { case Some(_~_~x~_) => x ; case None => Nil }, c match { case Some(_~_~x~_) => x ; case None => Nil } )}
+  lazy val tableContent: PackratParser[(String,List[Parameter],List[Parameter],Boolean,Boolean,Boolean,Boolean)] = (
+    ( "type" ~ "=" ~ stringLiteral ~ ";" ~
+      ("cloudenabled" ~ "=" ~ ("true" | "false") ~ ";").? ~
+      ("cloudpartiallyenabled" ~ "=" ~ ("true" | "false") ~ ";").? ~
+      ("persistent" ~ "=" ~ ("true" | "false") ~ ";").? ~
+      ("exported" ~ "=" ~ ("true" | "false") ~ ";").? ~
+      ("keys" ~ "{" ~ parameter.* ~ "}").? ~
+      ("fields" ~ "{" ~ parameter.* ~ "}").? )
+      ^^ {
+        case _~_~a~_~cE~cPE~p~e~b~c =>
+          val typ = a.toLowerCase
+          val keys = b match { case Some(_~_~x~_) => x ; case None => Nil }
+          val fields = c match { case Some(_~_~x~_) => x ; case None => Nil }
+          val cloudEnabled = cE match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
+          val cloudPartiallyEnabled = cPE match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
+          val persistent = p match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
+          val exported = e match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
+          (typ, keys, fields, cloudEnabled, cloudPartiallyEnabled, persistent, exported)
+    }
   )
 
   // Library Imports
@@ -159,7 +175,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val whereStmt: PackratParser[Statement] = positioned (
     (expression <~ ";") ~ rep1("where" ~> actionHeader ~ block)  ^^
-      { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b,inParametersToActionType(in)) }) }
+      { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b,inParametersToActionType(in)) }, Nil) }
   )
 
   // Composed expressions with operator preferences
@@ -334,16 +350,16 @@ object ScriptParser extends RegexParsers with PackratParsers {
   def inParametersToActionType(params: List[Parameter]): TypeName = {
     TypeName(params match {
       case Nil => "Action"
-      case List(Parameter(_, TypeName("Boolean",_))) => "Boolean Action"
-      case List(Parameter(_, TypeName("Number",_))) => "Number Action"
-      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Position Action"
-      case List(Parameter(_, TypeName("String",_))) => "Text Action"
-      case List(Parameter(_, TypeName("Sprite",_))) => "Sprite Action"
-      case List(Parameter(_, TypeName("Sprite Set",_))) => "Sprite Set Action"
-      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Vector Action"
-      case List(Parameter(_, TypeName("Web Response",_))) => "Web Response Action"
-      case List(Parameter(_, TypeName("Message Collection",_))) => "Message Collection Action"
-      case List(Parameter(_, TypeName(s,_))) => s + " action"
+      case List(Parameter(_, TypeName("Boolean",_,_))) => "Boolean Action"
+      case List(Parameter(_, TypeName("Number",_,_))) => "Number Action"
+      case List(Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_))) => "Position Action"
+      case List(Parameter(_, TypeName("String",_,_))) => "Text Action"
+      case List(Parameter(_, TypeName("Sprite",_,_))) => "Sprite Action"
+      case List(Parameter(_, TypeName("Sprite Set",_,_))) => "Sprite Set Action"
+      case List(Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_))) => "Vector Action"
+      case List(Parameter(_, TypeName("Web Response",_,_))) => "Web Response Action"
+      case List(Parameter(_, TypeName("Message Collection",_,_))) => "Message Collection Action"
+      case List(Parameter(_, TypeName(s,_,_))) => s + " action"
       case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }

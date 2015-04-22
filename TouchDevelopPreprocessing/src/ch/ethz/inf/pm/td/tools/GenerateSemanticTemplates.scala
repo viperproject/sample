@@ -32,8 +32,8 @@ object GenerateSemanticTemplates {
 
   def typeNameToScalaCreationCode(t:TypeName):String = {
     "TypeName(\""+t.ident+"\"" +
-      (if (t.arguments.nonEmpty) ", List("+t.arguments.map{typeNameToScalaType(_)+".typeName"}.mkString(", ")+")"
-      else "") +
+      (if (t.arguments.nonEmpty) ", List("+t.arguments.map{typeNameToScalaType(_)+".typeName"}.mkString(", ")+")" else "") +
+      (if (t.isSingleton) ", isSingleton = true" else "") +
       ")"
   }
 
@@ -72,7 +72,7 @@ object GenerateSemanticTemplates {
         "AAny"
       }
 
-      var myTypeName = TypeName(name)
+      var myTypeName = TypeName(name,isSingleton = !isData)
       val JArray(properties) = typ \ "properties"
       // if we are a generic type, we have to determine the correct type name from a "this" parameter
       if (properties.nonEmpty) {
@@ -83,7 +83,7 @@ object GenerateSemanticTemplates {
           val JString(paramName) = parameter \ "name"
           val JString(paramType) = parameter \ "type"
           if (paramName == "this") {
-            myTypeName =  WebASTImporter.makeTypeName(paramType)
+            myTypeName =  WebASTImporter.makeTypeName(paramType,isSingleton = !isData)
           }
         }
       }

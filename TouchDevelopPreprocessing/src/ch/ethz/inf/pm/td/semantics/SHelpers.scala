@@ -16,7 +16,7 @@ import RichNativeSemantics._
 
 object SHelpers extends ASingleton {
 
-  lazy val typeName = TypeName("Helpers")
+  lazy val typeName = TypeName("Helpers",isSingleton = true)
 
   val CreateMethod = """create (.*action) (.+)""".r
 

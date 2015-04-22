@@ -14,18 +14,18 @@ object Matcher {
   }
 
   def apply(decls:List[Declaration])(implicit onDeclaration : Declaration => Unit, onStatement : Statement => Unit, onExpression: Expression => Unit) {
-    decls foreach (apply _)
+    decls foreach apply
   }
 
   def apply(decl:Declaration)(implicit onDeclaration : Declaration => Unit, onStatement : Statement => Unit, onExpression: Expression => Unit) {
     decl match {
-      case ActionDefinition(_,_,_,bd,_,_) => bd.foreach(apply _)
+      case ActionDefinition(_,_,_,bd,_,_) => bd.foreach(apply)
       case _ => ()
     }
   }
 
   def apply(stmts:List[Statement])(implicit onStatement : Statement => Unit, onExpression: Expression => Unit) {
-    stmts foreach (apply _)
+    stmts foreach apply
   }
 
   def apply(stmt:Statement)(implicit onStatement : Statement => Unit, onExpression: Expression => Unit) {
@@ -36,14 +36,14 @@ object Matcher {
       case Foreach(loc,coll,guards,body) => apply(coll); apply(guards); apply(body)
       case If(cond,then,els) => apply(cond); apply(then); apply(els)
       case Box(body) => apply(body)
-      case WhereStatement(expr,handlers) => apply(expr); handlers foreach (apply _)
+      case WhereStatement(expr,handlers,optParam) => apply(expr); handlers foreach apply; optParam foreach apply
       case ExpressionStatement(expr) => apply(expr)
       case _ => ()
     }
   }
 
   def apply(exprs:List[Expression])(implicit onExpression: Expression => Unit) {
-    exprs foreach (apply _)
+    exprs foreach apply
   }
 
   def apply(expr:Expression)(implicit onExpression: Expression => Unit) {
@@ -58,4 +58,7 @@ object Matcher {
     apply(handler.body)
   }
 
+  def apply(opt:OptionalParameter)(implicit onStatement : Statement => Unit, onExpression: Expression => Unit) {
+    apply(opt.expr)
+  }
 }

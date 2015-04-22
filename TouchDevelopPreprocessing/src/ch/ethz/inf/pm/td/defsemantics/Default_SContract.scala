@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SContract extends ASingleton {
 
-  lazy val typeName = TypeName("Contract")
+  lazy val typeName = TypeName("Contract", isSingleton = true)
           
   /** Never used: Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
   def member_assert = ApiMember(

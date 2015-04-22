@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SWall extends ASingleton {
 
-  lazy val typeName = TypeName("Wall")
+  lazy val typeName = TypeName("Wall", isSingleton = true)
           
   /** Frequently used: Add a new button. icon must be the name of a built-in icon, text must be non-empty. */
   def member_add_button = ApiMember(

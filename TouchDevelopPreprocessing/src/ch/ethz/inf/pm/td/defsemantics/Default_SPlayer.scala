@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SPlayer extends ASingleton {
 
-  lazy val typeName = TypeName("Player")
+  lazy val typeName = TypeName("Player", isSingleton = true)
           
   /** Frequently used: Gets the active song if any */
   def member_active_song = ApiMember(

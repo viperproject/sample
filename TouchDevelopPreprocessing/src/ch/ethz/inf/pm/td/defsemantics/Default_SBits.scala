@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SBits extends ASingleton {
 
-  lazy val typeName = TypeName("Bits")
+  lazy val typeName = TypeName("Bits", isSingleton = true)
           
   /** Never used: Add two signed 32 bit numbers */
   def member_add_int32 = ApiMember(

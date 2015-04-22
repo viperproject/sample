@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SCloud_Data extends ASingleton {
 
-  lazy val typeName = TypeName("Cloud Data")
+  lazy val typeName = TypeName("Cloud Data", isSingleton = true)
           
   /** Never used: [**dbg**] Authenticate against your deployed cloud library. Returns false if the authentication fails or the connection times out. */
   def member_authenticate = ApiMember(

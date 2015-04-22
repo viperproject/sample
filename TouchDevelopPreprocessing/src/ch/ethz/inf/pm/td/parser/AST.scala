@@ -65,7 +65,11 @@ case class VariableDefinition(variable:Parameter,
 case class TableDefinition(ident:String,
                            typName:String,
                            keys:List[Parameter],
-                           fields:List[Parameter])
+                           fields:List[Parameter],
+                           isCloudEnabled:Boolean,
+                           isPartiallyCloudEnabled:Boolean,
+                           isPersistent:Boolean,
+                           isExported:Boolean)
   extends Declaration
   with IdPositional
 
@@ -110,7 +114,7 @@ case class ActionResolution(localName:String,libName:String)
 case class Parameter(ident:String,typeName:TypeName)
   extends IdPositional
 
-case class TypeName(ident:String,arguments:List[TypeName] = Nil)
+case class TypeName(ident:String,arguments:List[TypeName] = Nil, isSingleton:Boolean = false)
   extends IdPositional {
   override lazy val toString:String = (arguments:::List(ident)).mkString(" ")
   def makeCode:String = {
@@ -154,9 +158,11 @@ case class ExpressionStatement(expr: Expression)
   extends Statement
   with IdPositional
 
-case class WhereStatement(expr:Expression,handlers:List[InlineAction])
+case class WhereStatement(expr:Expression,handlers:List[InlineAction], optionalParameters:List[OptionalParameter])
   extends Statement
   with IdPositional
+
+case class OptionalParameter(name:String,expr:Expression) extends IdPositional
 
 case class InlineAction(handlerName:String,
                         inParameters:List[Parameter],

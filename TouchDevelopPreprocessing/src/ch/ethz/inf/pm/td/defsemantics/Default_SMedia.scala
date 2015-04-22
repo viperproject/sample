@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SMedia extends ASingleton {
 
-  lazy val typeName = TypeName("Media")
+  lazy val typeName = TypeName("Media", isSingleton = true)
           
   /** Sometimes used: Chooses a picture from the media library */
   def member_choose_picture = ApiMember(

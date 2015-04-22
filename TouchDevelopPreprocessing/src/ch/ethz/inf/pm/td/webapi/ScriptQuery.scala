@@ -37,6 +37,7 @@ case class ScriptRecord(
                          islibrary: Boolean,
                          installations: Int,
                          runs: Int,
+                         librarydependencyids: List[String],
                          screenshotthumburl: String,
                          screenshoturl: String,
                          toptagids: List[String]) {

@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SMath extends ASingleton {
 
-  lazy val typeName = TypeName("Math")
+  lazy val typeName = TypeName("Math", isSingleton = true)
           
   /** Frequently used: Returns the absolute value of a number */
   def member_abs = ApiMember(
@@ -314,15 +314,6 @@ trait Default_SMath extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Frequently used: Renamed to 'random' */
-  def member_rand = ApiMember(
-    name = "rand",
-    paramTypes = List(ApiParam(TNumber)),
-    thisType = ApiParam(this),
-    returnType = TNumber,
-    semantics = DefaultSemantics
-  )
-
   /** Sometimes used: Returns a random floating-point number x: 0 ≤ x < 1 */
   def member_random_normalized = ApiMember(
     name = "random normalized",
@@ -502,7 +493,6 @@ trait Default_SMath extends ASingleton {
     "pow" -> member_pow,
     "rad to deg" -> member_rad_to_deg,
     "rand norm" -> member_rand_norm,
-    "rand" -> member_rand,
     "random normalized" -> member_random_normalized,
     "random range" -> member_random_range,
     "random" -> member_random,

@@ -80,6 +80,15 @@ trait Default_TUser extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the user settings if any. Supported fields are nickname, editormode, twitterhandle, githubuser, minecraftuser */
+  def member_settings = ApiMember(
+    name = "settings",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TJson_Object,
+    semantics = DefaultSemantics
+  )
+
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "about" -> member_about,
@@ -88,7 +97,8 @@ trait Default_TUser extends AAny {
     "name" -> member_name,
     "picture address" -> member_picture_address,
     "picture" -> member_picture,
-    "preload" -> member_preload
+    "preload" -> member_preload,
+    "settings" -> member_settings
   )
             
 

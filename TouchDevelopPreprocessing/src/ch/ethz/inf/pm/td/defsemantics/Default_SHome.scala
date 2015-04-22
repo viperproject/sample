@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SHome extends ASingleton {
 
-  lazy val typeName = TypeName("Home")
+  lazy val typeName = TypeName("Home", isSingleton = true)
           
   /** Rarely used: [**not implemented**] [**obsolete**] Choose a media player on the current wireless network */
   def member_choose_player = ApiMember(

@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.output.Exporters
 
 object TouchDevelopEntryStateBuilder {
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[SummaryNodeWrapper[NonDeterminismWrapper[StaticVariablePackingDomain[BoxedNonRelationalNumericalDomain[DoubleInterval],ApronInterface.Default]]]], NonrelationalStringDomain[StringKSetDomain]]
+  type SemanticDomainType = StringsAnd[InvalidAnd[StaticVariablePackingDomain[BoxedNonRelationalNumericalDomain[DoubleInterval],SummaryNodeWrapper[NonDeterminismWrapper[ApronInterface.Default]]]], NonrelationalStringDomain[StringKSetDomain]]
 
 }
 
@@ -48,18 +48,22 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
         case Some(x) => x
         case None => VariablePackingClassifier.OnePacker
       }
-    val domain =
-      numericalDomainChoice match {
+
+    val relationalDomain =
+      SummaryNodeWrapper(NonDeterminismWrapper(numericalDomainChoice match {
 //        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
         case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
         case NumericDomainChoice.OptOctagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
         case NumericDomainChoice.Octagons => ApronInterface.Default(None, new Octagon(), env = Set.empty).factory()
         case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
         case NumericDomainChoice.StrictPolyhedra => ApronInterface.Default(None, new Polka(true), env = Set.empty).factory()
-      }
+      }))
+
+    val nonRelationalDomain = BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)
+
     StringsAnd(
       InvalidAnd(
-        SummaryNodeWrapper(NonDeterminismWrapper(StaticVariablePackingDomain(BoxedNonRelationalNumericalDomain(DoubleInterval.Top),VariablePackMap(classifier,domain,Map.empty))))
+        StaticVariablePackingDomain(nonRelationalDomain,VariablePackMap(classifier,relationalDomain,Map.empty))
       ),
       NonrelationalStringDomain(
         StringKSetDomain.Top(TouchAnalysisParameters.stringRepresentationBound)

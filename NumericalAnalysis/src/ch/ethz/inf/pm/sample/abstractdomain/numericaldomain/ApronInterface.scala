@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
+import com.typesafe.scalalogging.LazyLogging
 
 object ApronInterface {
 
@@ -31,7 +32,8 @@ object ApronInterface {
 trait ApronInterface[T <: ApronInterface[T]]
   extends RelationalNumericalDomain[T]
   with BooleanExpressionSimplifier[T]
-  with SimplifiedSemanticDomain[T] {
+  with SimplifiedSemanticDomain[T]
+  with LazyLogging {
   self: T =>
 
   def state: Option[Abstract1]
@@ -338,7 +340,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     } else if (variable.typ.isNumericalType) {
 
       if (!ids.contains(variable)) {
-        //println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
+        logger.debug("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
         return bottom()
       }
 
@@ -356,7 +358,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       for (id <- expr.ids) {
 
         if (!ids.contains(id)) {
-//          println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+          logger.debug("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
           return bottom()
         }
 
@@ -399,7 +401,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         return this
       }
       if (!ids.contains(id)) {
-        println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
+        logger.debug("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
         return bottom()
       }
     }
@@ -566,7 +568,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     // identifiers in the apron state (Abstract1).
     val idsToRemoveFromState = (resultingState.getEnvironment.getVars.toSet[String] -- newEnvironment.map(_.getName)).toArray[String]
     if (idsToRemoveFromState.nonEmpty) {
-      println("ApronInterface.merge: The set of variables in the state is not a subset of variables in the environment. This is a bug in merge, hacked in fix is provided.")
+      logger.debug("ApronInterface.merge: The set of variables in the state is not a subset of variables in the environment. This is a bug in merge, hacked in fix is provided.")
       resultingState.changeEnvironment(domain, resultingState.getEnvironment.remove(idsToRemoveFromState), false)
     }
     // END OF HACKED FIX
@@ -813,7 +815,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       }
     case _ =>
       // Naturally, not all expressions will be supported by the numerical domain
-      //println("Unhandled expression type in APRON interface (returning top expression): "+e)
+      logger.debug("Unhandled expression type in APRON interface (returning top expression): "+e)
       List(topExpression())
   }
 
@@ -878,7 +880,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     case x: Expression =>
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=, x.typ), env)
     case _ =>
-      println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
+      logger.debug("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))
   }
 

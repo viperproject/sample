@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 object SRecords extends ASingleton {
 
-  lazy val typeName = TypeName("records")
+  lazy val typeName = TypeName("records",isSingleton = true)
 
   override def declarations = super.declarations ++ mkGetterSetters(TypeList.records.toList)
   override def possibleFields = super.possibleFields ++ TypeList.records

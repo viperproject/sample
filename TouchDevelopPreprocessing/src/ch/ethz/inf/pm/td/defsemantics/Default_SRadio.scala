@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SRadio extends ASingleton {
 
-  lazy val typeName = TypeName("Radio")
+  lazy val typeName = TypeName("Radio", isSingleton = true)
           
   /** Rarely used: Gets the frequency */
   def member_frequency = ApiMember(

@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SLanguages extends ASingleton {
 
-  lazy val typeName = TypeName("Languages")
+  lazy val typeName = TypeName("Languages", isSingleton = true)
           
   /** Sometimes used: Gets the current language code, to be used in the 'translate' method. */
   def member_current_language = ApiMember(

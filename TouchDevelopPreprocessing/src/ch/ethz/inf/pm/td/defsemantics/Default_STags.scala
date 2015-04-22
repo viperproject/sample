@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_STags extends ASingleton {
 
-  lazy val typeName = TypeName("Tags")
+  lazy val typeName = TypeName("Tags", isSingleton = true)
           
   /** Never used: Receives a picture through NFC. */
   def member_nfc_receive_picture = ApiMember(

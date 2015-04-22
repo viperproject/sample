@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TCollection_Message_Action extends AAction {
 
   lazy val typeName = TypeName("Collection Message Action")
-
+          
   def actionArguments = List(ApiParam(GCollection(TMessage)))
 
 

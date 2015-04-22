@@ -132,14 +132,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)
     parsedScripts = parsedScripts ::: List(newCFG)
 
-
     isInLibraryMode = script.isLibrary
-
-    if (TouchAnalysisParameters.printScriptFirst) {
-      for (p <- parsedTouchScripts) {
-        println(p._2)
-      }
-    }
 
     newCFG
   }

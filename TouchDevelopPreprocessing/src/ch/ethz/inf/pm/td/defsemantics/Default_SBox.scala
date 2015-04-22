@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SBox extends ASingleton {
 
-  lazy val typeName = TypeName("Box")
+  lazy val typeName = TypeName("Box", isSingleton = true)
           
   /** Never used: Sets the background picture. The picture must be a resource or from the web. The size of the picture does not impact the size of the box. */
   def member_add_background_picture = ApiMember(

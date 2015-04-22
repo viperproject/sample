@@ -134,7 +134,7 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets the groups from the matching the regex expression (pattern) */
+  /** Never used: Gets the groups from the matching the regex expression (pattern). Returns an empty collection if no matches. */
   def member_match = ApiMember(
     name = "match",
     paramTypes = List(ApiParam(TString)),

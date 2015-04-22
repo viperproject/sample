@@ -5,12 +5,13 @@ import java.io.{File, PrintWriter}
 import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher, WebASTImporter}
 import com.mongodb.casbah.Imports._
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.io.Source
 
-object ScriptCache {
+object ScriptCache extends LazyLogging {
 
-  private val CACHE_DIR = "Test" + File.separator + "test" + File.separator + "TouchDevelop" + File.separator + "cache"
+  val CACHE_DIR = "Test" + File.separator + "test" + File.separator + "TouchDevelop" + File.separator + "cache"
 
   def get(pubID:String):Script = {
     val cache = new File(CACHE_DIR)
@@ -24,7 +25,7 @@ object ScriptCache {
       WebASTImporter.convertFromString(Source.fromFile(file, "utf-8").getLines().mkString("\n"))
     } else {
       // Can not use read or write cache
-      println("Cache can not be read or written")
+      logger.debug("Cache can not be read or written")
       WebASTImporter.queryAndConvert(pubID)
     }
   }

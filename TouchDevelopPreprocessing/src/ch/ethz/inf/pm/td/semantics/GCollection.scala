@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ValidPureSemantics, ApiParam, DefaultSemantics, ApiMember}
 import ch.ethz.inf.pm.td.defsemantics.Default_GCollection
 
 /**
@@ -12,4 +12,8 @@ import ch.ethz.inf.pm.td.defsemantics.Default_GCollection
  * @author Lucas Brutschy
  */
 
-case class GCollection (TT:AAny) extends Default_GCollection
+case class GCollection (TT:AAny) extends Default_GCollection {
+
+  override lazy val member_join = super.member_join.copy(semantics = ValidPureSemantics)
+
+}

@@ -22,9 +22,9 @@ object WebASTImporter {
       classOf[JIf], classOf[JElseIf], classOf[JBoxed], classOf[JExprStmt], classOf[JInlineActions], classOf[JInlineAction],
       classOf[JAction], classOf[JPage], classOf[JEvent], classOf[JLibAction], classOf[JArt], classOf[JData], classOf[JLibrary],
       classOf[JLibAbstractType], classOf[JLibActionType],
-      classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JRecordField],
+      classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JLibRecordType], classOf[JRecordField],
       classOf[JRecordKey], classOf[JLocalDef], classOf[JApp], classOf[JPropertyParameter], classOf[JProperty],
-      classOf[JTypeDef], classOf[JApis], classOf[JCall], classOf[JActionType])
+      classOf[JTypeDef], classOf[JApis], classOf[JCall], classOf[JActionType], classOf[JOptionalParameter])
     )
   }
 
@@ -63,8 +63,8 @@ object WebASTImporter {
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
       case JLibrary(id, name, libIdentifier, libIsPublished, exportedTypes, exportedTypeDefs, exportedActions, resolveClauses) =>
         LibraryDefinition(name, libIdentifier, exportedActions map convert, exportedTypes, exportedTypeDefs, resolveClauses map convert).setId(id)
-      case JRecord(id, name, comment, category, isCloudEnabled, keys, fields) =>
-        TableDefinition(name, category, keys map convert, fields map convert).setId(id)
+      case JRecord(id, name, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
+        TableDefinition(name, category, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
       case JAction(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = false, isPrivate = isPrivate).setId(id)
       case JActionType(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
@@ -82,7 +82,6 @@ object WebASTImporter {
   }
 
   def convert(stmts: List[JStmt]): List[Statement] = {
-
     // The new version of the JSON AST has an awkward representation of elseIfs
     // as seperate if like statements IF(BLA) THEN A ELSE SKIP; ELSEIF(BLA2) THEN B ELSE C
     // here, we convert it to IF (BLA) THEN A ELSE { IF (BLA 2) THEN B ELSE C }
@@ -120,7 +119,8 @@ object WebASTImporter {
       case JExprStmt(id, expr) =>
         ExpressionStatement(convert(expr)).setId(id)
       case JInlineActions(id, expr, actions) =>
-        WhereStatement(convert(expr), actions map convert).setId(id)
+        WhereStatement(convert(expr), actions collect { case x:JInlineAction => x } map convert,
+          actions collect { case x:JOptionalParameter => x } map convert).setId(id)
     }
   }
 
@@ -182,14 +182,18 @@ object WebASTImporter {
       makeTypeName(jInlineAction.reference.`type`)).setId(jInlineAction.id)
   }
 
-  def makeTypeName(value:JValue): TypeName = {
+  def convert(jOptionalParameter: JOptionalParameter):OptionalParameter = {
+    OptionalParameter(jOptionalParameter.name, convert(jOptionalParameter.expr)).setId(jOptionalParameter.id)
+  }
+
+  def makeTypeName(value:JValue, isSingleton:Boolean): TypeName = {
     value match {
 
-      case JString(x) => TypeName(x)
+      case JString(x) => TypeName(x,isSingleton = isSingleton)
       case _ =>
 
         value \ "o" match {
-          case JString(x) => return TypeName(x)
+          case JString(x) => return TypeName(x,isSingleton = isSingleton)
           case _ => ()
         }
 
@@ -197,7 +201,7 @@ object WebASTImporter {
           case JString(x) =>
             value \ "a" match {
               case JArray(y) =>
-                return TypeName(x,y map makeTypeName)
+                return TypeName(x,y.map(makeTypeName(_,isSingleton)))
               case _ =>
                 return TypeName(x)
             }
@@ -208,9 +212,9 @@ object WebASTImporter {
     }
   }
 
-  def makeTypeName(typeString: String): TypeName = {
-    if (typeString.startsWith("{")) makeTypeName(parse(typeString))
-    else TypeName(typeString)
+  def makeTypeName(typeString: String, isSingleton:Boolean = false): TypeName = {
+    if (typeString.startsWith("{")) makeTypeName(parse(typeString), isSingleton = isSingleton)
+    else TypeName(typeString, isSingleton = isSingleton)
   }
 
 }
@@ -331,7 +335,9 @@ case class JBoxed(id: String, body: List[JStmt]) extends JStmt(id)
 
 case class JExprStmt(id: String, expr: JExprHolder) extends JStmt(id)
 
-case class JInlineActions(id: String, expr: JExprHolder, actions: List[JInlineAction]) extends JStmt(id)
+case class JInlineActions(id: String, expr: JExprHolder, actions: List[JAbstractInlineParameters]) extends JStmt(id)
+
+trait JAbstractInlineParameters
 
 case class JInlineAction(
                           id: String,
@@ -339,7 +345,14 @@ case class JInlineAction(
                           inParameters: List[JLocalDef],
                           outParameters: List[JLocalDef],
                           body: List[JStmt]
-                          ) extends JNode(id)
+                          ) extends JNode(id) with JAbstractInlineParameters
+
+
+case class JOptionalParameter(
+                          id: String,
+                          name: String,
+                          expr: JExprHolder
+                          ) extends JNode(id) with JAbstractInlineParameters
 
 case class JAction(
                     id: String,
@@ -474,9 +487,13 @@ case class JRecord(
                     comment: String,
                     category: String, // "object", "table", "index", or "decorator"
                     isCloudEnabled: Boolean,
+                    isCloudPartiallyEnabled: Boolean,
+                    isPersistent: Boolean,
+                    isExported: Boolean,
                     keys: List[JRecordKey],
                     fields: List[JRecordField]
                     ) extends JDecl(id, name)
+
 
 case class JRecordField(
                          id: String,
@@ -596,3 +613,16 @@ case class JLibActionType(
                            isAsync:Boolean,
                            description:String
                            )
+
+case class JLibRecordType(
+                           id: String,
+                           name: String,
+                           comment: String,
+                           category: String, // "object", "table", "index", or "decorator"
+                           isCloudEnabled: Boolean,
+                           isCloudPartiallyEnabled: Boolean,
+                           isPersistent: Boolean,
+                           isExported: Boolean,
+                           keys: List[JRecordKey],
+                           fields: List[JRecordField]
+                           ) extends JDecl(id, name) with JAbstractTypeDef

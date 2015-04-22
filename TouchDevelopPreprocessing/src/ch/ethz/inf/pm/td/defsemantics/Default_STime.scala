@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_STime extends ASingleton {
 
-  lazy val typeName = TypeName("Time")
+  lazy val typeName = TypeName("Time", isSingleton = true)
           
   /** Sometimes used: Creates a new date instance */
   def member_create = ApiMember(

@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SCloud_Storage extends ASingleton {
 
-  lazy val typeName = TypeName("Cloud Storage")
+  lazy val typeName = TypeName("Cloud Storage", isSingleton = true)
           
   /** Never used: Creates a OneNote page from the given HTML fragment. The page can be uploaded using `cloud storage->upload note'. */
   def member_create_note = ApiMember(

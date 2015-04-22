@@ -39,6 +39,11 @@ object LoopRewriter {
     pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters, inlineAction.body.map(replace(_, from, to)),inlineAction.typ))
   }
 
+  def replace(optParam: OptionalParameter, from: Expression, to: Expression): OptionalParameter = {
+    implicit val defPos = optParam
+    pos(OptionalParameter(optParam.name,replace(optParam.expr,from,to)))
+  }
+
   def replace(e: Expression, from: Expression, to: Expression) : Expression = e match {
     case Access(subject, property, args) =>
       Access(replace(subject, from, to), property, args.map(replace(_, from, to)))
@@ -62,8 +67,8 @@ object LoopRewriter {
         pos(While(replace(cond, from, to), body.map(replace(_, from, to))))
       case Box(body) =>
         pos(Box(body.map(replace(_, from, to))))
-      case WhereStatement(expr, handlers) =>
-        pos(WhereStatement(replace(expr, from, to), handlers.map(replace(_, from, to))))
+      case WhereStatement(expr, handlers, optParams) =>
+        pos(WhereStatement(replace(expr, from, to), handlers.map(replace(_, from, to)), optParams.map(replace(_, from, to))))
       case ExpressionStatement(expr) =>
         pos(ExpressionStatement(replace(expr, from, to)))
       case _ => s
@@ -139,8 +144,8 @@ object LoopRewriter {
         List(pos(While(cond,(body map apply).flatten)))
       case w@Box(body) =>
         List(pos(Box((body map apply).flatten)))
-      case w@WhereStatement(expr,handlers) =>
-        List(pos(WhereStatement(expr,handlers map apply)))
+      case w@WhereStatement(expr,handlers,optParam) =>
+        List(pos(WhereStatement(expr,handlers map apply,optParam)))
       case _ =>
         List(s)
     }

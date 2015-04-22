@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SSocial extends ASingleton {
 
-  lazy val typeName = TypeName("Social")
+  lazy val typeName = TypeName("Social", isSingleton = true)
           
   /** Rarely used: Chooses a contact from the contact list */
   def member_choose_contact = ApiMember(

@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_SLocations extends ASingleton {
 
-  lazy val typeName = TypeName("Locations")
+  lazy val typeName = TypeName("Locations", isSingleton = true)
           
   /** Rarely used: Creates an empty list of locations */
   def member_create_location_list = ApiMember(

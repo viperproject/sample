@@ -30,8 +30,7 @@ trait Default_TUnknown extends AAny {
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "fun" -> member_fun
   )
-
+            
 
 }
           
-

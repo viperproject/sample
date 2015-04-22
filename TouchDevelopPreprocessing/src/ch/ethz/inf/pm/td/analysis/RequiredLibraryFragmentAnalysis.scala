@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.HeapIdentifier
 import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import com.typesafe.scalalogging.LazyLogging
 
 
 /**
@@ -23,7 +24,7 @@ trait CollectingState
  * Collects all the fields that are accessed in a program. This can be used to
  * optimize the analysis
  */
-object RequiredLibraryFragmentAnalysis {
+object RequiredLibraryFragmentAnalysis extends LazyLogging {
 
   var spottedFields = Set.empty[String]
 
@@ -53,7 +54,7 @@ object RequiredLibraryFragmentAnalysis {
     if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
       val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unanalyzed) {
-        println(" Did not analyze "+un.name+" (may be unreachable)")
+        logger.debug("In ReqFragAnalysis: Did not analyze "+un.name+" (may be unreachable)")
       }
     }
 

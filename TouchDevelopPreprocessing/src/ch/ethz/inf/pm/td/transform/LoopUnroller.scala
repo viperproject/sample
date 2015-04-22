@@ -47,8 +47,8 @@ object LoopUnroller {
           val transformed = Box((body map unrollStatement).flatten)
           transformed.copyPos(w)
           List(transformed)
-        case w@WhereStatement(expr, handlers) =>
-          val transformed = WhereStatement(expr, handlers map unrollInlineAction)
+        case w@WhereStatement(expr, handlers,optParam) =>
+          val transformed = WhereStatement(expr, handlers map unrollInlineAction,optParam)
           List(transformed)
         case _ =>
           List(s)
@@ -86,13 +86,17 @@ object LoopUnroller {
           While(renameE(cond), body map renameS)
         case Box(body) =>
           Box(body map renameS)
-        case WhereStatement(expr, handlers) =>
-          WhereStatement(renameE(expr), handlers map renameIA)
+        case WhereStatement(expr, handlers, optParam) =>
+          WhereStatement(renameE(expr), handlers map renameIA, optParam.map(renameOptParamPos(_,suffix)))
         case ExpressionStatement(expr) =>
           ExpressionStatement(renameE(expr))
         case _ => s
       }
       transformed.copyPos(s).appendIdComponent(suffix)
+    }
+
+    def renameOptParamPos(inlineAction: OptionalParameter, suffix: String): OptionalParameter = {
+      OptionalParameter(inlineAction.name, renameExpressionPos(inlineAction.expr,suffix))
     }
 
     def renameInlineActionPos(inlineAction: InlineAction, suffix: String): InlineAction = {
