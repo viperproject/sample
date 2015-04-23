@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, PredType}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 /** Extends the states of edges with information on predicate definitions
@@ -28,7 +28,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]]
-  with Logging {
+  with LazyLogging {
 
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
@@ -123,7 +123,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
-    log.debug(s"Assigning $state to $predId(${path.mkString(".")})")
+    logger.debug(s"Assigning $state to $predId(${path.mkString(".")})")
 
     val accessPathId = AccessPathIdentifier(path, predId)
 
@@ -138,7 +138,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateIdentifier,
       state: PredicateInstanceState): T = {
-    log.debug(s"Removing $state from $predId(${path.mkString(".")})")
+    logger.debug(s"Removing $state from $predId(${path.mkString(".")})")
 
     val verticesToUpdate = abstractHeap.paths(path.map(_.getName)).map(_.target)
     mapEdges(edge => {
@@ -155,7 +155,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
-    log.debug(s"Assuming $state for $predId(${path.mkString(".")})")
+    logger.debug(s"Assuming $state for $predId(${path.mkString(".")})")
 
     val accessPathId = AccessPathIdentifier(path, predId)
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
@@ -249,7 +249,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val foldedAndUnfoldedInstIds = foldedInstIds ++ unfoldedInstIds
 
     if (foldedAndUnfoldedInstIds.isEmpty) {
-      log.warn(s"Encountered field access $id without any folded or " +
+      logger.warn(s"Encountered field access $id without any folded or " +
         "unfolded predicate instance candidate on the receiver edges")
       return bottom()
     }
@@ -262,14 +262,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           else (foldedInstIds.head, true, false)
         }
         case _ =>
-          log.error(s"Multiple folded predicate instances " +
+          logger.error(s"Multiple folded predicate instances " +
             s"$foldedInstIdsWithPerm contain full permission to field $field")
           sys.exit(-1)
       }
 
       var recvPredBody = preds.get(recvPredInstId.predId)
 
-      log.info(s"Unfolding $recvPredInstId($localVarVertex)")
+      logger.info(s"Unfolding $recvPredInstId($localVarVertex)")
 
       // Unfold
       result = result.assignPredicateInstanceState(
@@ -367,7 +367,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           result = result.mergePredicates(merge)
         }
       } else {
-        log.warn(s"Assigning field $left without any " +
+        logger.warn(s"Assigning field $left without any " +
           "predicate instance with permission")
       }
     }
@@ -381,7 +381,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       s"on every non-null edges going out of $localVarVertex")
 
     if (abstractHeap.outEdges(localVarVertex).count(_.target != NullVertex) > 1) {
-      log.info(s"Not folding $predId($localVarVertex) " +
+      logger.info(s"Not folding $predId($localVarVertex) " +
         "since there are multiple non-null receiver edges")
       return this
     }
@@ -407,7 +407,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (presentFoldedIds.contains(nestedPredId)) {
           result = result.removePredicateInstanceState(path, nestedPredId, Folded)
         } else {
-          log.info(s"Not folding $predId($localVarVertex) " +
+          logger.info(s"Not folding $predId($localVarVertex) " +
             s"since nested predicate instance $nestedPredId may be missing")
           return this
         }
@@ -427,7 +427,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       if (hasPredInstOnEveryEdge(this)) {
         if (!hasPredInstOnEveryEdge(result)) {
-          log.info(s"Not folding $predId($localVarVertex) " +
+          logger.info(s"Not folding $predId($localVarVertex) " +
             s"to avoid loss of permissions for $innerLocalVarVertex")
           return this
         }
@@ -436,7 +436,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     result = result.prunePredIds()
 
-    log.info(s"Folding $predId($localVarVertex)")
+    logger.info(s"Folding $predId($localVarVertex)")
 
     // Let subscribers know about the fold operation
     result.publish(FoldGhostOpEvent(localVarVertex.variable, predId))
@@ -489,7 +489,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   def mergePredicates(predIdMerge: PredicateIdentifierMerge): T = {
     if (predIdMerge.predIds.size == 1) return this // Nothing to do
 
-    log.info(s"Merging predicate IDs ${predIdMerge.predIds}")
+    logger.info(s"Merging predicate IDs ${predIdMerge.predIds}")
 
     var result = map(_.transformPredDefs(_.merge(predIdMerge))).mapEdges(edge => {
       val edgeLocalRepl = new Replacement()
@@ -581,7 +581,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               edge = edge.copy(state = edge.state.merge(repl))
             }
 
-            log.info(s"Merging predicate instance IDs $repl for ${edge.source}")
+            logger.info(s"Merging predicate instance IDs $repl for ${edge.source}")
 
             Set(edge, otherEdge)
           } else edges

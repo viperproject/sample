@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 
 /** Domain that represents (candidate) predicate definitions.
   * Concretely, it maps predicate identifiers to predicate bodies.
@@ -19,7 +19,7 @@ case class PredicateDefinitionsDomain(
   extends FunctionalDomain[PredicateIdentifier, PredicateBody, PredicateDefinitionsDomain]
   with SemanticDomain[PredicateDefinitionsDomain]
   with Lattice.Must[PredicateDefinitionsDomain]
-  with Logging {
+  with LazyLogging {
 
   require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
     "all nested predicate IDs must be known and have a body themselves")
@@ -139,7 +139,7 @@ case class PredicateDefinitionsDomain(
 
   def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (!r.isEmpty())
-      log.warn(s"Replacement $r ignored. " +
+      logger.warn(s"Replacement $r ignored. " +
         "Use custom merge(PredicateIdentifierMerge) instead.")
     this
   }

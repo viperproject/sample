@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleAnalysis, AnalysisRunner, Analysis}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.SystemParameters
@@ -121,7 +121,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
   */
 case class PredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
-  extends Analysis[PredicateDrivenHeapState[S]] with Logging {
+  extends Analysis[PredicateDrivenHeapState[S]] with LazyLogging {
 
   type T = PredicateDrivenHeapState[S]
 
@@ -147,7 +147,7 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
             // the analysis was aborted to the entry state
             initialState = initialState.map(_.transformPredDefs(_ lub preds))
 
-            log.info(s"Restarting analysis of method ${method.name}.")
+            logger.info(s"Restarting analysis of method ${method.name}.")
         }
       }
 

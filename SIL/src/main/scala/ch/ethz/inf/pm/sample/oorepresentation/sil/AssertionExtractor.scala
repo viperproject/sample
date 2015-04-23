@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
@@ -268,7 +268,7 @@ case class AssertionTree(
 case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
     predRegistry: PredicateRegistry)
-  extends Logging {
+  extends LazyLogging {
 
   import PredicateDrivenHeapState._
 
@@ -446,13 +446,13 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       "the edge targets are not unique")
 
     if (ambigEdges.size != 2) {
-      log.warn("Cannot find sufficient conditions " +
+      logger.warn("Cannot find sufficient conditions " +
         "for more than two ambiguous out-going edges")
       return Map.empty
     }
 
     if (ambigEdges.forall(_.target != NullVertex)) {
-      log.warn("Cannot find sufficient conditions other than nullness")
+      logger.warn("Cannot find sufficient conditions other than nullness")
       return Map.empty
     }
 

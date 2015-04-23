@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import viper.silver.{ast => sil}
@@ -43,7 +43,7 @@ trait SilConverter {
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
-object DefaultSilConverter extends SilConverter with Logging {
+object DefaultSilConverter extends SilConverter with LazyLogging {
   var refType: sample.RefType = sample.RefType()
   var classDef: sample.ClassDefinition = null
   var prog: sil.Program = null
@@ -337,7 +337,7 @@ object DefaultSilConverter extends SilConverter with Logging {
         fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
       case n =>
         // Give up if the predicate contains anything else
-        log.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
+        logger.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
         return None
     })
 

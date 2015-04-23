@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, vdha}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 
-case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
+case class ProgramExtender[S <: ApronInterface[S]]() extends LazyLogging {
   type T = PredicateDrivenHeapState[S]
 
   import PredicateDrivenHeapState._
@@ -38,7 +38,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         methods = newMethods,
         predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
 
-      log.info(s"Extended Program:\n $result")
+      logger.info(s"Extended Program:\n $result")
 
       result
     })

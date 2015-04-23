@@ -1,12 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.util.Predef._
-import org.slf4s.Logging
+import com.typesafe.scalalogging.LazyLogging
 
 case class PredicateInstancesDomain(
     map: Map[Identifier, PredicateInstanceDomain] = Map.empty,
@@ -15,7 +13,7 @@ case class PredicateInstancesDomain(
     defaultValue: PredicateInstanceDomain = PredicateInstanceDomain())
   extends BoxedDomain[PredicateInstanceDomain, PredicateInstancesDomain]
   with SemanticDomain[PredicateInstancesDomain]
-  with Logging {
+  with LazyLogging {
 
   import PredicateInstanceState.{Folded, Unfolded}
 
@@ -120,7 +118,7 @@ case class PredicateInstancesDomain(
       state: PredicateInstanceState, ArithmeticOperator.==, _) =>
       add(id, get(id).add(state))
     case _ =>
-      log.debug(s"Assuming expression $expr in predicate instances domain " +
+      logger.debug(s"Assuming expression $expr in predicate instances domain " +
         "is not supported")
       this
   }
