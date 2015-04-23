@@ -6,12 +6,12 @@ package ch.ethz.inf.pm.td.analysis
 object TouchAnalysisParameters {
 
   /** EXPERIMENTAL: Requires variable packing to be enabled! */
-  val accessBasedLocalization: Boolean = false
+  val accessBasedLocalization: Boolean = true
 
   val defaultToUnsound: Boolean = true
 
   /** EXPERIMENTAL */
-  val variablePacking: Boolean = false
+  val variablePacking: Boolean = true
 
   val assumeCollectionsNotModifiedDuringIteration: Boolean = true
 

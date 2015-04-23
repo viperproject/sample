@@ -2,8 +2,10 @@ package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, Identifier}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.VariablePackingClassifier
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
 import ch.ethz.inf.pm.td.compiler.TouchException
+
+import scala.collection.immutable.Stack
 
 /**
  * Implements access-based localization
@@ -16,10 +18,10 @@ import ch.ethz.inf.pm.td.compiler.TouchException
  */
 object Localization {
 
-
+  private var ppToMethod:Map[ProgramPoint,MethodDeclaration] = Map.empty
   private var variablePacker:Option[VariablePackingClassifier] = None
   private var enablePruning = false
-  private var currentlyCollecting:Option[ProgramPoint] = None
+  private var currentlyCollecting:Stack[ProgramPoint] = Stack.empty
   private var readInside:Map[ProgramPoint,Set[Identifier]] = Map.empty
 
 
@@ -64,25 +66,47 @@ object Localization {
   def collectAccess(id:Identifier):Unit = collectAccess(Set(id))
 
   def collectAccess(ids:Set[Identifier]):Unit = {
-    currentlyCollecting match {
-      case Some(x) => readInside = readInside + (x -> (readInside.getOrElse(x,Set.empty) ++ ids))
-      case None => () // Reachable for initialization code outside of any function
+    if (currentlyCollecting.nonEmpty) {
+      val cur = currentlyCollecting.head
+      readInside = readInside + (cur -> (readInside.getOrElse(cur,Set.empty) ++ ids))
     }
   }
 
-  def setCollectingFunction(pp:ProgramPoint):Unit = currentlyCollecting = Some(pp)
+  def enterCollectingFunction(pp:ProgramPoint,callTarget:MethodDeclaration):Unit = {
+    ppToMethod = ppToMethod + (pp -> callTarget)
+    currentlyCollecting = currentlyCollecting.push(pp)
+  }
+
+  def exitCollectingFunction(pp:ProgramPoint):Unit = {
+
+    // update stack
+    val (callee,callStack) = currentlyCollecting.pop2
+    assert { callee == pp }
+    currentlyCollecting = callStack
+
+    // propagate callee reads to caller
+    if (currentlyCollecting.nonEmpty) {
+      val caller = currentlyCollecting.head
+      readInside = readInside + (caller -> (readInside.getOrElse(caller,Set.empty) ++ readInside.getOrElse(callee,Set.empty)))
+    }
+
+  }
 
   override def toString:String = {
     (for ((pp,f) <- readInside) yield {
-      pp+" -> "+f.collect{case v:VariableIdentifier => v}.mkString(",")
+      (ppToMethod.get(pp) match {
+        case Some(m) => m.name + " at " + pp
+        case None => "unknown call at " + pp
+      }) + " -> "+f.collect{case v:VariableIdentifier => v}.mkString(",")
     }).mkString("\n")
   }
 
   def reset() = {
     variablePacker = None
     enablePruning = false
-    currentlyCollecting = None
+    currentlyCollecting = Stack.empty
     readInside = Map.empty
+    ppToMethod = Map.empty
   }
 
 }

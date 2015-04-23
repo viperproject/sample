@@ -5,6 +5,6 @@ action main() {
     $s1->set_at("myKey", "myValue");
 }
 
-action create_coll() returns(c: String_Map) {
+private action create_coll() returns(c: String_Map) {
     $c := collections->create_string_map();
 }

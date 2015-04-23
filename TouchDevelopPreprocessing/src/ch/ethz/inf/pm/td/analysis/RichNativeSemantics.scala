@@ -38,19 +38,17 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
-    if (Reporter.enableOutputOfAlarms) {
-      val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
-      if (!errorState.isBottom) {
-        val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-        if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
-          || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)) {
-          Reporter.reportError(message, pp, state.explainError(expr))
-        }
-        val ret = state.assume(expr.not())
-        if (ret.isBottom) return ret.bottom()
-        ret
-      } else state
-    } else state
+    val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
+    if (!errorState.isBottom && Reporter.enableOutputOfAlarms) {
+      val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
+      if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+        || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)) {
+        Reporter.reportError(message, pp, state.explainError(expr))
+      }
+      val ret = state.assume(expr.not())
+      if (ret.isBottom) return ret.bottom()
+      ret
+    } else state.assume(expr.not())
   }
 
   def Error[S <: State[S]](expr: RichExpression, method: String, message: String)(implicit state: S, pp: ProgramPoint): S = {

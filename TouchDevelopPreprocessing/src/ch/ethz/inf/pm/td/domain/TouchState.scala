@@ -1075,7 +1075,7 @@ object TouchState {
   /**
    * Implements a touch state which does not track values at all
    */
-  case class PreAnalysis(forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+  case class PreAnalysis(forwardMay:     Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                       forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                       backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
                       versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
@@ -1095,6 +1095,8 @@ object TouchState {
                   isTop:             Boolean = false
                   ):PreAnalysis =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
+
+
 
     override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis = {
       analysis.Localization.collectAccess(obj.ids)

@@ -24,9 +24,9 @@ object CFGGenerator {
 
   def isHandlerIdent(ident: String) = ident.startsWith("__handler_")
 
-  def globalReferenceIdent(ident: String) = "__data_" + ident
+  def globalReferenceIdent(ident: String) = "◳"+ident //"__data_" + ident
 
-  def isGlobalReferenceIdent(ident: String) = ident.startsWith("__data_")
+  def isGlobalReferenceIdent(ident: String) = ident.startsWith("◳") // ident.startsWith("__data_")
 
   def paramIdent(ident: String) = "__param_" + ident
 
