@@ -50,10 +50,8 @@ object SampleBuild extends Build {
     base = file("Web"),
     settings =
       Defaults.coreDefaultSettings ++
-      ScalatraPlugin.scalatraSettings) dependsOn(
+      ScalatraPlugin.scalatraSettings).enablePlugins(SbtTwirl).dependsOn(
     core, numerical, valuedrivenheap, sil, touchdevelop)
-
-  web.enablePlugins(SbtTwirl)
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",

@@ -10,3 +10,9 @@ libraryDependencies ++= Seq(
   "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container;provided;test" artifacts Artifact("javax.servlet", "jar", "jar")
 )
 
+unmanagedJars in Compile <++= baseDirectory map { base =>
+  val apronDirectories = base / ".." / "NumericalAnalysis" / "lib"
+  val silDirectories = base / ".." / "SIL" / "lib"
+  val customJars = (apronDirectories ** "*.jar") +++ (silDirectories ** "*.jar")
+  customJars.classpath
+}
