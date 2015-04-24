@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 import org.scalatra.sbt._
-import twirl.sbt.TwirlPlugin.Twirl
+import play.twirl.sbt.SbtTwirl
 
 object SampleBuild extends Build {
   lazy val root = Project(
@@ -50,9 +50,10 @@ object SampleBuild extends Build {
     base = file("Web"),
     settings =
       Defaults.coreDefaultSettings ++
-      ScalatraPlugin.scalatraSettings ++
-      Twirl.settings) dependsOn(
+      ScalatraPlugin.scalatraSettings) dependsOn(
     core, numerical, valuedrivenheap, sil, touchdevelop)
+
+  web.enablePlugins(SbtTwirl)
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",
