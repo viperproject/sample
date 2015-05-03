@@ -265,22 +265,25 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     */
   override def assignField(obj: Expression, field: String, right: Expression): T = obj match {
     case leftHeap:HeapIdentifier =>
-      val declaration = obj.typ.representedFields.find(_.getName == field).get
-      val leftField = fieldFromString(leftHeap,field)
-      if (leftHeap.representsSingleVariable && !declaration.asInstanceOf[ApiField].isAccumulating) {
-        // strong update
-        right match {
-          case rightHeap: HeapIdentifier => strongUpdateReference(leftField, rightHeap)
-          case rightIdentifier: Identifier => strongUpdateAlias(leftField, rightIdentifier)
-          case _ => strongUpdateValue(leftField,right)
-        }
-      } else {
-        // weak update
-        right match {
-          case rightHeap:HeapIdentifier   => weakUpdateReference(leftField,rightHeap)
-          case rightIdentifier:Identifier => weakUpdateAlias(leftField,rightIdentifier)
-          case _ => weakUpdateValue(leftField,right)
-        }
+      obj.typ.representedFields.find(_.getName == field) match {
+        case Some(declaration) =>
+          val leftField = fieldFromString(leftHeap,field)
+          if (leftHeap.representsSingleVariable && !declaration.asInstanceOf[ApiField].isAccumulating) {
+            // strong update
+            right match {
+              case rightHeap: HeapIdentifier => strongUpdateReference(leftField, rightHeap)
+              case rightIdentifier: Identifier => strongUpdateAlias(leftField, rightIdentifier)
+              case _ => strongUpdateValue(leftField,right)
+            }
+          } else {
+            // weak update
+            right match {
+              case rightHeap:HeapIdentifier   => weakUpdateReference(leftField,rightHeap)
+              case rightIdentifier:Identifier => weakUpdateAlias(leftField,rightIdentifier)
+              case _ => weakUpdateValue(leftField,right)
+            }
+          }
+        case None => this
       }
     case leftIdentifier:Identifier =>
       forwardMay.get(leftIdentifier) match {
