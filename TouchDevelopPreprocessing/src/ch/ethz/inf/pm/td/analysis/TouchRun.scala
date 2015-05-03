@@ -42,7 +42,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAnalysisParameters) extends EntryStateBuilder[S]() {
 
   def numerical(c:Option[VariablePackingClassifier]):SemanticDomainType = {
-    val numericalDomainChoice = touchParams.domains.numericalDomain
+    val numericalDomainChoice = touchParams.numericalDomain
     val classifier =
       c match {
         case Some(x) => x
@@ -66,7 +66,7 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
         StaticVariablePackingDomain(nonRelationalDomain,VariablePackMap(classifier,relationalDomain,Map.empty))
       ),
       NonrelationalStringDomain(
-        StringKSetDomain.Top(TouchAnalysisParameters.stringRepresentationBound)
+        StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound)
       )
     )
   }
@@ -89,8 +89,8 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
       SystemParameters.compiler = new TouchCompiler
       SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
-      SystemParameters.analysisOutput = if (touchParams.reporting.silent) new StringCollector() else new StdOutOutput()
-      SystemParameters.progressOutput = if (touchParams.reporting.silent) new StringCollector() else new StdOutOutput()
+      SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
+      SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
 
       SystemParameters.compiler.reset()
       SystemParameters.resetNativeMethodsSemantics()
@@ -139,7 +139,7 @@ object TouchRun {
       val t = new AnalysisThread(file, customTouchParams)
       val initialTime = System.currentTimeMillis()
       t.start()
-      while (t.isAlive && (TouchAnalysisParameters.timeout.isEmpty || System.currentTimeMillis() - initialTime < TouchAnalysisParameters.timeout.get * 1000))
+      while (t.isAlive && (TouchAnalysisParameters.get.timeout.isEmpty || System.currentTimeMillis() - initialTime < TouchAnalysisParameters.get.timeout.get * 1000))
         this.wait(1000)
       while (t.isAlive) {
         System.out.println("TIME IS UP! Trying to stop a thread")

@@ -73,7 +73,7 @@ object TMap extends Default_TMap {
     /** Sets the zoom level from 1 (earth) to 21 (street) */
     case "set zoom" =>
       val List(level) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](level, 1, 21, method, "level")
       }
       AssignField[S](this0, TMap.field_zoom, parameters.head)

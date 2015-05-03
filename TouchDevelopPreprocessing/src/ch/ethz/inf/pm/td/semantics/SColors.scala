@@ -101,7 +101,7 @@ object SColors extends Default_SColors {
     // Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range)
     case "from ahsb" =>
       val List(a, h, s, b) = parameters
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](a, 0, 1, "from ahsb", "alpha")
         CheckInRangeInclusive[S](h, 0, 1, "from ahsb", "hue")
         CheckInRangeInclusive[S](s, 0, 1, "from ahsb", "saturation")
@@ -119,7 +119,7 @@ object SColors extends Default_SColors {
     // Creates a color from the alpha, red, green, blue channels (0.0-1.0 range)
     case "from argb" =>
       val List(a, r, g, b) = parameters
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](a, 0, 1, "from argb", "alpha")
         CheckInRangeInclusive[S](r, 0, 1, "from argb", "red")
         CheckInRangeInclusive[S](g, 0, 1, "from argb", "green")
@@ -136,7 +136,7 @@ object SColors extends Default_SColors {
     // Creates a color from the hue, saturation, brightness channels (0.0-1.0 range)
     case "from hsb" =>
       val List(h, s, b) = parameters
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](h, 0, 1, "from hsb", "hue")
         CheckInRangeInclusive[S](s, 0, 1, "from hsb", "saturation")
         CheckInRangeInclusive[S](b, 0, 1, "from hsb", "brightness")
@@ -153,7 +153,7 @@ object SColors extends Default_SColors {
     // Creates a color from the red, green, blue channels (0.0-1.0 range)
     case "from rgb" =>
       val List(r, g, b) = parameters
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](r, 0, 1, "from rgb", "red")
         CheckInRangeInclusive[S](g, 0, 1, "from rgb", "green")
         CheckInRangeInclusive[S](b, 0, 1, "from rgb", "blue")
@@ -198,7 +198,7 @@ object SColors extends Default_SColors {
     // Computes an intermediate color
     case "linear gradient" =>
       val List(colA, colB, frac) = parameters
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](frac, 0, 1, "linear gradient", "fraction")
       }
       Top[S](TColor)

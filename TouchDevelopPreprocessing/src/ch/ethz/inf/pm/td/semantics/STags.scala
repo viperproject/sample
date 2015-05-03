@@ -59,7 +59,7 @@ object STags extends Default_STags {
     case "tag text" =>
       val List(text, size, bw) = parameters // String,Number,Boolean
       // TODO: Add check for text size
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](size, 0.75, 5, "tag url", "size")
       }
       New[S](TPicture, Map(
@@ -71,7 +71,7 @@ object STags extends Default_STags {
     case "tag url" =>
       val List(url, size, bw) = parameters // String,Number,Boolean
       // TODO: Add check for text size
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](size, 0.75, 5, "tag url", "size")
       }
       New[S](TPicture, Map(

@@ -263,7 +263,7 @@ object SMath extends Default_SMath {
     /** Returns the square root of a specified number */
     case "sqrt" =>
       val List(x) = parameters // Number
-      if (TouchAnalysisParameters.reportNumericalErrors)
+      if (TouchAnalysisParameters.get.reportNumericalErrors)
         Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
       Return[S](0 ndToIncl x, x ndToIncl 1) // PRECISION: This is very rough
 

@@ -52,7 +52,7 @@ trait ACollection extends AAny {
     returnType = this,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        if (TouchAnalysisParameters.assumeCollectionsNotModifiedDuringIteration) {
+        if (TouchAnalysisParameters.get.assumeCollectionsNotModifiedDuringIteration) {
           Return[S](this0)
         } else {
           Clone[S](this0)
@@ -106,7 +106,7 @@ trait ACollection extends AAny {
 
   def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
-    val idPP = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) DummyProgramPoint else pp
+    val idPP = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right
@@ -137,7 +137,7 @@ trait ACollection extends AAny {
   }
 
   def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    if (TouchAnalysisParameters.collectionsSummarizeElements) {
+    if (TouchAnalysisParameters.get.collectionsSummarizeElements) {
       collectionAllValues[S](collection)
     } else {
       Lattice.bigLub[ExpressionSet](

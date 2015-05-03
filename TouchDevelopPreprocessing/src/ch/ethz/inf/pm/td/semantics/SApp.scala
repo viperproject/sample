@@ -23,7 +23,7 @@ object SApp extends Default_SApp {
   override def member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member:ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(condition) = parameters // Boolean
-      if (TouchAnalysisParameters.printValuesInWarnings)
+      if (TouchAnalysisParameters.get.printValuesInWarnings)
         Error[S](condition.not(), "fail if not", "fail if not " + condition + " might fail")
       else
         Error[S](condition.not(), "fail if not", "fail if not might fail")

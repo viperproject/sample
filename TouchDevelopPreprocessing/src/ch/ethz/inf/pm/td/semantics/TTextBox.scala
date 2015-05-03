@@ -44,7 +44,7 @@ object TTextBox extends Default_TTextBox {
     /** Sets the icon picture (max 96 x 96) */
     case "set icon" =>
        val List(pic) = parameters // Picture
-       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+       if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
          CheckInRangeInclusive[S](Field[S](pic,TPicture.field_width),0,96,"set icon","Icon Width")
          CheckInRangeInclusive[S](Field[S](pic,TPicture.field_height),0,96,"set icon","Icon Height")
        }

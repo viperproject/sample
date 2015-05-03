@@ -6,7 +6,7 @@ import java.util.regex.Pattern
 import org.scalatest._
 import java.nio.file._
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
-import ch.ethz.inf.pm.td.analysis.{ReportingParams, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, SpaceSavingProgramPoint}
 import scala.collection.JavaConversions._
 
@@ -46,7 +46,7 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
   def runOnFile(file: String): Seq[SampleMessage]
 
   def touchGuruOptions: TouchAnalysisParameters = {
-    TouchAnalysisParameters(reporting = ReportingParams(silent = true))
+    TouchAnalysisParameters(silent = true)
   }
 }
 

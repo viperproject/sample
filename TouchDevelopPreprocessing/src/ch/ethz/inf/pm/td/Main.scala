@@ -25,8 +25,8 @@ object Main {
         case "-no-mongo" => Exporters.exportToMongo = false; None
         case "-fast" => setFastMode(); None
         case "-no-fast" => unsetFastMode(); None
-        case Timeout(x) => TouchAnalysisParameters.timeout = Some(x.toInt); None
-        case "-no-timeout" => TouchAnalysisParameters.timeout = None; None
+        case Timeout(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = Some(x.toInt))); None
+        case "-no-timeout" => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = None)); None
         case JobID(x) => Exporters.jobID = x; None
         case "-watchMode" => watchMode = true; None
         case _ => Some(arg)
@@ -56,7 +56,7 @@ object Main {
 
       collection.findAndModify(MongoDBObject("status" -> "Waiting"), $set("status" -> "Initializing")) match {
         case Some(x) =>
-          TouchAnalysisParameters.timeout = x.getAs[Int]("timeout")
+          TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = x.getAs[Int]("timeout")))
           if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
           TouchRun.main(x.getAs[String]("url").toArray)
@@ -70,22 +70,18 @@ object Main {
 
   def setFastMode() {
 
-    TouchAnalysisParameters.numberOfVersions = 1
     TouchAnalysisParameters.set(
       TouchAnalysisParameters(
-        execution = ExecutionModelParams(
           //localizeStateOnMethodCall = true, BUGGY
           //singleExecution = true,
           prematureAbortion = false,
           //singleEventOccurrence = true, BUGGY
-          contextSensitiveInterproceduralAnalysis = false
-        ),
-        domains = DomainParams(
+          contextSensitiveInterproceduralAnalysis = false,
           collectionsSummarizeElements = true,
-          collectionsSummarizeLinearElements = true
+          collectionsSummarizeLinearElements = true,
 //          numericalDomain = NumericDomainChoice.Intervals
+          numberOfVersions = 1
         )
-      )
     )
 
   }

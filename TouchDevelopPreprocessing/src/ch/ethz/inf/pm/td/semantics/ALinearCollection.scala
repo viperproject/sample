@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.td.domain.TouchState
 trait ALinearCollection extends ACollection {
 
   override def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    val res = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) {
+    val res = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) {
       collectionAllValues[S](collection)
     } else {
       super.collectionAt[S](collection,key)
@@ -117,7 +117,7 @@ trait ALinearCollection extends ACollection {
    */
   override def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
-    val idPP = if (TouchAnalysisParameters.collectionsSummarizeLinearElements) DummyProgramPoint else pp
+    val idPP = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right

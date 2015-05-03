@@ -92,10 +92,10 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def possibleFields = Set.empty
 
   override def representedFields =
-    if (TouchAnalysisParameters.libraryFieldPruning && !SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.isEmpty) {
+    if (TouchAnalysisParameters.get.libraryFieldPruning && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
       val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
       val typFields = possibleFields -- mutedFields
-      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName)}).toSet[Identifier]
+      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
     } else {
       possibleFields -- mutedFields
     }
@@ -131,13 +131,13 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       // Check if the object or an argument can be invalid - in this case, we must produce an error
       if (operator != "is invalid" && operator != ":=" && operator != "," && thisExpr.getType().name != "code") {
         if (!thisExpr.getType().isStatic) {
-          if (TouchAnalysisParameters.printValuesInWarnings)
+          if (TouchAnalysisParameters.get.printValuesInWarnings)
             curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object (" + thisExpr + ") whose field/method is accessed might be invalid")(curState, pp)
           else
             curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object whose field/method is accessed might be invalid")(curState, pp)
         }
         for (param <- parameters) {
-          if (TouchAnalysisParameters.printValuesInWarnings)
+          if (TouchAnalysisParameters.get.printValuesInWarnings)
             curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter (" + param + ") might be invalid")(curState, pp)
           else
             curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter might be invalid")(curState, pp)
@@ -191,7 +191,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       val List(right) = parameters
       val res = Assign[S](this0, right)
       // Dirty old PhD students hacking dirty
-      if (TouchAnalysisParameters.prematureAbortion && this0.toString.contains("__data_")) {
+      if (TouchAnalysisParameters.get.prematureAbortion && this0.toString.contains("__data_")) {
         Exit[S](res, pp)
       }
       res

@@ -29,7 +29,7 @@ object TNumber extends Default_TNumber {
     case "*" => Return(this0 * parameters.head)
     case "-" => Return(this0 - parameters.head)
     case "/" =>
-      if (TouchAnalysisParameters.reportNumericalErrors)
+      if (TouchAnalysisParameters.get.reportNumericalErrors)
         Error[S](parameters.head equal 0, "Possible division by zero")
       Return(this0 / parameters.head)
 

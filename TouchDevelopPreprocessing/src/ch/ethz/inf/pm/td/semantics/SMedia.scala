@@ -55,7 +55,7 @@ object SMedia extends Default_SMedia {
     /** Creates a new game board */
     case "create board" =>
       val List(height) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckNonNegative[S](height, "create board", "height")
       }
       New[S](TBoard, Map(
@@ -73,7 +73,7 @@ object SMedia extends Default_SMedia {
     /** Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */
     case "create landscape board" =>
       val List(width, height) = parameters // Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckNonNegative[S](width, "create landscape board", "width")
         CheckNonNegative[S](height, "create landscape board", "height")
       }
@@ -87,7 +87,7 @@ object SMedia extends Default_SMedia {
 
     case "create picture" =>
       val List(width, height) = parameters // Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckNonNegative[S](width, "create picture", "width")
         CheckNonNegative[S](height, "create picture", "height")
       }
@@ -99,7 +99,7 @@ object SMedia extends Default_SMedia {
     /** Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */
     case "create portrait board" =>
       val List(width, height) = parameters // Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckNonNegative[S](width, "create portrait board", "width")
         CheckNonNegative[S](height, "create portrait board", "height")
       }

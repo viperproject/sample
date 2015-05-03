@@ -117,7 +117,7 @@ object TMedia_Player extends Default_TMedia_Player {
       val List(volume) = parameters // Number
       Error[S](Field[S](this0,TMedia_Player.field_is_volume_supported).not(),"set volume",
         "Trying to change the volume of a media play which might not be volume controllable")
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](volume,0,1,"set volume","volume level")
       }
       AssignField[S](this0,TMedia_Player.field_volume,volume)

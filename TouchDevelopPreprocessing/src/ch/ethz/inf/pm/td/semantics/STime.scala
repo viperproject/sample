@@ -58,7 +58,7 @@ object STime extends Default_STime {
     /* [**obsolete**] Use `app->fail_if_not` instead. */
     case "fail if not" =>
       val List(condition) = parameters // Boolean
-      if (TouchAnalysisParameters.printValuesInWarnings)
+      if (TouchAnalysisParameters.get.printValuesInWarnings)
         Error[S](condition.not(), "fail if not", "fail if not " + condition + " might fail")
       else
         Error[S](condition.not(), "fail if not", "fail if not might fail")

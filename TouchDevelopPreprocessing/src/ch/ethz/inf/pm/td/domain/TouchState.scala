@@ -359,7 +359,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       for (id <- result.ids) {
         id match {
           case x:HeapIdentifier =>
-            assert (x.unique < TouchAnalysisParameters.numberOfVersions)
+            assert (x.unique < TouchAnalysisParameters.get.numberOfVersions)
           case _ => ()
         }
       }
@@ -529,7 +529,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     if (!left.valueState.lessEqual(right.valueState)) return false
     if (!left.expr.lessEqual(right.expr)) return false
 
-    return true
+    true
   }
 
   override def isBottom:Boolean = {
@@ -538,7 +538,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 //    if (forwardMay.exists( _._2.isEmpty))
 //      return true
     if (valueState.isBottom) return true
-    return false
+    false
 
   }
 
@@ -873,11 +873,11 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     for ((pp,typ) <- versions.keys) {
       val theseVersions = versions.getOrElse((pp,typ),Seq.empty)
-      if (theseVersions.length > TouchAnalysisParameters.numberOfVersions) {
+      if (theseVersions.length > TouchAnalysisParameters.get.numberOfVersions) {
 
         // Merge objects
         val summaryID = HeapIdentifier(pp,typ,summary = true,theseVersions.head.unique)
-        val objectsToBeMerged = theseVersions.take(theseVersions.length - TouchAnalysisParameters.numberOfVersions + 1).toSet[Identifier]
+        val objectsToBeMerged = theseVersions.take(theseVersions.length - TouchAnalysisParameters.get.numberOfVersions + 1).toSet[Identifier]
         replacement.value += (objectsToBeMerged -> Set[Identifier](summaryID))
 
         // Merge fields

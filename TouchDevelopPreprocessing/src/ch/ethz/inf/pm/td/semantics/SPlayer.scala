@@ -67,7 +67,7 @@ object SPlayer extends Default_SPlayer {
 
     /** Pauses the currently playing song */
     case "pause" =>
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations)
         Error[S](Field[S](this0, SPlayer.field_is_playing) equal False, "pause", "Player might not be playing")
       var curState = state
       curState = AssignField[S](this0, SPlayer.field_is_playing, False)(curState, pp)
@@ -108,7 +108,7 @@ object SPlayer extends Default_SPlayer {
 
     /** Resumes a paused song */
     case "resume" =>
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations)
         Error[S](Field[S](this0, SPlayer.field_is_paused) equal False, "resume", "Player might not be paused")
       var curState = state
       curState = AssignField[S](this0, SPlayer.field_is_playing, True)(curState, pp)
@@ -129,14 +129,14 @@ object SPlayer extends Default_SPlayer {
     /** Sets the sound volume level from 0 (silent) to 1 (current volume) */
     case "set sound volume" =>
       val List(x) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](x, 0, 1, "set sound volume", "volume level")
       }
       super.forwardSemantics(this0, method, parameters, returnedType)
 
     /** Stops playing a song */
     case "stop" =>
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations)
         Error[S](Field[S](this0, SPlayer.field_is_playing) equal False, "play", "Player might not be playing")
       var curState = state
       curState = AssignField[S](this0, SPlayer.field_is_playing, False)(curState, pp)

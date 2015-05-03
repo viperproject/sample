@@ -25,15 +25,15 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Dummy[S <: State[S]](obj: RichExpression, method: String)(implicit state: S, pp: ProgramPoint) {
     val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-    if (TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
+    if (TouchAnalysisParameters.get.reportDummyImplementations &&
+      (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
       Reporter.reportDummy(obj.getType().toString + "->" + method, pp)
   }
 
   def Dummy[S <: State[S]](text: String)(implicit state: S, pp: ProgramPoint) {
     val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-    if (TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
+    if (TouchAnalysisParameters.get.reportDummyImplementations &&
+      (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
       Reporter.reportDummy(text, pp)
   }
 
@@ -41,7 +41,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
     if (!errorState.isBottom && Reporter.enableOutputOfAlarms) {
       val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-      if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+      if (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
         || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)) {
         Reporter.reportError(message, pp, state.explainError(expr))
       }
@@ -56,7 +56,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def CheckInRangeInclusive[S <: State[S]](expr: RichExpression, low: RichExpression, high: RichExpression, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
-    if (TouchAnalysisParameters.printValuesInWarnings) {
+    if (TouchAnalysisParameters.get.printValuesInWarnings) {
       val state1 = Error(expr < low, method + ": Parameter " + parameter + " (" + expr + ") may be less than the lowest allowed value (" + low + ")")(s, pp)
       Error(expr > high, method + ": Parameter " + parameter + " (" + expr + ") may be greater than the highest allowed value " + high + ")")(state1, pp)
     } else {
@@ -66,7 +66,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def CheckNonNegative[S <: State[S]](expr: RichExpression, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
-    if (TouchAnalysisParameters.printValuesInWarnings)
+    if (TouchAnalysisParameters.get.printValuesInWarnings)
       Error(expr < 0, method + ": Parameter " + parameter + " (" + expr + ") may be negative")(s, pp)
     else
       Error(expr < 0, method + ": Parameter " + parameter + " may be negative")(s, pp)

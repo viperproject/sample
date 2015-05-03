@@ -54,7 +54,7 @@ object SPhone extends Default_SPhone {
     /** Vibrates the phone for ... seconds (0.02 minimum) */
     case "vibrate" =>
       val List(seconds) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amount of seconds may be too small (must be >= 0.02)")
       }
       Skip

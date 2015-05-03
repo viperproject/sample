@@ -170,7 +170,7 @@ object DefaultSemantics extends ApiMemberSemantics {
 
     RichNativeSemantics.Dummy[S](this0,method.toString)(state,pp)
 
-    if (TouchAnalysisParameters.defaultToUnsound) {
+    if (TouchAnalysisParameters.get.defaultToUnsound) {
 
       // Return top with invalid
       curState = Top[S](method.returnType)(curState,pp)

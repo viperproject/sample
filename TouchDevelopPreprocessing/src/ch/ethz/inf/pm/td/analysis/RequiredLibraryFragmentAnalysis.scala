@@ -46,12 +46,12 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
 
     SystemParameters.resetOutput()
     val summaries = MethodSummaries.getSummaries[AccessCollectingState]
-    val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+    val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
     yield (mdecl.classDef.typ, mdecl, cfgState)
 
     // now check if we see anything suspicious
-    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
+    if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unanalyzed) {
         logger.debug("In ReqFragAnalysis: Did not analyze "+un.name+" (may be unreachable)")

@@ -39,7 +39,7 @@ object TSound extends Default_TSound {
     /** Plays the song with different volume (0 to 1), pitch (-1 to 1) and pan (-1 to 1). */
     case "play special" =>
       val List(volume,pitch,pan) = parameters // Number,Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](volume,0,1,"play special","volume")
         CheckInRangeInclusive[S](pitch,-1,1,"play special","pitch")
         CheckInRangeInclusive[S](pan,-1,1,"play special","pan")
@@ -49,7 +49,7 @@ object TSound extends Default_TSound {
     /** Sets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
     case "set pan" =>
        val List(pan) = parameters // Number
-       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+       if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
          CheckInRangeInclusive[S](pan,-1,1,"set pan","pan")
        }
        super.forwardSemantics(this0,method,parameters,returnedType)
@@ -57,7 +57,7 @@ object TSound extends Default_TSound {
     /** Sets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
     case "set pitch" =>
        val List(pitch) = parameters // Number
-       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+       if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
          CheckInRangeInclusive[S](pitch,-1,1,"set pitch","pitch")
        }
        super.forwardSemantics(this0,method,parameters,returnedType)
@@ -65,7 +65,7 @@ object TSound extends Default_TSound {
     /** Sets the volume from 0 (silent) to 1 (full volume). */
     case "set volume" =>
        val List(v) = parameters // Number
-       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+       if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
          CheckInRangeInclusive[S](v,0,1,"set volume","volume")
        }
        super.forwardSemantics(this0,method,parameters,returnedType)

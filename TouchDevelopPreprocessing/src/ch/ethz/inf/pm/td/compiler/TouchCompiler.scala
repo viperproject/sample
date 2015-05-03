@@ -126,7 +126,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
-    val rewrittenScript = LoopUnroller.unroll(LoopRewriter(script),TouchAnalysisParameters.numberOfUnrollings)
+    val rewrittenScript = LoopUnroller.unroll(LoopRewriter(script),TouchAnalysisParameters.get.numberOfUnrollings)
     Typer.processScript(rewrittenScript)
     parsedTouchScripts += ((pubID, rewrittenScript))
     val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)
@@ -178,16 +178,16 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getMethod(name: String, parameters: List[Type]): Option[MethodDeclaration] = {
     for (clazz <- parsedScripts; method <- clazz.methods) yield {
-      if (method.name.toString.equals(name) && method.arguments.apply(0).size == parameters.size) {
+      if (method.name.toString.equals(name) && method.arguments.head.size == parameters.size) {
         var ok: Boolean = true
-        for (i <- 0 to method.arguments(0).size - 1) {
-          if (!parameters(i).lessEqual(method.arguments(0)(i).typ))
+        for (i <- 0 to method.arguments.head.size - 1) {
+          if (!parameters(i).lessEqual(method.arguments.head(i).typ))
             ok = false
         }
         if (ok) return Some(method)
       }
     }
-    return None
+    None
   }
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
@@ -199,10 +199,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[MethodDeclaration] = {
     val matches = (for (clazz <- parsedScripts; if clazz.typ.name == classType.name; method <- clazz.methods) yield {
-      if (method.name.toString.equals(name) && method.arguments.apply(0).size == parameters.size) {
+      if (method.name.toString.equals(name) && method.arguments.head.size == parameters.size) {
         var ok: Boolean = true
-        for (i <- 0 to method.arguments(0).size - 1) {
-          if (!parameters(i).lessEqual(method.arguments(0)(i).typ))
+        for (i <- 0 to method.arguments.head.size - 1) {
+          if (!parameters(i).lessEqual(method.arguments.head(i).typ))
             ok = false
         }
         if (ok) return Some(method)

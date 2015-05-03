@@ -30,7 +30,7 @@ object SMaps extends Default_SMaps {
     /** Calculates the directions between two coordinates using Bing. */
     case "directions" =>
       val List(from, to, walking) = parameters // Location,Location,Boolean
-      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.get.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not(), "directions",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](GCollection(TLocation), "direction service may be unreachable")
@@ -48,7 +48,7 @@ object SMaps extends Default_SMaps {
       val List(center, search, zoom) = parameters // Location,String,Number
       Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not(), "open map",
         "Check if the device is connected to the internet before opening a map")
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](zoom, 0, 1, method, "zoom")
       }
       Skip

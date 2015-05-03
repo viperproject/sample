@@ -53,7 +53,7 @@ object MethodSummaries {
   def collect[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                              parameters: List[ExpressionSet]): S = {
     val identifyingPP =
-      if (TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
+      if (TouchAnalysisParameters.get.contextSensitiveInterproceduralAnalysis) callPoint
       else callTarget.programpoint
 
     Localization.enterCollectingFunction(identifyingPP,callTarget)
@@ -278,19 +278,19 @@ object MethodSummaries {
    */
   private def computeLocalState[S <: State[S]](identifyingPP:ProgramPoint, entryState: S): S = {
 
-    if (TouchAnalysisParameters.reachabilityBasedLocalization || TouchAnalysisParameters.accessBasedLocalization) {
+    if (TouchAnalysisParameters.get.reachabilityBasedLocalization || TouchAnalysisParameters.get.accessBasedLocalization) {
 
       var curState = entryState
       curState = curState.pruneVariables({
         id: VariableIdentifier =>
           (
-            !TouchAnalysisParameters.reachabilityBasedLocalization ||
+            !TouchAnalysisParameters.get.reachabilityBasedLocalization ||
               id.typ.asInstanceOf[TouchType].isSingleton ||
               CFGGenerator.isGlobalReferenceIdent(id.toString) ||
               CFGGenerator.isParamIdent(id.toString) ||
               CFGGenerator.isReturnIdent(id.toString)
           ) && (
-            !TouchAnalysisParameters.accessBasedLocalization ||
+            !TouchAnalysisParameters.get.accessBasedLocalization ||
               Localization.matches(identifyingPP,id)
           )
       })
@@ -345,7 +345,7 @@ object MethodSummaries {
       }
 
       // ===== REACHABILITY-BASED LOCALIZATION =====
-      if (TouchAnalysisParameters.reachabilityBasedLocalization) {
+      if (TouchAnalysisParameters.get.reachabilityBasedLocalization) {
         curState = curState.pruneVariables({
           id: VariableIdentifier =>
             !id.typ.asInstanceOf[TouchType].isSingleton &&
@@ -369,7 +369,7 @@ object MethodSummaries {
       })
 
       // ===== ACCESS-ANALYSIS BASED LOCALIZATION =====
-      if (TouchAnalysisParameters.accessBasedLocalization && Localization.isPruning) {
+      if (TouchAnalysisParameters.get.accessBasedLocalization && Localization.isPruning) {
         curState = curState.pruneVariables({
           id: VariableIdentifier => !Localization.matches(callPoint,id)
         })
@@ -390,14 +390,14 @@ object MethodSummaries {
         id: VariableIdentifier =>
           !id.typ.asInstanceOf[TouchType].isSingleton &&
             !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
-            (!TouchAnalysisParameters.variablePacking || Localization.matches(identifyingPP,id)) // Access-Analysis based localization!
+            (!TouchAnalysisParameters.get.variablePacking || Localization.matches(identifyingPP,id)) // Access-Analysis based localization!
       })
       curState = curState.pruneUnreachableHeap()
 
       // Initialize in-parameters to top
       callTarget.arguments.head.foreach({
         x: VariableDeclaration =>
-          if (TouchAnalysisParameters.argumentsToPublicMethodsValid || callTarget.name.asInstanceOf[TouchMethodIdentifier].isEvent) {
+          if (TouchAnalysisParameters.get.argumentsToPublicMethodsValid || callTarget.name.asInstanceOf[TouchMethodIdentifier].isEvent) {
             curState = Top[S](x.typ.asInstanceOf[TouchType])(curState, x.programpoint)
           } else {
             curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType], "Action arguments may be invalid")(curState, x.programpoint)

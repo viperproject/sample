@@ -74,7 +74,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     stringDomain match {
       case "Bricks" => new StringsAnd[InvalidAnd[D], R](invalidAndSubDomain, new Bricks().asInstanceOf[R])
       case _ => new StringsAnd[InvalidAnd[D], R](invalidAndSubDomain,
-        new NonrelationalStringDomain(StringKSetDomain.Top(TouchAnalysisParameters.stringRepresentationBound).asInstanceOf[StringKSetDomain]).asInstanceOf[R])
+        new NonrelationalStringDomain(StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]).asInstanceOf[R])
     }
 
 
@@ -125,7 +125,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
     // For more information, see Challenge 5 in OOPSLA 2014, Brutschy/Ferrara/Müller
     //
-    if (TouchAnalysisParameters.libraryFieldPruning) {
+    if (TouchAnalysisParameters.get.libraryFieldPruning) {
       SystemParameters.resetOutput()
       MethodSummaries.reset[TouchState.PreAnalysis]()
       Reporter.disableAllOutputs()
@@ -141,22 +141,22 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // (1) For each function which variables are accessed (for access-based localization, Oh/Brutschy/Yi, VMCAI 2011)
     // (2) For each numerical variable, with which values it is compared (for variable packing, as in Astree)
     //
-    val newEntryState = if (TouchAnalysisParameters.variablePacking) {
+    val newEntryState = if (TouchAnalysisParameters.get.variablePacking) {
       Localization.reset()
       TouchVariablePacking.reset()
       SystemParameters.resetOutput()
       MethodSummaries.reset[TouchState.PreAnalysis]()
       Reporter.disableAllOutputs()
-      val oldNumber = TouchAnalysisParameters.numberOfVersions
-      TouchAnalysisParameters.numberOfVersions = 1
+      val oldNumber = TouchAnalysisParameters.get.numberOfVersions
+      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
       analyzeScript[TouchState.PreAnalysis](compiler,methods)(TouchState.PreAnalysis())
       //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
-      TouchAnalysisParameters.numberOfVersions = oldNumber
+      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
       logger.debug("Variable packing: "+TouchVariablePacking)
       val classifier = TouchVariablePacking.makeClassifier
-      if (TouchAnalysisParameters.accessBasedLocalization) {
+      if (TouchAnalysisParameters.get.accessBasedLocalization) {
         logger.debug("Localization "+Localization)
         Localization.startPruning(variablePacker = Some(classifier))
       }
@@ -179,9 +179,9 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // unreachable code.
     //
     val summaries = MethodSummaries.getSummaries[S]
-    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
     val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
-    if (TouchAnalysisParameters.reportUnanalyzedFunctions) {
+    if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unAnalyzed) {
         logger.debug(" Did not analyze "+un.name+" (may be unreachable)")
@@ -213,11 +213,11 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
         case any: AAny =>
           val typ = any
           if (typ.isSingleton &&
-            (!TouchAnalysisParameters.libraryFieldPruning ||
+            (!TouchAnalysisParameters.get.libraryFieldPruning ||
               compiler.relevantLibraryFields.contains(typ.name))) {
             val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
             if (typ.name == "records")
-              if (!TouchAnalysisParameters.generalPersistentState && !compiler.isInLibraryMode) {
+              if (!TouchAnalysisParameters.get.generalPersistentState && !compiler.isInLibraryMode) {
                 curState = RichNativeSemantics.New[S](typ)(curState, singletonProgramPoint)
               } else {
                 curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
@@ -242,7 +242,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       import RichNativeSemantics._
 
       val rightVal =
-        if (!TouchAnalysisParameters.generalPersistentState && !compiler.isInLibraryMode) {
+        if (!TouchAnalysisParameters.get.generalPersistentState && !compiler.isInLibraryMode) {
 
           // We analyze executions separately. In the first execution of the script, global fields are invalid
           // except for the obvious exception (art, read-only, primitives)
@@ -271,7 +271,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
             curState = Default[S](newTyp)(curState, v.programpoint)
           } else {
             curState = TopWithInvalid[S](newTyp, "global variable may be invalid")(curState,
-              if (TouchAnalysisParameters.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
+              if (TouchAnalysisParameters.get.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
           }
 
           curState.expr
@@ -284,7 +284,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     // == CORE ANALYSIS IS STARTING HERE
     // The first fixpoint, which is computed over several executions of the same script
-    if (!TouchAnalysisParameters.generalPersistentState && !TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
+    if (!TouchAnalysisParameters.get.generalPersistentState && !TouchAnalysisParameters.get.singleExecution && !compiler.isInLibraryMode)
       Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
     else
       analyzeExecution(compiler, methods)(curState)
@@ -304,7 +304,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       }
     }
 
-    if (TouchAnalysisParameters.treatPrivateMethodLikePublicMethods)
+    if (TouchAnalysisParameters.get.treatPrivateMethodLikePublicMethods)
       methodsToBeAnalyzed = methodsToBeAnalyzed ++ compiler.getPrivateMethods
     if (methods.nonEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {
       tm =>
@@ -324,7 +324,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     })
 
     // Compute the fixpoint over all events
-    var result = if (!TouchAnalysisParameters.singleEventOccurrence) {
+    var result = if (!TouchAnalysisParameters.get.singleEventOccurrence) {
       Lattice.lfp(exitState, analyzeEvents(compiler, methods)(_: S), SystemParameters.wideningLimit)
     } else {
       analyzeEvents(compiler, methods)(exitState)
@@ -357,7 +357,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
   private def resetEnv[S <: State[S]](s: S): S = {
 
-    if (TouchAnalysisParameters.resetEnv) {
+    if (TouchAnalysisParameters.get.resetEnv) {
 
       var curState = s
 
@@ -377,7 +377,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
         sem match {
           case typ: AAny =>
             if (typ.isSingleton &&
-              (!TouchAnalysisParameters.libraryFieldPruning ||
+              (!TouchAnalysisParameters.get.libraryFieldPruning ||
                 SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
               if (typ.name != "records" && typ.name != "art" && typ.name != "data" && typ.name != "code") {
                 val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)

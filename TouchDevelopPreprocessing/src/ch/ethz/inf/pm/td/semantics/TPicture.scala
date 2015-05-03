@@ -49,14 +49,14 @@ object TPicture extends Default_TPicture {
     /** Gets the pixel color at the given linear index */
     case "at" =>
       val List(index) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations)
         CheckInRangeInclusive[S](index, 0, (Field[S](this0, TPicture.field_height) * Field[S](this0, TPicture.field_width)) - NumericalAnalysisConstants.epsilon, "at", "index")
       Top[S](TColor)
 
     /** Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */
     case "blend" =>
       val List(other, left, top, angle, opacity) = parameters // Picture,Number,Number,Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "blend", "top")
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "blend", "left")
         CheckInRangeInclusive[S](angle, 0, 360, "blend", "angle")
@@ -70,7 +70,7 @@ object TPicture extends Default_TPicture {
     /** Writes an Scalable Vector Graphics (SVG) document at a given location. By default, this action uses the viewport size provided in the SVG document when width or height are negative. */
     case "blend svg" =>
       val List(markup, left, top, width, height, angle) = parameters // String,Number,Number,Number,Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "blend svg", "top")
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "blend svg", "left")
         CheckInRangeInclusive[S](height, 0, Field[S](this0, TPicture.field_height) - top, "blend svg", "height")
@@ -82,7 +82,7 @@ object TPicture extends Default_TPicture {
     /** Changes the brightness of the picture. factor in [-1, 1]. */
     case "brightness" =>
       val List(factor) = parameters // Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](factor, -1, 1, "brightness", "factor")
       }
       Skip
@@ -95,7 +95,7 @@ object TPicture extends Default_TPicture {
     /** Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */
     case "colorize" =>
       val List(background, foreground, threshold) = parameters // Color,Color,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](threshold, 0, 1, "colorize", "threshold")
       }
       Skip
@@ -113,7 +113,7 @@ object TPicture extends Default_TPicture {
     /** Crops a sub-image */
     case "crop" =>
       val List(left, top, width, height) = parameters // Number,Number,Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "crop", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "crop", "top")
         CheckInRangeInclusive[S](width, 0, Field[S](this0, TPicture.field_width) - left, "crop", "width")
@@ -130,7 +130,7 @@ object TPicture extends Default_TPicture {
     /** Draws an elliptic border with a given color */
     case "draw ellipse" =>
       val List(left, top, width, height, angle, c, thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "draw ellipse", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "draw ellipse", "top")
         CheckInRangeInclusive[S](width, 0, Field[S](this0, TPicture.field_width) - left, "draw ellipse", "width")
@@ -143,7 +143,7 @@ object TPicture extends Default_TPicture {
     /** Draws a line between two points */
     case "draw line" =>
       val List(x1, y1, x2, y2, color, thickness) = parameters // Number,Number,Number,Number,Color,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](x1, 0, Field[S](this0, TPicture.field_width), "draw line", "x1")
         CheckInRangeInclusive[S](y1, 0, Field[S](this0, TPicture.field_height), "draw line", "y1")
         CheckInRangeInclusive[S](x2, 0, Field[S](this0, TPicture.field_width), "draw line", "x2")
@@ -155,7 +155,7 @@ object TPicture extends Default_TPicture {
     /** Draws a path with a given color. */
     case "draw path" =>
       val List(left, top, angle, color, thickness, data) = parameters // Number,Number,Number,Color,Number,String
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "draw path", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "draw path", "top")
         CheckInRangeInclusive[S](angle, 0, 360, "draw path", "angle")
@@ -167,7 +167,7 @@ object TPicture extends Default_TPicture {
     /** Draws a rectangle border with a given color */
     case "draw rect" =>
       val List(left, top, width, height, angle, c, thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "draw rect", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "draw rect", "top")
         CheckInRangeInclusive[S](left + width, 0, Field[S](this0, TPicture.field_width), "draw rect", "left+width")
@@ -180,7 +180,7 @@ object TPicture extends Default_TPicture {
     /** Draws some text border with a given color and font size */
     case "draw text" =>
       val List(left, top, text, font, angle, color) = parameters // Number,Number,String,Number,Number,Color
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "draw text", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "draw text", "top")
         CheckInRangeInclusive[S](angle, 0, 360, "draw text", "angle")
@@ -190,7 +190,7 @@ object TPicture extends Default_TPicture {
     /** Fills a ellipse with a given color */
     case "fill ellipse" =>
       val List(left, top, width, height, angle, color) = parameters // Number,Number,Number,Number,Number,Color
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "fill ellipse", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "fill ellipse", "top")
         CheckInRangeInclusive[S](width, 0, Field[S](this0, TPicture.field_width) - left, "fill ellipse", "width")
@@ -202,7 +202,7 @@ object TPicture extends Default_TPicture {
     /** Fills a path with a given color. */
     case "fill path" =>
       val List(left, top, angle, color, data) = parameters // Number,Number,Number,Color,String
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "fill path", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "fill path", "top")
         CheckInRangeInclusive[S](angle, 0, 360, "fill path", "angle")
@@ -213,7 +213,7 @@ object TPicture extends Default_TPicture {
     /** Fills a rectangle with a given color */
     case "fill rect" =>
       val List(left, top, width, height, angle, color) = parameters // Number,Number,Number,Number,Number,Color
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "fill rect", "left")
         CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "fill rect", "top")
         CheckInRangeInclusive[S](left + width, 0, Field[S](this0, TPicture.field_width), "fill rect", "left+width")
@@ -245,7 +245,7 @@ object TPicture extends Default_TPicture {
     /** Gets the pixel color */
     case "pixel" =>
       val List(x, y) = parameters // Number,Number
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](x, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "pixel", "x")
         CheckInRangeInclusive[S](y, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "pixel", "y")
       }
@@ -255,7 +255,7 @@ object TPicture extends Default_TPicture {
     case "resize" =>
       val List(width, height) = parameters // Number,Number
 
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         Error[S](width <= 0 && height <= 0, "resize", "Width and height may both be negative!")
       }
 
@@ -288,7 +288,7 @@ object TPicture extends Default_TPicture {
     /** Sets the pixel color at a given pixel */
     case "set pixel" =>
       val List(x, y, color) = parameters // Number,Number,Color
-      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+      if (TouchAnalysisParameters.get.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](x, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "set pixel", "x")
         CheckInRangeInclusive[S](y, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "set pixel", "y")
       }

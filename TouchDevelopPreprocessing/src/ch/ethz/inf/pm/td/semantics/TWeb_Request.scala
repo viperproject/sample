@@ -86,8 +86,8 @@ object TWeb_Request extends Default_TWeb_Request {
 
     /** Performs the request synchronously */
     case "send" =>
-      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
-        Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not, "send",
+      if (TouchAnalysisParameters.get.reportPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not(), "send",
           "Check if the device is connected to the internet before using the connection")
       Top[S](TWeb_Response, Map(TWeb_Response.field_request -> this0))
 
