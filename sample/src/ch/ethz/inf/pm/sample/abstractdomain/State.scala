@@ -90,6 +90,13 @@ trait Lattice[T <: Lattice[T]] {
    */
   def isTop:Boolean
 
+  /**
+   * Checks semantic equality of the two states. Not necessarily an equal representation / hashcode!
+   *
+   * FIXME: should this be the same as equals?
+   */
+  def equivalent(other: T): Boolean = other.lessEqual(this) && this.lessEqual(other)
+
 }
 
 trait TopLattice[S <: Lattice[S]] extends Lattice[S] {

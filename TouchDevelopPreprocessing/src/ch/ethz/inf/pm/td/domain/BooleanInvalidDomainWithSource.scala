@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.abstractdomain.{AbstractOperator, BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, NegatedBooleanExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.domain.ValiditySet._
@@ -13,16 +14,17 @@ import ch.ethz.inf.pm.td.semantics.TBoolean
  * Time: 10:50 AM
  * 
  */
-class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map.empty[Identifier, ValiditySet],
+case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Map.empty[Identifier, ValiditySet],
                                       override val isBottom:Boolean = false,
-                                      val isTop:Boolean = false)
+                                      isTop:Boolean = false)
   extends BoxedDomain[ValiditySet,BooleanInvalidDomainWithSource]
+  with BooleanExpressionSimplifier[BooleanInvalidDomainWithSource]
   with InvalidDomain[BooleanInvalidDomainWithSource] {
 
   def functionalFactory(_value:Map[Identifier, ValiditySet] = Map.empty[Identifier, ValiditySet],
                         _isBottom:Boolean = false,
                         _isTop:Boolean = false) : BooleanInvalidDomainWithSource =
-    new BooleanInvalidDomainWithSource(_value,_isBottom,_isTop)
+    BooleanInvalidDomainWithSource(_value,_isBottom,_isTop)
 
   def get(key : Identifier) : ValiditySet = map.get(key) match {
     case None => Bottom
@@ -30,7 +32,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map
   }
 
   override def createVariable(variable: Identifier, typ: Type): BooleanInvalidDomainWithSource = {
-    this
+    this.add(variable,Top)
   }
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
@@ -105,12 +107,9 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map
    * TODO: We would have to convert this to some normal Form
    * TODO: Case x == y, x != y
    */
-  override def assume(expr: Expression): BooleanInvalidDomainWithSource = {
+  override def assumeSimplified(expr: Expression): BooleanInvalidDomainWithSource = {
     val res = expr match {
-      // double negation (happens e.g. when using  "not foo->is_invalid")
-      case NegatedBooleanExpression(NegatedBooleanExpression(x)) => {
-        assume(x)
-      }
+
       case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
 
         val left = eval(a)
@@ -128,7 +127,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map
         }
         cur
 
-      case NegatedBooleanExpression(BinaryArithmeticExpression(a,b, ArithmeticOperator.==, _)) =>
+      case BinaryArithmeticExpression(a,b, ArithmeticOperator.!=, _) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -149,10 +148,6 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, ValiditySet] = Map
         }
         cur
 
-      case BinaryBooleanExpression(left,right,op,typ) => op match {
-        case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => assume(left).lub(assume(right))
-      }
       case _ => this
     }
 

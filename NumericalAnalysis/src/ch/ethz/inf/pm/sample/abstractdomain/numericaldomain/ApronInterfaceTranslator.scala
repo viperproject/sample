@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
  *                          DefaultExpSimplifier by default.
  * @param boolType boolean type used to generate boolean expressions
  */
-case class ApronInterfaceTranslator(
+case class ApronInterfaceTranslator (
     resultTransformer: (Expression => Expression) = ExpSimplifier,
     boolType: Type = SystemParameters.typ.top())
     (val apronInterface: ApronInterface[_]) {
@@ -132,9 +132,8 @@ case class ApronInterfaceTranslator(
     case None => sys.error(s"unknown variable $variable")
   }
 
-  private val idMap = apronInterface.env.groupBy(_.getName).map { case (k,v) => {
-      if (v.size > 1) sys.error(s"non-unique identifier name $k")
-      else (k, v.toList(0))
-    }
+  private val idMap = apronInterface.env.groupBy(_.getName).map { case (k,v) =>
+    if (v.size > 1) sys.error(s"non-unique identifier name $k")
+    else (k, v.toList.head)
   }
 }

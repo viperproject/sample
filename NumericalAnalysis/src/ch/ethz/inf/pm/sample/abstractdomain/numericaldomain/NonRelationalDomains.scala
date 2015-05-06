@@ -25,7 +25,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   override def createVariable(variable: Identifier, typ: Type): BoxedNonRelationalNumericalDomain[N] = {
     if (variable.typ.isNumericalType) {
-      return this.add(variable, dom.top())
+      this.add(variable, dom.top())
     } else this
   }
 
@@ -65,7 +65,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     // Implicit conversion from boolean types
     val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
     val mayBeFalse = if (!this.assume(NegatedBooleanExpression(expr)).isBottom) dom.evalConstant(0) else dom.bottom()
-    return mayBeTrue.lub(mayBeFalse)
+    mayBeTrue.lub(mayBeFalse)
   }
 
 
@@ -84,10 +84,10 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
   def eval(expr: Expression): N = {
 
     expr match {
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => return eval(left).sum(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return eval(left).multiply(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return eval(left).divide(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return eval(left).subtract(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => eval(left).sum(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => eval(left).multiply(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => eval(left).divide(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => eval(left).subtract(eval(right))
       case BinaryArithmeticExpression(left, right, op, typ) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
       case BinaryBooleanExpression(left, right, _, typ) => evalBoolean(expr)
       case NegatedBooleanExpression(left) => evalBoolean(expr)
@@ -115,18 +115,18 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
       case NegatedBooleanExpression(Constant("false",_,_)) => this
       case BinaryArithmeticExpression(Constant(a,_,_),Constant(b,_,_),ArithmeticOperator.==,_) =>
-        if (a == b) return this else return bottom()
+        if (a == b) this else bottom()
 
       // Boolean variables
       case x: Identifier =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
         val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
-        return res
+        res
 
       case NegatedBooleanExpression(x: Identifier) =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
         val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
-        return res
+        res
 
       // And and Or
       case BinaryBooleanExpression(left, right, op, _) => op match {
@@ -155,13 +155,13 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
         val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
         val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
         val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
-        return res
+        res
 
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
         val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
         val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
         val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
-        return res
+        res
 
       // Inverting of operators
       case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
@@ -193,7 +193,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
               return curState
             case _ => return this
           }
-          return this
+          this
         case Some(Monomial(weightedVariables, constant)) =>
           var stateResult: BoxedNonRelationalNumericalDomain[N] = this
 
@@ -228,7 +228,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
               stateResult = stateResult.add(variable, newValue)
             }
           }
-          return stateResult
+          stateResult
       }
     }
 
@@ -545,10 +545,13 @@ object IntegerInterval {
     extends IntegerInterval
     with NonRelationalNumericalDomain.Inner[IntegerInterval,Inner] {
 
+    assert(left <= right)
+    assert(left != Int.MinValue || right != Int.MaxValue)
+
     def factory(newLeft: Int, newRight:Int) = {
       if (newLeft == Int.MinValue && newRight == Int.MaxValue) Top
       else if (newLeft > newRight) Bottom
-      else Inner(left,right)
+      else Inner(newLeft,newRight)
     }
 
     def lubInner(other: Inner) = other match {
@@ -645,7 +648,7 @@ object IntegerInterval {
       case Bottom => false
       case Top => true
       case Inner(oLeft, oRight) =>
-        return !(this.right < oLeft || oRight < this.left)
+        !(this.right < oLeft || oRight < this.left)
     }
 
     override def toString: String =
@@ -664,7 +667,7 @@ object IntegerInterval {
         else if (a <= 0 && b <= 0) result = Int.MaxValue
         else result = Int.MinValue
       }
-      return result
+      result
     }
 
     private def max(a: Int, b: Int, c: Int, d: Int): Int = Math.max(Math.max(a, b), Math.max(c, d))
@@ -733,7 +736,7 @@ object DoubleInterval {
         case Bottom => false
         case Top => true
         case Inner(oLeft, oRight) =>
-          return !(this.right < oLeft || oRight < this.left)
+          !(this.right < oLeft || oRight < this.left)
       }
 
     def lubInner(other: Inner) =

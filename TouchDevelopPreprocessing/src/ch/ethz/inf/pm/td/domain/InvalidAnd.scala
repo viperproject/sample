@@ -19,7 +19,7 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  */
 case class InvalidAnd[T <: NumericalDomain[T]](
     _1: T,
-    _2: BooleanInvalidDomainWithSource = new BooleanInvalidDomainWithSource())
+    _2: BooleanInvalidDomainWithSource = BooleanInvalidDomainWithSource())
   extends NumericWithInvalidDomain[T, BooleanInvalidDomainWithSource, InvalidAnd[T]] {
   override def factory(a:T,b:BooleanInvalidDomainWithSource) = new InvalidAnd(a,b)
 }

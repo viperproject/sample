@@ -188,10 +188,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       }
     }
     if (SystemParameters.property != null) {
-      SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results, output)
       SystemParameters.property.finalizeChecking(output)
-      SystemParameters.propertyTimer.stop()
     }
 
     Exporters(compiler)

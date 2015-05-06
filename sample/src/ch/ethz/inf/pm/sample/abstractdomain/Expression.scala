@@ -130,6 +130,11 @@ trait Expression {
    * Checks if function f evaluates to true for any sub-expression
    */
   def contains(f: (Expression => Boolean)): Boolean
+
+  // SHORTHANDS
+  def equal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.==,DummyBooleanType)
+  def unequal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.!=,DummyBooleanType)
+
 }
 
 

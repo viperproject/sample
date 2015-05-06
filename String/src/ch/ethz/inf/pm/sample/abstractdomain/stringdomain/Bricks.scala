@@ -291,91 +291,90 @@ class BricksDomain extends StringValueDomain[BricksDomain]
     val result = factory()
     if(right.isTop && this.isTop )
       return result.top()
-    result.bricksList = (this.bricksList ++ right.bricksList).toList
+    result.bricksList = this.bricksList ++ right.bricksList
     val normalizedResult = result.normalize()
     normalizedResult
   }
   
   def stringConcatenation(left : Set[String], other : Set[String]) : Set[String] = {
-    var newSet : Set[String] = Set.empty;
-    left.foreach(s1 => other.foreach(s2 => newSet = newSet + s1.concat(s2)));
-    return newSet;
+    var newSet : Set[String] = Set.empty
+    left.foreach(s1 => other.foreach(s2 => newSet = newSet + s1.concat(s2)))
+    newSet
   }
   def stringConcatenation(set : Set[String], times : Int) : Set[String] = {
-    var left : Set[String] = set;
-    var other : Set[String] = set;
-    var temp : Set[String] = Set.empty;
+    var left : Set[String] = set
+    val other: Set[String] = set
+    var temp : Set[String] = Set.empty
     for(i <- 0 to times-2) {
-    	left.foreach(s1 => other.foreach(s2 => temp = temp + s1.concat(s2)));
-    	left = temp;
-    	temp = Set.empty;
+    	left.foreach(s1 => other.foreach(s2 => temp = temp + s1.concat(s2)))
+      left = temp
+      temp = Set.empty
     }
-    return left;
+    left
   }
   
   def normalize() : BricksDomain = {
     while(!this.isNormalized) {
     	
     	//RULE 1
-    	this.bricksList = this.bricksList.filter(b => !(b.isTop == false &&
+    	this.bricksList = this.bricksList.filter(b => !(!b.isTop &&
     			b.min == 0 && b.max == 0 && b.strings == Set.empty))
     	if(this.bricksList.length == 0) {
-    		this.isBottom = true;
-    		return this;
-		}
+    		this.isBottom = true
+        return this
+      }
     	
     	//RULE 3
     	this.bricksList = this.bricksList.map(b => {
     			if(b.min > 1 && b.max == b.min)
-    				new Brick(1,1, stringConcatenation(b.strings, b.min));
-    			else
-    				b;
-           });
-     
-    	var newBricksList : List[Brick] = Nil;
-    	var length = this.bricksList.length;
-    	var i = 0;
-    	var skipNext = false;
-	    for(i <- 0 to length - 2)
+    				new Brick(1,1, stringConcatenation(b.strings, b.min))
+          else
+    				b
+      })
+
+      var newBricksList : List[Brick] = Nil
+      var length = this.bricksList.length
+      var skipNext = false
+      for(i <- 0 to length - 2)
 	    {
 	      if(!skipNext) {
-		      var first = this.bricksList.apply(length - 1 - i);
-		      var second = this.bricksList.apply(length - 2 - i);
-		     
-		      if(first.min == 1 && first.max == 1 && second.min == 1 && second.max == 1) {
+          val first = this.bricksList.apply(length - 1 - i)
+          val second = this.bricksList.apply(length - 2 - i)
+
+          if(first.min == 1 && first.max == 1 && second.min == 1 && second.max == 1) {
 	        	  //RULE 2
-		    	  newBricksList = new Brick(1,1, stringConcatenation(second.strings, first.strings)) :: newBricksList;
-		    	  skipNext = true;
-		      } else if(first.strings.subsetOf(second.strings) && second.strings.subsetOf(first.strings)) {
+		    	  newBricksList = new Brick(1,1, stringConcatenation(second.strings, first.strings)) :: newBricksList
+            skipNext = true
+          } else if(first.strings.subsetOf(second.strings) && second.strings.subsetOf(first.strings)) {
 		          //RULE 4
-		    	  newBricksList = new Brick(first.min + second.min, first.max + second.max, first.strings) :: newBricksList;
-		    	  skipNext = true;		        
-		      } else
-      			  newBricksList = first :: newBricksList;
-	      } else
-	    	  skipNext = false;
-	    }
+		    	  newBricksList = new Brick(first.min + second.min, first.max + second.max, first.strings) :: newBricksList
+            skipNext = true
+          } else
+      			  newBricksList = first :: newBricksList
+        } else
+	    	  skipNext = false
+      }
 	    if(!skipNext)
-	    	newBricksList = this.bricksList.apply(0) :: newBricksList;
-     
-	    this.bricksList = newBricksList;
-     
-    	//RULE 5
-	    length = this.bricksList.length;
-	    newBricksList = Nil;
-	    for(i <- 0 to length - 1)
+	    	newBricksList = this.bricksList.head :: newBricksList
+
+      this.bricksList = newBricksList
+
+      //RULE 5
+	    length = this.bricksList.length
+      newBricksList = Nil
+      for(i <- 0 to length - 1)
 	    {
-	      var b = this.bricksList.apply(length - 1 - i);
-	      if(b.min >= 1 && b.max > b.min) {
+        val b = this.bricksList.apply(length - 1 - i)
+        if(b.min >= 1 && b.max > b.min) {
 	    	  newBricksList = new Brick(1, 1, stringConcatenation(b.strings, b.min)) :: 
-	    		  	(new Brick(0, b.max - b.min, b.strings) :: newBricksList);
-	      } else
-	    	  newBricksList = b :: newBricksList;
-	    }
+	    		  	(new Brick(0, b.max - b.min, b.strings) :: newBricksList)
+        } else
+	    	  newBricksList = b :: newBricksList
+      }
      
-	    this.bricksList = newBricksList;
+	    this.bricksList = newBricksList
     }
-    return this;
+    this
   }
 }
 
@@ -463,22 +462,22 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
           }
 	    case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringSubstring, _) =>
 	      val l : List[Expression] = parameters
-	      if(l.size != 2) return new BricksDomain().top();
-	      l.apply(0) match {
+	      if(l.size != 2) return new BricksDomain().top()
+        l.head match {
     	    case Constant(s1, _, _) =>
 		      l.apply(1) match {
 		    	    case Constant(s2, _, _) =>
 		    	    	  val beginIndex = Integer.decode(s1).intValue()
 	    	    	  	  val endIndex = Integer.decode(s2).intValue()
 					      val left = this.eval(thisExpr)
-					      if(left.bricksList.length >= 1 && left.bricksList.apply(0).min == 1 && left.bricksList.apply(0).max == 1) {
-					    	  val firstBrick = left.bricksList.apply(0)
+					      if(left.bricksList.length >= 1 && left.bricksList.head.min == 1 && left.bricksList.head.max == 1) {
+					    	  val firstBrick = left.bricksList.head
 					    	  if(firstBrick.strings.forall(s => s.length() >= endIndex)) {
 					    	    val result = new BricksDomain()
 				    	    	var substrings : Set[String] = Set.empty
-					    	    firstBrick.strings.foreach(s => substrings = substrings + s.substring(beginIndex,endIndex));
-				    	    	result.bricksList = List(new Brick(1, 1, substrings));
-					    	    result
+					    	    firstBrick.strings.foreach(s => substrings = substrings + s.substring(beginIndex,endIndex))
+                    result.bricksList = List(new Brick(1, 1, substrings))
+                    result
 					    	  } else
                     dom.top()
 					      } else

@@ -476,7 +476,12 @@ object SetDomain {
   object Default {
 
     final case class Inner[V](value: Set[V])
-      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]]
+      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]] {
+
+      // otherwise bottom!
+      assert(value.nonEmpty)
+
+    }
 
     final case class Bottom[V]()
       extends Default[V] with SetDomain.Bottom[V, Default[V]]

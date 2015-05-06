@@ -66,22 +66,6 @@ object SystemParameters {
     */
   var analysisOutput: ScreenOutput = null
   /**
-  The timer that collects the amount of time spent by the heap abstraction
-    */
-  val heapTimer: Timer = new Timer
-  /**
-  The timer that collects the amount of time spent by the semantic analysis
-    */
-  val domainTimer: Timer = new Timer
-  /**
-  The timer that collects the amount of time spent by the property checker
-    */
-  val propertyTimer: Timer = new Timer
-  /**
-  The timer that collects the amount of time spent by the compiler
-    */
-  val compilerTimer: Timer = new Timer
-  /**
   An instance of the current type system
     */
   var typ: Type = null
