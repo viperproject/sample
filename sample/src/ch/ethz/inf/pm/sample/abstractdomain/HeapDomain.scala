@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.UndirectedGraph
 
 
@@ -47,10 +46,10 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
    */
   def lub(other: Replacement): Replacement = {
     type Entry = (Set[Identifier], Set[Identifier])
-    def adjacent(x: Entry, y: Entry): Boolean = x != y && !(x._2 intersect y._2).isEmpty
+    def adjacent(x: Entry, y: Entry): Boolean = x != y && (x._2 intersect y._2).nonEmpty
 
     val entries = (value.toList ++ other.value.toList).distinct
-    val g = UndirectedGraph.build(entries, adjacent _)
+    val g = UndirectedGraph.build(entries, adjacent)
     val lubEntries =
       for (component <- g.getComponents) yield {
         component reduceLeft {
@@ -72,9 +71,9 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
 
   def keySet() = value.keySet
 
-  def ids:Set[Identifier] = (value flatMap {
+  def ids:IdentifierSet = IdentifierSet.Inner((value flatMap {
     x => x._1 ++ x._2
-  }).toSet
+  }).toSet)
 
   def apply(k: Set[Identifier]) = value.apply(k)
 
@@ -93,7 +92,7 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
 
     for ((fromsLeft, tosLeft) <- this.value) {
       val newTosLeft = tosLeft.diff(other.value.keys.flatten.toSet)
-      if (!newTosLeft.isEmpty || tosLeft.isEmpty)
+      if (newTosLeft.nonEmpty || tosLeft.isEmpty)
         rep.value += (fromsLeft -> newTosLeft)
     }
 
@@ -102,7 +101,7 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
       var replacedIds = Set.empty[Identifier]
       for ((fromsLeft, tosLeft) <- inverseReplacement.value) {
         val replaceIds = in.intersect(tosLeft)
-        if (!replaceIds.isEmpty) {
+        if (replaceIds.nonEmpty) {
           result = result.diff(replaceIds).union(fromsLeft)
         }
         replacedIds = replacedIds ++ replaceIds
@@ -113,7 +112,7 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
     for ((fromsRight, tosRight) <- other.value) {
       val (newFromsRight, replacedIds) = replace(fromsRight, this)
       rep.value += (newFromsRight -> tosRight)
-      if (!replacedIds.isEmpty) {
+      if (replacedIds.nonEmpty) {
         rep.value += (replacedIds -> Set.empty[Identifier])
       }
     }
@@ -373,7 +372,7 @@ object HeapIdSetDomain {
 
   trait Top[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Top[I, HeapIdSetDomain[I]] {
 
-    def ids = ??? // TODO: Not well-defined
+    def ids = IdentifierSet.Bottom
 
     def typ = DummyBooleanType.top() // TODO: Not well-defined
 
@@ -391,7 +390,7 @@ object HeapIdSetDomain {
 
   trait Bottom[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Bottom[I, HeapIdSetDomain[I]] {
 
-    def ids = Set.empty
+    def ids = IdentifierSet.Bottom
 
     def typ = DummyBooleanType.bottom() // TODO: Not well-defined
 
@@ -410,8 +409,8 @@ object HeapIdSetDomain {
   trait Inner[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Inner[I, HeapIdSetDomain[I], Inner[I]] {
 
     override def equals(x: Any): Boolean = x match {
-      case x: I => if (value.size == 1) return x.equals(value.head); else return false;
-      case _ => return super.equals(x);
+      case x: I => if (value.size == 1) x.equals(value.head) else false
+      case _ => super.equals(x);
     }
 
     def merge(rep: Replacement): HeapIdSetDomain[I] = {
@@ -445,7 +444,7 @@ object HeapIdSetDomain {
 
     def contains(f: (Expression => Boolean)): Boolean = f(this) || value.map(_.contains(f)).foldLeft(false)(_ || _)
 
-    def ids = this.value.asInstanceOf[Set[Identifier]]
+    def ids = IdentifierSet.Inner(this.value.toSet[Identifier])
 
     def typ = value.foldLeft(DummyBooleanType.bottom())(_ lub _.typ)
   }
@@ -457,7 +456,7 @@ object HeapIdSetDomain {
     def top() = MayBe.Top()
     def factory(v:Set[I]) = MayBe.Inner(pp,v)
 
-    def convert(add: I): HeapIdSetDomain[I] = MayBe.Inner(add.pp).add(add)
+    def convert(add: I): HeapIdSetDomain[I] = MayBe.Inner(add.pp).+(add)
 
     def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.lub(s2)
 
@@ -483,7 +482,7 @@ object HeapIdSetDomain {
     def top() = Definite.Top()
     def factory(v:Set[I]) = Definite.Inner(pp,v)
 
-    def convert(add: I): HeapIdSetDomain[I] = Definite.Inner(add.pp).add(add)
+    def convert(add: I): HeapIdSetDomain[I] = Definite.Inner(add.pp).+(add)
 
     def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
 

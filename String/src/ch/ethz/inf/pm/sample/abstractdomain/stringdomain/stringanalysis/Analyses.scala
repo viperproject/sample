@@ -29,7 +29,7 @@ class BricksAnalysis extends StringAnalysis[Bricks] {
 
 class SurelyAndMaybeContainedCharactersAnalysis extends StringAnalysis[SurelyAndMaybeContainedCharacters] {
   override def getLabel() = super.getLabel()+": SurelyAndMaybeContainedCharacters"
-  def getInitialState() : SurelyAndMaybeContainedCharacters = new SurelyAndMaybeContainedCharacters(new SurelyContainedCharacters(), new MaybeContainedCharacters());
+  def getInitialState() : SurelyAndMaybeContainedCharacters = new SurelyAndMaybeContainedCharacters(new SurelyContainedCharacters(), new MaybeContainedCharacters())
 }
 
 class PrefixAndSuffixAnalysis extends StringAnalysis[PrefixAndSuffix] {

@@ -205,7 +205,7 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
     possibleEdgeMap: Map[Edge[S], Set[Edge[S]]])
   extends VertexIso {
 
-  require(possibleEdgeMap.values.forall(!_.isEmpty),
+  require(possibleEdgeMap.values.forall(_.nonEmpty),
     "each edge in the edge map must map to a non-empty set")
 
   require((remainingVerticesFrom intersect verticesFrom).isEmpty,
@@ -289,7 +289,7 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
         if (fromEdge.source != from && fromEdge.target != from)
           newToEdges = newToEdges.filter(e => e.source != to && e.target != to)
         fromEdge -> newToEdges
-    }).toMap.filterNot(_._2.isEmpty)
+    }).filterNot(_._2.isEmpty)
 
     PartialCommonSubGraphIso(
       remainingVerticesFrom = remainingVerticesFrom - from,

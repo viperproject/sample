@@ -9,9 +9,9 @@ class InverseSetDomainTest extends FunSuite with ShouldMatchers {
   val dom = InvertedSetDomain.Default[Int]()
   val bottom = dom.bottom()
   val top = dom.top()
-  val one = top.add(1)
-  val two = top.add(2)
-  val oneTwo = top.add(1).add(2)
+  val one = top.+(1)
+  val two = top.+(2)
+  val oneTwo = top.+(1).+(2)
 
   test("lessEqual") {
     assert(bottom.lessEqual(bottom))
@@ -25,15 +25,15 @@ class InverseSetDomainTest extends FunSuite with ShouldMatchers {
   }
 
   test("add") {
-    assert(top.add(1) == one)
-    assert(one.add(2) == oneTwo)
-    assert(bottom.add(1) == bottom)
+    assert(top.+(1) == one)
+    assert(one.+(2) == oneTwo)
+    assert(bottom.+(1) == bottom)
   }
 
   test("remove") {
-    assert(one.remove(1) == top)
-    assert(oneTwo.remove(1) == two)
-    assert(bottom.remove(1) == bottom)
-    assert(top.remove(1) == top)
+    assert(one.-(1) == top)
+    assert(oneTwo.-(1) == two)
+    assert(bottom.-(1) == bottom)
+    assert(top.-(1) == top)
   }
 }

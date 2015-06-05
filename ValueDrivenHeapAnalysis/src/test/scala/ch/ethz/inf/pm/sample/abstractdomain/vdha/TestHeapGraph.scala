@@ -1,11 +1,12 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+
 import scala.collection.immutable.TreeSet
 
 object TestHeapGraph {
   def main(args: Array[String]) {
-    type S = ApronInterface.Default
+    type S = Apron.Polyhedra
 
     val head = LocalVariableVertex("head")(null)
     val p = LocalVariableVertex("p")(null)

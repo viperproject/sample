@@ -205,7 +205,7 @@ object Typer {
         property match {
           case Identifier(":=") =>
             if (args.length != 1) throw TouchException("Assignment needs an argument")
-            val right = processMultiValExpression(scope, st, args(0))
+            val right = processMultiValExpression(scope, st, args.head)
             val additionalRightSideValues = handleAssignments(subject, right)
             if (additionalRightSideValues != 0)
               throw TouchException("Not enough variables on the left side of the assignment", expr.pos)

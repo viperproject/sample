@@ -10,17 +10,9 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @since 0.1
  */
 trait SemanticDomain[T <: SemanticDomain[T]]
-  extends Lattice[T] {
+  extends Lattice[T]
+  with MergeDomain[T] {
   this: T =>
-
-  /**
-   * For each set of identifiers in the domain of f, this method merges these identifiers
-   * into the given one.
-   *
-   * @param f The identifiers to merge
-   * @return the state after the merge
-   */
-  def merge(f: Replacement): T
 
   /**
    * This method returns representing the value of the given identifier
@@ -154,7 +146,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   def backwardAssign(oldPreState: T, id: Identifier, expr: Expression): T
 
   /** Returns all identifiers over whom the `SemanticDomain` is defined. */
-  def ids: Set[Identifier]
+  def ids: IdentifierSet
 
   /**
    * This method renames variable form the list <code>form</code> to variables form the list <code>to</code>
@@ -185,6 +177,43 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    */
   def explainError(expr: Expression): Set[(String, ProgramPoint)]
 
+  override def toString = ids match {
+    case IdentifierSet.Bottom => "_|_"
+    case IdentifierSet.Top => "T"
+    case IdentifierSet.Inner(v) => v map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
+  }
+
+}
+
+object SemanticDomain {
+
+  trait Bottom[T <: SemanticDomain[T]] extends BottomLattice[T] with SemanticDomain[T] {
+    this: T =>
+
+    override def getStringOfId(id: Identifier) = "_|_"
+    override def setToTop(variable: Identifier) = this
+    override def assign(variable: Identifier, expr: Expression) = this
+    override def assume(expr: Expression) = this
+    override def removeVariable(id: Identifier) = this
+    override def ids = IdentifierSet.Bottom
+
+  }
+
+  trait Top[T <: SemanticDomain[T]] extends TopLattice[T] with SemanticDomain[T] {
+    this: T =>
+
+    override def getStringOfId(id: Identifier) = "T"
+    override def setToTop(variable: Identifier) = this
+    override def createVariable(variable: Identifier, typ: Type) = this
+    override def removeVariable(id: Identifier) = this
+    override def ids = IdentifierSet.Top
+
+  }
+
+  trait Inner[T <: SemanticDomain[T],X <: SemanticDomain.Inner[T,X]] extends InnerLattice[T,X] with SemanticDomain[T] {
+    this: T =>
+  }
+
 }
 
 /** Semantic domain whose methods do not change the state in any way.
@@ -195,7 +224,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   */
 trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T] {
   this: T =>
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
 
   def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression) = this
 

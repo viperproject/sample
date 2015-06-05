@@ -55,14 +55,12 @@ object Directive {
 		import DirectiveParser._
 		try {
 			parseAll(directive, input) match {
-				case DirectiveParser.Success(directive, _) => {
+				case DirectiveParser.Success(directive, _) =>
 					error = None
 					Some(directive)
-				}
-				case r => {
+				case r =>
 					error = Some(r.toString)
 					None
-				}
 			}
 		} catch {
 			case _ => None
@@ -83,12 +81,11 @@ object Directive {
 
 		def merge: Parser[Merge[Nothing]] = {
 			"Merge("~>programPoint~","~programPoint<~")" ^^ {
-				case p~","~s => {
+				case p~","~s =>
 					TracePartitioning.get(s) match {
 						case ds @ (_::_) => new Merge[Nothing](p, ds.head)
 						case _ => throw ParserException("Source for merge at (" + p + ") not found")
 					}
-				}
 			}
 		}
 
@@ -104,9 +101,8 @@ object Directive {
 
 		def partitionValue: Parser[PartitionValue[Nothing]] = {
 			"PartitionValue("~>programPoint~","~stringLiteral~","~repsep(restriction, ",")<~")" ^^ {
-				case p~","~v~","~r => {
+				case p~","~v~","~r =>
 					new PartitionValue(p, new UncheckedVariableContext(v, r))
-				}
 			}
 		}
 
@@ -213,7 +209,7 @@ case class Merge[D <: State[D]](pp: ProgramPoint, source: Directive[D]) extends 
 		case Node(d, c) => if (source.compatible(d)) {
 				Node(PartitionNone(), c.reduceLeft((c1, c2) => c1.lub(c2)) :: Nil)
 			} else {
-				Node(d, c.map(apply(_)))
+				Node(d, c.map(apply))
 			}
 		case _ => p
 	}
@@ -263,7 +259,7 @@ case class PartitionIf[D <: State[D]](pp: ProgramPoint) extends Directive[D](pp)
 	 * @return The refined partitioning.
 	 */
 	override def apply(p: Partitioning[D]): Partitioning[D] = p match {
-		case Node(d, c) => Node(d, c.map(apply(_)))
+		case Node(d, c) => Node(d, c.map(apply))
 		case Leaf(v) => Node(this, List.fill(2)(Leaf(v)))
 		case _ => p
 	}
@@ -273,7 +269,7 @@ case class PartitionIf[D <: State[D]](pp: ProgramPoint) extends Directive[D](pp)
 	 *
 	 * @return The list of tokens
 	 */
-	override def tokens: List[Token] = If(pp, true) :: If(pp, false) :: Nil
+	override def tokens: List[Token] = If(pp, branch = true) :: If(pp, branch = false) :: Nil
 	
 	/**
 	 * Called when true branch is taken. This results in discarding the states 
@@ -284,7 +280,7 @@ case class PartitionIf[D <: State[D]](pp: ProgramPoint) extends Directive[D](pp)
 	 * replaced by <code>Bottom()</code>.
 	 */
 	override def testTrue(p: Partitioning[D]): Partitioning[D] = {
-		partition(p, true)
+		partition(p, branch = true)
 	}
 	
 	/**
@@ -296,13 +292,13 @@ case class PartitionIf[D <: State[D]](pp: ProgramPoint) extends Directive[D](pp)
 	 * replaced by <code>Bottom()</code>.
 	 */
 	override def testFalse(p: Partitioning[D]): Partitioning[D] = {
-		partition(p, false)
+		partition(p, branch = false)
 	}
 	
 	private def partition(p: Partitioning[D], branch: Boolean): Partitioning[D] = p match {
 		case Node(d, c) => if (compatible(d)) {
-				if (branch == true) {
-					Node(d, c(0) :: Bottom[D]() :: Nil)
+				if (branch) {
+					Node(d, c.head :: Bottom[D]() :: Nil)
 				} else {
 					Node(d, Bottom[D]() :: c(1) :: Nil)
 				}
@@ -344,11 +340,10 @@ sealed abstract class PartitionWhileBase[D <: State[D]](pp: ProgramPoint, n: Int
 		case Node(d, c) => if (compatible(d)) {
 			p
 		} else {
-			Node(d, c.map(apply(_)))
+			Node(d, c.map(apply))
 		}
-		case Leaf(v) => {
+		case Leaf(v) =>
 			Node(this, Bottom[D]() :: Leaf[D](v) :: List.fill(n)(Bottom[D]()))
-		}
 		case _ => p
 	}
 
@@ -360,10 +355,10 @@ sealed abstract class PartitionWhileBase[D <: State[D]](pp: ProgramPoint, n: Int
 
 	override def testTrue(p: Partitioning[D]): Partitioning[D] = p match {
 		case Node(d, c) => if (compatible(d)) {
-			val ci = if (c(0) != Bottom()) c(0) else c.last
+			val ci = if (c.head != Bottom()) c.head else c.last
 			Node(PartitionWhileComputing(pp, n), ci :: Bottom[D]() :: c.tail.take(n))
 		} else {
-			Node(d, c.map(testTrue(_)))
+			Node(d, c.map(testTrue))
 		}
 		case _ => p
 	}
@@ -372,7 +367,7 @@ sealed abstract class PartitionWhileBase[D <: State[D]](pp: ProgramPoint, n: Int
 		case Node(d, c) => if (compatible(d)) {
 			Node(PartitionWhile(pp, n), c)
 		} else {
-			Node(d, c.map(testFalse(_)))
+			Node(d, c.map(testFalse))
 		}
 		case _ => p
 	}
@@ -409,11 +404,10 @@ case class PartitionWhileComputing[D <: State[D]](pp: ProgramPoint, n: Int) exte
 case class PartitionCondition[D <: State[D]](pp: ProgramPoint, conditions: List[Expression]) extends Directive[D](pp) {
 
 	override def apply(p: Partitioning[D]): Partitioning[D] = p match {
-		case Node(d, c) => Node(d, c.map(apply(_)))
-		case Leaf(v) => {
+		case Node(d, c) => Node(d, c.map(apply))
+		case Leaf(v) =>
 			val c = conditions.map(c => Leaf(v.assume(ExpressionSet(c))))
 			Node(this, c)
-		}
 		case _ => p
 	}
 

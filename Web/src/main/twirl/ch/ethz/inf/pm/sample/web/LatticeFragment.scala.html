@@ -26,10 +26,10 @@
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
     }
-    case a: ApronInterface[_] => {
-        @* ApronInterface itself must come after any subclasses of ApronInterface *@
+    case a: Apron[_] => {
+        @* Apron itself must come after any subclasses of Apron *@
         @LatticeDescription("Values")
-        @ApronInterface(a)
+        @ApronDomain(a)
     }
     case s: StringsAnd[_,_] => {
         @PerId(s)
@@ -77,7 +77,7 @@
     }
 }
 
-@ApronInterface(a: ApronInterface[_]) = {
+@ApronDomain(a: Apron[_]) = {
     @if(a.isBottom) {
         @Bottom()
     } else {
@@ -85,7 +85,7 @@
             @Top()
         } else {
             <ul class="list-unstyled apron-interface">
-                @ApronInterfaceTranslator()(a).translateAll().map(ExpPrettyPrinter).toList.sorted.map { line =>
+                @ApronInterfaceTranslator()(a.asInstanceOf[Apron.Inner[_,_]]).translateAll().map(ExpPrettyPrinter).toList.sorted.map { line =>
                 <li>@line</li>
                 }
             </ul>
@@ -99,7 +99,7 @@
         @Bottom()
     } else {
         <ul class="list-unstyled">
-            @a.ids.toList.sortBy(_.toString).map { id =>
+            @a.ids.getNonTop.toList.sortBy(_.toString).map { id =>
             <li>@id → @a.getStringOfId(id)</li>
             }
         </ul>

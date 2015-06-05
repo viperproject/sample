@@ -56,7 +56,7 @@ case class EdgeLocalIdentifier(accPath: List[Option[String]], field: Identifier)
   def isForSource = accPath.isEmpty
 
   /** Whether the edge-local identifier refers to a field of the target. */
-  def isForTarget = !accPath.isEmpty
+  def isForTarget = accPath.nonEmpty
 }
 
 object EdgeLocalIdentifier {

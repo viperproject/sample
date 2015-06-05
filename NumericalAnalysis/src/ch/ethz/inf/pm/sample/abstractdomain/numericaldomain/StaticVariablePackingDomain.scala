@@ -37,7 +37,7 @@ object VariablePackingClassifier {
 
 trait VariablePack
 
-case class VariablePackMap[Relational <: RelationalNumericalDomain[Relational]]
+case class VariablePackMap[Relational <: NumericalDomain.Relational[Relational]]
     (classifier:VariablePackingClassifier,dom:Relational,map: Map[VariablePack, Relational],isPureBottom:Boolean = false, isPureTop:Boolean = false)
   extends FunctionalDomain[VariablePack,Relational,VariablePackMap[Relational]]
   with SimplifiedSemanticDomain[VariablePackMap[Relational]]{
@@ -63,11 +63,13 @@ case class VariablePackMap[Relational <: RelationalNumericalDomain[Relational]]
   override def removeVariable(id: Identifier): VariablePackMap[Relational] =
     applyToPacks(id, {x:Relational => x.removeVariable(id)})
 
-  override def ids: Set[Identifier] =
-    map.values.map(_.ids).flatten.toSet
+  override def ids: IdentifierSet =
+    Lattice.bigLub(map.values.map(_.ids))
 
-  override def assume(expr: Expression): VariablePackMap[Relational] =
-    applyToPacks(expr.ids, {x:Relational => x.assume(expr)})
+  override def assume(expr: Expression): VariablePackMap[Relational] = {
+    if (expr.ids.isTop) return this
+    applyToPacks(expr.ids.getNonTop, {x:Relational => x.assume(expr)})
+  }
 
   override def createVariable(variable: Identifier, typ: Type): VariablePackMap[Relational] =
     applyToPacks(variable, {x:Relational => x.createVariable(variable,typ)})
@@ -110,12 +112,16 @@ case class VariablePackMap[Relational <: RelationalNumericalDomain[Relational]]
  * @author Lucas Brutschy
  */
 case class StaticVariablePackingDomain
-  [Cheap <: SemanticDomain[Cheap],Relational <: RelationalNumericalDomain[Relational]]
+  [Cheap <: SemanticDomain[Cheap],Relational <: NumericalDomain.Relational[Relational]]
   (_1:Cheap,_2:VariablePackMap[Relational])
   extends SemanticCartesianProductDomain[Cheap,VariablePackMap[Relational],StaticVariablePackingDomain[Cheap,Relational]]
-  with RelationalNumericalDomain[StaticVariablePackingDomain[Cheap,Relational]] {
+  with NumericalDomain[StaticVariablePackingDomain[Cheap,Relational]] {
 
   override def factory(a: Cheap, b: VariablePackMap[Relational]): StaticVariablePackingDomain[Cheap, Relational] =
     StaticVariablePackingDomain(a,b)
 
+  /**
+   * Returns all the knowledge we have on the given identifiers as an expression
+   */
+  override def getConstraints(ids: Set[Identifier]) = ???
 }

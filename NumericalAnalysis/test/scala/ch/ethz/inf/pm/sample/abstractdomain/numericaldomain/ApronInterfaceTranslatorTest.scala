@@ -11,8 +11,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 
 /** Tests ApronInterfaceTranslator. */
 class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with ShouldMatchers {
-  val manager = new Polka(true)
-  val dom = ApronInterface.Default(None, manager, env = Set.empty)
+  val dom:Apron.Octagons = Apron.Octagons.Bottom
   val numType = DummyNumericalType
   val boolType = DummyBooleanType
 
@@ -35,13 +34,13 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val constTrue = makeConst("true", boolType)
   val constFalse = makeConst("false", boolType)
 
-  def translate(iFace: ApronInterface.Default): Set[String] = {
-    val translator = ApronInterfaceTranslator(boolType = boolType)(iFace)
-    translator.translateAll().map(ExpPrettyPrinter).toSet
+  def translate(iFace: Apron.Octagons): Set[String] = {
+    val translator = ApronInterfaceTranslator(boolType = boolType)(iFace.asInstanceOf[Apron.Octagons.Inner])
+    translator.translateAll().map(ExpPrettyPrinter)
   }
 
   test("Numerical") {
-    var i: ApronInterface.Default = dom
+    var i = dom
 
     i = i.createVariable(idx).assign(idx, const1)
     translate(i) should equal (Set("x = 1"))
@@ -68,7 +67,7 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   }
 
   test("Booleans") {
-    var i: ApronInterface.Default = dom
+    var i = dom
 
     i = i.createVariable(idb1)
     translate(i) should equal (Set())

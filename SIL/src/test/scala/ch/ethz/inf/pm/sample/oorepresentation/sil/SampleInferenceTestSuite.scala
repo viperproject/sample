@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import viper.silver.testing.SilSuite
 import viper.silver.verifier.{Success, Verifier}
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import viper.silver.ast.Program
 import scala.reflect.io.File
 import java.nio.file._

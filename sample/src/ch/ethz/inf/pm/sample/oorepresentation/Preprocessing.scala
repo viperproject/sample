@@ -17,14 +17,14 @@ trait Compiler {
    @param path the path that contains the files to be compiled
   @return the list of the class definitions contained in the given path
     */
-  def compileFile(path: String): List[ClassDefinition];
+  def compileFile(path: String): List[ClassDefinition]
 
   def allMethods: List[MethodDeclaration]
 
   /**
   Returns all possible candidates for a specific method name
     */
-  def getMethods(name: String): List[(ClassDefinition, MethodDeclaration)];
+  def getMethods(name: String): List[(ClassDefinition, MethodDeclaration)]
 
   /**
   This method returns the implementation of a given method
@@ -35,28 +35,28 @@ trait Compiler {
   @return the implementation of the method and the class that contains it (it could be a superclass of the given class)
            or None if the method was not found
     */
-  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)];
+  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)]
 
   /**
   This method specifies which extensions are supported by this compiler
 
    @return the list of the extensions that are parsed by this compiler
     */
-  def extensions(): List[String];
+  def extensions(): List[String]
 
   /**
   This method returns a short description of the compiler.
 
    @return a short the description of the compiler (e.g., Java compiler)
     */
-  def getLabel(): String;
+  def getLabel(): String
 
   /**
   This method returns a list of definitions of the semantics of characteristic methods for the current language.
 
    @return the list of the semantics definitions
     */
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics];
+  def getNativeMethodsSemantics(): List[NativeMethodSemantics]
 
   /**
    * Reset
@@ -67,7 +67,7 @@ trait Compiler {
    * This method returns the textual representation of the program BEFORE compiling it. This is useful to have some
    * statistics (e.g., LOC) of the original programs.
    */
-  def getSourceCode(path: String): String;
+  def getSourceCode(path: String): String
 
   def compile(file: String) {
     compileFile(file)
@@ -78,17 +78,17 @@ trait Compiler {
   }
 
   def compile(files: List[String]) {
-    files.foreach(compile _)
+    files.foreach(compile)
   }
 
   protected def getOriginalCode(reader: BufferedReader): String = {
-    var output = "";
+    var output = ""
     var newLine = reader.readLine()
     while (newLine != null) {
-      output = output + newLine + "\n";
-      newLine = reader.readLine();
+      output = output + newLine + "\n"
+      newLine = reader.readLine()
     }
-    return output;
+    output
   }
 
   def generateTopType()

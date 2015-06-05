@@ -10,9 +10,9 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  *
  * @author Lucas Brutschy
  */
-case class NonDeterminismWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
-  extends RelationalNumericalDomain[NonDeterminismWrapper[X]]
-  with RelationalNumericalDomainWrapper[X,NonDeterminismWrapper[X]] {
+case class NonDeterminismWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
+  extends NumericalDomain.Relational[NonDeterminismWrapper[X]]
+  with NumericalDomain.Relational.Wrapper[X,NonDeterminismWrapper[X]] {
 
   override def assign(variable: Identifier, expr: Expression): NonDeterminismWrapper[X] = {
     wrapperFactory(nondeterminismWrapper(expr, wrapped, (someExpr, someState) => {

@@ -19,7 +19,7 @@ object Timer {
   	
 	def stop : String = {
 		end = System.currentTimeMillis
-		return ("%1.3f" format ((end - begin) / 1000.0)) + " s"
+		("%1.3f" format ((end - begin) / 1000.0)) + " s"
   	}
 }
 

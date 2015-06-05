@@ -45,7 +45,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val results = vertices.collect({
       case v: LocalVariableVertex if v.name == name => v
     })
-    require(!results.isEmpty, s"no local variable vertex named '$name'")
+    require(results.nonEmpty, s"no local variable vertex named '$name'")
     // TODO: Could check consistency when instantiating the heap graph
     assert(results.size == 1, s"there may only be one vertex named '$name'")
     results.head
@@ -103,7 +103,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
    *         to the given access path
    */
   def paths(path: List[String]): Set[RootedPath[S]] = {
-    require(!path.isEmpty, "path must not be empty")
+    require(path.nonEmpty, "path must not be empty")
 
     def paths(path: List[String], vertex: Vertex): Set[PartialPath[S]] = {
       val field = vertex match {
@@ -200,7 +200,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
-      var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
+      var newState = edgeRight.state.removeVariables(idsToRemove)
       newState = newState.rename(renameMap.toMap)
       val edgeToAdd = Edge(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdge(edgeToAdd)
@@ -266,7 +266,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     while (changed) {
       val addEdges = currentEdges.filter(e => resultingVertices.contains(e.source) && !e.state.lessEqual(e.state.bottom()))
       currentEdges = currentEdges -- addEdges
-      changed = !addEdges.isEmpty
+      changed = addEdges.nonEmpty
       resultingVertices = resultingVertices ++ addEdges.map(e => e.target)
       resultingEdgeSet = resultingEdgeSet ++ addEdges
     }
@@ -335,10 +335,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
         e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex])
         .map(_.source).asInstanceOf[Set[LocalVariableVertex]]
       result += (v -> initSet)
-      if (!initSet.isEmpty)
+      if (initSet.nonEmpty)
         queue.enqueue(v)
     }
-    while (!queue.isEmpty) {
+    while (queue.nonEmpty) {
       val current = queue.dequeue()
       for (succ <- edges.filter(e => e.source.equals(current) && e.target.isInstanceOf[HeapVertex]).map(_.target).asInstanceOf[Set[HeapVertex]]) {
         if (!(result.apply(current) subsetOf result.apply(succ))) {
@@ -372,7 +372,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     for (v <- vertices.filter(!_.isInstanceOf[HeapVertex]))
       mergeMap.update(v,v)
     val repl = new Replacement()
-    for((k,v) <- partitions.filter(!_._2.isEmpty)) {
+    for((k,v) <- partitions.filter(_._2.nonEmpty)) {
       if (v.size > 1) {
         var newType = v.head.typ.bottom()
         for (vrtx <- v)

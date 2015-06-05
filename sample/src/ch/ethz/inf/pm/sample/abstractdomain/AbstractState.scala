@@ -125,14 +125,14 @@ case class ExpressionSet(
   }
 
   def add(exp: Expression): ExpressionSet = {
-    val v2 = this._2.add(exp)
+    val v2 = this._2.+(exp)
     val typ = this._1.glb(exp.typ)
     new ExpressionSet(typ, v2)
   }
 
   def add(expr: ExpressionSet): ExpressionSet = {
     var set = this._2
-    for (exprVal <- expr.getSetOfExpressions) set = set.add(exprVal)
+    for (exprVal <- expr.getSetOfExpressions) set = set.+(exprVal)
     val typ = this._1.glb(expr.getType())
     new ExpressionSet(typ, set)
   }
@@ -140,7 +140,7 @@ case class ExpressionSet(
   def not(): ExpressionSet = {
     var result:SetDomain.Default[Expression] = this._2.bottom()
     for (key <- getSetOfExpressions)
-      result = result.add(new NegatedBooleanExpression(key))
+      result = result.+(new NegatedBooleanExpression(key))
     new ExpressionSet(getType(), result)
   }
 
@@ -160,7 +160,7 @@ case class ExpressionSet(
         if (tos.nonEmpty)
           newSet = (for (to <- tos) yield {
             newSet.map(_.replace(from, to))
-          }).flatten.toSet
+          }).flatten
       }
 
       new ExpressionSet(getType(), SetDomain.Default.Inner(newSet))
@@ -458,7 +458,7 @@ I <: HeapIdentifier[I]](
   def pruneVariables(filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = {
 
     var curState = domain
-    for (id <- domain.ids) {
+    for (id <- domain.ids.asInstanceOf[IdentifierSet.Inner].value) {
       id match {
 
         case va: VariableIdentifier =>

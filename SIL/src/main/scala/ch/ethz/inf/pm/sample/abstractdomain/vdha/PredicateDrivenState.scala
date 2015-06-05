@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, PredType}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron}
 import com.typesafe.scalalogging.LazyLogging
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
@@ -257,10 +257,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     if (unfoldedInstIdsWithPerm.isEmpty) {
       val (recvPredInstId, wasFolded, hasPerm) = foldedInstIdsWithPerm.toList match {
         case foldedId :: Nil => (foldedId, true, true)
-        case Nil => {
-          if (!unfoldedInstIds.isEmpty) (unfoldedInstIds.head, false, false)
+        case Nil =>
+          if (unfoldedInstIds.nonEmpty) (unfoldedInstIds.head, false, false)
           else (foldedInstIds.head, true, false)
-        }
         case _ =>
           logger.error(s"Multiple folded predicate instances " +
             s"$foldedInstIdsWithPerm contain full permission to field $field")
@@ -281,7 +280,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val nestedPredId = PredicateIdentifier.make()
           val nestedPredBody = PredicateBody().top()
           result = result.assignVariable(nestedPredId, nestedPredBody)
-          recvPredBody = recvPredBody.add(field, NestedPredicatesDomain().bottom().add(nestedPredId))
+          recvPredBody = recvPredBody.add(field, NestedPredicatesDomain().bottom().+(nestedPredId))
         } else {
           recvPredBody = recvPredBody.addPerm(field)
         }
@@ -349,7 +348,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val unfoldedIds = certainIds(localVarVertex, Unfolded)
       val unfoldedIdsWithPerm = unfoldedIds.filter(id => generalValState.predDefs.get(id).hasPerm(field))
 
-      if (!unfoldedIdsWithPerm.isEmpty) {
+      if (unfoldedIdsWithPerm.nonEmpty) {
         assert(unfoldedIdsWithPerm.size == 1,
           s"there must be at most one unfolded predicate instance " +
           s"for $localVarVertex with permission to field $field")
@@ -362,7 +361,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val fieldEdges = paths.map(_.edges.last)
         val newNestedIds = certainIds(fieldEdges, Folded)
 
-        if (!newNestedIds.isEmpty) {
+        if (newNestedIds.nonEmpty) {
           val merge = PredicateIdentifierMerge(Set(existingNestedId) ++ newNestedIds)
           result = result.mergePredicates(merge)
         }
@@ -401,7 +400,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val fieldEdges = paths.map(_.edges.last)
 
       // No need for any folded labels if there are only null edges
-      if (!fieldEdges.isEmpty) {
+      if (fieldEdges.nonEmpty) {
         val presentFoldedIds = certainIds(fieldEdges, Folded)
 
         if (presentFoldedIds.contains(nestedPredId)) {
@@ -421,7 +420,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (nonNullLocalVarEdges.isEmpty) true
         else {
           val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
-          !state.predInsts.foldedIds.isEmpty
+          state.predInsts.foldedIds.nonEmpty
         }
       }
 
@@ -471,8 +470,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val thisFoldedIds = certainInstIds(localVarVertex, Folded).map(_.predId)
     val otherFoldedIds = other.certainInstIds(localVarVertex, Folded).map(_.predId)
 
-    if (!thisFoldedIds.isEmpty &&
-      !otherFoldedIds.isEmpty &&
+    if (thisFoldedIds.nonEmpty &&
+      otherFoldedIds.nonEmpty &&
       thisFoldedIds.intersect(otherFoldedIds).isEmpty) {
       assert(thisFoldedIds.size == 1,
         "cannot handle more than one folded predicate instance")
@@ -503,7 +502,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         // target predicate instance to be top
         // TODO: It should not be necessary to do so
         // newFromSet = newFromSet.toSet[Identifier] intersect edge.state.ids
-        if (!fromInstSet.isEmpty) {
+        if (fromInstSet.nonEmpty) {
           val minVersion = fromInstSet.map(_.version).min
           val toInstSet = toSet.map(to => new PredicateInstanceIdentifier(to.asInstanceOf[PredicateIdentifier], minVersion))
 
@@ -617,11 +616,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val otherFolded = otherInsts.foldedInstIds
       val otherUnfolded = otherInsts.unfoldedInstIds
 
-      if (!folded.isEmpty && !otherFolded.isEmpty) {
+      if (folded.nonEmpty && otherFolded.nonEmpty) {
         result += otherFolded.head -> folded.head
       }
 
-      if (!unfolded.isEmpty && !otherUnfolded.isEmpty) {
+      if (unfolded.nonEmpty && otherUnfolded.nonEmpty) {
         result += otherUnfolded.head -> unfolded.head
       }
     }
@@ -830,8 +829,8 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
 
   def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
     // Create all non-predicate instance variables that are missing
-    val newRightIds = (left.edgeLocalAndAccessPathIds diff right.ids).filterNot(_.typ == PredType)
-    val newLeftIds = (right.edgeLocalAndAccessPathIds diff left.ids).filterNot(_.typ == PredType)
+    val newRightIds = (left.edgeLocalAndAccessPathIds diff right.ids.getNonTop).filterNot(_.typ == PredType)
+    val newLeftIds = (right.edgeLocalAndAccessPathIds diff left.ids.getNonTop).filterNot(_.typ == PredType)
 
     // Problem: Just creating all missing predicate instance variables
     // and setting them to bottom does not work, because the resulting
@@ -851,15 +850,15 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
       })
     }
 
-    newLeft = setDefaultValue(newLeft.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+    newLeft = setDefaultValue(newLeft.asInstanceOf[EdgeStateDomain[Apron.Polyhedra]],
       PredicateInstanceDomain().bottom()).asInstanceOf[S]
-    newRight = setDefaultValue(newRight.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+    newRight = setDefaultValue(newRight.asInstanceOf[EdgeStateDomain[Apron.Polyhedra]],
       PredicateInstanceDomain().bottom()).asInstanceOf[S]
 
     val result = newLeft.glb(newRight)
 
     // Det the default value back to top.
-    val newResult = setDefaultValue(result.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+    val newResult = setDefaultValue(result.asInstanceOf[EdgeStateDomain[Apron.Polyhedra]],
       PredicateInstanceDomain().top()).asInstanceOf[S]
 
     newResult

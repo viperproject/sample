@@ -15,7 +15,7 @@ if (!dir.exists || !dir.isDirectory) {
 val basenames = for {
 	filename <- dir.list
 	val length = filename.length
-	if (filename.drop(length - 3)) == ".gv"
+	if filename.drop(length - 3) == ".gv"
 	val basename = filename.take(length - 3)
 } yield basename
 

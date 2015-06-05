@@ -57,7 +57,7 @@ class UndirectedGraph[N] {
     var components: List[Set[N]] = Nil
     var unvisited: Set[N] = Set() ++ nodes.keys
 
-    while (!unvisited.isEmpty) {
+    while (unvisited.nonEmpty) {
       val reached = reachableNodesFrom(nodes(unvisited.head))
       unvisited = unvisited -- reached
       components ::= reached
@@ -85,8 +85,8 @@ object UndirectedGraph {
       g.addNode(n)
 
     for (n1 <- nodeValues;
-         n2 <- nodeValues;
-         if(adj(n1,n2))) {
+         n2 <- nodeValues
+         if adj(n1, n2)) {
       g.addEdge(n1,n2)
     }
     g

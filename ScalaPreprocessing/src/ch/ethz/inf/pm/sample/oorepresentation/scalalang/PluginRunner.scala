@@ -27,7 +27,7 @@ import java.util.Properties
 	
 	  private def getOrElse(property: String, default: String) = {
 	    props match {
-	      case Some(p) if (p.getProperty(property) != null) =>
+	      case Some(p) if p.getProperty(property) != null =>
 	        p.getProperty(property)
 	      case _ =>
 	        default
@@ -77,8 +77,8 @@ import java.util.Properties
 	  } ::: Scala2CFGComponents.components(this)
   */ 
 	  override protected def computeInternalPhases() {
-		super.computeInternalPhases();
-	    for (phase <- Scala2CFGComponents.components(this)) {
+		super.computeInternalPhases()
+			for (phase <- Scala2CFGComponents.components(this)) {
 	      phasesSet += phase
 	    }
 	  }

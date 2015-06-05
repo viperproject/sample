@@ -30,7 +30,7 @@ object SLLOfZeros {
       temp = temp.next
     }
 
-    return (list, sum)
+    (list, sum)
   }
 }
 
@@ -57,7 +57,7 @@ object PartitionSLL {
       curr = curr.next
       temp = null
     }
-    return (smaller, grThanOrEqual)
+    (smaller, grThanOrEqual)
   }
 }
 
@@ -119,7 +119,7 @@ class SortedSLL {
       curr = curr.next
     }
 
-    return result
+    result
   }
 
   def printSLL() {
@@ -143,7 +143,7 @@ object TestSortedSLL {
     list.insertKey(5)
     list.insertKey(-1)
     println()
-    val (lt, gt) = PartitionSLL.partitionWithKey(list.head, 3);
+    val (lt, gt) = PartitionSLL.partitionWithKey(list.head, 3)
     val ltList = new SortedSLL()
     ltList.head = lt
     ltList.printSLL()

@@ -7,7 +7,7 @@ case class PrefixAndSuffix(_1: Prefix, _2: Suffix)
 
   def factory(a: Prefix, b: Suffix) = new PrefixAndSuffix(a, b)
 
-  override def merge(r: Replacement) = new PrefixAndSuffix(this._1.merge(r), this._2.merge(r));
+  override def merge(r: Replacement) = new PrefixAndSuffix(this._1.merge(r), this._2.merge(r))
 
-  override def getStringOfId(id: Identifier): String = _1.getStringOfId(id) + "; " + _2.getStringOfId(id);
+  override def getStringOfId(id: Identifier): String = _1.getStringOfId(id) + "; " + _2.getStringOfId(id)
 }

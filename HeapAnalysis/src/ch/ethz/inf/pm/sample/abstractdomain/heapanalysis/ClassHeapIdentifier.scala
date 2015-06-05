@@ -71,7 +71,7 @@ class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
 
   override def hashCode(): Int = 1
 
-  override def toString: String = return this.getName
+  override def toString: String = this.getName
 
   override def toSummaryNode: ClassHeapIdentifier = this
 

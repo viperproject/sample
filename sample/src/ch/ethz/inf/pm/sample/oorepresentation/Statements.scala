@@ -153,7 +153,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
         var result=stateright.setVariableToTop(exprleft)
         val condition=ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top());//TODO type is wrong
         result=result.setExpression(condition)
-        return result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
+        result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
 	  }
 
   override def toString: String = left + " = " + right
@@ -513,7 +513,7 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
     var state1 = expr.forwardSemantics[S](state)
     val thrownExpr = state1.expr
     state1 = state1.removeExpression()
-    state1 throws (thrownExpr)
+    state1 throws thrownExpr
   }
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.top()

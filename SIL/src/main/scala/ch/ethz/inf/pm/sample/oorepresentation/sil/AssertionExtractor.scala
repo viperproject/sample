@@ -7,7 +7,7 @@ import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import viper.silver.ast.utility.Transformer
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, ApronInterfaceTranslator}
 
 /** Registry that maps predicate identifiers from the analysis
   * to actual SIL predicates.
@@ -265,7 +265,7 @@ case class AssertionTree(
     unconditionalExps ++ conditionalExps
 }
 
-case class AssertionExtractor[S <: ApronInterface[S]](
+case class AssertionExtractor[S <: Apron[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
     predRegistry: PredicateRegistry)
   extends LazyLogging {
@@ -360,7 +360,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     // Now remove all value heap ids
     cond = cond.removeVariables(cond.valueHeapIds)
 
-    val sampleExps = ApronInterfaceTranslator()(cond).translateAll()
+    val sampleExps = ApronInterfaceTranslator()(cond.asInstanceOf[Apron.Inner[_,_]]).translateAll()
     val exps = sampleExps.map(DefaultSampleConverter.convert)
     exps
   }

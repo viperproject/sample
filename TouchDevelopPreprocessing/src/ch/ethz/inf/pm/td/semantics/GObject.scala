@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.analysis.{ApiField}
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 

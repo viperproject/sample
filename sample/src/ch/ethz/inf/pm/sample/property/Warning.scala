@@ -12,9 +12,9 @@ trait Validated
  * @version 0.1
  */
 abstract sealed class Output {
-  override def hashCode() : Int = 1;
+  override def hashCode() : Int = 1
 
-  def getMessage() : String;
+  def getMessage() : String
 }
 
 /**
@@ -29,11 +29,11 @@ abstract sealed class Output {
 case class WarningProgramPoint(pp: ProgramPoint, message: String) extends Output with Warning {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: WarningProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
+    case x: WarningProgramPoint => x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
-  override def getMessage()=message;
-  
+  override def getMessage()=message
+
   override def toString = "Warning: "+message+" "+pp.description
 }
 
@@ -49,10 +49,11 @@ case class WarningProgramPoint(pp: ProgramPoint, message: String) extends Output
 case class ValidatedProgramPoint(pp: ProgramPoint, message: String) extends Output with Validated {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: ValidatedProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
+    case x: ValidatedProgramPoint => x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
-  override def getMessage()=message;
+  override def getMessage()=message
+
   override def toString = "Validated: "+message+" "+pp.description
 }
 
@@ -69,10 +70,11 @@ case class ValidatedProgramPoint(pp: ProgramPoint, message: String) extends Outp
 case class WarningMethod(classe: Type, method: String, message: String) extends Output with Warning {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: WarningMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
+    case x: WarningMethod => x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
     case _ => false
   }
-  override def getMessage()=message;
+  override def getMessage()=message
+
   override def toString = "Warning: "+message+" on method "+method+" of class "+classe.name
 }
 
@@ -89,10 +91,11 @@ case class WarningMethod(classe: Type, method: String, message: String) extends 
 case class ValidatedMethod(classe: Type, method: String, message: String) extends Output with Validated {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: ValidatedMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
+    case x: ValidatedMethod => x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
     case _ => false
   }
-  override def getMessage()=message;
+  override def getMessage()=message
+
   override def toString = "Validated: "+message+" on method "+method+" of class "+classe.name
 }
 
@@ -105,7 +108,7 @@ case class ValidatedMethod(classe: Type, method: String, message: String) extend
  * @version 0.1
  */
 case class InferredContract(c: Annotation) extends Output {
-  override def getMessage()=c.getMessage();
+  override def getMessage()=c.getMessage()
 }
 
 /**
@@ -115,31 +118,33 @@ case class InferredContract(c: Annotation) extends Output {
  * @version 0.1
  */
 class OutputCollector {
-  var outputs : Set[Output] = Set.empty[Output];
+  var outputs : Set[Output] = Set.empty[Output]
 
 
-  var preconditions = Map.empty[String, Map[String, String]];
-  var postconditions = Map.empty[String, Map[String, String]];
-  var invariants = Map.empty[String, String];
-  var predicates = Map.empty[String, Map[String, String]];
+  var preconditions = Map.empty[String, Map[String, String]]
+  var postconditions = Map.empty[String, Map[String, String]]
+  var invariants = Map.empty[String, String]
+  var predicates = Map.empty[String, Map[String, String]]
 
   private def add(map : Map[String, Map[String, String]], classe : String, method : String, contract : String) : Map[String, Map[String, String]] = {
     if(map.keySet.contains(classe)) {
       if(map.apply(classe).keySet.contains(method)) {
-        return map+((classe, map.apply(classe)+((method, map.apply(classe).apply(method)+" && "+contract))))
+        map+((classe, map.apply(classe)+((method, map.apply(classe).apply(method)+" && "+contract))))
       }
       else {
-        return map+((classe, map.apply(classe)+((method, contract))))
+        map+((classe, map.apply(classe)+((method, contract))))
       }
     }
     else {
-        return map+((classe, Map.empty[String, String]+((method, contract))))
+        map+((classe, Map.empty[String, String]+((method, contract))))
       }
   }
 
-  private def addPrecondition(classe : String, method : String, contract : String) = preconditions=this.add(preconditions, classe, method, contract);
-  private def addPostcondition(classe : String, method : String, contract : String) = postconditions=this.add(postconditions, classe, method, contract);
-  private def addPredicate(classe : String, method : String, contract : String) = predicates=this.add(predicates, classe, method, contract);
+  private def addPrecondition(classe : String, method : String, contract : String) = preconditions=this.add(preconditions, classe, method, contract)
+
+  private def addPostcondition(classe : String, method : String, contract : String) = postconditions=this.add(postconditions, classe, method, contract)
+
+  private def addPredicate(classe : String, method : String, contract : String) = predicates=this.add(predicates, classe, method, contract)
 
   private def addInvariant(classe : String, contract : String) = {
     if(invariants.keySet.contains(classe))
@@ -149,9 +154,9 @@ class OutputCollector {
   }
 
   def output() : String = {
-    var result : String = "";
-    for(classe <- preconditions.keySet.++(postconditions.keySet)++(invariants.keySet)++(predicates.keySet)) {
-      result = result+"\n\nClass "+classe+"\n";
+    var result : String = ""
+    for(classe <- preconditions.keySet.++(postconditions.keySet)++ invariants.keySet ++ predicates.keySet) {
+      result = result+"\n\nClass "+classe+"\n"
       invariants.get(classe) match {
         case Some(s) => result=result+"invariant "+s+"\n";
         case None =>
@@ -185,7 +190,7 @@ class OutputCollector {
 	   * @param a The output
 	   */
   def add(a : Output) : Unit = a match {
-    case InferredContract(c) => {
+    case InferredContract(c) =>
       c match {
         case Invariant(classe, e) => this.addInvariant(classe, e); outputs=outputs+a;
         case Predicate(classe, name, e) => this.addPredicate(classe, name, e); outputs=outputs+a;
@@ -193,7 +198,6 @@ class OutputCollector {
         case PostCondition(classe, method, e) => this.addPostcondition(classe, method, e); outputs=outputs+a;
         case _ => outputs=outputs+a;
       }
-    }
     case _ => outputs=outputs+a;
   }
 
@@ -201,35 +205,35 @@ class OutputCollector {
 	   * Return the number of validated properties
 	   */
   def validated() : Int = {
-    var c : Int = 0;
-    for(w <- outputs) w match {
+    var c : Int = 0
+      for(w <- outputs) w match {
       case x : Validated => c = c+1;
       case _ =>
     }
-    return c;
-  }
+    c
+    }
 
   	/**
 	   * Return the number of warnings
 	   */
   def notvalidated() : Int = {
-    var c : Int = 0;
-    for(w <- outputs) w match {
+    var c : Int = 0
+      for(w <- outputs) w match {
       case x : Warning => c = c+1;
       case _ =>
     }
-    return c;
-  }
+    c
+    }
 
   	/**
 	   * Return the number of inferred contracts
 	   */
   def inferredcontracts() : Int = {
-    var c : Int = 0;
-    for(w <- outputs) w match {
+    var c : Int = 0
+      for(w <- outputs) w match {
       case x : InferredContract => c = c+1;
       case _ =>
     }
-    return c;
-  }
+    c
+    }
 }

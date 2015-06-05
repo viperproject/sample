@@ -65,12 +65,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       val resIds = res.ids
 
       assert((isBottom && isLessEqualBottom) || (!isBottom && !isLessEqualBottom))
-      assert(res.forwardMay.keySet.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
-      assert(res.forwardMust.keySet.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
-      assert(res.valueState.ids.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
+      assert(!res.forwardMay.keySet.exists(_.isInstanceOf[HeapIdentifier]))
+      assert(!res.forwardMust.keySet.exists(_.isInstanceOf[HeapIdentifier]))
+      //assert(res.valueState.ids.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
 
       // ASSERT FOR EVERY HEAP IDENTIFIER, THAT ONLY EITHER A SUMMARY OR A NONSUMMARY EXISTS
-      for (id <- resIds) id match {
+      for (id <- resIds.getNonTop) id match {
         case h:HeapIdentifier => assert(!(resIds.contains(h) && resIds.contains(h.copy(summary = !h.summary))))
         case f:FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(o = f.o.copy(summary = !f.o.summary)))))
         case _ => ()
@@ -123,12 +123,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       versions,
       valueState.removeVariables(va)
     )
-    val result2 = result.garbageCollect((va map (forwardMay.getOrElse(_,Set.empty))).flatten)
+    val result2 = result.garbageCollect(va flatMap (forwardMay.getOrElse(_, Set.empty)))
     val result3 = result2.canonicalizeEnvironment
 
     if (SystemParameters.DEBUG) {
       val ids = result3.ids
-      assert(ids.intersect(va.toSet[Identifier]).isEmpty)
+      assert(ids.getNonTop.intersect(va.toSet[Identifier]).isEmpty)
     }
 
     // Garbage collection invariant
@@ -306,9 +306,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * Removes all variables satisfying filter
    */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): T =
-    removeVariables (ids.collect {
-      case vs:VariableIdentifier if filter(vs) => vs
-    })
+    ids match {
+      case IdentifierSet.Bottom => this
+      case IdentifierSet.Top => this
+      case IdentifierSet.Inner(v) =>
+        removeVariables (v.collect {
+          case vs:VariableIdentifier if filter(vs) => vs
+        })
+    }
 
   /**
    * Evaluates a numerical constant
@@ -356,7 +361,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     // POST CONDITIONS
     if (SystemParameters.DEBUG) {
       // May not contains versions higher than k
-      for (id <- result.ids) {
+      for (id <- result.ids.getNonTop) {
         id match {
           case x:HeapIdentifier =>
             assert (x.unique < TouchAnalysisParameters.get.numberOfVersions)
@@ -696,7 +701,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     if (SystemParameters.DEBUG) {
       val removedIdentifiers = r.removedIdentifiers
       val addedIdentifiers = r.addedIdentifiers
-      val ids = result.ids
+      val ids = result.ids.getNonTop
       val remaining = ids intersect removedIdentifiers
       val nonAdded = addedIdentifiers -- ids
       assert (remaining.isEmpty)
@@ -718,7 +723,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def throws(t: ExpressionSet): T = ???
 
   def removeObjects(nodes:Set[HeapIdentifier]): T = {
-    val fields = nodes.map(fieldsOf).flatten
+    val fields = nodes.flatMap(fieldsOf)
     copy(
     (forwardMay -- fields).map { x => x._1 -> (x._2 -- nodes) },
     (forwardMust -- fields).map { x => x._1 -> (x._2 -- nodes) },
@@ -740,7 +745,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     if (nodes.isEmpty) return this
     val toRemove = nodes filter ( x => backwardMay.get(x) match { case None => true; case Some(objs) => objs.isEmpty })
-    val nextInLine = toRemove.map(fieldsOf).flatten.map(forwardMay.getOrElse(_,Set.empty)).flatten -- toRemove
+    val nextInLine = toRemove.flatMap(fieldsOf).flatMap(forwardMay.getOrElse(_, Set.empty)) -- toRemove
     val result = removeObjects(toRemove).garbageCollect(nextInLine)
 
     if (SystemParameters.DEBUG) {
@@ -855,12 +860,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     ) // TODO: Correct?
   }
 
-  def ids:Set[Identifier] = {
-    forwardMay.keySet ++ forwardMay.values.flatten ++
-    backwardMay.keySet ++ backwardMay.values.flatten ++
-    forwardMust.keySet ++ forwardMust.values.flatten ++
-    versions.values.flatten ++
-    valueState.ids
+  def ids:IdentifierSet = {
+    valueState.ids ++ (
+      forwardMay.keySet ++ forwardMay.values.flatten ++
+      backwardMay.keySet ++ backwardMay.values.flatten ++
+      forwardMust.keySet ++ forwardMust.values.flatten ++
+      versions.values.flatten)
   }
 
   /**
@@ -1004,12 +1009,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   /**
    * Graph-like interface
    */
-  lazy val vertices:Set[Identifier] = forwardMay.map{ case (a,b) => b.toSet[Identifier] + a}.flatten.toSet
+  lazy val vertices:Set[Identifier] = forwardMay.flatMap { case (a, b) => b.toSet[Identifier] + a }.toSet
 
   lazy val edges:Set[(Identifier,String,Identifier)] = {
-    (forwardMay.map{ case (a,b) => b.map((a,"may",_)) }.flatten ++
-    forwardMust.map{ case (a,b) => b.map((a,"must",_))}.flatten ++
-    backwardMay.map{ case (a,b) => b.map((a,"back",_))}.flatten ++
+    (forwardMay.flatMap { case (a, b) => b.map((a, "may", _)) } ++
+    forwardMust.flatMap { case (a, b) => b.map((a, "must", _)) } ++
+    backwardMay.flatMap { case (a, b) => b.map((a, "back", _)) } ++
       (for (v <- vertices) yield { v match {
         case x:FieldIdentifier => Some((x.o,"field",x))
         case _ => None
@@ -1058,7 +1063,7 @@ object TouchState {
 
     override def merge(rep:Replacement): VariableRelationCollectingDomain = {
       for (r <- rep.value) {
-        TouchVariablePacking.pack(r._1 ++ r._2)
+        TouchVariablePacking.pack(IdentifierSet.Inner(r._1 ++ r._2))
       }
       super.merge(rep)
     }

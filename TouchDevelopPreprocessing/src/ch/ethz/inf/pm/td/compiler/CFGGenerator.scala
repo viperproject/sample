@@ -381,7 +381,7 @@ object TouchProgramPointRegistry {
 
   def matches(point: SpaceSavingProgramPoint, scriptID: String, positional: IdPositional): Boolean = {
     val pp = reg(point.id)
-    return pp.scriptID == scriptID &&
+    pp.scriptID == scriptID &&
       ((positional.pos == NoPosition && pp.lineColumnPosition == None) || Some(positional.pos) == pp.lineColumnPosition) &&
       (positional.customIdComponents == pp.customPositionElements)
   }

@@ -344,7 +344,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
     val samplePredId = new sample.PredicateIdentifier(pred.name)
     val samplePredBody = sample.PredicateBody().functionalFactory(
       fieldsWithPerm.mapValues(predIds => {
-        predIds.foldLeft(sample.NestedPredicatesDomain())(_.add(_))
+        predIds.foldLeft(sample.NestedPredicatesDomain())(_.+(_))
       }))
     Some(samplePredId -> samplePredBody)
   }

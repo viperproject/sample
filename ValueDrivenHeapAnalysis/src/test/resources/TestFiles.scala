@@ -33,7 +33,7 @@ class Node1 {
       result = it
     else
       result = null
-    return result
+    result
   }
 
 }

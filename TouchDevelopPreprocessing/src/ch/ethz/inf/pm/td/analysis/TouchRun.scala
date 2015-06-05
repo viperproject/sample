@@ -3,62 +3,55 @@ package ch.ethz.inf.pm.td.analysis
 
 import java.io.{PrintWriter, StringWriter}
 
-import apron.{Octagon, Box, OptOctagon, Polka}
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
-import ch.ethz.inf.pm.td.analysis.TouchDevelopEntryStateBuilder._
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 
-object TouchDevelopEntryStateBuilder {
+object TouchEntryStateBuilder {
 
-  type SemanticDomainType = StringsAnd[InvalidAnd[StaticVariablePackingDomain[BoxedNonRelationalNumericalDomain[DoubleInterval],SummaryNodeWrapper[NonDeterminismWrapper[ApronInterface.Default]]]], NonrelationalStringDomain[StringKSetDomain]]
+  type ValueState =
+    StringsAnd[
+      InvalidAnd[
+        StaticVariablePackingDomain[
+          BoxedNonRelationalNumericalDomain[DoubleInterval],
+          SummaryNodeWrapper[NonDeterminismWrapper[Apron.OptOctagons]]
+        ]
+      ],
+      NonrelationalStringDomain[StringKSetDomain]
+    ]
+
+  type State = TouchState.Default[ValueState]
 
 }
 
 case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
-  extends TouchDevelopEntryStateBuilder[TouchState.Default[SemanticDomainType]](touchParams) {
+  extends EntryStateBuilder[TouchEntryStateBuilder.State] {
 
   override def topState = {
 
-    TouchState.Default[SemanticDomainType](valueState = numerical(None))
+    TouchState.Default(valueState = numerical(None))
 
   }
 
   def topStateWithClassifier(c:VariablePackingClassifier) = {
 
-    TouchState.Default[SemanticDomainType](valueState = numerical(Some(c)))
+    TouchState.Default(valueState = numerical(Some(c)))
 
   }
 
-}
-
-abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAnalysisParameters) extends EntryStateBuilder[S]() {
-
-  def numerical(c:Option[VariablePackingClassifier]):SemanticDomainType = {
-    val numericalDomainChoice = touchParams.numericalDomain
+  def numerical(c:Option[VariablePackingClassifier]):TouchEntryStateBuilder.ValueState = {
     val classifier =
       c match {
         case Some(x) => x
         case None => VariablePackingClassifier.OnePacker
       }
-
-    val relationalDomain =
-      SummaryNodeWrapper(NonDeterminismWrapper(numericalDomainChoice match {
-//        case NumericDomainChoice.Pentagons => DoublePentagons(BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top),UpperBoundRelation())
-        case NumericDomainChoice.Intervals => ApronInterface.Default(None, new Box(), env = Set.empty).factory()
-        case NumericDomainChoice.OptOctagons => ApronInterface.Default(None, new OptOctagon(), env = Set.empty).factory()
-        case NumericDomainChoice.Octagons => ApronInterface.Default(None, new Octagon(), env = Set.empty).factory()
-        case NumericDomainChoice.Polyhedra => ApronInterface.Default(None, new Polka(false), env = Set.empty).factory()
-        case NumericDomainChoice.StrictPolyhedra => ApronInterface.Default(None, new Polka(true), env = Set.empty).factory()
-      }))
-
+    val relationalDomain = SummaryNodeWrapper(NonDeterminismWrapper[Apron.OptOctagons](Apron.OptOctagons.Bottom))
     val nonRelationalDomain = BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)
 
     StringsAnd(
@@ -66,19 +59,19 @@ abstract class TouchDevelopEntryStateBuilder[S <: State[S]](touchParams:TouchAna
         StaticVariablePackingDomain(nonRelationalDomain,VariablePackMap(classifier,relationalDomain,Map.empty))
       ),
       NonrelationalStringDomain(
-        StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound)
+        StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]
       )
     )
   }
-}
 
+}
 
 case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None) extends Thread {
 
   var messages: Set[SampleMessage] = Set.empty
 
 
-  override def run {
+  override def run() {
     try {
 
       customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
@@ -98,7 +91,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
       SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
       val entryState = new TouchEntryStateBuilder(touchParams).topState
-      val analysis = new TouchAnalysis[ApronInterface.Default, NonrelationalStringDomain[StringKSetDomain]]
+      val analysis = new TouchAnalysis
       analysis.analyze(entryState)
 
       Exporters.setStatus("Done")

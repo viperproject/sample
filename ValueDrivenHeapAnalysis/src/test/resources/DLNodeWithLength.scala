@@ -30,7 +30,7 @@ object CreateList {
       i = i + 1
       temp = null
     }
-    return result
+    result
   }
 
   def printList(l : DLNodeWithLength) {

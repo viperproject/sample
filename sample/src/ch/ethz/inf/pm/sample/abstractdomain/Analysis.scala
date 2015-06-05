@@ -19,20 +19,20 @@ trait Analysis {
 
   def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, CFGState[S])] = {
     var res =  List.empty[(Type, MethodDeclaration, ControlFlowGraphExecution[S])]
-    Timer.start;
+    Timer.start
     for (methodName <- toAnalyze) {
       val methods = SystemParameters.compiler.getMethods(methodName)
       for((c,x) <- methods) {
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Analyzing method "+x.name.toString+" in class "+c.name.toString);
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Analyzing method "+x.name.toString+" in class "+c.name.toString)
         SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method = x)) {
           val s = x.forwardSemantics[S](entryState)
-          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString+" in class "+c.name.toString);
-          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString+" in class "+c.name.toString);
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString+" in class "+c.name.toString)
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString+" in class "+c.name.toString)
           if(SystemParameters.property!=null) {
             SystemParameters.property.check(c.name.getThisType(), x, s, output)
           }
           res = res ::: ((c.name.getThisType(), x, s) :: Nil)
-          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString+" in class "+c.name.toString);
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString+" in class "+c.name.toString)
         }
       }
     }
@@ -50,7 +50,7 @@ trait Analysis {
 
    @return a short string containing the label of the analysis
   */
-  def getLabel() : String;
+  def getLabel() : String
 
   /**
    This method returns the set of the parameters of the analysis
@@ -58,7 +58,7 @@ trait Analysis {
    @return a set containing the name of the parameters and an object representing the type of the parameter.
    The supported options are: Int, Boolean, or a List of strings
   */
-  def parameters() : List[(String, Any)];
+  def parameters() : List[(String, Any)]
 
   /**
   This method sets a parameter
@@ -66,7 +66,7 @@ trait Analysis {
    @param label the name of the parameter
    @param value the new value for the parameter
   */
-  def setParameter(label : String, value : Any) : Unit;
+  def setParameter(label : String, value : Any) : Unit
 
   /**
    This method returns the set of the properties that can be applied to this analysis
@@ -82,7 +82,7 @@ trait Analysis {
 
    @return a (possibly empty) list of methods' semantics
   */
-  def getNativeMethodsSemantics() : List[NativeMethodSemantics];
+  def getNativeMethodsSemantics: List[NativeMethodSemantics]
 
   /**
    This method resets the analysis before starting it. It can be used to clean static
@@ -103,7 +103,7 @@ trait SemanticAnalysis[T <: SemanticDomain[T]] extends Analysis {
 
    @return the initial state
   */
-  def getInitialState() : T;
+  def getInitialState: T
 }
 
 /**
@@ -118,7 +118,7 @@ trait HeapAnalysis[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analys
 
    @return the initial state
   */
-  def getInitialState() : T;
+  def getInitialState: T
 }
 
 /** A simple analyzer with a name. */

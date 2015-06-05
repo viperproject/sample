@@ -65,7 +65,7 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   override def setArgument(variable: Identifier, expr: Expression): T = wrapperFactory(wrapped.setArgument(variable, expr))
   override def setToTop(variable: Identifier): T = wrapperFactory(wrapped.setToTop(variable))
   override def removeVariable(id: Identifier): T = wrapperFactory(wrapped.removeVariable(id))
-  override def ids: Set[Identifier] = wrapped.ids
+  override def ids: IdentifierSet = wrapped.ids
   override def assume(expr: Expression): T = wrapperFactory(wrapped.assume(expr))
   override def createVariable(variable: Identifier, typ: Type): T = wrapperFactory(wrapped.createVariable(variable,typ))
   override def assign(variable: Identifier, expr: Expression): T = wrapperFactory(wrapped.assign(variable,expr))
@@ -84,10 +84,12 @@ trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWr
   with SetDomain[V,T] {
   this:T =>
   override def factory(value: Set[V]): T = wrapperFactory(wrapped.factory(value))
-  override def remove(v: V): T = wrapperFactory(wrapped.remove(v))
-  override def remove(v: T): T = wrapperFactory(wrapped.remove(v.wrapped))
-  override def add(v: V): T = wrapperFactory(wrapped.add(v))
-  override def add(v: T): T = wrapperFactory(wrapped.add(v.wrapped))
+  override def -(v: V): T = wrapperFactory(wrapped.-(v))
+  override def --(v: T): T = wrapperFactory(wrapped.--(v.wrapped))
+  override def +(v: V): T = wrapperFactory(wrapped.+(v))
+  override def ++(v: T): T = wrapperFactory(wrapped.++(v.wrapped))
+  override def contains(v: V):Boolean = wrapped.contains(v)
+  override def toSet(universe: Set[V]):Set[V] = ???
 }
 
 object InvertedSetDomain {

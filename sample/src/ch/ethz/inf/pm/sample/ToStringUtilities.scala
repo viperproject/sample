@@ -91,9 +91,9 @@ object ToStringUtilities {
   def setToString[T](set : Set[T]) : String = if (set.isEmpty) "∅" else set mkString ("{", ",", "}")
 
   def setOfListToString[T](set : Set[List[T]]) : String = {
-    var result : String = "{";
+    var result : String = "{"
     for(el <- set)
-      result=result+"["+listToCommasRepresentation(el)+"], ";
+      result=result+"["+listToCommasRepresentation(el)+"], "
     result+"}"
   }
   

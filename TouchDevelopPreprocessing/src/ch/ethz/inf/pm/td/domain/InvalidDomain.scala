@@ -61,7 +61,7 @@ T <: NumericWithInvalidDomain[N, I, T]]
  * @param pp Program Point of the invalid value
  */
 case class InvalidExpression(typ: Type, explanation: String, pp: ProgramPoint) extends Expression {
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
 
   override def toString = "invalid(" + explanation + ")"
 
@@ -76,7 +76,7 @@ case class InvalidExpression(typ: Type, explanation: String, pp: ProgramPoint) e
  * @param pp Program Point of the valid value
  */
 case class ValidExpression(typ: Type, pp: ProgramPoint) extends Expression {
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
 
   override def toString = "valid"
 

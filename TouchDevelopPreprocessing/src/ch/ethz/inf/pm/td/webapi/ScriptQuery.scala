@@ -141,7 +141,7 @@ class ScriptQuery extends IteratorOverPrograms {
     scripts match {
       case head :: tail => scripts = tail; count += 1; head
       case Nil => if (hasMore) {
-        prepareMore();
+        prepareMore()
         get()
       } else throw new NoMoreScriptsException
     }

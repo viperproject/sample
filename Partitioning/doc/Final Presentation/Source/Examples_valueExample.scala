@@ -9,5 +9,5 @@ def valueExample(x: Int): Int = {
 	else i = 1
 
 	val y = c(i) + m(i)*x
-	return y
+	y
 }

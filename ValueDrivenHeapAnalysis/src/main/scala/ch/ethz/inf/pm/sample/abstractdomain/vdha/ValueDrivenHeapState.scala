@@ -94,8 +94,8 @@ trait ValueDrivenHeapState[
       abstractHeap = abstractHeap.createVariables(ids),
       generalValState = generalValState.createVariables(ids))
   } ensuring (result =>
-    ids.subsetOf(result.generalValState.ids) &&
-    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids)),
+    ids.subsetOf(result.generalValState.ids.getNonTop) &&
+    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids.getNonTop)),
     "the variable is created in all value states")
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
@@ -150,7 +150,7 @@ trait ValueDrivenHeapState[
 
   def assignVariable(left: Expression, right: Expression): T = {
     val result: T = left match {
-      case variable: VariableIdentifier => {
+      case variable: VariableIdentifier =>
         val normalRight = normalizeExpression(right)
         if (left.typ.isBooleanType) {
           evalExp(normalRight).apply().mapCondHeaps(condHeap => {
@@ -223,7 +223,6 @@ trait ValueDrivenHeapState[
             copy(abstractHeap = tempAH, isTop = false)
           }
         }
-      }
       case _ => throw new Exception("Left-hand side of variable assignment is not a variable.")
     }
     assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
@@ -261,11 +260,10 @@ trait ValueDrivenHeapState[
     val result: T = if (right.typ.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {
-        case rAP: AccessPathIdentifier => {
+        case rAP: AccessPathIdentifier =>
           val rightPaths = abstractHeap.paths(rAP.stringPath)
           edgesToAdd = referencePathAssignmentEdges(left.path.last.getName, leftPaths, rightPaths)
-        }
-        case v: VertexExpression => {
+        case v: VertexExpression =>
           // We assume that all edges have ValueHeapIdentifiers for the given vertex expression
           // Add new edges
           for (lPath <- leftPaths) {
@@ -274,19 +272,17 @@ trait ValueDrivenHeapState[
             // We build the replacement that for each ValueHeapIdentifier corresponding to the vertex, expands it to
             // target EdgeLocalIdentifier.
             val repl = new Replacement()
-            for (id <- leftCond.ids.collect({
+            for (id <- leftCond.ids.getNonTop.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
               repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last.getName)), id)))
             }
             edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last.getName), v.vertex)
           }
-        }
-        case c: Constant => {
+        case c: Constant =>
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
           return copy(abstractHeap = newAH).assignField(left, new VertexExpression(c.typ, NullVertex)(c.pp))
-        }
         case _ => throw new Exception("Assigning " + right + " is not allowed (or supported:)). ")
       }
       // If there is no possible assignment, return bottom
@@ -494,7 +490,7 @@ trait ValueDrivenHeapState[
     val queue = mutable.Queue.empty[(Edge[S], List[String])]
     for (e <- abstractHeap.edges.filter(edg => edg.source.name.equals(pathToMaterialize.head) && edg.target.isInstanceOf[HeapVertex]))
       queue.enqueue((e, pathToMaterialize.tail))
-    while (!queue.isEmpty) {
+    while (queue.nonEmpty) {
       val (edge, path) = queue.dequeue()
       assert(edge.source.isInstanceOf[DefiniteHeapVertex] || edge.source.isInstanceOf[LocalVariableVertex])
       edge.target match {
@@ -529,14 +525,14 @@ trait ValueDrivenHeapState[
             // Outgoing edges
             if (e.source == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex)
-              if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+              if (path.nonEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
               edgesToAddHere += edgeToAdd
             }
             // Self-loop edges
             if (e.source == summaryVertex && e.target == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
-              if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+              if (path.nonEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
               edgesToAddHere += edgeToAdd
             }
@@ -545,7 +541,7 @@ trait ValueDrivenHeapState[
           edgesToAdd ++= edgesToAddHere.toSet
         case _ =>
           // Nothing to materialize for this edge
-          if (!path.isEmpty)
+          if (path.nonEmpty)
             for (e <- (resultingAH.edges -- edgesToRemove ++ edgesToAdd).filter(edg => edg.source.equals(edge.target) && edg.field.equals(Some(path.head)) && edg.target.isInstanceOf[HeapVertex]))
               queue.enqueue((e, path.tail))
       }
@@ -578,7 +574,7 @@ trait ValueDrivenHeapState[
         if (!edge.state.lessEqual(rEdgeState))
           return false
       }
-      return true
+      true
     } else {
       //    } else {
       //      if (abstractHeap.vertices.size <= r.abstractHeap.vertices.size) {
@@ -588,7 +584,7 @@ trait ValueDrivenHeapState[
       //          return false
       //      }
       //    }
-      return false
+      false
     }
   }
 

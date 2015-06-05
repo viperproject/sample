@@ -48,25 +48,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     }
   }
 
-  def getInitialState(): StringsAnd[InvalidAnd[D], R] = {
-    val numericSubDomain = domain match {
+  def getInitialState: StringsAnd[InvalidAnd[D], R] = {
+    val numericSubDomain:D = domain match {
       case "Sign" => new BoxedNonRelationalNumericalDomain(Sign.Top.asInstanceOf[Sign]).asInstanceOf[D]
       case "Interval" => new BoxedNonRelationalNumericalDomain(IntegerInterval.Top.asInstanceOf[IntegerInterval]).asInstanceOf[D]
-      case "ApronInterval" =>
-        val man = new Box()
-        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
-      case "ApronOctagons" =>
-        val man = new OptOctagon()
-        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
-      case "ApronPolka" =>
-        val man = new Polka(false)
-        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
-      case "ApronPolkaStrict" =>
-        val man = new Polka(true)
-        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
-      case "ApronLinearEqualities" =>
-        val man = new PolkaEq()
-        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronInterval" => Apron.Box.Bottom.asInstanceOf[D]
+      case "ApronOctagons" => Apron.Octagons.Bottom.asInstanceOf[D]
+      case "ApronPolka"    => Apron.Polyhedra.Bottom.asInstanceOf[D]
+      case "ApronPolkaStrict" => Apron.StrictPolyhedra.Bottom.asInstanceOf[D]
+      case "ApronLinearEqualities" => Apron.LinearEqualities.Bottom.asInstanceOf[D]
     }
 
     val invalidAndSubDomain = new InvalidAnd(numericSubDomain)
@@ -541,10 +531,15 @@ object TouchVariablePacking {
     Classifier(toPack)
   }
 
-  def pack(ids: Set[Identifier]) = {
-    val numerical = ids.map(normalize).filter(_.typ.isNumericalType)
-    if (numerical.size > 1)
-      packed = packed.add(numerical, numerical)
+  def pack(ids: IdentifierSet) = {
+    ids match {
+      case IdentifierSet.Bottom => ()
+      case IdentifierSet.Top => () // TODO
+      case IdentifierSet.Inner(idsx) =>
+        val numerical = idsx.map(normalize).filter(_.typ.isNumericalType)
+        if (numerical.size > 1)
+          packed = packed.add(numerical, numerical)
+    }
   }
 
   def reset() =

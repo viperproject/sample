@@ -34,7 +34,7 @@ object TracePartitioning {
 	 */
 	private val directives = new mutable.HashMap[(Int, Int), List[Directive[_]]]
 
-  def getDirectives(): Iterable[Directive[_]] = directives.values.flatten;
+  def getDirectives(): Iterable[Directive[_]] = directives.values.flatten
 
 	/**
 	 * Get a list of  directives for a program point

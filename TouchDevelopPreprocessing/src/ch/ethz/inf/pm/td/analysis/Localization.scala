@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{IdentifierSet, VariableIdentifier, Identifier}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.VariablePackingClassifier
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
 import ch.ethz.inf.pm.td.compiler.TouchException
@@ -22,7 +22,7 @@ object Localization {
   private var variablePacker:Option[VariablePackingClassifier] = None
   private var enablePruning = false
   private var currentlyCollecting:Stack[ProgramPoint] = Stack.empty
-  private var readInside:Map[ProgramPoint,Set[Identifier]] = Map.empty
+  private var readInside:Map[ProgramPoint,IdentifierSet] = Map.empty
 
 
   // Pruning functions
@@ -63,12 +63,12 @@ object Localization {
 
   def isPruning: Boolean = enablePruning
 
-  def collectAccess(id:Identifier):Unit = collectAccess(Set(id))
+  def collectAccess(id:Identifier):Unit = collectAccess(IdentifierSet.Bottom + id)
 
-  def collectAccess(ids:Set[Identifier]):Unit = {
+  def collectAccess(ids:IdentifierSet):Unit = {
     if (currentlyCollecting.nonEmpty) {
       val cur = currentlyCollecting.head
-      readInside = readInside + (cur -> (readInside.getOrElse(cur,Set.empty) ++ ids))
+      readInside = readInside + (cur -> (readInside.getOrElse(cur,IdentifierSet.Bottom) ++ ids))
     }
   }
 
@@ -87,7 +87,7 @@ object Localization {
     // propagate callee reads to caller
     if (currentlyCollecting.nonEmpty) {
       val caller = currentlyCollecting.head
-      readInside = readInside + (caller -> (readInside.getOrElse(caller,Set.empty) ++ readInside.getOrElse(callee,Set.empty)))
+      readInside = readInside + (caller -> (readInside.getOrElse(caller,IdentifierSet.Bottom) ++ readInside.getOrElse(callee,IdentifierSet.Bottom)))
     }
 
   }
@@ -97,7 +97,7 @@ object Localization {
       (ppToMethod.get(pp) match {
         case Some(m) => m.name + " at " + pp
         case None => "unknown call at " + pp
-      }) + " -> "+f.collect{case v:VariableIdentifier => v}.mkString(",")
+      }) + " -> "+f.toString
     }).mkString("\n")
   }
 

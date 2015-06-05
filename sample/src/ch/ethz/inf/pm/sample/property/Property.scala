@@ -16,9 +16,9 @@ trait Property {
   	/**
 	   * A short label to identify and display the property
 	   */
-  def getLabel() : String;
+  def getLabel() : String
 
-   	/**
+  /**
 	   * Check the property over the abstract results of a single method
 	   *
 	   * @param classe the class
@@ -26,7 +26,7 @@ trait Property {
 	   * @param result the abstract result
 	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
 	   */
-  def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result: CFGState[S], printer : OutputCollector) : Unit;
+  def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result: CFGState[S], printer : OutputCollector) : Unit
 
 
   /**
@@ -46,7 +46,7 @@ trait Property {
 	   *
 	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
 	   */
-  def finalizeChecking(printer : OutputCollector) : Unit;
+  def finalizeChecking(printer : OutputCollector) : Unit
 }
 
 /**
@@ -60,16 +60,16 @@ trait Visitor {
   	/**
 	   * A short label to identify and display the property
 	   */
-  def getLabel() : String;
+  def getLabel() : String
 
-    /**
+  /**
 	   * Check the property over a single state
 	   *
 	   * @param state the abstract state
 	   * @param statement the statement that was executed after the given abstract state
 	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
 	   */
-  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit;
+  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit
 }
 
 /**
@@ -80,7 +80,8 @@ trait Visitor {
  * @version 0.1
  */
 class SingleStatementProperty(val visitor : Visitor) extends Property {
-  override def getLabel() : String = visitor.getLabel();
+  override def getLabel() : String = visitor.getLabel()
+
   override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : CFGState[S], printer : OutputCollector) : Unit = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodName)) {
       for(i <- 0 to result.cfg.nodes.size-1)
@@ -100,7 +101,8 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
         }
     }
   }
-  override def finalizeChecking(printer : OutputCollector) : Unit = Unit;
+  override def finalizeChecking(printer : OutputCollector) : Unit = Unit
+
   private def checkStatement[S <: State[S]](className : Type, methodName : MethodDeclaration, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
@@ -127,8 +129,8 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		checkStatement(className, methodName, visitor,state, expr, printer)
         	  	case x : ControlFlowGraph =>
-        	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state);
-        	  		this.check(className, methodName, result, printer);
+        	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state)
+                this.check(className, methodName, result, printer);
               case _ => () // TODO
         	  }
   

@@ -9,14 +9,14 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
 	  case "$isInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
-	      case t :: Nil => return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, returnedtype)));
+	      case t :: Nil => Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, returnedtype)));
           case _ => throw new MethodSemanticException("isInstanceOf must have exactly one type parameters")
         }
 	    case _ => throw new MethodSemanticException("isInstanceOf cannot have parameters")
 	  } 
     case "$asInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
-	      case t :: Nil => return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.asInstanceOf, returnedtype)));
+	      case t :: Nil => Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.asInstanceOf, returnedtype)));
           case _ => throw new MethodSemanticException("asInstanceOf must have exactly one type parameters")
         }
 	    case _ => throw new MethodSemanticException("asInstanceOf cannot have parameters")
@@ -30,14 +30,14 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	    case _ => None//throw new MethodSemanticException("asInstanceOf cannot have parameters")
 	  }*/
     case "this" => parameters match {
-      case Nil => return Some(state.setExpression(thisExpr));
-       case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
+      case Nil => Some(state.setExpression(thisExpr));
+       case _ => this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
     }
     case "<init>" => parameters match {
-      case Nil => return Some(state.setExpression(thisExpr));
-      case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
+      case Nil => Some(state.setExpression(thisExpr));
+      case _ => this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
     }
-    case x : String if (x.length>=2 && x.substring(x.length-2, x.length).equals("_=")) => //obj.field_=expr is adopted to assign fields
+    case x : String if x.length >= 2 && x.substring(x.length - 2, x.length).equals("_=") => //obj.field_=expr is adopted to assign fields
       throw new MethodSemanticException("This should not be here");
       /*parameters match {
         case assigned :: Nil =>
@@ -58,7 +58,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
             return Some(fieldAccess)
         }
        }
-       return None;
+       None;
     case _ => None
     }
 	}
@@ -83,10 +83,10 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
  
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] = operator match {
       case "this" => parameters match {
-        case Nil => return Some(state.removeExpression());
+        case Nil => Some(state.removeExpression());
         case _ => None
       }
-      case x : String if (x.length>=2 && x.substring(x.length-2, x.length).equals("_=")) => //obj.field_=expr is adopted to assign fields
+      case x : String if x.length >= 2 && x.substring(x.length - 2, x.length).equals("_=") => //obj.field_=expr is adopted to assign fields
         throw new MethodSemanticException("This should not be here");
         /*parameters match {
           case assigned :: Nil =>
@@ -110,7 +110,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
                 return Some(fieldAccess)
 		        }
 	         }
-         return None;
+         None;
       case _ => None
      }
   }
@@ -122,25 +122,25 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
 		if(thisExpr.getType().toString.equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
 			operator match {
-			  case ">=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
-			  case "<=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);
-			  case "==" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
-			  case "!=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
-			  case ">" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>, returnedtype);
-			  case "<" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<, returnedtype);
-		      case "+" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.+, returnedtype); 
-		      case "*" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.*, returnedtype);
-		      case "-" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
-		      case "/" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator./, returnedtype);
-          case "%" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.%, returnedtype);
-		      case "unary_-" => return createUnaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
+			  case ">=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
+			  case "<=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);
+			  case "==" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
+			  case "!=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
+			  case ">" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>, returnedtype);
+			  case "<" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<, returnedtype);
+		      case "+" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.+, returnedtype);
+		      case "*" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.*, returnedtype);
+		      case "-" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
+		      case "/" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator./, returnedtype);
+          case "%" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.%, returnedtype);
+		      case "unary_-" => createUnaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
 			  case _ => None;
 			}
 		else
 			//Possible reference comparison
 			operator match {
-			  case "==" => return createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
-			  case "!=" => return createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
+			  case "==" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
+			  case "!=" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
 			  case _ => None;
 			}
  
@@ -169,11 +169,11 @@ object BooleanNativeMethodSemantics extends NativeMethodSemantics {
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = {
 		if(thisExpr.getType().toString.equals("Boolean"))
 			operator match {
-			  case "&&" => return createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.&&, returnedtype);
-			  case "||" => return createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.||, returnedtype);
+			  case "&&" => createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.&&, returnedtype);
+			  case "||" => createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.||, returnedtype);
 			  case _ => None;
 			}
-		else None;
+		else None
 	}
 
 	private def createBinaryBooleanExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : BooleanOperator.Value, returnedtype : Type) : Option[S] = parameters match {

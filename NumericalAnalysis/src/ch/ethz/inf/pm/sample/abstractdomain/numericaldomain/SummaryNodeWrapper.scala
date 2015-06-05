@@ -11,15 +11,17 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  *
  * @author Lucas Brutschy
  */
-case class SummaryNodeWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
-  extends RelationalNumericalDomain[SummaryNodeWrapper[X]]
-  with RelationalNumericalDomainWrapper[X,SummaryNodeWrapper[X]] {
+case class SummaryNodeWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
+  extends NumericalDomain.Relational[SummaryNodeWrapper[X]]
+  with NumericalDomain.Relational.Wrapper[X,SummaryNodeWrapper[X]] {
 
   override def assign(variable: Identifier, expr: Expression): SummaryNodeWrapper[X] = {
 
+    if (expr.ids.isTop) return setToTop(variable)
+
     // Handling of summary nodes on the right side -> Materialize
     val res =
-      if (expr.ids.filter(x => !x.representsSingleVariable).nonEmpty) {
+      if (expr.ids.getNonTop.filter(x => !x.representsSingleVariable).nonEmpty) {
         materializeSummaryNodes(expr, wrapped, (someExpr, someState) => {
           someState.assign(variable, someExpr)
         })
@@ -36,8 +38,10 @@ case class SummaryNodeWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
 
   override def assume(expr: Expression): SummaryNodeWrapper[X] = {
 
+    if (expr.ids.isTop) return this
+
     // Handling of summary nodes on the right side -> Materialize
-    if (expr.ids.filter(x => !x.representsSingleVariable).nonEmpty) {
+    if (expr.ids.getNonTop.filter(x => !x.representsSingleVariable).nonEmpty) {
       wrapperFactory(materializeSummaryNodes(expr, wrapped, (someExpr, someState) => {
         someState.assume(someExpr)
       }))
@@ -66,7 +70,7 @@ case class SummaryNodeWrapper[X <: RelationalNumericalDomain[X]](wrapped:X)
     val transformedExpression = expr.transform({
       case x: Identifier =>
         if (!x.representsSingleVariable) {
-          val newIdentifier = SimpleNumericalIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.typ, x.pp)
+          val newIdentifier = VariableIdentifier(x.getName + "__TMP" + temporaryCounter)(x.typ, x.pp)
           temporaryCounter = temporaryCounter + 1
           expandTemporaryVariables.value(Set(x)) =
             expandTemporaryVariables.value.get(Set(x)) match {

@@ -29,7 +29,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     * corresponding unambiguous path of edges taken in this heap graph.
     */
   def takenPath(accPath: List[String]): RootedPath[S] = {
-    require(!accPath.isEmpty, "access path must not be empty")
+    require(accPath.nonEmpty, "access path must not be empty")
     val takenPath = takenPaths.find(_.accPath.startsWith(accPath)).get
     if (takenPath.edges.size == accPath.size) takenPath
     else takenPath.copy(edges = takenPath.edges.slice(0, accPath.size))
@@ -100,7 +100,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    */
   def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
-    val accessPathIds = expr.ids.collect {
+    val accessPathIds = expr.ids.getNonTop.collect {
       case v: VariableIdentifier if !v.typ.isNumericalType =>
         AccessPathIdentifier(v)
       case apId: AccessPathIdentifier => apId
@@ -191,7 +191,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
            | NegatedBooleanExpression(VariableIdentifier(_, _))
            | BinaryArithmeticExpression(_, _, _, _) =>
         evalExp(cond).apply().map(_.assume(cond))
-      case BinaryBooleanExpression(l, r, o, t) => {
+      case BinaryBooleanExpression(l, r, o, t) =>
         val result: CondHeapGraphSeq[S] = o match {
           case BooleanOperator.&& =>
             assume(l).assume(r)
@@ -200,8 +200,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
             CondHeapGraphSeq(assume(l).condHeaps ++ assume(r).condHeaps)(lattice)
         }
         result
-      }
-      case ReferenceComparisonExpression(left, right, op, returnTyp) => {
+      case ReferenceComparisonExpression(left, right, op, returnTyp) =>
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
             case (Constant("null", _, _)) => NullVertex
@@ -218,7 +217,6 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
               if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
           }
         })
-      }
       case _ =>
         println(s"CondHeapGraph.assume: $cond is not supported.")
         this

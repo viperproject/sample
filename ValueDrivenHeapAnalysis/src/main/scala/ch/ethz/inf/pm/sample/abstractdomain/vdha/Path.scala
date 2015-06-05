@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{AccessPathIdentifier, SemanticDomai
 
 /** Represents a path of edges in a heap graph. */
 trait Path[S <: SemanticDomain[S]] {
-  require(!edges.isEmpty, "path cannot be empty")
+  require(edges.nonEmpty, "path cannot be empty")
 
   require(edges.tail.forall(_.source.isInstanceOf[HeapVertex]),
     "all edges (except the first) must have a heap vertex source")

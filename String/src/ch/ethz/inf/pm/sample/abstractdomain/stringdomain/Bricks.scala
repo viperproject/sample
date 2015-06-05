@@ -396,10 +396,15 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
      if(isBottom || !expr.typ.isStringType)return this
      // Check if we assume something about non-numerical values - if so, return
      val ids = expr.ids
-     for (id <- ids) {
-       if (!id.typ.isStringType) {
-         return this
-       }
+     ids match {
+       case IdentifierSet.Top => return this
+       case IdentifierSet.Inner(v) =>
+         for (id <- v) {
+           if (!id.typ.isStringType) {
+             return this
+           }
+         }
+       case IdentifierSet.Bottom => ()
      }
 
      expr match {

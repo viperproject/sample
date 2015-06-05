@@ -21,12 +21,12 @@ object HeapIdSetFunctionalLifting {
       state match {
         case None => state = Some(newHeap2);
         case Some(s) =>
-          val (s1, rep3) = createdLocation.heapCombinator(s, newHeap2, result._1, result._1);
-          state = Some(s1);
+          val (s1, rep3) = createdLocation.heapCombinator(s, newHeap2, result._1, result._1)
+          state = Some(s1)
           rep2 = rep2.lub(rep3);
       }
     }
-    if(state==None || ids == None) throw new SemanticException("We should have at least one abstract id in the HeapIdSetDomain");
+    if(state==None || ids == None) throw new SemanticException("We should have at least one abstract id in the HeapIdSetDomain")
     (ids.get, state.get, rep2)
   }
 

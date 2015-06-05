@@ -1,13 +1,15 @@
 package ch.ethz.inf.pm.sample.util
 
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, IdentifierSet, SetDomain}
+
 object Predef {
-  implicit def extendedBoolean(a: Boolean) = new {
+  implicit def extendedBoolean(a: Boolean): Object {def implies(b: => Boolean): Boolean} = new {
     def implies(b: => Boolean) = {
       !a || b
     }
   }
 
-  implicit def extendedList[T](l: List[T]) = new {
+  implicit def extendedList[T](l: List[T]): Object {def containsDuplicates: Boolean} = new {
     /** Returns whether there are any duplicate items in the given list. */
     def containsDuplicates = l.distinct.size != l.size
   }
@@ -28,19 +30,28 @@ object Predef {
     }
   }
 
-  def mergePartitionings[X](part1: Map[X, Set[X]], part2: Map[X, Set[X]]): Map[X, Set[X]] = {
+  def mergePartitionings(part1: Map[Identifier, IdentifierSet], part2: Map[Identifier, IdentifierSet]): Map[Identifier, IdentifierSet] = {
 
-    def setForAll(part: Map[X, Set[X]], xs: Set[X]): Map[X, Set[X]] = {
-      part ++ (for (x <- xs) yield {
-        x -> xs
-      })
+    def setForAll(part: Map[Identifier, IdentifierSet], xs: IdentifierSet): Map[Identifier, IdentifierSet] = {
+      xs match {
+        case IdentifierSet.Bottom =>
+          part
+        case IdentifierSet.Top =>
+          part ++ (for (x <- part.keySet) yield {
+            x -> xs
+          })
+        case IdentifierSet.Inner(v) =>
+          part ++ (for (x <- v) yield {
+            x -> xs
+          })
+      }
     }
 
-    var newPartitioning: Map[X, Set[X]] = Map.empty
+    var newPartitioning: Map[Identifier, IdentifierSet] = Map.empty
     var toCover = part1.keySet ++ part2.keySet
-    while (!toCover.isEmpty) {
+    while (toCover.nonEmpty) {
       val cur = toCover.head
-      newPartitioning = setForAll(newPartitioning, part1.getOrElse(cur, Set.empty) ++ part2.getOrElse(cur, Set.empty) ++ newPartitioning.getOrElse(cur, Set.empty))
+      newPartitioning = setForAll(newPartitioning, part1.getOrElse(cur, IdentifierSet.Bottom) ++ part2.getOrElse(cur, IdentifierSet.Bottom) ++ newPartitioning.getOrElse(cur, IdentifierSet.Bottom))
       toCover = toCover -- newPartitioning.keySet
     }
 

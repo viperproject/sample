@@ -6,23 +6,23 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io._
 
 object ScalaClasses {
-  var classes: List[ClassDefinition] = Nil;
+  var classes: List[ClassDefinition] = Nil
 }
 
 class ScalaCompiler extends Compiler {
 
-  private var parsedclasses: List[ClassDefinition] = Nil;
+  private var parsedclasses: List[ClassDefinition] = Nil
 
   def getLabel(): String = "Scala"
 
-  def extensions(): List[String] = "scala" :: Nil;
+  def extensions(): List[String] = "scala" :: Nil
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics)
 
   def getSourceCode(path: String): String = getOriginalCode(new BufferedReader(new FileReader(path)))
 
   def compileFile(path: String): List[ClassDefinition] = {
-    SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil);
+    SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil)
     //SystemParameters.typ is initialized inside the parser
 
     val settings = new Settings
@@ -42,46 +42,46 @@ class ScalaCompiler extends Compiler {
     }
 
     if (!command.ok)
-      return Nil;
+      return Nil
 
     /** The version number of this plugin is read from the properties file
       */
     if (settings.version.value) {
       println(command.cmdName + " version 1.0")
-      return Nil;
+      return Nil
     }
     if (settings.help.value) {
       println(command.usageMsg)
-      return Nil;
+      return Nil
     }
 
     val runner = new PluginRunner(settings)
     val run = new runner.Run
     run.compile(command.files)
-    parsedclasses = parsedclasses ::: ScalaClasses.classes;
-    return ScalaClasses.classes;
+    parsedclasses = parsedclasses ::: ScalaClasses.classes
+    ScalaClasses.classes
   }
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
     getClassDeclaration(classType) match {
       case Some(classe) =>
         for (m <- classe.methods)
-          if (m.name.toString.equals(name) && m.arguments.apply(0).size == parameters.size) {
-            var ok: Boolean = true;
+          if (m.name.toString.equals(name) && m.arguments.head.size == parameters.size) {
+            var ok: Boolean = true
             if (m.arguments.size != 1) throw new ScalaException("Not yet supported")
-            for (i <- 0 to m.arguments.apply(0).size - 1) {
-              if (!parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
-                ok = false;
+            for (i <- 0 to m.arguments.head.size - 1) {
+              if (!parameters.apply(i).lessEqual(m.arguments.head.apply(i).typ))
+                ok = false
             }
-            if (ok) return new Some[(MethodDeclaration, Type)]((m, classType));
+            if (ok) return new Some[(MethodDeclaration, Type)]((m, classType))
           }
         for (ext <- classe.extend)
           getMethod(name, ext.getThisType(), parameters) match {
             case Some(s) => return Some(s);
             case None =>
           }
-        return None;
-      case None => return None;
+        None;
+      case None => None;
     }
   }
 
@@ -91,8 +91,8 @@ class ScalaCompiler extends Compiler {
   private def getClassDeclaration(t: Type): Option[ClassDefinition] = {
     for (c <- parsedclasses)
       if (c.typ.equals(t))
-        return Some(c);
-    return None;
+        return Some(c)
+    None
   }
 
   override def allMethods: List[MethodDeclaration] =

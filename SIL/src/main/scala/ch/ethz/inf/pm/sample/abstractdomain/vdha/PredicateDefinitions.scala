@@ -79,7 +79,7 @@ case class PredicateDefinitionsDomain(
 
     // Nothing to do when none of the predicate identifiers to be merged occur.
     // TODO: Investigate why this situation can occur for firstnaturals.sil.
-    if (ids.intersect(predIdMerge.predIds.toSet).isEmpty) return this
+    if (ids.getNonTop.diff(predIdMerge.predIds.toSet[Identifier]).isEmpty) return this
 
     var newMap = map.mapValues(_.merge(predIdMerge))
     val newTargetPredBody = Lattice.bigLub(newMap.filterKeys(predIdMerge.predIds.contains).values)
@@ -92,7 +92,7 @@ case class PredicateDefinitionsDomain(
 
   // SemanticDomain has no type parameter for the type of identifiers
   // stored inside of it. Thus, the following methods perform type casts.
-  def ids = map.keySet.toSet
+  def ids = IdentifierSet.Inner(map.keySet.toSet[Identifier])
 
   def removeVariable(id: Identifier) = id match {
     case id: PredicateIdentifier => remove(id)
@@ -185,7 +185,7 @@ final case class PredicateBody(
     add(field, NestedPredicatesDomain().top())
 
   def addPerm(field: Identifier, nestedPredId: PredicateIdentifier): PredicateBody =
-    add(field, get(field).add(nestedPredId))
+    add(field, get(field).+(nestedPredId))
 
   def functionalFactory(
       value: Map[Identifier, NestedPredicatesDomain],
@@ -195,7 +195,7 @@ final case class PredicateBody(
 
   def transform(f: (Expression) => Expression) = this
 
-  def ids = map.values.flatMap(_.value).toSet
+  def ids = IdentifierSet.Inner(map.values.flatMap(_.value).toSet)
 
   def pp = DummyProgramPoint
 
@@ -215,7 +215,7 @@ final case class PredicateBody(
   def rename(from: PredicateIdentifier, to: PredicateIdentifier): PredicateBody = {
     copy(map = map.mapValues(nestedPredIds => {
       if (nestedPredIds.value.contains(from)) {
-        nestedPredIds.remove(from).add(to)
+        nestedPredIds.-(from).+(to)
       } else {
         nestedPredIds
       }
@@ -283,7 +283,7 @@ final case class NestedPredicatesDomain(wrapped: SetDomain.Default[PredicateIden
 
   /** Removes all given predicate identifiers from the set. */
   def remove(predIds: Set[PredicateIdentifier]): NestedPredicatesDomain =
-    predIds.foldLeft(this)(_.remove(_))
+    predIds.foldLeft(this)(_.-(_))
 
   /** If there is more than one nested predicate ID,
     * returns them so they can be merged, None otherwise.
@@ -310,7 +310,7 @@ final case class NestedPredicatesDomain(wrapped: SetDomain.Default[PredicateIden
   * @param predIds the predicate identifiers to merge
   */
 case class PredicateIdentifierMerge(predIds: Set[PredicateIdentifier]) {
-  require(!predIds.isEmpty,
+  require(predIds.nonEmpty,
     "the set of predicate identifiers to merge must not be empty")
 
   /** Translates the merge to a `Replacement` that can be passed

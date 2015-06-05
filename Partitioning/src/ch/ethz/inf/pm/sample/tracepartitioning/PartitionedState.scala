@@ -635,7 +635,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * active directives
    */
   private[this] def dispatch(p: PartitionedState[D], f: (PartitionedStateObserver[D], Partitioning[D]) => Partitioning[D]): PartitionedState[D] = {
-    if (!activeDirectives.isEmpty) {
+    if (activeDirectives.nonEmpty) {
       (bottom /: activeDirectives)((l, r) => l.lub(new PartitionedState[D](f(r, p.partitioning))))
     } else {
       p

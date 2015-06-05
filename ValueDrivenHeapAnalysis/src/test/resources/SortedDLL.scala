@@ -81,7 +81,7 @@ class SortedDLL {
       c = c.next
     }
 
-    return result
+    result
   }
 
   def printDLL() {

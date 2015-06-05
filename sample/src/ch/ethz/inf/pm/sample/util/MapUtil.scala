@@ -90,7 +90,7 @@ object MapUtil {
     if (left eq right) return true
     for (id <- left.keySet ++ right.keySet)
       if (!left.getOrElse(id,Set.empty).subsetOf(right.getOrElse(id,Set.empty))) return false
-    return true
+    true
   }
 
 }

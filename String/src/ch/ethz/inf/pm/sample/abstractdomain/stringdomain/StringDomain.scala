@@ -84,11 +84,17 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
     // Check if we assume something about non-numerical values - if so, return
     val ids = expr.ids
-      for (id <- ids) {
-      if (!id.typ.isStringType) {
-        return this
-      }
+    ids match {
+      case IdentifierSet.Top => return this
+      case IdentifierSet.Inner(v) =>
+        for (id <- v) {
+          if (!id.typ.isStringType) {
+            return this
+          }
+        }
+      case IdentifierSet.Bottom => ()
     }
+
     expr match {
 
       // DOUBLE NEGATION
@@ -153,7 +159,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
   }
 
   private def restrict(id:Identifier,a:T): NonrelationalStringDomain[T] = {
-    copy(map = map + (id -> (map.getOrElse(id,dom.bottom()) glb (a))))
+    copy(map = map + (id -> (map.getOrElse(id,dom.bottom()) glb a)))
   }
 
 }
@@ -189,12 +195,12 @@ trait StringKSetDomain extends SetDomain.Bounded[String, StringKSetDomain]
   def top() = StringKSetDomain.Top(k)
   def factory(v:Set[String]) = if (v.isEmpty) bottom() else StringKSetDomain.Inner(k,v)
 
-  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = (a remove b) lub (b remove a)
+  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = (a -- b) lub (b -- a)
 
   def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain =
     a glb b
 
-  def singleton(a: String): StringKSetDomain = bottom().add(a)
+  def singleton(a: String): StringKSetDomain = bottom().+(a)
 
   def concat(other:StringKSetDomain):StringKSetDomain
 
@@ -226,7 +232,7 @@ object StringKSetDomain {
         var ret:StringKSetDomain = bottom()
         for (left <- value)
           for (right <- oValue)
-            ret = ret.add(left + right)
+            ret = ret.+(left + right)
         ret
     }
 

@@ -34,7 +34,7 @@ object ReachabilityAnalysis {
       reachable ++= set.value
     }
 
-    while (!toVisit.isEmpty) {
+    while (toVisit.nonEmpty) {
       val cur = toVisit.remove(0)
       for (reach <- store.get(cur).value) {
         if (!reachable.contains(reach)) {
@@ -104,7 +104,7 @@ object ReachabilityAnalysis {
 
       case x: I =>
         if (considered.contains(x)) {
-          return (Nil, false);
+          return (Nil, false)
         }
         if (x.equals(to)) return (Nil, true)
         val res = store.get(x).value
@@ -131,7 +131,7 @@ object ReachabilityAnalysis {
   @Deprecated
   private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from: Identifier, to: I, env: VariableEnv[I], store: HeapEnv[I]): Option[String] = {
     for (field <- from.typ.possibleFields) {
-      if (from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field.getName, field.typ).equals(to)) return Some(field.getName);
+      if (from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field.getName, field.typ).equals(to)) return Some(field.getName)
     }
     None
   }

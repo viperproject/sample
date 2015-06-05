@@ -110,7 +110,7 @@ class Relation[V](protected val forward:Map[V,Set[V]], protected val backward:Ma
       visited = visited + first
       toVisit = (toVisit ++ forward.getOrElse(first,Set.empty) ++ backward.getOrElse(first,Set.empty)) -- visited
     }
-    return visited
+    visited
   }
 
   def leftClosure(left: V):Set[V] = {
@@ -121,7 +121,7 @@ class Relation[V](protected val forward:Map[V,Set[V]], protected val backward:Ma
       visited = visited + first
       toVisit = (toVisit ++ forward.getOrElse(first,Set.empty)) - first
     }
-    return visited
+    visited
   }
 
   def rightClosure(right: V):Set[V] = {
@@ -132,7 +132,7 @@ class Relation[V](protected val forward:Map[V,Set[V]], protected val backward:Ma
       visited = visited + first
       toVisit = (toVisit ++ backward.getOrElse(right,Set.empty)) - right
     }
-    return visited
+    visited
   }
 
 

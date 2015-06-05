@@ -36,7 +36,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[I],
         return false
       case _ => return false
     }
-    return false
+    false
   }
 
   def ids = this.getAddresses
@@ -53,7 +53,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[I],
         }
         val set = result.toSet
         getAddressesCache = Some(set)
-        return set
+        set
       case Some(x) => x
     }
   }
@@ -71,7 +71,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[I],
           }
         }
         getReachableMapCache = Some(reachableMap)
-        return reachableMap
+        reachableMap
       case Some(x) => x
     }
   }
@@ -255,7 +255,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[
           if (x.value.contains(idx)) return true
         }
     }
-    return false
+    false
   }
 
   def getVariables = map.keySet
@@ -272,7 +272,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[
         }
         val set = result.toSet
         getAddressesCache = Some(set)
-        return set
+        set
       case Some(x) => x
     }
   }
@@ -290,7 +290,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom: HeapIdSetDomain[
           }
         }
         getReachableMapCache = Some(reachableMap)
-        return reachableMap
+        reachableMap
       case Some(x) => x
     }
   }
@@ -610,9 +610,8 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
         result = result + ((x, variable.toString :: Nil))
         (factory(this._1.add(x, cod.bottom()), this._2), result, new Replacement)
       }
-    case x: HeapIdentifier[I] => {
+    case x: HeapIdentifier[I] =>
       throw new Exception("This should not happen!")
-    }
   }
 
   protected def initializeObject(x: Identifier, obj: I, typ: Type, heap: H, path: List[String]): (H, Map[Identifier, List[String]], Replacement) = {
@@ -624,9 +623,11 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       if (!NonRelationalHeapDomainSettings.unsoundEntryState)
         for (add <- result.ids)
           if (add.isInstanceOf[I] && add.typ.lessEqual(typ))
-            newAdd.add(add.asInstanceOf[I])
-      if (x.isInstanceOf[VariableIdentifier]) {
-        result = factory(result._1.add(x.asInstanceOf[VariableIdentifier], newAdd), result._2)
+            newAdd.+(add.asInstanceOf[I])
+      x match {
+        case key: VariableIdentifier =>
+          result = factory(result._1.add(key, newAdd), result._2)
+        case _ =>
       }
 
       alreadyInitialized = alreadyInitialized + obj
@@ -746,8 +747,8 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
           if (x.representsSingleVariable)
             this._2.add(x, this.normalize(value))
           else
-            this._2.add(x, this.get(x).add(this.normalize(value)))
-        return (factory(_1, heapEnv), new Replacement);
+            this._2.add(x, this.get(x).++(this.normalize(value)))
+        (factory(_1, heapEnv), new Replacement);
 
       case x: HeapIdSetDomain[I] =>
         if (x.isTop)
@@ -757,7 +758,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
         //TODO:Distinguish between definite and maybe
         for (addr <- x.value /*this.normalize(x).value*/ )
           result = result.add(addr, normalize(value).lub(this._2.get(addr)))
-        return (factory(_1, result), new Replacement)
+        (factory(_1, result), new Replacement)
     }
   }
 
@@ -891,9 +892,9 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     (this.asInstanceOf[H], new Replacement) //TODO: for now there is nothing about the heap structure
 
   def evalFieldAccess[S <: State[S]](expr: Assignable, field: String, typ: Type): HeapIdSetDomain[I] = expr match {
-    case obj: VariableIdentifier => return extractField(this.get(obj), field, typ)
+    case obj: VariableIdentifier => extractField(this.get(obj), field, typ)
 
-    case obj: HeapIdSetDomain[I] => {
+    case obj: HeapIdSetDomain[I] =>
       var result: HeapIdSetDomain[I] = cod.bottom()
       for (simplepp: I <- obj.value)
         result = result.lub(extractField(simplepp, field, typ))
@@ -902,9 +903,8 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       if (result.isBottom)
         return result.top()
       return result
-    }
     //case obj : I => return extractField(this.get(obj.asInstanceOf[I]), field, typ)
-    case obj: I => return extractField(obj.asInstanceOf[I], field, typ)
+    case obj: I => extractField(obj.asInstanceOf[I], field, typ)
 
     //case obj : SimpleProgramPointHeapIdentifier => return extractField(obj.asInstanceOf[I], field, typ)
 
@@ -914,7 +914,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   def extractField(obj: I, field: String, typ: Type): HeapIdSetDomain[I] = {
     var result: HeapIdSetDomain[I] = cod.bottom()
     for (id <- this.normalize(cod.convert(obj)).value)
-      result = result.add(dom.extractField(id, field, typ))
+      result = result.+(dom.extractField(id, field, typ))
     if (result.isBottom) return result.top()
     result
   }
@@ -923,9 +923,9 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     var result = id.factory()
     for (add <- id.value)
       if (add.isNormalized)
-        result = result.add(add)
-      else result = result.add(this._2.get(add))
-    return result
+        result = result.+(add)
+      else result = result.++(this._2.get(add))
+    result
   }
 
   protected def extractField(obj: HeapIdSetDomain[I], field: String, typ: Type): HeapIdSetDomain[I] = {
@@ -935,16 +935,16 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       //We manage the case in which we use the object to access a static object -> useful in Scala
       if (typ != null && typ.isStatic) {
         typ.isStatic
-        return result.add(dom.accessStaticObject(typ, obj.pp))
+        return result.+(dom.accessStaticObject(typ, obj.pp))
       }
     }
     val accessed = this.normalize(obj)
     for (node <- accessed.value)
-      result = result.add(dom.extractField(node, field, typ))
+      result = result.+(dom.extractField(node, field, typ))
     //If I don't have any information, I return a top identifier
     if (result.isBottom)
       return result.top()
-    return result
+    result
   }
 
   protected def eval[S <: State[S]](expr: Expression): HeapIdSetDomain[I] = expr match {
@@ -954,10 +954,10 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       for(addr <- x.value)
         initial=initial.lub(initial, this._2.get(addr));
       return initial;                               */
-    case Constant("null", typ, pp) => return cod.convert(dom.getNullNode(pp));
+    case Constant("null", typ, pp) => cod.convert(dom.getNullNode(pp));
     //TODO: correct?
-    case x: I => return cod.convert(x);
-    case x => return cod.top();
+    case x: I => cod.convert(x);
+    case x => cod.top();
   }
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint,

@@ -44,7 +44,7 @@ object TestSLLInsertionSort {
       currL = currL.next
     }
 
-    return result
+    result
   }
 
   def main(args: Array[String]) {

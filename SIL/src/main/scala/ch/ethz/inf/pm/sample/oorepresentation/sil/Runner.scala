@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleAnalysis, AnalysisRunner, Analysis}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import com.typesafe.scalalogging.LazyLogging
@@ -22,8 +22,8 @@ trait SilAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 }
 
 /** SIL analysis runner that uses the default heap analysis. */
-object DefaultAnalysisRunner extends SilAnalysisRunner[ValueDrivenHeapState.Default[ApronInterface.Default]] {
-  val analysis = SimpleAnalysis[ValueDrivenHeapState.Default[ApronInterface.Default]](DefaultHeapEntryStateBuilder)
+object DefaultAnalysisRunner extends SilAnalysisRunner[ValueDrivenHeapState.Default[Apron.Polyhedra]] {
+  val analysis = SimpleAnalysis[ValueDrivenHeapState.Default[Apron.Polyhedra]](DefaultHeapEntryStateBuilder)
 
   override def toString = "Default Analysis"
 }
@@ -31,15 +31,15 @@ object DefaultAnalysisRunner extends SilAnalysisRunner[ValueDrivenHeapState.Defa
 /** SIL analysis runner that uses the heap analysis
   * with edge disambiguation ghost states.
   */
-object PreciseAnalysisRunner extends SilAnalysisRunner[PreciseValueDrivenHeapState.Default[ApronInterface.Default]] {
-  val analysis = SimpleAnalysis[PreciseValueDrivenHeapState.Default[ApronInterface.Default]](PreciseHeapEntryStateBuilder)
+object PreciseAnalysisRunner extends SilAnalysisRunner[PreciseValueDrivenHeapState.Default[Apron.Polyhedra]] {
+  val analysis = SimpleAnalysis[PreciseValueDrivenHeapState.Default[Apron.Polyhedra]](PreciseHeapEntryStateBuilder)
 
   override def toString = "Precise Analysis"
 }
 
 /** SIL analysis runner used for inferring SIL specifications. */
-object PredicateAnalysisRunner extends SilAnalysisRunner[PredicateDrivenHeapState[ApronInterface.Default]] {
-  val analysis = PredicateAnalysis[ApronInterface.Default](ReusingPredicateEntryStateBuilder)
+object PredicateAnalysisRunner extends SilAnalysisRunner[PredicateDrivenHeapState[Apron.Polyhedra]] {
+  val analysis = PredicateAnalysis[Apron.Polyhedra](ReusingPredicateEntryStateBuilder)
 
   override def toString = "Predicate Analysis"
 
@@ -53,8 +53,8 @@ object PredicateAnalysisRunner extends SilAnalysisRunner[PredicateDrivenHeapStat
 
 /** Builds the entry state of a method for the predicate analysis. */
 trait PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  PredicateDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
-  PredicateDrivenHeapState[ApronInterface.Default]] {
+  PredicateDrivenHeapState.EdgeStateDomain[Apron.Polyhedra],
+  PredicateDrivenHeapState[Apron.Polyhedra]] {
 
   def topState = {
     val generalValState = PredicateDrivenHeapState.makeTopEdgeState(topApronInterface)
@@ -91,7 +91,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
             val predX = program.findPredicate(pred)
             // Try to convert the predicate
             val existingPreds = DefaultSilConverter.convert(Seq(predX))
-            if (!existingPreds.map.isEmpty) {
+            if (existingPreds.map.nonEmpty) {
               val heap = initialState.abstractHeap
               // Find the predicate identifier that created by the analysis
               // for this reference parameter, so the existing definition
@@ -177,7 +177,7 @@ case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
     case event: PredicateIdentifierMergeEvent =>
       // Only abort the analysis if the merge affects the predicate IDs
       // in the original state
-      if (!initialPreds.ids.intersect(event.predIdMerge.predIds.toSet).isEmpty) {
+      if (initialPreds.ids.getNonTop.intersect(event.predIdMerge.predIds.toSet).nonEmpty) {
         val preds = state.generalValState.predDefs
         throw new AnalysisRestartException(preds)
       }

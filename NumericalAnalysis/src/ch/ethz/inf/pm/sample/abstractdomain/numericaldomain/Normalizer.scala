@@ -29,13 +29,13 @@ object Normalizer {
     case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
       op match {
         //! l>= r => l < r
-        case ArithmeticOperator.>= => return conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ))
+        case ArithmeticOperator.>= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ))
         //! l <= r => l > r
-        case ArithmeticOperator.<= => return conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ))
+        case ArithmeticOperator.<= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ))
         //! l > r => l <= r
-        case ArithmeticOperator.> => return conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<=, typ))
+        case ArithmeticOperator.> => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<=, typ))
         //! l < r => l >= r
-        case ArithmeticOperator.< => return conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>=, typ))
+        case ArithmeticOperator.< => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>=, typ))
 
         //== and != abstracted away
         case _ => None
@@ -53,27 +53,27 @@ object Normalizer {
       op match {
 
         case ArithmeticOperator.>= =>
-          return Some(compactOnTheLeft(l.get, r.get));
+          Some(compactOnTheLeft(l.get, r.get));
 
         //l <= r => r >= l
         case ArithmeticOperator.<= =>
-          return Some(compactOnTheLeft(r.get, l.get));
+          Some(compactOnTheLeft(r.get, l.get));
 
         //l > r => l >= r+1
         case ArithmeticOperator.> =>
           val Monomial(lr, vr) = r.get
           if (left.typ.isFloatingPointType || right.typ.isFloatingPointType)
-            return Some(compactOnTheLeft(l.get, Monomial(lr, vr + NumericalAnalysisConstants.epsilon)))
+            Some(compactOnTheLeft(l.get, Monomial(lr, vr + NumericalAnalysisConstants.epsilon)))
           else
-            return Some(compactOnTheLeft(l.get, Monomial(lr, vr + 1)))
+            Some(compactOnTheLeft(l.get, Monomial(lr, vr + 1)))
 
         //l < r => r >= l+1
         case ArithmeticOperator.< =>
           val Monomial(lr, vr) = l.get
           if (left.typ.isFloatingPointType || right.typ.isFloatingPointType)
-            return Some(compactOnTheLeft(r.get, Monomial(lr, vr + NumericalAnalysisConstants.epsilon)))
+            Some(compactOnTheLeft(r.get, Monomial(lr, vr + NumericalAnalysisConstants.epsilon)))
           else
-            return Some(compactOnTheLeft(r.get, Monomial(lr, vr + 1)));
+            Some(compactOnTheLeft(r.get, Monomial(lr, vr + 1)));
 
         //== and != abstracted away
         case _ => None
@@ -94,18 +94,18 @@ object Normalizer {
       val r: Option[Monomial] = arithmeticExpressionToMonomes(right)
       if (l.equals(None) || r.equals(None)) return None
       op match {
-        case ArithmeticOperator.+ => return Some(Monomial(l.get.variables ::: r.get.variables, l.get.constant + r.get.constant))
+        case ArithmeticOperator.+ => Some(Monomial(l.get.variables ::: r.get.variables, l.get.constant + r.get.constant))
 
-        case ArithmeticOperator.- => return Some(Monomial(l.get.variables ::: transform(r.get.variables, (x: Double) => -x), l.get.constant - r.get.constant))
+        case ArithmeticOperator.- => Some(Monomial(l.get.variables ::: transform(r.get.variables, (x: Double) => -x), l.get.constant - r.get.constant))
 
         case ArithmeticOperator.* =>
-          if (r.get.variables.equals(Nil)) return Some(Monomial(transform(l.get.variables, (x: Double) => x * r.get.constant), l.get.constant * r.get.constant))
-          else if (l.get.variables.equals(Nil)) return Some(Monomial(transform(r.get.variables, (x: Double) => x * l.get.constant), l.get.constant * r.get.constant))
-          else return None;
+          if (r.get.variables.equals(Nil)) Some(Monomial(transform(l.get.variables, (x: Double) => x * r.get.constant), l.get.constant * r.get.constant))
+          else if (l.get.variables.equals(Nil)) Some(Monomial(transform(r.get.variables, (x: Double) => x * l.get.constant), l.get.constant * r.get.constant))
+          else None;
 
         case ArithmeticOperator./ =>
-          if (r.get.variables.equals(Nil)) return Some(Monomial(transform(l.get.variables, (x: Double) => x / r.get.constant), l.get.constant / r.get.constant))
-          else return None;
+          if (r.get.variables.equals(Nil)) Some(Monomial(transform(l.get.variables, (x: Double) => x / r.get.constant), l.get.constant / r.get.constant))
+          else None;
 
         case _ => None
 
@@ -115,7 +115,7 @@ object Normalizer {
       val l: Option[Monomial] = arithmeticExpressionToMonomes(left)
       if (l.equals(None)) return None
       op match {
-        case ArithmeticOperator.- => return Some(Monomial(transform(l.get.variables, (x: Double) => -x), -l.get.constant))
+        case ArithmeticOperator.- => Some(Monomial(transform(l.get.variables, (x: Double) => -x), -l.get.constant))
 
         case _ => None
       }
@@ -130,17 +130,17 @@ object Normalizer {
       case e: NumberFormatException => None
     }
 
-    case UnitExpression(t, pp) => return None;
+    case UnitExpression(t, pp) => None;
 
-    case x: AbstractOperator => return None;
+    case x: AbstractOperator => None;
 
-    case x: BinaryNondeterministicExpression => return None;
+    case x: BinaryNondeterministicExpression => None;
 
-    case x: Identifier => return Some(Monomial((1.0, x) :: Nil, 0.0))
+    case x: Identifier => Some(Monomial((1.0, x) :: Nil, 0.0))
 
     case x: HeapIdSetDomain[I] =>
-      if (x.value.size != 1) return None
-      else return Some(Monomial((1.0, x.value.iterator.next()) :: Nil, 0.0))
+      if (x.value.size != 1) None
+      else Some(Monomial((1.0, x.value.iterator.next()) :: Nil, 0.0))
 
     case _ => None
   }
@@ -165,16 +165,16 @@ object Normalizer {
   def normalizeToCoefVarCost(exp: Expression): Option[Expression] = {
     exp match {
       case x: Constant =>
-        return Some(exp)
+        Some(exp)
       case _ =>
         Normalizer.arithmeticExpressionToMonomes(exp) match {
           case None =>
-            return None
+            None
           case Some(Monomial(variables, const)) =>
             val constExp = new Constant(const.toString, exp.typ, exp.pp)
             variables.length match {
               case 0 =>
-                return Some(constExp)
+                Some(constExp)
               // TODO: this should be reimplemented - ugly
               case 1 =>
                 var result: BinaryArithmeticExpression = null
@@ -183,9 +183,9 @@ object Normalizer {
                   val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ)
                   result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ)
                 }
-                return Some(result)
+                Some(result)
               case _ =>
-                return None
+                None
             }
         }
     }

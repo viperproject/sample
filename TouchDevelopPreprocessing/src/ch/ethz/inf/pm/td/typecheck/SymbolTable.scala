@@ -86,7 +86,7 @@ class SymbolTable(script:Script) {
       case None =>
     }
 
-    return None
+    None
   }
 
   def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {

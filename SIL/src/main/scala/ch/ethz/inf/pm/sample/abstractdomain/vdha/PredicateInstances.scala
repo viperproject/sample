@@ -87,7 +87,7 @@ case class PredicateInstancesDomain(
 
   def assign(variable: Identifier, expr: Expression) = expr match {
     case (expr: PredicateInstanceState) =>
-      add(variable, defaultValue.add(expr))
+      add(variable, defaultValue.+(expr))
   }
 
   override def merge(r: Replacement): PredicateInstancesDomain = {
@@ -116,7 +116,7 @@ case class PredicateInstancesDomain(
   def assume(expr: Expression) = expr match {
     case BinaryArithmeticExpression(id: Identifier,
       state: PredicateInstanceState, ArithmeticOperator.==, _) =>
-      add(id, get(id).add(state))
+      add(id, get(id).+(state))
     case _ =>
       logger.debug(s"Assuming expression $expr in predicate instances domain " +
         "is not supported")
@@ -180,7 +180,7 @@ object PredicateInstanceIdentifier {
 
 final case class PredicateInstanceState(name: String) extends Expression {
   def transform(f: (Expression) => Expression) = this
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
   def pp = DummyProgramPoint
   def typ = PredType
 

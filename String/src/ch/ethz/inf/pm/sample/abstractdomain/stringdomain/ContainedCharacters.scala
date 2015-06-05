@@ -10,8 +10,8 @@ case class InvertedCharacterSet(wrapped: SetDomain.Default[Char] = SetDomain.Def
 
   override def wrapperFactory(wrapped: Default[Char]): InvertedCharacterSet = InvertedCharacterSet(wrapped)
 
-  def add(c:Char) = wrapperFactory(wrapped.add(c))
-  def remove(c:Char) = wrapperFactory(wrapped.remove(c))
+  def add(c:Char) = wrapperFactory(wrapped.+(c))
+  def remove(c:Char) = wrapperFactory(wrapped.-(c))
 
 }
 

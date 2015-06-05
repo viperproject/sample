@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.test.unit
 
-import apron._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
@@ -243,13 +242,9 @@ class SignTest extends NonRelationalNumericalDomainTest[Sign] {
 
 }
 
-trait ApronInterfaceTest
-  extends NumericalDomainTest[ApronInterface.Default]
-  with MostPreciseAssignment[ApronInterface.Default] {
-
-  override lazy val factory = ApronInterface.Default(None,domain,isPureBottom = false,Set.empty)
-
-  def domain:Manager
+trait ApronTest[T <: Apron[T]]
+  extends NumericalDomainTest[T]
+  with MostPreciseAssignment[T] {
 
 }
 
@@ -262,28 +257,28 @@ trait BoxedNonRelationalNumericalDomainTest[T <: NonRelationalNumericalDomain[T]
   
 }
 
-class ApronOctagonTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new Octagon
+class ApronOctagonTest extends ApronTest[Apron.Octagons] {
+  override def factory = Apron.Octagons.Bottom
 }
 
-class ApronStrictPolkaTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new Polka(true)
+class ApronLinearEqualitiesTest extends ApronTest[Apron.LinearEqualities] {
+  override def factory = Apron.LinearEqualities.Bottom
 }
 
-class ApronWeakPolkaTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new Polka(false)
+class ApronOptOctagonsTest extends ApronTest[Apron.OptOctagons] {
+  override def factory = Apron.OptOctagons.Bottom
 }
 
-class ApronOptOctagonTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new OptOctagon
+class ApronPolyhedraTest extends ApronTest[Apron.Polyhedra] {
+  override def factory = Apron.Polyhedra.Bottom
 }
 
-class ApronPolkaEqTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new PolkaEq
+class ApronStrictPolyhedraTest extends ApronTest[Apron.StrictPolyhedra] {
+  override def factory = Apron.StrictPolyhedra.Bottom
 }
 
-class ApronBoxTest extends ApronInterfaceTest {
-  override lazy val domain: Manager = new Box
+class ApronBoxTest extends ApronTest[Apron.Box] {
+  override def factory = Apron.Box.Bottom
 }
 
 class BoxedIntegerIntervalTest

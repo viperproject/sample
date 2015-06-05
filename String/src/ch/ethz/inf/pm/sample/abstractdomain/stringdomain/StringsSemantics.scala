@@ -13,30 +13,30 @@ object StringSemantics extends NativeMethodSemantics {
     programpoint : ProgramPoint,
 		state : S
 	) : Option[S] = {
-     if(! thisExpr.getType().toString.equals("String")) return None;
-     operator match {
+     if(! thisExpr.getType().toString.equals("String")) return None
+      operator match {
 	  case "+" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
              returnedtype)));
      case "concat" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
              returnedtype)));
      case "substring" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, 
              returnedtype)));
      case "contains" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringContains, 
              returnedtype)));
      case "indexOf" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringIndexof, 
              returnedtype)));
      case "lastIndexOf" => 
-	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringLastindexof, 
              returnedtype)));
   	  case _ => None
@@ -51,8 +51,8 @@ object StringSemantics extends NativeMethodSemantics {
   }
 
   private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.getSetOfExpressions match {
-	  case x if x.size==1 => return Some(x.head)
-	  case _ => return None;
+	  case x if x.size==1 => Some(x.head)
+	  case _ => None;
   }
    
 	def applyBackwardNativeSemantics[S <: State[S]](

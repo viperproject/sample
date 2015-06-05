@@ -4,7 +4,7 @@ override def testTrue(p: Partitioning[D]): Partitioning[D] = p match {
 		Node(PartitionWhileComputing(pp, n), 
 				ci :: Bottom[D]() :: c.tail.take(n))
 	} else {
-		Node(d, c.map(testTrue(_)))
+		Node(d, c.map(testTrue _))
 	}
 	case _ => p
 }

@@ -1,11 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, Analysis}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Analysis}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 import ch.ethz.inf.pm.sample.property.Property
-import apron.Polka
 
 class ValueDrivenHeapAnalysis extends Analysis {
 
@@ -27,21 +26,19 @@ class ValueDrivenHeapAnalysis extends Analysis {
 
   def reset() {}
 
-  def getInitialState(): ValueDrivenHeapState.Default[ApronInterface.Default] = {
-    val manager = new Polka(false)
-    // val manager = new Octagon()
-    // val manager = new Box()
-    val generalValState = ApronInterface.Default(None, manager, env =  Set.empty[Identifier]).top()
-    ValueDrivenHeapState.Default(new HeapGraph[ApronInterface.Default](), generalValState, ExpressionSet())
+  def getInitialState: ValueDrivenHeapState.Default[Apron.Polyhedra] = {
+    val generalValState = Apron.Polyhedra.Top
+    ValueDrivenHeapState.Default(new HeapGraph[Apron.Polyhedra](), generalValState, ExpressionSet())
   }
 
-  def getProperties(): List[Property] = List(
+  def getProperties: List[Property] = List(
     //    new ShowGraphProperty().asInstanceOf[Property]
     //    new SingleStatementProperty(DivisionByZero),
     //    new SingleStatementProperty(new LowerBoundedValue("y", 0)),
     //    new SingleStatementProperty(new BoundedValue("y", -4, 4))
   )
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(ObjectNativeMethodSemantics, IntegerNativeMethodSemantics, BooleanNativeMethodSemantics)
+  def getNativeMethodsSemantics: List[NativeMethodSemantics] =
+    List(ObjectNativeMethodSemantics, IntegerNativeMethodSemantics, BooleanNativeMethodSemantics)
 
 }

@@ -224,7 +224,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
   def happensBefore(pc1: LineColumnProgramPoint, pc2: LineColumnProgramPoint): Boolean = {
     var rowsAfterPc1: Set[Int] = this.afterPC(pc1)
     var rowsAfterPc2: Set[Int] = this.afterPC(pc2)
-    return rowsAfterPc1.contains(pc2.getLine) && !rowsAfterPc2.contains(pc1.getLine)
+    rowsAfterPc1.contains(pc2.getLine) && !rowsAfterPc2.contains(pc1.getLine)
   }
 
   private def afterPC(pc: LineColumnProgramPoint): Set[Int] = afterBlock(giveBlockOf(pc))
@@ -243,7 +243,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
         result = result + st.getPC().asInstanceOf[LineColumnProgramPoint].getLine
       blockstovisit = blockstovisit -- blocksalreadyvisited
     }
-    return result
+    result
   }
 
   def beforeBlock(startingBlock: Int): Set[Int] = {
@@ -255,10 +255,10 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       var b = blockstovisit.head
       blockstovisit = blockstovisit - b
       blocksalreadyvisited = blocksalreadyvisited + b
-      result=result+b;
+      result=result+b
       blockstovisit = blockstovisit ++ getDirectPredecessors(b)
     }
-    return result
+    result
   }
 
   def indexesafterBlockWithouthCurrentBlock(startingBlock: Int): Set[Int] = {
@@ -268,7 +268,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     val exitedges = this.exitEdges(startingBlock)
     var blockstovisit: Set[Int] = Set(startingBlock)
     for (e <- exitedges)
-      if (e._3 != None && e._3.get == true)
+      if (e._3 != None && e._3.get)
         blockstovisit = blockstovisit + e._2
     while (blockstovisit.size > 0) {
       var b = blockstovisit.head
@@ -278,7 +278,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       result = result + b
       blockstovisit = blockstovisit -- blocksalreadyvisited
     }
-    return result
+    result
   }
 
   private def giveBlockOf(pc: LineColumnProgramPoint): Int = {
@@ -287,20 +287,20 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
         if (st.getPC() != null && pc != null && st.getPC().asInstanceOf[LineColumnProgramPoint].getLine == pc.getLine)
           return i
     }
-    return -1
+    -1
   }
 
 
   override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)
 
-  override def addNode(st: scala.collection.immutable.List[Statement]) = super.addNode(st);
+  override def addNode(st: scala.collection.immutable.List[Statement]) = super.addNode(st)
 
   //Work-around for Java interfacing
 
   override def toSingleLineString(): String = {
     if (this.nodes.size != 1) return toString
     var result: String = ""
-    for (st <- this.nodes.apply(0))
+    for (st <- this.nodes.head)
       result = result + st.toSingleLineString()
     result
   }
@@ -417,7 +417,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     for (i <- 0 to nodes.size - 1) {
       var isExitPoint: Boolean = true
       for ((from, to, weight) <- cfg.edges) {
-        if (from equals (i))
+        if (from equals i)
           isExitPoint = false
       }
       if (isExitPoint) this.getExecution(i) match {
@@ -429,13 +429,13 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     result
   }
 
-  def entryState(): S = nodes.apply(0).apply(0)
+  def entryState(): S = nodes.head.head
 
   def forwardSemantics(initialState: S): ControlFlowGraphExecution[S] = {
     val result: ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](this)
     var l = Set(0)
     var iterationCount = Map.empty[Int, Int]
-    while (!l.isEmpty) {
+    while (l.nonEmpty) {
       val i = l.fold(Integer.MAX_VALUE)((a: Int, b: Int) => if (a > b) b else a)
       l = l - i
       val itNumber = iterationCount.get(i) match { case Some(x) => x; case None => 0 }
@@ -455,7 +455,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
     // Join incoming states
     for ((from, to, weight) <- cfg.edges) {
-      if (to equals (index)) {
+      if (to equals index) {
 
         // Try to see if we have already computed the given block...
         val pointedBy: List[S] = current.getExecution(from)
@@ -464,7 +464,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
         if (pointedBy != Nil) {
           val state =
             if (weight == None) pointedBy.last
-            else if (weight.get == true) pointedBy.last.testTrue()
+            else if (weight.get) pointedBy.last.testTrue()
             else pointedBy.last.testFalse()
           result = result.lub(state)
         }
@@ -473,7 +473,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     }
 
     // Widen with previous result
-    if (!current.getExecution(index).isEmpty) {
+    if (current.getExecution(index).nonEmpty) {
 
       val previousEntry = current.getExecution(index).head
       if (it > SystemParameters.wideningLimit)
@@ -598,7 +598,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
         result = result ::: elLeft.get :: Nil
       else result = result ::: operator(elLeft.get, elRight.get) :: Nil
     }
-    result.toList
+    result
   }
 
   private def safeApply[T](list: List[T], index: Int): Option[T] = {

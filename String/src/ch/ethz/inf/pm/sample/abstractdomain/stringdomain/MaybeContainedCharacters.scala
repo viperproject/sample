@@ -41,7 +41,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       l.head match {
         case Constant(s, _, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
-          this.add(thisExpr, this.get(thisExpr).add(c));
+          this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
@@ -51,7 +51,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       l.head match {
         case Constant(s, _, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
-          this.add(thisExpr, this.get(thisExpr).add(c));
+          this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
@@ -61,7 +61,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       l.head match {
         case Constant(s, _, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
-          this.add(thisExpr, this.get(thisExpr).remove(c));
+          this.add(thisExpr, this.get(thisExpr).-(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
@@ -71,7 +71,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       l.head match {
         case Constant(s, _, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
-          this.add(thisExpr, this.get(thisExpr).remove(c));
+          this.add(thisExpr, this.get(thisExpr).-(c));
         case _ => this;
       }
     case AbstractOperator(thisExpr: Identifier, parameters, _, AbstractOperatorIdentifiers.stringContains, _) =>
@@ -80,7 +80,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       l.head match {
         case Constant(s, typ2, pp) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
-          this.add(thisExpr, this.get(thisExpr).add(c));
+          this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;
       }
     case _ => this;
@@ -95,7 +95,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
     case x: Constant if x.constant.isInstanceOf[String] =>
       var result:CharacterSet = InnerCharacterSet(Set.empty)
       for (c <- x.constant.toCharArray)
-        result = result.add(c)
+        result = result.+(c)
       result;
     case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringConcatenation, _) =>
       parameters match {

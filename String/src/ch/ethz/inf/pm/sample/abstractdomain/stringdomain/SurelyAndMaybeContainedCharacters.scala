@@ -9,9 +9,9 @@ case class SurelyAndMaybeContainedCharacters(
     SurelyContainedCharacters,
     MaybeContainedCharacters,
     SurelyAndMaybeContainedCharacters] {
-      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r));
+      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r))
 
-       def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)
+  def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)
 
        /*
        def removeVariable(variable : Identifier) : SurelyAndMaybeContainedCharacters = {
@@ -42,5 +42,5 @@ case class SurelyAndMaybeContainedCharacters(
          this.removeVariable(variable);
        }*/
        
-       override def getStringOfId(id : Identifier) : String = "{" + _1.getStringOfId(id) + "}; {" + _2.getStringOfId(id) + "}";
- }
+       override def getStringOfId(id : Identifier) : String = "{" + _1.getStringOfId(id) + "}; {" + _2.getStringOfId(id) + "}"
+}

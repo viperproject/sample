@@ -100,7 +100,7 @@ trait Expression {
   def pp: ProgramPoint
 
   /** All identifiers that are part of this expression. */
-  def ids: Set[Identifier]
+  def ids: IdentifierSet
 
   /**
    * Replace one identifier by another in this expression (and all sub-expressions)
@@ -177,8 +177,8 @@ case class AbstractOperator(
 
   def typ = returntyp
 
-  def ids: Set[Identifier] = thisExpr.ids ++ {
-    var result: Set[Identifier] = Set.empty
+  def ids: IdentifierSet = thisExpr.ids ++ {
+    var result: IdentifierSet = IdentifierSet.Bottom
     for (p <- parameters) {
       result ++= p.ids
     }
@@ -188,7 +188,7 @@ case class AbstractOperator(
   override def hashCode(): Int = thisExpr.hashCode()
 
   override def equals(o: Any) = o match {
-    case AbstractOperator(l, p, t, o, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(o)
+    case AbstractOperator(l, p, t, opx, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(opx)
     case _ => false
   }
 
@@ -206,7 +206,7 @@ case class AbstractOperator(
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param returntyp The type of the returned value
+ * @param returnTyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
@@ -214,25 +214,25 @@ case class BinaryBooleanExpression(
                                     left: Expression,
                                     right: Expression,
                                     op: BooleanOperator.Value,
-                                    returntyp: Type = SystemParameters.typ.top()) extends Expression {
+                                    returnTyp: Type = SystemParameters.typ.top()) extends Expression {
 
   def pp = left.pp
 
-  def typ = returntyp
+  def typ = returnTyp
 
-  def ids: Set[Identifier] = left.ids ++ right.ids
+  def ids: IdentifierSet = left.ids ++ right.ids
 
   override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
-    case BinaryBooleanExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
+    case BinaryBooleanExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
     case _ => false
   }
 
   override def toString = left.toString + op.toString + right.toString
 
   override def transform(f: (Expression => Expression)): Expression =
-    f(BinaryBooleanExpression(left.transform(f), right.transform(f), op, returntyp))
+    f(BinaryBooleanExpression(left.transform(f), right.transform(f), op, returnTyp))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
@@ -272,7 +272,7 @@ case class ReferenceComparisonExpression(
   override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
-    case ReferenceComparisonExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
+    case ReferenceComparisonExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
     case _ => false
   }
 
@@ -310,7 +310,7 @@ case class BinaryArithmeticExpression(
   override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
-    case BinaryArithmeticExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
+    case BinaryArithmeticExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
     case _ => false
   }
 
@@ -361,7 +361,7 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
   override def hashCode(): Int = left.hashCode()
 
   override def equals(o: Any) = o match {
-    case UnaryArithmeticExpression(l, o, ty) => left.equals(l) && op.equals(o)
+    case UnaryArithmeticExpression(l, opx, ty) => left.equals(l) && op.equals(opx)
     case _ => false
   }
 
@@ -388,12 +388,12 @@ case class Constant(
                      pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
 
   override def hashCode(): Int = constant.hashCode()
 
   override def equals(o: Any) = o match {
-    case Constant(c, t, pp) => constant.equals(c) && typ.equals(t)
+    case Constant(c, t, _) => constant.equals(c) && typ.equals(t)
     case _ => false
   }
 
@@ -409,7 +409,8 @@ case class Constant(
  * An identifier, that could be a variable or a node of the abstract heap.
  */
 trait Identifier extends Expression with Assignable {
-  def ids = Set(this)
+
+  def ids = IdentifierSet.Inner(Set(this))
 
   def transform(f: (Expression => Expression)): Expression = f(this)
 
@@ -508,7 +509,7 @@ trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
  * @since 0.1
  */
 case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
-  def ids = Set.empty
+  def ids = IdentifierSet.Bottom
 
   override def hashCode(): Int = 0
 
@@ -527,7 +528,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 case class AccessPathIdentifier(path: List[Identifier])
   extends Identifier {
 
-  require(!path.isEmpty, "the access path must not be empty")
+  require(path.nonEmpty, "the access path must not be empty")
 
   def getName = stringPath.mkString(".")
 

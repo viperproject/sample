@@ -14,7 +14,7 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
     var blocksToProcessIds = Set(backwardStartBlock)
     var iterationCountAtBlock = Map.empty[Int, Int]
 
-    while (!blocksToProcessIds.isEmpty) {
+    while (blocksToProcessIds.nonEmpty) {
       val currentBlockId = blocksToProcessIds.max
       blocksToProcessIds = blocksToProcessIds - currentBlockId
       val itNumber = iterationCountAtBlock.getOrElse(currentBlockId, 0)

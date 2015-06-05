@@ -119,9 +119,9 @@ class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) exten
 	override def constant(value: String): Constant = Constant(value, top)
 
 	override def restrictions: List[Restriction] = {
-		ranges.map(_ match {
+		ranges.map {
 			case (l, r) => if (l == r) new Value(this, l.toString) else new Range(this, (l.toString, true), (r.toString, true))
-		})
+		}
 	}
 
 }

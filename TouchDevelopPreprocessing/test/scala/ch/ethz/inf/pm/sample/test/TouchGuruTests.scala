@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.test
 
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
-import ch.ethz.inf.pm.td.analysis.{ReportingParams, TouchAnalysisParameters, TouchRun}
+import ch.ethz.inf.pm.td.analysis.TouchRun
 
 class TouchGuruTests extends TouchGuruTestSuite {
 

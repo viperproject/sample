@@ -1,34 +1,32 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, SemanticDomain}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import apron.Polka
 
 trait ValueDrivenHeapEntryStateBuilder[
 E <: SemanticDomain[E], // Edge state domain
 T <: ValueDrivenHeapState[E, T]]
   extends EntryStateBuilder[T] {
 
-  protected def topApronInterface: ApronInterface.Default =
-    ApronInterface.Default(None, new Polka(false), env = Set.empty[Identifier]).top()
+  protected def topApronInterface: Apron.Polyhedra = Apron.Polyhedra.Top
 
   protected def topHeapGraph: HeapGraph[E] =
     HeapGraph[E]()
 }
 
 object DefaultHeapEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  ApronInterface.Default,
-  ValueDrivenHeapState.Default[ApronInterface.Default]] {
+  Apron.Polyhedra,
+  ValueDrivenHeapState.Default[Apron.Polyhedra]] {
 
   def topState = {
-    ValueDrivenHeapState.Default[ApronInterface.Default](topHeapGraph, topApronInterface, ExpressionSet())
+    ValueDrivenHeapState.Default[Apron.Polyhedra](topHeapGraph, topApronInterface, ExpressionSet())
   }
 }
 
 object PreciseHeapEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  PreciseValueDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
-  PreciseValueDrivenHeapState.Default[ApronInterface.Default]] {
+  PreciseValueDrivenHeapState.EdgeStateDomain[Apron.Polyhedra],
+  PreciseValueDrivenHeapState.Default[Apron.Polyhedra]] {
 
   def topState = {
     val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)

@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain[T] {
   this:T =>
 
-  def assumeSimplified(expression: Expression): T = ???
+  def assumeSimplified(expression: Expression): T
 
   /**
    * This method assumes that a given expression hold
@@ -46,12 +46,12 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
     case x: Identifier =>
       if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
       val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
-      return res
+      res
 
     case NegatedBooleanExpression(x: Identifier) =>
       if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
       val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
-      return res
+      res
 
     // And and Or
     case BinaryBooleanExpression(left, right, op, _) => op match {

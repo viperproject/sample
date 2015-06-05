@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
-import ch.ethz.inf.pm.sample.abstractdomain.{SimplifiedSemanticDomain, Replacement, Expression, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.Predef._
@@ -48,10 +48,11 @@ case class PackStorage[R <: NumericalDomain[R]](map: Map[Identifier, R]) {
     x => x._1 -> x._2.top()
   })
 
-  def ids: Set[Identifier] = map.keySet
+  def ids: IdentifierSet = IdentifierSet.Inner(map.keySet)
 
   def setForAllIdentifiers(state: R): PackStorage[R] = {
-    PackStorage(map ++ (for (id <- state.ids) yield {
+    if (state.ids.isTop) top()
+    PackStorage(map ++ (for (id <- state.ids.getNonTop) yield {
       id -> state
     }))
   }
@@ -79,26 +80,32 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
 
   // INVARIANT: The cheap domain covers a superset of the identifiers in the relational domain
   if (SystemParameters.DEBUG) {
-    assert(exp.ids.subsetOf(ids))
+    assert(exp.ids lessEqual ids)
   }
 
   /**
    * This is the central function of the domain, lifting a set of identifiers from the cheap domain to the relational
    * domain
-   * @param ids The set of identifiers to be lifted
+   * @param vs The set of identifiers to be lifted
    * @return A fresh relational domain incorporating the existing information
    */
-  private def lift(ids: Set[Identifier]): R = {
+  private def lift(vs: IdentifierSet): R = vs match {
+    case IdentifierSet.Bottom => lift(Set.empty[Identifier])
+    case IdentifierSet.Top => lift(ids)
+    case IdentifierSet.Inner(v) => lift(v)
+  }
+
+  private def lift(v: Set[Identifier]): R = {
 
     // get a list of all the relational states involved in this set of ids
-    val existingStates = (for (id <- ids) yield {
+    val existingStates = (for (id <- v) yield {
       exp.map.get(id)
-    }).toSet.flatten
+    }).flatten
 
     // lift from non-relational domain if something does not exist yet
-    val uncoveredIDs = ids -- (existingStates map {
+    val uncoveredIDs = v -- Lattice.bigLub(existingStates map {
       _.ids
-    }).flatten
+    }).getNonTop
     val extendedStates =
       if (uncoveredIDs.nonEmpty) {
         var cur = relFactory.factory().createVariables(uncoveredIDs)
@@ -148,7 +155,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
 
   }
 
-  override def ids: Set[Identifier] =
+  override def ids: IdentifierSet =
     cheap.ids
 
   override def removeVariable(variable: Identifier): VariablePackingDomain[C, R] = {
@@ -181,7 +188,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
 
   override def merge(f: Replacement): VariablePackingDomain[C, R] = {
     if (f.isEmpty()) return this
-    val mergedState = lift(f.ids.toSet).merge(f)
+    val mergedState = lift(f.ids).merge(f)
     this.copy(cheap = cheap.merge(f), exp = exp.setForAllIdentifiers(mergedState))
   }
 
@@ -190,7 +197,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
     for (x <- exp.map.values) {
       if (!x.isTop) return false
     }
-    return true
+    true
   }
 
   override def isBottom: Boolean = {
@@ -198,7 +205,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
     for (x <- exp.map.values) {
       if (x.isBottom) return true
     }
-    return false
+    false
   }
 
   override def lessEqual(other: VariablePackingDomain[C, R]): Boolean = {
@@ -223,7 +230,7 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
       }
     }
 
-    return true
+    true
 
   }
 
@@ -260,14 +267,10 @@ case class VariablePackingDomain[C <: NumericalDomain[C], R <: NumericalDomain[R
   override def factory(): VariablePackingDomain[C, R] =
     VariablePackingDomain(cheap.factory(), relFactory, exp.empty())
 
-  override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (VariablePackingDomain[C, R], Map[Identifier, List[String]]) = ???
-
-  override def setArgument(variable: Identifier, expr: Expression): VariablePackingDomain[C, R] = ???
-
-  override def backwardAccess(id: Identifier): VariablePackingDomain[C, R] = this
-
-  override def access(id: Identifier): VariablePackingDomain[C, R] = this
-
-  override def backwardAssign(oldPreState: VariablePackingDomain[C, R], id: Identifier, expr: Expression): VariablePackingDomain[C, R] = ???
+  /**
+   * Returns all the knowledge we have on the given identifiers as an expression
+   */
+  override def getConstraints(ids: Set[Identifier]) =
+    cheap.getConstraints(ids) ++ ids.map(exp.map(_)).map(_.getConstraints(ids)).flatten
 
 }
