@@ -193,8 +193,7 @@ class SetDomainTest extends LatticeTest[SetDomain.Default[Int]] {
 
   override lazy val instances: Set[SetDomain.Default[Int]] = super.instances ++ Set(
     SetDomain.Default.Inner(Set(1,2,9)),
-    SetDomain.Default.Inner(Set(1,3,10)),
-    SetDomain.Default.Inner(Set.empty[Int])
+    SetDomain.Default.Inner(Set(1,3,10))
   )
 
 }
@@ -207,9 +206,7 @@ class IntegerIntervalTest extends NonRelationalNumericalDomainTest[IntegerInterv
   override lazy val instances: Set[IntegerInterval] = super.instances ++ Set(
     IntegerInterval.Inner(-1,Int.MaxValue),
     IntegerInterval.Inner(Int.MinValue,1),
-    IntegerInterval.Inner(0,0),
-    IntegerInterval.Inner(1,0),
-    IntegerInterval.Inner(Int.MinValue,Int.MaxValue)
+    IntegerInterval.Inner(0,0)
   )
 
 }
@@ -222,9 +219,7 @@ class DoubleIntervalTest extends NonRelationalNumericalDomainTest[DoubleInterval
   override lazy val instances: Set[DoubleInterval] = super.instances ++ Set(
     DoubleInterval.Inner(-1,Double.PositiveInfinity),
     DoubleInterval.Inner(Double.NegativeInfinity,1),
-    DoubleInterval.Inner(0,0),
-    DoubleInterval.Inner(1,0),
-    DoubleInterval.Inner(Int.MinValue,Int.MaxValue)
+    DoubleInterval.Inner(0,0)
   )
 
 }
@@ -297,9 +292,11 @@ class BoxedSignTest
   override lazy val domain: Sign = Sign.Bottom
 }
 
+/**
+ * Does NOT have most precise assignment, as potentially Valid != Valid
+ */
 class BooleanInvalidDomainWithSourceTest
-  extends SemanticDomainTest[BooleanInvalidDomainWithSource]
-  with MostPreciseAssignment[BooleanInvalidDomainWithSource] {
+  extends SemanticDomainTest[BooleanInvalidDomainWithSource]{
 
   override lazy val values = super.values ++ Set(
     InvalidExpression(typ,"dummy1",DummyProgramPoint),

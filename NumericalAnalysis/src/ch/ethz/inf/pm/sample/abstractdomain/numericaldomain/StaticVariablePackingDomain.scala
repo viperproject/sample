@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.util.MapUtil
 
 trait VariablePackingClassifier {
 
@@ -41,100 +42,120 @@ trait VariablePack {
   def ids:IdentifierSet
 }
 
-case class VariablePackMap[Relational <: NumericalDomain.Relational[Relational]]
-    (classifier:VariablePackingClassifier,dom:Relational,map: Map[VariablePack, Relational],isPureBottom:Boolean = false, isPureTop:Boolean = false)
-  extends FunctionalDomain[VariablePack,Relational,VariablePackMap[Relational]]
-  with SimplifiedSemanticDomain[VariablePackMap[Relational]]{
+/**
+ * @author Lucas Brutschy
+ */
+case class StaticVariablePackingDomain
+  [Cheap <: NumericalDomain[Cheap],Relational <: NumericalDomain.Relational[Relational]]
+  (cheap:Cheap,classifier:VariablePackingClassifier,dom:Relational,map: Map[VariablePack, Relational])
+  extends NumericalDomain[StaticVariablePackingDomain[Cheap,Relational]]
+  with SimplifiedSemanticDomain[StaticVariablePackingDomain[Cheap,Relational]] {
 
-  // TODO: As usual, handling of bottom and top is dodgy and requires a refactoring of the functional domain
-
-  override def functionalFactory(map: Map[VariablePack, Relational], isBottom: Boolean, isTop: Boolean): VariablePackMap[Relational] = {
-    VariablePackMap(classifier,dom,map,isBottom,isTop)
-  }
+  def factory(a: Cheap, b: Map[VariablePack, Relational]): StaticVariablePackingDomain[Cheap, Relational] =
+    StaticVariablePackingDomain(a,classifier,dom,b)
 
   override def isBottom:Boolean =
-    isPureBottom || map.exists(_._2.isBottom)
+    cheap.isBottom || map.exists(_._2.isBottom)
 
   override def isTop:Boolean =
-    isPureTop
+    cheap.isTop && map.forall(_._2.isTop)
 
-  override def get(key: VariablePack): Relational =
-    map.getOrElse(key, dom.top())
+  override def setToTop(variable: Identifier): StaticVariablePackingDomain[Cheap,Relational] =
+    factory(cheap.setToTop(variable),applyToPacks(variable, {x:Relational => x.setToTop(variable)}))
 
-  override def setToTop(variable: Identifier): VariablePackMap[Relational] =
-    applyToPacks(variable, {x:Relational => x.setToTop(variable)})
-
-  override def removeVariable(id: Identifier): VariablePackMap[Relational] =
-    applyToPacks(id, {x:Relational => x.removeVariable(id)})
+  override def removeVariable(id: Identifier): StaticVariablePackingDomain[Cheap,Relational] =
+    factory(cheap.removeVariable(id),applyToPacks(id, {x:Relational => x.removeVariable(id)}))
 
   override def ids: IdentifierSet =
-    if (map.values.isEmpty) IdentifierSet.Bottom
-    else {
-      val xs = for ((pack,dom) <- map) yield {
-        dom.ids match {
-          case IdentifierSet.Top => IdentifierSet.Bottom
-          case x => x
-        }
-      }
-      Lattice.bigLub(xs)
-    }
+    cheap.ids
 
-  override def assume(expr: Expression): VariablePackMap[Relational] = {
+  override def assume(expr: Expression): StaticVariablePackingDomain[Cheap,Relational] = {
     if (expr.ids.isTop) return this
-    applyToPacks(expr.ids.getNonTop, {x:Relational => x.assume(expr)})
+    factory(cheap.assume(expr),applyToPacks(expr.ids.getNonTop, {x:Relational => x.assume(expr)}))
   }
 
-  override def createVariable(variable: Identifier, typ: Type): VariablePackMap[Relational] =
-    applyToPacks(variable, {x:Relational => x.createVariable(variable,typ)})
+  override def createVariable(variable: Identifier, typ: Type): StaticVariablePackingDomain[Cheap,Relational] =
+    factory(cheap.createVariable(variable,typ),applyToPacks(variable, {x:Relational => x.createVariable(variable,typ)}))
 
-  override def assign(variable: Identifier, expr: Expression): VariablePackMap[Relational] =
-    applyToPacks(variable, {x:Relational => x.assign(variable,expr)})
+  override def assign(variable: Identifier, expr: Expression): StaticVariablePackingDomain[Cheap,Relational] =
+    factory(cheap.assign(variable,expr),applyToPacks(variable, {x:Relational => x.assign(variable,expr)}))
 
   override def getStringOfId(id: Identifier): String =
-    classifier.classify(id).map( get(_).getStringOfId(id) ).mkString(",")
+    cheap.getStringOfId(id)+","+classifier.classify(id).map( getPack(_).getStringOfId(id) ).mkString(",")
 
-  override def merge(f: Replacement): VariablePackMap[Relational] =
-    f.value.foldLeft(this) {
-      (cur:VariablePackMap[Relational],ids:(Set[Identifier],Set[Identifier])) =>
-        cur.applyToPacksSep(ids._1 ++ ids._2, { (x: Relational, y: VariablePack) =>
+  override def merge(f: Replacement): StaticVariablePackingDomain[Cheap,Relational] =
+    factory(cheap.merge(f),f.value.foldLeft(map) {
+      (cur:Map[VariablePack,Relational],ids:(Set[Identifier],Set[Identifier])) =>
+        applyToPacksSep(cur, ids._1 ++ ids._2, { (x: Relational, y: VariablePack) =>
           val from = classifier.filterClass(ids._1, y)
           val to = classifier.filterClass(ids._2, y)
           val rep = new Replacement()
           rep.value += (from -> to)
           x.merge(rep)
         })
-    }
+    })
 
-  private def applyToPacks(id: Identifier, in: Relational => Relational):VariablePackMap[Relational] =
+  private def getPack(key: VariablePack): Relational = {
+    val vars = key.ids glb cheap.ids // glb of existing identifiers (stored by cheap domain) and pack
+    if (vars.isTop)
+      map.getOrElse(key, dom.top())
+    else
+      map.getOrElse(key, vars.getNonTop.foldLeft(dom.factory())(_ createVariable _))
+  }
+
+  private def applyToPacks(id: Identifier, in: Relational => Relational):Map[VariablePack,Relational] =
     applyToPacks(Set(id),in)
 
-  private def applyToPacks(ids: Set[Identifier], in: Relational => Relational):VariablePackMap[Relational] =
-    classifier.classify(ids).foldLeft(this){
-      (y:VariablePackMap[Relational],x:VariablePack) => y.functionalFactory(map = y.map + (x -> in(get(x))))
+  private def applyToPacks(ids: Set[Identifier], in: Relational => Relational):Map[VariablePack,Relational] =
+    classifier.classify(ids).foldLeft(map){
+      (y:Map[VariablePack,Relational],x:VariablePack) => y + (x -> in(getPack(x)))
     }
 
-  private def applyToPacksSep(ids: Set[Identifier], in: (Relational,VariablePack) => Relational):VariablePackMap[Relational] =
-    classifier.classify(ids).foldLeft(this){
-      (y:VariablePackMap[Relational],x:VariablePack) => y.functionalFactory(map = y.map + (x -> in(get(x),x)))
+  private def applyToPacksSep(mapX:Map[VariablePack,Relational], ids: Set[Identifier], in: (Relational,VariablePack) => Relational):Map[VariablePack,Relational] =
+    classifier.classify(ids).foldLeft(mapX){
+      (y:Map[VariablePack,Relational],x:VariablePack) => y + (x -> in(getPack(x),x))
     }
 
+  override def getConstraints(ids: Set[Identifier]) =
+    classifier.classify(ids).foldLeft(cheap.getConstraints(ids)) {
+      _ ++ getPack(_).getConstraints(ids)
+    }
 
-}
+  override def factory() = factory(cheap.factory(),Map.empty)
 
-/**
- * @author Lucas Brutschy
- */
-case class StaticVariablePackingDomain
-  [Cheap <: SemanticDomain[Cheap],Relational <: NumericalDomain.Relational[Relational]]
-  (_1:Cheap,_2:VariablePackMap[Relational])
-  extends SemanticCartesianProductDomain[Cheap,VariablePackMap[Relational],StaticVariablePackingDomain[Cheap,Relational]]
-  with NumericalDomain[StaticVariablePackingDomain[Cheap,Relational]] {
+  override def bottom() = factory(cheap.bottom(),Map.empty)
 
-  override def factory(a: Cheap, b: VariablePackMap[Relational]): StaticVariablePackingDomain[Cheap, Relational] =
-    StaticVariablePackingDomain(a,b)
+  override def top() = throw new Exception("Really, do not create top semantic states")
 
-  /**
-   * Returns all the knowledge we have on the given identifiers as an expression
-   */
-  override def getConstraints(ids: Set[Identifier]) = ???
+  override def lub(other: StaticVariablePackingDomain[Cheap, Relational]) =
+    factory(cheap.lub(other.cheap),MapUtil.mergeMapsOptional(map,other.map) {
+      case (None, None) => None
+      case (Some(x), None) => Some(x)
+      case (None, Some(x)) => Some(x)
+      case (Some(x), Some(y)) => Some(x lub y)
+    })
+
+  override def glb(other: StaticVariablePackingDomain[Cheap, Relational]) =
+    factory(cheap.glb(other.cheap),MapUtil.mergeMapsOptional(map,other.map) {
+      case (None, _) => None
+      case (Some(x), None) => Some(x)
+      case (None, Some(x)) => Some(x)
+      case (Some(x), Some(y)) => Some(x glb y)
+    })
+
+  override def widening(other: StaticVariablePackingDomain[Cheap, Relational]) =
+    factory(cheap.widening(other.cheap),MapUtil.mergeMapsOptional(map,other.map) {
+      case (None, None) => None
+      case (Some(x), None) => Some(x)
+      case (None, Some(x)) => Some(x)
+      case (Some(x), Some(y)) => Some(x widening y)
+    })
+
+  override def lessEqual(other: StaticVariablePackingDomain[Cheap, Relational]) =
+    cheap.lessEqual(other.cheap) && MapUtil.mergeMapsOtherVal(map,other.map) {
+      case (None, None) => Some(true)
+      case (Some(x), None) => Some(true)
+      case (None, Some(x)) => Some(false)
+      case (Some(x), Some(y)) => Some(x lessEqual y)
+    }.values.forall{ x => x }
 }

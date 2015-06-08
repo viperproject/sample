@@ -112,7 +112,7 @@ trait VariableContext {
 class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) extends VariableContext {
 	 require(ranges.length > 0)
 
-	val top = SystemParameters.getType().top()
+	val top = SystemParameters.typ.top()
 
 	override def identifier: VariableIdentifier = VariableIdentifier(name)(top)
 

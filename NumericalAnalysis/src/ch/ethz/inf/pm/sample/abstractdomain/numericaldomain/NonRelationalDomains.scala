@@ -716,14 +716,14 @@ object DoubleInterval {
 
     if (SystemParameters.DEBUG) {
       assert {left <= right}
-      assert {!right.isPosInfinity || !left.isPosInfinity}
+      assert {!right.isPosInfinity || !left.isNegInfinity}
       assert {!left.isNaN && !right.isNaN}
       assert {!right.isNegInfinity}
       assert {!left.isPosInfinity}
     }
 
     def factory(newLeft:Double, newRight: Double):DoubleInterval = {
-      if (newLeft.isPosInfinity && newRight.isNegInfinity) Top
+      if (newLeft.isNegInfinity && newRight.isPosInfinity) Top
       else if (newLeft > newRight) Bottom
       else Inner(newLeft,newRight)
     }

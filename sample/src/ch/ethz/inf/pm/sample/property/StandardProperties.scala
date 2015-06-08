@@ -21,7 +21,7 @@ object DivisionByZero extends Visitor {
       state1 = y.forwardSemantics(state1)
       for(divisor <- state1.expr.getSetOfExpressions) {
         if(! state1.assume(
-          new ExpressionSet(SystemParameters.getType().top()).add(
+          new ExpressionSet(SystemParameters.typ.top()).add(
             new BinaryArithmeticExpression(divisor, new Constant("0"), ArithmeticOperator.==)
             )
            ).lessEqual(state.bottom())) {

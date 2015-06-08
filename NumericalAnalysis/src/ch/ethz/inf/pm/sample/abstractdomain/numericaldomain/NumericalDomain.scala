@@ -125,10 +125,11 @@ object NumericalDomain {
       override def lubInner(that: X) = {
         if (this.ids == that.ids) lubSameEnv(that.asInstanceOf[T])
         else {
-          val diffThis = this.remove(that.ids)
-          val diffThat = that.remove(this.ids)
+          val common = that.ids glb this.ids
+          val diffThis = this.remove(common)
+          val diffThat = that.remove(common)
           val extendedThis = this.unify(diffThat)
-          val extendedThat = this.unify(diffThis)
+          val extendedThat = that.unify(diffThis)
           extendedThis.lubSameEnv(extendedThat)
         }
       }
@@ -145,10 +146,11 @@ object NumericalDomain {
       override def wideningInner(that: X) = {
         if (this.ids == that.ids) wideningSameEnv(that.asInstanceOf[T])
         else {
-          val diffThis = this.remove(that.ids)
-          val diffThat = that.remove(this.ids)
+          val common = that.ids glb this.ids
+          val diffThis = this.remove(common)
+          val diffThat = that.remove(common)
           val extendedThis = this.unify(diffThat)
-          val extendedThat = this.unify(diffThis)
+          val extendedThat = that.unify(diffThis)
           extendedThis.wideningSameEnv(extendedThat)
         }
       }
@@ -156,10 +158,11 @@ object NumericalDomain {
       override def lessEqualInner(that: X) = {
         if (this.ids == that.ids) lessEqualSameEnv(that.asInstanceOf[T])
         else {
-          val diffThis = this.remove(that.ids)
-          val diffThat = that.remove(this.ids)
+          val common = that.ids glb this.ids
+          val diffThis = this.remove(common)
+          val diffThat = that.remove(common)
           val extendedThis = this.unify(diffThat)
-          val extendedThat = this.unify(diffThis)
+          val extendedThat = that.unify(diffThis)
           extendedThis.lessEqualSameEnv(extendedThat)
         }
       }

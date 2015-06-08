@@ -18,12 +18,12 @@ trait InvalidDomain[T <: InvalidDomain[T]] extends SemanticDomain[T] {
 }
 
 
-trait NumericWithInvalidDomain[
-N <: NumericalDomain[N],
+trait SemanticWithInvalidDomain[
+S <: SemanticDomain[S],
 I <: InvalidDomain[I],
-T <: NumericWithInvalidDomain[N, I, T]]
-  extends SemanticCartesianProductDomain[N, I, T]
-  with NumericalDomain[T] {
+T <: SemanticWithInvalidDomain[S, I, T]]
+  extends SemanticCartesianProductDomain[S, I, T]
+  with SemanticDomain[T] {
   this: T =>
 
   override def assign(id:Identifier, expr:Expression) =
@@ -36,10 +36,6 @@ T <: NumericWithInvalidDomain[N, I, T]]
       factory(_1, _2.assume(expr))
     else factory(_1.assume(expr), _2.assume(expr))
 
-  def numericalDomain: N = _1
-
-  def invalidDomain: I = _2
-
   def isValidInvalidExpression(expr:Expression):Boolean = expr match {
     case a:InvalidExpression => true
     case a:ValidExpression => true
@@ -48,9 +44,7 @@ T <: NumericWithInvalidDomain[N, I, T]]
 
   def containsValidInvalidExpression(expr:Expression) = expr contains isValidInvalidExpression
 
-  override def toString = "Numeric:\n" + ToStringUtilities.indent(this._1.toString) + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
-
-  override def getConstraints(ids: Set[Identifier]) = ???
+  override def toString = this._1.toString + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
 
 }
 

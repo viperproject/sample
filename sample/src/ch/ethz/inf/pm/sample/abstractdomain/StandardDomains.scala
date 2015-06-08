@@ -365,7 +365,7 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   def getStringOfId(id: Identifier): String = this.get(id).toString
 
   def ids =
-    if (isBottom) IdentifierSet.Bottom
+    if (isBottom || map.isEmpty) IdentifierSet.Bottom
     else if (isTop) IdentifierSet.Top
     else IdentifierSet.Inner(map.keySet)
 
@@ -482,8 +482,12 @@ object SetDomain {
     with InnerLattice[T,I] {
     this : T =>
 
-    // This should be bottom
-    assert {value.nonEmpty}
+    if (SystemParameters.DEBUG) {
+      // This should be bottom
+      assert {
+        value.nonEmpty
+      }
+    }
 
     def value: Set[V]
 
@@ -521,12 +525,7 @@ object SetDomain {
   object Default {
 
     final case class Inner[V](value: Set[V])
-      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]] {
-
-      // otherwise bottom!
-      assert(value.nonEmpty)
-
-    }
+      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]]
 
     final case class Bottom[V]()
       extends Default[V] with SetDomain.Bottom[V, Default[V]]

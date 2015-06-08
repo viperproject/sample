@@ -78,7 +78,16 @@ object SystemParameters {
     */
   var property: Property = null
 
-  def getType() = typ
+
+  def reset() = {
+    progressOutput = null
+    analysisOutput = null
+    typ = null
+    compiler = null
+    property = null
+    nativeMethodsSemantics = Nil
+    Reporter.reset()
+  }
 
   def addNativeMethodsSemantics(l: List[NativeMethodSemantics]) = {
     for (s1 <- l) {

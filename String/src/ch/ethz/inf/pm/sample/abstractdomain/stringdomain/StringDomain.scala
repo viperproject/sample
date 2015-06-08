@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BooleanExpressionSimplifier, NumericalDomain}
 
 trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
@@ -18,19 +18,22 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                                                           override val isBottom:Boolean = false,
                                                           isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
-  with StringDomain[NonrelationalStringDomain[T]] {
+  with StringDomain[NonrelationalStringDomain[T]]
+  with BooleanExpressionSimplifier[NonrelationalStringDomain[T]] {
 
   def functionalFactory(_value:Map[Identifier, T] = Map.empty[Identifier, T],
                         _isBottom:Boolean = false,
                         _isTop:Boolean = false) : NonrelationalStringDomain[T] =
-    new NonrelationalStringDomain[T](dom,_value,_isBottom,_isTop)
+    new NonrelationalStringDomain(dom,_value,_isBottom,_isTop)
 
   def get(key : Identifier) : T = map.get(key) match {
     case None => dom.bottom()
     case Some(x) => x
   }
 
-  override def createVariable(variable: Identifier, typ: Type): NonrelationalStringDomain[T] = this
+  override def createVariable(variable: Identifier, typ: Type): NonrelationalStringDomain[T] = {
+    this.add(variable, dom.top())
+  }
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     var result = Map.empty[Identifier, List[String]]
@@ -77,7 +80,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
   /**
    * This is imprecise, but sound
    */
-  override def assume(expr: Expression): NonrelationalStringDomain[T] = {
+  override def assumeSimplified(expr: Expression): NonrelationalStringDomain[T] = {
 
     if (isBottom)
       return this
@@ -96,10 +99,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     }
 
     expr match {
-
-      // DOUBLE NEGATION
-      case NegatedBooleanExpression(NegatedBooleanExpression(n)) =>
-        assume(n)
 
       // Comparison
       case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
@@ -126,7 +125,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
         }
 
       // Negated comparison
-      case NegatedBooleanExpression(BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _)) =>
+      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.!=, _) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -139,18 +138,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
         if (b.isInstanceOf[Identifier] && left.isSingleton) curState = curState.restrict(b.asInstanceOf[Identifier],diff)
         if (right.isSingleton && left.isSingleton && diff.isBottom) curState = curState.bottom()
         curState
-
-      // DE MORGAN
-      case NegatedBooleanExpression(BinaryBooleanExpression(left,right,op,typ)) => op match {
-        case BooleanOperator.|| => assume(NegatedBooleanExpression(left)).assume(NegatedBooleanExpression(right))
-        case BooleanOperator.&& => assume(NegatedBooleanExpression(left)).lub(assume(NegatedBooleanExpression(right)))
-      }
-
-      // AND, OR
-      case BinaryBooleanExpression(left,right,op,typ) => op match {
-        case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => assume(left) lub assume(right)
-      }
 
       case _ =>
         this
@@ -242,20 +229,14 @@ object StringKSetDomain {
 
 }
 
-trait NumericWithStringDomain[
-    N <: NumericalDomain[N],
+trait SemanticWithStringDomain[
+    X <: SemanticDomain[X],
     S <: StringDomain[S],
-    T <: NumericWithStringDomain[N, S, T]]
-  extends SemanticCartesianProductDomain[N, S, T]
-  with NumericalDomain[T] { this: T =>
+    T <: SemanticWithStringDomain[X, S, T]]
+  extends SemanticCartesianProductDomain[X, S, T]
+  with SemanticDomain[T] { this: T =>
 
   override def _2canHandle(id: Identifier) = id.typ.isStringType
+  override def toString = _1.toString+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 
-  def initialNum: N = _1
-
-  def initialStr: S = _2
-
-  override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
-
-  override def getConstraints(ids: Set[Identifier]) = ???
 }

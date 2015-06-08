@@ -25,7 +25,7 @@ object MapUtil {
    * Merge two maps of the same type. It combines all their entries.
    * Gives more control whether keys will exist
    */
-  def mergeMaps2[A, B](left: Map[A, B], right: Map[A, B])(f: (Option[B], Option[B]) => Option[B]): Map[A, B] = {
+  def mergeMapsOptional[A, B](left: Map[A, B], right: Map[A, B])(f: (Option[B], Option[B]) => Option[B]): Map[A, B] = {
     (left.keys ++ right.keys).flatMap { x =>
       f(left.get(x), right.get(x)) match {
         case Some(b) => Some(x -> b)
@@ -34,6 +34,21 @@ object MapUtil {
     }.toMap
   }
 
+
+  /**
+   * Merge two maps of the same type. It combines all their entries.
+   * Gives a single value in return
+   */
+  def mergeMapsOtherVal[A, B, C](left: Map[A, B], right: Map[A, B])(f: (Option[B], Option[B]) => Option[C]): Map[A,C] = {
+    (left.keys ++ right.keys).flatMap { x =>
+      f(left.get(x), right.get(x)) match {
+        case Some(b) => Some(x -> b)
+        case None => None
+      }
+    }.toMap
+  }
+
+
   /**
    * For maps to sets, merge two maps, taking the union of all sets
    * Keys that only appear in one map will be kept as-is in the result
@@ -41,7 +56,7 @@ object MapUtil {
   def mapToSetUnion[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] =
   {
     if (left eq right) return left
-    MapUtil.mergeMaps2(left, right)({
+    MapUtil.mergeMapsOptional(left, right)({
       (b1, b2) =>
         Some(b1.getOrElse(Set.empty) ++ b2.getOrElse(Set.empty))
     })
@@ -53,7 +68,7 @@ object MapUtil {
    */
   def mapToSetIntersectionKeepUndefined[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] = {
     if (left eq right) return left
-    MapUtil.mergeMaps2(left, right)({
+    MapUtil.mergeMapsOptional(left, right)({
       case (None, x) => x
       case (x, None) => x
       case (Some(b1), Some(b2)) => Some(b1 intersect b2)
@@ -66,7 +81,7 @@ object MapUtil {
    */
   def mapToSetIntersection[A, B](left: Map[A, Set[B]], right: Map[A, Set[B]]): Map[A, Set[B]] = {
     if (left eq right) return left
-    MapUtil.mergeMaps2(left, right)({
+    MapUtil.mergeMapsOptional(left, right)({
       case (None, x) => None
       case (x, None) => None
       case (Some(b1), Some(b2)) => Some(b1 intersect b2)
@@ -79,7 +94,7 @@ object MapUtil {
    */
   def mapToSeqKeepLonger[A, B](left: Map[A, Seq[B]], right: Map[A, Seq[B]]): Map[A, Seq[B]] = {
     if (left eq right) return left
-    MapUtil.mergeMaps2(left, right)({
+    MapUtil.mergeMapsOptional(left, right)({
       case (None, x) => x
       case (x, None) => x
       case (Some(b1), Some(b2)) => if (b1.length > b2.length) Some(b1) else Some(b2)

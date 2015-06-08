@@ -35,10 +35,10 @@ object Apron {
 
   }
 
-  trait Top[T <: Apron[T]] extends NumericalDomain.Relational.Top[T] with Apron[T] with SimplifiedMergeDomain.Top[T] {
+  trait Top[T <: Apron[T]] extends NumericalDomain.Relational.Top[T] with Apron[T] with SimplifiedMergeDomain.Top[T] with BooleanExpressionSimplifier[T] {
     this:T =>
 
-    override def assume(expr: Expression) = this
+    override def assumeSimplified(expr: Expression) = this
 
     override def assign(variable: Identifier, expr: Expression) = this
 
@@ -74,80 +74,130 @@ object Apron {
 
     override def assumeSimplified(expr: Expression) = {
 
-      expr match {
+      if (expr.ids.getNonTop exists (!numerical(_))) {
+        this
+      } else {
+        expr match {
 
-        // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
-        case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
-          val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-          val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-          assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+          // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
+          case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
+            val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
+            val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
+            assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
 
-        case _ =>
+          case _ =>
 
-          val translator = new ApronInterfaceTranslator()(this)
-          val res = translator.toTcons1(expr, apronState.getEnvironment) match {
+            val nonExisting = filterNonExisting(expr.ids.getNonTop)
+            if (nonExisting.nonEmpty)
+              add(nonExisting).assume(expr)
+            else {
+              val translator = new ApronInterfaceTranslator()(this)
+              translator.toTcons1(expr, apronState.getEnvironment) match {
 
-            case x :: xs =>
-              var result = apronState.meetCopy(manager, x)
-              for (xMore <- xs) {
-                result = result.joinCopy(manager, apronState.meetCopy(manager, xMore))
+                case x :: xs =>
+                  var result = apronState.meetCopy(manager, x)
+                  for (xMore <- xs) {
+                    result = result.joinCopy(manager, apronState.meetCopy(manager, xMore))
+                  }
+                  factory(result, ids)
+
+                case Nil => throw new ApronException("empty set of constraints generated")
+
               }
-              factory(result, ids)
+            }
 
-            case Nil => throw new ApronException("empty set of constraints generated")
 
-          }
-
-          res
-
+        }
       }
     }
 
     override def assign(variable: Identifier, expr: Expression) = {
-      val translator = new ApronInterfaceTranslator()(this)
-      val exprIntern = translator.toTexpr1Intern(expr, apronState.getEnvironment)
-      val assignedState =
-        if (exprIntern.size > 1) {
-          var curState = new Abstract1(manager, apronState.getEnvironment, true)
-          for (e <- exprIntern) {
-            curState = curState.joinCopy(manager, apronState.assignCopy(manager, variable.getName, e, null))
-          }
-          curState
-        } else if (exprIntern.size == 1) {
-          apronState.assignCopy(manager, variable.getName, exprIntern.head, null)
+      if (numerical(variable)) {
+        if (expr.ids.getNonTop exists (!numerical(_))) {
+          setToTop(variable)
         } else {
-          throw new ApronException("Empty expression set created")
-        }
+          val nonExisting = filterNonExisting(expr.ids.getNonTop)
+          if (!exists(variable) || nonExisting.nonEmpty) {
+            add(nonExisting + variable).assign(variable, expr)
+          } else {
+            val translator = new ApronInterfaceTranslator()(this)
+            val exprIntern = translator.toTexpr1Intern(expr, apronState.getEnvironment)
+            val assignedState =
+              if (exprIntern.size > 1) {
+                var curState = new Abstract1(manager, apronState.getEnvironment, true)
+                for (e <- exprIntern) {
+                  curState = curState.joinCopy(manager, apronState.assignCopy(manager, variable.getName, e, null))
+                }
+                curState
+              } else if (exprIntern.size == 1) {
+                apronState.assignCopy(manager, variable.getName, exprIntern.head, null)
+              } else {
+                throw new ApronException("Empty expression set created")
+              }
 
-      factory(assignedState, ids)
+            factory(assignedState, ids)
+          }
+        }
+      } else this
     }
 
-    override def setToTop(variable: Identifier) = factory(apronState.forgetCopy(manager,S(variable),false),ids)
+    override def setToTop(id: Identifier) = {
+      if (numerical(id)) {
+        if (exists(id)) factory(apronState.forgetCopy(manager, S(id), false), ids)
+        else add(Set(id)).setToTop(id)
+      } else this
+    }
 
     // ADDING, REMOVING, EXPANDING AND FOLDING OF DIMENSIONS
 
     override def removeVariable(id: Identifier) = remove(Set(id))
-
-    override def createVariable(variable: Identifier, typ: Type) = add(Set(variable))
+    override def createVariable(id: Identifier, typ: Type) = add(Set(id))
 
     override def add(idsA: Set[Identifier]) = {
-      val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(idsA))
-      factory(apronState.changeEnvironmentCopy(manager, newEnv, false),ids ++ idsA)
+      val newIdsA = filterNonExisting(idsA) filter numerical
+      if (newIdsA.nonEmpty) {
+        val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(newIdsA))
+        factory(apronState.changeEnvironmentCopy(manager, newEnv, false), ids ++ newIdsA)
+      } else this
     }
 
-    override def fold(idsA: Set[Identifier], idB: Identifier) =
-      factory(apronState.foldCopy(manager,SA(idB :: idsA.toList)),ids.fold(idsA,idB))
+    override def fold(idsA: Set[Identifier], idB: Identifier) = {
+      if (numerical(idB)) {
+        val newIdsA = filterExisting(idsA) filter numerical
+        if (!exists(idB) && newIdsA.nonEmpty) {
+          val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(idB))
+          factory(apronState.changeEnvironmentCopy(manager, newEnv, false).foldCopy(manager, SA(idB :: newIdsA.toList)), ids.fold(newIdsA, idB))
+        } else remove(idsA).add(Set(idB))
+      } else this
+    }
 
     override def remove(idsA: Set[Identifier]) = {
-      val newEnv = apronState.getEnvironment.remove(SA(idsA))
-      factory(apronState.changeEnvironmentCopy(manager, newEnv, false), ids.remove(idsA))
+      val newIdsA = filterExisting(idsA) filter numerical
+      if (newIdsA.nonEmpty) {
+        val newEnv = apronState.getEnvironment.remove(SA(newIdsA))
+        factory(apronState.changeEnvironmentCopy(manager, newEnv, false), ids.remove(newIdsA))
+      } else this
     }
 
-    override def expand(idA: Identifier, idsB: Set[Identifier]) =
-      factory(apronState.expandCopy(manager,S(idA),SA(idsB)),ids.expand(idA,idsB))
+    override def expand(idA: Identifier, idsB: Set[Identifier]) = {
+      if (numerical(idA)) {
+        val newIdsB = filterNonExisting(idsB) filter numerical
+        if (exists(idA) && newIdsB.nonEmpty) {
+          factory(apronState.expandCopy(manager, S(idA), SA(newIdsB)), ids.expand(idA, newIdsB))
+        } else {
+          remove(Set(idA)).add(newIdsB)
+        }
+      } else this
+    }
 
-    override def rename(idA: Identifier, idB: Identifier) =
-      factory(apronState.renameCopy(manager,SA(idA),SA(idB)),ids.rename(idA,idB))
+    override def rename(idA: Identifier, idB: Identifier) = {
+      if (numerical(idA) && numerical(idB)) {
+        if (exists(idA) && !exists(idB))
+          factory(apronState.renameCopy(manager,SA(idA),SA(idB)),ids.rename(idA,idB))
+        else
+          remove(Set(idA)).add(Set(idB))
+      } else this
+    }
 
     // QUERYING THE DOMAIN
 
@@ -174,6 +224,10 @@ object Apron {
 
     // HELPERS
 
+    private def filterNonExisting(idsA:Set[Identifier]):Set[Identifier] = idsA diff ids.getNonTop
+    private def filterExisting(idsA:Set[Identifier]):Set[Identifier] = ids.getNonTop intersect idsA
+    private def exists(id:Identifier) = ids.contains(id)
+    private def numerical(id:Identifier) = id.typ.isNumericalType
     private def S(id:Identifier):String = id.getName
     private def SA(id:Identifier):Array[String] = List(id.getName).toArray
     private def SA(id:List[Identifier]):Array[String] = id.map(_.getName).toArray
@@ -183,11 +237,12 @@ object Apron {
 
   trait Octagons extends Apron[Octagons] {
     override def manager = Octagons.manager
-    override def bottom(): Octagons = Octagons.Bottom
+    override def bottom(): Octagons =
+      Octagons.Bottom
     override def top(): Octagons = Octagons.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) Octagons.Bottom
-      else if (apronState.isTop(manager)) Octagons.Top
+      if (ids.isBottom || apronState.isBottom(manager)) Octagons.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) Octagons.Top
       else Octagons.Inner(apronState, ids)
   }
 
@@ -203,13 +258,13 @@ object Apron {
     override def bottom(): OptOctagons = OptOctagons.Bottom
     override def top(): OptOctagons = OptOctagons.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) OptOctagons.Bottom
-      else if (apronState.isTop(manager)) OptOctagons.Top
+      if (ids.isBottom || apronState.isBottom(manager)) OptOctagons.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) OptOctagons.Top
       else OptOctagons.Inner(apronState, ids)
   }
 
   object OptOctagons {
-    lazy val manager = new apron.OptOctagon
+    def manager = new apron.OptOctagon
     object Bottom extends OptOctagons with Apron.Bottom[OptOctagons]
     object Top extends OptOctagons with Apron.Top[OptOctagons]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends OptOctagons with Apron.Inner[OptOctagons,Inner]
@@ -220,8 +275,8 @@ object Apron {
     override def bottom(): LinearEqualities = LinearEqualities.Bottom
     override def top(): LinearEqualities = LinearEqualities.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) LinearEqualities.Bottom
-      else if (apronState.isTop(manager)) LinearEqualities.Top
+      if (ids.isBottom || apronState.isBottom(manager)) LinearEqualities.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) LinearEqualities.Top
       else LinearEqualities.Inner(apronState, ids)
   }
 
@@ -237,8 +292,8 @@ object Apron {
     override def bottom(): Box = Box.Bottom
     override def top(): Box = Box.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) Box.Bottom
-      else if (apronState.isTop(manager)) Box.Top
+      if (ids.isBottom || apronState.isBottom(manager)) Box.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) Box.Top
       else Box.Inner(apronState, ids)
   }
 
@@ -254,8 +309,8 @@ object Apron {
     override def bottom(): StrictPolyhedra = StrictPolyhedra.Bottom
     override def top(): StrictPolyhedra = StrictPolyhedra.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) StrictPolyhedra.Bottom
-      else if (apronState.isTop(manager)) StrictPolyhedra.Top
+      if (ids.isBottom || apronState.isBottom(manager)) StrictPolyhedra.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) StrictPolyhedra.Top
       else StrictPolyhedra.Inner(apronState, ids)
   }
 
@@ -271,8 +326,8 @@ object Apron {
     override def bottom(): Polyhedra = Polyhedra.Bottom
     override def top(): Polyhedra = Polyhedra.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (apronState.isBottom(manager)) Polyhedra.Bottom
-      else if (apronState.isTop(manager)) Polyhedra.Top
+      if (ids.isBottom || apronState.isBottom(manager)) Polyhedra.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) Polyhedra.Top
       else Polyhedra.Inner(apronState, ids)
   }
 

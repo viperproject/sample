@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDom
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
+import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -56,7 +57,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
     StringsAnd(
       InvalidAnd(
-        StaticVariablePackingDomain(nonRelationalDomain,VariablePackMap(classifier,relationalDomain,Map.empty))
+        StaticVariablePackingDomain(nonRelationalDomain,classifier,relationalDomain,Map.empty)
       ),
       NonrelationalStringDomain(
         StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]
@@ -153,7 +154,7 @@ object TouchRun {
     }
 
     files foreach (
-      f =>
+      f => {
         try {
           runSingle(f)
         } catch {
@@ -166,7 +167,20 @@ object TouchRun {
             throw x
         }
 
-      )
+        MethodSummaries.reset()
+        SystemParameters.reset()
+        TouchVariablePacking.reset()
+        Localization.reset()
+        TouchProgramPointRegistry.reset()
+        AccumulatingTimer.reset()
+        Reporter.enableAllOutputs()
+        Reporter.reset()
+        RequiredLibraryFragmentAnalysis.spottedFields = Set.empty
+//        System.gc()
+//        System.gc()
+//        Thread.sleep(10000000)
+
+      })
   }
 
 }

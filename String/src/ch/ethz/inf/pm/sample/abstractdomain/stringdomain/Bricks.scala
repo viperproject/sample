@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 class Brick(protected var m : Int, protected var M : Int, protected var s : Set[String]) extends Lattice[Brick]
@@ -380,7 +381,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
 
 
 class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain], override val isBottom:Boolean = false, val isTop:Boolean = false)
-  extends BoxedDomain[BricksDomain, Bricks] with StringDomain[Bricks]
+  extends BoxedDomain[BricksDomain, Bricks] with StringDomain[Bricks] with BooleanExpressionSimplifier[Bricks]
 {
    def this() = this(new BricksDomain().top())
    def functionalFactory(_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Bricks =
@@ -392,7 +393,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
      if(variable.typ.isStringType) this.add(variable, this.eval(expr))
      else this
 
-   def assume(expr : Expression) : Bricks = {
+   def assumeSimplified(expr : Expression) : Bricks = {
      if(isBottom || !expr.typ.isStringType)return this
      // Check if we assume something about non-numerical values - if so, return
      val ids = expr.ids
@@ -426,7 +427,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
            }
 
        // negated comparison
-       case NegatedBooleanExpression(BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.==, _)) =>
+       case BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.!=, _) =>
          val left = eval(thisExpr)
          val right = eval(thatExpr)
          (left, right) match {
@@ -440,7 +441,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
        case _ => this
      }
    }
-   def createVariable(variable : Identifier, typ : Type) : Bricks = this
+   def createVariable(variable : Identifier, typ : Type) : Bricks = this.add(variable, dom.top())
    def removeVariable(variable : Identifier) : Bricks = this.remove(variable)
  
    def get(variable : Identifier) = map.get(variable) match {

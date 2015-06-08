@@ -94,7 +94,7 @@ object NullVertex extends Vertex {
 
   def label = VertexConstants.NULL
 
-  def typ = SystemParameters.getType().bottom()
+  def typ = SystemParameters.typ.bottom()
 
   override def toString = name
 

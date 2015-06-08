@@ -51,7 +51,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 									BooleanOperator.&&,
 									null
 								)
-								if (!sa.lessEqual(sa.assume(new ExpressionSet(SystemParameters.getType().top()).add(expr)))) {
+								if (!sa.lessEqual(sa.assume(new ExpressionSet(SystemParameters.typ.top()).add(expr)))) {
 									out.add(new WarningProgramPoint(pl.pp, "Possible unbounded assignment to " + v))
 								} else {
 									out.add(new ValidatedProgramPoint(pl.pp, "Bounded assignment to " + v))
