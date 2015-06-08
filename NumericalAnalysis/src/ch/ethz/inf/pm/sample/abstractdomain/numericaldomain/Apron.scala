@@ -241,7 +241,7 @@ object Apron {
       Octagons.Bottom
     override def top(): Octagons = Octagons.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) Octagons.Bottom
+      if (apronState.isBottom(manager)) Octagons.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Octagons.Top
       else Octagons.Inner(apronState, ids)
   }
@@ -258,7 +258,7 @@ object Apron {
     override def bottom(): OptOctagons = OptOctagons.Bottom
     override def top(): OptOctagons = OptOctagons.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) OptOctagons.Bottom
+      if (apronState.isBottom(manager)) OptOctagons.Bottom
       else if (ids.isTop && apronState.isTop(manager)) OptOctagons.Top
       else OptOctagons.Inner(apronState, ids)
   }

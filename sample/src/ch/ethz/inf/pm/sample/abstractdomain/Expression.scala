@@ -93,6 +93,7 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * @since 0.1
  */
 trait Expression {
+
   /** The type of this expression. */
   def typ: Type
 
@@ -134,6 +135,14 @@ trait Expression {
   // SHORTHANDS
   def equal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.==,DummyBooleanType)
   def unequal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.!=,DummyBooleanType)
+
+  /**
+   * It was checked that this expression is simplified the following way:
+   *
+   * - It does not contain conjunctions or disjunctions
+   * - It does not contain negations
+   */
+  var canonical:Boolean = false
 
 }
 

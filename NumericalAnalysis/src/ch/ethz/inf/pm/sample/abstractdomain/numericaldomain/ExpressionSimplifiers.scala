@@ -24,6 +24,10 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
    */
   override def assume(expr: Expression): T = expr match {
 
+    // This must be first -- Shortcut in simplified version
+    case b@BinaryArithmeticExpression(left, right, op, typ) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
+      assumeSimplified(b)
+
     // Boolean constants
     case Constant("true",_,_) => this
     case Constant("false",_,_) => this.bottom()

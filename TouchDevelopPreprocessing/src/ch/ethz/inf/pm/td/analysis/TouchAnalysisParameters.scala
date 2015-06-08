@@ -121,7 +121,7 @@ case class TouchAnalysisParameters(
                                      *
                                      * See VMCAI'11 Oh, Brutschy, Yi: Access-analysis based tight localization of abstract memories
                                      */
-                                    accessBasedLocalization: Boolean = false,
+                                    accessBasedLocalization: Boolean = true,
 
                                     /**
                                      * If the semantics of an API is not defined, default to an unsound solution
@@ -172,7 +172,7 @@ case class TouchAnalysisParameters(
                                      * according to a preanalysis (currently, all sets of variables that may appear in the same
                                      * assume/assign.
                                      */
-                                    variablePacking: Boolean = false,
+                                    variablePacking: Boolean = true,
 
                                     reportNoncriticalParameterBoundViolations: Boolean = false,
                                     reportDummyImplementations: Boolean = false,
