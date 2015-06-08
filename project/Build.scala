@@ -71,8 +71,7 @@ object SampleBuild extends Build {
     },
     scalacOptions in Compile ++= Seq(
       "-optimise",
-      "-Xelide-below", "3000",
-      "-Xdisable-assertions"
+      "-Xelide-below", "3000"
     )
   )
 

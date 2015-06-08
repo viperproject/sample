@@ -22,6 +22,7 @@ trait ProgramPoint {
 
 case object DummyProgramPoint extends ProgramPoint {
   override def description = "D"
+
   override def toString = "D"
 }
 
@@ -129,7 +130,10 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     // that can be passed to `assignField` directly.
     val leftToExecute =
       if (SystemParameters.isValueDrivenHeapAnalysis) left
-      else left match { case f: FieldAccess => f.obj case _ => left }
+      else left match {
+        case f: FieldAccess => f.obj
+        case _ => left
+      }
 
     val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftToExecute)
     val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
@@ -142,19 +146,19 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     }
   }
 
-      override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
-        if(state.equals(state.bottom())) return state
-        var stateleft : S = left.backwardSemantics[S](state, oldPreState)
-        val exprleft = stateleft.expr
-        stateleft=stateleft.removeExpression()
-        var stateright : S = right.backwardSemantics[S](stateleft, oldPreState)
-        val exprright = stateright.expr
-        stateright=stateright.removeExpression()
-        var result=stateright.setVariableToTop(exprleft)
-        val condition=ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top());//TODO type is wrong
-        result=result.setExpression(condition)
-        result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
-	  }
+  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+    if (state.equals(state.bottom())) return state
+    var stateleft: S = left.backwardSemantics[S](state, oldPreState)
+    val exprleft = stateleft.expr
+    stateleft = stateleft.removeExpression()
+    var stateright: S = right.backwardSemantics[S](stateleft, oldPreState)
+    val exprright = stateright.expr
+    stateright = stateright.removeExpression()
+    var result = stateright.setVariableToTop(exprleft)
+    val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top()); //TODO type is wrong
+    result = result.setExpression(condition)
+    result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
+  }
 
   override def toString: String = left + " = " + right
 
@@ -416,7 +420,7 @@ case class MethodCall(
 
   private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, oldPreState: S, programpoint: ProgramPoint): S = {
     // to be included when ExecutionHistoryState is committed
-	???
+    ???
   }
 
   override def toString: String =

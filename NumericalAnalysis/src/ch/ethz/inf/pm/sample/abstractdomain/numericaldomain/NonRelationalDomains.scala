@@ -323,7 +323,7 @@ object NonRelationalNumericalDomain {
     this:S =>
 
     /** Gives the element representing exactly Zero */
-    val zero:S
+    def zero:S
 
     def multiply(rightExpr: S) = if (rightExpr == zero) zero else this
     def divide(rightExpr: S) = if (rightExpr == zero) bottom() else this
@@ -680,8 +680,6 @@ object IntegerInterval {
 
 sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval] {
 
-  def isTop:Boolean
-
   def factory() = DoubleInterval.Top
   def top() = DoubleInterval.Top
   def bottom() = DoubleInterval.Bottom
@@ -704,10 +702,9 @@ object DoubleInterval {
 
   val Zero = Inner(0,0)
 
-
   object Top extends DoubleInterval with NonRelationalNumericalDomain.Top[DoubleInterval] {
 
-    override val zero = DoubleInterval.Zero
+    override def zero = DoubleInterval.Zero
 
   }
 

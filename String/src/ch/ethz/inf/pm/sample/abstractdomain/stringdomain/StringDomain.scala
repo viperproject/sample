@@ -256,4 +256,6 @@ trait NumericWithStringDomain[
   def initialStr: S = _2
 
   override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
+
+  override def getConstraints(ids: Set[Identifier]) = ???
 }

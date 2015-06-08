@@ -22,8 +22,6 @@ case class InvalidAnd[T <: NumericalDomain[T]](
     _2: BooleanInvalidDomainWithSource = BooleanInvalidDomainWithSource())
   extends NumericWithInvalidDomain[T, BooleanInvalidDomainWithSource, InvalidAnd[T]] {
   override def factory(a:T,b:BooleanInvalidDomainWithSource) = new InvalidAnd(a,b)
-
-  override def getConstraints(ids: Set[Identifier]) = ???
 }
 
 case class StringsAnd[
@@ -33,6 +31,4 @@ case class StringsAnd[
     _2: S)
   extends NumericWithStringDomain[T, S, StringsAnd[T, S]] {
   override def factory(a:T,b:S) = new StringsAnd(a,b)
-
-  override def getConstraints(ids: Set[Identifier]) = ???
 }

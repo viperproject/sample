@@ -26,8 +26,6 @@ T <: NumericWithInvalidDomain[N, I, T]]
   with NumericalDomain[T] {
   this: T =>
 
-  override def _1canHandle(id: Identifier) = id.typ.isNumericalType
-
   override def assign(id:Identifier, expr:Expression) =
     if (containsValidInvalidExpression(expr))
       factory(_1.setToTop(id), _2.assign(id,expr))
@@ -51,6 +49,8 @@ T <: NumericWithInvalidDomain[N, I, T]]
   def containsValidInvalidExpression(expr:Expression) = expr contains isValidInvalidExpression
 
   override def toString = "Numeric:\n" + ToStringUtilities.indent(this._1.toString) + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
+
+  override def getConstraints(ids: Set[Identifier]) = ???
 
 }
 

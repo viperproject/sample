@@ -70,10 +70,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       //assert(res.valueState.ids.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
 
       // ASSERT FOR EVERY HEAP IDENTIFIER, THAT ONLY EITHER A SUMMARY OR A NONSUMMARY EXISTS
-      for (id <- resIds.getNonTop) id match {
-        case h:HeapIdentifier => assert(!(resIds.contains(h) && resIds.contains(h.copy(summary = !h.summary))))
-        case f:FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(o = f.o.copy(summary = !f.o.summary)))))
-        case _ => ()
+      if (!resIds.isTop) {
+        for (id <- resIds.getNonTop) id match {
+          case h: HeapIdentifier => assert(!(resIds.contains(h) && resIds.contains(h.copy(summary = !h.summary))))
+          case f: FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(o = f.o.copy(summary = !f.o.summary)))))
+          case _ => ()
+        }
       }
 
       // forward May corresponds to backward May
@@ -360,12 +362,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     // POST CONDITIONS
     if (SystemParameters.DEBUG) {
-      // May not contains versions higher than k
-      for (id <- result.ids.getNonTop) {
-        id match {
-          case x:HeapIdentifier =>
-            assert (x.unique < TouchAnalysisParameters.get.numberOfVersions)
-          case _ => ()
+      if (!result.ids.isTop) {
+        // May not contains versions higher than k
+        for (id <- result.ids.getNonTop) {
+          id match {
+            case x: HeapIdentifier =>
+              assert(x.unique < TouchAnalysisParameters.get.numberOfVersions)
+            case _ => ()
+          }
         }
       }
     }

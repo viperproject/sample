@@ -17,7 +17,9 @@ trait VariablePackingClassifier {
 
 object VariablePackingClassifier {
 
-  object SimplePack extends VariablePack
+  object SimplePack extends VariablePack {
+    def ids = IdentifierSet.Top
+  }
 
   /**
    * Implements a classifier creating a single huge pack
@@ -35,7 +37,9 @@ object VariablePackingClassifier {
 
 }
 
-trait VariablePack
+trait VariablePack {
+  def ids:IdentifierSet
+}
 
 case class VariablePackMap[Relational <: NumericalDomain.Relational[Relational]]
     (classifier:VariablePackingClassifier,dom:Relational,map: Map[VariablePack, Relational],isPureBottom:Boolean = false, isPureTop:Boolean = false)
@@ -64,7 +68,16 @@ case class VariablePackMap[Relational <: NumericalDomain.Relational[Relational]]
     applyToPacks(id, {x:Relational => x.removeVariable(id)})
 
   override def ids: IdentifierSet =
-    Lattice.bigLub(map.values.map(_.ids))
+    if (map.values.isEmpty) IdentifierSet.Bottom
+    else {
+      val xs = for ((pack,dom) <- map) yield {
+        dom.ids match {
+          case IdentifierSet.Top => IdentifierSet.Bottom
+          case x => x
+        }
+      }
+      Lattice.bigLub(xs)
+    }
 
   override def assume(expr: Expression): VariablePackMap[Relational] = {
     if (expr.ids.isTop) return this

@@ -525,7 +525,7 @@ object TouchVariablePacking {
     var toAssign = packed.getAll
     while (toAssign.nonEmpty) {
       val closure = packed.closure(toAssign.head)
-      toPack = closure.foldLeft(toPack)( (x,y) => x + (y -> Pack(closure)))
+      toPack = closure.foldLeft(toPack)( (x,y) => x + (y -> Pack(IdentifierSet.Inner(closure))))
       toAssign = toAssign -- closure
     }
     Classifier(toPack)
@@ -567,10 +567,10 @@ object TouchVariablePacking {
   case class Classifier(toPack:Map[Identifier,VariablePack]) extends VariablePackingClassifier {
 
     override def classify(id: Set[Identifier]): Set[VariablePack] =
-      id.map( x => toPack.get(TouchVariablePacking.normalize(x))).flatten
+      id.flatMap(x => toPack.get(TouchVariablePacking.normalize(x)))
 
   }
 
-  case class Pack(id:Set[Identifier]) extends VariablePack
+  case class Pack(ids:IdentifierSet) extends VariablePack
 
 }
