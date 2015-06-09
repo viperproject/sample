@@ -247,7 +247,7 @@ object Apron {
   }
 
   object Octagons {
-    lazy val manager = new apron.Octagon
+    def manager = new apron.Octagon
     object Bottom extends Octagons with Apron.Bottom[Octagons]
     object Top extends Octagons with Apron.Top[Octagons]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends Octagons with Apron.Inner[Octagons,Inner]
@@ -275,13 +275,13 @@ object Apron {
     override def bottom(): LinearEqualities = LinearEqualities.Bottom
     override def top(): LinearEqualities = LinearEqualities.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) LinearEqualities.Bottom
+      if (apronState.isBottom(manager)) LinearEqualities.Bottom
       else if (ids.isTop && apronState.isTop(manager)) LinearEqualities.Top
       else LinearEqualities.Inner(apronState, ids)
   }
 
   object LinearEqualities {
-    lazy val manager = new apron.PolkaEq
+    def manager = new apron.PolkaEq
     object Bottom extends LinearEqualities with Apron.Bottom[LinearEqualities]
     object Top extends LinearEqualities with Apron.Top[LinearEqualities]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends LinearEqualities with Apron.Inner[LinearEqualities,Inner]
@@ -292,13 +292,13 @@ object Apron {
     override def bottom(): Box = Box.Bottom
     override def top(): Box = Box.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) Box.Bottom
+      if (apronState.isBottom(manager)) Box.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Box.Top
       else Box.Inner(apronState, ids)
   }
 
   object Box {
-    lazy val manager = new apron.Box
+    def manager = new apron.Box
     object Bottom extends Box with Apron.Bottom[Box]
     object Top extends Box with Apron.Top[Box]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends Box with Apron.Inner[Box,Inner]
@@ -309,13 +309,13 @@ object Apron {
     override def bottom(): StrictPolyhedra = StrictPolyhedra.Bottom
     override def top(): StrictPolyhedra = StrictPolyhedra.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) StrictPolyhedra.Bottom
+      if (apronState.isBottom(manager)) StrictPolyhedra.Bottom
       else if (ids.isTop && apronState.isTop(manager)) StrictPolyhedra.Top
       else StrictPolyhedra.Inner(apronState, ids)
   }
 
   object StrictPolyhedra {
-    lazy val manager = new apron.Polka(true)
+    def manager = new apron.Polka(true)
     object Bottom extends StrictPolyhedra with Apron.Bottom[StrictPolyhedra]
     object Top extends StrictPolyhedra with Apron.Top[StrictPolyhedra]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends StrictPolyhedra with Apron.Inner[StrictPolyhedra,Inner]
@@ -326,13 +326,13 @@ object Apron {
     override def bottom(): Polyhedra = Polyhedra.Bottom
     override def top(): Polyhedra = Polyhedra.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
-      if (ids.isBottom || apronState.isBottom(manager)) Polyhedra.Bottom
+      if (apronState.isBottom(manager)) Polyhedra.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Polyhedra.Top
       else Polyhedra.Inner(apronState, ids)
   }
 
   object Polyhedra {
-    lazy val manager = new apron.Polka(false)
+    def manager = new apron.Polka(false)
     object Bottom extends Polyhedra with Apron.Bottom[Polyhedra]
     object Top extends Polyhedra with Apron.Top[Polyhedra]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends Polyhedra with Apron.Inner[Polyhedra,Inner]
