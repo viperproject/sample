@@ -13,7 +13,10 @@ import scala.util.parsing.input.{NoPosition, Positional}
  */
 
 trait Typed {
+
   var typeName:TypeName = TypeName("Nothing")
+  def copyType(d: Typed): this.type = { typeName = d.typeName; this }
+
 }
 
 trait Scope
@@ -186,6 +189,12 @@ case class SingletonReference(singleton:String,typ:String)
   with IdPositional
 
 case class LocalReference(ident:String)
+  extends Expression
+  with IdPositional
+
+// ident usually empty
+// used for optional arguments
+case class Placeholder(typ:TypeName)
   extends Expression
   with IdPositional
 

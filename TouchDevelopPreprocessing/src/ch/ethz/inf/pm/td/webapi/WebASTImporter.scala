@@ -139,7 +139,7 @@ object WebASTImporter {
       case JLocalRef(id, name, localId) =>
         LocalReference(name).setId(id)
       case JPlaceholder(id, name, typ) =>
-        LocalReference(name).setId(id)
+        Placeholder(makeTypeName(typ)).setId(id)
       case JSingletonRef(id, name, typ) =>
         SingletonReference(name, typ).setId(id)
       case JCall(id, name, parent, declId, this0 :: args) =>

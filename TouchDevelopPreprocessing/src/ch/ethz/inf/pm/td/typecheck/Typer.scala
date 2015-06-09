@@ -178,6 +178,9 @@ object Typer {
           variables.typeName = TypeName("Unknown")
           val noVariablesLeft = handleAssignments(left, types)
           handleAssignments(right, types.splitAt(types.length - noVariablesLeft)._2)
+        case p@Placeholder(typName) =>
+          variables.typeName = typName
+          types.length - 1
         case l@LocalReference(ident) =>
           variables.typeName = typ
           st.tryResolveLocal(scope, ident) match {
@@ -224,6 +227,8 @@ object Typer {
             else if (retTypes.length < 1) is(TypeName("Nothing"))
             else is(retTypes.head)
         }
+      case p@Placeholder(typName) =>
+        is(typName)
       case l@LocalReference(ident) =>
         // Interestingly, contract is a local variable, not a singleton.
         if (ident == "contract") is(TypeName("Contract",isSingleton = true))

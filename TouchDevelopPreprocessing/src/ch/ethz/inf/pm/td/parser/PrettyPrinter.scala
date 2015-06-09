@@ -108,6 +108,7 @@ object PrettyPrinter {
           if (operators.contains(property)) "(" + apply(subject) + ") " + apply(property) + " (" + (args map apply).mkString(",") + ")"
           else apply(subject) + "->" + apply(property) + ( if (args.isEmpty) "" else  "(" + (args map apply).mkString(",") + ")" )
         case LocalReference(ident) => "$" + apply(ident)
+        case Placeholder(typ) => "$__optional_argument"
         case SingletonReference(ident, typ) => apply(ident)
         case Literal(typ, value) => typ match {
           case TypeName("String",_,_) => "\"" + value + "\""

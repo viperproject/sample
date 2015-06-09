@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
+import ch.ethz.inf.pm.td.transform.{Rewriter, Matcher}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -45,6 +46,8 @@ object CFGGenerator {
   def isNonDetIdent(ident: String) = ident.startsWith("__nondet")
 
   def isStmtTempIdent(ident: String) = ident.startsWith("__temp")
+
+  def optionalArgumentIdent = "__optional_argument"
 
   def makeTouchProgramPoint(pubID: String, element: IdPositional) = {
     val pos = element.pos match {
@@ -172,6 +175,21 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
   private def typeNameToType(typeName: parser.TypeName): TouchType = TypeList.getTypeOrFail(typeName)
 
+  private def tty(typ: TypeName, expr: parser.Expression): parser.Expression = {
+    expr.typeName = typ
+    expr
+  }
+
+  private def ty(typ: String, expr: parser.Expression): parser.Expression = {
+    expr.typeName = TypeName(typ)
+    expr
+  }
+
+  private def sty(typ: String, expr: parser.Expression): parser.Expression = {
+    expr.typeName = TypeName(typ,isSingleton = true)
+    expr
+  }
+
   private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
                                  currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {
 
@@ -225,7 +243,20 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
       case parser.ExpressionStatement(expr) =>
 
-        newStatements = newStatements ::: expressionToStatement(expr, scope) :: Nil
+        val newExpr = Rewriter.apply(expr)(onExpression = {
+          case p@Placeholder(typName) =>
+            tty(typName,Access(
+              tty(TypeName("Constructor",List(typName)),Access(
+                sty("records",SingletonReference("records", "records").copyPos(p)),
+                Identifier(typName.toString).copyPos(p),
+                Nil
+              ).copyPos(p)),
+              Identifier("create").copyPos(p),
+              Nil
+            ).copyPos(p))
+          case x:parser.Expression => x
+        })
+        newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
 
       case b@Box(body) =>
 
@@ -241,9 +272,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
         newHandlers = newHandlers ::: handlersBody
         curNode = nextNode
 
-      case w@WhereStatement(expr, handlerDefs: List[InlineAction], optionalParamters: List[OptionalParameter]) =>
-
-        if (optionalParamters.nonEmpty) throw new TouchException("We do not support optional parameters yet")
+      case w@WhereStatement(expr, handlerDefs: List[InlineAction], optionalParameters: List[OptionalParameter]) =>
 
         val wPP = makeTouchProgramPoint(curPubID, w)
 
@@ -269,35 +298,101 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             arguments, returnType, newBody, preCond, postCond, currentClassDef))
         }).flatten
 
-        def ty(typ: String, expr: parser.Expression): parser.Expression = {
-          expr.typeName = TypeName(typ)
-          expr
-        }
-        def sty(typ: String, expr: parser.Expression): parser.Expression = {
-          expr.typeName = TypeName(typ,isSingleton = true)
-          expr
-        }
-
         // Create a statement that creates the handler object and assigns the handler variable
         val handlerCreationStatements = handlerSet map {
           case (variableName: String, actionName: String, handlerType: TypeName) =>
             expressionToStatement(
               ty("Nothing", parser.Access(
-                ty(handlerType.toString, parser.LocalReference(variableName)),
-                Identifier(":="),
+                ty(handlerType.toString, parser.LocalReference(variableName).copyPos(w)),
+                Identifier(":=").copyPos(w),
                 List(
                   ty(handlerType.toString, parser.Access(
-                    sty("Helpers", parser.SingletonReference("helpers", "Helpers")),
-                    Identifier("create " + handlerType.ident.toLowerCase + " " + actionName),
+                    sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(w)),
+                    Identifier("create " + handlerType.ident.toLowerCase + " " + actionName).copyPos(w),
                     Nil
-                  ))
+                  ).copyPos(w))
                 )
-              )),
+              ).copyPos(w)),
               scope
             )
         }
 
-        newStatements = newStatements ::: handlerCreationStatements ::: List(expressionToStatement(expr, scope))
+        val (optionalArgumentCreationStatements,newExpr) =
+          if (optionalParameters.nonEmpty) {
+
+            var optParamTypName:Option[(TypeName,Placeholder)] = None
+            val neExpr = Rewriter.apply(expr)(onExpression = {
+              case p@Placeholder(typName) =>
+                optParamTypName = Some((typName,p))
+                tty(typName,LocalReference(optionalArgumentIdent).copyPos(p))
+              case x:parser.Expression => x
+            })
+
+            optParamTypName match {
+              case Some((typName,p)) =>
+
+                val initialization =
+                  expressionToStatement(
+                    ty("Nothing",Access(
+                      tty(typName,LocalReference(optionalArgumentIdent)),
+                      Identifier(":="),
+                      List(
+                        tty(typName,Access(
+                          tty(TypeName("Constructor",List(typName)),Access(
+                            sty("records",SingletonReference("records", "records").copyPos(p)),
+                            Identifier(typName.toString).copyPos(p),
+                            Nil
+                          ).copyPos(p)),
+                          Identifier("create").copyPos(p),
+                          Nil
+                        ).copyPos(p))
+                      )
+                    ).copyPos(p)),
+                    scope
+                  ) ::
+                    optionalParameters.map { x: OptionalParameter =>
+                      expressionToStatement(
+                        ty("Nothing",Access(
+                          tty(x.expr.typeName,Access(
+                            tty(typName,LocalReference(optionalArgumentIdent).copyPos(x.expr)),
+                            Identifier(x.name).copyPos(x.expr),
+                            Nil
+                          ).copyPos(x.expr)),
+                          Identifier(":="),
+                          List(
+                            x.expr
+                          )
+                        ).copyPos(x.expr)),
+                        scope
+                      )
+                    }
+
+                (initialization,neExpr)
+
+              case None => throw new TouchException("Optional Parameters but no placeholder")
+            }
+
+          } else {
+
+            val neExpr = Rewriter.apply(expr)(onExpression = {
+              case p@Placeholder(typName) =>
+                tty(typName,Access(
+                  tty(TypeName("Constructor",List(typName)),Access(
+                    sty("records",SingletonReference("records", "records").copyPos(p)),
+                    Identifier(typName.toString).copyPos(p),
+                    Nil
+                  ).copyPos(p)),
+                  Identifier("create").copyPos(p),
+                  Nil
+                ))
+              case x:parser.Expression => x
+            })
+
+            (Nil,neExpr)
+
+          }
+
+        newStatements = newStatements ::: handlerCreationStatements ::: optionalArgumentCreationStatements ::: List(expressionToStatement(newExpr, scope))
         newHandlers = newHandlers ::: handlers
 
       case _ =>
@@ -320,6 +415,9 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
     expr match {
 
+      case parser.Placeholder(typeName) =>
+        Variable(pc, VariableIdentifier(optionalArgumentIdent, scope)(typ,pc))
+
       case parser.LocalReference(ident) =>
         Variable(pc, VariableIdentifier(ident, scope)(typ, pc))
 
@@ -332,7 +430,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           ConstantStatement(pc, value, typ)
         } else throw new TouchException("Literals with type " + t.ident + " do not exist")
 
-      case parser.SingletonReference(singleton, typ) =>
+      case parser.SingletonReference(singleton, _) =>
         Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName), pc))
     }
 
@@ -382,7 +480,7 @@ object TouchProgramPointRegistry {
   def matches(point: SpaceSavingProgramPoint, scriptID: String, positional: IdPositional): Boolean = {
     val pp = reg(point.id)
     pp.scriptID == scriptID &&
-      ((positional.pos == NoPosition && pp.lineColumnPosition == None) || Some(positional.pos) == pp.lineColumnPosition) &&
+      ((positional.pos == NoPosition && pp.lineColumnPosition.isEmpty) || pp.lineColumnPosition.contains(positional.pos)) &&
       (positional.customIdComponents == pp.customPositionElements)
   }
 

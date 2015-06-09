@@ -114,6 +114,7 @@ object LoopUnroller {
         case e: Literal => e.copy()
         case e: SingletonReference => e.copy()
         case e: LocalReference => e.copy()
+        case e: Placeholder => e.copy()
       }
       transformed.copyPos(s).appendIdComponent(suffix)
     }
