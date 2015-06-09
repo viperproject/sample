@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
@@ -260,19 +261,31 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
 
-                // Try implicit conversion to Ref
-                if (!this.isInstanceOf[GRef]) {
-                  val refType = GRef(this)
-                  refType.getDeclaration(method) match {
-                    case Some(x) =>
-                      x.semantics.forwardSemantics[S](this0,x,parameters)
-                    case None =>
-                      Unimplemented[S](this.toString + "." + method)
-                  }
+                // Sometimes, x.bla(y) is rewritten to code->bla(x,y) for records
+                val context = SystemParameters.analysisUnitContext
+                val classType = context.clazzType
+                val arguments = this0.getType() :: (parameters map (_.getType()))
+                SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method, classType, arguments) match {
+                  case Some(mdecl) =>
+                    MethodSummaries.collect(pp, mdecl, state, parameters)
+                  case _ =>
 
-                } else {
-                  Unimplemented[S](this.toString + "." + method)
+                    // Try implicit conversion to Ref
+                    if (!this.isInstanceOf[GRef]) {
+                      val refType = GRef(this)
+                      refType.getDeclaration(method) match {
+                        case Some(x) =>
+                          x.semantics.forwardSemantics[S](this0,x,parameters)
+                        case None =>
+                          Unimplemented[S](this.toString + "." + method)
+                      }
+
+                    } else {
+                      Unimplemented[S](this.toString + "." + method)
+                    }
+
                 }
+
             }
 
         }

@@ -84,6 +84,15 @@ trait Default_TBuffer extends ALinearCollection {
     semantics = DefaultSemantics
   )
 
+  /** Never used: [**beta**] Return the SHA-256 hash of the buffer encoded as lowercase hex */
+  def member_sha256 = ApiMember(
+    name = "sha256",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Creates a read-write view of the current buffer. */
   def member_sub_buffer = ApiMember(
     name = "sub buffer",
@@ -120,6 +129,7 @@ trait Default_TBuffer extends ALinearCollection {
     "fill" -> member_fill,
     "read number" -> member_read_number,
     "set" -> member_set,
+    "sha256" -> member_sha256,
     "sub buffer" -> member_sub_buffer,
     "to string" -> member_to_string,
     "write number" -> member_write_number

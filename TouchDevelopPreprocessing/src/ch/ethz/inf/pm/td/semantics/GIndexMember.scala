@@ -4,15 +4,16 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 import RichNativeSemantics._
 
 /**
  * @param typeName the name of the type
- * @param valueFields To access the value of our index member fields (the object with get/set/clear)
- *                    we pass the "access path" to that field. So for this->someField->value we pass (someField,value)
  */
-case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFields: List[ApiField]) extends AAny {
+case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter], valueFieldsParameters: List[Parameter]) extends AAny {
+
+  lazy val keyFields:List[ApiField] = TypeList.toTouchFields(keyFieldsParameters)
+  lazy val valueFields:List[ApiField] = TypeList.toTouchFields(valueFieldsParameters)
 
   def member_clear_fields = ApiMember(
     name = "clear fields",

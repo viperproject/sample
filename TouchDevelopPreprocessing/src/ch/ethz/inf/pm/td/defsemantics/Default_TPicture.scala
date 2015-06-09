@@ -134,6 +134,15 @@ trait Default_TPicture extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Shows an art picture in the docs. */
+  def member_docs_render = ApiMember(
+    name = "docs render",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Frequently used: Draws an elliptic border with a given color */
   def member_draw_ellipse = ApiMember(
     name = "draw ellipse",
@@ -278,6 +287,15 @@ trait Default_TPicture extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Get the web address of an art resource; invalid if not available. */
+  def member_readonly_url = ApiMember(
+    name = "readonly url",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
   /** Frequently used: Resizes the picture to the given size in pixels */
   def member_resize = ApiMember(
     name = "resize",
@@ -383,6 +401,7 @@ trait Default_TPicture extends AAny {
     "crop" -> member_crop,
     "date" -> member_date,
     "desaturate" -> member_desaturate,
+    "docs render" -> member_docs_render,
     "draw ellipse" -> member_draw_ellipse,
     "draw line" -> member_draw_line,
     "draw path" -> member_draw_path,
@@ -399,6 +418,7 @@ trait Default_TPicture extends AAny {
     "location" -> member_location,
     "negative" -> member_negative,
     "pixel" -> member_pixel,
+    "readonly url" -> member_readonly_url,
     "resize" -> member_resize,
     "save to library" -> member_save_to_library,
     "set pixel" -> member_set_pixel,

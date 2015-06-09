@@ -341,7 +341,7 @@ trait Default_SWeb extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Creates a web socket */
+  /** Never used: Creates a web socket */
   def member_open_web_socket = ApiMember(
     name = "open web socket",
     paramTypes = List(ApiParam(TString)),

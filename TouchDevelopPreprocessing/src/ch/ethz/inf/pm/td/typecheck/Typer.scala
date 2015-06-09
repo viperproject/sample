@@ -26,32 +26,21 @@ object Typer {
   }
 
   def processScript(script: Script, symbolTable: SymbolTable) {
+    for (declaration <- script.declarations) addTypes(script, symbolTable, declaration)
     for (declaration <- script.declarations) addGlobals(script, symbolTable, declaration)
     for (declaration <- script.declarations) typeLocals(script, symbolTable, declaration)
   }
 
-  def addGlobals(scope: Script, st: SymbolTable, thing: Declaration) {
-
-    def toTouchField(fields: List[Parameter]): List[ApiField] = {
-      for (field <- fields) yield {
-        ApiField(field.ident, TypeList.getTypeOrFail(field.typeName))
-      }
-    }
+  def addTypes(scope: Script, st: SymbolTable, thing: Declaration): Unit = {
 
     thing match {
       case a@ActionType(name, in, out, body, isPrivate) =>
-        TypeList.addTouchType(GAction(TypeName(name),in map {x:Parameter => TypeList.getTypeOrFail(x.typeName)},out map {x:Parameter => TypeList.getTypeOrFail(x.typeName)}))
-      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
-        st.addAction(name, inParameters, outParameters)
-      case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
-        st.addAction(name, Nil, Nil) // We ignore parameters of pages - they ware initialized in the display code
-      case VariableDefinition(Parameter(name, kind), flags) =>
-        st.addGlobalData(name, kind)
+        TypeList.addTouchType(GAction(TypeName(name),in map (_.typeName),out map (_.typeName)))
       case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
         typeName match {
           case "object" =>
 
-            val objectType = GObject(TypeName(ident),toTouchField(fields))
+            val objectType = GObject(TypeName(ident),fields)
             val objectConstructor = GObjectConstructor(objectType)
             val objectCollection = GObjectCollection(objectType)
 
@@ -62,7 +51,7 @@ object Typer {
 
           case "table" =>
 
-            val rowTyp = GRow(TypeName(ident), toTouchField(fields))
+            val rowTyp = GRow(TypeName(ident),fields)
             val tableType = GTable(rowTyp)
 
             TypeList.addTouchType(rowTyp)
@@ -71,12 +60,10 @@ object Typer {
 
           case "index" =>
 
-            val keyMembers = toTouchField(keys)
-            val fieldMembers = toTouchField(fields)
-            val indexMember = GIndexMember(TypeName(ident), keyMembers, fieldMembers)
+            val indexMember = GIndexMember(TypeName(ident), keys, fields)
             val indexType =
-              if (keyMembers.size > 0) {
-                GIndex(keyMembers.map{_.typ},indexMember)
+              if (keys.nonEmpty) {
+                GIndex(keys.map{_.typeName},indexMember)
               } else {
                 GSingletonIndex(indexMember)
               }
@@ -89,12 +76,10 @@ object Typer {
 
             if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
 
-            val keyMembers = toTouchField(keys)
-            val fieldMembers = toTouchField(fields)
-            val indexMember = GIndexMember(TypeName(ident),keyMembers,fieldMembers)
+            val indexMember = GIndexMember(TypeName(ident),keys,fields)
 
-            val decoratedType = keyMembers.head.typ
-            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"), decoratedType, indexMember)
+            val decoratedType = keys.head.typeName
+            val decoratorType = GDecorator(TypeName(decoratedType.toString + " Decorator"), decoratedType, indexMember)
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)
@@ -103,6 +88,27 @@ object Typer {
           case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
         }
+      case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
+        for (usage <- usages) {
+          usage match {
+            case ActionUsage(name, in, out) => st.addLibAction(libName, name, in, out)
+            case TypeUsage(ident) => throw TouchException("Type usages are unsupported.")
+          }
+        }
+      case _ => Unit
+    }
+
+  }
+
+  def addGlobals(scope: Script, st: SymbolTable, thing: Declaration) {
+
+    thing match {
+      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
+        st.addAction(name, inParameters, outParameters)
+      case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
+        st.addAction(name, Nil, Nil) // We ignore parameters of pages - they ware initialized in the display code
+      case VariableDefinition(Parameter(name, kind), flags) =>
+        st.addGlobalData(name, kind)
       case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
         for (usage <- usages) {
           usage match {
@@ -164,7 +170,7 @@ object Typer {
 
     def handleAssignments(variables: Expression, types: List[TypeName]): Int = {
 
-      if (types.length == 0) throw TouchException("Not enough values on the right side of the assignment", expr.pos)
+      if (types.isEmpty) throw TouchException("Not enough values on the right side of the assignment", expr.pos)
       val typ = types.head
 
       variables match {
@@ -260,7 +266,7 @@ object Typer {
 
     if (types.length == 1) {
       is(types.head)
-    } else if (types.length == 0) {
+    } else if (types.isEmpty) {
       is(TypeName("Nothing"))
     } else {
       is(TypeName("Unknown"))

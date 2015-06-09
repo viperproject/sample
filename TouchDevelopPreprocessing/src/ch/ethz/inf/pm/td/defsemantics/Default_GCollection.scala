@@ -51,12 +51,30 @@ trait Default_GCollection extends AMutable_Collection {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the first element if any */
+  def member_first = ApiMember(
+    name = "first",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TT,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Concatenates the separator and items into a string */
   def member_join = ApiMember(
     name = "join",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Gets the last element if any */
+  def member_last = ApiMember(
+    name = "last",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TT,
     semantics = DefaultSemantics
   )
 
@@ -218,7 +236,9 @@ trait Default_GCollection extends AMutable_Collection {
     "avg of" -> member_avg_of,
     "avg" -> member_avg,
     "continuation" -> member_continuation,
+    "first" -> member_first,
     "join" -> member_join,
+    "last" -> member_last,
     "map to" -> member_map_to,
     "max of" -> member_max_of,
     "max" -> member_max,

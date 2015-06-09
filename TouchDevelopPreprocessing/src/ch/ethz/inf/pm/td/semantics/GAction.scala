@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.ApiParam
+import ch.ethz.inf.pm.td.compiler.{TypeList, ApiParam}
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -12,7 +12,10 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */
 
-case class GAction (typeName:TypeName,in:List[AAny],out:List[AAny]) extends AAction {
+case class GAction (typeName:TypeName, inNames:List[TypeName] = List.empty, outNames:List[TypeName] = List.empty) extends AAction {
+
+  lazy val in:List[AAny]  = TypeList.toTouchTypes(inNames)
+  lazy val out:List[AAny] = TypeList.toTouchTypes(outNames)
 
   override def actionReturnValue = {
     assert(out.size <= 1)

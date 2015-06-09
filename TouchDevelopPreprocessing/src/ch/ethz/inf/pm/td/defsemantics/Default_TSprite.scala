@@ -503,6 +503,15 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Sets the shadow information */
+  def member_set_shadow = ApiMember(
+    name = "set shadow",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TColor), ApiParam(TNumber), ApiParam(TNumber)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Frequently used: Sets the x speed in pixels/sec */
   def member_set_speed_x = ApiMember(
     name = "set speed x",
@@ -757,6 +766,7 @@ trait Default_TSprite extends AAny {
     "set pos" -> member_set_pos,
     "set right" -> member_set_right,
     "set scale" -> member_set_scale,
+    "set shadow" -> member_set_shadow,
     "set speed x" -> member_set_speed_x,
     "set speed y" -> member_set_speed_y,
     "set speed" -> member_set_speed,

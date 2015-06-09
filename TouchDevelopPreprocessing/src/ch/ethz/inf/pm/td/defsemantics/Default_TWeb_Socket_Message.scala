@@ -17,7 +17,7 @@ trait Default_TWeb_Socket_Message extends AAny {
 
   lazy val typeName = TypeName("Web Socket Message")
           
-  /** Never used: [**dbg**] Gets the message as a Buffer */
+  /** Never used: Gets the message as a Buffer */
   def member_buffer = ApiMember(
     name = "buffer",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TWeb_Socket_Message extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Gets the error if any. */
+  /** Never used: Gets the error if any. */
   def member_error = ApiMember(
     name = "error",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TWeb_Socket_Message extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Indicates if this message is an error */
+  /** Never used: Indicates if this message is an error */
   def member_is_error = ApiMember(
     name = "is error",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TWeb_Socket_Message extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Gets the message as a Json payload */
+  /** Never used: Gets the message as a Json payload */
   def member_json = ApiMember(
     name = "json",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TWeb_Socket_Message extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Gets the message as a string */
+  /** Never used: Gets the message as a string */
   def member_string = ApiMember(
     name = "string",
     paramTypes = List(),

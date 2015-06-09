@@ -18,6 +18,24 @@ trait Default_TUnknown extends AAny {
   lazy val typeName = TypeName("Unknown")
           
   /** Rarely used:  */
+  def member_break_ = ApiMember(
+    name = "break",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used:  */
+  def member_continue_ = ApiMember(
+    name = "continue",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used:  */
   def member_fun = ApiMember(
     name = "fun",
     paramTypes = List(ApiParam(TUnknown)),
@@ -26,9 +44,31 @@ trait Default_TUnknown extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Rarely used:  */
+  def member_return_ = ApiMember(
+    name = "return",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used:  */
+  def member_show = ApiMember(
+    name = "show",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "fun" -> member_fun
+    "break" -> member_break_,
+    "continue" -> member_continue_,
+    "fun" -> member_fun,
+    "return" -> member_return_,
+    "show" -> member_show
   )
             
 

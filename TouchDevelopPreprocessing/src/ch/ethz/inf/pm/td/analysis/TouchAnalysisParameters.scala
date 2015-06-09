@@ -182,7 +182,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * do not report errors in libraries
                                      */
-                                    reportOnlyAlarmsInMainScript: Boolean = false,
+                                    reportOnlyAlarmsInMainScript: Boolean = true,
 
                                     /**
                                      * If this is true, the analysis will print something like

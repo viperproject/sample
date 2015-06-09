@@ -80,7 +80,7 @@ trait Default_TUser extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets the user settings if any. Supported fields are nickname, editormode, twitterhandle, githubuser, minecraftuser */
+  /** Never used: Gets the user settings if accessible. Currently, only the current user. Supported fields are editormode, twitterhandle, githubuser, minecraftuser */
   def member_settings = ApiMember(
     name = "settings",
     paramTypes = List(),

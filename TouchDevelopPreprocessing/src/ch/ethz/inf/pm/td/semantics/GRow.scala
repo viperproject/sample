@@ -4,10 +4,12 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 import RichNativeSemantics._
 
-case class GRow(typeName: TypeName, fields: List[ApiField]) extends AAny {
+case class GRow(typeName: TypeName, fieldParameters:List[Parameter]) extends AAny {
+
+  lazy val fields:List[ApiField] = TypeList.toTouchFields(fieldParameters)
 
   override def possibleFields = super.possibleFields ++ (GTable(this).field_table :: fields)
 
@@ -18,7 +20,7 @@ case class GRow(typeName: TypeName, fields: List[ApiField]) extends AAny {
     returnType = TBoolean,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        CallApi[S](Field[S](this0, GTable(GRow(typeName,fields)).field_table), "remove", List(this0), TBoolean)
+        CallApi[S](Field[S](this0, GTable(GRow(typeName,fieldParameters)).field_table), "remove", List(this0), TBoolean)
       }
     }
   )

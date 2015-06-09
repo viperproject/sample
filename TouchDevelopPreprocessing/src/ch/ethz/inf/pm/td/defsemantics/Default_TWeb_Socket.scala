@@ -17,7 +17,7 @@ trait Default_TWeb_Socket extends AAny {
 
   lazy val typeName = TypeName("Web Socket")
           
-  /** Never used: [**dbg**] The number of bytes of data that have been queued using calls to send() but not yet transmitted to the network. This value does not reset to zero when the connection is closed; if you keep calling send(), this will continue to climb. */
+  /** Never used: The number of bytes of data that have been queued using calls to send() but not yet transmitted to the network. This value does not reset to zero when the connection is closed; if you keep calling send(), this will continue to climb. */
   def member_buffered_amount = ApiMember(
     name = "buffered amount",
     paramTypes = List(),
@@ -26,7 +26,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Closes the socket */
+  /** Never used: Closes the socket */
   def member_close = ApiMember(
     name = "close",
     paramTypes = List(),
@@ -35,7 +35,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Gets the ready state of the web socket, "connection", "closed", "closing", "open" */
+  /** Never used: Gets the ready state of the web socket, "connection", "closed", "closing", "open" */
   def member_ready_state = ApiMember(
     name = "ready state",
     paramTypes = List(),
@@ -44,7 +44,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Receives a message */
+  /** Never used: Receives a message */
   def member_receive = ApiMember(
     name = "receive",
     paramTypes = List(),
@@ -53,7 +53,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Sends buffer data to the server */
+  /** Never used: Sends buffer data to the server */
   def member_send_buffer = ApiMember(
     name = "send buffer",
     paramTypes = List(ApiParam(TBuffer)),
@@ -62,7 +62,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Transmits JSON data to the server */
+  /** Never used: Transmits JSON data to the server */
   def member_send_json = ApiMember(
     name = "send json",
     paramTypes = List(ApiParam(TJson_Object)),
@@ -71,7 +71,7 @@ trait Default_TWeb_Socket extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**dbg**] Transmits string data to the server */
+  /** Never used: Transmits string data to the server */
   def member_send = ApiMember(
     name = "send",
     paramTypes = List(ApiParam(TString)),

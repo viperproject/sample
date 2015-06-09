@@ -17,6 +17,24 @@ trait Default_SApp extends ASingleton {
 
   lazy val typeName = TypeName("App", isSingleton = true)
           
+  /** Never used: Allow execution of other events, before the current event finishes. */
+  def member_allow_other_events = ApiMember(
+    name = "allow other events",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: [**dbg**] Get HTML-rendered content of all comments 'executed' since last call */
+  def member_consume_rendered_comments = ApiMember(
+    name = "consume rendered comments",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Creates a specialized logger */
   def member_create_logger = ApiMember(
     name = "create logger",
@@ -62,7 +80,25 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Imports a dependent package which may be versioned. Package managers may be Node.JS npm, Apache cordova, Python Pip and TouchDevelop plugins. */
+  /** Never used: [**beta**] Invokes the host to execute a command described in the message and returns the response. There is no restriction on the format of the request and response. If not available or errored, returns invalid. */
+  def member_host_exec = ApiMember(
+    name = "host exec",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: [**beta**] Invokes the host to register an event listener described in the message. */
+  def member_host_subscribe = ApiMember(
+    name = "host subscribe",
+    paramTypes = List(ApiParam(TString), ApiParam(TText_Action)),
+    thisType = ApiParam(this),
+    returnType = TEvent_Binding,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Imports a dependent package which may be versioned. Package managers may be Node.JS npm, Bower, Apache cordova, Python Pip and TouchDevelop plugins. ``bower`` and ``client`` imports are not available within the touchdevelop.com domain. */
   def member_import_ = ApiMember(
     name = "import",
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString)),
@@ -116,7 +152,7 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Never used: [**beta**] Runs a shell command. This action is only available when the script is running from a local web server. */
+  /** Never used: Runs a shell command. This action is only available when the script is running from a local web server. */
   def member_run_command = ApiMember(
     name = "run command",
     paramTypes = List(ApiParam(TString), ApiParam(TJson_Object)),
@@ -172,11 +208,15 @@ trait Default_SApp extends ASingleton {
 
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "allow other events" -> member_allow_other_events,
+    "consume rendered comments" -> member_consume_rendered_comments,
     "create logger" -> member_create_logger,
     "current handler" -> member_current_handler,
     "editor" -> member_editor,
     "env" -> member_env,
     "fail if not" -> member_fail_if_not,
+    "host exec" -> member_host_exec,
+    "host subscribe" -> member_host_subscribe,
     "import" -> member_import_,
     "javascript async" -> member_javascript_async,
     "javascript" -> member_javascript,

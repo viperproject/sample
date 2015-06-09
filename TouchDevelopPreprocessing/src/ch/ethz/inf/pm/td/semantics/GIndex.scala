@@ -3,19 +3,21 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics}
-import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.compiler.{TypeList, ApiMember, ApiMemberSemantics}
+import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 
 /**
  * Implements and Index with potentially multiple keys
  *
  * @author Lucas Brutschy
  */
-case class GIndex(keyTypes:List[AAny], valueType:AAny) extends AIndex {
+case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny) extends AIndex {
 
   def typeName = TypeName("Index",List(valueType.typeName))
 
-  val tupleType = GTuple(keyTypes)
+  lazy val keyTypes:List[AAny] = TypeList.toTouchTypes(keyTypeParameters)
+
+  lazy val tupleType = GTuple(keyTypes)
 
   override def keyType = if (keyTypes.size != 1) tupleType else keyTypes.head
 
