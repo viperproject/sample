@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
-import ch.ethz.inf.pm.td.transform.{Rewriter, Matcher}
+import ch.ethz.inf.pm.td.transform.{Rewriter}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -49,13 +49,21 @@ object CFGGenerator {
 
   def optionalArgumentIdent = "__optional_argument"
 
-  def makeTouchProgramPoint(pubID: String, element: IdPositional) = {
+  /**
+   * Creates a program point
+   *
+   * @param pubID public id of the library / script
+   * @param libraryStableID "this" or the stable ID of the library import
+   * @param element aa
+   * @return The program point
+   */
+  def makeTouchProgramPoint(pubID: String, libraryStableID:String, element: IdPositional) = {
     val pos = element.pos match {
       case NoPosition => None
       case p => Some(p)
     }
 
-    TouchProgramPointRegistry.make(pubID, pos, element.customIdComponents)
+    TouchProgramPointRegistry.make(pubID, pos, libraryStableID :: element.customIdComponents)
   }
 }
 
@@ -66,15 +74,20 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
   private var curPubID: String = ""
   private var curScriptName: String = ""
+  private var curLibraryStableId: String = ""
 
   def process(script: parser.Script, pubID: String, libDef: Option[LibraryDefinition] = None): ClassDefinition = {
     //detectUnsupportedScripts(script)
     curPubID = pubID
     libDef match {
-      case Some(LibraryDefinition(libName, _, _, _, _, _)) => curScriptName = libraryIdent(libName)
-      case None => curScriptName = libraryIdent(pubID)
+      case Some(l@LibraryDefinition(libName, _, _, _, _, _)) =>
+        curScriptName = libraryIdent(libName)
+        curLibraryStableId = l.getIdComponents.head
+      case None =>
+        curScriptName = libraryIdent(pubID)
+        curLibraryStableId = "null"
     }
-    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, script)
     val typ: Type = typeNameToType(TypeName(curScriptName))
     SystemParameters.typ = typ
     val modifiers: List[Modifier] = Nil
@@ -95,7 +108,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
     (for (dec <- script.declarations) yield {
       dec match {
         case v@parser.VariableDefinition(variable, flags) =>
-          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, v)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, v)
           val modifiers: List[Modifier] = (flags flatMap {
             case ("is resource", "true") => Some(ResourceModifier)
             case ("is_resource", "true") => Some(ResourceModifier)
@@ -116,7 +129,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
     (for (dec <- script.declarations) yield {
       dec match {
         case act@parser.ActionDefinition(ident, in, out, body, isEvent, isPriv) =>
-          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, act)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, act)
           val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers: List[Modifier] = Nil
           val isPrivate = isPriv || (body exists {
@@ -135,7 +148,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
             returnType, newBody, preCond, postCond, currentClassDef))
         case act@parser.PageDefinition(ident, in, out, initBody, displayBody, isPriv) =>
-          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, act)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, act)
           val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers: List[Modifier] = Nil
           val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = false, isPrivate = isPriv)
@@ -154,14 +167,14 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
   }
 
   private def parameterToVariableDeclaration(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableDeclaration = {
-    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, parameter)
     val variable: Variable = parameterToVariable(parameter, scope)
     val typ: Type = typeNameToType(parameter.typeName)
     VariableDeclaration(programPoint, variable, typ)
   }
 
   private def parameterToVariable(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): Variable = {
-    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, parameter)
     val id: VariableIdentifier = parameterToVariableIdentifier(parameter, scope)
     Variable(programPoint, id)
   }
@@ -169,7 +182,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
   private def parameterToVariableIdentifier(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableIdentifier = {
     val name: String = parameter.ident
     val typ: Type = typeNameToType(parameter.typeName)
-    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, parameter)
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
@@ -274,7 +287,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
       case w@WhereStatement(expr, handlerDefs: List[InlineAction], optionalParameters: List[OptionalParameter]) =>
 
-        val wPP = makeTouchProgramPoint(curPubID, w)
+        val wPP = makeTouchProgramPoint(curPubID, curLibraryStableId, w)
 
         val handlerSet =
           for (InlineAction(handlerName, inParameters, _, _, typ) <- handlerDefs) yield {
@@ -407,7 +420,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
   private def expressionToStatement(expr: parser.Expression, scope: ScopeIdentifier): Statement = {
 
-    val pc = makeTouchProgramPoint(curPubID, expr)
+    val pc = makeTouchProgramPoint(curPubID, curLibraryStableId, expr)
     if (expr == parser.SingletonReference("skip", "Nothing")) return EmptyStatement(pc)
     if (expr == parser.SingletonReference("skip", "Skip")) return EmptyStatement(pc)
 
@@ -422,8 +435,8 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
         Variable(pc, VariableIdentifier(ident, scope)(typ, pc))
 
       case parser.Access(subject, property, args) =>
-        val field = FieldAccess(makeTouchProgramPoint(curPubID, property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
-        MethodCall(makeTouchProgramPoint(curPubID, property), field, Nil, args map (expressionToStatement(_, scope)), typ)
+        val field = FieldAccess(makeTouchProgramPoint(curPubID, curLibraryStableId, property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
+        MethodCall(makeTouchProgramPoint(curPubID, curLibraryStableId, property), field, Nil, args map (expressionToStatement(_, scope)), typ)
 
       case parser.Literal(t, value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {

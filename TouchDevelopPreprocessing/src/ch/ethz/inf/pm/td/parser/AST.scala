@@ -220,6 +220,13 @@ trait IdPositional extends Positional {
     this
   }
 
+  def appendIdComponents(suffix: List[String]): this.type = {
+    customIdComponents = customIdComponents ::: suffix
+    this
+  }
+
+  def getIdComponents:List[String] = customIdComponents
+
   def getPositionDescription: String = {
     val customIds = customIdComponents.mkString("_")
 
