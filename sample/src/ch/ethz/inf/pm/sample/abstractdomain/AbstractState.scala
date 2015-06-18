@@ -167,6 +167,17 @@ case class ExpressionSet(
   }
 
   def isUnitExprSet: Boolean = this == ExpressionFactory.unitExpr
+
+  /** Returns a single expression iff this has exactly one expression */
+  def getSingle:Option[Expression] = {
+    s match {
+      case SetDomain.Default.Inner(x) if x.size == 1 =>
+        Some(x.head)
+      case _ =>
+        None
+    }
+  }
+
 }
 
 object ExpressionSet {

@@ -32,7 +32,8 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
   }
 
   override def createVariable(variable: Identifier, typ: Type): BooleanInvalidDomainWithSource = {
-    this.add(variable,Top)
+    if (!map.contains(variable)) this.add(variable,Top)
+    else this
   }
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {

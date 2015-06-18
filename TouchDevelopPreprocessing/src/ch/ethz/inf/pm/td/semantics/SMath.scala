@@ -66,7 +66,7 @@ object SMath extends Default_SMath {
     /** Returns the smallest integral value greater than or equal to the specified number */
     case "ceiling" =>
       val List(x) = parameters // Number
-      Top[S](TNumber) // TODO
+      Return[S](x.ndToExcl(x+1))
 
     /** Clamps `value` between `min` and `max` */
     case "clamp" =>

@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler._
@@ -159,12 +159,32 @@ object TString extends Default_TString {
     /** Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */
     case "split" =>
       val List(separator) = parameters // String
-    // No matter what the arguments are, the resulting set has at least one element!
-    var curState = state
-      curState = Top[S](GCollection(TString))(curState, pp)
-      val obj = curState.expr
-      curState = Assume(GCollection(TString).collectionSize[S](obj) >= 1)(curState, pp)
-      Return[S](obj)(curState, pp)
+
+      // This is a hack to support constant split expressions
+      (this0.getSingle,separator.getSingle) match {
+        case (Some(Constant(str,_,_)),Some(Constant(sep,_,_))) =>
+
+          val typ = GCollection(TString)
+          val coll = str.split(sep)
+          var curState = state
+          curState = New[S](typ)(curState,pp)
+          val absColl = curState.expr
+          for (c <- coll) {
+            curState = typ.collectionInsert[S](absColl,typ.collectionSize[S](absColl), Constant(c,TString,pp))(curState,pp)
+            curState = typ.collectionIncreaseLength[S](absColl)(curState,pp)
+          }
+          curState.setExpression(absColl)
+
+        case _ =>
+
+          // No matter what the arguments are, the resulting set has at least one element!
+          var curState = state
+          curState = Top[S](GCollection(TString))(curState, pp)
+          val obj = curState.expr
+          curState = Assume(GCollection(TString).collectionSize[S](obj) >= 1)(curState, pp)
+          Return[S](obj)(curState, pp)
+
+      }
 
     /** Determines whether the beginning matches the specified string */
     case "starts with" =>

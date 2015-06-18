@@ -190,7 +190,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Do not report errors in libraries.
                                      */
-                                    libraryErrorReportingMode: LibraryErrorReportingMode = LibraryErrorReportingMode.ReportAtBoundary,
+                                    libraryErrorReportingMode: LibraryErrorReportingMode = LibraryErrorReportingMode.Report,
 
                                     /**
                                      * If this is true, the analysis will print something like
