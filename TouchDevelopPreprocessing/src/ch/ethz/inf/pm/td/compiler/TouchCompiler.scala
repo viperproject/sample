@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, ApiField, Dispatcher}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, Dispatcher}
 import ch.ethz.inf.pm.td.parser.{LibraryDefinition, Script, _}
 import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.transform.{LoopUnroller, LoopRewriter}
@@ -158,7 +158,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }).mkString("\n")
   }
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(new Dispatcher())
+  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(Dispatcher)
 
   def extensions(): List[String] = List("td", "json")
 

@@ -105,10 +105,10 @@ object MethodSummaries {
         var currentSummary = summaries.get(identifyingPP) match {
           case Some(prevSummary) =>
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
-            executeMethod(enteredState, prev)
+            executeMethod(callPoint, enteredState, prev)
           case None =>
             val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState).allBottom(callTarget.body))
-            executeMethod(enteredState, prevSummary)
+            executeMethod(callPoint, enteredState, prevSummary)
         }
 
         summaries += ((identifyingPP, currentSummary))
@@ -116,7 +116,7 @@ object MethodSummaries {
         // Are there more possible depths?
         while (!entriesOnStack.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
           enteredState = entriesOnStack.get(identifyingPP).get.asInstanceOf[S]
-          currentSummary = executeMethod(enteredState, currentSummary)
+          currentSummary = executeMethod(callPoint, enteredState, currentSummary)
           summaries += ((identifyingPP, currentSummary))
         }
 
@@ -257,12 +257,26 @@ object MethodSummaries {
    * @tparam S state type
    * @return a generalized summary
    */
-  private def executeMethod[S <: State[S]](entryState: S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
-    val newState =
-      SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
-        val interpreter = TrackingForwardInterpreter[S](entryState)
-        interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
+  private def executeMethod[S <: State[S]](callPoint:ProgramPoint, entryState: S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
+
+    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
+
+    // If we call from non-library code into library code, set the library boundary
+    val libraryBoundary =
+      if (SystemParameters.libraryBoundaryContext == null && currentSummary.method.classDef != compiler.main) {
+        callPoint
+      } else {
+        SystemParameters.libraryBoundaryContext
       }
+
+    val newState =
+      SystemParameters.withLibraryBoundaryContext(libraryBoundary) {
+        SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
+          val interpreter = TrackingForwardInterpreter[S](entryState)
+          interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
+        }
+      }
+
     currentSummary.copy(cfgState = newState)
   }
 

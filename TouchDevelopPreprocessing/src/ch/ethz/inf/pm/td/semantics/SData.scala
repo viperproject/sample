@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, VariableIdent
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
  * This is empty but needs to be there as a type
@@ -18,7 +19,7 @@ object SData extends ASingleton {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {
 
-    state.setExpression(ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(method))(returnedType, pp)))
+    Return[S](Data(method,returnedType))
 
   }
 }

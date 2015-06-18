@@ -114,7 +114,6 @@ class MethodDeclaration(
       "\n-------------------\n\n"
 
   def initializeArgument[S <: State[S]](state: S): S = {
-    SystemParameters.semanticsComputing = false
     var result = state
     // Create a variable for each formal parameter
     for (lv <- arguments) {
@@ -147,9 +146,7 @@ class MethodDeclaration(
   def forwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
       val result = initializeArgument[S](state)
-      SystemParameters.semanticsComputing = true
       val r = new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
-      SystemParameters.semanticsComputing = false
       r
     }
   }

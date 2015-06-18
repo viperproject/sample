@@ -169,7 +169,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // unreachable code.
     //
     val summaries = MethodSummaries.getSummaries[S]
-    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
+    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
@@ -361,7 +361,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       curState = curState.pruneUnreachableHeap()
 
       // Init the fields of singletons (the environment)
-      for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
+      for (sem <- TypeList.getSingletons) {
         sem match {
           case typ: AAny =>
             if (typ.isSingleton &&

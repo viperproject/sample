@@ -120,7 +120,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
-		if(thisExpr.getType().toString.equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
+		if(thisExpr.getType().toString.equals("Int"))
 			operator match {
 			  case ">=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
 			  case "<=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);

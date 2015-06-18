@@ -15,12 +15,12 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 object SystemParameters {
 
   /**
-   * Enables costly debugging flags
+   * Enables costly debugging checks
    */
   val DEBUG = false
 
   /**
-   * Enables costly debugging flags
+   * Enables costly timing flags
    */
   val TIME = true
 
@@ -30,52 +30,52 @@ object SystemParameters {
   var isValueDrivenHeapAnalysis = false
 
   /**
-  The number of iterations after whom widening is applied
-    */
+   * The number of iterations after whom widening is applied
+   */
   var wideningLimit: Int = 2
 
   /**
-  The semantics of methods defined by hand
-    */
+   * The semantics of methods defined by hand
+   */
   var nativeMethodsSemantics: List[NativeMethodSemantics] = Nil
 
-
+  /** Stores the currently analyzed method */
   val analysisUnitImpl: DynamicVariable[AnalysisUnitContext] = new DynamicVariable(null)
-
   def analysisUnitContext: AnalysisUnitContext = analysisUnitImpl.value
-
   def withAnalysisUnitContext[R](context: AnalysisUnitContext)(f: => R): R = {
     analysisUnitImpl.withValue(context)(f)
   }
 
-  //TODO:Remove it
-  var semanticsComputing: Boolean = false
+  /** Stores the library boundary (the program point at which we called into a library) */
+  val libraryBoundaryUnitImpl: DynamicVariable[ProgramPoint] = new DynamicVariable(null)
+  def libraryBoundaryContext: ProgramPoint = libraryBoundaryUnitImpl.value
+  def withLibraryBoundaryContext[R](context: ProgramPoint)(f: => R): R = {
+    libraryBoundaryUnitImpl.withValue(context)(f)
+  }
 
   /**
-   * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
-   * performing arithmetical operations
+   * The output for the window that shows the progresses of the analysis
    */
-  var ignoreTypeForNumericalMethods: Boolean = false
+  var progressOutput: ScreenOutput = null
 
   /**
-  The output for the window that shows the progresses of the analysis
-    */
-  var progressOutput: ScreenOutput = null
-  /**
-  The output for the window that shows the results of the analysis
-    */
+   * The output for the window that shows the results of the analysis
+   */
   var analysisOutput: ScreenOutput = null
+
   /**
-  An instance of the current type system
-    */
+   * An instance of the current type system
+   */
   var typ: Type = null
+
   /**
-  The compiler used to compile the given files
-    */
+   * The compiler used to compile the given files
+   */
   var compiler: Compiler = null
+
   /**
-  The checked property
-    */
+   * The checked property
+   */
   var property: Property = null
 
 

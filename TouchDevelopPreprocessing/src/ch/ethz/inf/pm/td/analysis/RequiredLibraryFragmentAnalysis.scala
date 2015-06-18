@@ -46,7 +46,7 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
 
     SystemParameters.resetOutput()
     val summaries = MethodSummaries.getSummaries[AccessCollectingState]
-    val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
+    val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
     yield (mdecl.classDef.typ, mdecl, cfgState)
 

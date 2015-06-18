@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.td.analysis
 
+import ch.ethz.inf.pm.td.analysis.LibraryErrorReportingMode.LibraryErrorReportingMode
+
 object TouchAnalysisParameters {
 
   // == SET AND GET CURRENT PARAMS ==
@@ -129,6 +131,12 @@ case class TouchAnalysisParameters(
                                      */
                                     defaultToUnsound: Boolean = true,
 
+
+                                    /**
+                                     * use hand-written library contracts
+                                     */
+                                    useLibraryContracts: Boolean = false,
+
                                     /**
                                      * Unsoundly assume that we do not have to create a copy of the collection
                                      * when entering a foreach loop
@@ -180,9 +188,9 @@ case class TouchAnalysisParameters(
                                     reportPrematurelyOnInternetAccess: Boolean = false,
 
                                     /**
-                                     * do not report errors in libraries
+                                     * Do not report errors in libraries.
                                      */
-                                    reportOnlyAlarmsInMainScript: Boolean = false,
+                                    libraryErrorReportingMode: LibraryErrorReportingMode = LibraryErrorReportingMode.ReportAtBoundary,
 
                                     /**
                                      * If this is true, the analysis will print something like
@@ -197,9 +205,26 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Report whenever functions of the API are not defined in our tool
                                      */
-                                    reportUnanalyzedFunctions: Boolean = true
+                                    reportUnanalyzedFunctions: Boolean = true,
+
+                                    /**
+                                     * Includes library stable component in program point
+                                     * For potential integration with editor
+                                     * May be incompatible with HTML reporting
+                                     */
+                                    includeLibraryStableComponent: Boolean = false
 
                                     )
+
+object LibraryErrorReportingMode extends Enumeration {
+
+  type LibraryErrorReportingMode = Value
+
+  val Suppress = Value
+  val ReportAtBoundary = Value
+  val Report = Value
+
+}
 
 object NumericDomainChoice extends Enumeration {
   type NumericDomainChoice = Value

@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
 import ch.ethz.inf.pm.td.semantics.{TBoolean, TNumber, TString}
 
@@ -41,4 +41,8 @@ trait RichExpressionImplicits {
   def Invalid(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpression = toRichExpression(InvalidExpression(typ, cause, pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
   def Singleton(typ: Type)(implicit pp: ProgramPoint): RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase)(typ, pp))
+
+  def Data(name:String, typ:Type)(implicit pp:ProgramPoint): RichExpression =
+    VariableIdentifier(CFGGenerator.globalReferenceIdent(name))(typ, pp)
+
 }

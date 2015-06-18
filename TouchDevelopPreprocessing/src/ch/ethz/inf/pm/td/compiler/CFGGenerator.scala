@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
 import ch.ethz.inf.pm.td.transform.{Rewriter}
 import com.typesafe.scalalogging.LazyLogging
@@ -63,7 +64,11 @@ object CFGGenerator {
       case p => Some(p)
     }
 
-    TouchProgramPointRegistry.make(pubID, pos, libraryStableID :: element.customIdComponents)
+    if (TouchAnalysisParameters.get.includeLibraryStableComponent) {
+      TouchProgramPointRegistry.make(pubID, pos, libraryStableID :: element.customIdComponents)
+    } else {
+      TouchProgramPointRegistry.make(pubID, pos, element.customIdComponents)
+    }
   }
 }
 

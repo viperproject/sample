@@ -2,11 +2,14 @@ package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableIdentifier, _}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, ForwardNativeMethodSemantics, ProgramPoint}
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression}
 import ch.ethz.inf.pm.td.semantics._
+
+import scala.Error
 
 /**
  *
@@ -21,29 +24,32 @@ import ch.ethz.inf.pm.td.semantics._
 
 object RichNativeSemantics extends RichExpressionImplicits {
 
+  def isInReportableSection: Boolean = {
+    if (TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report) return true
+    val currentClass = SystemParameters.analysisUnitContext.clazz
+    val mainClass = SystemParameters.compiler.asInstanceOf[TouchCompiler].main
+    currentClass.equals(mainClass)
+  }
+
   /*-- Checking / Reporting errors --*/
 
   def Dummy[S <: State[S]](obj: RichExpression, method: String)(implicit state: S, pp: ProgramPoint) {
-    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-    if (TouchAnalysisParameters.get.reportDummyImplementations &&
-      (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
+    if (TouchAnalysisParameters.get.reportDummyImplementations && isInReportableSection)
       Reporter.reportDummy(obj.getType().toString + "->" + method, pp)
   }
 
   def Dummy[S <: State[S]](text: String)(implicit state: S, pp: ProgramPoint) {
-    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-    if (TouchAnalysisParameters.get.reportDummyImplementations &&
-      (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)))
+    if (TouchAnalysisParameters.get.reportDummyImplementations && isInReportableSection)
       Reporter.reportDummy(text, pp)
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
     val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
     if (!errorState.isBottom && Reporter.enableOutputOfAlarms) {
-      val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
-      if (!TouchAnalysisParameters.get.reportOnlyAlarmsInMainScript
-        || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)) {
+      if (isInReportableSection) {
         Reporter.reportError(message, pp, state.explainError(expr))
+      } else if (TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.ReportAtBoundary) {
+        Reporter.reportError("Something may go wrong inside a library call: "+message, SystemParameters.libraryBoundaryContext, state.explainError(expr))
       }
       val ret = state.assume(expr.not())
       if (ret.isBottom) return ret.bottom()
@@ -347,6 +353,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
 }
+
 
 /**
  * @param isAccumulating a field that refers to zero to many objects. These play a key role in the analysis and are
