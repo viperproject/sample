@@ -177,10 +177,16 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    */
   def explainError(expr: Expression): Set[(String, ProgramPoint)]
 
-  override def toString = ids match {
-    case IdentifierSet.Bottom => "_|_"
-    case IdentifierSet.Top => "T"
-    case IdentifierSet.Inner(v) => v map { x:Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
+  override def toString = {
+    if (isBottom) "_|_"
+    else if (isTop) "T"
+    else {
+      ids match {
+        case IdentifierSet.Inner(v) => v map { x: Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"
+        case IdentifierSet.Bottom => "(empty)"
+        case IdentifierSet.Top => "T(ids)"
+      }
+    }
   }
 
 }
@@ -190,7 +196,7 @@ object SemanticDomain {
   trait Bottom[T <: SemanticDomain[T]] extends BottomLattice[T] with SemanticDomain[T] {
     this: T =>
 
-    override def getStringOfId(id: Identifier) = "_|_"
+    override def getStringOfId(id: Identifier) = "⊥"
     override def setToTop(variable: Identifier) = this
     override def assign(variable: Identifier, expr: Expression) = this
     override def assume(expr: Expression) = this

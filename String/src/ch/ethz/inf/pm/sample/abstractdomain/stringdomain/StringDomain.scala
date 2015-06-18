@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BooleanExpressionSimplifier, NumericalDomain}
 
 trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }

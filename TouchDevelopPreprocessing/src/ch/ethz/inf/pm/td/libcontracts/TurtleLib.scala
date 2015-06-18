@@ -15,7 +15,11 @@ case object TurtleLib extends LibraryContract with RichExpressionImplicits {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet],
                                                returnedType: TouchType)(implicit pp: ProgramPoint, state: S) = {
-    Top[S](returnedType)
+    method match {
 
+      case _ =>
+        Top[S](returnedType)
+
+    }
   }
 }

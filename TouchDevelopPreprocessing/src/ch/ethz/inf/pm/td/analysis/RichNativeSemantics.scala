@@ -347,9 +347,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Skip[S <: State[S]](implicit state: S, pp: ProgramPoint): S = state.removeExpression()
 
-  def Unimplemented[S <: State[S]](method: String)(implicit state: S, pp: ProgramPoint): S = {
+  def Unimplemented[S <: State[S]](method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
     Reporter.reportImprecision(method + " not implemented, going to top", pp)
-    state.top()
+    if (TouchAnalysisParameters.get.defaultToUnsound) {
+      Top[S](returnedType)
+    } else {
+      state.top()
+    }
   }
 
 }

@@ -115,7 +115,7 @@ case class TouchAnalysisParameters(
                                      * true = less precision, more speed.
                                      * false = more precision, less speed.
                                      */
-                                    reachabilityBasedLocalization: Boolean = false,
+                                    reachabilityBasedLocalization: Boolean = true,
 
                                     /**
                                      * If this is set to true, we use the results of a preanalysis to determine what
@@ -124,6 +124,13 @@ case class TouchAnalysisParameters(
                                      * See VMCAI'11 Oh, Brutschy, Yi: Access-analysis based tight localization of abstract memories
                                      */
                                     accessBasedLocalization: Boolean = true,
+
+                                    /**
+                                     * In numerical relational analysis, only relate those packs of variables that may belong together
+                                     * according to a preanalysis (currently, all sets of variables that may appear in the same
+                                     * assume/assign.
+                                     */
+                                    variablePacking: Boolean = true,
 
                                     /**
                                      * If the semantics of an API is not defined, default to an unsound solution
@@ -135,7 +142,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * use hand-written library contracts
                                      */
-                                    useLibraryContracts: Boolean = false,
+                                    useLibraryContracts: Boolean = true,
 
                                     /**
                                      * Unsoundly assume that we do not have to create a copy of the collection
@@ -175,13 +182,6 @@ case class TouchAnalysisParameters(
                                      */
                                     numberOfVersions: Int = 2,
 
-                                    /**
-                                     * In numerical relational analysis, only relate those packs of variables that may belong together
-                                     * according to a preanalysis (currently, all sets of variables that may appear in the same
-                                     * assume/assign.
-                                     */
-                                    variablePacking: Boolean = true,
-
                                     reportNoncriticalParameterBoundViolations: Boolean = false,
                                     reportDummyImplementations: Boolean = false,
                                     reportNumericalErrors: Boolean = false,
@@ -190,7 +190,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Do not report errors in libraries.
                                      */
-                                    libraryErrorReportingMode: LibraryErrorReportingMode = LibraryErrorReportingMode.Report,
+                                    libraryErrorReportingMode: LibraryErrorReportingMode = LibraryErrorReportingMode.ReportAtBoundary,
 
                                     /**
                                      * If this is true, the analysis will print something like
