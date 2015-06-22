@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.MapUtil
+import com.typesafe.scalalogging.LazyLogging
 
 trait VariablePackingClassifier {
 
@@ -49,7 +51,8 @@ case class StaticVariablePackingDomain
   [Cheap <: NumericalDomain[Cheap],Relational <: NumericalDomain.Relational[Relational]]
   (cheap:Cheap,classifier:VariablePackingClassifier,dom:Relational,map: Map[VariablePack, Relational])
   extends NumericalDomain[StaticVariablePackingDomain[Cheap,Relational]]
-  with SimplifiedSemanticDomain[StaticVariablePackingDomain[Cheap,Relational]] {
+  with SimplifiedSemanticDomain[StaticVariablePackingDomain[Cheap,Relational]]
+  with LazyLogging {
 
   def factory(a: Cheap, b: Map[VariablePack, Relational]): StaticVariablePackingDomain[Cheap, Relational] =
     StaticVariablePackingDomain(a,classifier,dom,b)
@@ -125,7 +128,13 @@ case class StaticVariablePackingDomain
 
   override def bottom() = factory(cheap.bottom(),Map.empty)
 
-  override def top() = throw new Exception("Really, do not create top semantic states")
+  override def top() = {
+    logger.debug("Creating a top state - this is known to cause problems")
+    if (SystemParameters.DEBUG) {
+      assert(false)
+    }
+    factory(cheap.top(),Map.empty)
+  }
 
   override def lub(other: StaticVariablePackingDomain[Cheap, Relational]) =
     factory(cheap.lub(other.cheap),MapUtil.mergeMapsOptional(map,other.map) {

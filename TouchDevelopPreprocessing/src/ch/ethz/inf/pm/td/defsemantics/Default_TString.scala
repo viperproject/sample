@@ -233,6 +233,15 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Converts the first character into the character code number (unicode) */
+  def member_to_character_code = ApiMember(
+    name = "to character code",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
   /** Rarely used: Parses the string as a color. */
   def member_to_color = ApiMember(
     name = "to color",
@@ -296,7 +305,7 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Sometimes used: Converts a single character string into its unicode number */
+  /** Sometimes used: Use ``to_character_code`` instead */
   def member_to_unicode = ApiMember(
     name = "to unicode",
     paramTypes = List(),
@@ -385,6 +394,7 @@ trait Default_TString extends AAny {
     "starts with" -> member_starts_with,
     "substring" -> member_substring,
     "to boolean" -> member_to_boolean,
+    "to character code" -> member_to_character_code,
     "to color" -> member_to_color,
     "to datetime" -> member_to_datetime,
     "to json" -> member_to_json,

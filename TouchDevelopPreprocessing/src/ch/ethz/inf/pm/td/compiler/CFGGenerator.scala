@@ -158,7 +158,8 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           val modifiers: List[Modifier] = Nil
           val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = false, isPrivate = isPriv)
           val parametricType: List[Type] = Nil
-          val arguments: List[List[VariableDeclaration]] = List(Nil,Nil) // We ignore parameters of pages - they ware initialized in the display code
+          val arguments: List[List[VariableDeclaration]] =
+            List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
           val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
         val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
           val (_, _, handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)

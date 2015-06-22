@@ -61,7 +61,6 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   self:T =>
 
   override def merge(f: Replacement): T = wrapperFactory(wrapped.merge(f))
-  override def backwardAccess(id: Identifier): T = wrapperFactory(wrapped.backwardAccess(id))
   override def setArgument(variable: Identifier, expr: Expression): T = wrapperFactory(wrapped.setArgument(variable, expr))
   override def setToTop(variable: Identifier): T = wrapperFactory(wrapped.setToTop(variable))
   override def removeVariable(id: Identifier): T = wrapperFactory(wrapped.removeVariable(id))
@@ -69,7 +68,6 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   override def assume(expr: Expression): T = wrapperFactory(wrapped.assume(expr))
   override def createVariable(variable: Identifier, typ: Type): T = wrapperFactory(wrapped.createVariable(variable,typ))
   override def assign(variable: Identifier, expr: Expression): T = wrapperFactory(wrapped.assign(variable,expr))
-  override def access(id: Identifier): T = wrapperFactory(wrapped.access(id))
   override def backwardAssign(oldPreState: T, id: Identifier, expr: Expression): T = wrapperFactory(wrapped.backwardAssign(oldPreState.wrapped,id,expr))
   override def getStringOfId(id: Identifier): String = wrapped.getStringOfId(id)
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = wrapped.explainError(expr)

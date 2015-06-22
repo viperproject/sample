@@ -63,10 +63,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
   override def backwardAssign(oldPreState: NonrelationalStringDomain[T], variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = this
 
-  override def access(field: Identifier) = this
-
-  override def backwardAccess(field: Identifier) = this
-
   private def eval(expr: Expression): T = expr match {
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)

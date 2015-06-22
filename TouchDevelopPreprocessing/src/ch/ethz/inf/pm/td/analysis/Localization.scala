@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.analysis
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{IdentifierSet, VariableIdentifier, Identifier}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.VariablePackingClassifier
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
@@ -81,7 +82,7 @@ object Localization {
 
     // update stack
     val (callee,callStack) = currentlyCollecting.pop2
-    assert { callee == pp }
+    if (SystemParameters.DEBUG) assert { callee == pp }
     currentlyCollecting = callStack
 
     // propagate callee reads to caller

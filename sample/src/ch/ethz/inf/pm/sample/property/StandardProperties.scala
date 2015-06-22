@@ -19,7 +19,7 @@ object DivisionByZero extends Visitor {
     case MethodCall(pp, FieldAccess(pp1, x, "/", typ), parametricTypes, y :: Nil, returnedType) =>
       var state1 = x.forwardSemantics(state)
       state1 = y.forwardSemantics(state1)
-      for(divisor <- state1.expr.getSetOfExpressions) {
+      for(divisor <- state1.expr.getNonTop) {
         if(! state1.assume(
           new ExpressionSet(SystemParameters.typ.top()).add(
             new BinaryArithmeticExpression(divisor, new Constant("0"), ArithmeticOperator.==)

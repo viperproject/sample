@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.util
 
+import ch.ethz.inf.pm.sample.SystemParameters
+
 /**
  * A general-purpose undirected graph
  */
@@ -18,7 +20,7 @@ class UndirectedGraph[N] {
    * Add a node to this graph
    */
   def addNode(v: N) = {
-    assert(!nodes.contains(v))
+    if (SystemParameters.DEBUG) assert(!nodes.contains(v))
     nodes += v -> Node(v)
   }
 

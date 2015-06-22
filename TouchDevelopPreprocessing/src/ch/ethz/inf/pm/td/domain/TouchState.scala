@@ -1,11 +1,13 @@
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
 import ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.td.analysis.{Localization, TouchVariablePacking, TouchAnalysisParameters, ApiField}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.Predef
 import scala.collection.immutable.Set
@@ -35,6 +37,7 @@ case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifie
 trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   extends SimpleState[T]
   with StateWithBackwardAnalysisStubs[T]
+  with LazyLogging
 {
   self:T =>
 
@@ -176,7 +179,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return       A may set and a must set of object
    */
   def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter:(Identifier,T) => Boolean): (Set[Identifier],Set[Identifier]) = {
-    assert (typ.isObject)
+    if (SystemParameters.DEBUG)
+      assert (typ.isObject)
 
     val objs = obj match {
       case h:HeapIdentifier => Set(h)
@@ -207,7 +211,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return       A may set and a must set of object
    */
   override def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(Identifier,T) => Boolean): (Set[Identifier],Set[Identifier]) = {
-    val (left,right) = objSet.getSetOfExpressions.map(getFieldValueWhere(_, field, typ, filter)).unzip
+    val (left,right) = objSet.getNonTop.map(getFieldValueWhere(_, field, typ, filter)).unzip
     val (newLeft,newRight) = (left.flatten,right.flatten)
     (newLeft,newRight)
   }
@@ -217,21 +221,96 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     */
   override def assume(cond: Expression): T = {
 
+    // Short-cut to simplified assumptions
+    if (cond.canonical) return assumeSimplified(cond)
+
     cond match {
-      case BinaryArithmeticExpression(left,right,ArithmeticOperator.==,_)
+
+      // This must be first -- Shortcut in simplified version
+      case b@BinaryArithmeticExpression(left, right, op, typ) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
+        assumeSimplified(b)
+
+      // Boolean constants
+      case Constant("true", _, _) => this
+      case Constant("false", _, _) => this.bottom()
+      case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false", _, _)) => this
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==, _) if a == b =>
+        this
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=, _) if a == b =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==, _) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==, _) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=, _) =>
+        this
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=, _) =>
+        this
+
+      // Boolean variables
+      case x: Identifier =>
+        if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        res
+
+      case NegatedBooleanExpression(x: Identifier) =>
+        if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+        res
+
+      // And and Or
+      case BinaryBooleanExpression(left, right, op, _) => op match {
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| =>
+          val l = assume(left)
+          val r = assume(right)
+          val res = l lub r
+          res
+      }
+
+      // Double-Negation + De-Morgan
+      case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
+        assume(x)
+
+      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
+        val nl = NegatedBooleanExpression(left)
+        val nr = NegatedBooleanExpression(right)
+        val nop = op match {
+          case BooleanOperator.&& => BooleanOperator.||
+          case BooleanOperator.|| => BooleanOperator.&&
+        }
+        assume(BinaryBooleanExpression(nl, nr, nop, typ))
+
+      // Inverting of operators
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
+        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+        res
+
+      // Handling of monomes
+      case _ =>
+        cond.canonical = true
+        assumeSimplified(cond)
+    }
+
+  }
+
+  def assumeSimplified(expr:Expression): T = {
+
+    expr match {
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.==, _)
         if left.typ.isObject && left.isInstanceOf[Identifier]
-        && right.typ.isObject && right.isInstanceOf[Identifier] => // TODO: Reference equality?
-        if ((forwardMay.getOrElse(left.asInstanceOf[Identifier],Set.empty)
-          intersect forwardMay.getOrElse(right.asInstanceOf[Identifier],Set.empty)).isEmpty) {
+          && right.typ.isObject && right.isInstanceOf[Identifier] => // TODO: Reference equality?
+        if ((forwardMay.getOrElse(left.asInstanceOf[Identifier], Set.empty)
+          intersect forwardMay.getOrElse(right.asInstanceOf[Identifier], Set.empty)).isEmpty) {
           bottom()
         } else this
       case _ =>
         val result = copy(
-          valueState = valueState.assume(cond)
+          valueState = valueState.assume(expr)
         )
         result
     }
-
   }
 
   /** Assigns an expression to a variable.
@@ -920,7 +999,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           for (field <- x.typ.representedFields) {
             val from = FieldIdentifier(x, field.getField.get, field.typ)
             val to = FieldIdentifier(newObject, field.getField.get, field.typ)
-            assert(!curState.ids.contains(to))
+            if (SystemParameters.DEBUG) assert(!curState.ids.contains(to))
             rep.value(Set(from).toSet[Identifier]) = Set(to).toSet[Identifier]
           }
           curState = curState.merge(rep)
@@ -1011,6 +1090,27 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
 
   /**
+   * Overwrite this if you need updating
+   */
+  override def updateIdentifier[I <: Identifier](id: I):I = {
+    id match {
+      case FieldIdentifier(o,f,t) => FieldIdentifier(updateIdentifier(o),f,t).asInstanceOf[I]
+      case HeapIdentifier(pp,t,_,_) =>
+        versions.get((pp,t)) match {
+          case None =>
+            if (SystemParameters.DEBUG) assert(false)
+            logger.debug("updating non-existing identifier")
+            id
+          case Some(x) =>
+            if (x.contains(id))
+              id
+            else
+              x.head.asInstanceOf[I]
+        }
+    }
+  }
+
+  /**
    * Graph-like interface
    */
   lazy val vertices:Set[Identifier] = forwardMay.flatMap { case (a, b) => b.toSet[Identifier] + a }.toSet
@@ -1024,6 +1124,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         case _ => None
       }}).flatten).toSet
   }
+
+
+
 
 }
 

@@ -1,6 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler.{TypeList, ApiParam}
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -18,7 +19,7 @@ case class GAction (typeName:TypeName, inNames:List[TypeName] = List.empty, outN
   lazy val out:List[AAny] = TypeList.toTouchTypes(outNames)
 
   override def actionReturnValue = {
-    assert(out.size <= 1)
+    if (SystemParameters.DEBUG) assert(out.size <= 1)
     if (out.isEmpty) TNothing else out.head
   }
 

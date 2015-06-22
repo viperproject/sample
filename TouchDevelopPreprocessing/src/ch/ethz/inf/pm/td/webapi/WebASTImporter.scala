@@ -57,8 +57,13 @@ object WebASTImporter {
         VariableDefinition(Parameter(name, makeTypeName(typ).setId(id)).setId(id), Map("readonly" -> isReadonly.toString, "is_resource" -> "true")).setId(id)
       case JData(id, name, comment, typ, isReadonly) =>
         VariableDefinition(Parameter(name, makeTypeName(typ).setId(id)).setId(id), Map("readonly" -> isReadonly.toString)).setId(id)
-      case JPage(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, initBody, displayBody) =>
-        PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+      case JPage(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, initBody, displayBody, hasModelParameter) =>
+        hasModelParameter match {
+          case Some(true) =>
+            PageDefinition(name, inParameters.tail map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+          case _ =>
+            PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+        }
       case JEvent(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, eventName, eventVariableId, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
       case JLibrary(id, name, libIdentifier, libIsPublished, exportedTypes, exportedTypeDefs, exportedActions, resolveClauses) =>
@@ -375,7 +380,8 @@ case class JPage(
                   isOffloaded: Option[Boolean],
                   isTest: Boolean,
                   initBody: List[JStmt],
-                  displayBody: List[JStmt]
+                  displayBody: List[JStmt],
+                  hasModelParameter: Option[Boolean]
                   ) extends JDecl(id, name)
 
 case class JEvent(

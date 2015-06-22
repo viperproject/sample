@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.td.webapi.NewScripts
 object Main {
 
   /**
-   * Defines the modes of the commandline interface
+   * Defines the modes of the commandline interfac
    *
    * - Default:   Reads a list of files or script ids from the command-line and analyses them one by one
    * - WatchMode: Watches a the mongodb for incoming analysis jobs (nonterminating)

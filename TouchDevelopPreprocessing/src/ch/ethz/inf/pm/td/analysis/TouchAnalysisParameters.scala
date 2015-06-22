@@ -142,7 +142,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * use hand-written library contracts
                                      */
-                                    useLibraryContracts: Boolean = true,
+                                    useLibraryContracts: Boolean = false,
 
                                     /**
                                      * Unsoundly assume that we do not have to create a copy of the collection

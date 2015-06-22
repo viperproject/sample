@@ -290,7 +290,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
         accPath = VariableIdentifier(fieldAccSt.field)(fieldAccSt.typ, fieldAccSt.pp) :: accPath
         current = fieldAccSt.obj
       }
-      assert(current.isInstanceOf[Variable], "The root of FieldAccess should be a variable.")
+      if (SystemParameters.DEBUG) assert(current.isInstanceOf[Variable], "The root of FieldAccess should be a variable.")
       val rootOfFieldAcc = current.asInstanceOf[Variable]
       accPath = rootOfFieldAcc.id :: accPath
       // TODO: The below fix is a hack and should not be handled this way
@@ -310,7 +310,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     s match {
       case v: Variable => v.id.typ
       case fa: FieldAccess =>
-        assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
+        if (SystemParameters.DEBUG) assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
         fa.typ
       case _ => throw new Exception("Should not happen as we use this only inside access path.")
     }

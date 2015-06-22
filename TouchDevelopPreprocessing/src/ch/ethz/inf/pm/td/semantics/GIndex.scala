@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
@@ -26,7 +27,7 @@ case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny)
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
 
-        assert(parameters.size == tupleType.sortedKeyFields.size)
+        if (SystemParameters.DEBUG) assert(parameters.size == tupleType.sortedKeyFields.size)
 
         // Only distinguish elements if we have a single key
 //        val key = if (parameters.size == 1) {

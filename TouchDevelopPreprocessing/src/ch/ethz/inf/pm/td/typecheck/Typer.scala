@@ -1,7 +1,5 @@
 package ch.ethz.inf.pm.td.typecheck
 
-import ch.ethz.inf.pm.td.analysis.ApiField
-import ch.ethz.inf.pm.td.parser
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.compiler.{TypeList, CFGGenerator, TouchException}
 import ch.ethz.inf.pm.td.semantics._
@@ -95,7 +93,7 @@ object Typer {
             case TypeUsage(ident) => throw TouchException("Type usages are unsupported.")
           }
         }
-      case _ => Unit
+      case _ => ()
     }
 
   }
@@ -106,7 +104,7 @@ object Typer {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
       case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
-        st.addAction(name, Nil, Nil) // We ignore parameters of pages - they ware initialized in the display code
+        st.addAction(name, inParameters, outParameters)
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
@@ -116,7 +114,7 @@ object Typer {
             case TypeUsage(ident) => throw TouchException("Type usages are unsupported.")
           }
         }
-      case _ => Unit
+      case _ => ()
     }
   }
 
@@ -129,7 +127,7 @@ object Typer {
         st(p) = ScopeSymbolTable(p, null, Map.empty) ++ inParameters ++ outParameters
         for (smt <- initBody) processStatement(p, st, smt)
         for (smt <- displayBody) processStatement(p, st, smt)
-      case _ => Unit
+      case _ => ()
     }
   }
 

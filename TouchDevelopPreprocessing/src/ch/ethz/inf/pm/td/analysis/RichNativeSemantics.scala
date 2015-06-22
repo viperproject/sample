@@ -139,11 +139,15 @@ object RichNativeSemantics extends RichExpressionImplicits {
               }
               case Some(st) => st
             }
-            curState = AssignField[S](obj, f, a)(curState, pp)
+
+            // Sometimes, our original object was replaced in the calls above (for recursive datastructures)
+            val newObj = curState.updateIdentifiers(obj)
+            curState = AssignField[S](newObj, f, a)(curState, pp)
           }
         }
 
-        curState.setExpression(obj)
+        val newObj = curState.updateIdentifiers(obj)
+        curState.setExpression(newObj)
     }
   }
 
@@ -160,11 +164,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
         var curState = s.createObject(typ, pp)
         val obj = curState.expr
 
-        // TODO: Support for recursive datastructures
-//        val tempVariable = VariableIdentifier("initVar"+pp.toString)(typ,pp)
-//        curState = s.createVariable(toRichExpression(tempVariable),typ,pp)
-//        curState = s.assignVariable(toRichExpression(tempVariable),obj)
-
         if (initializeFields) {
           // Assign fields with given arguments
           for (f <- anyType.representedTouchFields) {
@@ -179,11 +178,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
               }
               case Some(st) => st
             }
-            curState = AssignField[S](obj, f, a)(curState, pp)
+            val newObj = curState.updateIdentifiers(obj)
+            curState = AssignField[S](newObj, f, a)(curState, pp)
           }
         }
 
-        curState.setExpression(obj)
+        val newObj = curState.updateIdentifiers(obj)
+        curState.setExpression(newObj)
 
     }
   }
@@ -228,17 +229,21 @@ object RichNativeSemantics extends RichExpressionImplicits {
             val oldField = Field[S](obj, f)(curState, newPP)
             curState = Clone[S](oldField, recursive = !referenceLoop)(curState, newPP)
             val clonedContent = curState.expr
-            curState = AssignField[S](newObject, f, clonedContent)(curState, newPP)
+            val newNewObject = curState.updateIdentifiers(newObject)
+            curState = AssignField[S](newNewObject, f, clonedContent)(curState, newPP)
           } else {
             val oldField = Field[S](obj, f)(curState, pp)
-            curState = AssignField[S](newObject, f, oldField)(curState, pp)
+            val newNewObject = curState.updateIdentifiers(newObject)
+            curState = AssignField[S](newNewObject, f, oldField)(curState, pp)
           }
         case Some(st) =>
-          curState = AssignField[S](newObject, f, st)(curState, pp)
+          val newNewObject = curState.updateIdentifiers(newObject)
+          curState = AssignField[S](newNewObject, f, st)(curState, pp)
       }
     }
 
-    curState.setExpression(newObject)
+    val newNewObject = curState.updateIdentifiers(newObject)
+    curState.setExpression(newNewObject)
 
   }
 
@@ -291,7 +296,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
     def getMultiValAsList(expr: RichExpression): List[ExpressionSet] = {
       var ret: List[ExpressionSet] = Nil
-      for (sExpr <- expr.thisExpr.getSetOfExpressions) yield {
+      for (sExpr <- expr.thisExpr.getNonTop) yield {
         sExpr match {
           case MultiValExpression(left, right, retVal) =>
             val multiVal = getMultiValAsList(left) ::: getMultiValAsList(right)
@@ -315,7 +320,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     for ((l, r) <- leftExprs.zip(rightExprs)) {
 
       // Create variable that might not exist yet
-      if (l.getSetOfExpressions.size == 1 && l.getSetOfExpressions.head.isInstanceOf[VariableIdentifier]) {
+      if (l.getNonTop.size == 1 && l.getNonTop.head.isInstanceOf[VariableIdentifier]) {
         curState = curState.createVariable(l, l.getType(), pp)
       }
 

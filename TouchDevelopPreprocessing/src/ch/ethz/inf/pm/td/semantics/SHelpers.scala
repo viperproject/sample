@@ -19,6 +19,7 @@ object SHelpers extends ASingleton {
   lazy val typeName = TypeName("Helpers",isSingleton = true)
 
   val CreateMethod = """create (.*action) (.+)""".r
+  val ActionType = """(.*) action""".r
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
@@ -47,8 +48,8 @@ object SHelpers extends ASingleton {
           New[S](TWeb_Response_Action,Map(TWeb_Response_Action.field_handlerName -> String(handlerName)))
         case "message collection action" =>
           New[S](TCollection_Message_Action,Map(TCollection_Message_Action.field_handlerName -> String(handlerName)))
-        case _ =>
-          super.forwardSemantics(this0,method,parameters,returnedType)
+        case ActionType(x) =>
+          New[S](GAction(TypeName(handlerTyp),List(TypeName(x)),Nil),Map(TCollection_Message_Action.field_handlerName -> String(handlerName)))
       }
 
     case _ =>

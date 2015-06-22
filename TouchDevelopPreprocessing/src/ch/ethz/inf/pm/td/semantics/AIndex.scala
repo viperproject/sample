@@ -12,7 +12,9 @@ trait AIndex extends ACollection {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "clear" -> member_clear,
-    "at" -> member_at
+    "at" -> member_at,
+    "invalid" -> member_invalid,
+    "copy to collection" -> member_copy_to_collection
   )
 
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
@@ -21,11 +23,27 @@ trait AIndex extends ACollection {
     }
   })
 
+  def member_copy_to_collection = ApiMember(
+    name = "copy to collection",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(valueType),
+    semantics = ValidPureSemantics
+  )
+
+  def member_invalid = ApiMember(
+    name = "invalid",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = InvalidSemantics
+  )
+
   def member_clear = ApiMember(
     name = "clear",
     paramTypes = List(),
     thisType = ApiParam(this),
-    returnType = valueType,
+    returnType = TNothing,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         collectionClear[S](this0)

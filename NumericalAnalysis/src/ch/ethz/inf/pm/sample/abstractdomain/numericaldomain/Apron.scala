@@ -167,7 +167,7 @@ object Apron {
         if (!exists(idB) && newIdsA.nonEmpty) {
           val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(idB))
           factory(apronState.changeEnvironmentCopy(manager, newEnv, false).foldCopy(manager, SA(idB :: newIdsA.toList)), ids.fold(newIdsA, idB))
-        } else remove(idsA).add(Set(idB))
+        } else remove(newIdsA).add(Set(idB))
       } else this
     }
 
@@ -183,7 +183,10 @@ object Apron {
       if (numerical(idA)) {
         val newIdsB = filterNonExisting(idsB) filter numerical
         if (exists(idA) && newIdsB.nonEmpty) {
-          factory(apronState.expandCopy(manager, S(idA), SA(newIdsB)), ids.expand(idA, newIdsB))
+          val newState = apronState.expandCopy(manager, S(idA), SA(newIdsB))
+          val newEnv = newState.getEnvironment.remove(SA(idA))
+          newState.changeEnvironment(manager, newEnv, false)
+          factory(newState, ids.expand(idA, newIdsB))
         } else {
           remove(Set(idA)).add(newIdsB)
         }

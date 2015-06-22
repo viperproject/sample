@@ -316,7 +316,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       .filter(blockId => getDirectSuccessors(blockId).isEmpty)
 
     // all reasonable control flow graphs should have exactly one exit block
-    assert(blocksWithoutSuccessors.size == 1)
+    if (SystemParameters.DEBUG) assert(blocksWithoutSuccessors.size == 1)
     blocksWithoutSuccessors.head
   }
 
@@ -333,7 +333,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     val allConditional = outEdges.forall({ case (_,_,cond) => cond.isDefined } )
     val allUnconditional = outEdges.forall({ case (_,_,cond) => !cond.isDefined } )
     // should be a correct assumption about valid CFGs, otherwise we are in trouble
-    assert(allConditional || allUnconditional)
+    if (SystemParameters.DEBUG) assert(allConditional || allUnconditional)
     allConditional
   }
 
@@ -341,7 +341,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     val succs = exitEdges(blockIndex).toList
     succs match {
       case List((_, aId, Some(aTruth)), (_, bId, Some(bTruth))) =>
-        assert(aTruth && !bTruth || !aTruth && bTruth)
+        if (SystemParameters.DEBUG) assert(aTruth && !bTruth || !aTruth && bTruth)
         val (trueSucc, falseSucc) = if (aTruth) (aId, bId) else (bId, aId)
         val stmt = getBasicBlockStatements(blockIndex).last
         Some(stmt, trueSucc, falseSucc)
@@ -363,7 +363,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       result = Some(condStmt, condValue)
     }
     // our assumption out CFG structure (only 1 conditional incoming edge, if any)
-    assert(!result.isDefined || edges.size == 1)
+      if (SystemParameters.DEBUG) assert(result.isEmpty || edges.size == 1)
     result
   }
 }

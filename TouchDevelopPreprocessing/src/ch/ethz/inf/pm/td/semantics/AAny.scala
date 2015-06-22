@@ -200,7 +200,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     case "," =>
       val List(right) = parameters // Unknown,Unknown
     var multiValExpressionSet = new ExpressionSet(TUnknown)
-      for (l <- this0.getSetOfExpressions; r <- right.getSetOfExpressions) {
+      for (l <- this0.getNonTop; r <- right.getNonTop) {
         multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown))
       }
       state.setExpression(multiValExpressionSet)
@@ -215,9 +215,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
     // Sometimes, x.bla(y) is rewritten to code->bla(x,y) for records
     val context = SystemParameters.analysisUnitContext
-    val classType = context.clazzType
     val arguments = this0.getType() :: (parameters map (_.getType()))
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method, classType, arguments) match {
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(method, arguments) match {
       case Some(mdecl) =>
         MethodSummaries.collect(pp, mdecl, state, parameters)
       case _ =>

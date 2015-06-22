@@ -126,8 +126,6 @@ case class PredicateInstancesDomain(
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
-  def backwardAccess(field: Identifier) = ???
-  def access(field: Identifier) = ???
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
 }
 

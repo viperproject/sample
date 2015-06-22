@@ -187,18 +187,7 @@ I <: HeapIdentifier[I]](
     val newSemantic = applyToAssignable[N](variable, semantic.merge(r), _.removeVariable(_))
     factory(newSemantic, newHeap)
   }
-
-  def access(field: Assignable): T = {
-    //Access does not change the state of the heap domain
-    val newSemantic = applyToAssignable[N](field, semantic, _.access(_))
-    factory(newSemantic, heap)
-  }
-
-  def backwardAccess(field: Assignable): T = {
-    val newSemantic = applyToAssignable[N](field, semantic, _.backwardAccess(_))
-    factory(newSemantic, heap)
-  }
-
+  
   def backwardAssign(oldPreState: T, variable: Assignable, expr: Expression): T = {
     val (newHeap, r) = heap.backwardAssign(oldPreState.heap, variable, expr)
     val (newHeap2, _) = oldPreState.heap.glbWithReplacement(newHeap)

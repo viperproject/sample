@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.test.unit
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
@@ -97,7 +98,7 @@ trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
   }
 
   test("Removing Variables") {
-    for (a <- instances) {
+    for (a <- instances) if (!a.isTop) {
       val x = a.createVariable(v1).createVariable(v2).removeVariable(v1).removeVariable(v2)
       assert { !x.ids.contains(v1) }
       assert { !x.ids.contains(v2) }
@@ -240,6 +241,8 @@ class SignTest extends NonRelationalNumericalDomainTest[Sign] {
 trait ApronTest[T <: Apron[T]]
   extends NumericalDomainTest[T]
   with MostPreciseAssignment[T] {
+
+  SystemParameters.typ = DummyNumericalType
 
 }
 

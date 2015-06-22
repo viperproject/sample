@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation
+import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichNativeSemantics, ApiField}
@@ -117,7 +117,7 @@ object SkipSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert(method.returnType == TNothing)
+    if (SystemParameters.DEBUG) assert(method.returnType == TNothing)
     Skip[S]
   }
 
@@ -138,7 +138,7 @@ object DefaultSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert (parameters.length == method.paramTypes.length)
+    if (SystemParameters.DEBUG) assert (parameters.length == method.paramTypes.length)
 
     var curState = state
 
@@ -218,8 +218,10 @@ object ValidPureSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert(!method.thisType.isMutated)
-    assert(method.paramTypes.forall(!_.isMutated))
+    if (SystemParameters.DEBUG) {
+      assert(!method.thisType.isMutated)
+      assert(method.paramTypes.forall(!_.isMutated))
+    }
 
     Top[S](method.returnType)
 

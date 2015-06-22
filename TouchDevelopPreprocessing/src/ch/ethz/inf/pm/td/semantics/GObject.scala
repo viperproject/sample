@@ -24,11 +24,20 @@ case class GObject(typeName:TypeName, fieldsParameters:List[Parameter]) extends 
     semantics = DefaultSemantics
   )
 
+  lazy val member_from_json = ApiMember(
+    name = "from json",
+    paramTypes = List(ApiParam(TJson_Object)),
+    thisType = ApiParam(this,isMutated = true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   override def possibleFields = super.possibleFields ++ fields
 
   override lazy val declarations = super.declarations ++ mkGetterSetters(fields) ++ Map(
     "clear fields" -> member_clear_fields,
-    "to json" -> member_to_json
+    "to json" -> member_to_json,
+    "from json" -> member_from_json
   )
 
 }

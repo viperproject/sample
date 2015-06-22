@@ -5,7 +5,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSim
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 trait CharacterSet extends SetDomain[Char, CharacterSet] {
-  override def factory(value: Set[Char]): CharacterSet = InnerCharacterSet(value)
+  override def factory(value: Set[Char]): CharacterSet =
+    if (value.isEmpty) BottomCharacterSet
+    else InnerCharacterSet(value)
   override def bottom(): CharacterSet = BottomCharacterSet
   override def top(): CharacterSet = TopCharacterSet
 }
@@ -93,7 +95,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
   private def eval(expr: Expression): CharacterSet = expr match {
     case x: Identifier => this.get(x)
     case x: Constant if x.constant.isInstanceOf[String] =>
-      var result:CharacterSet = InnerCharacterSet(Set.empty)
+      var result:CharacterSet = BottomCharacterSet
       for (c <- x.constant.toCharArray)
         result = result.+(c)
       result;

@@ -116,8 +116,10 @@ trait TopLattice[S <: Lattice[S]] extends Lattice[S] {
 trait InnerLattice[S <: Lattice[S], I <: InnerLattice[S,I]] extends Lattice[S] {
   this:S =>
 
-  assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
-  assert { lessEqual(top()) && !top().lessEqual(this) }
+  if (SystemParameters.DEBUG) {
+    assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
+    assert { lessEqual(top()) && !top().lessEqual(this) }
+  }
 
   override final def isTop: Boolean = false
   override final def isBottom: Boolean = false
@@ -246,9 +248,6 @@ object DummyLattice {
   }
 
 }
-
-
-
 
 /**
  * The representation of a state of our analysis.
@@ -578,6 +577,13 @@ trait State[S <: State[S]] extends Lattice[S] {
 
   def merge(r:Replacement):S = this
 
+  /**
+   * Update the identifiers in the expression set to the currently represented objects.
+   * For example, if it contains a non-summary node, but the state contains a summary-version,
+   * convert.
+   */
+  def updateIdentifiers(expr:ExpressionSet):ExpressionSet
+
 }
 
 trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] extends SimpleState[S] {
@@ -611,7 +617,7 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
 trait SimpleState[S <: SimpleState[S]] extends State[S] {
   this: S =>
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S = {
-    require(x.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]),
+    require(x.getNonTop.forall(_.isInstanceOf[VariableIdentifier]),
       "can only create variable from variable identifiers")
 
     unlessBottom(x, {
@@ -626,7 +632,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S
 
   def createVariableForArgument(x: ExpressionSet, typ: Type): S = {
-    require(x.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]),
+    require(x.getNonTop.forall(_.isInstanceOf[VariableIdentifier]),
       "can only create variable from variable identifiers")
 
     unlessBottom(x, {
@@ -647,8 +653,8 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           setVariableToTop(leftSet)
         } else {
           Lattice.bigLub(for (
-            left <- leftSet.getSetOfExpressions;
-            right <- rightSet.getSetOfExpressions)
+            left <- leftSet.getNonTop;
+            right <- rightSet.getNonTop)
           yield assignVariable(left, right))
         }
         result.setUnitExpression()
@@ -669,8 +675,8 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           t.setVariableToTop(t.expr)
         } else {
           Lattice.bigLub(for (
-            obj <- objSet.getSetOfExpressions;
-            right <- rightSet.getSetOfExpressions)
+            obj <- objSet.getNonTop;
+            right <- rightSet.getNonTop)
           yield assignField(obj, field, right))
         }
         result.setUnitExpression()
@@ -685,7 +691,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   def setVariableToTop(varSet: ExpressionSet): S = {
     unlessBottom(varSet, {
-      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(setVariableToTop))
+      val result = Lattice.bigLub(varSet.getNonTop.map(setVariableToTop))
       result.removeExpression()
     })
   }
@@ -696,10 +702,10 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   def removeVariable(varExpr: VariableIdentifier): S
 
   def removeVariable(varSet: ExpressionSet): S = {
-    require(varSet.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]))
+    require(varSet.getNonTop.forall(_.isInstanceOf[VariableIdentifier]))
 
     unlessBottom(varSet, {
-      val result = Lattice.bigLub(varSet.getSetOfExpressions.map { x => removeVariable (x.asInstanceOf[VariableIdentifier])})
+      val result = Lattice.bigLub(varSet.getNonTop.map { x => removeVariable (x.asInstanceOf[VariableIdentifier])})
       result.removeExpression()
     })
   }
@@ -711,7 +717,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   def getFieldValue(objSet: ExpressionSet, field: String, typ: Type): S = {
     unlessBottom(objSet, {
-      Lattice.bigLub(objSet.getSetOfExpressions.map(getFieldValue(_, field, typ)))
+      Lattice.bigLub(objSet.getNonTop.map(getFieldValue(_, field, typ)))
     })
   }
 
@@ -727,8 +733,8 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           setVariableToTop(varSet)
         } else {
           Lattice.bigLub(for (
-            left <- varSet.getSetOfExpressions;
-            right <- rhsSet.getSetOfExpressions)
+            left <- varSet.getNonTop;
+            right <- rhsSet.getNonTop)
           yield backwardAssignVariable(oldPreState, left, right))
         }
         result.removeExpression()
@@ -747,8 +753,8 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           t.setVariableToTop(t.expr).setExpression(ExpressionFactory.unitExpr)
         } else {
           Lattice.bigLub(for (
-            obj <- objSet.getSetOfExpressions;
-            right <- rightSet.getSetOfExpressions)
+            obj <- objSet.getNonTop;
+            right <- rightSet.getNonTop)
           yield backwardAssignField(oldPreState, obj, field, right))
         }
         result.setUnitExpression()
@@ -762,13 +768,36 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     // Return this, not bottom, when set of conditions is empty
     if (isBottom || condSet.isBottom || condSet.isTop || condSet._2.isTop) this
     else {
-      Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
+      Lattice.bigLub(condSet.getNonTop.map(assume))
     }
   }
 
+  def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
+    if (!expr.isTop) {
+      ExpressionSet((for (e <- expr.getNonTop) yield updateIdentifiers(e)).toSeq)
+    } else expr
+  }
+
+  def updateIdentifiers(expr:Expression):Expression = {
+    if (!expr.ids.isTop) {
+      var curExpr = expr
+      for (id <- expr.ids.getNonTop) {
+        val matchingId = updateIdentifier(id)
+        if (id != matchingId)
+          curExpr = curExpr.replace(id,matchingId)
+      }
+      curExpr
+    } else expr
+  }
+
+  /**
+   * Overwrite this if you need updating
+   */
+  def updateIdentifier[I <: Identifier](id: I):I = id
+
   /** Assumes an expression.
-    * Implementations can already assume that this state is non-bottom.
-    */
+   * Implementations can already assume that this state is non-bottom.
+   */
   def assume(cond: Expression): S
 
   def testTrue(): S = {
@@ -797,14 +826,14 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   }
 
   override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
-    expr.getSetOfExpressions.map( this.explainError ).flatten
+    expr.getNonTop.map( this.explainError ).flatten
 
   def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
 
   private def unpackSingle(set: ExpressionSet): Expression = {
-    require(set.getSetOfExpressions.size == 1,
+    require(set.getNonTop.size == 1,
       "ExpressionSet must contain exactly one Expression")
-    set.getSetOfExpressions.head
+    set.getNonTop.head
   }
 }
 

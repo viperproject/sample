@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.execution
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph
 
@@ -71,7 +72,7 @@ class TrackingCFGState[S <: State[S]](val cfg: ControlFlowGraph, val stateFactor
   def setStatesOfBlock(blockIdx: Int, states: List[S]) {
     val stmts = cfg.getBasicBlockStatements(blockIdx)
     val expectedLength = stmts.length + 1
-    assert (expectedLength == states.length)
+    if (SystemParameters.DEBUG) assert (expectedLength == states.length)
     blockStates += blockIdx -> (blockStates(blockIdx) :+ states)
   }
 }

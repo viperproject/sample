@@ -644,10 +644,10 @@ object IdentifierSet {
   }
 
   case class Inner(value:Set[Identifier]) extends SetDomain.Inner[Identifier,IdentifierSet,Inner] with IdentifierSet {
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = if (value.contains(idA)) factory(value - idA ++ idsB) else this
-    override def rename(idA: Identifier, idB: Identifier) = if (value.contains(idA)) factory(value - idA + idB) else this
+    override def expand(idA: Identifier, idsB: Set[Identifier]) = factory(value - idA ++ idsB)
+    override def rename(idA: Identifier, idB: Identifier) = factory(value - idA + idB)
     override def remove(ids: Set[Identifier]) = factory(value -- ids)
-    override def fold(idsA: Set[Identifier], idB: Identifier) = if (value.intersect(idsA).nonEmpty) factory(value -- idsA + idB) else this
+    override def fold(idsA: Set[Identifier], idB: Identifier) = factory(value -- idsA + idB)
     override def add(ids: Set[Identifier]) = factory(value ++ ids)
     override def getNonTop:Set[Identifier] = value
   }
@@ -863,12 +863,6 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   def removeVariable(variable: Identifier): T =
     factory(variable, _1.removeVariable, _2.removeVariable)
 
-  def access(field: Identifier): T =
-    factory(field, _1.access, _2.access)
-
-  def backwardAccess(field: Identifier): T =
-    factory(field, _1.backwardAccess, _2.backwardAccess)
-
   def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
     factory[Identifier, Expression](variable, expr,
       _1.backwardAssign(oldPreState._1, _, _),
@@ -990,12 +984,6 @@ T <: SelectiveReducedSemanticProductDomain[T1, T2, T]]
 
   override def removeVariable(variable: Identifier): T =
     super.removeVariable(variable).reduce(IdentifierSet.Inner(Set(variable)))
-
-  override def access(field: Identifier): T =
-    super.access(field).reduce(IdentifierSet.Inner(Set(field)))
-
-  override def backwardAccess(field: Identifier): T =
-    super.backwardAccess(field).reduce(IdentifierSet.Inner(Set(field)))
 
   override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
     super.backwardAssign(oldPreState, variable, expr).reduce(expr.ids + variable)

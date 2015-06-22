@@ -1,15 +1,25 @@
 package ch.ethz.inf.pm.sample.util
 
+import ch.ethz.inf.pm.sample.SystemParameters
+
 object Relation {
   def empty[V]:Relation[V] = new Relation[V](Map.empty,Map.empty)
 }
 
 class Relation[V](protected val forward:Map[V,Set[V]], protected val backward:Map[V,Set[V]]) {
 
-  assert {
-    val pairs1 = forward.map{ x => x._2.map{ (x._1,_) } }.flatten.toSet
-    val pairs2 = backward.map{ x => x._2.map{ (_,x._1) } }.flatten.toSet
-    pairs1.subsetOf(pairs2) && pairs2.subsetOf(pairs1)
+  if (SystemParameters.DEBUG) {
+    assert {
+      val pairs1 = forward.map { x => x._2.map {
+        (x._1, _)
+      }
+      }.flatten.toSet
+      val pairs2 = backward.map { x => x._2.map {
+        (_, x._1)
+      }
+      }.flatten.toSet
+      pairs1.subsetOf(pairs2) && pairs2.subsetOf(pairs1)
+    }
   }
 
   /** Most basic: add a relation */

@@ -44,11 +44,20 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
     semantics = InvalidSemantics
   )
 
+  lazy val member_create_collection = ApiMember(
+    name = "create collection",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(rowTyp),
+    semantics = NewSemantics
+  )
+
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++
     Map(
       "add row" -> member_add_row,
       "invalid row" -> member_invalid_row,
-      "row at" -> member_row_at
+      "row at" -> member_row_at,
+      "create collection" -> member_create_collection
     )
 
 

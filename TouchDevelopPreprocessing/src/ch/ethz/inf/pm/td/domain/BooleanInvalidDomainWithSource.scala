@@ -75,10 +75,6 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
     s.setToTop(variable)
   }
 
-  override def access(field: Identifier) = this
-
-  override def backwardAccess(field: Identifier) = this
-
   /**
    * Evaluation for invalid values. The following rules apply:
    *

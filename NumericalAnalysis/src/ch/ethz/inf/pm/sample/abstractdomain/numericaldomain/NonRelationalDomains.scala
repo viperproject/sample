@@ -57,10 +57,6 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     ??? // only support for apron domains
   }
 
-  override def access(field: Identifier) = this
-
-  override def backwardAccess(field: Identifier) = this
-
   def evalBoolean(expr: Expression): N = {
     // Implicit conversion from boolean types
     val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
@@ -545,8 +541,10 @@ object IntegerInterval {
     extends IntegerInterval
     with NonRelationalNumericalDomain.Inner[IntegerInterval,Inner] {
 
-    assert(left <= right)
-    assert(left != Int.MinValue || right != Int.MaxValue)
+    if (SystemParameters.DEBUG) {
+      assert(left <= right)
+      assert(left != Int.MinValue || right != Int.MaxValue)
+    }
 
     def factory(newLeft: Int, newRight:Int) = {
       if (newLeft == Int.MinValue && newRight == Int.MaxValue) Top

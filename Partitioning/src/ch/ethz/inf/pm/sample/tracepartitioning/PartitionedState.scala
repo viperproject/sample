@@ -69,7 +69,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * in the leaf states.
    */
   lazy val programPoints: List[ProgramPoint] = {
-    expr.getSetOfExpressions.map(_.pp).toList
+    expr.getNonTop.map(_.pp).toList
   }
 
   /**
@@ -426,7 +426,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    */
   override def expr: ExpressionSet = {
     var expr = ExpressionSet() // TODO: Maybe I could be more precise
-    for (s <- partitioning.states; e <- s.expr.getSetOfExpressions)
+    for (s <- partitioning.states; e <- s.expr.getNonTop)
       expr = expr.add(e)
     expr
   }
@@ -485,7 +485,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    */
   private[this] def mapValue(x: ExpressionSet, f: (D, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.getSetOfExpressions
+      ex <- x.getNonTop
       val px = this.partitioning
       val pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
     } yield new PartitionedState(pc)
@@ -509,8 +509,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, f: (D, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.getSetOfExpressions
-      ey <- y.getSetOfExpressions
+      ex <- x.getNonTop
+      ey <- y.getNonTop
       val px = this.partitioning
       val py = this.partitioning
       val pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
@@ -536,9 +536,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, z: ExpressionSet, f: (D, ExpressionSet, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.getSetOfExpressions
-      ey <- y.getSetOfExpressions
-      ez <- z.getSetOfExpressions
+      ex <- x.getNonTop
+      ey <- y.getNonTop
+      ez <- z.getNonTop
       val px = this.partitioning
       val py = this.partitioning
       val pz = this.partitioning
@@ -562,7 +562,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
   private[this] def mapValueList(xs: List[ExpressionSet], f: (D, List[ExpressionSet]) => D): PartitionedState[D] = {
     val separate = for {
       cx <- combinations(xs)
-      val es = cx.map(_.getSetOfExpressions.head)
+      val es = cx.map(_.getNonTop.head)
       val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield ExpressionSet(e)))
     } yield new PartitionedState(pc)
@@ -587,7 +587,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       cx <- combinations(xs)
       cy <- combinations(ys)
       val n = cx.length
-      val es = cx.map(_.getSetOfExpressions.head):::cy.map(_.getSetOfExpressions.head)
+      val es = cx.map(_.getNonTop.head):::cy.map(_.getNonTop.head)
       val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
@@ -609,7 +609,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @return The list of deterministic combinations of the argument
    */
   private[this] def combinations(xs: List[ExpressionSet]): List[List[ExpressionSet]] = xs match {
-    case x::xs => (for (ex <- x.getSetOfExpressions; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
+    case x::xs => (for (ex <- x.getNonTop; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
     case Nil => Nil
   }
 

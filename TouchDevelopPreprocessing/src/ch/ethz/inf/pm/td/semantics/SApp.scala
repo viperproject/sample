@@ -19,6 +19,18 @@ import RichNativeSemantics._
 
 object SApp extends Default_SApp {
 
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "javascript import" -> member_javascript_import
+  )
+
+  def member_javascript_import = ApiMember(
+    name = "javascript import",
+    paramTypes = List(ApiParam(TString),ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Aborts the execution if the condition is false. */
   override def member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member:ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {

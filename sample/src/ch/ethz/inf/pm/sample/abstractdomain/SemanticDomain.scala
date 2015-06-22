@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 /**
@@ -121,22 +122,6 @@ trait SemanticDomain[T <: SemanticDomain[T]]
     variables.foldLeft(this)(_.removeVariable(_))
 
   /**
-   * This method represents the semantics when accessing an identifier
-   *
-   * @param id the accessed id
-   * @return the state after this action
-   */
-  def access(id: Identifier): T
-
-  /**
-   * This method represents the backward semantics when accessing an identifier
-   *
-   * @param id the accessed id
-   * @return the state before this action
-   */
-  def backwardAccess(id: Identifier): T
-
-  /**
    * This method provides the backward semantics of assignment
    *
    * @param id the assigned id
@@ -158,7 +143,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    * @author Milos Novacek
    */
   def rename(from: List[Identifier], to: List[Identifier]): T = {
-    assert(from.length == to.length)
+    if (SystemParameters.DEBUG) assert(from.length == to.length)
     rename((from zip to).toMap)
   }
 
@@ -234,10 +219,6 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
 
   def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression) = this
 
-  def backwardAccess(field: Identifier) = this
-
-  def access(field: Identifier) = this
-
   def removeVariable(variable: Identifier) = this
 
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = (this, Map.empty)
@@ -276,10 +257,6 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
     result = result + ((variable, path ::: variable.toString :: Nil))
     (this.createVariable(variable, typ), result)
   }
-
-  override def access(field: Identifier): T = this
-
-  override def backwardAccess(field: Identifier): T = throw new SymbolicSemanticException("Backward analysis not supported")
 
   override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = throw new SymbolicSemanticException("Backward analysis not supported")
 

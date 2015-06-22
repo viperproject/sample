@@ -228,4 +228,6 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
   }
 
   override def merge(r: Replacement): AccessCollectingState = this
+
+  override def updateIdentifiers(expr: ExpressionSet) = expr
 }
