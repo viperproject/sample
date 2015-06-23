@@ -106,6 +106,10 @@ static inline void numint_min(numint_t a, numint_t b, numint_t c)
 { mpz_set(a, mpz_cmp(b,c)<=0 ? b : c); }
 static inline void numint_max(numint_t a, numint_t b, numint_t c)
 { mpz_set(a, mpz_cmp(b,c)>=0 ? b : c); }
+static inline void numint_floor(numint_t a, numint_t b)
+{ mpz_set(a, b); }
+static inline void numint_ceil(numint_t a, numint_t b)
+{ mpz_set(a, b); }
 
 static inline void numint_sqrt(numint_t up, numint_t down, numint_t b)
 {
@@ -126,7 +130,6 @@ static inline int numint_pow(numint_t up, numint_t down, numint_t b, unsigned lo
 
 static inline void numint_root(numint_t up, numint_t down, numint_t b, unsigned long int n)
 {
-  int sign = 0;
   assert(n > 0);
   assert((n & 1) || (mpz_sgn(b) >= 0));
   if (mpz_sgn(b) < 0) {
@@ -184,7 +187,7 @@ static inline int numint_cmp_int(numint_t a, long int b)
 static inline bool numint_equal(numint_t a, numint_t b)
 { return mpz_cmp(a,b)==0; }
 static inline bool numint_integer(numint_t a)
-{ return true; }
+{ (void)a; return true; }
 
 /* ====================================================================== */
 /* Printing */
@@ -228,6 +231,7 @@ static inline bool numint_set_mpz(numint_t a, mpz_t b)
 static inline bool numint_set_mpq_tmp(numint_t a, mpq_t b,
 				      mpz_t q, mpz_t r)
 {
+  (void)q;
   mpz_cdiv_qr(a, r, mpq_numref(b),mpq_denref(b));
   bool res = (mpz_sgn(r)==0);
   return res;
@@ -295,11 +299,11 @@ static inline bool mpfr_set_numint(mpfr_t a, numint_t b)
 { return !mpfr_set_z(a,b,GMP_RNDU); }
 
 static inline bool mpz_fits_numint(mpz_t a)
-{ return true; }
+{ (void)a; return true; }
 static inline bool mpq_fits_numint_tmp(mpq_t a, mpz_t mpz)
-{ return true; }
+{ (void)a; (void)mpz; return true; }
 static inline bool mpq_fits_numint(mpq_t a)
-{ return true; }
+{ (void)a; return true; }
 static inline bool double_fits_numint(double a)
 { return isfinite(a); }
 static inline bool mpfr_fits_numint(mpfr_t a)

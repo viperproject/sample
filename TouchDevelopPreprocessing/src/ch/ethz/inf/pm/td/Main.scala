@@ -86,6 +86,7 @@ object Main {
         |  (2) WatchMode, enabled by -watchMode
         |    Watches a the mongodb for incoming analysis jobs (nonterminating)
         |    Allows options as above
+        |    -waitTime=[int] how often to poll, in ms.
         |
         |  (3) FeedMode, enabled by -feedMode
         |    Constantly feeds new analysis jobs into the database
@@ -205,7 +206,7 @@ object Main {
    */
   def runWatchMode(args: Array[String]) {
 
-    var waitTime = 1000
+    var waitTime = 200
     val WaitTimeOption = "-waitTime=([\\d]+)".r
     val otherArgs = args filter {
 

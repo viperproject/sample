@@ -604,7 +604,6 @@ bool ITVFUN(itv_quasilinearize_lincons)(itv_internal_t* intern, itv_lincons_t* l
     return true;
   }
   else {
-  itv_quasilinearize_lincons_std:
     return itv_quasilinearize_linexpr(intern,&lincons->linexpr,env,
 				      meet &&
 				      (lincons->constyp==AP_CONS_SUP ||
@@ -615,7 +614,7 @@ bool ITVFUN(itv_quasilinearize_lincons)(itv_internal_t* intern, itv_lincons_t* l
 
 bool ITVFUN(itv_quasilinearize_lincons_array)(itv_internal_t* intern, itv_lincons_array_t* array, itv_t* env, bool meet)
 {
-  size_t i,j,size;
+  size_t i,size;
   bool exact = true;
 
   itv_lincons_array_reduce(intern,array,meet);
@@ -907,6 +906,7 @@ ap_texpr0_node_intlinearize_linear(itv_internal_t* intern,
     break;
 
   case AP_TEXPR_CAST:
+    exc = itv_intlinearize_ap_texpr0_intlinear(intern,lres,n->exprA);
     break;
 
   case AP_TEXPR_MOD:
@@ -967,7 +967,6 @@ ITVFUN(itv_intlinearize_ap_texpr0_intlinear)(itv_internal_t* intern,
 					  itv_linexpr_t* lres,
 					  ap_texpr0_t* expr)
 {
-  itv_linexpr_t r;
   bool exc = false;
   assert(expr);
 
@@ -1028,7 +1027,7 @@ ITVFUN(itv_intlinearize_ap_tcons0_array_intlinear)(itv_internal_t* intern,
 						   ap_tcons0_array_t* array)
 {
   bool exc;
-  size_t i,index;
+  size_t i;
 
   itv_lincons_array_reinit(res,array->size);
   exc = false;
@@ -1261,7 +1260,9 @@ itv_intlinearize_texpr0_rec(itv_internal_t* intern,
 			    itv_linexpr_t* lres /* out */,
 			    itv_t ires /* out */);
 
+#if LOGDEBUG
 static int debug_indent = 0;
+#endif
 
 static ap_texpr_rtype_t
 ap_texpr0_node_intlinearize(itv_internal_t* intern,
@@ -1269,7 +1270,7 @@ ap_texpr0_node_intlinearize(itv_internal_t* intern,
 			    itv_t* env, size_t intdim,
 			    itv_linexpr_t* lres /* out */, itv_t ires /* out */)
 {
-  itv_t i1,i2;
+  itv_t i1;
   itv_linexpr_t l1;
   ap_texpr_rtype_t t1,t2;
 
@@ -1457,7 +1458,6 @@ itv_intlinearize_texpr0_rec(itv_internal_t* intern,
 			    itv_t* env, size_t intdim,
 			    itv_linexpr_t* lres /* out */, itv_t ires /* out */)
 {
-  itv_linexpr_t r;
   ap_texpr_rtype_t t;
   assert(expr);
 
@@ -1589,7 +1589,7 @@ ITVFUN(itv_intlinearize_ap_tcons0_array)(itv_internal_t* intern,
 {
   bool exc;
   itv_t itv,bound;
-  size_t i,index;
+  size_t i;
 
   itv_init(itv);
   itv_init(bound);
@@ -1789,6 +1789,7 @@ static void
 itv_unround(itv_internal_t* intern, itv_t res, itv_t arg,
 	    ap_texpr_rtype_t t, ap_texpr_rdir_t d)
 {
+  (void)intern;
   switch (t) {
   case AP_RTYPE_REAL:
     itv_set(res,arg);
@@ -2048,7 +2049,6 @@ ITVFUN(itv_meet_ap_tcons0_array)(itv_internal_t* intern,
 {
   bool empty = false;
   size_t i;
-  int j;
   int n;
   itv_expr_t** tab = malloc(array->size*sizeof(itv_expr_t*));
   /* annotate expressions */

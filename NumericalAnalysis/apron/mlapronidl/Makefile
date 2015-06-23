@@ -30,7 +30,7 @@ ICFLAGS = \
 -I$(MLGMPIDL_INCLUDE) -I../apron \
 -I$(GMP_PREFIX)/include \
 -I$(MPFR_PREFIX)/include \
--I$(CAML_PREFIX)/lib/ocaml -I$(CAMLIDL_PREFIX)/lib/ocaml
+-I$(CAML_PREFIX) -I$(CAMLIDL_PREFIX)
 
 #---------------------------------------
 # Files
@@ -66,7 +66,7 @@ CCMODULES = apron_caml $(IDLMODULES:%=%_caml)
 CCSRC = apron_caml.h $(CCMODULES:%=%.c)
 CCLIB_TOINSTALL = libapron_caml.a libapron_caml_debug.a
 ifneq ($(HAS_SHARED),)
-CCLIB_TOINSTALL += dllapron_caml.so
+MLLIB_TOINSTALL += dllapron_caml.so
 endif
 CCINC_TOINSTALL = apron_caml.h
 
@@ -98,33 +98,37 @@ mldep: $(MLSRC)
 # Misc rules
 #---------------------------------------
 
-tar: $(IDLMODULES:%=%.idl) apron_lexer.mll apron_lexer.mli apron_parser.mly parser.ml parser.mli apron_caml.c apron_caml.h macros.m4 Makefile COPYING README mlapronidl.tex sedscript_caml sedscript_c
+tar: $(IDLMODULES:%=%.idl) apron_lexer.mll apron_lexer.mli apron_parser.mly parser.ml parser.mli apron_caml.c apron_caml.h macros.pl Makefile COPYING README mlapronidl.tex perlscript_caml.pl perlscript_c.pl META
 	(cd ..; tar zcvf mlapronidl.tgz $(^:%=mlapronidl/%))
 
-dist: $(IDLMODULES:%=%.idl) $(MLSRC) $(CCSRC) macros.m4 apron_caml.c apron_caml.h Makefile COPYING README mlapronidl.tex sedscript_caml sedscript_c mlapronidl.pdf html
+dist: $(IDLMODULES:%=%.idl) $(MLSRC) $(CCSRC) macros.pl apron_caml.c apron_caml.h Makefile COPYING README mlapronidl.tex perlscript_caml.pl perlscript_c.pl mlapronidl.pdf html META
 	(cd ..; tar zcvf mlapronidl.tgz $(^:%=mlapronidl/%))
 
 clean:
 	/bin/rm -f $(IDLMODULEStex) Apron_lexer.tex Apron_parser.tex Parser.tex
-	/bin/rm -f mpz.idl mpq.idl
 	/bin/rm -f mlapronidl.out mlapronidl.aux mlapronidl.idx mlapronidl.ilg mlapronidl.ind mlapronidl.bbl mlapronidl.blg mlapronidl.dvi mlapronidl.log mlapronidl.toc mlapronidl.ps mlapronidl.pdf
 	/bin/rm -f *.o *.a *.so *.annot *.cmi *.cmo *.cmx *.cmxa *.cma apron_parser.ml apron_parser.mli apron_lexer.ml
 	/bin/rm -fr tmp html
 	/bin/rm -f ocamldoc.[cefkimoptv]* ocamldoc.sty apron_ocamldoc.mli
-
-distclean: clean
 	/bin/rm -f $(IDLMODULES:%=%.ml) $(IDLMODULES:%=%.mli) $(IDLMODULES:%=%_caml.c)
 
+distclean: clean
+
 uninstall:
+ifeq ($(OCAMLFIND),)
 	/bin/rm -f $(MLLIB_TOINSTALL:%=$(APRON_PREFIX)/lib/%)
 	/bin/rm -f $(CCLIB_TOINSTALL:%=$(APRON_PREFIX)/lib/%) libapron*.so
 	/bin/rm -f $(CCINC_TOINSTALL:%=$(APRON_PREFIX)/include/%)
+endif
 
 install: $(MLLIB_TOINSTALL) $(CCLIB_TOINSTALL) $(CCINC_TOINSTALL)
+ifeq ($(OCAMLFIND),)
 	mkdir -p $(APRON_PREFIX)/lib
 	mkdir -p $(APRON_PREFIX)/include
-	for i in $(MLLIB_TOINSTALL) $(CCLIB_TOINSTALL); do if test -f $$i; then cp -f $$i $(APRON_PREFIX)/lib; fi; done
+	for i in $(CCLIB_TOINSTALL); do if test -f $$i; then cp -f $$i $(APRON_PREFIX)/lib; fi; done
 	$(INSTALL) $(CCINC_TOINSTALL) $(APRON_PREFIX)/include
+	for i in $(MLLIB_TOINSTALL); do if test -f $$i; then cp -f $$i $(APRON_PREFIX)/lib; fi; done
+endif
 
 #---------------------------------------
 # Library rules
@@ -208,23 +212,17 @@ html: mlapronidl.odoc introduction.mli $(IDLMODULES:%=%.mli) parser.mli $(MLMODU
 # IDL generic rules
 #---------------------------------------
 
-mpz.idl: $(MLGMPIDL_LIB)/mpz.idl
-	ln -sf $^ $@
-mpq.idl: $(MLGMPIDL_LIB)/mpq.idl
-	ln -sf $^ $@
-
 # Generate for each %.idl: %i.ml, %i.mli, %_caml.c
-rebuild: mpz.idl mpq.idl
+%.ml %.mli %_caml.c: %.idl macros.pl perlscript_c.pl perlscript_caml.pl
 	mkdir -p tmp
-	for i in $(IDLMODULES); do \
-		echo "module $$i"; \
-		cp $${i}.idl tmp/$${i}.idl; \
-		$(CAMLIDL) -no-include -prepro "$(M4) --prefix-builtins macros.m4" -I $(SRCDIR) tmp/$${i}.idl; \
-		$(SED) -f sedscript_c tmp/$${i}_stubs.c >$${i}_caml.c; \
-		$(SED) -f sedscript_caml tmp/$${i}.ml >$${i}.ml; \
-		$(SED) -f sedscript_caml tmp/$${i}.mli >$${i}.mli; \
-	done
-#	rm -fr tmp
+	cp $*.idl tmp/$*.idl
+	$(CAMLIDL) -no-include -prepro "$(PERL) macros.pl" -I $(SRCDIR) tmp/$*.idl
+	$(PERL) perlscript_c.pl < tmp/$*_stubs.c >$*_caml.c
+	$(PERL) perlscript_caml.pl < tmp/$*.ml >$*.ml;
+	$(PERL) perlscript_caml.pl < tmp/$*.mli >$*.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
 
 #---------------------------------------
 # ML generic rules

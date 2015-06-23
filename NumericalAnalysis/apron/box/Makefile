@@ -28,7 +28,7 @@ ICFLAGS = \
 -I../apron \
 -I../mlapronidl \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
--I$(CAMLIDL_PREFIX)/lib/ocaml -I$(CAML_PREFIX)/lib/ocaml
+-I$(CAMLIDL_PREFIX) -I$(CAML_PREFIX)
 
 # Caml
 OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
@@ -40,12 +40,6 @@ OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
 CCMODULES = box_internal box_representation box_constructor box_meetjoin box_assign box_resize box_otherops box_policy
 CCSRC = box_config.h box.h $(CCMODULES:%=%.h) $(CCMODULES:%=%.c)
 
-IDLDEPMODULES = \
-scalar interval coeff \
-dim linexpr0 lincons0 generator0 texpr0 tcons0 manager abstract0 \
-var environment linexpr1 lincons1 generator1 texpr1 tcons1 abstract1 policy 
-IDLDEP = $(IDLDEPMODULES:%=%.idl)
-
 CCINC_TO_INSTALL = box.h
 CCBIN_TO_INSTALL =
 CCLIB_TO_INSTALL = \
@@ -56,6 +50,8 @@ CCLIB_TO_INSTALL := $(CCLIB_TO_INSTALL) \
 libboxMPQ.so libboxD.so libboxMPFR.so \
 libboxMPQ_debug.so libboxD_debug.so libboxMPFR_debug.so
 endif
+
+ifneq ($(HAS_OCAML),)
 CAML_TO_INSTALL = \
 box.idl box.ml box.mli box.cmi \
 boxMPQ.cma \
@@ -71,6 +67,7 @@ boxMPFR.cmxa boxMPFR.a
 endif
 ifneq ($(HAS_SHARED),)
 CAML_TO_INSTALL += dllboxMPQ_caml.so dllboxD_caml.so dllboxMPFR_caml.so 
+endif
 endif
 
 LIBS = -L$(APRON_PREFIX) -lapron -L$(MPFR_PREFIX)/lib -lmpfr -L$(GMP_PREFIX)/lib -lgmp -lm 
@@ -121,10 +118,11 @@ clean:
 	/bin/rm -f *.[ao] *.so *.annot *.cm[ioax] *.cmxa *.byte *.opt
 	/bin/rm -f *.?.tex *.log *.aux *.bbl *.blg *.toc *.dvi *.ps *.pstex*
 	/bin/rm -fr boxpolkarung boxpolkatopg tmp
+	/bin/rm -f box.ml box.mli box_caml.c
+	/bin/rm -f Makefile.depend
 
 mostlyclean: clean
-	/bin/rm -fr $(IDLDEP)
-	/bin/rm -f box.ml box.mli box_caml.c
+distclean: clean
 
 install: $(CCINC_TO_INSTALL) $(CCLIB_TO_INSTALL)
 	$(INSTALLd) $(PREFIX)/include $(PREFIX)/lib
@@ -132,12 +130,11 @@ install: $(CCINC_TO_INSTALL) $(CCLIB_TO_INSTALL)
 	for i in $(CCLIB_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
-#	for i in $(CCBIN_TO_INSTALL); do \
-#		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/bin; fi; \
-#	done
+ifeq ($(OCAMLFIND),)
 	for i in $(CAML_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
+endif
 
 uninstall:
 	for i in $(CCINC_TO_INSTALL); do /bin/rm -f $(PREFIX)/include/$$i; done
@@ -145,10 +142,8 @@ uninstall:
 	/bin/rm -f $(PREFIX)/lib/dllbox*.so $(PREFIX)/lib/dlloct*_debug.so
 	/bin/rm -f $(PREFIX)/lib/box.mli $(PREFIX)/lib/box.ml $(PREFIX)/lib/box.cm[ix] $(PREFIX)/lib/box.idl $(PREFIX)/lib/box*.cma $(PREFIX)/lib/box*.cmxa $(PREFIX)/lib/box*.a
 
-distclean: mostlyclean
-	/bin/rm -f Makefile.depend
 
-dist: $(CCSRC) Makefile sedscript_caml box.texi box.idl box.ml box.mli box_caml.c COPYING README
+dist: $(CCSRC) Makefile perlscript_caml.pl box.texi box.idl box.ml box.mli box_caml.c COPYING README
 	(cd ..; tar zcvf box.tgz $(^:%=box/%))
 
 #---------------------------------------
@@ -228,17 +223,16 @@ box%.cmxa box%.a: box.cmx libbox%_caml.a libbox%.a
 # IDL rules
 #---------------------------------------
 
-$(IDLDEP): %.idl: ../mlapronidl/%.idl
-	ln -s -f $< $@
-
-# generates box.ml, box.mli, box_caml.c from box.idl
-rebuild: $(IDLDEP) box.idl
+box.ml box.mli box_caml.c: box.idl ../mlapronidl/perlscript_c.pl perlscript_caml.pl ../mlapronidl/*.idl
 	mkdir -p tmp
-	cp box.idl tmp/box.idl
-	$(CAMLIDL) -no-include -nocpp tmp/box.idl
-	$(SED) -f ../mlapronidl/sedscript_c tmp/box_stubs.c >box_caml.c
-	$(SED) -f sedscript_caml tmp/box.ml >box.ml
-	$(SED) -f sedscript_caml tmp/box.mli >box.mli
+	cp box.idl ../mlapronidl/*.idl tmp/
+	cd tmp && $(CAMLIDL) -no-include -nocpp -I . box.idl
+	$(PERL) ../mlapronidl/perlscript_c.pl < tmp/box_stubs.c >box_caml.c
+	$(PERL) perlscript_caml.pl < tmp/box.ml >box.ml
+	$(PERL) perlscript_caml.pl < tmp/box.mli >box.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
 
 #---------------------------------------
 # ML generic rules

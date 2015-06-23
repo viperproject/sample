@@ -45,7 +45,7 @@ ICFLAGS = \
 -I../itv \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
 -I$(PPL_PREFIX)/include \
--I$(CAML_PREFIX)/lib/ocaml -I$(CAMLIDL_PREFIX)/lib/ocaml
+-I$(CAML_PREFIX) -I$(CAMLIDL_PREFIX)
 
 ICXXFLAGS = \
 -I../newpolka \
@@ -56,7 +56,7 @@ ICXXFLAGS = \
 -I../itv \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
 -I$(PPL_PREFIX)/include \
--I$(CAML_PREFIX)/lib/ocaml -I$(CAMLIDL_PREFIX)/lib/ocaml
+-I$(CAML_PREFIX) -I$(CAMLIDL_PREFIX)
 
 # Caml
 OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
@@ -91,9 +91,9 @@ clean:
 	/bin/rm -f *.[ao] *.so ap_ppl_test
 	/bin/rm -f *.annot *.cm[ioax] *.cmxa pplrun ppltop manager.idl
 	/bin/rm -fr *~ \#*\# tmp
+	/bin/rm -f ap_ppl_caml.c ppl.ml ppl.mli
 
 distclean: clean
-	/bin/rm -f ap_ppl_caml.c ppl.ml ppl.mli
 
 install:
 	$(INSTALLd) $(INCDIR) $(LIBDIR) $(BINDIR) $(CAMLDIR)
@@ -101,12 +101,14 @@ install:
 	for i in libap_ppl.a libap_ppl_debug.a libap_ppl.so libap_ppl_debug.so; do \
 		if test -f $$i; then $(INSTALL) $$i $(LIBDIR); fi; \
 	done
+ifeq ($(OCAMLFIND),)
 	for i in libap_ppl_caml*.a dllap_ppl_caml*.so ppl.idl ppl.cmi ppl.cma ppl.cmxa ppl.a; do \
 		if test -f $$i; then $(INSTALL) $$i $(CAMLDIR); fi; \
 	done
 	for i in ap_ppl_test pplrun ppltop; do \
 		if test -f $$i; then $(INSTALL) $$i $(BINDIR); fi; \
 	done
+endif
 
 uninstall:
 	/bin/rm -f $(INCDIR)/ap_ppl*
@@ -114,7 +116,7 @@ uninstall:
 	/bin/rm -f $(BINDIR)/*ap_ppl*
 	/bin/rm -f $(BINDIR)/pplrun $(BINDIR)/ppltop
 
-dist: Makefile COPYING README $(CXXSOURCES) $(CSOURCES) $(CCINC) ppl.idl sedscript_caml ap_ppl_caml.c ppl.ml ppl.mli ppl.patch
+dist: Makefile COPYING README $(CXXSOURCES) $(CSOURCES) $(CCINC) ppl.idl perlscript_caml.pl ap_ppl_caml.c ppl.ml ppl.mli ppl.patch
 	(cd ..; tar zcvf ppl.tgz $(^:%=ppl/%))
 
 #---------------------------------------
@@ -142,7 +144,7 @@ ap_ppl_test: libap_ppl_debug.a ppl_test_debug.o
 	$(CXX) $(CXXFLAGS) -o $@ ppl_test_debug.o \
 	-L. -lap_ppl_debug \
 	-L../newpolka -L$(APRON_PREFIX)/lib -lpolkaMPQ_debug \
-	-L../apron -L$(APRON_PREFIX)/lib -lapron \
+	-L../apron -L$(APRON_PREFIX)/lib -lapron_debug \
 	-L$(PPL_PREFIX)/lib -lppl \
 	-L$(GMP_PREFIX)/lib -L$(MPFR_PREFIX)/lib -lgmpxx -lmpfr -lgmp -lm
 
@@ -197,16 +199,25 @@ ppl.cma: ppl.cmo libap_ppl_caml.a
 ppl.cmxa ppl.a: ppl.cmx libap_ppl_caml.a
 	$(OCAMLMKLIB) -ocamlopt "$(OCAMLOPT) -cc $(CXX)" -verbose -o ppl -oc ap_ppl_caml ppl.cmx -L. -lap_ppl $(LIBS) -L..:apron
 
+
+#---------------------------------------
+# IDL rules
+#---------------------------------------
+
 manager.idl: ../mlapronidl/manager.idl
 	ln -s $< $@
 
-rebuild: manager.idl ppl.idl
+ppl.ml ppl.mli ppl_caml.c: ppl.idl perlscript_caml.pl ../mlapronidl/manager.idl
 	mkdir -p tmp
-	cp ppl.idl tmp/
-	$(CAMLIDL) -no-include -nocpp tmp/ppl.idl
+	cp ppl.idl ../mlapronidl/manager.idl tmp/
+	cd tmp && $(CAMLIDL) -no-include -nocpp ppl.idl
 	cp tmp/ppl_stubs.c ap_ppl_caml.c
-	sed -f sedscript_caml tmp/ppl.ml >ppl.ml
-	sed -f sedscript_caml tmp/ppl.mli >ppl.mli
+	$(PERL) perlscript_caml.pl < tmp/ppl.ml >ppl.ml
+	$(PERL) perlscript_caml.pl < tmp/ppl.mli >ppl.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
+
 
 .PRECIOUS: %_caml.c %.ml %.mli %.cmi libap_ppl_caml.a dllap_ppl_caml.so ppl.cmx ppl.cmo
 

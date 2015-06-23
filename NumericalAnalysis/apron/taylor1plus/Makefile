@@ -37,7 +37,7 @@ ICFLAGS = \
 -I../apron \
 -I../mlapronidl \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
--I$(CAMLIDL_PREFIX)/lib/ocaml -I$(CAML_PREFIX)/lib/ocaml
+-I$(CAMLIDL_PREFIX) -I$(CAML_PREFIX)
 
 # Caml
 OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
@@ -47,7 +47,7 @@ OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
 #---------------------------------------
 
 CCMODULES = t1p_internal t1p_representation t1p_constructor t1p_meetjoin t1p_assign t1p_resize t1p_otherops t1p_fun t1p_itv_utils
-CCSRC = t1p_config.h t1p.h $(CCMODULES:%=%.h) $(CCMODULES:%=%.c)
+CCSRC = t1p.h t1p_macro_def.h t1p_test.c t1p_test_eval_texp.c $(CCMODULES:%=%.h) $(CCMODULES:%=%.c)
 
 CCINC_TO_INSTALL = t1p.h
 CCBIN_TO_INSTALL =
@@ -59,6 +59,8 @@ CCLIB_TO_INSTALL := $(CCLIB_TO_INSTALL) \
 libt1pMPQ.so libt1pD.so libt1pMPFR.so \
 libt1pMPQ_debug.so libt1pD_debug.so libt1pMPFR_debug.so
 endif
+
+ifneq ($(HAS_OCAML),)
 CAML_TO_INSTALL = \
 t1p.idl t1p.ml t1p.mli t1p.cmi \
 t1pMPQ.cma \
@@ -74,6 +76,7 @@ t1pMPFR.cmxa t1pMPFR.a
 endif
 ifneq ($(HAS_SHARED),)
 CAML_TO_INSTALL += dllt1pMPQ_caml.so dllt1pD_caml.so dllt1pMPFR_caml.so dllt1pMPQ_caml_debug.so dllt1pD_caml_debug.so dllt1pMPFR_caml_debug.so
+endif
 endif
 
 LIBS = -L$(APRON_PREFIX) -lapron -L$(GMP_PREFIX)/lib -lgmpxx -lgmp -L$(MPFR_PREFIX)/lib -lmpfr -lstdc++ -lm
@@ -144,11 +147,10 @@ clean:
 	/bin/rm -f *.?.tex *.log *.aux *.bbl *.blg *.toc *.dvi *.ps *.pstex*
 	/bin/rm -fr t1ppolkarung t1ppolkatopg tmp
 	/bin/rm -fr test*
-
-distclean: clean
-	/bin/rm -fr manager.idl
 	/bin/rm -f t1p.ml t1p.mli t1p_caml.c
 	/bin/rm -f Makefile.depend
+
+distclean: clean
 
 install: $(CCINC_TO_INSTALL) $(CCLIB_TO_INSTALL)
 	$(INSTALLd) $(PREFIX)/include $(PREFIX)/lib
@@ -156,22 +158,21 @@ install: $(CCINC_TO_INSTALL) $(CCLIB_TO_INSTALL)
 	for i in $(CCLIB_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
-#	for i in $(CCBIN_TO_INSTALL); do \
-#		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/bin; fi; \
-#	done
+ifeq ($(OCAMLFIND),)
 	for i in $(CAML_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
+endif
 
 uninstall:
 	for i in $(CCINC_TO_INSTALL); do /bin/rm -f $(PREFIX)/include/$$i; done
-	/bin/rm -f $(PREFIX)/lib/libt1p*.* $(PREFIX)/lib/liboct*_debug.*
-	/bin/rm -f $(PREFIX)/lib/dllt1p*.so $(PREFIX)/lib/dlloct*_debug.so
+	/bin/rm -f $(PREFIX)/lib/libt1p*.* $(PREFIX)/lib/libt1p*_debug.*
+	/bin/rm -f $(PREFIX)/lib/dllt1p*.so $(PREFIX)/lib/dllt1p*_debug.so
 	/bin/rm -f $(PREFIX)/lib/t1p.mli $(PREFIX)/lib/t1p.ml $(PREFIX)/lib/t1p.cm[ix] $(PREFIX)/lib/t1p.idl $(PREFIX)/lib/t1p*.cma $(PREFIX)/lib/t1p*.cmxa $(PREFIX)/lib/t1p*.a
 
 
-dist: $(CCSRC) Makefile sedscript_caml t1p.texi t1p.idl t1p.ml t1p.mli t1p_caml.c COPYING README
-	(cd ..; tar zcvf t1p.tgz $(^:%=t1p/%))
+dist: $(CCSRC) Makefile perlscript_caml.pl t1p.idl t1p.ml t1p.mli t1p_caml.c
+	(cd ..; tar zcvf taylor1plus.tgz $(^:%=taylor1plus/%))
 
 #---------------------------------------
 # IMPLICIT RULES AND DEPENDENCIES
@@ -196,9 +197,9 @@ libt1p%_debug.a: $(subst .c,%_debug.o,$(CCMODULES:%=%.c))
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
 libt1p%.so:  $(subst .c,%.o,$(CCMODULES:%=%.c))
-	$(CC) $(CFLAGS) -shared -o $@ $^ $(LIBS) -L../apron
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LIBS) -lbox$* -lpolkaMPQ -L../apron -L../box -L../newpolka
 libt1p%_debug.so: $(subst .c,%_debug.o,$(CCMODULES:%=%.c))
-	$(CC) $(CFLAGS_DEBUG) -shared -o $@ $^ $(LIBS_DEBUG) -L../apron
+	$(CC) $(CFLAGS_DEBUG) -shared -o $@ $^ $(LIBS_DEBUG) -lbox$*_debug -lpolkaMPQ_debug -L../apron -L../box -L../newpolka
 
 %MPQ.o: %.c
 	$(CC) $(CFLAGS) $(ICFLAGS) -DNUM_MPQ -c -o $@ $<
@@ -260,17 +261,17 @@ t1p%.cmxa t1p%.a: t1p.cmx libt1p%_caml.a libt1p%.a
 # IDL rules
 #---------------------------------------
 
-manager.idl: ../mlapronidl/manager.idl
-	ln -s -f $< $@
-
 # generates t1p.ml, t1p.mli, t1p_caml.c from t1p.idl
-rebuild: manager.idl t1p.idl
+t1p.ml t1p.mli t1p_caml.c: t1p.idl perlscript_caml.pl ../mlapronidl/manager.idl
 	mkdir -p tmp
-	cp t1p.idl tmp/t1p.idl
-	$(CAMLIDL) -no-include -nocpp tmp/t1p.idl
+	cp t1p.idl ../mlapronidl/manager.idl tmp/
+	cd tmp && $(CAMLIDL) -no-include -nocpp t1p.idl
 	cp tmp/t1p_stubs.c t1p_caml.c
-	$(SED) -f sedscript_caml tmp/t1p.ml >t1p.ml
-	$(SED) -f sedscript_caml tmp/t1p.mli >t1p.mli
+	$(PERL) perlscript_caml.pl < tmp/t1p.ml >t1p.ml
+	$(PERL) perlscript_caml.pl < tmp/t1p.mli >t1p.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
 
 #---------------------------------------
 # ML generic rules

@@ -80,9 +80,9 @@ clean:
 	/bin/rm -f *.aux *.bbl *.blg *.dvi *.log *.toc *.ps *.pdf apron.cps apron.fns apron.info apron.fn apron.ky apron.pg apron.cp apron.tp apron.vr apron.kys apron.pgs apron.tps apron.vrs newpolka.texi box.texi ap_ppl.texi ap_pkgrid.texi apron.info*
 	/bin/rm -f *.o *.a *.cmi *.cmo *.cmx *.cmxa *.cma *.so
 	/bin/rm -fr html
+	/bin/rm -f apron.pdf rationale.pdf
 
 distclean: clean
-	/bin/rm -f apron.pdf rationale.pdf
 
 install: all
 	mkdir -p $(APRON_PREFIX)/include
@@ -120,7 +120,7 @@ apron.info: apron.texi rationale.texi ap_pkgrid.texi ap_ppl.texi newpolka.texi b
 
 
 html: apron.texi rationale.texi ap_pkgrid.texi ap_ppl.texi newpolka.texi box.texi 
-	$(TEXI2HTML) -split=section -nonumber -menu -subdir=html $<
+	$(TEXI2HTML) -split=section -nonumber-sections -menu -subdir=html $<
 	cp -f ../octagons/oct_doc.html html
 
 #---------------------------------------
@@ -227,7 +227,7 @@ depend: $(C_FILES) $(H_FILES)
 ap_scalar.o: ap_scalar.c ap_scalar.h ap_config.h
 ap_interval.o: ap_interval.c ap_interval.h \
   ap_config.h \
-  ap_scalar.h $(MPFR_PREFIX)/include/mpfr.h
+  ap_scalar.h
 ap_coeff.o: ap_coeff.c ap_coeff.h \
   ap_config.h \
   ap_scalar.h \
@@ -335,7 +335,7 @@ ap_policy.o: ap_policy.c ap_policy.h ap_manager.h ap_coeff.h ap_config.h \
 ap_scalar_debug.o: ap_scalar.c ap_scalar.h ap_config.h
 ap_interval_debug.o: ap_interval.c ap_interval.h \
   ap_config.h \
-  ap_scalar.h $(MPFR_PREFIX)/include/mpfr.h
+  ap_scalar.h
 ap_coeff_debug.o: ap_coeff.c ap_coeff.h \
   ap_config.h \
   ap_scalar.h \

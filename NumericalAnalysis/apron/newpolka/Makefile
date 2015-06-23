@@ -28,7 +28,7 @@ ICFLAGS = \
 -I../itv \
 -I../mlapronidl \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
--I$(CAMLIDL_PREFIX)/lib/ocaml -I$(CAML_PREFIX)/lib/ocaml
+-I$(CAMLIDL_PREFIX) -I$(CAML_PREFIX)
 
 # Caml
 OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl
@@ -58,9 +58,12 @@ CCINC_TO_INSTALL = pk.h pkeq.h
 CCBIN_TO_INSTALL =
 CCLIB_TO_INSTALL = \
 libpolkaMPQ.a libpolkaMPQ_debug.a \
-libpolkaRll.a libpolkaRll_debug.a \
+libpolkaRll.a libpolkaRll_debug.a 
+ifneq ($(HAS_SHARED),)
+CCLIB_TO_INSTALL += \
 libpolkaMPQ.so libpolkaMPQ_debug.so \
-libpolkaRll.so libpolkaRll_debug.so \
+libpolkaRll.so libpolkaRll_debug.so
+endif
 
 CAML_TO_INSTALL = \
 polka.idl polka.mli polka.ml polka.cmi \
@@ -131,13 +134,11 @@ clean:
 	/bin/rm -f *.?.tex *.log *.aux *.bbl *.blg *.toc *.dvi *.ps *.pstex*
 	/bin/rm -f test[01]Il* test[01]MPQ test[01]Il*_debug test[01]MPQ_debug
 	/bin/rm -fr *.annot *.cm[ioax] *.cmxa
-	/bin/rm -f manager.idl
 	/bin/rm -fr tmp
-
-distclean: clean
-	/bin/rm -f manager.idl
 	/bin/rm -fr polka_caml.* polka.ml polka.mli
 	/bin/rm -f Makefile.depend
+
+distclean: clean
 
 install:
 	$(INSTALLd) $(PREFIX)/include $(PREFIX)/lib
@@ -145,21 +146,22 @@ install:
 	for i in $(CCLIB_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
-#	for i in $(CCBIN_TO_INSTALL); do \
-#		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/bin; fi; \
-#	done
+ifeq ($(OCAMLFIND),)
 	for i in $(CAML_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
+endif
 
 uninstall:
 	for i in $(CCINC_TO_INSTALL); do /bin/rm -f $(PREFIX)/include/$$i; done
-	/bin/rm -f $(PREFIX)/lib/libpolka*.* $(PREFIX)/lib/liboct*_debug.*
-	/bin/rm -f $(PREFIX)/lib/dllpolka*.so $(PREFIX)/lib/dlloct*_debug.so
+	/bin/rm -f $(PREFIX)/lib/libpolka*.* $(PREFIX)/lib/libpolka*_debug.*
+	/bin/rm -f $(PREFIX)/lib/dllpolka*.so $(PREFIX)/lib/dllpolka*_debug.so
+ifeq ($(OCAMLFIND),)
 	/bin/rm -f $(PREFIX)/lib/polka.mli $(PREFIX)/lib/polka.ml $(PREFIX)/lib/polka.cm[ix] $(PREFIX)/lib/polka.idl $(PREFIX)/lib/polka*.cma $(PREFIX)/lib/polka*.cmxa $(PREFIX)/lib/polka*.a
+endif
 
 
-dist: $(CCSRC) Makefile sedscript_caml newpolka.texi polka.idl polka.ml polka.mli polka_caml.c COPYING README
+dist: $(CCSRC) Makefile perlscript_caml.pl newpolka.texi polka.idl polka.ml polka.mli polka_caml.c COPYING README
 	(cd ..; tar zcvf newpolka.tgz $(^:%=newpolka/%))
 
 #---------------------------------------
@@ -247,20 +249,16 @@ polka%.d.cmxa polka%.d.a: polka.cmx libpolka%_caml_debug.a libpolka%_debug.a
 # IDL rules
 #---------------------------------------
 
-manager.idl: ../mlapronidl/manager.idl
-	ln -s -f $< $@
-
-# generates X.ml, X.mli, X_caml.c for X = polka
-rebuild: manager.idl polka.idl
+polka.ml polka.mli polka_caml.c: polka.idl perlscript_caml.pl ../mlapronidl/manager.idl
 	mkdir -p tmp
-	for i in polka; do \
-		echo "module $$i"; \
-		cp $${i}.idl tmp/$${i}.idl; \
-		$(CAMLIDL) -no-include -nocpp tmp/$${i}.idl; \
-		cp tmp/$${i}_stubs.c $${i}_caml.c; \
-		$(SED) -f sedscript_caml tmp/$${i}.ml >$${i}.ml; \
-		$(SED) -f sedscript_caml tmp/$${i}.mli >$${i}.mli; \
-	done
+	cp ../mlapronidl/manager.idl polka.idl tmp/
+	cd tmp && $(CAMLIDL) -no-include -nocpp polka.idl
+	cp tmp/polka_stubs.c polka_caml.c
+	$(PERL) perlscript_caml.pl < tmp/polka.ml >polka.ml
+	$(PERL) perlscript_caml.pl < tmp/polka.mli >polka.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
 
 #---------------------------------------
 # C generic rules

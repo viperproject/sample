@@ -25,7 +25,7 @@ ICFLAGS = \
 -I../ppl \
 -I../mlapronidl \
 -I$(GMP_PREFIX)/include -I$(MPFR_PREFIX)/include \
--I$(CAMLIDL_PREFIX)/lib/ocaml -I$(CAML_PREFIX)/lib/ocaml
+-I$(CAMLIDL_PREFIX) -I$(CAML_PREFIX)
 
 # Caml
 OCAMLINC = -I $(MLGMPIDL_LIB) -I ../mlapronidl -I ../newpolka -I ../ppl
@@ -39,16 +39,19 @@ CCSRC = $(CCMODULES:%=%.h) $(CCMODULES:%=%.c)
 
 CCINC_TO_INSTALL = ap_pkgrid.h
 CCBIN_TO_INSTALL =
-CCLIB_TO_INSTALL = \
-libap_pkgrid.a libap_pkgrid_debug.a \
-polkaGrid.mli polkaGrid.cmi polkaGrid.cma \
-libpolkaGrid_caml.a libpolkaGrid_caml_debug.a 
+CCLIB_TO_INSTALL = libap_pkgrid.a libap_pkgrid_debug.a
+ifneq ($(HAS_SHARED),)
+CCLIB_TO_INSTALL += libap_pkgrid.so libap_pkgrid_debug.so
+endif
+
+ifneq ($(HAS_OCAML),)
+CAML_TO_INSTALL := polkaGrid.mli polkaGrid.cmi polkaGrid.cma libpolkaGrid_caml.a libpolkaGrid_caml_debug.a 
 ifneq ($(HAS_OCAMLOPT),)
-CCLIB_TO_INSTALL := $(CCLIB_TO_INSTALL) polkaGrid.cmxa polkaGrid.a 
+CAML_TO_INSTALL += polkaGrid.cmxa polkaGrid.a
 endif
 ifneq ($(HAS_SHARED),)
-CCLIB_TO_INSTALL += \
-libap_pkgrid.so libap_pkgrid_debug.so dllpolkaGrid_caml.so
+CAML_TO_INSTALL += dllpolkaGrid_caml.so
+endif
 endif
 
 LIBS = -L../ppl -lap_ppl -L$(PPL_PREFIX)/lib -lppl -L$(APRON_PREFIX) -lapron -L$(GMP_PREFIX)/lib -lgmpxx -lgmp -L$(MPFR_PREFIX)/lib -lmpfr -lstdc++ -lm
@@ -81,10 +84,9 @@ clean:
 	/bin/rm -f *.[ao] *.so *.annot *.cm[xiao] *.cmxa
 	/bin/rm -f *.?.tex *.log *.aux *.bbl *.blg *.toc *.dvi *.ps *.pstex*
 	/bin/rm -fr tmp
+	/bin/rm -f polkaGrid.ml polkaGrid.mli polkaGrid_caml.c Makefile.depend
 
 distclean: clean
-	/bin/rm -fr scalar.idl interval.idl coeff.idl dim.idl linexpr0.idl lincons0.idl generator0.idl texpr0.idl tcons0.idl manager.idl abstract0.idl macros.m4 sedscript_c
-	/bin/rm -f polkaGrid.ml polkaGrid.mli polkaGrid_caml.c Makefile.depend
 
 install:
 	$(INSTALLd) $(PREFIX)/include $(PREFIX)/lib
@@ -92,9 +94,11 @@ install:
 	for i in $(CCLIB_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
-	for i in dllpolkaGrid_caml*.so dllpkDisj_caml*.so; do \
+ifeq ($(OCAMLFIND),)
+	for i in $(CAML_TO_INSTALL); do \
 		if test -f $$i; then $(INSTALL) $$i $(PREFIX)/lib; fi; \
 	done
+endif
 
 uninstall:
 	for i in $(CCINC_TO_INSTALL); do /bin/rm -f $(PREFIX)/include/$$i; done
@@ -102,7 +106,7 @@ uninstall:
 	for i in dllpolkaGrid_caml*.so; do /bin/rm -f $(PREFIX)/lib/$$i; done
 	for i in $(CCBIN_TO_INSTALL); do /bin/rm -f $(PREFIX)/bin/$$i; done
 
-dist: $(CCSRC) ap_pkgrid.texi sedscript_caml polkaGrid.idl polkaGrid.ml polkaGrid.mli polkaGrid_caml.c Makefile COPYING README
+dist: $(CCSRC) ap_pkgrid.texi perlscript_caml.pl polkaGrid.idl polkaGrid.ml polkaGrid.mli polkaGrid_caml.c Makefile COPYING README
 	(cd ..; tar zcvf products.tgz $(^:%=products/%))
 
 #---------------------------------------
@@ -153,41 +157,17 @@ polkaGrid.cmxa polkaGrid.a: polkaGrid.cmx libpolkaGrid_caml.a libap_pkgrid.a
 # IDL rules
 #---------------------------------------
 
-scalar.idl: ../mlapronidl/scalar.idl
-	ln -sf $< $@
-interval.idl: ../mlapronidl/interval.idl
-	ln -sf $< $@
-coeff.idl: ../mlapronidl/coeff.idl
-	ln -sf $< $@
-dim.idl: ../mlapronidl/dim.idl
-	ln -sf $< $@
-linexpr0.idl: ../mlapronidl/linexpr0.idl
-	ln -sf $< $@
-lincons0.idl: ../mlapronidl/lincons0.idl
-	ln -sf $< $@
-generator0.idl: ../mlapronidl/generator0.idl
-	ln -sf $< $@
-texpr0.idl: ../mlapronidl/texpr0.idl
-	ln -sf $< $@
-tcons0.idl: ../mlapronidl/tcons0.idl
-	ln -sf $< $@
-manager.idl: ../mlapronidl/manager.idl
-	ln -sf $< $@
-abstract0.idl: ../mlapronidl/abstract0.idl
-	ln -sf $< $@
-macros.m4: ../mlapronidl/macros.m4
-	ln -sf $< $@
-sedscript_c: ../mlapronidl/sedscript_c
-	ln -sf $< $@
-
 # generates polkaGrid.ml, polkaGrid.mli, polkaGrid_caml.c from polkaGrid.idl
-rebuild: polkaGrid.idl macros.m4 sedscript_c scalar.idl interval.idl coeff.idl dim.idl linexpr0.idl lincons0.idl generator0.idl texpr0.idl tcons0.idl manager.idl abstract0.idl
+polkaGrid.mli polkaGrid.ml polkaGrid_caml.c: polkaGrid.idl ../mlapronidl/macros.pl ../mlapronidl/perlscript_c.pl perlscript_caml.pl ../mlapronidl/*.idl
 	mkdir -p tmp
-	cp polkaGrid.idl tmp/polkaGrid.idl
-	$(CAMLIDL) -no-include -prepro "$(M4) --prefix-builtins macros.m4" tmp/polkaGrid.idl
-	$(SED) -f sedscript_c tmp/polkaGrid_stubs.c >polkaGrid_caml.c
-	$(SED) -f sedscript_caml tmp/polkaGrid.ml >polkaGrid.ml
-	$(SED) -f sedscript_caml tmp/polkaGrid.mli >polkaGrid.mli
+	cp polkaGrid.idl ../mlapronidl/*.idl tmp/
+	cd tmp && $(CAMLIDL) -no-include -prepro "$(PERL) ../../mlapronidl/macros.pl" polkaGrid.idl
+	$(PERL) ../mlapronidl/perlscript_c.pl < tmp/polkaGrid_stubs.c >polkaGrid_caml.c
+	$(PERL) perlscript_caml.pl < tmp/polkaGrid.ml >polkaGrid.ml
+	$(PERL) perlscript_caml.pl < tmp/polkaGrid.mli >polkaGrid.mli
+
+rebuild:
+	@echo "make rebuild is no longer necessary"
 
 #---------------------------------------
 # ML generic rules

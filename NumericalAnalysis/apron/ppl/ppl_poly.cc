@@ -484,9 +484,11 @@ bool ap_ppl_poly_sat_lincons(ap_manager_t* man, PPL_Poly* a,
 	itv_lincons_clear(&lincons);
 	switch (lincons.constyp){
 	case AP_CONS_SUPEQ:
-	  r = (l>=0); break;
+	  r = (l>=0); 
+          break;
 	case AP_CONS_SUP:
-	  r = intern->strict ? (l>0) : (l>=0);
+          if (intern->strict) r = (l>0);
+          else { exact = false; r = (l>=0); }
 	  break;
 	case AP_CONS_EQMOD:
 	  exact = exact && (num_sgn(lincons.num)==0);
@@ -794,6 +796,7 @@ PPL_Poly* ap_ppl_poly_meet_lincons_array(ap_manager_t* man,
       itv_array_free(env,a->p->space_dimension());
     }
     itv_linearize_lincons_array(intern->itv,&array2,true);
+    itv_lincons_array_reduce_integer(intern->itv,&array2,a->intdim);
     Constraint_System c;
     exact = ap_ppl_of_itv_lincons_array(c,den,&array2,intern->strict) && exact;
     if (!exact)
