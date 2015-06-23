@@ -24,7 +24,7 @@ IFLAGS = \
 -I../octagons \
 -I../ppl \
 -I../products \
--I../optoctagon2 \
+-I../optoctagon7 \
 $(JNIINC) 
 
 LFLAGS = \
@@ -37,7 +37,7 @@ LFLAGS = \
 -L../newpolka \
 -L../octagons \
 -L../ppl \
--L../optoctagon2 \
+-L../optoctagon7 \
 -L../products
 
 

@@ -4,6 +4,8 @@ import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 import ch.ethz.inf.pm.td.webapi.NewScripts
 
+import scala.util.matching.Regex
+
 /**
  * Defines the commandline interface for TouchGuru
  */
@@ -203,6 +205,16 @@ object Main {
    */
   def runWatchMode(args: Array[String]) {
 
+    var waitTime = 1000
+    val WaitTimeOption = "-waitTime=([\\d]+)".r
+    val otherArgs = args filter {
+
+      case WaitTimeOption(x) => waitTime = x.toInt; false
+      case _ => true
+
+    }
+    if (otherArgs.nonEmpty) { println("Invalid argument"); sys.exit(1) }
+
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient("localhost", 27017)
     val collection = mongoClient("tb")("analysisJobs")
@@ -216,7 +228,7 @@ object Main {
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
           TouchRun.main(x.getAs[String]("url").toArray)
         case _ =>
-          Thread.sleep(200)
+          Thread.sleep(waitTime)
       }
 
     }
