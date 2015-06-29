@@ -23,14 +23,14 @@ trait AMap extends ACollection {
    * This is imprecise, because we do not keep the relation between the collection
    * and its key collection
    */
-  def collectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def ExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
     curState = New[S](keyCollectionTyp)(curState,pp)
     val keyCollection = curState.expr
-    curState = keyCollectionTyp.collectionInsert(
+    curState = keyCollectionTyp.Insert(
       keyCollection,
       Valid(TNumber),
-      this.collectionAllKeys[S](collection)(curState,pp)
+      this.AllKeys[S](collection)(curState,pp)
     )(curState,pp)
     Return[S](keyCollection)(curState,pp)
   }
@@ -40,7 +40,7 @@ trait AMap extends ACollection {
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](collectionAllKeys[S](this0))
+      Return[S](AllKeys[S](this0))
     }
   })
 
@@ -54,8 +54,8 @@ trait AMap extends ACollection {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(key) = parameters // Key_Type
 
-        val result = If[S](collectionContainsKey[S](this0, key) equal True, Then = {
-          Return[S](collectionAt[S](this0, key))(_, pp)
+        val result = If[S](ContainsKey[S](this0, key) equal True, Then = {
+          Return[S](At[S](this0, key))(_, pp)
         }, Else = {
           Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
         })
@@ -73,7 +73,7 @@ trait AMap extends ACollection {
     returnType = keyCollectionTyp,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S =
-        collectionExtractKeys[S](this0)
+        ExtractKeys[S](this0)
     }
   )
 
@@ -86,11 +86,11 @@ trait AMap extends ACollection {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(key) = parameters
-        If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-          val newState = collectionRemoveAt[S](this0, key)(state, pp)
-          collectionDecreaseLength[S](this0)(newState, pp)
+        If[S](ContainsKey[S](this0, key) equal True, Then = (state) => {
+          val newState = RemoveAt[S](this0, key)(state, pp)
+          DecreaseLength[S](this0)(newState, pp)
         }, Else = {
-          collectionRemoveAt[S](this0, key)(_, pp)
+          RemoveAt[S](this0, key)(_, pp)
         })
       }
     }
@@ -105,12 +105,12 @@ trait AMap extends ACollection {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(key, value) = parameters // Number,Element_Type
-        If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-          val s = collectionUpdate[S](this0, key, value)(state, pp)
+        If[S](ContainsKey[S](this0, key) equal True, Then = (state) => {
+          val s = Update[S](this0, key, value)(state, pp)
           s
         }, Else = (state) => {
-          val newState = collectionInsert[S](this0, key, value)(state, pp)
-          val s = collectionIncreaseLength[S](this0)(newState, pp)
+          val newState = Insert[S](this0, key, value)(state, pp)
+          val s = IncreaseLength[S](this0)(newState, pp)
           s
         })
       }

@@ -59,17 +59,17 @@ object TJson_Object extends Default_TJson_Object {
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Gets a field value as a boolean */
     case "boolean" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_boolean))
+      Return[S](Field[S](At[S](this0, key), TJson_Object.field_to_boolean))
 
     /** Indicates if the key exists */
     case "contains key" =>
       val List(key) = parameters // String
-      Return[S](collectionContainsKey[S](this0, key))
+      Return[S](ContainsKey[S](this0, key))
 
     /** Gets a value by name */
     case "field" =>
@@ -83,7 +83,7 @@ object TJson_Object extends Default_TJson_Object {
     /** Gets a field value as a number */
     case "number" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_number))
+      Return[S](Field[S](At[S](this0, key), TJson_Object.field_to_number))
 
     /** Gets a field value as a string */
     case "string" =>
@@ -92,7 +92,7 @@ object TJson_Object extends Default_TJson_Object {
     /** Gets the field value as a time */
     case "time" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_time))
+      Return[S](Field[S](At[S](this0, key), TJson_Object.field_to_time))
 
     /** Copy current JSON object into a Json Builder so it can be modified */
     case "to json builder" =>

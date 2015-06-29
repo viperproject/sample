@@ -13,7 +13,7 @@ object Reporter {
   var enableOutputOfAlarms: Boolean = true
   var enableOutputOfInfos: Boolean = true
   var enableOutputOfPrecisionWarnings: Boolean = true
-  var enableOutputOfDummyWarnings: Boolean = false
+  var enableOutputOfDummyWarnings: Boolean = true
   var enableOutputOfBottomWarnings: Boolean = true
 
   def enableAllOutputs(): Unit = {
@@ -33,7 +33,6 @@ object Reporter {
   }
 
   def hasError(err: SampleError):Boolean = seenErrors.contains(err)
-  def hasInfo(info: SampleInfo):Boolean = seenInfos.contains(info)
   def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
   def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
 
@@ -44,7 +43,7 @@ object Reporter {
   def reportError(err: SampleError) {
     if (!hasError(err) && enableOutputOfAlarms) {
       SystemParameters.progressOutput.put("ALARM: " + err.message + " at " + err.pp.toString +
-        (if (err.causes.size > 0) ", since " + err.causes.map { x => x._1}.mkString(" or ") else ""))
+        (if (err.causes.nonEmpty) ", since " + err.causes.map { x => x._1}.mkString(" or ") else ""))
       seenErrors += err
     }
   }
@@ -52,14 +51,6 @@ object Reporter {
   def reportError(message:String,pp:ProgramPoint, causes: Set[(String,ProgramPoint)] = Set.empty, id: String = "assert.failed") {
     val err = SampleError(id, message, pp, causes)
     reportError(err)
-  }
-
-  def reportInfo(message:String,pp:ProgramPoint, id: String) {
-    val info = SampleInfo(id, message, pp)
-    if (!hasInfo(info) && enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("INFO: "+message+" at "+pp.toString)
-      seenInfos += info
-    }
   }
 
   def reportImprecision(message:String,pp:ProgramPoint) {
@@ -70,7 +61,7 @@ object Reporter {
   }
 
   def reportDummy(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && enableOutputOfPrecisionWarnings && enableOutputOfDummyWarnings) {
+    if (!hasImprecision(message,pp) && enableOutputOfDummyWarnings) {
       SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
       seenImprecision += ((message,pp))
     }
@@ -85,7 +76,6 @@ object Reporter {
 
   def reset(): Unit = {
     seenErrors = Set.empty[SampleError]
-    seenInfos = Set.empty[SampleInfo]
     seenBottom = Set.empty[(String,ProgramPoint)]
     seenImprecision = Set.empty[(String,ProgramPoint)]
   }

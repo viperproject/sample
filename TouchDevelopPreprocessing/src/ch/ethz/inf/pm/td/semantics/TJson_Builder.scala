@@ -129,7 +129,7 @@ object TJson_Builder extends Default_TJson_Builder {
     /** Deletes named field */
     case "remove field" =>
       val List(name) = parameters // String
-      collectionRemoveAt[S](this0,name)
+      RemoveAt[S](this0,name)
 
     // ---- ALL THE STANDARD STUFF
 
@@ -138,17 +138,17 @@ object TJson_Builder extends Default_TJson_Builder {
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Gets a field value as a boolean */
     case "boolean" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0,key),TJson_Builder.field_to_boolean))
+      Return[S](Field[S](At[S](this0,key),TJson_Builder.field_to_boolean))
 
     /** Indicates if the key exists */
     case "contains key" =>
       val List(key) = parameters // String
-      Return[S](collectionContainsKey[S](this0, key))
+      Return[S](ContainsKey[S](this0, key))
 
     /** Gets a value by name */
     case "field" =>
@@ -157,7 +157,7 @@ object TJson_Builder extends Default_TJson_Builder {
     /** Gets a field value as a number */
     case "number" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0,key),TJson_Builder.field_to_number))
+      Return[S](Field[S](At[S](this0,key),TJson_Builder.field_to_number))
 
     /** Gets a field value as a string */
     case "string" =>
@@ -166,7 +166,7 @@ object TJson_Builder extends Default_TJson_Builder {
     /** Gets the field value as a time */
     case "time" =>
       val List(key) = parameters // String
-      Return[S](Field[S](collectionAt[S](this0,key),TJson_Builder.field_to_time))
+      Return[S](Field[S](At[S](this0,key),TJson_Builder.field_to_time))
 
     /** Copy current JSON object into a Json Builder so it can be modified */
     case "to json" =>

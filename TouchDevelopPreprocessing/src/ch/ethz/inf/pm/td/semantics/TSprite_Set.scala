@@ -25,8 +25,8 @@ object TSprite_Set extends Default_TSprite_Set {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(sprite) = parameters // Sprite
         If[S](collectionContainsValue[S](this0, sprite) equal False, Then = (state) => {
-          var newState = collectionInsert[S](this0, collectionSize[S](this0)(state, pp), sprite)(state, pp)
-          newState = collectionIncreaseLength(this0)(newState, pp)
+          var newState = Insert[S](this0, Count[S](this0)(state, pp), sprite)(state, pp)
+          newState = IncreaseLength(this0)(newState, pp)
           Return[S](True)(newState, pp)
         }, Else = {
           Return[S](False)(_, pp)
@@ -51,7 +51,7 @@ object TSprite_Set extends Default_TSprite_Set {
     case "index of" =>
       val List(item) = parameters
       val ret = If[S](collectionContainsValue[S](this0, item) equal True, Then = {
-        Return[S](0 ndToIncl collectionSize[S](this0) - 1)(_, pp)
+        Return[S](0 ndToIncl Count[S](this0) - 1)(_, pp)
       }, Else = {
         Return[S](-1)(_, pp)
       })
@@ -59,10 +59,10 @@ object TSprite_Set extends Default_TSprite_Set {
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>
-      If[S](collectionSize[S](this0) > 0, Then = (state) => {
-        val result = collectionAt[S](this0, toRichExpression(0))(state,pp)
-        var newState = collectionRemoveAt[S](this0, toRichExpression(0))(state, pp)
-        newState = collectionDecreaseLength[S](this0)(newState, pp)
+      If[S](Count[S](this0) > 0, Then = (state) => {
+        val result = At[S](this0, toRichExpression(0))(state,pp)
+        var newState = RemoveAt[S](this0, toRichExpression(0))(state, pp)
+        newState = DecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else = {

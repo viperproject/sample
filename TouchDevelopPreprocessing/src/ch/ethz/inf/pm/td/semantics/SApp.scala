@@ -23,7 +23,7 @@ object SApp extends Default_SApp {
     "javascript import" -> member_javascript_import
   )
 
-  def member_javascript_import = ApiMember(
+  lazy val member_javascript_import = ApiMember(
     name = "javascript import",
     paramTypes = List(ApiParam(TString),ApiParam(TString)),
     thisType = ApiParam(this),
@@ -31,8 +31,12 @@ object SApp extends Default_SApp {
     semantics = DefaultSemantics
   )
 
+  override lazy val member_log = super.member_log.copy(semantics = SkipSemantics)
+
+  override lazy val member_restart = super.member_log.copy(semantics = ExitSemantics)
+
   /** Never used: Aborts the execution if the condition is false. */
-  override def member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
+  override lazy val member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member:ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(condition) = parameters // Boolean
       if (TouchAnalysisParameters.get.printValuesInWarnings)

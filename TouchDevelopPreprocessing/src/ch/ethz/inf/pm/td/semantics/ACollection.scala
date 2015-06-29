@@ -88,23 +88,23 @@ trait ACollection extends AAny {
   override def possibleFields: Set[Identifier] =
     super.possibleFields ++ Set(field_entry,field_count)
 
-  def collectionAllKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def AllKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     Field[S](Field[S](collection,field_entry),field_entry.typ.asInstanceOf[GEntry].field_key)
   }
 
-  def collectionAllValues[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def AllValues[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     Field[S](Field[S](collection,field_entry),field_entry.typ.asInstanceOf[GEntry].field_value)
   }
 
-  def collectionSize[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def Count[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     Field[S](collection,field_count)
   }
 
-  def collectionSetSize[S <: State[S]](collection: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def SetCount[S <: State[S]](collection: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     AssignField[S](collection,field_count,right)
   }
 
-  def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def Insert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
     val idPP = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
@@ -115,30 +115,30 @@ trait ACollection extends AAny {
     curState
   }
 
-  def collectionUpdate[S <: State[S]](collection: RichExpression, key: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    val newState = collectionRemoveAt[S](collection, key)(state, pp)
-    collectionInsert[S](collection, key, value)(newState, pp)
+  def Update[S <: State[S]](collection: RichExpression, key: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val newState = RemoveAt[S](collection, key)(state, pp)
+    Insert[S](collection, key, value)(newState, pp)
   }
 
-  def collectionIncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    AssignField[S](collection, field_count, collectionSize[S](collection) + 1)
+  def IncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    AssignField[S](collection, field_count, Count[S](collection) + 1)
   }
 
-  def collectionDecreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    AssignField[S](collection, field_count, collectionSize[S](collection) - 1)
+  def DecreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    AssignField[S](collection, field_count, Count[S](collection) - 1)
   }
 
-  def collectionClear[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def Clear[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
-    curState = collectionSetSize[S](collection, 0)(curState, pp)
+    curState = SetCount[S](collection, 0)(curState, pp)
     curState = AssignField[S](collection,field_entry,
       Invalid(entryType,"collection cleared"))(curState,pp)
     curState
   }
 
-  def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def At[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     if (TouchAnalysisParameters.get.collectionsSummarizeElements) {
-      collectionAllValues[S](collection)
+      AllValues[S](collection)
     } else {
       Lattice.bigLub[ExpressionSet](
         state.getFieldValueWhere(collection, field_entry.getField.get, field_entry.typ, {
@@ -152,7 +152,7 @@ trait ACollection extends AAny {
     }
   }
 
-  def collectionRemoveAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def RemoveAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     // find all nodes which must match the key, and remove them
     val (_,nodesToBeRemoved) =
       state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
@@ -169,7 +169,7 @@ trait ACollection extends AAny {
     state.merge(r).assume(noEqualKey)
   }
 
-  def collectionContainsKey[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def ContainsKey[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     val (mayMatching,mustMatching) = state.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
       {
         (x:Identifier,s:S) =>
@@ -182,7 +182,7 @@ trait ACollection extends AAny {
     else True or False
   }
 
-  def collectionRemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {
+  def RemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {
     state // TODO
   }
 

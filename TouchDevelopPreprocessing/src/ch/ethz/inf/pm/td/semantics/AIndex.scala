@@ -19,7 +19,7 @@ trait AIndex extends ACollection {
 
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
     }
   })
 
@@ -46,7 +46,7 @@ trait AIndex extends ACollection {
     returnType = TNothing,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        collectionClear[S](this0)
+        Clear[S](this0)
       }
     }
   )
@@ -60,14 +60,14 @@ trait AIndex extends ACollection {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val key = parameters.head
-        If[S](collectionContainsKey[S](this0, key) equal False, Then=(state) => {
+        If[S](ContainsKey[S](this0, key) equal False, Then=(state) => {
           var newState = New[S](valueType)(state,pp)
           val newIndexMember = newState.expr
-          newState = collectionInsert[S](this0, key, newIndexMember)(newState,pp)
-          newState = collectionIncreaseLength[S](this0)(newState, pp)
-          Return[S](collectionAt[S](this0, key)(newState, pp))(newState, pp)
+          newState = Insert[S](this0, key, newIndexMember)(newState,pp)
+          newState = IncreaseLength[S](this0)(newState, pp)
+          Return[S](At[S](this0, key)(newState, pp))(newState, pp)
         }, Else=(state)=>{
-          Return[S](collectionAt[S](this0, key)(state, pp))(state, pp)
+          Return[S](At[S](this0, key)(state, pp))(state, pp)
         })(state,pp)
       }
 

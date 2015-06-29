@@ -123,6 +123,12 @@ object SkipSemantics extends ApiMemberSemantics {
 
 }
 
+object ExitSemantics extends ApiMemberSemantics {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
+    Exit[S]
+  }
+}
+
 object InvalidSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
@@ -168,7 +174,7 @@ object DefaultSemantics extends ApiMemberSemantics {
       }
     }
 
-    RichNativeSemantics.Dummy[S](this0,method.toString)(state,pp)
+    RichNativeSemantics.Dummy[S](this0,method.name)(state,pp)
 
     if (TouchAnalysisParameters.get.defaultToUnsound) {
 

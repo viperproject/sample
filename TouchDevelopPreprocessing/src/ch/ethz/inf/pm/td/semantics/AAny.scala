@@ -192,7 +192,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       val List(right) = parameters
       val res = Assign[S](this0, right)
       // Dirty old PhD students hacking dirty
-      if (TouchAnalysisParameters.get.prematureAbortion && this0.toString.contains("__data_")) {
+      if (TouchAnalysisParameters.get.prematureAbort && this0.toString.contains("__data_")) {
         Exit[S](res, pp)
       }
       res

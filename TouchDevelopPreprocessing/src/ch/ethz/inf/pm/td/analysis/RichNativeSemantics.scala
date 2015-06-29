@@ -34,13 +34,8 @@ object RichNativeSemantics extends RichExpressionImplicits {
   /*-- Checking / Reporting errors --*/
 
   def Dummy[S <: State[S]](obj: RichExpression, method: String)(implicit state: S, pp: ProgramPoint) {
-    if (TouchAnalysisParameters.get.reportDummyImplementations && isInReportableSection)
+    if (TouchAnalysisParameters.get.reportDummyImplementations)
       Reporter.reportDummy(obj.getType().toString + "->" + method, pp)
-  }
-
-  def Dummy[S <: State[S]](text: String)(implicit state: S, pp: ProgramPoint) {
-    if (TouchAnalysisParameters.get.reportDummyImplementations && isInReportableSection)
-      Reporter.reportDummy(text, pp)
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {

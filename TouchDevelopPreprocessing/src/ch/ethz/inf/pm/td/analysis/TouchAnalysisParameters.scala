@@ -77,7 +77,7 @@ case class TouchAnalysisParameters(
                                      * Take into account premature abortion. This means, the persistent data at any
                                      * program point will be included in the entry state.
                                      */
-                                    prematureAbortion: Boolean = true,
+                                    prematureAbort: Boolean = true,
 
                                     /**
                                      * Reset assumptions about environment between events / public methods
@@ -183,7 +183,7 @@ case class TouchAnalysisParameters(
                                     numberOfVersions: Int = 2,
 
                                     reportNoncriticalParameterBoundViolations: Boolean = false,
-                                    reportDummyImplementations: Boolean = false,
+                                    reportDummyImplementations: Boolean = true,
                                     reportNumericalErrors: Boolean = false,
                                     reportPrematurelyOnInternetAccess: Boolean = false,
 

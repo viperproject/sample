@@ -84,7 +84,7 @@ object SWall extends Default_SWall {
     case "add button" =>
       val List(icon, text) = parameters // String,String
     val pages = Field[S](this0, SWall.field_pages)
-      val currentPage = GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1)
+      val currentPage = GCollection(TPage).At[S](pages, GCollection(TPage).Count[S](pages) - 1)
       New[S](TPage_Button, initials = Map(
         TPage_Button.field_icon -> icon,
         TPage_Button.field_text -> text,
@@ -117,7 +117,7 @@ object SWall extends Default_SWall {
     /** Gets the current page displayed on the wall */
     case "current page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      Return[S](GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))
+      Return[S](GCollection(TPage).At[S](pages, GCollection(TPage).Count[S](pages) - 1))
 
     /** Clears the application bar buttons and hides the bar */
     case "clear buttons" =>
@@ -152,8 +152,8 @@ object SWall extends Default_SWall {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text, caption, values) = parameters // String,String,String_Collection
-      If(GCollection(TString).collectionSize[S](values) > 0,
-        Then = { s: S => Return[S](0 ndToIncl (GCollection(TString).collectionSize[S](values) - 1))(s, pp)},
+      If(GCollection(TString).Count[S](values) > 0,
+        Then = { s: S => Return[S](0 ndToIncl (GCollection(TString).Count[S](values) - 1))(s, pp)},
         Else = { s: S => Error[S](True, "pick string", "User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
@@ -165,8 +165,8 @@ object SWall extends Default_SWall {
     case "pop page with transition" =>
       val List(style) = parameters // String
       val pages = Field[S](this0, SWall.field_pages)
-      If[S](GCollection(TPage).collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(GCollection(TPage).collectionRemoveFirst[S](pages, GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](GCollection(TPage).Count[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(GCollection(TPage).RemoveFirst[S](pages, GCollection(TPage).At[S](pages, GCollection(TPage).Count[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -174,8 +174,8 @@ object SWall extends Default_SWall {
     /** Pops the current page and restores the previous wall page. Returns false if already on the default page. */
     case "pop page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      If[S](GCollection(TPage).collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(GCollection(TPage).collectionRemoveFirst[S](pages, GCollection(TPage).collectionAt[S](pages, GCollection(TPage).collectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](GCollection(TPage).Count[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(GCollection(TPage).RemoveFirst[S](pages, GCollection(TPage).At[S](pages, GCollection(TPage).Count[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -191,8 +191,8 @@ object SWall extends Default_SWall {
       var curState = state
       curState = New[S](TPage)(curState, pp)
       val newPage = curState.expr
-      curState = GCollection(TPage).collectionInsert[S](pages, GCollection(TPage).collectionSize[S](pages), newPage)(curState, pp)
-      curState = GCollection(TPage).collectionIncreaseLength[S](pages)(curState, pp)
+      curState = GCollection(TPage).Insert[S](pages, GCollection(TPage).Count[S](pages), newPage)(curState, pp)
+      curState = GCollection(TPage).IncreaseLength[S](pages)(curState, pp)
       Return[S](newPage)(curState, pp)
 
     /** Takes a screenshot of the wall. */

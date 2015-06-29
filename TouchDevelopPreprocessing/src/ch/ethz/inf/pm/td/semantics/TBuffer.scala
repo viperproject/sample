@@ -25,30 +25,30 @@ object TBuffer extends Default_TBuffer {
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "clone" =>
       // TODO CHECK RANGE
-      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
+      Assign[S](AllValues[S](this0), Top[S](TNumber).expr)
 
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "copy from" =>
       val List(target_offset, source) = parameters // Number,Buffer
       // TODO CHECK RANGE
-      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
+      Assign[S](AllValues[S](this0), Top[S](TNumber).expr)
 
     /** Fills the buffer with random values */
     case "fill random" =>
       val List() = parameters //
-      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
+      Assign[S](AllValues[S](this0), Top[S](TNumber).expr)
 
     /** Sets all bytes in buffer to `value` */
     case "fill" =>
       val List(value) = parameters // Number
-      Assign[S](collectionAllValues[S](this0), value)
+      Assign[S](AllValues[S](this0), value)
 
     /** Set byte at `index` to `value` */
     case "set" =>
       val List(index, value) = parameters // Number,Number
       If[S](collectionIndexInRange[S](this0, index), Then = (state) => {
-        val newState = collectionRemoveAt[S](this0, index)(state, pp)
-        collectionInsert[S](this0, index, value)(newState, pp)
+        val newState = RemoveAt[S](this0, index)(state, pp)
+        Insert[S](this0, index, value)(newState, pp)
       }, Else = (state) => {
         state
       })

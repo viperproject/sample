@@ -100,7 +100,7 @@ object SPlayer extends Default_SPlayer {
     /** Plays a collection of songs */
     case "play many" =>
       val List(songs) = parameters // Songs
-      AssignField[S](this0, SPlayer.field_active_song, TSongs.collectionAllValues[S](songs))
+      AssignField[S](this0, SPlayer.field_active_song, TSongs.AllValues[S](songs))
 
     /** Moves to the previous song in the queue of playing songs */
     case "previous" =>

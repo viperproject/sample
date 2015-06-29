@@ -170,8 +170,8 @@ object TString extends Default_TString {
           curState = New[S](typ)(curState,pp)
           val absColl = curState.expr
           for (c <- coll) {
-            curState = typ.collectionInsert[S](absColl,typ.collectionSize[S](absColl), Constant(c,TString,pp))(curState,pp)
-            curState = typ.collectionIncreaseLength[S](absColl)(curState,pp)
+            curState = typ.Insert[S](absColl,typ.Count[S](absColl), Constant(c,TString,pp))(curState,pp)
+            curState = typ.IncreaseLength[S](absColl)(curState,pp)
           }
           curState.setExpression(absColl)
 
@@ -181,7 +181,7 @@ object TString extends Default_TString {
           var curState = state
           curState = Top[S](GCollection(TString))(curState, pp)
           val obj = curState.expr
-          curState = Assume(GCollection(TString).collectionSize[S](obj) >= 1)(curState, pp)
+          curState = Assume(GCollection(TString).Count[S](obj) >= 1)(curState, pp)
           Return[S](obj)(curState, pp)
 
       }

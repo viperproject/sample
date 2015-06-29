@@ -3,8 +3,7 @@ package ch.ethz.inf.pm.td
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 import ch.ethz.inf.pm.td.webapi.NewScripts
-
-import scala.util.matching.Regex
+import com.mongodb.casbah.commons.ValidBSONType.BasicDBList
 
 /**
  * Defines the commandline interface for TouchGuru
@@ -20,7 +19,7 @@ object Main {
    * - Feeder:    Feeds analysis jobs into the database
    */
   object Mode extends Enumeration {
-    type WeekDay = Value
+    type Mode = Value
     val Default, WatchMode, Help, FeedMode, Statistics = Value
   }
 
@@ -102,6 +101,11 @@ object Main {
         |
         |  (5) Statistics, enabled by -statistics
         |    Prints statistics about the database
+        |    -dummies   lists all the dummies produced by the analysis
+        |    -bottoms   lists all the bottoms produced by the analysis
+        |    -debug     lists all exceptions thrown by the analysis
+        |    -libs      lists all libs used by applications
+        |    -alarms    lists all alarms
         |
       """.stripMargin)
 
@@ -114,21 +118,112 @@ object Main {
    */
   def printStatistics(args: Array[String]) {
 
+
+    object StatisticsMode extends Enumeration {
+      type StatisticsMode = Value
+      val Default, Timings, Alarms, Dummies, Bottoms, Debug, Libraries = Value
+    }
+
+    var mode = StatisticsMode.Default
+    args filter {
+
+      case "-dummies" => mode = StatisticsMode.Dummies;     false
+      case "-bottoms" => mode = StatisticsMode.Bottoms;     false
+      case "-debug"   => mode = StatisticsMode.Debug;       false
+      case "-libs"    => mode = StatisticsMode.Libraries;   false
+      case "-alarms"  => mode = StatisticsMode.Alarms;      false
+      case "-timings" => mode = StatisticsMode.Timings;     false
+      case _ => true
+
+    }
+
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient("localhost", 27017)
     val collection = mongoClient("tb")("analysisJobs")
 
-    println("Successful scripts: " + collection.count(MongoDBObject("status" -> "Done")))
-    println("Failed scripts:     " + collection.count(MongoDBObject("status" -> "Failed")))
-    println("Waiting scripts:    " + collection.count(MongoDBObject("status" -> "Waiting")))
-    var map = Map.empty[String,Set[String]]
-    for (x <- collection.find(MongoDBObject("status" -> "Failed"))) {
-      val error =  x.getAsOrElse[String]("debug","").split("\n").head
-      val script = x.getAsOrElse[String]("url","").split("\n").head
-      map = map + (error -> (map.getOrElse(error,Set.empty) + script))
-    }
-    println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+    mode match {
 
+      case StatisticsMode.Bottoms =>
+
+        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
+          val script = x.getAsOrElse[String]("url","").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("bottoms",MongoDBList.empty)) {
+            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
+            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          }
+        }
+        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+
+      case StatisticsMode.Debug =>
+
+        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        for (x <- collection.find(MongoDBObject("status" -> "Failed"))) {
+          val error =  x.getAsOrElse[String]("debug","").split("\n").head
+          val script = x.getAsOrElse[String]("url","").split("\n").head
+          map += (error -> (map.getOrElse(error,Set.empty) + script))
+        }
+        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+
+      case StatisticsMode.Default =>
+
+        println("Successful scripts: " + collection.count(MongoDBObject("status" -> "Done")))
+        println("Failed scripts:     " + collection.count(MongoDBObject("status" -> "Failed")))
+        println("Waiting scripts:    " + collection.count(MongoDBObject("status" -> "Waiting")))
+
+      case StatisticsMode.Libraries =>
+
+        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
+          val script = x.getAsOrElse[String]("url","").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("libs",MongoDBList.empty)) {
+            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("id","").split("\n").head
+            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          }
+        }
+        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+
+      case StatisticsMode.Timings =>
+
+        val mapAvg = scala.collection.mutable.HashMap.empty[String,Double]
+        val mapNumber = scala.collection.mutable.HashMap.empty[String,Int]
+        for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
+          for (y <- x.getAsOrElse[MongoDBList]("timings",MongoDBList.empty)) {
+            for (z <- List("TouchAnalysis.MainAnalysis", "TouchAnalysis.HeapPreanalysis", "TouchAnalysis.LibraryFieldAnalysis")) {
+              val time =  y.asInstanceOf[DBObject].getAsOrElse[Long](z,0)
+              val num = mapNumber.getOrElse(z,0) + 1
+              mapNumber += (z -> num)
+              mapAvg += (z -> (mapAvg.getOrElse(z,0.0)+time.toDouble/num))
+            }
+          }
+        }
+        println(mapAvg.map{x => x._1+"\t||"+x._2}.mkString("\n"))
+
+      case StatisticsMode.Dummies =>
+
+        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
+          val script = x.getAsOrElse[String]("url","").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("dummies",MongoDBList.empty)) {
+            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
+            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          }
+        }
+        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+
+      case StatisticsMode.Alarms =>
+
+        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
+          val script = x.getAsOrElse[String]("url","").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("result",MongoDBList.empty)) {
+            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
+            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          }
+        }
+        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+
+    }
   }
 
   /**
@@ -176,7 +271,8 @@ object Main {
             case Some(x) =>
               if (!skipPrevious) {
                 println("Enabled an existing record for "+script.id)
-                collection.findAndModify(x,$set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> ""))
+                collection.findAndModify(x,$set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> "", "bottoms" -> MongoDBObject(),
+                    "dummies" -> MongoDBObject(), "libs" -> MongoDBObject()))
               } else {
                 println("Skipping an existing record for "+script.id)
               }
@@ -242,7 +338,7 @@ object Main {
       TouchAnalysisParameters(
           //localizeStateOnMethodCall = true, BUGGY
           //singleExecution = true,
-          prematureAbortion = false,
+          prematureAbort = false,
           //singleEventOccurrence = true, BUGGY
           contextSensitiveInterproceduralAnalysis = false,
           collectionsSummarizeElements = true,

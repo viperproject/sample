@@ -96,7 +96,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
       analysis.analyze(entryState)
 
       Exporters.setStatus("Done")
-      messages = Reporter.seenErrors ++ Reporter.seenInfos
+      messages = Reporter.seenErrors.toSet
       SystemParameters.resetOutput()
 
     } catch {

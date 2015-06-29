@@ -38,28 +38,28 @@ object SHome extends Default_SHome {
 
     /** Choose a media player on the current wireless network */
     case "choose player" =>
-      val ret = If[S](GCollection(TMedia_Player).collectionSize[S](Field[S](this0, SHome.field_players)) equal 0, Then = {
+      val ret = If[S](GCollection(TMedia_Player).Count[S](Field[S](this0, SHome.field_players)) equal 0, Then = {
         Return[S](Invalid(TMedia_Player, "user may abort the player selection"))(_, pp)
       }, Else = {
-        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_players)))(_, pp)
+        Return[S](GCollection(TPrinter).AllValues[S](Field[S](this0, SHome.field_players)))(_, pp)
       })
       ret
 
     /** Choose a printer on the current wireless network */
     case "choose printer" =>
-      val ret = If[S](GCollection(TPrinter).collectionSize[S](Field[S](this0, SHome.field_printers)) equal 0, Then = {
+      val ret = If[S](GCollection(TPrinter).Count[S](Field[S](this0, SHome.field_printers)) equal 0, Then = {
         Return[S](Invalid(TPrinter, "user may abort the printer selection"))(_, pp)
       }, Else = {
-        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_printers)))(_, pp)
+        Return[S](GCollection(TPrinter).AllValues[S](Field[S](this0, SHome.field_printers)))(_, pp)
       })
       ret
 
     /** Choose a media server on the current wireless network */
     case "choose server" =>
-      val ret = If[S](GCollection(TMedia_Server).collectionSize[S](Field[S](this0, SHome.field_servers)) equal 0, Then = {
+      val ret = If[S](GCollection(TMedia_Server).Count[S](Field[S](this0, SHome.field_servers)) equal 0, Then = {
         Return[S](Invalid(TMedia_Server, "user may abort the media server selection"))(_, pp)
       }, Else = {
-        Return[S](GCollection(TPrinter).collectionAllValues[S](Field[S](this0, SHome.field_servers)))(_, pp)
+        Return[S](GCollection(TPrinter).AllValues[S](Field[S](this0, SHome.field_servers)))(_, pp)
       })
       ret
 

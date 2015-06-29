@@ -26,8 +26,8 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
         // Create row with backlink to this table for removal
         var newState = New[S](rowTyp, initials = Map(field_table -> this0))(state, pp)
         val row = newState.expr
-        newState = collectionInsert[S](this0, collectionSize[S](this0)(newState, pp), row)(newState, pp)
-        newState = collectionIncreaseLength[S](this0)(newState, pp)
+        newState = Insert[S](this0, Count[S](this0)(newState, pp), row)(newState, pp)
+        newState = IncreaseLength[S](this0)(newState, pp)
         Return[S](row)(newState, pp)
       }
     }

@@ -68,7 +68,7 @@ object TWeb_Request extends Default_TWeb_Request {
     /** Gets the value of a given header */
     case "header" =>
       val List(name) = parameters // String
-      Return[S](TString_Map.collectionAt[S](Field[S](this0, TWeb_Request.field_header_storage), name))
+      Return[S](TString_Map.At[S](Field[S](this0, TWeb_Request.field_header_storage), name))
 
     /** Gets the names of the headers */
     case "header names" =>
@@ -94,12 +94,12 @@ object TWeb_Request extends Default_TWeb_Request {
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */
     case "set accept" =>
       val List(typ) = parameters // String
-      TString_Map.collectionInsert(Field[S](this0, TWeb_Request.field_header_storage), String("Accept"), typ)
+      TString_Map.Insert(Field[S](this0, TWeb_Request.field_header_storage), String("Accept"), typ)
 
     /** Compresses the request content with gzip and sets the Content-Encoding header */
     case "set compress" =>
       val List(value) = parameters // Boolean
-      TString_Map.collectionInsert(Field[S](this0, TWeb_Request.field_header_storage), String("Content-Encoding"), value)
+      TString_Map.Insert(Field[S](this0, TWeb_Request.field_header_storage), String("Content-Encoding"), value)
 
     /** Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */
     case "set content as picture" =>
@@ -120,7 +120,7 @@ object TWeb_Request extends Default_TWeb_Request {
     /** Sets an HTML header value. Empty string clears the value */
     case "set header" =>
       val List(name, value) = parameters // String,String
-      TString_Map.collectionInsert(Field[S](this0, TWeb_Request.field_header_storage), name, value)
+      TString_Map.Insert(Field[S](this0, TWeb_Request.field_header_storage), name, value)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

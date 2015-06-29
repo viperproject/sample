@@ -48,11 +48,11 @@ object TMatrix extends Default_TMatrix {
 
     /** Computes the minimum of the values */
     case "min" =>
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Computes the maximum of the values */
     case "max" =>
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Returns a copy of the matrix scaled by factor. */
     // case "scale" => 

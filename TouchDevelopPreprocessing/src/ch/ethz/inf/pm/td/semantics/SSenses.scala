@@ -42,6 +42,9 @@ object SSenses extends Default_SSenses {
   /** Get the list of Bluetooth widgets paired with your device. */
   lazy val field_bluetooth_devices = ApiField("bluetooth devices", GCollection(TBluetooth_Device))
 
+
+  lazy val field_gamepads = ApiField("gamepads",GCollection(TGamepad))
+
   /** PRIVATE HANDLER FIELDS */
   lazy val field_shake_handler = ApiField("shake handler", TAction)
   lazy val field_phone_face_up_handler = ApiField("phone face up handler", TAction)
@@ -53,7 +56,7 @@ object SSenses extends Default_SSenses {
   override def possibleFields = super.possibleFields ++
     List(field_front_camera, field_camera, field_has_accelerometer, field_has_compass, field_has_front_camera,
       field_has_gyroscope, field_bluetooth_devices, field_battery_level, field_shake_handler, field_phone_face_up_handler,
-      field_phone_face_down_handler, field_phone_portrait, field_phone_landscape_left, field_phone_langscape_right
+      field_phone_face_down_handler, field_phone_portrait, field_phone_landscape_left, field_phone_langscape_right, field_gamepads
     )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)

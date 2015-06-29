@@ -14,11 +14,11 @@ import ch.ethz.inf.pm.td.domain.TouchState
  **/
 trait ALinearCollection extends ACollection {
 
-  override def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  override def At[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     val res = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) {
-      collectionAllValues[S](collection)
+      AllValues[S](collection)
     } else {
-      super.collectionAt[S](collection,key)
+      super.At[S](collection,key)
     }
     res
   }
@@ -28,7 +28,7 @@ trait ALinearCollection extends ACollection {
       val List(index) = parameters // Key_Type
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
-      Return[S](collectionAt[S](this0, index))
+      Return[S](At[S](this0, index))
     }
   })
 
@@ -46,7 +46,7 @@ trait ALinearCollection extends ACollection {
           throw new SemanticException("This is not a linear collection " + this0.toString)
 
         val newState = If[S](collectionIndexInRange[S](this0, index), Then = {
-          Return[S](collectionAt[S](this0, index))(_, pp)
+          Return[S](At[S](this0, index))(_, pp)
         }, Else = {
           Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)
         })
@@ -75,8 +75,8 @@ trait ALinearCollection extends ACollection {
 
   object RandomSemantics extends ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      If[S](collectionSize[S](this0) > 0, Then = {
-        Return[S](collectionAllValues[S](this0))(_, pp)
+      If[S](Count[S](this0) > 0, Then = {
+        Return[S](AllValues[S](this0))(_, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
       })
@@ -91,10 +91,10 @@ trait ALinearCollection extends ACollection {
 
   def collectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     // Improve precision: Always true if collection size must be empty
-    if (Assume[S](collectionSize[S](collection) > 0).isBottom) {
+    if (Assume[S](Count[S](collection) > 0).isBottom) {
       return False
     }
-    val x = If[S](collectionAllValues[S](collection) equal value, { then: S =>
+    val x = If[S](AllValues[S](collection) equal value, { thenState: S =>
       Return[S](True)
     }, { els: S =>
       Return[S](False)
@@ -103,11 +103,11 @@ trait ALinearCollection extends ACollection {
   }
 
   def collectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    Assign[S](collectionAllKeys[S](collection),0 ndToIncl (collectionSize[S](collection) - 1))
+    Assign[S](AllKeys[S](collection),0 ndToIncl (Count[S](collection) - 1))
   }
 
   def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    index >= 0 && index < collectionSize[S](collection)
+    index >= 0 && index < Count[S](collection)
   }
 
   /**
@@ -115,7 +115,7 @@ trait ALinearCollection extends ACollection {
    * Generally, there is no need to represent the entries of a linear collection separately.
    * Instead, we always use the same pp for all collections.
    */
-  override def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  override def Insert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
     val idPP = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
@@ -123,6 +123,13 @@ trait ALinearCollection extends ACollection {
       entryType.field_value -> right
     ))(curState, idPP)
     curState = AssignField[S](collection, field_entry, curState.expr)(curState, idPP)
+    curState
+  }
+
+  def Add[S <: State[S]](this0: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = Insert[S](this0,Count[S](this0), value)(curState,pp)
+    curState = IncreaseLength[S](this0)(curState,pp)
     curState
   }
 

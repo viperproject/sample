@@ -28,23 +28,23 @@ object TNumber_Map extends Default_TNumber_Map {
     /** === NUMBER MAPS RETURN 0 FOR UNITIALIZED FIELDS! === */
     case "at" =>
       val List(key) = parameters // Key_Type
-      If[S](collectionContainsKey[S](this0, key), Then={
-        Return[S](collectionAt[S](this0, key))(_, pp)
+      If[S](ContainsKey[S](this0, key), Then={
+        Return[S](At[S](this0, key))(_, pp)
       }, Else={
         Return[S](0)(_, pp)
       })
 
     /** Computes the average of the values */
     case "avg" =>
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Computes the maximum of the values */
     case "max" =>
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Computes the minimum of the values */
     case "min" =>
-      Return[S](collectionAllValues[S](this0))
+      Return[S](AllValues[S](this0))
 
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
@@ -54,7 +54,7 @@ object TNumber_Map extends Default_TNumber_Map {
 
     /** Computes the sum of the values */
     case "sum" =>
-      Return[S]( collectionSize[S](this0) * collectionAllValues[S](this0))
+      Return[S]( Count[S](this0) * AllValues[S](this0))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
