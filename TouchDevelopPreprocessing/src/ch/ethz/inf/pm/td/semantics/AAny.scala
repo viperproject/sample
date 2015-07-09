@@ -99,8 +99,6 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def isSingleton = false
   def isImmutable = true
 
-  override def tracking(field:String) = false
-
   def possibleFields = Set.empty
 
   override def representedFields =

@@ -270,11 +270,6 @@ trait Type extends Lattice[Type] {
 
   def representedFields = possibleFields
 
-  /**
-   * Track these fields
-   */
-  def tracking(f: String) = true
-
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
     possibleFields.filter(_.typ.isObject)

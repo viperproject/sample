@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.transform
 
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.parser.Foreach
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -80,25 +81,42 @@ object LoopRewriter {
 
       case For(idx, bnd, body) =>
 
-        // We have the following for loop:
-        //   for(0 <= idx < bnd) { body }
+        bnd match {
 
-        // We generate the following while loop:
-        // var idx = 0;
-        // var __idx_bound__ = bnd;
-        // while (idx < __idx_bound__) {
-        //   body;
-        //   __idx_bound__ = __idx__bound__ + 1;
-        // }
+          case Literal(numTyp,value) if TouchAnalysisParameters.get.unrollForLoopsUpTo >= value.toInt =>
 
-        val idxExp = pos(LocalReference(idx))
-        val storedBound = pos(LocalReference(annotateName(idx,"bound")))
-        val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
-        val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
-        val storedBoundMinusOne = Access(storedBound,pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
-        val condition = pos(Access(idxExp, pos(Identifier("≤")), List(storedBoundMinusOne)))
-        val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
-        indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
+            val bodyNew = body flatMap apply
+            val idxOld = pos(LocalReference(idx))
+            (for (i <- 0 to value.toInt-1) yield {
+              val posSuffix = "it" + i
+              val idxNew = pos(Literal(numTyp,i.toString))
+              bodyNew.map( x => LoopUnroller.renameStatementPos(replace(x,idxOld,idxNew),posSuffix))
+            }).toList.flatten
+
+          case _ =>
+
+            // We have the following for loop:
+            //   for(0 <= idx < bnd) { body }
+
+            // We generate the following while loop:
+            // var idx = 0;
+            // var __idx_bound__ = bnd;
+            // while (idx < __idx_bound__) {
+            //   body;
+            //   __idx_bound__ = __idx__bound__ + 1;
+            // }
+
+            val idxExp = pos(LocalReference(idx))
+            val storedBound = pos(LocalReference(annotateName(idx,"bound")))
+            val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
+            val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
+            val storedBoundMinusOne = Access(storedBound,pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
+            val condition = pos(Access(idxExp, pos(Identifier("≤")), List(storedBoundMinusOne)))
+            val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
+            indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
+
+        }
+
 
       case f@Foreach(elem, coll, guards, body) =>
 

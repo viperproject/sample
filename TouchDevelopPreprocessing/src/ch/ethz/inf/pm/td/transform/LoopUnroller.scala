@@ -69,54 +69,57 @@ object LoopUnroller {
       }
     }
 
-    def renameStatementPos(s: Statement, suffix: String): Statement = {
-      val renameS = renameStatementPos(_: Statement, suffix)
-      val renameE = renameExpressionPos(_: Expression, suffix)
-      val renameIA = renameInlineActionPos(_: InlineAction, suffix)
-      val transformed: Statement = s match {
-        case f@For(idx, bnd, body) =>
-          For(idx, renameE(bnd), body map renameS)
-        case Foreach(elem, coll, guards, body) =>
-          Foreach(elem, renameE(coll), guards map renameE, body map renameS)
-        case If(cond, thenBody, elseBody) =>
-          If(renameE(cond), thenBody map renameS, elseBody map renameS)
-        case While(cond, body) =>
-          While(renameE(cond), body map renameS)
-        case Box(body) =>
-          Box(body map renameS)
-        case WhereStatement(expr, handlers, optParam) =>
-          WhereStatement(renameE(expr), handlers map renameIA, optParam.map(renameOptParamPos(_,suffix)))
-        case ExpressionStatement(expr) =>
-          ExpressionStatement(renameE(expr))
-        case _ => s
-      }
-      transformed.copyPos(s).appendIdComponent(suffix)
-    }
-
-    def renameOptParamPos(inlineAction: OptionalParameter, suffix: String): OptionalParameter = {
-      OptionalParameter(inlineAction.name, renameExpressionPos(inlineAction.expr,suffix))
-    }
-
-    def renameInlineActionPos(inlineAction: InlineAction, suffix: String): InlineAction = {
-      val renameS = renameStatementPos(_: Statement, suffix)
-      InlineAction(inlineAction.handlerName, inlineAction.inParameters, inlineAction.outParameters,
-        inlineAction.body map renameS,inlineAction.typ)
-    }
-
-    def renameExpressionPos(e: Expression, suffix: String): Expression = {
-      val renameE = renameExpressionPos(_: Expression, suffix)
-      val transformed = e match {
-        case Access(subject, property, args) =>
-          val newProperty = property.copy().copyPos(property).appendIdComponent(suffix)
-          Access(renameE(subject), newProperty, args map renameE)
-        case e: Literal => e.copy()
-        case e: SingletonReference => e.copy()
-        case e: LocalReference => e.copy()
-        case e: Placeholder => e.copy()
-      }
-      transformed.copyPos(s).appendIdComponent(suffix)
-    }
 
     Script(s.declarations map unrollDeclaration, s.isLibrary)
   }
+
+
+  def renameStatementPos(s: Statement, suffix: String): Statement = {
+    val renameS = renameStatementPos(_: Statement, suffix)
+    val renameE = renameExpressionPos(_: Expression, suffix)
+    val renameIA = renameInlineActionPos(_: InlineAction, suffix)
+    val transformed: Statement = s match {
+      case f@For(idx, bnd, body) =>
+        For(idx, renameE(bnd), body map renameS)
+      case Foreach(elem, coll, guards, body) =>
+        Foreach(elem, renameE(coll), guards map renameE, body map renameS)
+      case If(cond, thenBody, elseBody) =>
+        If(renameE(cond), thenBody map renameS, elseBody map renameS)
+      case While(cond, body) =>
+        While(renameE(cond), body map renameS)
+      case Box(body) =>
+        Box(body map renameS)
+      case WhereStatement(expr, handlers, optParam) =>
+        WhereStatement(renameE(expr), handlers map renameIA, optParam.map(renameOptParamPos(_,suffix)))
+      case ExpressionStatement(expr) =>
+        ExpressionStatement(renameE(expr))
+      case _ => s
+    }
+    transformed.copyPos(s).appendIdComponent(suffix)
+  }
+
+  def renameOptParamPos(inlineAction: OptionalParameter, suffix: String): OptionalParameter = {
+    OptionalParameter(inlineAction.name, renameExpressionPos(inlineAction.expr,suffix))
+  }
+
+  def renameInlineActionPos(inlineAction: InlineAction, suffix: String): InlineAction = {
+    val renameS = renameStatementPos(_: Statement, suffix)
+    InlineAction(inlineAction.handlerName, inlineAction.inParameters, inlineAction.outParameters,
+      inlineAction.body map renameS,inlineAction.typ)
+  }
+
+  def renameExpressionPos(e: Expression, suffix: String): Expression = {
+    val renameE = renameExpressionPos(_: Expression, suffix)
+    val transformed = e match {
+      case Access(subject, property, args) =>
+        val newProperty = property.copy().copyPos(property).appendIdComponent(suffix)
+        Access(renameE(subject), newProperty, args map renameE)
+      case e: Literal => e.copy()
+      case e: SingletonReference => e.copy()
+      case e: LocalReference => e.copy()
+      case e: Placeholder => e.copy()
+    }
+    transformed.copyPos(e).appendIdComponent(suffix)
+  }
+
 }

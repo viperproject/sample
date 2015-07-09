@@ -37,12 +37,12 @@ T <: SemanticWithInvalidDomain[S, I, T]]
   this: T =>
 
   override def assign(id:Identifier, expr:Expression) =
-    if (containsValidInvalidExpression(expr) || containsUntrackedExpression(expr) || containsUntrackedExpression(id))
+    if (containsValidInvalidExpression(expr))
       factory(_1.setToTop(id), _2.assign(id,expr))
     else factory(_1.assign(id,expr), _2.assign(id,expr))
 
   override def assume(expr:Expression) =
-    if (containsValidInvalidExpression(expr) || containsUntrackedExpression(expr))
+    if (containsValidInvalidExpression(expr))
       factory(_1, _2.assume(expr))
     else factory(_1.assume(expr), _2.assume(expr))
 
@@ -52,13 +52,7 @@ T <: SemanticWithInvalidDomain[S, I, T]]
     case _ => false
   }
 
-  def isUntrackedExpression(expr:Expression):Boolean = expr match {
-    case a:FieldIdentifier => !a.o.typ.tracking(a.f)
-    case _ => false
-  }
-
   def containsValidInvalidExpression(expr:Expression) = expr contains isValidInvalidExpression
-  def containsUntrackedExpression(expr:Expression) = expr contains isUntrackedExpression
 
   override def toString = this._1.toString + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
 

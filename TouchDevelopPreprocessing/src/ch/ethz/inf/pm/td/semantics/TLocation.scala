@@ -22,7 +22,6 @@ import RichNativeSemantics._
  */
 object TLocation extends Default_TLocation {
 
-
   /** Gets the latitude of the coordinate */
   lazy val field_latitude = ApiField("latitude", TNumber) // -90 ndTo 90
 
