@@ -56,6 +56,8 @@ object TSprite extends Default_TSprite {
   lazy val field_font_size = ApiField("font size",TNumber)
   lazy val field_bottom = ApiField("bottom",TNumber)
   lazy val field_top = ApiField("top",TNumber)
+  lazy val field_left = ApiField("left",TNumber)
+  lazy val field_right = ApiField("right",TNumber)
 
   /** PRIVATE HANDLER FIELDS */
   lazy val field_drag_handler = ApiField("drag handler", TVector_Action)
@@ -81,7 +83,9 @@ object TSprite extends Default_TSprite {
     field_elasticity,
     field_opacity,
     field_bottom,
-    field_top
+    field_top,
+    field_left,
+    field_right
   )
 
   override def possibleFields = super.possibleFields ++ List(

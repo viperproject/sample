@@ -31,6 +31,7 @@ object SApp extends Default_SApp {
     semantics = DefaultSemantics
   )
 
+  override lazy val member_stop = super.member_stop.copy(semantics = StopSemantics)
   override lazy val member_log = super.member_log.copy(semantics = SkipSemantics)
   override lazy val member_restart = super.member_log.copy(semantics = ExitSemantics)
   override lazy val member_create_logger = super.member_create_logger.copy(semantics = ValidPureSemantics)

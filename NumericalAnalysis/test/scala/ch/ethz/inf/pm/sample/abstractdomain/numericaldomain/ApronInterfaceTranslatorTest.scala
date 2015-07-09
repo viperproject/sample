@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 
 /** Tests ApronInterfaceTranslator. */
 class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with ShouldMatchers {
-  val dom:Apron.Octagons = Apron.Octagons.Bottom
+  val dom:Apron.Polyhedra = Apron.Polyhedra.Bottom
   val numType = DummyNumericalType
   val boolType = DummyBooleanType
 
@@ -34,8 +34,8 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val constTrue = makeConst("true", boolType)
   val constFalse = makeConst("false", boolType)
 
-  def translate(iFace: Apron.Octagons): Set[String] = {
-    val translator = ApronInterfaceTranslator(boolType = boolType)(iFace.asInstanceOf[Apron.Octagons.Inner])
+  def translate(iFace: Apron.Polyhedra): Set[String] = {
+    val translator = ApronInterfaceTranslator(boolType = boolType)(iFace.asInstanceOf[Apron.Polyhedra.Inner])
     translator.translateAll().map(ExpPrettyPrinter)
   }
 

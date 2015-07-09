@@ -158,7 +158,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Unrolls for 0 <= i < k for loops up to k times before analysis
                                      */
-                                    unrollForLoopsUpTo: Int = 20,
+                                    unrollForLoopsUpTo: Int = 0,
 
                                     /**
                                      * Whether to creat distinct errors and heap objects for each unrolling

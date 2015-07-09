@@ -123,6 +123,17 @@ object SkipSemantics extends ApiMemberSemantics {
 
 }
 
+
+object StopSemantics extends ApiMemberSemantics {
+
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
+                                              (implicit pp: ProgramPoint, state: S): S = {
+    if (SystemParameters.DEBUG) assert(method.returnType == TNothing)
+    state.bottom()
+  }
+
+}
+
 object ExitSemantics extends ApiMemberSemantics {
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
     Exit[S]

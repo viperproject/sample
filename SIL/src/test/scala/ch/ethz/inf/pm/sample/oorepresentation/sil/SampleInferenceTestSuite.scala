@@ -55,32 +55,32 @@ import java.nio.file._
 //  }
 //}
 
-class SampleInferenceTestSuite extends SilSuite {
-  def testDirectories = Seq("sil/inference")
-
-  def frontend(verifier: Verifier, files: Seq[Path]) = {
-    val frontend = new DummySilFrontend
-    frontend.init(verifier)
-    frontend.reset(files)
-    frontend
-  }
-
-  def verifiers: Seq[Verifier] = Seq(DummyVerifier) //Seq(createSiliconInstance())
-
-  // Copied from silicon/src/test/scala/SiliconTests.scala
-//  private def createSiliconInstance(): Silicon = {
-//    val silicon = new SiliconWithInference(Seq(("startedBy", "viper.silicon.SiliconTests")))
-//    val args = optionsFromScalaTestConfigMap(configMap) ++ Seq("dummy.sil")
+//class SampleInferenceTestSuite extends SilSuite {
+//  def testDirectories = Seq("sil/inference")
 //
-//    silicon.parseCommandLine(args)
-//    silicon.config.initialize {case _ =>}
-//
-//    silicon
+//  def frontend(verifier: Verifier, files: Seq[Path]) = {
+//    val frontend = new DummySilFrontend
+//    frontend.init(verifier)
+//    frontend.reset(files)
+//    frontend
 //  }
-
-  private def optionsFromScalaTestConfigMap(configMap: Map[String, Any]): Seq[String] =
-    configMap.flatMap{case (k, v) => Seq("--" + k, v.toString)}.toSeq
-}
+//
+//  def verifiers: Seq[Verifier] = Seq(DummyVerifier) //Seq(createSiliconInstance())
+//
+//  // Copied from silicon/src/test/scala/SiliconTests.scala
+////  private def createSiliconInstance(): Silicon = {
+////    val silicon = new SiliconWithInference(Seq(("startedBy", "viper.silicon.SiliconTests")))
+////    val args = optionsFromScalaTestConfigMap(configMap) ++ Seq("dummy.sil")
+////
+////    silicon.parseCommandLine(args)
+////    silicon.config.initialize {case _ =>}
+////
+////    silicon
+////  }
+//
+//  private def optionsFromScalaTestConfigMap(configMap: Map[String, Any]): Seq[String] =
+//    configMap.flatMap{case (k, v) => Seq("--" + k, v.toString)}.toSeq
+//}
 
 object DummyVerifier extends SimpleVerifier {
   def name = "dummy"
