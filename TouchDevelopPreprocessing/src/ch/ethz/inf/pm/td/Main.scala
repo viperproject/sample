@@ -106,6 +106,7 @@ object Main {
         |    -debug     lists all exceptions thrown by the analysis
         |    -libs      lists all libs used by applications
         |    -alarms    lists all alarms
+        |    -timings   lists the average of all timings
         |
       """.stripMargin)
 
@@ -189,7 +190,7 @@ object Main {
         val mapNumber = scala.collection.mutable.HashMap.empty[String,Int]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
           for (y <- x.getAsOrElse[MongoDBList]("timings",MongoDBList.empty)) {
-            for (z <- List("TouchAnalysis.MainAnalysis", "TouchAnalysis.HeapPreanalysis", "TouchAnalysis.LibraryFieldAnalysis")) {
+            for (z <- List("TouchAnalysisMainAnalysis", "TouchAnalysisHeapPreanalysis", "TouchAnalysisLibraryFieldAnalysis")) {
               val time =  y.asInstanceOf[DBObject].getAsOrElse[Long](z,0)
               val num = mapNumber.getOrElse(z,0) + 1
               mapNumber += (z -> num)

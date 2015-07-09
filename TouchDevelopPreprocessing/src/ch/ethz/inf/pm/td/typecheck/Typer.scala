@@ -103,8 +103,6 @@ object Typer {
     thing match {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
-      case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
-        st.addAction(name, inParameters, outParameters)
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
@@ -123,10 +121,6 @@ object Typer {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st(a) = ScopeSymbolTable(a, null, Map.empty) ++ inParameters ++ outParameters
         for (smt <- body) processStatement(a, st, smt)
-      case p@PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
-        st(p) = ScopeSymbolTable(p, null, Map.empty) ++ inParameters ++ outParameters
-        for (smt <- initBody) processStatement(p, st, smt)
-        for (smt <- displayBody) processStatement(p, st, smt)
       case _ => ()
     }
   }

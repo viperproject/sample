@@ -53,8 +53,9 @@ object TypeList  {
     TypeList.records += ApiField(name,typ)
   }
   
-  def getSingletons = List(SBazaar,SBox,SCloud_Data,SCloud_Storage,
-    SColors,SHome,SLanguages,SLocations,SMedia,SPlayer,SRadio,SRecords,SSenses,SSocial,STime,SWall,SWeb)
+  def getSingletons = List(SApp,SArt,SBazaar,SBits,SBox,SCloud_Data,SCloud_Storage,
+    SCode,SCollections,SColors,SContract,SCreate,SData,SDom,SHelpers,SHome,SLanguages,SLibs,SLocations,
+    SMaps,SMath,SMedia,SPlayer,SPhone,SRadio,SRecords,SSenses,SSocial,STags,STiles,STime,STutorial,SWall,SWeb)
 
   def getTypeOrFail(typ:TypeName):AAny = getType(typ) match {
     case Some(x) => x

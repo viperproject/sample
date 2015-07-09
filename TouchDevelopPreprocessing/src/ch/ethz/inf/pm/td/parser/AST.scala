@@ -51,15 +51,6 @@ case class ActionType(ident:String,
   extends Declaration
   with IdPositional
 
-case class PageDefinition(ident:String,
-                          inParameters:List[Parameter],
-                          outParameters:List[Parameter],
-                          initBody:List[Statement],
-                          displayBody:List[Statement],
-                          isPrivate:Boolean)
-  extends Declaration
-  with IdPositional
-
 case class VariableDefinition(variable:Parameter,
                               flags:Map[String,Any])
   extends Declaration

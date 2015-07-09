@@ -80,7 +80,7 @@ class MongoExporter extends ErrorExporter {
 
       val timings = for ((str,tm) <- AccumulatingTimer.times) yield {
         MongoDBObject(
-          str -> tm.sum
+          str.replaceAll("[^A-Za-z]+","") -> tm.sum
         )
       }
 

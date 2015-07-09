@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, MethodSummaries, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_SApp
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -32,8 +32,8 @@ object SApp extends Default_SApp {
   )
 
   override lazy val member_log = super.member_log.copy(semantics = SkipSemantics)
-
   override lazy val member_restart = super.member_log.copy(semantics = ExitSemantics)
+  override lazy val member_create_logger = super.member_create_logger.copy(semantics = ValidPureSemantics)
 
   /** Never used: Aborts the execution if the condition is false. */
   override lazy val member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
@@ -47,19 +47,19 @@ object SApp extends Default_SApp {
     }
   })
 
-  //  lazy val field_server_response = ApiField("server response",TServer_Response)
-  //  lazy val field_server_request = ApiField("server request",TServer_Request)
-  //  lazy val field_env = ApiField("env",TApp_Env)
-  //  lazy val field_editor = ApiField("editor",TEditor)
-  //  lazy val field_current_handler = ApiField("current handler",TEvent_Binding)
+  lazy val field_server_response = ApiField("server response",TServer_Response)
+  lazy val field_server_request = ApiField("server request",TServer_Request)
+  lazy val field_env = ApiField("env",TApp_Env)
+  lazy val field_editor = ApiField("editor",TEditor)
+  lazy val field_current_handler = ApiField("current handler",TEvent_Binding)
 
-  //  override lazy val possibleFields:Set[ApiField] = super.possibleFields ++ Set(
-  //    field_server_response,
-  //    field_server_request,
-  //    field_env,
-  //    field_editor,
-  //    field_current_handler
-  //  )
+   override lazy val possibleFields = super.possibleFields ++ Set(
+     field_server_response,
+     field_server_request,
+     field_env,
+     field_editor,
+     field_current_handler
+   )
 
 }
       

@@ -577,13 +577,6 @@ trait State[S <: State[S]] extends Lattice[S] {
 
   def merge(r:Replacement):S = this
 
-  /**
-   * Update the identifiers in the expression set to the currently represented objects.
-   * For example, if it contains a non-summary node, but the state contains a summary-version,
-   * convert.
-   */
-  def updateIdentifiers(expr:ExpressionSet):ExpressionSet
-
 }
 
 trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] extends SimpleState[S] {
@@ -771,29 +764,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
       Lattice.bigLub(condSet.getNonTop.map(assume))
     }
   }
-
-  def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
-    if (!expr.isTop) {
-      ExpressionSet((for (e <- expr.getNonTop) yield updateIdentifiers(e)).toSeq)
-    } else expr
-  }
-
-  def updateIdentifiers(expr:Expression):Expression = {
-    if (!expr.ids.isTop) {
-      var curExpr = expr
-      for (id <- expr.ids.getNonTop) {
-        val matchingId = updateIdentifier(id)
-        if (id != matchingId)
-          curExpr = curExpr.replace(id,matchingId)
-      }
-      curExpr
-    } else expr
-  }
-
-  /**
-   * Overwrite this if you need updating
-   */
-  def updateIdentifier[I <: Identifier](id: I):I = id
 
   /** Assumes an expression.
    * Implementations can already assume that this state is non-bottom.

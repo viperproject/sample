@@ -247,7 +247,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
   override def toString : String = {
     if(this.isTop)
       "⊤"
-    else if(this.isBottom || this.bricksList.length == 0) 
+    else if(this.isBottom || this.bricksList.isEmpty)
       "⊥"
     else {
       var returnVal = ""
@@ -320,7 +320,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
     	//RULE 1
     	this.bricksList = this.bricksList.filter(b => !(!b.isTop &&
     			b.min == 0 && b.max == 0 && b.strings == Set.empty))
-    	if(this.bricksList.length == 0) {
+    	if(this.bricksList.isEmpty) {
     		this.isBottom = true
         return this
       }
@@ -476,7 +476,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
 		    	    	  val beginIndex = Integer.decode(s1).intValue()
 	    	    	  	  val endIndex = Integer.decode(s2).intValue()
 					      val left = this.eval(thisExpr)
-					      if(left.bricksList.length >= 1 && left.bricksList.head.min == 1 && left.bricksList.head.max == 1) {
+					      if(left.bricksList.nonEmpty && left.bricksList.head.min == 1 && left.bricksList.head.max == 1) {
 					    	  val firstBrick = left.bricksList.head
 					    	  if(firstBrick.strings.forall(s => s.length() >= endIndex)) {
 					    	    val result = new BricksDomain()

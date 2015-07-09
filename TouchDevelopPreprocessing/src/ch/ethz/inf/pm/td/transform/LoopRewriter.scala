@@ -29,7 +29,6 @@ object LoopRewriter {
     d match {
       case a:ActionDefinition => a.copy(body = (a.body map apply).flatten).copyPos(a)
       case a:ActionType => a.copy(body = (a.body map apply).flatten).copyPos(a)
-      case a:PageDefinition => a.copy(initBody = (a.initBody map apply).flatten, displayBody = (a.displayBody map apply).flatten).copyPos(a)
       case _ => d
     }
   }
@@ -96,7 +95,8 @@ object LoopRewriter {
         val storedBound = pos(LocalReference(annotateName(idx,"bound")))
         val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
         val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
-        val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
+        val storedBoundMinusOne = Access(storedBound,pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
+        val condition = pos(Access(idxExp, pos(Identifier("≤")), List(storedBoundMinusOne)))
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
 
@@ -134,7 +134,8 @@ object LoopRewriter {
             List(pos(If(guartdConditionReplaced,rewrittenBody,Nil)))
           case Nil => rewrittenBody
         }
-        val condition = pos(Access(idxExp, pos(Identifier("<")), List(pos(Access(storedCollection, pos(Identifier("count")), Nil)))))
+        val countMinusOne = Access(pos(Access(storedCollection, pos(Identifier("count")),Nil)),pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
+        val condition = pos(Access(idxExp, pos(Identifier("≤")), List(countMinusOne))) // Less-Equal count -1 is tighter than Less count, since
         val whileLoop = pos(While(condition, conditionalBody ::: bodyPostfix :: Nil))
         indexInit :: collectionStore :: whileLoop :: Nil
 

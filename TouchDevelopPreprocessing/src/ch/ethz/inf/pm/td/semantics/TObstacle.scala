@@ -41,7 +41,7 @@ object TObstacle extends Default_TObstacle {
     /** Attaches a handler where a sprite bounces on the obstacle */
     case "on collision" =>
       val List(bounce) = parameters // Sprite_Action
-    val newState = AssignField[S](this0, TObstacle.field_collision_handler, bounce)
+      val newState = AssignField[S](this0, TObstacle.field_collision_handler, bounce)
       New[S](TEvent_Binding)(newState, pp)
 
     case _ =>

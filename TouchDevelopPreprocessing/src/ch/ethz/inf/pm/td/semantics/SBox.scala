@@ -83,7 +83,7 @@ object SBox extends Default_SBox {
   lazy val field_text_editing_handler = ApiField("text editing handler", TText_Action)
   lazy val field_tapped_handler = ApiField("tapped handler", TAction)
 
-  override def possibleFields = super.possibleFields ++ List(
+  override lazy val possibleFields = super.possibleFields ++ Set(
     field_is_init,
     field_vertical_align,
     field_horizontal_align,
@@ -128,6 +128,49 @@ object SBox extends Default_SBox {
     field_text_edited_handler,
     field_text_editing_handler,
     field_tapped_handler
+  )
+
+  override lazy val mutedFields = super.mutedFields ++ Set(
+    field_vertical_align,
+    field_horizontal_align,
+    field_left_horizontal_alignment,
+    field_right_horizontal_alignment,
+    field_left_vertical_alignment,
+    field_right_vertical_alignment,
+    field_font_size,
+    field_font_weight,
+    field_top_margin,
+    field_left_margin,
+    field_right_margin,
+    field_bottom_margin,
+    field_bottom_padding,
+    field_top_padding,
+    field_left_padding,
+    field_right_padding,
+    field_background,
+    field_foreground,
+    field_border_color,
+    field_border_width_top,
+    field_border_width_right,
+    field_border_width_left,
+    field_border_width_bottom,
+    field_height,
+    field_width,
+    field_page_width,
+    field_page_height,
+    field_text_wrapping_wrap,
+    field_text_wrapping_minimumwidth,
+    field_horizontal_scrolling,
+    field_vertical_scrolling,
+    field_overlay_layout,
+    field_horizontal_layout,
+    field_vertical_layout,
+    field_horizontal_stretch,
+    field_vertical_stretch,
+    field_min_width,
+    field_max_width,
+    field_min_height,
+    field_max_height
   )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)

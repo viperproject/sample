@@ -18,6 +18,14 @@ import ch.ethz.inf.pm.td.typecheck.Member
  */
 trait AAny extends NativeMethodSemantics with RichExpressionImplicits with TouchType {
 
+  def member__ref = ApiMember(
+    name = "◈ref",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GRef(this),
+    semantics = DefaultSemantics
+  )
+
   def member_∥ = ApiMember(
     name = "∥",
     paramTypes = List(ApiParam(TString)),
@@ -84,11 +92,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       "async" -> member_async,
       "is invalid" -> member_is_invalid,
       "post to wall" -> member_post_to_wall,
-      "equals" -> member_equals
+      "equals" -> member_equals,
+      "◈ref" -> member__ref
     )
 
   def isSingleton = false
   def isImmutable = true
+
+  override def tracking(field:String) = false
 
   def possibleFields = Set.empty
 
@@ -239,9 +250,12 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         }
       else if (parameters.length == 1)
         // Setters
-        representedFields.find("set " + _.getName == method) match {
+        possibleFields.find("set " + _.getName == method) match {
           case Some(field) =>
-            Some(AssignField[S](this0, field, parameters.head))
+            if (!representedFields.contains(field))
+              Some(state)
+            else
+              Some(AssignField[S](this0, field, parameters.head))
           case None => None
         }
       else None
@@ -253,13 +267,13 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
         val mutedFieldResult =
           if (parameters.isEmpty)
-          // Getters
+            // Getters
             mutedFields.find(_.getName == method) match {
               case Some(field) => Some(Top[S](field.typ)(state,pp))
               case None => None
             }
           else if (parameters.length == 1)
-          // Setters
+            // Setters
             mutedFields.find("set " + _.getName == method) match {
               case Some(field) => Some(state)
               case None => None

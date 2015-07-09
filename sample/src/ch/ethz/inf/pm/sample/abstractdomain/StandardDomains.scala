@@ -227,8 +227,8 @@ trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends MergeDomain[T
       if (from.size == 1 && to.size > 1) cur = cur.expand(from.head, to)
       else if (from.size > 1 && to.size == 1) cur = cur.fold(from, to.head)
       else if (from.size == 1 && to.size == 1) cur = cur.rename(from.head, to.head)
-      else if (to.size == 0) cur = cur.remove(from)
-      else if (from.size == 0) cur = cur.add(to)
+      else if (to.isEmpty) cur = cur.remove(from)
+      else if (from.isEmpty) cur = cur.add(to)
       else new NotImplementedError("This domain only supports fold, expand, rename, remove and add; No general replacement support.")
     }
     cur

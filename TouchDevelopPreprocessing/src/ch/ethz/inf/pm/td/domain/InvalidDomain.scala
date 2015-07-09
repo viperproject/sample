@@ -4,6 +4,8 @@ import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.semantics.AAny
 
 /**
  *
@@ -18,6 +20,14 @@ trait InvalidDomain[T <: InvalidDomain[T]] extends SemanticDomain[T] {
 }
 
 
+/**
+ * This domain contains the invalid domain and the other value domains
+ *
+ * It routes the semantics in the following way
+ *
+ * - Only "tracked" values are routed towards the value domain
+ * - Expression with valid / invalid are routed towards the invalid domain
+ */
 trait SemanticWithInvalidDomain[
 S <: SemanticDomain[S],
 I <: InvalidDomain[I],
@@ -27,12 +37,12 @@ T <: SemanticWithInvalidDomain[S, I, T]]
   this: T =>
 
   override def assign(id:Identifier, expr:Expression) =
-    if (containsValidInvalidExpression(expr))
+    if (containsValidInvalidExpression(expr) || containsUntrackedExpression(expr) || containsUntrackedExpression(id))
       factory(_1.setToTop(id), _2.assign(id,expr))
     else factory(_1.assign(id,expr), _2.assign(id,expr))
 
   override def assume(expr:Expression) =
-    if (containsValidInvalidExpression(expr))
+    if (containsValidInvalidExpression(expr) || containsUntrackedExpression(expr))
       factory(_1, _2.assume(expr))
     else factory(_1.assume(expr), _2.assume(expr))
 
@@ -42,7 +52,13 @@ T <: SemanticWithInvalidDomain[S, I, T]]
     case _ => false
   }
 
+  def isUntrackedExpression(expr:Expression):Boolean = expr match {
+    case a:FieldIdentifier => !a.o.typ.tracking(a.f)
+    case _ => false
+  }
+
   def containsValidInvalidExpression(expr:Expression) = expr contains isValidInvalidExpression
+  def containsUntrackedExpression(expr:Expression) = expr contains isUntrackedExpression
 
   override def toString = this._1.toString + "\nInvalid:\n" + ToStringUtilities.indent(this._2.toString)
 

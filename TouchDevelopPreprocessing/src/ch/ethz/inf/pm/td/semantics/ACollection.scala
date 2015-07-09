@@ -14,6 +14,12 @@ import RichNativeSemantics._
  */
 trait ACollection extends AAny {
 
+  override def tracking(f:String) = f match {
+    case field_count.name => true
+    case field_entry.name => true
+    case _ => false
+  }
+
   def keyType:AAny
   def valueType:AAny
 

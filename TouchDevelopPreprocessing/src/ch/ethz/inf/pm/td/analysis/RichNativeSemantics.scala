@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Type, ForwardNativeMethodSemantic
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression}
+import ch.ethz.inf.pm.td.domain.{TouchStateInterface, InvalidExpression, MultiValExpression}
 import ch.ethz.inf.pm.td.semantics._
 
 import scala.Error
@@ -136,12 +136,12 @@ object RichNativeSemantics extends RichExpressionImplicits {
             }
 
             // Sometimes, our original object was replaced in the calls above (for recursive datastructures)
-            val newObj = curState.updateIdentifiers(obj)
+            val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
             curState = AssignField[S](newObj, f, a)(curState, pp)
           }
         }
 
-        val newObj = curState.updateIdentifiers(obj)
+        val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
         curState.setExpression(newObj)
     }
   }
@@ -173,12 +173,12 @@ object RichNativeSemantics extends RichExpressionImplicits {
               }
               case Some(st) => st
             }
-            val newObj = curState.updateIdentifiers(obj)
+            val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
             curState = AssignField[S](newObj, f, a)(curState, pp)
           }
         }
 
-        val newObj = curState.updateIdentifiers(obj)
+        val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
         curState.setExpression(newObj)
 
     }
@@ -224,20 +224,20 @@ object RichNativeSemantics extends RichExpressionImplicits {
             val oldField = Field[S](obj, f)(curState, newPP)
             curState = Clone[S](oldField, recursive = !referenceLoop)(curState, newPP)
             val clonedContent = curState.expr
-            val newNewObject = curState.updateIdentifiers(newObject)
+            val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
             curState = AssignField[S](newNewObject, f, clonedContent)(curState, newPP)
           } else {
             val oldField = Field[S](obj, f)(curState, pp)
-            val newNewObject = curState.updateIdentifiers(newObject)
+            val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
             curState = AssignField[S](newNewObject, f, oldField)(curState, pp)
           }
         case Some(st) =>
-          val newNewObject = curState.updateIdentifiers(newObject)
+          val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
           curState = AssignField[S](newNewObject, f, st)(curState, pp)
       }
     }
 
-    val newNewObject = curState.updateIdentifiers(newObject)
+    val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
     curState.setExpression(newNewObject)
 
   }
@@ -373,9 +373,9 @@ case class ApiField(name: String,
 
   val pp = null
 
-  override def getName = name.toString
+  override def getName = name
 
-  override def toString = name.toString
+  override def toString = name
 
   override def getField = Some(name)
 

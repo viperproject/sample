@@ -6,4 +6,6 @@ action main() {
     foreach s in $c where true do {
         $d->add($s);
     }
+
+    contract->assert($d->count ≤ $c->count, "Same size");
 }

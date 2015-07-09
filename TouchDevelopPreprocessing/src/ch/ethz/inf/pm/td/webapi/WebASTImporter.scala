@@ -58,11 +58,18 @@ object WebASTImporter {
       case JData(id, name, comment, typ, isReadonly) =>
         VariableDefinition(Parameter(name, makeTypeName(typ).setId(id)).setId(id), Map("readonly" -> isReadonly.toString)).setId(id)
       case JPage(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, initBody, displayBody, hasModelParameter) =>
+        val loop = While(Literal(makeTypeName("Boolean").setId(id), "true").setId(id),convert(displayBody)).setId(id)
         hasModelParameter match {
           case Some(true) =>
-            PageDefinition(name, inParameters.tail map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+            val modParam = convert(inParameters.head)
+            val records = SingletonReference("records","records").setId(id)
+            val paramRecord = Access(records,Identifier(modParam.typeName.toString).setId(id),Nil).setId(id)
+            val createRecord = Access(paramRecord,Identifier("create").setId(id),Nil).setId(id)
+            val assignment = Access(LocalReference(modParam.ident).setId(id),Identifier(":=").setId(id),List(createRecord)).setId(id)
+            val initCode = ExpressionStatement(assignment).setId(id)
+            ActionDefinition(name, inParameters.tail map convert, outParameters map convert, initCode::convert(initBody):::List(loop), isEvent = false, isPrivate).setId(id)
           case _ =>
-            PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+            ActionDefinition(name, inParameters map convert, outParameters map convert, convert(initBody):::List(loop), isEvent = false, isPrivate).setId(id)
         }
       case JEvent(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, eventName, eventVariableId, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
@@ -118,7 +125,13 @@ object WebASTImporter {
       case JWhile(id, condition, body) =>
         While(convert(condition), convert(body)).setId(id)
       case JIf(id, condition, thenBody, elseBody) =>
-        If(convert(condition), convert(thenBody), convert(elseBody)).setId(id)
+        // We prune if(false) here already, as they are not typechecked!!
+        condition match {
+          case JExprHolder(_,_,JBooleanLiteral(_,false),_) =>
+            Skip().setId(id)
+          case _ =>
+            If(convert(condition), convert(thenBody), convert(elseBody)).setId(id)
+        }
       case JBoxed(id, body) =>
         Box(convert(body)).setId(id)
       case JExprStmt(id, expr) =>

@@ -153,7 +153,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Unrolls loops n times (0 means no unrolling) before analysis
                                      */
-                                    numberOfUnrollings: Int = 0,
+                                    numberOfUnrollings: Int = 1,
 
                                     /**
                                      * Lets the analysis timeout after a number of seconds

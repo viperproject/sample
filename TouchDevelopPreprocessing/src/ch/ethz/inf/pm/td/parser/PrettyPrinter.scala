@@ -46,13 +46,6 @@ object PrettyPrinter {
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
             "usage " + "{\n    " + (usages map apply).mkString("\n    ") + "\n  }" + "\n  " +
             (resolves map apply).mkString("\n  ") + "\n}"
-        case PageDefinition(name, in, out, initBody, displayBody,isPrivate) =>
-          (if (isPrivate) "private " else "") +
-            "page " + apply(name) + " (" +
-            (in map apply).mkString(",") + ") returns (" +
-            (out map apply).mkString(",") + ") init {\n" +
-            apply(initBody) + "\n} display {\n" +
-            apply(displayBody) + "}"
       })
   }
 

@@ -32,12 +32,47 @@ case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifie
 }
 
 /**
+ * Describes an interface that is to be implemented by all states to be plugged into TouchGuru
+ */
+trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
+  this:T =>
+
+  def getPossibleStrings(id: Identifier): SetDomain.Default[String]
+
+  def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
+    if (!expr.isTop) {
+      ExpressionSet((for (e <- expr.getNonTop) yield updateIdentifiers(e)).toSeq)
+    } else expr
+  }
+
+  def updateIdentifiers(expr:Expression):Expression = {
+    if (!expr.ids.isTop) {
+      var curExpr = expr
+      for (id <- expr.ids.getNonTop) {
+        val matchingId = updateIdentifier(id)
+        if (id != matchingId)
+          curExpr = curExpr.replace(id,matchingId)
+      }
+      curExpr
+    } else expr
+  }
+
+  /**
+   * Overwrite this if you need updating
+   */
+  def updateIdentifier[I <: Identifier](id: I):I = id
+
+}
+
+
+/**
  * A new state for TouchDevelop
  */
 trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   extends SimpleState[T]
   with StateWithBackwardAnalysisStubs[T]
   with LazyLogging
+  with TouchStateInterface[T]
 {
   self:T =>
 
@@ -1094,7 +1129,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   override def updateIdentifier[I <: Identifier](id: I):I = {
     id match {
-      case FieldIdentifier(o,f,t) => FieldIdentifier(updateIdentifier(o),f,t).asInstanceOf[I]
+      case f:FieldIdentifier => f.copy(o = updateIdentifier(f.o)).asInstanceOf[I]
       case HeapIdentifier(pp,t,_,_) =>
         versions.get((pp,t)) match {
           case None =>
@@ -1125,9 +1160,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }}).flatten).toSet
   }
 
-
-
-
+  override def getPossibleStrings(id: Identifier) = SetDomain.Default.Top[String]()
 }
 
 object TouchState {

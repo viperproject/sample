@@ -65,8 +65,6 @@ object LoopUnroller {
     def unrollDeclaration(d: Declaration): Declaration = {
       d match {
         case a: ActionDefinition => a.copy(body = (a.body map unrollStatement).flatten).copyPos(a)
-        case a: PageDefinition => a.copy(initBody = (a.initBody map unrollStatement).flatten,
-          displayBody = (a.displayBody map unrollStatement).flatten).copyPos(a)
         case _ => d
       }
     }

@@ -16,7 +16,6 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_GRef extends AAny {
 
   def TT:AAny
-           
 
   lazy val typeName = TypeName("Ref", List(TT.typeName))
           
@@ -56,15 +55,6 @@ trait Default_GRef extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Retrive the reference itself (useful on globals and fields) */
-  def member__ref = ApiMember(
-    name = "◈ref",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = GRef(TT),
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Set the value of the reference */
   def member__set = ApiMember(
     name = "◈set",
@@ -98,7 +88,6 @@ trait Default_GRef extends AAny {
     "◈clear" -> member__clear,
     "◈confirmed" -> member__confirmed,
     "◈get" -> member__get,
-    "◈ref" -> member__ref,
     "◈set" -> member__set,
     "◈test and set" -> member__test_and_set,
     "◈with notify" -> member__with_notify

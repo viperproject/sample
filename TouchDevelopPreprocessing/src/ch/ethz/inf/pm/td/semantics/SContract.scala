@@ -26,17 +26,17 @@ object SContract extends Default_SContract {
     case "requires" =>
       val List(condition,message) = parameters // Boolean,String
       if (TouchAnalysisParameters.get.printValuesInWarnings)
-        Error[S](condition.not(), "requires", "Precondition "+condition+" does not hold!")
+        Error[S](condition.not(), "requires", "Precondition "+condition+" may  not be satisfied!")
       else
-        Error[S](condition.not(), "requires", "Precondition does not hold!")
+        Error[S](condition.not(), "requires", "Precondition may not be satisfied!")
 
     /** Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
     case "assert" =>
       val List(condition,message) = parameters // Boolean,String
       if (TouchAnalysisParameters.get.printValuesInWarnings)
-        Error[S](condition.not(), "assert", "Assertion "+condition+" does not hold!")
+        Error[S](condition.not(), "assert", "Assertion "+condition+" may not hold!")
       else
-        Error[S](condition.not(), "assert", "Assertion does not hold!")
+        Error[S](condition.not(), "assert", "Assertion may not hold!")
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

@@ -4,7 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{SkipSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TSound
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -18,6 +18,8 @@ import RichNativeSemantics._
  */ 
 
 object TSound extends Default_TSound {
+
+  override lazy val member_play = super.member_play.copy(semantics = SkipSemantics)
 
   /** Gets the duration in seconds. */
   lazy val field_duration = ApiField("duration", TNumber)

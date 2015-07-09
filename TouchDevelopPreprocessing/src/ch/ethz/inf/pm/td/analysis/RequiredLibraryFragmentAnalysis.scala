@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property.{OutputCollector, SingleStatementProperty}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.domain.HeapIdentifier
+import ch.ethz.inf.pm.td.domain.{TouchStateInterface, HeapIdentifier}
 import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -75,7 +75,10 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
  *
  * @param myType the current expression on the evaluation stack
  */
-class AccessCollectingState(myType: Type) extends State[AccessCollectingState] with CollectingState {
+class AccessCollectingState(myType: Type)
+  extends State[AccessCollectingState]
+  with CollectingState
+  with TouchStateInterface[AccessCollectingState] {
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.typ.top())
 
@@ -107,57 +110,9 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.typ)
 
-  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None) =
-    this.setType(collTyp)
-
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = this
-
-  def getCollectionValue(valueIds: ExpressionSet) = this
-
-  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = this
-
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[ACollection].keyType)
-
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[ACollection].valueType)
-
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[ACollection].valueType)
-
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint) = this
-
-  def getOriginalCollection(collectionSet: ExpressionSet) = this
-
-  def getKeysCollection(collectionSet: ExpressionSet) = this
-
-  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet) = this
-
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet) = this
-
-  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = this
-
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = this
-
-  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = this
-
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = this
-
-  def clearCollection(collectionSet: ExpressionSet) = this
-
-  def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber)
-
-  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = this
-
-  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = this
-
-  def isSummaryCollection(collectionSet: ExpressionSet) = false
-
   def pruneVariables(filter: VariableIdentifier => Boolean): AccessCollectingState = this
 
   def pruneUnreachableHeap(): AccessCollectingState = this
-
-  def optimizeSummaryNodes(): AccessCollectingState = this
 
   def testFalse(): AccessCollectingState = this
 
@@ -212,8 +167,6 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def backwardAssignField(oldPreState: AccessCollectingState, obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this
 
-  def setCollectionToTop(collectionSet: ExpressionSet): AccessCollectingState = this
-
   def undoPruneVariables(unprunedPreState: AccessCollectingState, filter: (VariableIdentifier) => Boolean): AccessCollectingState = this
 
   def undoPruneUnreachableHeap(preState: AccessCollectingState): AccessCollectingState = this
@@ -230,4 +183,6 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
   override def merge(r: Replacement): AccessCollectingState = this
 
   override def updateIdentifiers(expr: ExpressionSet) = expr
+
+  override def getPossibleStrings(id: Identifier) = SetDomain.Default.Top[String]()
 }

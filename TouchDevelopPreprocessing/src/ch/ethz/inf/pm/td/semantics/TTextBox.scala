@@ -25,9 +25,9 @@ object TTextBox extends Default_TTextBox {
   lazy val field_icon = ApiField("icon", TPicture)
   lazy val field_text = ApiField("text", TString)
 
-  override def mutedFields = super.mutedFields ++ List(field_background,field_border,field_font_size,field_foreground,field_icon)
+  override def mutedFields = super.mutedFields ++ List(field_background,field_border,field_font_size,field_foreground,field_icon,field_text)
 
-  override def possibleFields = super.possibleFields ++ List(field_text)
+  override def possibleFields = super.possibleFields ++ List(field_background,field_border,field_font_size,field_foreground,field_icon,field_text)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
