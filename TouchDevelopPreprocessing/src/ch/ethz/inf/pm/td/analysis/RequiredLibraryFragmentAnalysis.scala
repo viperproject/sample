@@ -159,10 +159,6 @@ class AccessCollectingState(myType: Type)
   def widening(other: AccessCollectingState): AccessCollectingState =
     new AccessCollectingState(getType.widening(other.getType))
 
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AccessCollectingState = this
-
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AccessCollectingState = this
-
   def removeObject(oldPreState: AccessCollectingState, obj: ExpressionSet, fields: Option[Set[Identifier]]): AccessCollectingState = this
 
   def backwardAssignField(oldPreState: AccessCollectingState, obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this

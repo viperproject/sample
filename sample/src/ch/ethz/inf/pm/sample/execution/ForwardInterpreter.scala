@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.SystemParameters
-import scala.collection.mutable.ListBuffer
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, CFGPosition, ControlFlowGraph}
-import scala.collection.immutable.Queue
+import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph, ProgramPointUtils}
+
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 object ForwardInterpreter {
   var currentLocation: Option[CFGPosition] = None

@@ -122,6 +122,12 @@ case class ExpressionSet(
   // TODO: rf: this method is highly suspicious. Why should _1 ever be inconsistent with the computed type?
   def getType(): Type = this._1.glb(this.computeType())
 
+  def ids = s match {
+    case SetDomain.Default.Bottom() => IdentifierSet.Bottom
+    case SetDomain.Default.Top() => IdentifierSet.Top
+    case SetDomain.Default.Inner(x) => Lattice.bigLub(x.map(_.ids))
+  }
+
   /**
    * Check if the expressionset is top, first!
    * @return
@@ -551,31 +557,4 @@ I <: HeapIdentifier[I]](
 
   override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
-  def createNonDeterminismSource(wrapperTyp: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
-    if (this.isBottom) return this
-
-    // Allocate non-determinism identifier in heap domain
-    val (nonDetId, newHeap) = domain.heap.createNonDeterminismSource(wrapperTyp, pp, summary)
-    val heapIdCreatedState = domain.factory(domain.semantic, newHeap)
-
-    // Create a corresponding variable (in all domains)
-    val varCreatedState = heapIdCreatedState.createVariable(nonDetId, wrapperTyp)
-
-    // Ugly assumptions about wrapper type (no access to TouchType here)
-    if (SystemParameters.DEBUG) assert(wrapperTyp.possibleFields.size == 1)
-    val valueField = wrapperTyp.possibleFields.head
-
-    // Create variables for inner value field
-    val (fieldIds, _, _) = varCreatedState.heap.getFieldIdentifier(nonDetId, valueField.getName, valueField.typ, valueField.pp)
-    val fieldCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(varCreatedState,
-      fieldIds, varCreatedState.createVariable(_, valueField.typ))
-
-    factory(fieldCreatedState, ExpressionSet(nonDetId))
-  }
-
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AbstractState[N, H, I] = {
-    val nonDetId = domain.heap.getNonDeterminismSource(pp, typ)
-    val idExpr = ExpressionSet(nonDetId)
-    setExpression(idExpr)
-  }
 }

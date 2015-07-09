@@ -244,7 +244,7 @@ trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends MergeDomain[T
 
 object SimplifiedMergeDomain {
 
-  trait Bottom[T <: SimplifiedMergeDomain[T]] extends BottomLattice[T] with SimplifiedMergeDomain[T] {
+  trait Bottom[T <: SimplifiedMergeDomain[T]] extends Lattice.Bottom[T] with SimplifiedMergeDomain[T] {
     this:T =>
     override def fold(idsA: Set[Identifier], idB: Identifier) = this
     override def remove(ids: Set[Identifier]) = this
@@ -252,7 +252,7 @@ object SimplifiedMergeDomain {
     override def expand(idA: Identifier, idsB: Set[Identifier]) = this
   }
 
-  trait Top[T <: SimplifiedMergeDomain[T]] extends TopLattice[T] with SimplifiedMergeDomain[T] {
+  trait Top[T <: SimplifiedMergeDomain[T]] extends Lattice.Top[T] with SimplifiedMergeDomain[T] {
     this:T =>
     override def add(ids: Set[Identifier]) = this
     override def fold(idsA: Set[Identifier], idB: Identifier) = this
@@ -451,7 +451,7 @@ object SetDomain {
 
   trait Top[V, T <: SetDomain[V,T]]
     extends SetDomain[V,T]
-    with TopLattice[T] {
+    with Lattice.Top[T] {
     this : T =>
 
     def -(v: V) = this
@@ -465,7 +465,7 @@ object SetDomain {
 
   trait Bottom[V, T <: SetDomain[V,T]]
     extends SetDomain[V,T]
-    with BottomLattice[T] {
+    with Lattice.Bottom[T] {
     this : T =>
 
     def -(v: V) = this
@@ -479,7 +479,7 @@ object SetDomain {
 
   trait Inner[V, T <: SetDomain[V,T], I <: Inner[V,T,I]]
     extends SetDomain[V,T]
-    with InnerLattice[T,I] {
+    with Lattice.Inner[T,I] {
     this : T =>
 
     if (SystemParameters.DEBUG) {

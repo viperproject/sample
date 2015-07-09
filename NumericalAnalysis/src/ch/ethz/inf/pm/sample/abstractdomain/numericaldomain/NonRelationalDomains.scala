@@ -297,7 +297,7 @@ object NonRelationalNumericalDomain {
   
   trait Bottom[S <: NonRelationalNumericalDomain[S]]
     extends NonRelationalNumericalDomain[S]
-    with BottomLattice[S] {
+    with Lattice.Bottom[S] {
     this:S =>
 
     def multiply(rightExpr: S) = this
@@ -320,7 +320,7 @@ object NonRelationalNumericalDomain {
 
   trait Top[S <: NonRelationalNumericalDomain[S]]
     extends NonRelationalNumericalDomain[S]
-    with TopLattice[S] {
+    with Lattice.Top[S] {
     this:S =>
 
     /** Gives the element representing exactly Zero */
@@ -346,7 +346,7 @@ object NonRelationalNumericalDomain {
 
   trait Inner[S <: NonRelationalNumericalDomain[S], I <: Inner[S,I]]
     extends NonRelationalNumericalDomain[S]
-    with InnerLattice[S,I] {
+    with Lattice.Inner[S,I] {
     this:S =>
 
   }

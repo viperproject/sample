@@ -180,7 +180,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
 
 object SemanticDomain {
 
-  trait Bottom[T <: SemanticDomain[T]] extends BottomLattice[T] with SemanticDomain[T] {
+  trait Bottom[T <: SemanticDomain[T]] extends Lattice.Bottom[T] with SemanticDomain[T] {
     this: T =>
 
     override def getStringOfId(id: Identifier) = "⊥"
@@ -193,7 +193,7 @@ object SemanticDomain {
 
   }
 
-  trait Top[T <: SemanticDomain[T]] extends TopLattice[T] with SemanticDomain[T] {
+  trait Top[T <: SemanticDomain[T]] extends Lattice.Top[T] with SemanticDomain[T] {
     this: T =>
 
     override def getStringOfId(id: Identifier) = "T"
@@ -205,7 +205,7 @@ object SemanticDomain {
 
   }
 
-  trait Inner[T <: SemanticDomain[T],X <: SemanticDomain.Inner[T,X]] extends InnerLattice[T,X] with SemanticDomain[T] {
+  trait Inner[T <: SemanticDomain[T],X <: SemanticDomain.Inner[T,X]] extends Lattice.Inner[T,X] with SemanticDomain[T] {
     this: T =>
   }
 

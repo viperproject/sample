@@ -10,7 +10,7 @@ import scala.collection.immutable.Set
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
  *
  * @tparam T The current type of the Lattice
- * @author Pietro Ferrara
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
 trait Lattice[T <: Lattice[T]] {
@@ -99,76 +99,89 @@ trait Lattice[T <: Lattice[T]] {
 
 }
 
-trait TopLattice[S <: Lattice[S]] extends Lattice[S] {
-  this:S =>
-
-  override final def isTop: Boolean = true
-  override final def isBottom: Boolean = false
-  override final def lessEqual(other: S): Boolean = other.isTop
-  override final def lub(other: S): S = this
-  override final def widening(other: S): S = this
-  override final def glb(other: S): S = other
-  override def toString = "⊤"
-
-}
-
-
-trait InnerLattice[S <: Lattice[S], I <: InnerLattice[S,I]] extends Lattice[S] {
-  this:S =>
-
-  if (SystemParameters.DEBUG) {
-    assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
-    assert { lessEqual(top()) && !top().lessEqual(this) }
-  }
-
-  override final def isTop: Boolean = false
-  override final def isBottom: Boolean = false
-
-  def lub(other: S): S = other match {
-    case _ if other.isBottom => this
-    case _ if other.isTop    => other
-    case a:I                 => lubInner(a)
-  }
-  def lubInner(other:I):S
-
-  def glb(other: S): S = other match {
-    case _ if other.isBottom => other
-    case _ if other.isTop    => this
-    case a:I                 => glbInner(a)
-  }
-  def glbInner(other:I):S
-
-  def widening(other: S): S = other match {
-    case _ if other.isBottom => this
-    case _ if other.isTop    => other
-    case a:I                 => wideningInner(a)
-  }
-  def wideningInner(other:I):S
-
-  def lessEqual(other: S): Boolean = other match {
-    case _ if other.isBottom => false
-    case _ if other.isTop    => true
-    case a:I                 => lessEqualInner(a)
-  }
-  def lessEqualInner(other:I): Boolean
-
-}
-
-
-trait BottomLattice[S <: Lattice[S]] extends Lattice[S] {
-  this:S =>
-
-  override final def isTop: Boolean = false
-  override final def isBottom: Boolean = true
-  override final def lessEqual(r: S): Boolean = true
-  override final def lub(other: S): S = other
-  override final def widening(other: S): S = other
-  override final def glb(other: S): S = this
-  override def toString = "⊥"
-
-}
-
 object Lattice extends LazyLogging {
+
+  /**
+   * Defines a top lattice element
+   *
+   * @author Lucas Brutschy
+   */
+  trait Top[S <: Lattice[S]] extends Lattice[S] {
+    this:S =>
+
+    override final def isTop: Boolean = true
+    override final def isBottom: Boolean = false
+    override final def lessEqual(other: S): Boolean = other.isTop
+    override final def lub(other: S): S = this
+    override final def widening(other: S): S = this
+    override final def glb(other: S): S = other
+    override def toString = "⊤"
+
+  }
+
+  /**
+   * Defines a lattice element that is neither top nor bottom
+   *
+   * @author Lucas Brutschy
+   */
+  trait Inner[S <: Lattice[S], I <: Lattice.Inner[S,I]] extends Lattice[S] {
+    this:S =>
+
+    if (SystemParameters.DEBUG) {
+      assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
+      assert { lessEqual(top()) && !top().lessEqual(this) }
+    }
+
+    override final def isTop: Boolean = false
+    override final def isBottom: Boolean = false
+
+    def lub(other: S): S = other match {
+      case _ if other.isBottom => this
+      case _ if other.isTop    => other
+      case a:I                 => lubInner(a)
+    }
+    def lubInner(other:I):S
+
+    def glb(other: S): S = other match {
+      case _ if other.isBottom => other
+      case _ if other.isTop    => this
+      case a:I                 => glbInner(a)
+    }
+    def glbInner(other:I):S
+
+    def widening(other: S): S = other match {
+      case _ if other.isBottom => this
+      case _ if other.isTop    => other
+      case a:I                 => wideningInner(a)
+    }
+    def wideningInner(other:I):S
+
+    def lessEqual(other: S): Boolean = other match {
+      case _ if other.isBottom => false
+      case _ if other.isTop    => true
+      case a:I                 => lessEqualInner(a)
+    }
+    def lessEqualInner(other:I): Boolean
+
+  }
+
+  /**
+   * Defines a bottom lattice element
+   *
+   * @author Lucas Brutschy
+   */
+  trait Bottom[S <: Lattice[S]] extends Lattice[S] {
+    this:S =>
+
+    override final def isTop: Boolean = false
+    override final def isBottom: Boolean = true
+    override final def lessEqual(r: S): Boolean = true
+    override final def lub(other: S): S = other
+    override final def widening(other: S): S = other
+    override final def glb(other: S): S = this
+    override def toString = "⊥"
+
+  }
 
   /** Mixin that causes a lattice to have a must semantics, where the
     * join operator uses the greatest lower bound.
@@ -232,19 +245,16 @@ object Lattice extends LazyLogging {
  */
 trait DummyLattice[T <: DummyLattice[T]] extends Lattice[T] {
   this:T =>
-
 }
 
 object DummyLattice {
 
-  trait Bottom[T <: DummyLattice[T]] extends DummyLattice[T] with BottomLattice[T] {
+  trait Bottom[T <: DummyLattice[T]] extends DummyLattice[T] with Lattice.Bottom[T] {
     this:T =>
-
   }
 
-  trait Top[T <: DummyLattice[T]] extends DummyLattice[T] with TopLattice[T] {
+  trait Top[T <: DummyLattice[T]] extends DummyLattice[T] with Lattice.Top[T] {
     this:T =>
-
   }
 
 }
@@ -259,7 +269,7 @@ object DummyLattice {
  * since there are simpler interface (e.g., SemanticDomain or HeapAndAnotherDomain)
  *
  * @tparam S The current type of the state
- * @author Pietro Ferrara
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
 trait State[S <: State[S]] extends Lattice[S] {
@@ -280,8 +290,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    *
    * @param typ The dynamic type of the created object
    * @param pp The point of the program that creates the object
-   * @param fields If this is defined, the given fields will be created instead of the types fields (e.g. for reducing
-   *               the set of initialized fields)
    * @return The abstract state after the creation of the object
    */
   def createObject(typ: Type, pp: ProgramPoint): S
@@ -384,7 +392,8 @@ trait State[S <: State[S]] extends Lattice[S] {
    * Gets the value of a variable
    *
    * @param id The variable to access
-   * @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
+   * @return The abstract state obtained after accessing the variable, that is, the state that contains
+   *         as expression the symbolic representation of the value of the given variable
    */
   def getVariableValue(id: Assignable): S
 
@@ -434,7 +443,8 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @param value The string representing the numerical constant
    * @param typ The type of the numerical constant
    * @param pp The program point that contains the constant
-   * @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
+   * @return The abstract state after the evaluation of the constant, that is, the
+   *         state that contains an expression representing this constant
    */
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): S
 
@@ -459,28 +469,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @return The abstract state after assuming that the expression does not hold
    */
   def testFalse(): S
-
-  /**
-   * Applies state transformations conditionally
-   * depending on expression (essentially equivalent to an "if-else" construct
-   * in the ControlFlowGraph)
-   *
-   * @param expr condition to be assumed in branches
-   * @param Then transformer for true branch
-   * @param Else transformer for false branch
-   * @return joined result over branches
-   */
-  def condBranch(expr: ExpressionSet, Then: S => S, Else: S => S): S = {
-    val trueCondState = assume(expr)
-    val falseCondState = assume(expr.not())
-    lazy val trueBranchResult = Then(trueCondState)
-    lazy val falseBranchResult = Else(falseCondState)
-
-    if (trueCondState.isBottom) return falseBranchResult
-    if (falseCondState.isBottom) return trueBranchResult
-
-    trueBranchResult.lub(falseBranchResult)
-  }
 
   /** Returns the current expression */
   def expr: ExpressionSet
@@ -517,7 +505,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
 
-
   /**
    * Performs abstract garbage collection
    */
@@ -543,27 +530,6 @@ trait State[S <: State[S]] extends Lattice[S] {
   def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] = Set.empty
 
   /**
-   * Marks the given program point as a source of non-determinism and an internal
-   * hidden identifier for it.
-   *
-   * @param typ typ for the non-deterministic value
-   * @param pp identifying program point
-   * @param summary source is summary if it may be queries multiple times
-   * @return identifier for non-det source
-   */
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): S
-
-  /**
-   * Obtains the identifier for the non-determinism source  at program point.
-   *
-   * @param pp pp of source
-   * @param typ type of value returned by source
-   * @return identifier for non-det source
-   */
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): S
-
-
-  /**
    * Returns all objects pointed to by the field which may / must match the given filter
    *
    * @param objs An expression containing objects
@@ -587,8 +553,6 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
   def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression) = ???
   def backwardGetVariableValue(id: Assignable) = ???
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type) = ???
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type) = ???
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean)  = ???
   def undoPruneUnreachableHeap(preState: S) = ???
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean) = ???
 
@@ -770,14 +734,9 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
    */
   def assume(cond: Expression): S
 
-  def testTrue(): S = {
-    val res = assume(expr)
-    res.setUnitExpression()
-  }
+  def testTrue(): S = assume(expr).setUnitExpression()
 
-
-  def testFalse(): S =
-    assume(expr.not()).setUnitExpression()
+  def testFalse(): S = assume(expr.not()).setUnitExpression()
 
   /** Executes the given function only if this state and the given
     * `ExpressionSet` is not bottom. */
@@ -796,7 +755,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   }
 
   override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
-    expr.getNonTop.map( this.explainError ).flatten
+    expr.getNonTop.flatMap(this.explainError)
 
   def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
 
@@ -874,7 +833,6 @@ object UtilitiesOnStates {
     case Nil => Nil
     case statement :: xs =>
       val post = statement.forwardSemantics[S](pre)
-      val expr = post.expr
       val otherStates = forwardExecuteListStatementsWithIntermediateStates[S](post, xs)
       post :: otherStates
   }

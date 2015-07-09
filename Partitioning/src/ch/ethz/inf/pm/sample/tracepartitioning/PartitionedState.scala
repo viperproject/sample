@@ -642,8 +642,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     }
   }
 
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): PartitionedState[D] = ???
-
   def removeObject(oldPreState: PartitionedState[D], obj: ExpressionSet, fields: Option[Set[Identifier]]): PartitionedState[D] = ???
 
   def backwardAssignField(oldPreState: PartitionedState[D], obj: ExpressionSet, field: String, right: ExpressionSet): PartitionedState[D] = ???
@@ -652,7 +650,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   def undoPruneUnreachableHeap(preState: PartitionedState[D]): PartitionedState[D] = ???
 
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): PartitionedState[D] = ???
 }
 
 

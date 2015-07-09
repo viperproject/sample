@@ -661,8 +661,6 @@ trait ValueDrivenHeapState[
   def backwardAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???
   def testBackwardTrue(): T = ???
   def testBackwardFalse(): T = ???
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): T = ???
-  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): T = ???
   def backwardAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
 }
 

@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.IdentifierSet.Bottom
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
@@ -1231,8 +1232,9 @@ object TouchState {
                       versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
                       valueState:        VariableRelationCollectingDomain = VariableRelationCollectingDomain.Top,
                       expr:              ExpressionSet = ExpressionFactory.unitExpr,
-                      isTop:             Boolean = false
-                       )
+                      isTop:             Boolean = false,
+                      variablesAssignedInLoop:   Map[ProgramPoint,IdentifierSet] = Map.empty
+                          )
     extends TouchState[VariableRelationCollectingDomain, PreAnalysis] {
 
     def factory (
@@ -1247,6 +1249,29 @@ object TouchState {
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
 
+    override def copy (
+                  forwardMay:        Map[Identifier,Set[HeapIdentifier]] = forwardMay,
+                  forwardMust:       Map[Identifier,Set[HeapIdentifier]] = forwardMust,
+                  backwardMay:       Map[HeapIdentifier,Set[Identifier]] = backwardMay,
+                  versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = versions,
+                  valueState:        VariableRelationCollectingDomain = valueState,
+                  expr:              ExpressionSet = expr,
+                  isTop:             Boolean = isTop
+                  ):PreAnalysis =
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, variablesAssignedInLoop)
+
+
+    def copyLocal (
+                        forwardMay:        Map[Identifier,Set[HeapIdentifier]] = forwardMay,
+                        forwardMust:       Map[Identifier,Set[HeapIdentifier]] = forwardMust,
+                        backwardMay:       Map[HeapIdentifier,Set[Identifier]] = backwardMay,
+                        versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = versions,
+                        valueState:        VariableRelationCollectingDomain = valueState,
+                        expr:              ExpressionSet = expr,
+                        isTop:             Boolean = isTop,
+                        variablesAssignedInLoop:   Map[ProgramPoint,IdentifierSet] = variablesAssignedInLoop
+                        ):PreAnalysis =
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, variablesAssignedInLoop)
 
     override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis = {
       analysis.Localization.collectAccess(obj.ids)
@@ -1265,12 +1290,20 @@ object TouchState {
 
     override def assignVariable(left: Expression, right: Expression): PreAnalysis = {
       analysis.Localization.collectAccess(left.ids ++ right.ids)
-      super.assignVariable(left, right)
+      val res = super.assignVariable(left, right)
+      if (variablesAssignedInLoop.keys.nonEmpty) {
+          logger.debug("Variables "+left.ids+" seem to be assigned in loops "+variablesAssignedInLoop.keys.mkString(","))
+          res.copyLocal(variablesAssignedInLoop = variablesAssignedInLoop.map( x => (x._1,x._2 ++ left.ids)))
+      } else res
     }
 
     override def assignField(obj: Expression, field: String, right: Expression): PreAnalysis = {
       analysis.Localization.collectAccess(obj.ids ++ right.ids)
-      super.assignField(obj, field, right)
+      val res = super.assignField(obj, field, right)
+      if (variablesAssignedInLoop.keys.nonEmpty) {
+        logger.debug("Fields " + getFieldValue(obj, field, right.typ).expr.ids + " seem to be assigned in loops " + variablesAssignedInLoop.keys.mkString(","))
+        res.copyLocal(variablesAssignedInLoop = variablesAssignedInLoop.map(x => (x._1, x._2 ++ getFieldValue(obj, field, right.typ).expr.ids)))
+      } else res
     }
 
     override def getVariableValue(id: Assignable): PreAnalysis = {
@@ -1282,6 +1315,44 @@ object TouchState {
       analysis.Localization.collectAccess(varExpr.ids)
       super.setVariableToTop(varExpr)
     }
+
+    /** We may jump in a loop here - reset stats, pack variables */
+    override def testTrue() = {
+      expr._2 match {
+        case SetDomain.Default.Top() => this
+        case SetDomain.Default.Bottom() => this
+        case SetDomain.Default.Inner(xs) =>
+          var cur = variablesAssignedInLoop
+          for (x <- xs) {
+            if (!cur.getOrElse(x.pp,IdentifierSet.Bottom).isBottom) {
+              logger.debug("Packing " + (x.ids lub cur.getOrElse(x.pp, IdentifierSet.Bottom)) + " at loop head " + x)
+              TouchVariablePacking.pack(x.ids lub cur.getOrElse(x.pp, IdentifierSet.Bottom))
+            }
+            cur = cur + (x.pp -> IdentifierSet.Bottom)
+          }
+          copyLocal(variablesAssignedInLoop = cur)
+      }
+    }
+
+    /** We may jump out of a loop here - reset stats */
+    override def testFalse() = {
+      expr._2 match {
+        case SetDomain.Default.Top() => this
+        case SetDomain.Default.Bottom() => this
+        case SetDomain.Default.Inner(xs) =>
+          var cur = variablesAssignedInLoop
+          for (x <- xs) {
+            cur = cur - x.pp
+          }
+          copyLocal(variablesAssignedInLoop = cur)
+      }
+    }
+
+    override def lub(other:PreAnalysis) =
+      super.lub(other).copyLocal(variablesAssignedInLoop = variablesAssignedInLoop ++ other.variablesAssignedInLoop)
+
+    override def widening(other:PreAnalysis) =
+      super.lub(other).copyLocal(variablesAssignedInLoop = variablesAssignedInLoop ++ other.variablesAssignedInLoop)
 
   }
 
