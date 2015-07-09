@@ -38,6 +38,8 @@ case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifie
 trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
   this:T =>
 
+  def endOfFunctionCleanup(): T = this
+
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
 
   def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
@@ -1190,36 +1192,58 @@ object TouchState {
 
   }
 
-  trait VariableRelationCollectingDomain extends DummySemanticDomain[VariableRelationCollectingDomain] with DummyLattice[VariableRelationCollectingDomain] {
+  trait CollectingDomain
+    extends SimplifiedSemanticDomain[CollectingDomain] {
 
-    override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
-
-    override def assign(id:Identifier,expr:Expression):VariableRelationCollectingDomain = {
+    override def assign(id:Identifier,expr:Expression):CollectingDomain = {
       TouchVariablePacking.pack(expr.ids + id)
-      super.assign(id,expr)
+      factory(ids ++ expr.ids)
     }
 
-    override def assume(cond: Expression): VariableRelationCollectingDomain = {
+    override def assume(cond: Expression): CollectingDomain = {
       TouchVariablePacking.pack(cond.ids)
-      super.assume(cond)
+      this
     }
 
-    override def merge(rep:Replacement): VariableRelationCollectingDomain = {
+    override def merge(rep:Replacement): CollectingDomain = {
       for (r <- rep.value) {
         TouchVariablePacking.pack(IdentifierSet.Inner(r._1 ++ r._2))
       }
-      super.merge(rep)
+      factory(ids ++ IdentifierSet.Inner(rep.value.flatMap(_._2).toSet))
     }
 
-    override def factory(): VariableRelationCollectingDomain = top()
-    override def bottom(): VariableRelationCollectingDomain = VariableRelationCollectingDomain.Bottom
-    override def top(): VariableRelationCollectingDomain = VariableRelationCollectingDomain.Top
-
+    def factory(id:Identifier) = CollectingDomain.Inner(IdentifierSet.Inner(Set(id)))
+    def factory(ids:IdentifierSet) = CollectingDomain.Inner(ids)
+    override def factory(): CollectingDomain = factory(IdentifierSet.Bottom)
+    override def bottom(): CollectingDomain = CollectingDomain.Bottom
+    override def top(): CollectingDomain = CollectingDomain.Top
   }
 
-  object VariableRelationCollectingDomain {
-    object Top extends VariableRelationCollectingDomain with DummyLattice.Top[VariableRelationCollectingDomain]
-    object Bottom extends VariableRelationCollectingDomain with DummyLattice.Bottom[VariableRelationCollectingDomain]
+  object CollectingDomain {
+    object Top extends CollectingDomain with SemanticDomain.Top[CollectingDomain]
+    object Bottom extends CollectingDomain with SemanticDomain.Bottom[CollectingDomain] {
+      override def createVariable(variable: Identifier, typ: Type) = factory(variable)
+    }
+    case class Inner(ids: IdentifierSet) extends CollectingDomain with SemanticDomain.Inner[CollectingDomain, CollectingDomain.Inner] {
+      override def lubInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids ++ ids)
+
+      override def glbInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids glb ids)
+
+      override def wideningInner(other: CollectingDomain.Inner):CollectingDomain = CollectingDomain.Inner(other.ids widening ids)
+
+      override def lessEqualInner(other: CollectingDomain.Inner) = other.ids lessEqual ids
+
+      override def setToTop(variable: Identifier) = CollectingDomain.Inner(ids + variable)
+
+      override def removeVariable(id: Identifier) = CollectingDomain.Inner(ids - id)
+
+      override def createVariable(variable: Identifier, typ: Type) = CollectingDomain.Inner(ids + variable)
+
+      override def getStringOfId(id: Identifier) = ""
+
+      override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
+
+    }
   }
 
 
@@ -1230,19 +1254,20 @@ object TouchState {
                       forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                       backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
                       versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
-                      valueState:        VariableRelationCollectingDomain = VariableRelationCollectingDomain.Top,
+                      valueState:        CollectingDomain = CollectingDomain.Top,
                       expr:              ExpressionSet = ExpressionFactory.unitExpr,
                       isTop:             Boolean = false,
-                      variablesAssignedInLoop:   Map[ProgramPoint,IdentifierSet] = Map.empty
-                          )
-    extends TouchState[VariableRelationCollectingDomain, PreAnalysis] {
+                      inLoops:           Set[ProgramPoint] = Set.empty,
+                      notInLoops:        Set[ProgramPoint] = Set.empty
+                    )
+    extends TouchState[CollectingDomain, PreAnalysis] {
 
     def factory (
                   forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                   forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
                   backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
                   versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = Map.empty,
-                  valueState:        VariableRelationCollectingDomain,
+                  valueState:        CollectingDomain,
                   expr:              ExpressionSet = ExpressionFactory.unitExpr,
                   isTop:             Boolean = false
                   ):PreAnalysis =
@@ -1254,11 +1279,11 @@ object TouchState {
                   forwardMust:       Map[Identifier,Set[HeapIdentifier]] = forwardMust,
                   backwardMay:       Map[HeapIdentifier,Set[Identifier]] = backwardMay,
                   versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = versions,
-                  valueState:        VariableRelationCollectingDomain = valueState,
+                  valueState:        CollectingDomain = valueState,
                   expr:              ExpressionSet = expr,
                   isTop:             Boolean = isTop
                   ):PreAnalysis =
-      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, variablesAssignedInLoop)
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
 
     def copyLocal (
@@ -1266,12 +1291,13 @@ object TouchState {
                         forwardMust:       Map[Identifier,Set[HeapIdentifier]] = forwardMust,
                         backwardMay:       Map[HeapIdentifier,Set[Identifier]] = backwardMay,
                         versions:          Map[(ProgramPoint,Type),Seq[HeapIdentifier]] = versions,
-                        valueState:        VariableRelationCollectingDomain = valueState,
+                        valueState:        CollectingDomain = valueState,
                         expr:              ExpressionSet = expr,
                         isTop:             Boolean = isTop,
-                        variablesAssignedInLoop:   Map[ProgramPoint,IdentifierSet] = variablesAssignedInLoop
+                        inLoops:           Set[ProgramPoint] = inLoops,
+                        notInLoops:           Set[ProgramPoint] = notInLoops
                         ):PreAnalysis =
-      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, variablesAssignedInLoop)
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
     override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis = {
       analysis.Localization.collectAccess(obj.ids)
@@ -1290,20 +1316,23 @@ object TouchState {
 
     override def assignVariable(left: Expression, right: Expression): PreAnalysis = {
       analysis.Localization.collectAccess(left.ids ++ right.ids)
-      val res = super.assignVariable(left, right)
-      if (variablesAssignedInLoop.keys.nonEmpty) {
-          logger.debug("Variables "+left.ids+" seem to be assigned in loops "+variablesAssignedInLoop.keys.mkString(","))
-          res.copyLocal(variablesAssignedInLoop = variablesAssignedInLoop.map( x => (x._1,x._2 ++ left.ids)))
-      } else res
+      val reAssigned = left.ids glb right.ids
+      if (inLoops.nonEmpty && !reAssigned.isBottom) {
+        TouchVariablePacking.collectLoopAssign(reAssigned,inLoops)
+        logger.debug("Variables "+left.ids+" seem to be reassigned in loops "+inLoops.mkString(","))
+      }
+      super.assignVariable(left, right)
     }
 
     override def assignField(obj: Expression, field: String, right: Expression): PreAnalysis = {
       analysis.Localization.collectAccess(obj.ids ++ right.ids)
-      val res = super.assignField(obj, field, right)
-      if (variablesAssignedInLoop.keys.nonEmpty) {
-        logger.debug("Fields " + getFieldValue(obj, field, right.typ).expr.ids + " seem to be assigned in loops " + variablesAssignedInLoop.keys.mkString(","))
-        res.copyLocal(variablesAssignedInLoop = variablesAssignedInLoop.map(x => (x._1, x._2 ++ getFieldValue(obj, field, right.typ).expr.ids)))
-      } else res
+      val leftIds = getFieldValue(obj, field, right.typ).expr.ids
+      val reAssigned = leftIds glb right.ids
+      if (inLoops.nonEmpty && !reAssigned.isBottom) {
+        TouchVariablePacking.collectLoopAssign(reAssigned,inLoops)
+        logger.debug("Fields " + leftIds + " seem to be reassigned in loops " + inLoops.mkString(","))
+      }
+      super.assignField(obj, field, right)
     }
 
     override def getVariableValue(id: Assignable): PreAnalysis = {
@@ -1318,41 +1347,44 @@ object TouchState {
 
     /** We may jump in a loop here - reset stats, pack variables */
     override def testTrue() = {
+      val res = super.testTrue()
       expr._2 match {
-        case SetDomain.Default.Top() => this
-        case SetDomain.Default.Bottom() => this
+        case SetDomain.Default.Top() => res
+        case SetDomain.Default.Bottom() => res
         case SetDomain.Default.Inner(xs) =>
-          var cur = variablesAssignedInLoop
-          for (x <- xs) {
-            if (!cur.getOrElse(x.pp,IdentifierSet.Bottom).isBottom) {
-              logger.debug("Packing " + (x.ids lub cur.getOrElse(x.pp, IdentifierSet.Bottom)) + " at loop head " + x)
-              TouchVariablePacking.pack(x.ids lub cur.getOrElse(x.pp, IdentifierSet.Bottom))
-            }
-            cur = cur + (x.pp -> IdentifierSet.Bottom)
-          }
-          copyLocal(variablesAssignedInLoop = cur)
+          val points = xs.map(_.pp)
+          TouchVariablePacking.packLoopHeads(points,Lattice.bigLub(xs.map(_.ids)),valueState.ids)
+          res.copyLocal(inLoops = inLoops ++ points, notInLoops = notInLoops -- points)
       }
     }
 
     /** We may jump out of a loop here - reset stats */
     override def testFalse() = {
+      val res = super.testFalse()
       expr._2 match {
-        case SetDomain.Default.Top() => this
-        case SetDomain.Default.Bottom() => this
+        case SetDomain.Default.Top() => res
+        case SetDomain.Default.Bottom() => res
         case SetDomain.Default.Inner(xs) =>
-          var cur = variablesAssignedInLoop
-          for (x <- xs) {
-            cur = cur - x.pp
-          }
-          copyLocal(variablesAssignedInLoop = cur)
+          val points = xs.map(_.pp)
+          res.copyLocal(inLoops = inLoops -- points, notInLoops = notInLoops ++ points)
       }
     }
 
     override def lub(other:PreAnalysis) =
-      super.lub(other).copyLocal(variablesAssignedInLoop = variablesAssignedInLoop ++ other.variablesAssignedInLoop)
+      super.lub(other).copyLocal(
+        inLoops = (inLoops -- other.notInLoops) ++ (other.inLoops -- notInLoops),
+        notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
+      )
 
     override def widening(other:PreAnalysis) =
-      super.lub(other).copyLocal(variablesAssignedInLoop = variablesAssignedInLoop ++ other.variablesAssignedInLoop)
+      super.widening(other).copyLocal(
+        inLoops = (inLoops -- other.notInLoops) ++ (other.inLoops -- notInLoops),
+        notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
+      )
+
+    override def endOfFunctionCleanup() = {
+        copyLocal(inLoops = Set.empty, notInLoops = Set.empty)
+    }
 
   }
 

@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
 import ch.ethz.inf.pm.td.domain.TouchState.Default
-import ch.ethz.inf.pm.td.domain.{TouchState, MultiValExpression}
+import ch.ethz.inf.pm.td.domain.{TouchStateInterface, TouchState, MultiValExpression}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
@@ -487,6 +487,7 @@ object MethodSummaries {
           !CFGGenerator.isReturnIdent(id.toString)
     })
     curState = curState.pruneUnreachableHeap()
+    curState = curState.asInstanceOf[TouchStateInterface[_]].endOfFunctionCleanup().asInstanceOf[S]
     curState
 
   }

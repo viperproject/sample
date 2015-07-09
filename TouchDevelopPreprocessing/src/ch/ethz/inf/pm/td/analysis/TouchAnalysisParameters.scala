@@ -161,6 +161,11 @@ case class TouchAnalysisParameters(
                                     unrollForLoopsUpTo: Int = 20,
 
                                     /**
+                                     * Whether to creat distinct errors and heap objects for each unrolling
+                                     */
+                                    renameForLoopUnrollings: Boolean = false,
+
+                                    /**
                                      * Lets the analysis timeout after a number of seconds
                                      */
                                     timeout: Option[Int] = None,

@@ -8,23 +8,23 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silver.verifier.Failure
 import viper.silver.testing.SilSuite
 
-class SampleAnalysisTestSuite extends SilSuite {
-  def testDirectories = Seq("sil/issues", "sil/translation")
-
-  def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
-    fe.init(verifier)
-    fe.reset(files)
-    fe
-  }
-
-  def verifiers: Seq[Verifier] = Seq(new SampleVerifier())
-
-  override def buildTestInput(file: Path, prefix: String) = {
-    val input = super.buildTestInput(file, prefix)
-    input.copy(annotations = input.annotations.filterByKeyIdPrefix("sample"))
-  }
-}
+//class SampleAnalysisTestSuite extends SilSuite {
+//  def testDirectories = Seq("sil/issues", "sil/translation")
+//
+//  def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
+//    val fe = new DummySilFrontend()
+//    fe.init(verifier)
+//    fe.reset(files)
+//    fe
+//  }
+//
+//  def verifiers: Seq[Verifier] = Seq(new SampleVerifier())
+//
+//  override def buildTestInput(file: Path, prefix: String) = {
+//    val input = super.buildTestInput(file, prefix)
+//    input.copy(annotations = input.annotations.filterByKeyIdPrefix("sample"))
+//  }
+//}
 
 /**
  * Just a dummy front-end such that we gain easy access to the fully parsed

@@ -83,14 +83,19 @@ object LoopRewriter {
 
         bnd match {
 
-          case Literal(numTyp,value) if TouchAnalysisParameters.get.unrollForLoopsUpTo >= value.toInt =>
+          case Literal(numTyp,value) if TouchAnalysisParameters.get.unrollForLoopsUpTo >= Math.round(value.toDouble).toInt =>
 
             val bodyNew = body flatMap apply
             val idxOld = pos(LocalReference(idx))
-            (for (i <- 0 to value.toInt-1) yield {
-              val posSuffix = "it" + i
-              val idxNew = pos(Literal(numTyp,i.toString))
-              bodyNew.map( x => LoopUnroller.renameStatementPos(replace(x,idxOld,idxNew),posSuffix))
+            (for (i <- 0 to Math.round(value.toDouble).toInt-1) yield {
+              if (TouchAnalysisParameters.get.renameForLoopUnrollings) {
+                val posSuffix = "it" + i
+                val idxNew = pos(Literal(numTyp, i.toString))
+                bodyNew.map(x => LoopUnroller.renameStatementPos(replace(x, idxOld, idxNew), posSuffix))
+              } else {
+                val idxNew = pos(Literal(numTyp, i.toString))
+                bodyNew.map(x => replace(x, idxOld, idxNew))
+              }
             }).toList.flatten
 
           case _ =>
@@ -148,8 +153,8 @@ object LoopRewriter {
           case Literal(_,"true")::Nil => rewrittenBody
           case head::tail =>
             val guardCondition = tail.foldLeft(head)((left:Expression,right:Expression) => pos(Access(left,pos(Identifier("and")),List(right))))
-            val guartdConditionReplaced = replace(guardCondition, elemExp, atIndexExpr)
-            List(pos(If(guartdConditionReplaced,rewrittenBody,Nil)))
+            val guardConditionReplaced = replace(guardCondition, elemExp, atIndexExpr)
+            List(pos(If(guardConditionReplaced,rewrittenBody,Nil)))
           case Nil => rewrittenBody
         }
         val countMinusOne = Access(pos(Access(storedCollection, pos(Identifier("count")),Nil)),pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))

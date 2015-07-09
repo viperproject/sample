@@ -14,7 +14,9 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import ch.ethz.inf.pm.td.semantics.AAny
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
+
+import scala.collection.mutable
 
 /**
  *
@@ -516,8 +518,9 @@ class NoProperty extends Property {
 }
 
 /** Defines how variables should be packed */
-object TouchVariablePacking {
+object TouchVariablePacking extends LazyLogging {
 
+  private val variablesAssignedInLoop:scala.collection.mutable.HashMap[ProgramPoint,IdentifierSet] = mutable.HashMap.empty
   private var packed:Relation[Identifier] = Relation.empty[Identifier]
 
   def makeClassifier:Classifier = {
@@ -531,6 +534,20 @@ object TouchVariablePacking {
     Classifier(toPack)
   }
 
+  def packLoopHeads(loopHeads: Set[ProgramPoint], loopHeadIds: IdentifierSet, capIds:IdentifierSet) = {
+    val loopAssigns = Lattice.bigLub(loopHeads.map(variablesAssignedInLoop.getOrElse(_,IdentifierSet.Bottom))) glb capIds
+    if (!loopAssigns.isBottom) {
+      logger.debug("Packing " + loopAssigns + " at loop head " + loopHeads.mkString(","))
+      TouchVariablePacking.pack(loopAssigns ++ loopHeadIds)
+    }
+  }
+
+  def collectLoopAssign(ids: IdentifierSet, inLoops: Set[ProgramPoint]) = {
+    for (x <- inLoops) {
+      variablesAssignedInLoop += (x -> (variablesAssignedInLoop.getOrElse(x,IdentifierSet.Bottom) ++ ids))
+    }
+  }
+
   def pack(ids: IdentifierSet) = {
     ids match {
       case IdentifierSet.Bottom => ()
@@ -542,8 +559,10 @@ object TouchVariablePacking {
     }
   }
 
-  def reset() =
+  def reset() = {
     packed = Relation.empty[Identifier]
+    variablesAssignedInLoop.clear()
+  }
 
   override def toString:String = {
     var toDump = packed.getAll
