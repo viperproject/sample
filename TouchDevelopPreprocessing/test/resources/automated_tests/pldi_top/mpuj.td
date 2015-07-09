@@ -241,7 +241,6 @@ action getShortDate(dt1: DateTime) returns(s: String) {
   $sDate := $dt1→day→to_string;
   $x := $dt1→week_day;
   $sWeekDay := $csWeekDays→at($x);
-  //:: ExpectedOutput(assert.failed)
   $s := $sWeekDay ∥ " " ∥ $sDate;
   meta private;
 }

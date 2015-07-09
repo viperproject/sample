@@ -178,8 +178,8 @@ object TDateTime extends Default_TDateTime {
 
     /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     case "week day" =>
-      Top[S](TNumber)
-    // DECLARATION AS FIELD: 
+      Return[S](0 ndToIncl 6)
+    // DECLARATION AS FIELD:
     //   /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     //   lazy val field_week_day = new TouchField("week day",TNumber.typeName)
 
