@@ -117,4 +117,6 @@ class Suffix (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, Suf
       new SuffixDomain().top();
     case _ => new SuffixDomain().top();
   }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }

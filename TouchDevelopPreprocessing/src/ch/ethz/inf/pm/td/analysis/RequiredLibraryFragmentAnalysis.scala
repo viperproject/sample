@@ -184,5 +184,5 @@ class AccessCollectingState(myType: Type)
 
   override def updateIdentifiers(expr: ExpressionSet) = expr
 
-  override def getPossibleStrings(id: Identifier) = SetDomain.Default.Top[String]()
+  override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
 }

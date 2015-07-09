@@ -111,4 +111,6 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       this.eval(thisExpr);
     case _ => TopCharacterSet
   }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }

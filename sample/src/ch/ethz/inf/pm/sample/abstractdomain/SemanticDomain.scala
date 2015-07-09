@@ -174,6 +174,8 @@ trait SemanticDomain[T <: SemanticDomain[T]]
     }
   }
 
+  def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
+
 }
 
 object SemanticDomain {
@@ -187,6 +189,7 @@ object SemanticDomain {
     override def assume(expr: Expression) = this
     override def removeVariable(id: Identifier) = this
     override def ids = IdentifierSet.Bottom
+    override def getPossibleConstants(id: Identifier) = SetDomain.Default.Bottom[Constant]()
 
   }
 
@@ -198,6 +201,7 @@ object SemanticDomain {
     override def createVariable(variable: Identifier, typ: Type) = this
     override def removeVariable(id: Identifier) = this
     override def ids = IdentifierSet.Top
+    override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
 
   }
 
@@ -238,6 +242,8 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
   def merge(f: Replacement) = this
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
+
+  override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
 }
 
 /**

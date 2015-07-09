@@ -46,7 +46,7 @@ object TBuffer extends Default_TBuffer {
     /** Set byte at `index` to `value` */
     case "set" =>
       val List(index, value) = parameters // Number,Number
-      If[S](collectionIndexInRange[S](this0, index), Then = (state) => {
+      If[S](IndexInRange[S](this0, index), Then = (state) => {
         val newState = RemoveAt[S](this0, index)(state, pp)
         Insert[S](this0, index, value)(newState, pp)
       }, Else = (state) => {

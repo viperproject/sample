@@ -26,7 +26,6 @@ event gameloop() {
     $hits := data→ball→overlap_with(data→clouds);
     if $hits→count > 0 `and` data→ball→speed_y > 200 then {
       $hit := $hits→at(0);
-      //:: ExpectedOutput(assert.failed)
       $cloudNum := data→clouds→index_of($hit);
       if $cloudNum > 0 then {
         data→ball→set_y($hit→y - 20);
@@ -67,7 +66,9 @@ event gameloop() {
           if $i ≥ data→numClouds then {
             $i := 0;
           }
+          //:: ExpectedOutput(assert.failed)
           if data→clouds→at($i)→y > data→curSpacer `and` data→clouds→at($i)→y < data→board→height then {
+            //:: ExpectedOutput(assert.failed)
             $cloud→set_y(data→clouds→at($i)→y - data→curSpacer + (math→random(30) - 15));
             $cloud→set_x(math→random(data→board→width));
           }

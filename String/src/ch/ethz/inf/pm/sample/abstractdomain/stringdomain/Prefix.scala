@@ -136,4 +136,6 @@ class Prefix (val map: Map[Identifier, PrefixDomain] = Map.empty[Identifier, Pre
       }
     case _ => new PrefixDomain().top();
   }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }

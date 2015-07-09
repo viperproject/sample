@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyStringType, Type}
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BooleanExpressionSimplifier, NumericalDomain}
 
@@ -145,6 +145,8 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     copy(map = map + (id -> (map.getOrElse(id,dom.bottom()) glb a)))
   }
 
+  override def getPossibleConstants(id: Identifier) =
+    map.getOrElse(id,dom.top()).getPossibleConstants
 }
 
 trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] { this: T =>
@@ -166,6 +168,8 @@ trait StringValueSetDomain[T <: StringValueSetDomain[T]] extends StringValueDoma
   def diff(a:T,b:T):T
 
   def singleton(a:String):T
+
+  def getPossibleConstants:SetDomain.Default[Constant]
 
 }
 
@@ -189,6 +193,7 @@ trait StringKSetDomain extends SetDomain.Bounded[String, StringKSetDomain]
 
   def isSingleton:Boolean
 
+
 }
 
 object StringKSetDomain {
@@ -196,11 +201,13 @@ object StringKSetDomain {
   case class Top(k:Int) extends StringKSetDomain with SetDomain.Bounded.Top[String,StringKSetDomain] {
     def isSingleton = false
     def concat(other:StringKSetDomain) = if (other.isBottom) bottom() else this
+    override def getPossibleConstants = SetDomain.Default.Top()
   }
 
   case class Bottom(k:Int) extends StringKSetDomain with SetDomain.Bounded.Bottom[String,StringKSetDomain] {
     def isSingleton = false
     def concat(other:StringKSetDomain) = this
+    override def getPossibleConstants = SetDomain.Default.Top()
   }
 
   case class Inner(k:Int, value: Set[String] = Set.empty[String]) extends StringKSetDomain
@@ -220,6 +227,8 @@ object StringKSetDomain {
     }
 
     override def cap: StringKSetDomain = if (value.size > k) top() else this
+
+    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_,DummyStringType)))
 
   }
 

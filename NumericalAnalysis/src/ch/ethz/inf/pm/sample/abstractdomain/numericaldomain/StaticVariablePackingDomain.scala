@@ -167,4 +167,10 @@ case class StaticVariablePackingDomain
       case (None, Some(x)) => Some(false)
       case (Some(x), Some(y)) => Some(x lessEqual y)
     }.values.forall{ x => x }
+
+  override def getPossibleConstants(id: Identifier) =
+    classifier.classify(id).foldLeft(cheap.getPossibleConstants(id)) {
+      _ ++ getPack(_).getPossibleConstants(id)
+    }
+
 }

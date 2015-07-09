@@ -238,6 +238,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     }).flatten
   }
 
+  override def getPossibleConstants(id: Identifier) = get(id).getPossibleConstants
 }
 
 
@@ -288,6 +289,8 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
    */
   def asConstraint(id: Identifier): Option[Expression]
 
+  def getPossibleConstants: SetDomain.Default[Constant]
+
 }
 
 object NonRelationalNumericalDomain {
@@ -310,6 +313,8 @@ object NonRelationalNumericalDomain {
     def overlapsWith(value: S) = false
 
     override def asConstraint(id: Identifier): Option[Expression] = None // TODO: False
+
+    def getPossibleConstants = SetDomain.Default.Top()
 
   }
 
@@ -334,6 +339,8 @@ object NonRelationalNumericalDomain {
     def overlapsWith(value: S) = true
 
     override def asConstraint(id: Identifier): Option[Expression] = None
+
+    def getPossibleConstants = SetDomain.Default.Top()
 
   }
 
@@ -430,6 +437,7 @@ object Sign {
     override def asConstraint(id: Identifier): Option[Expression] =
       Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.>))
 
+    def getPossibleConstants = SetDomain.Default.Top()
   }
 
   object Minus extends Inner {
@@ -469,6 +477,8 @@ object Sign {
     override def asConstraint(id: Identifier): Option[Expression] =
       Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.<))
 
+    def getPossibleConstants = SetDomain.Default.Top()
+
   }
 
   object Zero extends Inner {
@@ -500,6 +510,8 @@ object Sign {
 
     override def asConstraint(id: Identifier): Option[Expression] =
       Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.==))
+
+    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", DummyNumericalType)))
 
   }
 
@@ -668,6 +680,13 @@ object IntegerInterval {
       result
     }
 
+    def getPossibleConstants = {
+      if (left == right)
+        SetDomain.Default.Inner(Set(Constant(left.toString,DummyNumericalType)))
+      else
+        SetDomain.Default.Top()
+    }
+
     private def max(a: Int, b: Int, c: Int, d: Int): Int = Math.max(Math.max(a, b), Math.max(c, d))
 
     private def min(a: Int, b: Int, c: Int, d: Int): Int = Math.min(Math.min(a, b), Math.min(c, d))
@@ -817,6 +836,13 @@ object DoubleInterval {
       if (right == Double.PositiveInfinity) return Some(lowerBound)
       if (left == Double.NegativeInfinity) return Some(upperBound)
       Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
+    }
+
+    def getPossibleConstants = {
+      if (left == right)
+        SetDomain.Default.Inner(Set(Constant(left.toString,DummyNumericalType)))
+      else
+        SetDomain.Default.Top()
     }
 
     override def toString: String =

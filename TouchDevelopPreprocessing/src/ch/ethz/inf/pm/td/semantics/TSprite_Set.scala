@@ -63,7 +63,7 @@ object TSprite_Set extends Default_TSprite_Set {
         val result = At[S](this0, toRichExpression(0))(state,pp)
         var newState = RemoveAt[S](this0, toRichExpression(0))(state, pp)
         newState = DecreaseLength[S](this0)(newState, pp)
-        collectionInvalidateKeys[S](this0)(newState, pp)
+        newState = InvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else = {
         Return[S](Invalid(valueType, "collection may be empty"))(_, pp)

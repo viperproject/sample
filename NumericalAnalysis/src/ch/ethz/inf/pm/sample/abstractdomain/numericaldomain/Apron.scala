@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyBooleanType}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, Type, DummyBooleanType}
 
 /**
  * @author Lucas Brutschy
@@ -236,6 +236,14 @@ object Apron {
     private def SA(id:List[Identifier]):Array[String] = id.map(_.getName).toArray
     private def SA(id:Set[Identifier]):Array[String] = id.map(_.getName).toArray
 
+    override def getPossibleConstants(id: Identifier) = {
+      val interval = apronState.getBound(manager,id.getName)
+      if (interval.inf() == interval.sup()) {
+        SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString,DummyNumericalType)))
+      } else {
+        SetDomain.Default.Top[Constant]
+      }
+    }
   }
 
   trait Octagons extends Apron[Octagons] {

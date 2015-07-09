@@ -151,7 +151,7 @@ object TString extends Default_TString {
       val List(pattern, replace) = parameters // String,String
       Top[S](TString)
 
-    /** Shares the string (email, sms, facebook, social or '' to pick from a list) */
+    /** Shares the string (email, sms, facebook, social or to pick from a list) */
     case "share" =>
       val List(network) = parameters // String
       Skip
@@ -161,19 +161,20 @@ object TString extends Default_TString {
       val List(separator) = parameters // String
 
       // This is a hack to support constant split expressions
-      (this0.getSingle,separator.getSingle) match {
-        case (Some(Constant(str,_,_)),Some(Constant(sep,_,_))) =>
-
-          val typ = GCollection(TString)
-          val coll = str.split(sep)
-          var curState = state
-          curState = New[S](typ)(curState,pp)
-          val absColl = curState.expr
-          for (c <- coll) {
-            curState = typ.Insert[S](absColl,typ.Count[S](absColl), Constant(c,TString,pp))(curState,pp)
-            curState = typ.IncreaseLength[S](absColl)(curState,pp)
-          }
-          curState.setExpression(absColl)
+      (EvalConstant[S](this0),EvalConstant[S](separator)) match {
+        case (SetDomain.Default.Inner(t),SetDomain.Default.Inner(s)) =>
+          Lattice.bigLub(for (a <- t; b <- s) yield {
+            val typ = GCollection(TString)
+            val coll = a.constant.split(b.constant)
+            var curState = state
+            curState = New[S](typ)(curState,pp)
+            val absColl = curState.expr
+            for (c <- coll) {
+              curState = typ.Insert[S](absColl,typ.Count[S](absColl), Constant(c,TString,pp))(curState,pp)
+              curState = typ.IncreaseLength[S](absColl)(curState,pp)
+            }
+            curState.setExpression(absColl)
+          })
 
         case _ =>
 

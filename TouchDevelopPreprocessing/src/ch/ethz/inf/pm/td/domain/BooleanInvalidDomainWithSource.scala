@@ -212,6 +212,7 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
     res
   }
 
+  override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
 }
 
 

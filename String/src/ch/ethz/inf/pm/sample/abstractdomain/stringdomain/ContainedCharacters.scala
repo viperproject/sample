@@ -113,4 +113,6 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
       new InvertedCharacterSet().top();
     case _ => new InvertedCharacterSet().top();
   }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }

@@ -45,7 +45,7 @@ trait ALinearCollection extends ACollection {
         if (index.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0.toString)
 
-        val newState = If[S](collectionIndexInRange[S](this0, index), Then = {
+        val newState = If[S](IndexInRange[S](this0, index), Then = {
           Return[S](At[S](this0, index))(_, pp)
         }, Else = {
           Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)
@@ -102,11 +102,11 @@ trait ALinearCollection extends ACollection {
     x
   }
 
-  def collectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def InvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     Assign[S](AllKeys[S](collection),0 ndToIncl (Count[S](collection) - 1))
   }
 
-  def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def IndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     index >= 0 && index < Count[S](collection)
   }
 
@@ -135,7 +135,7 @@ trait ALinearCollection extends ACollection {
 
   object InvalidateKeysSemantics extends ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      collectionInvalidateKeys(this0)
+      InvalidateKeys(this0)
     }
   }
 

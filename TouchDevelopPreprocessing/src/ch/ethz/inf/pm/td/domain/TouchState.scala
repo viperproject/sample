@@ -37,7 +37,7 @@ case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifie
 trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
   this:T =>
 
-  def getPossibleStrings(id: Identifier): SetDomain.Default[String]
+  def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
 
   def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
     if (!expr.isTop) {
@@ -1160,7 +1160,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }}).flatten).toSet
   }
 
-  override def getPossibleStrings(id: Identifier) = SetDomain.Default.Top[String]()
+  override def getPossibleConstants(id: Identifier) = valueState.getPossibleConstants(id)
 }
 
 object TouchState {
@@ -1190,6 +1190,8 @@ object TouchState {
   }
 
   trait VariableRelationCollectingDomain extends DummySemanticDomain[VariableRelationCollectingDomain] with DummyLattice[VariableRelationCollectingDomain] {
+
+    override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
 
     override def assign(id:Identifier,expr:Expression):VariableRelationCollectingDomain = {
       TouchVariablePacking.pack(expr.ids + id)

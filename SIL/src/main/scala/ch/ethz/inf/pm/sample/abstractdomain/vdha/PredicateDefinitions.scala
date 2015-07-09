@@ -141,6 +141,8 @@ case class PredicateDefinitionsDomain(
         "Use custom merge(PredicateIdentifierMerge) instead.")
     this
   }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }
 
 /** Identifies a predicate definition in the analysis.

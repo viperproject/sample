@@ -172,6 +172,8 @@ object UpperBoundRelation {
     override def wideningSameEnvInner(that: Inner) = factory(elements union that.elements)
 
     override def getConstraints(ids: Set[Identifier]) = ???
+
+    override def getPossibleConstants(id: Identifier) = ???
   }
 
 }

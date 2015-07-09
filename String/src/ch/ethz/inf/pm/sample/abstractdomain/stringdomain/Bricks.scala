@@ -494,4 +494,6 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
 	    }
 	    case _ => dom.top()
    }
+
+  override def getPossibleConstants(id: Identifier) = ???
 }

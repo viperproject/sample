@@ -79,7 +79,7 @@ trait AMutable_Collection extends ALinearCollection {
         if (start.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
-        If[S](collectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
+        If[S](IndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
           Return[S](0 ndToIncl Count[S](this0)-1)(_, pp)
         }, Else={
           Return[S](-1)(_, pp)
@@ -102,8 +102,8 @@ trait AMutable_Collection extends ALinearCollection {
         if (index.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
-        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
-          var newState = collectionInvalidateKeys[S](this0)(state, pp)
+        If[S](IndexInRange[S](this0, index), Then=(state) => {
+          var newState = InvalidateKeys[S](this0)(state, pp)
           newState = Insert[S](this0, index, item)(newState, pp)
           IncreaseLength[S](this0)(newState, pp)
         }, Else=(state) => {
@@ -128,10 +128,10 @@ trait AMutable_Collection extends ALinearCollection {
         if (index.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
-        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
+        If[S](IndexInRange[S](this0, index), Then=(state) => {
           var newState = RemoveAt[S](this0, index)(state, pp)
           newState = DecreaseLength[S](this0)(newState, pp)
-          collectionInvalidateKeys[S](this0)(newState, pp)
+          InvalidateKeys[S](this0)(newState, pp)
         }, Else={
           RemoveAt[S](this0, index)(_, pp)
         })
@@ -172,7 +172,7 @@ trait AMutable_Collection extends ALinearCollection {
     returnType = TNothing,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        collectionInvalidateKeys[S](this0)
+        InvalidateKeys[S](this0)
       }
     }
   )
@@ -191,7 +191,7 @@ trait AMutable_Collection extends ALinearCollection {
         if (index.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
-        If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
+        If[S](IndexInRange[S](this0, index), Then=(state) => {
           //val newState = CollectionRemove[S](this0, index)(state, pp)
           //CollectionInsert[S](this0, index, value)(newState, pp)
           // FIXME: This is broken
@@ -212,7 +212,7 @@ trait AMutable_Collection extends ALinearCollection {
     returnType = TNothing,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        collectionInvalidateKeys[S](this0)
+        InvalidateKeys[S](this0)
       }
     }
   )

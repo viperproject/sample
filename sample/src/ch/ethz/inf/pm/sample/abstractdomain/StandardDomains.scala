@@ -576,27 +576,27 @@ object SetDomain {
 
     }
 
-    trait Default[V] extends Bounded[V,Default[V]] {
+    trait Default[V] extends Bounded[V,Bounded.Default[V]] {
 
       /** The bound of the set */
       val k:Int
 
-      override def bottom()                = Default.Bottom(k)
-      override def top()                   = Default.Top(k)
-      override def factory(value: Set[V])  = Default.Inner(k,value)
+      override def bottom()                = Bounded.Default.Bottom(k)
+      override def top()                   = Bounded.Default.Top(k)
+      override def factory(value: Set[V])  = Bounded.Default.Inner(k,value)
 
     }
 
     object Default {
 
-      case class Inner[V](k: Int, value: Set[V]) extends Default[V] with Bounded.Inner[V, Default[V], Inner[V]] {
+      case class Inner[V](k: Int, value: Set[V]) extends Bounded.Default[V] with Bounded.Inner[V, Bounded.Default[V], Bounded.Default.Inner[V]] {
 
         override def cap = if (value.size > k) top() else this
 
       }
 
-      case class Bottom[V](k: Int) extends Default[V] with Bounded.Bottom[V, Default[V]]
-      case class Top[V](k: Int) extends Default[V] with Bounded.Top[V, Default[V]]
+      case class Bottom[V](k: Int) extends Bounded.Default[V] with Bounded.Bottom[V, Bounded.Default[V]]
+      case class Top[V](k: Int) extends Bounded.Default[V] with Bounded.Top[V, Bounded.Default[V]]
 
     }
 
@@ -881,6 +881,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
 
+  override def getPossibleConstants(id: Identifier) = _1.getPossibleConstants(id) glb _2.getPossibleConstants(id)
 }
 
 /**

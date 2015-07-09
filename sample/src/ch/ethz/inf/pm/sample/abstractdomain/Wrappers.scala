@@ -76,6 +76,8 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
     val (arg1,arg2) = wrapped.createVariableForArgument(variable,typ,path)
     (wrapperFactory(arg1),arg2)
   }
+
+  override def getPossibleConstants(id: Identifier) = wrapped.getPossibleConstants(id)
 }
 
 trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWrapper[SetDomain.Default[V],T]

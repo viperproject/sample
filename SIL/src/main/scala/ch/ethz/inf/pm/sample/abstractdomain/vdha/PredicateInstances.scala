@@ -127,6 +127,8 @@ case class PredicateInstancesDomain(
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
+
+  override def getPossibleConstants(id: Identifier) = ???
 }
 
 /** Inverse set domain with empty set as top element and

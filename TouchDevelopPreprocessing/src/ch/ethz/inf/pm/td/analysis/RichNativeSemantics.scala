@@ -248,6 +248,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     state.assume(expr)
   }
 
+
   def CallLocalAction[S <: State[S]](method: String, parameters: List[ExpressionSet] = Nil)
                                     (implicit state: S, pp: ProgramPoint): S = {
     val context = SystemParameters.analysisUnitContext
@@ -325,6 +326,19 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   }
 
+  def EvalConstant[S <: State[S]](id: RichExpression)(implicit state: S, pp: ProgramPoint): SetDomain.Default[Constant] = {
+    id.s match {
+      case SetDomain.Default.Bottom() => SetDomain.Default.Bottom()
+      case SetDomain.Default.Top() => SetDomain.Default.Top()
+      case SetDomain.Default.Inner(expr) =>
+        Lattice.bigLub(expr map {
+          case c:Constant => SetDomain.Default.Inner[Constant](Set(c))
+          case i:Identifier => state.asInstanceOf[TouchStateInterface[_]].getPossibleConstants(i)
+          case _ => SetDomain.Default.Top[Constant]()
+        })
+    }
+  }
+
   /*-- Reading and writing of fields --*/
 
   def AssignField[S <: State[S]](obj: RichExpression, field: Identifier, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
@@ -338,7 +352,8 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Field[S <: State[S]](obj: RichExpression, field: ApiField)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    obj.thisExpr.getType().asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
+    if (state.isBottom) obj.bottom()
+    else obj.thisExpr.getType().asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
   }
 
   /*-- Skipping --*/
