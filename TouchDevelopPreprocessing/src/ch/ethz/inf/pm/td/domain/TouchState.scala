@@ -1382,6 +1382,9 @@ object TouchState {
         notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
       )
 
+    override def lessEqual(other:PreAnalysis) =
+      super.lessEqual(other) && inLoops.subsetOf(other.inLoops) && notInLoops.subsetOf(other.notInLoops)
+
     override def endOfFunctionCleanup() = {
         copyLocal(inLoops = Set.empty, notInLoops = Set.empty)
     }

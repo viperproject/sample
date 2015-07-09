@@ -4,5 +4,5 @@ action main() {
     for 0 ≤ i < 2 do {
         $c->add("test");
     }
-    contract->assert($c->count ≤ 2, "Same size");
+    contract->assert($c->count ≥ 2, "Same size");
 }

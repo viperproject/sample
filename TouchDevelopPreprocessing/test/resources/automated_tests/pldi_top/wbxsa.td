@@ -66,9 +66,7 @@ event gameloop() {
           if $i ≥ data→numClouds then {
             $i := 0;
           }
-          //:: ExpectedOutput(assert.failed)
           if data→clouds→at($i)→y > data→curSpacer `and` data→clouds→at($i)→y < data→board→height then {
-            //:: ExpectedOutput(assert.failed)
             $cloud→set_y(data→clouds→at($i)→y - data→curSpacer + (math→random(30) - 15));
             $cloud→set_x(math→random(data→board→width));
           }

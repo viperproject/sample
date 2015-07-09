@@ -115,8 +115,7 @@ object LoopRewriter {
             val storedBound = pos(LocalReference(annotateName(idx,"bound")))
             val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
             val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
-            val storedBoundMinusOne = Access(storedBound,pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
-            val condition = pos(Access(idxExp, pos(Identifier("≤")), List(storedBoundMinusOne)))
+            val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
             val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
             indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
 
