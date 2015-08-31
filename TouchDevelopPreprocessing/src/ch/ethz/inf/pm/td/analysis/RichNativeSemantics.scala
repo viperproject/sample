@@ -304,12 +304,28 @@ object RichNativeSemantics extends RichExpressionImplicits {
       ret
     }
 
+    if (value.isBottom) {
+      return state.bottom()
+    }
+
     val leftExprs = getMultiValAsList(id)
     val rightExprs = getMultiValAsList(value)
 
     if (leftExprs.length != rightExprs.length) {
-      Reporter.reportImprecision("An assignment has an unmatching number of values - going to top", pp)
-      return state.top()
+      Reporter.reportImprecision("An assignment has an unmatching number of values - setting result to top", pp)
+      var curState = state
+      if (TouchAnalysisParameters.get.defaultToUnsound) {
+        for (l <- leftExprs) {
+          curState = TopWithInvalid[S](l.getType().asInstanceOf[TouchType],"Assignment failed")(curState,pp)
+          curState = Assign[S](l,curState.expr)(curState,pp)
+        }
+      } else {
+        for (l <- leftExprs) {
+          curState = Top[S](l.getType().asInstanceOf[TouchType])(curState,pp)
+          curState = Assign[S](l,curState.expr)(curState,pp)
+        }
+      }
+      return curState
     }
 
     var curState = state

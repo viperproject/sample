@@ -35,7 +35,7 @@ trait Default_SLanguages extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Extracts text in the picture using Project Hawaii from Microsoft Research. */
+  /** Rarely used: [**not implemented**] [**obsolete**] This API is no longer supported. */
   def member_picture_to_text = ApiMember(
     name = "picture to text",
     paramTypes = List(ApiParam(TString), ApiParam(TPicture)),
@@ -80,7 +80,7 @@ trait Default_SLanguages extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Sometimes used: [**not implemented**] [**obsolete**] Converts a sound to a text using Project Hawaii from Microsoft Research. */
+  /** Sometimes used: [**not implemented**] [**obsolete**] This API is no longer supported. */
   def member_speech_to_text = ApiMember(
     name = "speech to text",
     paramTypes = List(ApiParam(TString), ApiParam(TSound)),

@@ -125,6 +125,15 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the property that enables or disables gradients */
+  def member_gradient = ApiMember(
+    name = "gradient",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = DefaultSemantics
+  )
+
   /** Frequently used: Gets the height in pixels */
   def member_height = ApiMember(
     name = "height",
@@ -417,6 +426,15 @@ trait Default_TSprite extends AAny {
   def member_set_friction = ApiMember(
     name = "set friction",
     paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Sets gradient on or off */
+  def member_set_gradient = ApiMember(
+    name = "set gradient",
+    paramTypes = List(ApiParam(TBoolean)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
     semantics = DefaultSemantics
@@ -724,6 +742,7 @@ trait Default_TSprite extends AAny {
     "fit text" -> member_fit_text,
     "font size" -> member_font_size,
     "friction" -> member_friction,
+    "gradient" -> member_gradient,
     "height" -> member_height,
     "hide" -> member_hide,
     "is deleted" -> member_is_deleted,
@@ -757,6 +776,7 @@ trait Default_TSprite extends AAny {
     "set elasticity" -> member_set_elasticity,
     "set font size" -> member_set_font_size,
     "set friction" -> member_set_friction,
+    "set gradient" -> member_set_gradient,
     "set height" -> member_set_height,
     "set left" -> member_set_left,
     "set location" -> member_set_location,

@@ -122,7 +122,8 @@ object MethodSummaries {
 
         entriesOnStack = entriesOnStack - identifyingPP
 
-        if ( currentSummary.cfgState.exitState().isBottom ) return currentSummary.cfgState.exitState().bottom()
+        if ( currentSummary.cfgState.exitState().isBottom )
+          return currentSummary.cfgState.exitState().bottom()
 
         if (SystemParameters.TIME) AccumulatingTimer.start("MethodSummaries.exitFunction")
         val exitState = exitFunction(callPoint, callTarget, currentSummary.cfgState.exitState(), parameters)

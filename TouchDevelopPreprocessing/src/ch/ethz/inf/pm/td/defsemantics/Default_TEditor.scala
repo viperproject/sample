@@ -26,6 +26,15 @@ trait Default_TEditor extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: [**beta**] Place a message on the first caller in the top-level script in the editor */
+  def member_annotate_caller = ApiMember(
+    name = "annotate caller",
+    paramTypes = List(ApiParam(TString), ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Returns the AST of the script currently in the editor */
   def member_current_script_ast = ApiMember(
     name = "current script ast",
@@ -101,6 +110,7 @@ trait Default_TEditor extends AAny {
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "annotate ast" -> member_annotate_ast,
+    "annotate caller" -> member_annotate_caller,
     "current script ast" -> member_current_script_ast,
     "current script id" -> member_current_script_id,
     "deployment settings" -> member_deployment_settings,

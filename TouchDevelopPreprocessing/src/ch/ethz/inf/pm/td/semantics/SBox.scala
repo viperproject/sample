@@ -4,9 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{SkipSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_SBox
-import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -173,6 +172,9 @@ object SBox extends Default_SBox {
     field_max_height
   )
 
+  override lazy val member_add_background_picture = super.member_add_background_picture.copy(semantics = SkipSemantics)
+
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
@@ -232,31 +234,31 @@ object SBox extends Default_SBox {
     /** Display editable text, with the given binding. */
     case "edit" =>
       val List(style, value, changehandler) = parameters // String,String,Text_Action
-    val newState = AssignField[S](this0, SBox.field_text_editing_handler, changehandler)
+      val newState = AssignField[S](this0, SBox.field_text_editing_handler, changehandler)
       New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens when the user has finished editing the text in the box. */
     case "on text edited" =>
       val List(handler) = parameters // Text_Action
-    val newState = AssignField[S](this0, SBox.field_text_edited_handler, handler)
+      val newState = AssignField[S](this0, SBox.field_text_edited_handler, handler)
       New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens whenever the text in the box is being edited. */
     case "on text editing" =>
       val List(handler) = parameters // Text_Action
-    val newState = AssignField[S](this0, SBox.field_text_editing_handler, handler)
+      val newState = AssignField[S](this0, SBox.field_text_editing_handler, handler)
       New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens when the box is tapped. */
     case "on tapped" =>
       val List(handler) = parameters // Action
-    val newState = AssignField[S](this0, SBox.field_tapped_handler, handler)
+      val newState = AssignField[S](this0, SBox.field_tapped_handler, handler)
       New[S](TEvent_Binding)(newState, pp)
 
     /** Set the color and width of the border. */
     case "set border" =>
       val List(color, width) = parameters // Color,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_border_color, color)(curState, pp)
       curState = AssignField[S](this0, SBox.field_border_width_top, width)(curState, pp)
       curState = AssignField[S](this0, SBox.field_border_width_right, width)(curState, pp)
@@ -267,7 +269,7 @@ object SBox extends Default_SBox {
     /** Set the width of each border. */
     case "set border widths" =>
       val List(top, right, bottom, left) = parameters // Number,Number,Number,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_border_width_top, top)(curState, pp)
       curState = AssignField[S](this0, SBox.field_border_width_right, right)(curState, pp)
       curState = AssignField[S](this0, SBox.field_border_width_bottom, bottom)(curState, pp)
@@ -278,7 +280,7 @@ object SBox extends Default_SBox {
     /** Set lower and upper limits on the height of this box. */
     case "set height range" =>
       val List(min_height, max_height) = parameters // Number,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_min_height, min_height)(curState, pp)
       curState = AssignField[S](this0, SBox.field_max_height, max_height)(curState, pp)
       curState
@@ -286,7 +288,7 @@ object SBox extends Default_SBox {
     /** Set lower and upper limits on the width of this box. */
     case "set width range" =>
       val List(min_width, max_width) = parameters // Number,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_min_width, min_width)(curState, pp)
       curState = AssignField[S](this0, SBox.field_max_width, max_width)(curState, pp)
       curState
@@ -294,7 +296,7 @@ object SBox extends Default_SBox {
     /** Specify whether to use scrollbars on overflow. */
     case "set scrolling" =>
       val List(horizontal_scrolling, vertical_scrolling) = parameters // Boolean,Boolean
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_horizontal_scrolling, horizontal_scrolling)(curState, pp)
       curState = AssignField[S](this0, SBox.field_vertical_scrolling, vertical_scrolling)(curState, pp)
       curState
@@ -302,7 +304,7 @@ object SBox extends Default_SBox {
     /** Set whether to break long lines, and specify what length is too short for breaking */
     case "set text wrapping" =>
       val List(wrap, minimumwidth) = parameters // Boolean,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, SBox.field_text_wrapping_wrap, wrap)(curState, pp)
       curState = AssignField[S](this0, SBox.field_text_wrapping_minimumwidth, minimumwidth)(curState, pp)
       curState

@@ -243,7 +243,8 @@ object SMath extends Default_SMath {
     /** Rounds a number to a specified number of fractional digits. */
     case "round with precision" =>
       val List(x, digits) = parameters // Number,Number
-      Return[S](x - 0.5 ndToExcl x + 0.5)
+      val ret = Return[S](x - 0.5 ndToExcl x + 0.5)
+      ret
 
     /** Returns a value indicating the sign of a number */
     case "sign" =>

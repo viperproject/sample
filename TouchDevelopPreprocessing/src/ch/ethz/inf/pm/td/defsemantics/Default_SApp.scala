@@ -161,6 +161,15 @@ trait Default_SApp extends ASingleton {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the app script id if any; invalid if not available */
+  def member_script_id = ApiMember(
+    name = "script id",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: [**beta**] Get the current incomming HTTP web request */
   def member_server_request = ApiMember(
     name = "server request",
@@ -224,6 +233,7 @@ trait Default_SApp extends ASingleton {
     "reflect" -> member_reflect,
     "restart" -> member_restart,
     "run command" -> member_run_command,
+    "script id" -> member_script_id,
     "server request" -> member_server_request,
     "server response" -> member_server_response,
     "server setting" -> member_server_setting,

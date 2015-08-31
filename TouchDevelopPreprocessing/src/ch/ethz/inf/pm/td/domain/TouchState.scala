@@ -982,11 +982,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   def ids:IdentifierSet = {
-    valueState.ids ++ (
-      forwardMay.keySet ++ forwardMay.values.flatten ++
-      backwardMay.keySet ++ backwardMay.values.flatten ++
-      forwardMust.keySet ++ forwardMust.values.flatten ++
-      versions.values.flatten)
+    valueState.ids ++ (forwardMay.keySet ++ forwardMay.values.flatten)
   }
 
   /**
@@ -1099,7 +1095,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   def adaptEnvironments(l:T,r:T): (T,T) = {
-    adaptSummaryNodes(l.canonicalizeEnvironment,r.canonicalizeEnvironment)
+    adaptSummaryNodes(l,r)
   }
 
   override def toString: String = {
@@ -1387,6 +1383,10 @@ object TouchState {
 
     override def endOfFunctionCleanup() = {
         copyLocal(inLoops = Set.empty, notInLoops = Set.empty)
+    }
+
+    override def ids = {
+        IdentifierSet.Bottom ++ (forwardMay.keySet ++ forwardMay.values.flatten)
     }
 
   }

@@ -53,13 +53,15 @@ object SApp extends Default_SApp {
   lazy val field_env = ApiField("env",TApp_Env)
   lazy val field_editor = ApiField("editor",TEditor)
   lazy val field_current_handler = ApiField("current handler",TEvent_Binding)
+  lazy val field_script_id = ApiField("script id",TString)
 
    override lazy val possibleFields = super.possibleFields ++ Set(
      field_server_response,
      field_server_request,
      field_env,
      field_editor,
-     field_current_handler
+     field_current_handler,
+     field_script_id
    )
 
 }
