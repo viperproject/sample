@@ -61,7 +61,7 @@ abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
 
   def exitState(): S = {
     var result: S = stateFactory.bottom()
-    for (blockId <- 0 until cfg.nodes.size) {
+    for (blockId <- cfg.nodes.indices) {
       val states = statesOfBlock(blockId)
       var isExitPoint: Boolean = true
       for ((from, to, weight) <- cfg.edges) {
@@ -81,7 +81,7 @@ abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
 
   override def toString: String = {
     var result: String = ""
-    for (blockId <- 0 until cfg.nodes.size) {
+    for (blockId <- cfg.nodes.indices) {
       val blockStates = statesOfBlock(blockId)
       result = result +
         "Node n." + blockId + "\n-----------------\n" +

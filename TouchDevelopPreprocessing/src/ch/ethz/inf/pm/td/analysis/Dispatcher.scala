@@ -33,12 +33,11 @@ object Dispatcher extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
-
-    if (CFGGenerator.isLibraryIdent(thisExpr.getType().name)) {
+    val typ = thisExpr.getType().asInstanceOf[AAny]
+    if (CFGGenerator.isLibraryIdent(typ.name)) {
       LibraryContract.applyForwardNativeSemantics(thisExpr,operator,parameters,typeparameters,returnedtype,pp,state)
     } else {
-      thisExpr.getType().asInstanceOf[AAny].applyForwardNativeSemantics[S](thisExpr,operator,parameters,Nil,returnedtype.asInstanceOf[TouchType],pp,state)
+      typ.applyForwardNativeSemantics[S](thisExpr,operator,parameters,Nil,returnedtype.asInstanceOf[TouchType],pp,state)
     }
 
   }

@@ -274,7 +274,7 @@ object MethodSummaries {
       SystemParameters.withLibraryBoundaryContext(libraryBoundary) {
         SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
           val interpreter = TrackingForwardInterpreter[S](entryState)
-          interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
+          interpreter.forwardExecute(currentSummary.method.body, entryState, Some(currentSummary.cfgState))
         }
       }
 

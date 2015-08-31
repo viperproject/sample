@@ -820,20 +820,4 @@ object UtilitiesOnStates {
     (expr, finalState.setExpression(ExpressionFactory.unitExpr))
   }
 
-  def forwardExecuteListStatements[S <: State[S]](state: S, statements: List[Statement]): (List[ExpressionSet], S) = statements match {
-    case Nil => (Nil, state)
-    case statement :: xs =>
-      val state1: S = statement.forwardSemantics[S](state)
-      val expr = state1.expr
-      val (otherExpr, finalState) = forwardExecuteListStatements[S](state1, xs)
-      (expr :: otherExpr, finalState.removeExpression())
-  }
-
-  def forwardExecuteListStatementsWithIntermediateStates[S <: State[S]](pre: S, statements: List[Statement]): List[S] = statements match {
-    case Nil => Nil
-    case statement :: xs =>
-      val post = statement.forwardSemantics[S](pre)
-      val otherStates = forwardExecuteListStatementsWithIntermediateStates[S](post, xs)
-      post :: otherStates
-  }
 }

@@ -40,6 +40,12 @@ object CFGGenerator {
 
   def getLibraryName(ident: String) = ident.substring(1)
 
+  def recordIdent(ident: String) = "⌹" + ident
+
+  def isRecordIdent(ident: String) = ident.startsWith("⌹") && ident.length() > 1
+
+  def getRecordName(ident: String) = ident.substring(1)
+
   def returnIdent(ident: String) = "__returned_" + ident
 
   def isReturnIdent(ident: String) = ident.startsWith("__returned_")

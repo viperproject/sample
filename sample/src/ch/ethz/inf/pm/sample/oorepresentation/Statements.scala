@@ -365,7 +365,7 @@ case class MethodCall(
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     val body: Statement = method.normalize()
-    //Method call used to represent a goto statement to a while label
+    // Method call used to represent a goto statement to a while label
     body match {
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
@@ -385,22 +385,20 @@ case class MethodCall(
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S,
-                                                              programpoint: ProgramPoint): S = {
-    val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj)
-    val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters)
+                                                              programPoint: ProgramPoint): S = {
 
-    if (SystemParameters.DEBUG) {
-      if (resultingState1.isBottom) {
-        return initialState.bottom()
-      }
-      if (calledExpr.isBottom) {
-        return initialState.bottom()
-      }
-      if (calledExpr.isTop) {
-        return initialState.top()
-      }
+    // Evaluate object and parameters
+    var curState = initialState
+    curState = obj.forwardSemantics[S](curState)
+    val objectExpression = curState.expr
+    val parameterExpressions = for (parameter <- parameters) yield {
+      curState = parameter.forwardSemantics[S](curState)
+      curState.expr
     }
-    applyNativeForwardSemanticsOnObject(calledMethod, calledExpr, parametersExpr, resultingState1, programpoint)
+
+    // Evaluate called method
+    applyNativeForwardSemanticsOnObject(calledMethod, objectExpression, parameterExpressions, curState, programPoint)
+
   }
 
   private def applyNativeForwardSemanticsOnObject[S <: State[S]](invokedMethod: String, thisExpr: ExpressionSet,

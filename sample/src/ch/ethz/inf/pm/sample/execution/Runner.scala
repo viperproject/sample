@@ -66,7 +66,7 @@ trait Analysis[S <: State[S]] {
   protected def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingForwardInterpreter[S](entryState.top())
-      val cfgState = interpreter.forwardExecuteFrom(method.body, entryState)
+      val cfgState = interpreter.forwardExecute(method.body, entryState)
       AnalysisResult(method, cfgState)
     }
   }

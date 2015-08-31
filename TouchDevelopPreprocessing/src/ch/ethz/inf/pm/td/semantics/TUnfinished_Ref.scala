@@ -7,10 +7,11 @@ object TUnfinished_Ref extends AAny {
 
   override lazy val typeName: TypeName = TypeName("Unfinished Ref")
 
-  override def getDeclaration(s:String) =
-    TypeList.getType(TypeName(s)) match {
-      case Some(x) => Some(ApiMember(s,Nil,ApiParam(this),GRef(x),NewSemantics))
+  override def getDeclaration(s:String) = {
+    TypeList.getType(TypeName(if (CFGGenerator.isRecordIdent(s)) CFGGenerator.getRecordName(s) else s)) match {
+      case Some(x) => Some(ApiMember(s, Nil, ApiParam(this), GRef(x), NewSemantics))
       case None => super.getDeclaration(s)
     }
+  }
 
 }

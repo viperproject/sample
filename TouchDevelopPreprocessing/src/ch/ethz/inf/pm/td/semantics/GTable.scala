@@ -52,12 +52,29 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
     semantics = NewSemantics
   )
 
+  lazy val member_copy_to_collection = ApiMember(
+    name = "copy to collection",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = GCollection(rowTyp),
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val t = GCollection(rowTyp)
+        New[S](t,initials = Map(
+          t.field_entry -> Field[S](this0,GTable.this.field_entry),
+          t.field_count -> Field[S](this0,GTable.this.field_count)
+        ))
+      }
+    }
+  )
+
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++
     Map(
       "add row" -> member_add_row,
       "invalid row" -> member_invalid_row,
       "row at" -> member_row_at,
-      "create collection" -> member_create_collection
+      "create collection" -> member_create_collection,
+      "copy to collection" -> member_copy_to_collection
     )
 
 
