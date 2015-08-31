@@ -650,7 +650,6 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val (left,right) = adaptEnvironments(this,r)
     if (!MapUtil.mapToSetContainment(left.forwardMay,right.forwardMay)) return false
     if (!MapUtil.mapToSetContainment(right.forwardMust,left.forwardMust)) return false
-    if (!MapUtil.mapToSetContainment(left.backwardMay,right.backwardMay)) return false
     // no check on versions. however, this should be fine?
     if (!left.valueState.lessEqual(right.valueState)) return false
     if (!left.expr.lessEqual(right.expr)) return false
