@@ -45,7 +45,7 @@ object FindConstruct {
       case Some(x) => x
       case None =>
         val scr = ScriptCache.get(id)
-        val res = scr.declarations.exists {
+        val res = scr.get.declarations.exists {
           case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
             isCloudEnabled || isCloudPartiallyEnabled
           case _ => false

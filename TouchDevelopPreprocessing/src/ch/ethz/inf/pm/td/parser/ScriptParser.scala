@@ -54,7 +54,10 @@ object ScriptParser extends RegexParsers with PackratParsers {
     "var" ~ parameter ~ "{" ~ variableFlag.* ~ "}" ^^ {case _~a~_~b~_ => VariableDefinition(a,b.toMap)}
   )
 
-  lazy val variableFlag: PackratParser[(String,Any)] = (ident ~ "=" ~ stringLiteral ~ ";" | ident ~ "=" ~ booleanLiteral ~ ";") ^^ { case (a ~ _ ~ b ~ _) => (a, b)}
+  lazy val variableFlag: PackratParser[(String,Either[Boolean,String])] = (ident ~ "=" ~ stringLiteral ~ ";" | ident ~ "=" ~ booleanLiteralConverted ~ ";") ^^ {
+    case (a ~ _ ~ b ~ _) if b.isInstanceOf[Boolean] => (a, Left(b.asInstanceOf[Boolean]))
+    case (a ~ _ ~ b ~ _) if b.isInstanceOf[String] => (a, Right(b.asInstanceOf[String]))
+  }
 
   // Tables
 
@@ -87,17 +90,12 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val libraryImport: PackratParser[Declaration] = positioned (
     "meta" ~ "import" ~ ident ~ "{" ~ ("pub" ~> stringLiteral) ~ libraryUsage ~ resolveBlock.* ~ "}"
-      ^^ { case _~_~name~_~pub~use~res~_ => LibraryDefinition(name,pub,use,"",List.empty,res) }
+      ^^ { case _~_~name~_~pub~use~res~_ => LibraryDefinition(name,pub,libIsPublished = true,"","",List.empty,List.empty,res) }
   )
 
   lazy val libraryUsage: PackratParser[List[UsageDeclaration]] =  (
-    "usage" ~ "{" ~ typeUsage.* ~ actionUsage.* ~ "}"
-      ^^ { case _~_~use~act~_ => use ::: act }
-  )
-
-  lazy val typeUsage: PackratParser[TypeUsage] = positioned (
-    "type" ~> ident
-      ^^ TypeUsage
+    "usage" ~ "{" ~ actionUsage.* ~ "}"
+      ^^ { case _~_~act~_ => act }
   )
 
   lazy val actionUsage: PackratParser[ActionUsage] = positioned (
@@ -299,6 +297,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val rA:PackratParser[String] = "→" | "->"
   lazy val numberLiteral:PackratParser[String] = "[0-9]+\\.?".r ||| """[0-9]*\.[0-9]+""".r
+  lazy val booleanLiteralConverted: Parser[Boolean] = ("true" | "false") ^^ (_.toBoolean)
   lazy val booleanLiteral: Parser[String] = "true" | "false"
   lazy val stringLiteral:PackratParser[String] = "\"" ~> escapedString <~ "\"" ^^ StringEscapeUtils.unescapeJava
   //lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r

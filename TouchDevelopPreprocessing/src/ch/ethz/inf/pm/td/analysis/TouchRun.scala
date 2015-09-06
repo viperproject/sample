@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
+import com.typesafe.scalalogging.LazyLogging
 
 object TouchEntryStateBuilder {
 
@@ -67,7 +68,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
 }
 
-case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None) extends Thread {
+case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None) extends Thread with LazyLogging {
 
   var messages: Set[SampleMessage] = Set.empty
 
@@ -79,6 +80,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
       val touchParams = TouchAnalysisParameters.get
       TouchProgramPointRegistry.reset()
 
+      logger.info(" Compiling " + file)
       Exporters.setStatus("Analyzing")
 
       SystemParameters.compiler = new TouchCompiler
@@ -93,7 +95,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
       val entryState = new TouchEntryStateBuilder(touchParams).topState
       val analysis = new TouchAnalysis
-      analysis.analyze(entryState)
+      analysis.analyze(Nil,entryState)
 
       Exporters.setStatus("Done")
       messages = Reporter.seenErrors.toSet

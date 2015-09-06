@@ -17,7 +17,6 @@ trait Default_GRef extends AAny {
 
   def TT:AAny
 
-
   lazy val typeName = TypeName("Ref", List(TT.typeName))
           
   /** Never used: Add specified value to given reference */

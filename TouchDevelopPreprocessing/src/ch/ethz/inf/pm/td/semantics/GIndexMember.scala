@@ -12,8 +12,8 @@ import RichNativeSemantics._
  */
 case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter], valueFieldsParameters: List[Parameter]) extends AAny {
 
-  lazy val keyFields:List[ApiField] = TypeList.toTouchFields(keyFieldsParameters)
-  lazy val valueFields:List[ApiField] = TypeList.toTouchFields(valueFieldsParameters)
+  lazy val keyFields:Set[ApiField] = TypeList.toTouchFields(keyFieldsParameters)
+  lazy val valueFields:Set[ApiField] = TypeList.toTouchFields(valueFieldsParameters)
 
   def member_clear_fields = ApiMember(
     name = "clear fields",
@@ -43,7 +43,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
     super.possibleFields ++ keyFields ++ valueFields
 
   override lazy val declarations =
-    super.declarations ++ mkGetterSetters(keyFields ::: valueFields) +
+    super.declarations ++ mkGetterSetters(valueFields ++ keyFields) +
       ("clear fields" -> member_clear_fields, "is deleted" -> member_is_deleted)
 
 }

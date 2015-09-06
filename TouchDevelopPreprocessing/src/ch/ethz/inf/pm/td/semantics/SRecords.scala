@@ -1,10 +1,9 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.sample.abstractdomain.Identifier
+import ch.ethz.inf.pm.sample.oorepresentation.Modifier
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -15,20 +14,52 @@ import ch.ethz.inf.pm.td.parser.TypeName
  *
  * @author Lucas Brutschy
  */
-
 object SRecords extends ASingleton {
 
   lazy val typeName = TypeName("records",isSingleton = true)
 
-  override def declarations = super.declarations ++ mkGetterSetters(TypeList.records.toList)
-  override def possibleFields = super.possibleFields ++ TypeList.records
+  override def possibleFields = mutableFields.map(_._1)
+  override def declarations = mutableDeclaration
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
+  var mutableFields = Set.empty[(ApiField,Set[Modifier])]
+  var mutableDeclaration = Map.empty[String,ApiMember]
 
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
+  def addRecord(rec:Record) {
+    val field = ApiField(rec.name,rec.typ)
+    mutableFields = mutableFields + ((field,rec.modifiers))
+    mutableDeclaration = mutableDeclaration ++ mkGetters(Set(field))
+  }
+
+  override def reset() = {
+    mutableFields = Set.empty[(ApiField,Set[Modifier])]
+    mutableDeclaration = Map.empty[String,ApiMember]
+  }
+
+  override def setUp(compiler:TouchCompiler,firstStart:Boolean): Unit = {
+
+    mutableFields = mutableFields.map {
+      x =>
+        val initializer =
+          if (firstStart) {
+            if (x._2.contains(ResourceModifier) || x._2.contains(ReadOnlyModifier))
+              TopInitializer
+            else
+              NewInitializer
+          } else {
+            if (x._2.contains(TransientModifier))
+              NewInitializer
+            else
+              TopInitializer
+          }
+        (x._1.copy(default = initializer),x._2)
+    }
+
+    mutableDeclaration = mkGetters(mutableFields.map(_._1))
 
   }
+
 }
+
+case class Record(name:String, typ:AAny, modifiers:Set[Modifier])
+
       

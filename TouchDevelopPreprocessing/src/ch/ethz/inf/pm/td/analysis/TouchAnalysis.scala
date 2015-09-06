@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.analysis
 
-import apron.{PolkaEq, Polka, OptOctagon, Box}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
@@ -13,17 +12,16 @@ import ch.ethz.inf.pm.sample.util.{Relation, AccumulatingTimer}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
-import ch.ethz.inf.pm.td.semantics.AAny
+import ch.ethz.inf.pm.td.semantics.{SRecords, AAny}
 import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 
 import scala.collection.mutable
 
 /**
  *
- * Lucas Brutschy
- * Date: 10/18/12
- * Time: 5:50 PM
+ * Analysis for TouchDevelop scripts
  *
+ * @author Lucas Brutschy
  */
 class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
   extends SemanticAnalysis[StringsAnd[InvalidAnd[D], R]] with StrictLogging {
@@ -86,12 +84,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     List(allChecks, alarm, imprecision, bottom, empty)
   }
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
-
-
-  def analyze[S <: State[S]](entryState: S): List[(Type, MethodDeclaration, CFGState[S])] = {
-    analyze(Nil, entryState, new OutputCollector)
-  }
+  def getNativeMethodsSemantics: List[NativeMethodSemantics] = Nil
 
   /**
    *
@@ -104,13 +97,31 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
    * (2.3) Compute lfp (lambda x -> lub_e\in E(e(x))) where E is the set of events
    *
    */
-  override def analyze[S <: State[S]](methods: List[String], entryState: S, output: OutputCollector)
-  : List[(Type, MethodDeclaration, CFGState[S])] = {
+  override def analyze[S <: State[S]](methods: List[String], entryState: S, output: OutputCollector = new OutputCollector)
+      : List[(Type, MethodDeclaration, CFGState[S])] = {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     // Set up the environment
-    logger.info(" ANALYZING " + compiler.main.name)
+    logger.info(" Analyzing " + compiler.main.name)
     if(SystemParameters.TIME) AccumulatingTimer.reset()
+
+    // Shall we compute a fixpoint over the whole script (only in case we have persistent data)
+    val outMostFixpoint =
+      !TouchAnalysisParameters.get.generalPersistentState &&
+        !compiler.isInLibraryMode &&
+        (
+          SRecords.mutableFields.exists { x =>
+            !x._2.contains(TransientModifier) &&
+              !x._2.contains(ReadOnlyModifier) &&
+              !x._2.contains(ResourceModifier)
+          } ||
+            compiler.globalData.exists{ x =>
+              !x.modifiers.contains(TransientModifier)
+            }
+          )
+
+    // Set up things like records
+    for (sem <- TypeList.getSingletons) sem.setUp(compiler,outMostFixpoint)
 
     // PRE-ANALYSIS: Discover required fragment
     //
@@ -142,7 +153,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       val oldNumber = TouchAnalysisParameters.get.numberOfVersions
       TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
-      analyzeScript[TouchState.PreAnalysis](compiler,methods)(TouchState.PreAnalysis())
+      analyzeScript[TouchState.PreAnalysis](compiler,methods,outMostFixpoint)(TouchState.PreAnalysis())
       //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
       TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
@@ -161,7 +172,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.MainAnalysis")
     SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
-    analyzeScript(compiler,methods)(newEntryState)
+    analyzeScript(compiler,methods,outMostFixpoint)(newEntryState)
     if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.MainAnalysis")
 
     //
@@ -186,7 +197,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     Exporters(compiler)
 
-    //if (SystemParameters.TIME) logger.debug(AccumulatingTimer.toString)
+    // Reset singletons
+    for (sem <- TypeList.getSingletons) sem.reset()
 
     results
   }
@@ -194,90 +206,26 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
   /**
    * Initializes global data, then calls analyzeExecution to analyze one or many executions of the script
    */
-  private def analyzeScript[S <: State[S]](compiler: TouchCompiler, methods: List[String])(entryState: S): S = {
+  private def analyzeScript[S <: State[S]](compiler: TouchCompiler, methods: List[String], outMostFixpoint:Boolean)(entryState: S): S = {
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
-    for (sem <- TypeList.getSingletons) {
-      sem match {
-        case any: AAny =>
-          val typ = any
-          if (typ.isSingleton &&
-            (!TouchAnalysisParameters.get.libraryFieldPruning ||
-              compiler.relevantLibraryFields.contains(typ.name))) {
-            val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
-            if (typ.name == "records")
-              if (!TouchAnalysisParameters.get.generalPersistentState && !compiler.isInLibraryMode) {
-                curState = RichNativeSemantics.New[S](typ)(curState, singletonProgramPoint)
-              } else {
-                curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
-              }
-            else
-              curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
-            val obj = curState.expr
-            val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
-            curState = RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
-          }
-        case _ =>
-      }
-    }
-
-    // Set global state to invalid
-    for (v <- compiler.globalData) {
-
-      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.variable.getName))(v.typ, v.programpoint)
-      val leftExpr = ExpressionSet(variable)
-      curState = curState.createVariable(leftExpr, v.typ, v.programpoint)
-      val newTyp = v.typ.asInstanceOf[AAny]
-      import RichNativeSemantics._
-
-      val rightVal =
-        if (!TouchAnalysisParameters.get.generalPersistentState && !compiler.isInLibraryMode) {
-
-          // We analyze executions separately. In the first execution of the script, global fields are invalid
-          // except for the obvious exception (art, read-only, primitives)
-          // There are three types of global data:
-          //  (1) Regular global variables / objects, which are initialized to invalid
-          //  (2) Global objects that are read-only and are initialized to some default object (Tile)
-          //  (3) Global objects that represents read-only artwork that is initialized from some URL.
-          if (v.modifiers.contains(ResourceModifier)) {
-            curState = Top[S](newTyp)(curState, v.programpoint)
-          } else if (v.modifiers.contains(ReadOnlyModifier)) {
-            curState = New[S](newTyp)(curState, v.programpoint)
-          } else {
-            curState = Default[S](newTyp)(curState, v.programpoint)
-          }
-
-          curState.expr
-        } else {
-
-          // We analyze one execution in top state.
-          if (v.modifiers.contains(ResourceModifier)) {
-            curState = Top[S](newTyp)(curState, v.programpoint)
-          } else if (v.modifiers.contains(ReadOnlyModifier)) {
-            curState = New[S](newTyp)(curState, v.programpoint)
-          } else if (v.modifiers.contains(TransientModifier)) {
-            // Transient data is always "default" at beginning in every execution
-            curState = Default[S](newTyp)(curState, v.programpoint)
-          } else {
-            curState = TopWithInvalid[S](newTyp, "global variable may be invalid")(curState,
-              if (TouchAnalysisParameters.get.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
-          }
-
-          curState.expr
-        }
-
-      curState = curState.createVariable(leftExpr, leftExpr.getType(), v.programpoint)
-      curState = curState.assignVariable(leftExpr, rightVal)
-      curState
+    for (
+      typ <- TypeList.getSingletons
+      if !TouchAnalysisParameters.get.libraryFieldPruning || compiler.relevantLibraryFields.contains(typ.name)
+    ) {
+      curState = typ.initialize(curState)
     }
 
     // == CORE ANALYSIS IS STARTING HERE
     // The first fixpoint, which is computed over several executions of the same script
-    if (!TouchAnalysisParameters.get.generalPersistentState && !TouchAnalysisParameters.get.singleExecution && !compiler.isInLibraryMode)
-      Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
-    else
-      analyzeExecution(compiler, methods)(curState)
+    val result =
+      if (outMostFixpoint)
+        Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
+      else
+        analyzeExecution(compiler, methods)(curState)
+
+    result
   }
 
   private def analyzeExecution[S <: State[S]](compiler: TouchCompiler, methods: List[String])(initialState: S): S = {
@@ -329,8 +277,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
   private def analyzeEvents[S <: State[S]](compiler: TouchCompiler, methods: List[String])(s: S): S = {
 
     var cur = s
-    for (mDecl <- compiler.events) {
-      cur = cur.lub(analyzeMethod(mDecl, s))
+    for (methodDeclaration <- compiler.events) {
+      cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
 
     resetEnv(cur)

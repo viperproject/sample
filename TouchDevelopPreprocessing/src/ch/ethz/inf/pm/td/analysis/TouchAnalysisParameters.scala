@@ -67,10 +67,8 @@ case class TouchAnalysisParameters(
                                     generalPersistentState: Boolean = false,
 
                                     /**
-                                     * Analyze a single execution
+                                     * Set to true to be sound
                                      */
-                                    singleExecution: Boolean = false,
-
                                     fullAliasingInGenericInput: Boolean = false,
 
                                     /**

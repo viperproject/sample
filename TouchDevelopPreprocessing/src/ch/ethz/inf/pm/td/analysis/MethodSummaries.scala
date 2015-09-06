@@ -179,8 +179,7 @@ object MethodSummaries {
 
     curState = curState.pruneVariables({
       id: VariableIdentifier =>
-        !id.typ.asInstanceOf[TouchType].isSingleton &&
-          !CFGGenerator.isGlobalReferenceIdent(id.toString)
+        !id.typ.asInstanceOf[TouchType].isSingleton
     })
     curState = curState.pruneUnreachableHeap()
 
@@ -301,7 +300,6 @@ object MethodSummaries {
           (
             !TouchAnalysisParameters.get.reachabilityBasedLocalization ||
               id.typ.asInstanceOf[TouchType].isSingleton ||
-              CFGGenerator.isGlobalReferenceIdent(id.toString) ||
               CFGGenerator.isParamIdent(id.toString) ||
               CFGGenerator.isReturnIdent(id.toString)
           ) && (
@@ -364,7 +362,6 @@ object MethodSummaries {
         curState = curState.pruneVariables({
           id: VariableIdentifier =>
             !id.typ.asInstanceOf[TouchType].isSingleton &&
-            !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
             !CFGGenerator.isParamIdent(id.toString)
         })
       }
@@ -404,7 +401,6 @@ object MethodSummaries {
       curState = curState.pruneVariables({
         id: VariableIdentifier =>
           !id.typ.asInstanceOf[TouchType].isSingleton &&
-            !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
             (!TouchAnalysisParameters.get.variablePacking || Localization.matches(identifyingPP,id)) // Access-Analysis based localization!
       })
       curState = curState.pruneUnreachableHeap()

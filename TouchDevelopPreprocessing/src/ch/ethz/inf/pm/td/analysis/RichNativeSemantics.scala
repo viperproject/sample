@@ -130,6 +130,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
                 case NewInitializer =>
                   curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP)
                   toRichExpression(curState.expr)
+                case DefaultInitializer(why) =>
+                  typ match {
+                    case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber, pp)))
+                    case TBoolean =>  toRichExpression(new ExpressionSet(TBoolean).add(False))
+                    case TString =>   toRichExpression(ExpressionSet(Constant("", TString, pp)))
+                    case _ =>         toRichExpression(Invalid(typ,why))
+                  }
                 case ExpressionInitializer(e) => e
               }
               case Some(st) => st
@@ -418,6 +425,9 @@ case class ApiField(name: String,
 trait Initializer
 
 case class InvalidInitializer(invalidReason: String) extends Initializer
+
+/** Default initializer for variables. Invalid for object types, false, 0.0, "" for primitives */
+case class DefaultInitializer(invalidReason: String) extends Initializer
 
 case object NewInitializer extends Initializer
 

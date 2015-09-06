@@ -25,24 +25,23 @@ object PrettyPrinter {
   def apply(d: Declaration)(implicit ppPrinter:((IdPositional,String) => String)): String = {
     ppPrinter(d,
       d match {
-        case ActionType(ident, in, out, body, isPrivate) =>
+        case ActionType(ident, in, out, isPrivate) =>
           (if (isPrivate) "private " else "") +
             "action type" +
-            apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
-            " {\n" + apply(body) + "\n}"
+            apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",")
         case ActionDefinition(ident, in, out, body, isEvent, isPrivate) =>
           (if (isPrivate) "private " else "") +
             (if (isEvent) "event " else "action ") +
             apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
             " {\n" + apply(body) + "\n}"
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
-        case VariableDefinition(variable, _) => "var " + apply(variable) + " {}"
+        case VariableDefinition(variable, map) => "var " + apply(variable) + " {" + map.map(x => x._1 + "=" + x._2 + ";").mkString("\n") + " }"
         case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
           "table " + apply(ident) +
             " { type = \"" + typeName + "\"; " +
             s"cloudenabled = $isCloudEnabled; cloudpartiallyenabled = $isCloudPartiallyEnabled; persistent = $isPersistent; exported = $isExported;" +
             "keys = {\n"+(keys map apply)+"\n} fields = {\n"+(fields map apply)+"\n} }"
-        case LibraryDefinition(name, pub, usages, _, _, resolves) =>
+        case LibraryDefinition(name, pub, _ , _, _, _, usages, resolves) =>
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
             "usage " + "{\n    " + (usages map apply).mkString("\n    ") + "\n  }" + "\n  " +
             (resolves map apply).mkString("\n  ") + "\n}"
@@ -52,8 +51,6 @@ object PrettyPrinter {
   def apply(d: UsageDeclaration)(implicit ppPrinter:((IdPositional,String) => String)): String = {
     ppPrinter(d,
       d match {
-        case TypeUsage(ident) =>
-          "type " + apply(ident)
         case ActionUsage(ident, inParam, outParam) =>
           "action " + apply(ident) + " (" + (inParam map apply).mkString(",") + ") returns " + (outParam map apply).mkString(",")
       })

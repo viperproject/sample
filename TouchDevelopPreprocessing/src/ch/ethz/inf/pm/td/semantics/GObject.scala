@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 
 case class GObject(typeName:TypeName, fieldsParameters:List[Parameter]) extends AAny {
 
-  lazy val fields:List[ApiField] = TypeList.toTouchFields(fieldsParameters)
+  lazy val fields:Set[ApiField] = TypeList.toTouchFields(fieldsParameters)
 
   lazy val member_clear_fields = ApiMember(
     name = "clear fields",

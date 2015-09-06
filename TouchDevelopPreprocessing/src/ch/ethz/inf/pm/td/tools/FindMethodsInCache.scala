@@ -36,7 +36,7 @@ object FindMethodsInCache {
       source.close()
       if (!lines.trim.isEmpty) {
         try {
-          val script = WebASTImporter.convertFromString(lines)
+          val script = WebASTImporter.convertFromString(lines).get
           val rewrittenScript = LoopRewriter(script)
           Typer.processScript(rewrittenScript)
 

@@ -21,3 +21,5 @@ libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1"
 libraryDependencies += "org.mongodb" %% "casbah" % "2.7.4"
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0"
+
+libraryDependencies += "com.novus" %% "salat" % "1.9.9"

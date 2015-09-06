@@ -1,7 +1,5 @@
 package ch.ethz.inf.pm.td.parser
 
-import ch.ethz.inf.pm.td.webapi.JAbstractTypeDef
-
 import scala.util.parsing.input.{NoPosition, Positional}
 
 /**
@@ -42,17 +40,20 @@ case class ActionDefinition(ident:String,
   extends Declaration
   with IdPositional
 
+case class LibAbstractType(ident:String)
+  extends Declaration
+  with IdPositional
+
 
 case class ActionType(ident:String,
                             inParameters:List[Parameter],
                             outParameters:List[Parameter],
-                            body:List[Statement],
                             isPrivate:Boolean)
   extends Declaration
   with IdPositional
 
 case class VariableDefinition(variable:Parameter,
-                              flags:Map[String,Any])
+                              flags:Map[String,Either[Boolean,String]])
   extends Declaration
   with IdPositional
 
@@ -70,19 +71,17 @@ case class TableDefinition(ident:String,
 // Library Stuff
 
 case class LibraryDefinition(name:String,
-                             pubID:String,
-                             usages:List[UsageDeclaration],
+                             libIdentifier:String,
+                             libIsPublished: Boolean,
+                             scriptName: String, // name of the script to which the library resolves
                              exportedTypes:String,
-                             exportedTypeDefs:List[JAbstractTypeDef],
+                             exportedTypeDefs:List[Declaration],
+                             exportedActions:List[ActionUsage],
                              resolves:List[ResolveBlock])
   extends Declaration
   with IdPositional
 
 sealed trait UsageDeclaration extends IdPositional
-
-case class TypeUsage(ident:String)
-  extends UsageDeclaration
-  with IdPositional
 
 case class ActionUsage(ident:String,
                        inParameters:List[Parameter],

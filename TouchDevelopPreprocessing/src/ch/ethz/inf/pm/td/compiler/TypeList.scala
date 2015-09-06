@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField}
 import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 import ch.ethz.inf.pm.td.semantics._
 
@@ -15,15 +15,11 @@ import scala.None
  */
 object TypeList  {
 
-
   def reset() {
     userTypes = Map.empty
-    records = Set.empty
   }
 
   var userTypes: Map[TypeName, AAny] = Map.empty
-  var records: Set[ApiField] = Set.empty
-
 
   def toTouchType(typeName: TypeName): AAny = {
     TypeList.getTypeOrFail(typeName)
@@ -39,21 +35,17 @@ object TypeList  {
     ApiField(field.ident, TypeList.getTypeOrFail(field.typeName))
   }
 
-  def toTouchFields(fields: List[Parameter]): List[ApiField] = {
-    for (field <- fields) yield {
+  def toTouchFields(fields: List[Parameter]): Set[ApiField] = {
+    (for (field <- fields) yield {
       ApiField(field.ident, TypeList.getTypeOrFail(field.typeName))
-    }
+    }).toSet
   }
 
   def addTouchType(semantics: AAny) {
     TypeList.userTypes += semantics.typeName -> semantics
   }
-
-  def addRecord(name:String, typ:AAny) {
-    TypeList.records += ApiField(name,typ)
-  }
   
-  def getSingletons = List(SApp,SArt,SBazaar,SBits,SBox,SCloud_Data,SCloud_Storage,
+  def getSingletons:List[ASingleton] = List(SApp,SArt,SBazaar,SBits,SBox,SCloud_Data,SCloud_Storage,
     SCode,SCollections,SColors,SContract,SCreate,SData,SDom,SHelpers,SHome,SLanguages,SLibs,SLocations,
     SMaps,SMath,SMedia,SPlayer,SPhone,SRadio,SRecords,SSenses,SSocial,STags,STiles,STime,STutorial,SWall,SWeb)
 
@@ -67,7 +59,7 @@ object TypeList  {
     // Apparently, usertypes can override library types
     userTypes.get(typ) match {
 
-      case Some(x) => return Some(x)
+      case Some(x) => Some(x)
       case None =>
 
         typ match {
@@ -223,4 +215,3 @@ object TypeList  {
   }
 
 }
-    

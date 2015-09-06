@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.td.typecheck
 
+import ch.ethz.inf.pm.sample.oorepresentation.Modifier
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.compiler.{TypeList, CFGGenerator, TouchException}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.semantics._
 
 /**
@@ -32,9 +33,17 @@ object Typer {
   def addTypes(scope: Script, st: SymbolTable, thing: Declaration): Unit = {
 
     thing match {
-      case a@ActionType(name, in, out, body, isPrivate) =>
+      case a@ActionType(name, in, out, isPrivate) =>
         TypeList.addTouchType(GAction(TypeName(name),in map (_.typeName),out map (_.typeName)))
       case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
+
+        val modifiers = Set[Option[Modifier]](
+          if (isCloudEnabled) Some(CloudEnabledModifier) else None,
+          if (isCloudPartiallyEnabled) Some(PartialCloudEnabledModifier) else None,
+          if (isExported) Some(ExportedModifier) else None,
+          if (isPersistent) None else Some(TransientModifier)
+        ).flatten
+
         typeName match {
           case "object" =>
 
@@ -45,7 +54,7 @@ object Typer {
             TypeList.addTouchType(objectType)
             TypeList.addTouchType(objectCollection)
             TypeList.addTouchType(objectConstructor)
-            TypeList.addRecord(ident, objectConstructor)
+            SRecords.addRecord(Record(ident,objectConstructor,modifiers))
 
           case "table" =>
 
@@ -54,7 +63,7 @@ object Typer {
 
             TypeList.addTouchType(rowTyp)
             TypeList.addTouchType(tableType)
-            TypeList.addRecord(ident + " table", tableType)
+            SRecords.addRecord(Record(ident + " table",tableType,modifiers))
 
           case "index" =>
 
@@ -68,7 +77,7 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(indexType)
-            TypeList.addRecord(ident + " index", indexType)
+            SRecords.addRecord(Record(ident + " index",indexType,modifiers))
 
           case "decorator" =>
 
@@ -81,16 +90,15 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)
-            TypeList.addRecord(decoratedType + " decorator", decoratorType)
+            SRecords.addRecord(Record(decoratedType + " decorator",decoratorType,modifiers))
 
           case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
         }
-      case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
+      case LibraryDefinition(libName, pub, _, _, _, _, usages, resolves) =>
         for (usage <- usages) {
           usage match {
             case ActionUsage(name, in, out) => st.addLibAction(libName, name, in, out)
-            case TypeUsage(ident) => throw TouchException("Type usages are unsupported.")
           }
         }
       case _ => ()
@@ -105,11 +113,10 @@ object Typer {
         st.addAction(name, inParameters, outParameters)
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
-      case LibraryDefinition(libName, pub, usages, _, _, resolves) =>
+      case LibraryDefinition(libName, pub, _, _, _, _, usages, resolves) =>
         for (usage <- usages) {
           usage match {
             case ActionUsage(name, in, out) => st.addLibAction(libName, name, in, out)
-            case TypeUsage(ident) => throw TouchException("Type usages are unsupported.")
           }
         }
       case _ => ()

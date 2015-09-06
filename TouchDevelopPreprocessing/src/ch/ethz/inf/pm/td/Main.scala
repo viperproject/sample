@@ -1,9 +1,13 @@
 package ch.ethz.inf.pm.td
 
+import java.io.IOException
+
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
-import ch.ethz.inf.pm.td.webapi.NewScripts
-import com.mongodb.casbah.commons.ValidBSONType.BasicDBList
+import ch.ethz.inf.pm.td.webapi._
+import net.liftweb.json.MappingException
+
+
 
 /**
  * Defines the commandline interface for TouchGuru
@@ -20,7 +24,7 @@ object Main {
    */
   object Mode extends Enumeration {
     type Mode = Value
-    val Default, WatchMode, Help, FeedMode, Statistics = Value
+    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics = Value
   }
 
   def main(args: Array[String]) {
@@ -49,6 +53,7 @@ object Main {
       case "-help" => mode = Mode.Help; false
       case "-feedMode" => mode = Mode.FeedMode; false
       case "-statistics" => mode = Mode.Statistics; false
+      case "-fetchMode" => mode = Mode.FetchMode; false
       case _ => true
     }
 
@@ -61,6 +66,8 @@ object Main {
         printHelp(nonOptions)
       case Mode.WatchMode =>
         runWatchMode(nonOptions)
+      case Mode.FetchMode =>
+        runFetchMode(nonOptions)
       case Mode.Statistics =>
         printStatistics(nonOptions)
     }
@@ -107,6 +114,10 @@ object Main {
         |    -libs      lists all libs used by applications
         |    -alarms    lists all alarms
         |    -timings   lists the average of all timings
+        |
+        |  (6) Fetch Mode, enabled by -fetchMode
+        |    Downloads all scripts, puts them into the database, and scans for a specific feature
+        |    -redownload    redownload existing scripts in database
         |
       """.stripMargin)
 
@@ -282,7 +293,7 @@ object Main {
               collection.insert(MongoDBObject(
                 "url" -> ("td://"+script.id),
                 "status" -> "Waiting",
-                "jobID" -> scala.util.Random.nextString(10),
+                "jobID" -> randomString(10),
                 "fast" -> false,
                 "timeout" -> 40
               ))
@@ -295,6 +306,77 @@ object Main {
 
     }
   }
+
+  /**
+   *
+   * Watches the mongo database for incoming jobs
+   *
+   */
+  def runFetchMode(args: Array[String]) {
+
+
+    val query = new NewScripts
+
+    var redownload = false
+    args filter {
+
+      case "-redownload" =>        redownload = true;     false
+      case _ => true
+
+    }
+
+    println("Downloading fresh scripts, adding them to database")
+
+    import com.mongodb.casbah.Imports._
+    import com.novus.salat._
+    import com.novus.salat.global._
+    val mongoClient = MongoClient("localhost", 27017)
+    val programs = mongoClient("tb")("programs")
+    for (script <- query) {
+
+      if (redownload || programs.findOne(MongoDBObject("programID" -> script.id)).isEmpty) {
+
+        if (redownload) {
+          programs.findAndRemove(MongoDBObject("programID" -> script.id))
+        }
+
+        val url = ScriptQuery.webastURLfromPubID(script.id)
+        println("Trying to download "+url)
+        var scriptText = ""
+        var webAST:Option[JApp] = None
+        try {
+          scriptText = URLFetcher.fetchFile(url)
+          webAST = WebASTImporter.parseAST(scriptText)
+        } catch {
+          case x:MappingException =>
+            println("Failed to parse: "+x.getMessage)
+            println(scriptText)
+          case x:IOException =>
+            println("Failed to download: "+x.getMessage)
+        }
+
+        if (scriptText.nonEmpty) {
+          println("Creating new record for " + script.id)
+          programs.insert(MongoDBObject(
+            "programID" -> script.id,
+            "script" -> grater[ScriptRecord].asDBObject(script),
+            "ast" -> (webAST match {
+              case None => None
+              case Some(x) => Some(grater[JApp].asDBObject(x))
+            }),
+            "program" -> scriptText,
+            "fetchedAt" -> System.currentTimeMillis / 1000
+          ))
+        } else {
+          println("Seems like I failed to download")
+          println(scriptText)
+        }
+      }
+
+    }
+
+  }
+
 
   /**
    *
@@ -357,6 +439,16 @@ object Main {
       TouchAnalysisParameters()
     )
 
+  }
+
+  def randomString(len: Int): String = {
+    val rand = new scala.util.Random(System.nanoTime)
+    val sb = new StringBuilder(len)
+    val ab = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    for (i <- 0 until len) {
+      sb.append(ab(rand.nextInt(ab.length)))
+    }
+    sb.toString()
   }
 
 }

@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichNativeSemantics, MethodSummaries}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, CFGGenerator, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.semantics.SData
 
 object LibraryContract extends ForwardNativeMethodSemantics {
 
@@ -66,15 +67,10 @@ object LibraryContract extends ForwardNativeMethodSemantics {
 
         // Curiously, this is also used to access global data from libraries.
         if(parameters.isEmpty && returnedType.toString != "Nothing") {
-          // We are just guessing that this may be a global variable
-          state.setExpression(ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(method))(returnedType, pp)))
+          SData.forwardSemantics[S](SData.reference,method,parameters,returnedType)
         } else if (parameters.size == 1 && returnedType.toString == "Nothing" && method.startsWith("set ")) {
           // And we have also automatically generated setters. What the...
-          val List(newVal) = parameters
-          val variableName = method.replace("set ","")
-          val variableType = newVal.getType()
-          val variableExpr = ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(variableName))(variableType, pp))
-          RichNativeSemantics.Assign[S](variableExpr, newVal)(state,pp)
+          SData.forwardSemantics[S](SData.reference,method,parameters,returnedType)
         } else {
           Reporter.reportImprecision("Could not find method "+method,pp)
           state.bottom()

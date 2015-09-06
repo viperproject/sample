@@ -26,10 +26,6 @@ object CFGGenerator {
 
   def isHandlerIdent(ident: String) = ident.startsWith("__handler_")
 
-  def globalReferenceIdent(ident: String) = "◳"+ident //"__data_" + ident
-
-  def isGlobalReferenceIdent(ident: String) = ident.startsWith("◳") // ident.startsWith("__data_")
-
   def paramIdent(ident: String) = "__param_" + ident
 
   def isParamIdent(ident: String) = ident.startsWith("__param_")
@@ -91,7 +87,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
     //detectUnsupportedScripts(script)
     curPubID = pubID
     libDef match {
-      case Some(l@LibraryDefinition(libName, _, _, _, _, _)) =>
+      case Some(l@LibraryDefinition(libName, _, _, _, _, _, _, _)) =>
         curScriptName = libraryIdent(libName)
         curLibraryStableId = l.getIdComponents.head
       case None =>
@@ -121,11 +117,14 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
         case v@parser.VariableDefinition(variable, flags) =>
           val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, v)
           val modifiers: List[Modifier] = (flags flatMap {
-            case ("is resource", "true") => Some(ResourceModifier)
-            case ("is_resource", "true") => Some(ResourceModifier)
-            case ("readonly", "true") =>    Some(ReadOnlyModifier)
-            case ("transient", "true") =>   Some(TransientModifier)
-            case ("readonly", "false") =>   None
+            case ("is_resource",  Left(true))  => Some(ResourceModifier)
+            case ("is_resource",  Left(false)) => None
+            case ("transient",    Left(true))  => Some(TransientModifier)
+            case ("transient",    Left(false)) => None
+            case ("readonly",     Left(true))  => Some(ReadOnlyModifier)
+            case ("readonly",     Left(false)) => None
+            case ("cloudenabled", Left(true))  => Some(CloudEnabledModifier)
+            case ("cloudenabled", Left(false)) => None
             case x:Any => logger.debug("Unhandled flag: "+x); None
           }).toList
           val name: Variable = parameterToVariable(variable)
@@ -601,3 +600,10 @@ case object ReadOnlyModifier extends Modifier
  * Does not persist between executions
  */
 case object TransientModifier extends Modifier
+
+/**
+ * Is synched between devices
+ */
+case object CloudEnabledModifier extends Modifier
+case object PartialCloudEnabledModifier extends Modifier
+case object ExportedModifier extends Modifier

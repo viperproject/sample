@@ -42,7 +42,4 @@ trait RichExpressionImplicits {
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
   def Singleton(typ: Type)(implicit pp: ProgramPoint): RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase)(typ, pp))
 
-  def Data(name:String, typ:Type)(implicit pp:ProgramPoint): RichExpression =
-    VariableIdentifier(CFGGenerator.globalReferenceIdent(name))(typ, pp)
-
 }

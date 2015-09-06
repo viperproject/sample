@@ -23,7 +23,17 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = GRef(this),
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        // TODO: References should be encoded as a string in the string domain
+        var curState = state
+        val typ = GRef(this0.getType().asInstanceOf[AAny])
+        curState = New[S](typ)(curState,pp)
+        val ref = curState.expr
+        curState = AssignField[S](ref,typ.field__get,this0)
+        curState
+      }
+    }
   )
 
   def member_∥ = ApiMember(
@@ -220,7 +230,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
-  def matchRecordCalls[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
+  private def matchRecordCalls[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
 
     // Sometimes, x.bla(y) is rewritten to code->bla(x,y) for records
     val context = SystemParameters.analysisUnitContext
@@ -234,7 +244,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
-  def matchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
+  private def matchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
 
     val fieldResult =
       if (parameters.isEmpty)
@@ -307,9 +317,13 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
-  def mkGetterSetters(fields: List[ApiField]) = fields.flatMap { x: ApiField => Map(
+  def mkGetterSetters(fields: Set[ApiField]):Map[String,ApiMember] = fields.flatMap { x: ApiField => Map(
     x.getName -> ApiMember(x.getName, List(), ApiParam(this), x.typ, DefaultSemantics),
     "set " + x.getName -> ApiMember("set " + x.getName, List(), ApiParam(this, isMutated = true), TNothing, DefaultSemantics))
-  }
+  }.toMap
+
+  def mkGetters(fields: Set[ApiField]) = fields.map { x: ApiField => (
+    x.getName, ApiMember(x.getName, List(), ApiParam(this), x.typ, DefaultSemantics))
+  }.toMap
 
 }

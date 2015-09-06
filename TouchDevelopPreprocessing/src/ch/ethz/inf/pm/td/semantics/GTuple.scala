@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
  */
 case class GTuple(types:List[AAny]) extends AAny {
 
-  lazy val sortedKeyFields = types.zipWithIndex.map { x => ApiField("_"+x._2,x._1) }
+  lazy val sortedKeyFields = types.zipWithIndex.map { x => ApiField("_"+x._2,x._1) }.toSet
 
   override lazy val typeName: TypeName = TypeName("Tuple",types.map(_.typeName))
 

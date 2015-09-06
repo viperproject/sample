@@ -43,7 +43,6 @@ trait AAction extends AAny {
           }
         }
 
-
         EvalConstant[S](Field[S](this0,field_handlerName)) match {
           case SetDomain.Default.Bottom() => state.bottom()
           case SetDomain.Default.Top() =>

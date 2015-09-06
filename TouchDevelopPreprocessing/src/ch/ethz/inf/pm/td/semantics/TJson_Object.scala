@@ -40,7 +40,7 @@ object TJson_Object extends Default_TJson_Object {
   override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
     field_to_string, field_to_time)
 
-  override def declarations = super.declarations ++ mkGetterSetters(List(field_keys))
+  override def declarations = super.declarations ++ mkGetterSetters(Set(field_keys))
 
   /** Never used: Gets the list of keys */
   override def member_keys = ApiMember(

@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.td.compiler
 
+import java.util.NoSuchElementException
+
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, Dispatcher}
@@ -59,19 +61,24 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    *
    */
   def retrieveScript(path: String): (Script, String) = {
-    if (path.startsWith("http://"))
-      (ScriptCache.get(ScriptQuery.pubIDfromURL(path)), ScriptQuery.pubIDfromURL(path))
-    else if (path.startsWith("https://"))
-      (ScriptCache.get(ScriptQuery.pubIDfromURL(path)), ScriptQuery.pubIDfromURL(path))
-    else if (path.startsWith("td://"))
-      (ScriptCache.get(path.substring(5)), path.substring(5))
-    else if (path.startsWith("mongo://"))
-      (MongoImporter.get(path.substring(8)), path.substring(8))
-    else if (path.toLowerCase.endsWith(".td"))
-      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
-    else if (path.toLowerCase.endsWith(".json"))
-      (WebASTImporter.convertFromString(Source.fromFile(path, "utf-8").getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
-    else throw TouchException("Unrecognized path " + path)
+    try {
+      if (path.startsWith("http://"))
+        (ScriptCache.get(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
+      else if (path.startsWith("https://"))
+        (ScriptCache.get(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
+      else if (path.startsWith("td://"))
+        (ScriptCache.get(path.substring(5)).get, path.substring(5))
+      else if (path.startsWith("mongo://"))
+        (MongoImporter.get(path.substring(8)).get, path.substring(8))
+      else if (path.toLowerCase.endsWith(".td"))
+        (ScriptParser(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
+      else if (path.toLowerCase.endsWith(".json"))
+        (WebASTImporter.convertFromString(Source.fromFile(path, "utf-8").getLines().mkString("\n")).get, ScriptQuery.pubIDfromFilename(path))
+      else throw TouchException("Unrecognized path " + path)
+    } catch {
+      case x:NoSuchElementException =>
+        throw TouchException("Failed to open " + path)
+    }
   }
 
 
@@ -114,15 +121,15 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
     // update fields
     libDef match {
-      case Some(LibraryDefinition(name, _, _, _, _, _)) => parsedNames = parsedNames ::: List(name)
+      case Some(LibraryDefinition(name, _, _, _, _, _, _, _)) => parsedNames = parsedNames ::: List(name)
       case None => parsedNames = parsedNames ::: List(pubID)
     }
 
     // recursive for libs
     val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
-    for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.pubID.isEmpty) {
-      val (libScript, libPubID) = retrieveScript("td://" + lib.pubID)
+    for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.libIdentifier.isEmpty) {
+      val (libScript, libPubID) = retrieveScript("td://" + lib.libIdentifier)
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
@@ -147,14 +154,14 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
         parsed = parsed + libPubID
         val libDef = discoverRequiredLibraries(libScript)
         PrettyPrinter(libScript) + (for (lib <- libDef) yield {
-          getSourceCodeRecursive(lib.pubID)
+          getSourceCodeRecursive(lib.libIdentifier)
         }).mkString("\n")
       } else ""
     }
 
     val libDef = discoverRequiredLibraries(script)
     PrettyPrinter(script) + (for (lib <- libDef) yield {
-      getSourceCodeRecursive(lib.pubID)
+      getSourceCodeRecursive(lib.libIdentifier)
     }).mkString("\n")
   }
 
@@ -171,7 +178,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   private def discoverRequiredLibraries(script: Script): List[LibraryDefinition] = {
     script.declarations.foldLeft(List[LibraryDefinition]())((libs: List[LibraryDefinition], dec: Declaration) => dec match {
-      case l@LibraryDefinition(_, _, _, _, _, _) => l :: libs
+      case l@LibraryDefinition(_, _, _, _, _, _, _, _) => l :: libs
       case _ => libs
     })
   }
@@ -180,7 +187,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     for (clazz <- parsedScripts; method <- clazz.methods) yield {
       if (method.name.toString.equals(name) && method.arguments.head.size == parameters.size) {
         var ok: Boolean = true
-        for (i <- 0 to method.arguments.head.size - 1) {
+        for (i <- method.arguments.head.indices) {
           if (!parameters(i).lessEqual(method.arguments.head(i).typ))
             ok = false
         }
