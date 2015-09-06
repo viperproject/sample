@@ -131,7 +131,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
                   curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP)
                   toRichExpression(curState.expr)
                 case DefaultInitializer(why) =>
-                  typ match {
+                  f.typ match {
                     case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber, pp)))
                     case TBoolean =>  toRichExpression(new ExpressionSet(TBoolean).add(False))
                     case TString =>   toRichExpression(ExpressionSet(Constant("", TString, pp)))

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_SBazaar
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -30,8 +30,8 @@ object SBazaar extends Default_SBazaar {
     }
   })
 
-  lazy val field_leaderboard_score = ApiField("leaderboard score",TNumber)
-  lazy val field_current_user = ApiField("current user",TUser)
+  lazy val field_leaderboard_score = ApiField("leaderboard score",TNumber,TopInitializer)
+  lazy val field_current_user = ApiField("current user",TUser,TopInitializer)
 
   override lazy val possibleFields = super.possibleFields ++ Set(
     field_leaderboard_score,

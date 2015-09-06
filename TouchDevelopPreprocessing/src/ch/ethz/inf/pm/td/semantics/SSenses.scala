@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, TopWithInvalidInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_SSenses
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -19,39 +19,38 @@ import RichNativeSemantics._
 object SSenses extends Default_SSenses {
 
   /** Gets the primary camera if available */
-  lazy val field_camera = new ApiField("camera", TCamera, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_camera = new ApiField("camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
 
   /** Gets the front facing camera if available */
-  lazy val field_front_camera = new ApiField("front camera", TCamera, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_front_camera = new ApiField("front camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-  lazy val field_has_accelerometer = ApiField("has accelerometer", TBoolean)
+  lazy val field_has_accelerometer = ApiField("has accelerometer", TBoolean, TopInitializer)
 
   /** DEPRECATED. Test if the senses→heading is invalid instead */
-  lazy val field_has_compass = ApiField("has compass", TBoolean)
+  lazy val field_has_compass = ApiField("has compass", TBoolean, TopInitializer)
 
   /** DEPRECATED. Test if the senses→front camera is invalid instead */
-  lazy val field_has_front_camera = ApiField("has front camera", TBoolean)
+  lazy val field_has_front_camera = ApiField("has front camera", TBoolean, TopInitializer)
 
   /** Indicates if the gyroscope is available on the device */
-  lazy val field_has_gyroscope = ApiField("has gyroscope", TBoolean)
+  lazy val field_has_gyroscope = ApiField("has gyroscope", TBoolean, TopInitializer)
 
   /** Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */
-  lazy val field_battery_level = ApiField("battery level", TNumber)
+  lazy val field_battery_level = ApiField("battery level", TNumber, TopInitializer)
 
   /** Get the list of Bluetooth widgets paired with your device. */
-  lazy val field_bluetooth_devices = ApiField("bluetooth devices", GCollection(TBluetooth_Device))
+  lazy val field_bluetooth_devices = ApiField("bluetooth devices", GCollection(TBluetooth_Device), TopInitializer)
 
-
-  lazy val field_gamepads = ApiField("gamepads",GCollection(TGamepad))
+  lazy val field_gamepads = ApiField("gamepads",GCollection(TGamepad), TopInitializer)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_shake_handler = ApiField("shake handler", TAction)
-  lazy val field_phone_face_up_handler = ApiField("phone face up handler", TAction)
-  lazy val field_phone_face_down_handler = ApiField("phone face down handler", TAction)
-  lazy val field_phone_portrait = ApiField("phone portrait handler", TAction)
-  lazy val field_phone_landscape_left = ApiField("phone landscape left handler", TAction)
-  lazy val field_phone_langscape_right = ApiField("phone landscape right handler", TAction)
+  lazy val field_shake_handler = ApiField("shake handler", TAction, TopInitializer)
+  lazy val field_phone_face_up_handler = ApiField("phone face up handler", TAction, TopInitializer)
+  lazy val field_phone_face_down_handler = ApiField("phone face down handler", TAction, TopInitializer)
+  lazy val field_phone_portrait = ApiField("phone portrait handler", TAction, TopInitializer)
+  lazy val field_phone_landscape_left = ApiField("phone landscape left handler", TAction, TopInitializer)
+  lazy val field_phone_langscape_right = ApiField("phone landscape right handler", TAction, TopInitializer)
 
   override def possibleFields = super.possibleFields ++
     List(field_front_camera, field_camera, field_has_accelerometer, field_has_compass, field_has_front_camera,

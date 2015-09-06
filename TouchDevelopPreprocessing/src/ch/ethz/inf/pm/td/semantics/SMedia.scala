@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_SMedia
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -17,25 +17,25 @@ import RichNativeSemantics._
 object SMedia extends Default_SMedia {
 
   /** Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */
-  lazy val field_icon_names = ApiField("icon names", GCollection(TString))
+  lazy val field_icon_names = ApiField("icon names", GCollection(TString),TopInitializer)
 
   /** Gets the picture albums */
-  lazy val field_picture_albums = ApiField("picture albums", TPicture_Albums)
+  lazy val field_picture_albums = ApiField("picture albums", TPicture_Albums,TopInitializer)
 
   /** Gets the pictures on the phone */
-  lazy val field_pictures = ApiField("pictures", TPictures)
+  lazy val field_pictures = ApiField("pictures", TPictures,TopInitializer)
 
   /** Gets the playlists on the phone */
-  lazy val field_playlists = ApiField("playlists", TPlaylists)
+  lazy val field_playlists = ApiField("playlists", TPlaylists,TopInitializer)
 
   /** Gets the saved pictures on the phone */
-  lazy val field_saved_pictures = ApiField("saved pictures", TPictures)
+  lazy val field_saved_pictures = ApiField("saved pictures", TPictures,TopInitializer)
 
   /** Gets the song albums on the phone */
-  lazy val field_song_albums = ApiField("song albums", TSong_Albums)
+  lazy val field_song_albums = ApiField("song albums", TSong_Albums,TopInitializer)
 
   /** Gets the songs on the phone */
-  lazy val field_songs = ApiField("songs", TSongs)
+  lazy val field_songs = ApiField("songs", TSongs,TopInitializer)
 
   override def possibleFields = super.possibleFields ++ List(field_icon_names, field_picture_albums, field_pictures,
     field_playlists, field_saved_pictures, field_song_albums, field_songs)

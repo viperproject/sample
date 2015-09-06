@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_SLanguages
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -20,7 +20,7 @@ import RichNativeSemantics._
 object SLanguages extends Default_SLanguages {
 
   /** Gets the current language code, to be used in the 'translate' method. */
-  lazy val field_current_language = ApiField("current language", TString)
+  lazy val field_current_language = ApiField("current language", TString, TopInitializer)
 
   override def possibleFields = super.possibleFields ++ List(field_current_language)
 

@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_SHome
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -23,13 +23,13 @@ import RichNativeSemantics._
 object SHome extends Default_SHome {
 
   /** Gets the media players on the current wireless network */
-  lazy val field_players = ApiField("players", GCollection(TMedia_Player))
+  lazy val field_players = ApiField("players", GCollection(TMedia_Player),TopInitializer)
 
   /** Gets the printers on the current wireless network */
-  lazy val field_printers = ApiField("printers", GCollection(TPrinter))
+  lazy val field_printers = ApiField("printers", GCollection(TPrinter),TopInitializer)
 
   /** Gets the media servers on the home network */
-  lazy val field_servers = ApiField("servers", GCollection(TMedia_Server))
+  lazy val field_servers = ApiField("servers", GCollection(TMedia_Server),TopInitializer)
 
   override def possibleFields = super.possibleFields ++ List(field_players, field_printers, field_servers)
 

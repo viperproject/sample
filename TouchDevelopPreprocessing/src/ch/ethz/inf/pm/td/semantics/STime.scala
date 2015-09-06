@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.defsemantics.Default_STime
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -19,7 +19,7 @@ import RichNativeSemantics._
 object STime extends Default_STime {
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_every_frame_handler = ApiField("every frame handler", TAction)
+  lazy val field_every_frame_handler = ApiField("every frame handler", TAction, TopInitializer)
 
   override def possibleFields = super.possibleFields ++ List(field_every_frame_handler)
 

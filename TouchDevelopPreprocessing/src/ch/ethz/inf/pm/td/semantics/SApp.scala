@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_SApp
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -48,12 +48,12 @@ object SApp extends Default_SApp {
     }
   })
 
-  lazy val field_server_response = ApiField("server response",TServer_Response)
-  lazy val field_server_request = ApiField("server request",TServer_Request)
-  lazy val field_env = ApiField("env",TApp_Env)
-  lazy val field_editor = ApiField("editor",TEditor)
-  lazy val field_current_handler = ApiField("current handler",TEvent_Binding)
-  lazy val field_script_id = ApiField("script id",TString)
+  lazy val field_server_response = ApiField("server response",TServer_Response,TopInitializer)
+  lazy val field_server_request = ApiField("server request",TServer_Request,TopInitializer)
+  lazy val field_env = ApiField("env",TApp_Env,TopInitializer)
+  lazy val field_editor = ApiField("editor",TEditor,TopInitializer)
+  lazy val field_current_handler = ApiField("current handler",TEvent_Binding,TopInitializer)
+  lazy val field_script_id = ApiField("script id",TString,TopInitializer)
 
    override lazy val possibleFields = super.possibleFields ++ Set(
      field_server_response,

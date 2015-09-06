@@ -179,9 +179,7 @@ class FieldDeclaration(
   extends VariableDeclaration(programpoint, variable, typ, right) with ClassElements {
 
   override def toString: String =
-    "field " +
-      ToStringUtilities.toStringIfNotNull(typ) + variable.toString +
-      ToStringUtilities.assignedIfNotNull(right)
+    "field " + ToStringUtilities.toStringIfNotNull(typ) + " " + variable.toString + " " + ToStringUtilities.assignedIfNotNull(right)
 }
 
 /**

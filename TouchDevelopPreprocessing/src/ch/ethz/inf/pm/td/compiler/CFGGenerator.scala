@@ -119,6 +119,8 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           val modifiers: List[Modifier] = (flags flatMap {
             case ("is_resource",  Left(true))  => Some(ResourceModifier)
             case ("is_resource",  Left(false)) => None
+            case ("is resource",  Left(true))  => Some(ResourceModifier)
+            case ("is resource",  Left(false)) => None
             case ("transient",    Left(true))  => Some(TransientModifier)
             case ("transient",    Left(false)) => None
             case ("readonly",     Left(true))  => Some(ReadOnlyModifier)

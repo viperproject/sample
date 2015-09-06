@@ -25,7 +25,7 @@ trait ASingleton extends AAny {
    */
   def initialize[S <: State[S]](state:S):S = {
     val singletonProgramPoint = TouchSingletonProgramPoint(this.name)
-    val curState = RichNativeSemantics.Top[S](this)(state, singletonProgramPoint)
+    val curState = RichNativeSemantics.New[S](this)(state, singletonProgramPoint)
     val obj = curState.expr
     val variable = ExpressionSet(VariableIdentifier(this.name.toLowerCase)(this, singletonProgramPoint))
     RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
