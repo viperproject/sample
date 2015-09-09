@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_TNumber
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,6 +16,8 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 object TNumber extends Default_TNumber {
+
+  override lazy val member_to_string = super.member_to_string.copy(semantics = ValidPureSemantics)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet],returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 

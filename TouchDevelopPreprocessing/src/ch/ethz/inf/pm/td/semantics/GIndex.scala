@@ -2,9 +2,12 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{TypeList, ApiMember, ApiMemberSemantics}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.cloud.CloudQuerySemantics
+import ch.ethz.inf.pm.td.compiler._
+import ch.ethz.inf.pm.td.domain.TouchStateInterface
 import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 
 /**
@@ -12,7 +15,7 @@ import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
  *
  * @author Lucas Brutschy
  */
-case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny) extends AIndex {
+case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny, modifiers:Set[Modifier]) extends AIndex {
 
   def typeName = TypeName("Index",List(valueType.typeName))
 
@@ -24,10 +27,11 @@ case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny)
 
   /** Sometimes used: Gets the picture at position 'index'; invalid if index is out of bounds */
   override lazy val member_at = if (keyTypes.size != 1) super.member_at.copy(
-    semantics = new ApiMemberSemantics {
+    semantics = new CloudQuerySemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
 
         if (SystemParameters.DEBUG) assert(parameters.size == tupleType.sortedKeyFields.size)
+
 
         // Only distinguish elements if we have a single key
 //        val key = if (parameters.size == 1) {
@@ -36,7 +40,8 @@ case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny)
 //          Valid(keyType)
 //        }
 
-        var curState = state
+        var curState = super.forwardSemantics[S](this0,method,parameters)
+
         curState = New[S](keyType, tupleType.sortedKeyFields.zip(parameters.map(toRichExpression)).toMap)(curState,pp)
         val key = curState.expr
         If[S](ContainsKey[S](this0, key) equal False, Then=(state) => {
@@ -50,6 +55,7 @@ case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny)
         })(curState,pp)
       }
 
+      override def typeModifiers: Set[Modifier] = modifiers
     }
   ) else super.member_at
 

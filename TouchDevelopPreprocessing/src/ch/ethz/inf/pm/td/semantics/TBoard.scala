@@ -3,15 +3,37 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TBoard
-import ch.ethz.inf.pm.td.parser.TypeName
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
  * @author Lucas Brutschy
  */
 object TBoard extends Default_TBoard {
+
+  /**
+   * Copy is only used in foreach-loops to create a copy of the traversed collection
+   * In the case of TBoard, it is automatically converted to a TSprite_Set
+   */
+  override lazy val member_copy = super.member_copy.copy(returnType = TSprite_Set,
+    semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      var curState = state
+      curState = New[S](TSprite_Set,initials = Map(
+        TSprite_Set.field_entry -> Field[S](this0,TBoard.field_entry),
+        TSprite_Set.field_count -> Field[S](this0,TBoard.field_count)
+      ))(curState,pp)
+      curState
+    }
+  })
+
+  override lazy val member_on_every_frame = super.member_on_every_frame.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      val newState = AssignField(this0,TBoard.field_on_every_frame_handler,parameters.head)
+      New(TEvent_Binding)(newState, pp)
+    }
+  })
 
   /** Gets the background scene */
   lazy val field_background_scene = ApiField("background scene", TBoard_Background_Scene)
@@ -57,6 +79,7 @@ object TBoard extends Default_TBoard {
   lazy val field_tap_handler = ApiField("tap handler", TPosition_Action)
   lazy val field_touch_down_handler = ApiField("touch down handler", TPosition_Action)
   lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
+  lazy val field_on_every_frame_handler = ApiField("on every frame handler", TAction)
 
   override def mutedFields = super.mutedFields ++ List(
     field_width,
@@ -85,7 +108,8 @@ object TBoard extends Default_TBoard {
     field_swipe_handler,
     field_tap_handler,
     field_touch_down_handler,
-    field_touch_up_handler
+    field_touch_up_handler,
+    field_on_every_frame_handler
   )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
@@ -295,7 +319,7 @@ object TBoard extends Default_TBoard {
 
     // Make updates visible.
     case "update on wall" =>
-      state // TODO: Check if reference exists in wall?
+      state
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

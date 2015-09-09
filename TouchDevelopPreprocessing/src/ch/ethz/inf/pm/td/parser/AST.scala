@@ -166,6 +166,11 @@ case class InlineAction(handlerName:String,
 
 sealed trait Expression extends IdPositional with Typed
 
+case class Show(expr:Expression) extends Statement with IdPositional
+case class Break() extends Statement with IdPositional
+case class Return(expr:Expression) extends Statement with IdPositional
+case class Continue() extends Statement with IdPositional
+
 case class Access(subject:Expression,property:Identifier,args:List[Expression])
   extends Expression
   with IdPositional

@@ -74,6 +74,7 @@ object TypeList  {
           case TUnfinished_Collection.typeName => Some(TUnfinished_Collection)
           case TUnfinished_Ref.typeName => Some(TUnfinished_Ref)
 
+          case TAtomic_Action.typeName => Some(TAtomic_Action)
           case TNothing.typeName => Some(TNothing)
           case TAction.typeName => Some(TAction)
           case TText_Action.typeName => Some(TText_Action)
@@ -191,6 +192,7 @@ object TypeList  {
           case TXml_Object.typeName => Some(TXml_Object)
           case TUnknown.typeName => Some(TUnknown)
 
+          case TypeName("Converter",List(from,to),false) => Some(GConverter(TypeList.getTypeOrFail(from),TypeList.getTypeOrFail(to)))
           case TypeName("Task",List(elt),false) => Some(GTask(TypeList.getTypeOrFail(elt)))
           case TypeName("Action1",List(elt),false) => Some(GAction1(TypeList.getTypeOrFail(elt)))
           case TypeName("Atomic Action1",List(elt),false) => Some(GAtomic_Action1(TypeList.getTypeOrFail(elt)))

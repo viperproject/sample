@@ -1,10 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.sample.oorepresentation.Modifier
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 
-case class GObjectConstructor(objectTyp:AAny) extends AAny {
+case class GObjectConstructor(objectTyp:AAny,modifiers:Set[Modifier]) extends AAny {
 
   def typeName = TypeName("Constructor", List(objectTyp.typeName))
 
@@ -20,7 +20,7 @@ case class GObjectConstructor(objectTyp:AAny) extends AAny {
     name = "create collection",
     paramTypes = Nil,
     thisType = ApiParam(this),
-    returnType = GObjectCollection(objectTyp),
+    returnType = GObjectCollection(objectTyp,modifiers),
     semantics = NewSemantics
   )
 

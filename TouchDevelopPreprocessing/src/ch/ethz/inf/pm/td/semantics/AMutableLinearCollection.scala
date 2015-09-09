@@ -9,7 +9,7 @@ import RichNativeSemantics._
 /**
  * A mutable collection with integer indices
  */
-trait AMutable_Collection extends ALinearCollection {
+trait AMutableLinearCollection extends ALinearCollection {
 
   override def isImmutable = false
 
@@ -224,8 +224,6 @@ trait AMutable_Collection extends ALinearCollection {
     "contains" -> member_contains,
     "index of" -> member_index_of,
     "insert at" -> member_insert_at,
-    "post to wall" -> member_post_to_wall,
-    "random" -> member_random,
     "remove at" -> member_remove_at,
     "remove" -> member_remove,
     "reverse" -> member_reverse,

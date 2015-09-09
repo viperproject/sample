@@ -1,9 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.oorepresentation.Modifier
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.parser.TypeName
 
-case class GSingletonIndex(indexMemberType:AAny) extends AAny {
+case class GSingletonIndex(indexMemberType:AAny,modifiers:Set[Modifier]) extends AAny {
 
   lazy val field_singleton = new ApiField("singleton", indexMemberType)
 

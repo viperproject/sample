@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_TBoard extends AMutable_Collection {
+trait Default_TBoard extends AMutableLinearCollection {
 
   lazy val typeName = TypeName("Board")
           

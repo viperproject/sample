@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_GCollection extends AMutable_Collection {
+trait Default_GCollection extends AMutableLinearCollection {
 
   def TT:AAny
            

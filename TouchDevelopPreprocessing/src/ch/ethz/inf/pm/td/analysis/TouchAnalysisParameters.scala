@@ -124,6 +124,11 @@ case class TouchAnalysisParameters(
                                     accessBasedLocalization: Boolean = true,
 
                                     /**
+                                     * Experimental cloud-type tracking feature
+                                     */
+                                    trackCloudTypes: Boolean = true,
+
+                                    /**
                                      * In numerical relational analysis, only relate those packs of variables that may belong together
                                      * according to a preanalysis (currently, all sets of variables that may appear in the same
                                      * assume/assign.

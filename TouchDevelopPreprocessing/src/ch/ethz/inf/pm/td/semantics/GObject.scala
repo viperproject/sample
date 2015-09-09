@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.oorepresentation.Modifier
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 
-case class GObject(typeName:TypeName, fieldsParameters:List[Parameter]) extends AAny {
+case class GObject(typeName:TypeName, fieldsParameters:List[Parameter], modifiers:Set[Modifier]) extends AAny {
 
   lazy val fields:Set[ApiField] = TypeList.toTouchFields(fieldsParameters)
 

@@ -2,9 +2,10 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichNativeSemantics, ApiField}
+import ch.ethz.inf.pm.td.domain.TouchStateInterface
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics.{AAny, TNothing}
 
@@ -94,7 +95,6 @@ trait ApiMemberSemantics {
 
 }
 
-
 object TopSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
@@ -140,7 +140,7 @@ object ExitSemantics extends ApiMemberSemantics {
   }
 }
 
-object InvalidSemantics extends ApiMemberSemantics {
+trait AbstractInvalidSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
@@ -148,6 +148,9 @@ object InvalidSemantics extends ApiMemberSemantics {
   }
 
 }
+
+object InvalidSemantics extends ApiMemberSemantics with AbstractInvalidSemantics
+
 /**
  * Sound semantics
  */
@@ -235,6 +238,7 @@ object ValidPureSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
+
     if (SystemParameters.DEBUG) {
       assert(!method.thisType.isMutated)
       assert(method.paramTypes.forall(!_.isMutated))

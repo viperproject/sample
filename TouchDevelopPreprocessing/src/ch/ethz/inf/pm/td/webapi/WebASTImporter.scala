@@ -24,7 +24,8 @@ object WebASTImporter {
       classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JRecordField],
       classOf[JRecordKey], classOf[JLocalDef], classOf[JApp], classOf[JPropertyParameter], classOf[JProperty],
       classOf[JTypeDef], classOf[JApis], classOf[JCall], classOf[JActionType], classOf[JOptionalParameter],
-      classOf[JLibActionType], classOf[JLibAbstractType])
+      classOf[JLibActionType], classOf[JLibAbstractType], classOf[JBreak], classOf[JReturn], classOf[JLibRecordType],
+      classOf[JShow], classOf[JContinue])
     )
   }
 
@@ -104,6 +105,8 @@ object WebASTImporter {
         ActionType(name, inParameters map convert, outParameters map convert, isPrivate = isPrivate).setId(id)
       case JLibAbstractType(id:String, name:String) =>
         LibAbstractType(name).setId(id)
+      case JLibRecordType(id, name, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
+        TableDefinition(name, category, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
     }
   }
 
@@ -158,7 +161,18 @@ object WebASTImporter {
       case JBoxed(id, body) =>
         Box(convert(body)).setId(id)
       case JExprStmt(id, expr) =>
-        ExpressionStatement(convert(expr)).setId(id)
+        expr.tree match {
+          case JBreak(id1) =>
+            Break().setId(id1)
+          case JContinue(id1) =>
+            Continue().setId(id1)
+          case JReturn(id1,expr1) =>
+            Return(convert(expr1)).setId(id1)
+          case JShow(id1,expr1) =>
+            Show(convert(expr1)).setId(id1)
+          case _ =>
+            ExpressionStatement(convert(expr)).setId(id)
+        }
       case JInlineActions(id, expr, actions) =>
         WhereStatement(convert(expr), actions collect { case x: JInlineAction => x } map convert,
           actions collect { case x: JOptionalParameter => x } map convert).setId(id)
@@ -420,13 +434,13 @@ case class JWhile(
                    body: List[JStmt]
                    ) extends JStmt
 
-case class JContinue(id: String) extends JStmt
+case class JContinue(id: String) extends JExpr
 
-case class JBreak(id: String) extends JStmt
+case class JBreak(id: String) extends JExpr
 
-case class JReturn(id: String, expr: JExprHolder) extends JStmt
+case class JReturn(id: String, expr: JExpr) extends JExpr
 
-case class JShow(id: String, expr: JExprHolder) extends JStmt
+case class JShow(id: String, expr: JExpr) extends JExpr
 
 // Sequences of if / else if / else statements are not represented the usual
 // way. That is, instead of having a structured AST:
@@ -599,6 +613,18 @@ case class JLibActionType(
                            description: String
                            ) extends JActionBase
 
+case class JLibRecordType(
+                           id: String,
+                           name: String,
+                           comment: String,
+                           category: String, // "object", "table", "index", or "decorator"
+                           isCloudEnabled: Boolean,
+                           isCloudPartiallyEnabled: Boolean,
+                           isPersistent: Boolean,
+                           isExported: Boolean,
+                           keys: List[JRecordKey],
+                           fields: List[JRecordField]
+                           ) extends JDecl
 
 trait JGlobalDef extends JDecl {
   val comment: String

@@ -41,7 +41,12 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(other) = parameters
+        Return[S](this0 concat other)
+      }
+    }
   )
 
   def member_is_invalid = ApiMember(
@@ -49,7 +54,11 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Return[S](this0 equal Invalid(this0.getType(), "")(pp))(state, pp)
+      }
+    }
   )
 
   def member_comma = new ApiMember(
@@ -57,7 +66,16 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
     thisType = ApiParam(this),
     returnType = TUnknown,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(right) = parameters // Unknown,Unknown
+        var multiValExpressionSet = new ExpressionSet(TUnknown)
+        for (l <- this0.getNonTop; r <- right.getNonTop) {
+          multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown))
+        }
+        state.setExpression(multiValExpressionSet)
+      }
+    }
   )
 
   def member_:= = new ApiMember(
@@ -65,7 +83,17 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
     thisType = ApiParam(this),
     returnType = TUnknown,
-    semantics = DefaultSemantics
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        val List(right) = parameters
+        val res = Assign[S](this0, right)
+        // Dirty old PhD students hacking dirty
+        if (TouchAnalysisParameters.get.prematureAbort) {
+          Exit[S](res, pp)
+        }
+        res
+      }
+    }
   )
 
   def member_async = new ApiMember(
@@ -89,7 +117,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
-    semantics = DefaultSemantics
+    semantics = SkipSemantics
   )
 
   def getDeclaration(s: String) = declarations.get(s)
@@ -185,44 +213,6 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
    */
   def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                      (implicit pp: ProgramPoint, state: S): S = method match {
-
-    /** Updates any display of this map */
-    case "update on wall" =>
-      Skip // TODO: Update environment
-
-    case "post to wall" =>
-      Skip // TODO: create reference from wall to this?
-
-    case "∥" =>
-      val List(other) = parameters
-      Return[S](this0 concat other)
-
-    case "to string" =>
-      Top[S](TString)
-
-    case "is invalid" =>
-      Return[S](this0 equal Invalid(this0.getType(), "")(pp))(state, pp)
-
-    case "equals" =>
-      Dummy[S](this0, method)
-      Top[S](TBoolean)
-
-    case ":=" =>
-      val List(right) = parameters
-      val res = Assign[S](this0, right)
-      // Dirty old PhD students hacking dirty
-      if (TouchAnalysisParameters.get.prematureAbort && this0.toString.contains("__data_")) {
-        Exit[S](res, pp)
-      }
-      res
-
-    case "," =>
-      val List(right) = parameters // Unknown,Unknown
-    var multiValExpressionSet = new ExpressionSet(TUnknown)
-      for (l <- this0.getNonTop; r <- right.getNonTop) {
-        multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown))
-      }
-      state.setExpression(multiValExpressionSet)
 
     case _ =>
 

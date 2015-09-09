@@ -1,8 +1,9 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.cloud.CloudUpdateWrapper
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 import RichNativeSemantics._
@@ -10,7 +11,7 @@ import RichNativeSemantics._
 /**
  * @param typeName the name of the type
  */
-case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter], valueFieldsParameters: List[Parameter]) extends AAny {
+case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter], valueFieldsParameters: List[Parameter], modifiers:Set[Modifier]) extends AAny {
 
   lazy val keyFields:Set[ApiField] = TypeList.toTouchFields(keyFieldsParameters)
   lazy val valueFields:Set[ApiField] = TypeList.toTouchFields(valueFieldsParameters)
@@ -20,7 +21,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),
     returnType = TNothing,
-    semantics = new ApiMemberSemantics {
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         var curState = state
         for (valueField <- valueFields) {
@@ -28,7 +29,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
         }
         curState
       }
-    }
+    },modifiers)
   )
 
   def member_is_deleted = ApiMember(
@@ -39,11 +40,23 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
     semantics = ValidPureSemantics
   )
 
+  lazy val member_confirmed = ApiMember(
+    name = "confirmed",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = ValidPureSemantics
+  )
+
   override def possibleFields =
     super.possibleFields ++ keyFields ++ valueFields
 
   override lazy val declarations =
     super.declarations ++ mkGetterSetters(valueFields ++ keyFields) +
-      ("clear fields" -> member_clear_fields, "is deleted" -> member_is_deleted)
+      (
+        "clear fields" -> member_clear_fields,
+        "is deleted" -> member_is_deleted,
+        "confirmed" -> member_confirmed
+        )
 
 }

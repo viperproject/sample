@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
+import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchProgramPointRegistry, TouchCompiler}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import com.typesafe.scalalogging.LazyLogging
@@ -104,6 +104,12 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
     } catch {
 
       case x: ThreadDeath => Exporters.setStatus("Timeout")
+
+      case x: UnsupportedLanguageFeatureException =>
+        println("FAILED: Skipping this script, as is contains unsupported language constructs")
+        Exporters.setDebugInformation(x.toString + x.getMessage)
+        Exporters.setStatus("Failed")
+        TouchRun.threadFailed = true
 
       case x: Throwable =>
         val sw: StringWriter = new StringWriter()

@@ -211,6 +211,22 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
     for (statement <- statements) statement match {
 
+      case s@Break() =>
+
+        throw new UnsupportedLanguageFeatureException("break not supported")
+
+      case s@Return(expr) =>
+
+        throw new UnsupportedLanguageFeatureException("return not supported")
+
+      case s@Continue() =>
+
+        throw new UnsupportedLanguageFeatureException("continue not supported")
+
+      case s@Show(expr) =>
+
+        throw new UnsupportedLanguageFeatureException("show not supported")
+
       case parser.MetaStatement(_, _) =>
         Unit
 
@@ -268,6 +284,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           case x:parser.Expression => x
         })
         newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
+
 
       case b@Box(body) =>
 

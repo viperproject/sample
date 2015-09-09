@@ -47,9 +47,9 @@ object Typer {
         typeName match {
           case "object" =>
 
-            val objectType = GObject(TypeName(ident),fields)
-            val objectConstructor = GObjectConstructor(objectType)
-            val objectCollection = GObjectCollection(objectType)
+            val objectType = GObject(TypeName(ident),fields,modifiers)
+            val objectConstructor = GObjectConstructor(objectType,modifiers)
+            val objectCollection = GObjectCollection(objectType,modifiers)
 
             TypeList.addTouchType(objectType)
             TypeList.addTouchType(objectCollection)
@@ -58,8 +58,8 @@ object Typer {
 
           case "table" =>
 
-            val rowTyp = GRow(TypeName(ident),fields)
-            val tableType = GTable(rowTyp)
+            val rowTyp = GRow(TypeName(ident),fields,modifiers)
+            val tableType = GTable(rowTyp,modifiers)
 
             TypeList.addTouchType(rowTyp)
             TypeList.addTouchType(tableType)
@@ -67,12 +67,12 @@ object Typer {
 
           case "index" =>
 
-            val indexMember = GIndexMember(TypeName(ident), keys, fields)
+            val indexMember = GIndexMember(TypeName(ident), keys, fields,modifiers)
             val indexType =
               if (keys.nonEmpty) {
-                GIndex(keys.map{_.typeName},indexMember)
+                GIndex(keys.map{_.typeName},indexMember,modifiers)
               } else {
-                GSingletonIndex(indexMember)
+                GSingletonIndex(indexMember,modifiers)
               }
 
             TypeList.addTouchType(indexMember)
@@ -83,10 +83,10 @@ object Typer {
 
             if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
 
-            val indexMember = GIndexMember(TypeName(ident),keys,fields)
+            val indexMember = GIndexMember(TypeName(ident),keys,fields,modifiers)
 
             val decoratedType = keys.head.typeName
-            val decoratorType = GDecorator(TypeName(decoratedType.toString + " Decorator"), decoratedType, indexMember)
+            val decoratorType = GDecorator(TypeName(decoratedType.toString + " Decorator"), decoratedType, indexMember, modifiers)
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)
@@ -185,7 +185,7 @@ object Typer {
           st.tryResolveLocal(scope, ident) match {
             case Some(x) =>
               if (x != typ)
-                throw TouchException("Assignment to wrong type. Expected: " + x + ", Found: " + types.head, variables.pos)
+                throw TouchException("Assignment to wrong type. Expected: " + x + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
             case None =>
               st(scope) = st(scope) + (ident -> typ)
           }
@@ -195,7 +195,7 @@ object Typer {
           variables.typeName = typ
           val expType = st.resolveData(ident, variables.pos)
           if (expType != typ)
-            throw TouchException("Assignment to wrong type. Expected: " + expType + ", Found: " + types.head, variables.pos)
+            throw TouchException("Assignment to wrong type. Expected: " + expType + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
           types.length - 1
         // New kind of field assignment for record types?!
         case Access(subject, _, args) =>

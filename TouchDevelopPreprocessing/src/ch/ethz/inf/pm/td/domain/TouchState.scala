@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
 import ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.td.analysis.{Localization, TouchVariablePacking, TouchAnalysisParameters, ApiField}
+import ch.ethz.inf.pm.td.compiler.ApiMember
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.Predef

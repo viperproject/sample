@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichExpressionImplicits
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
  * @author Lucas Brutschy
@@ -17,7 +18,8 @@ case object GameLib extends LibraryContract with RichExpressionImplicits {
     method match {
 
       case _ =>
-        super.forwardSemantics(this0,method,parameters,returnedType)
+        Top[S](returnedType)
+//        super.forwardSemantics(this0,method,parameters,returnedType)
 
     }
   }

@@ -359,15 +359,6 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Very frequently used: Concatenates two pieces of text */
-  def member_concat_op = ApiMember(
-    name = "∥",
-    paramTypes = List(ApiParam(TString)),
-    thisType = ApiParam(this),
-    returnType = TString,
-    semantics = DefaultSemantics
-  )
-
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "at" -> member_at,
@@ -407,8 +398,7 @@ trait Default_TString extends AAny {
     "trim end" -> member_trim_end,
     "trim overflow" -> member_trim_overflow,
     "trim start" -> member_trim_start,
-    "trim" -> member_trim,
-    "∥" -> member_concat_op
+    "trim" -> member_trim
   )
             
 

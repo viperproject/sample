@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_TMatrix extends AMutable_Collection {
+trait Default_TMatrix extends AMutableLinearCollection {
 
   lazy val typeName = TypeName("Matrix")
           

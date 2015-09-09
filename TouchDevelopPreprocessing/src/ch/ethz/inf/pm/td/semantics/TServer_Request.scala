@@ -12,7 +12,7 @@ import RichNativeSemantics._
 /**
  * Specifies the abstract semantics of Server Request
  *
- * An incomming HTTP web request
+ * An incoming HTTP web request
  *
  * @author Lucas Brutschy
  */ 

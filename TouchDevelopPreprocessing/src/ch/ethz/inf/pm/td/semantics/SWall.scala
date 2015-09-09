@@ -4,9 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{ValidPureSemantics, TopTouchType, TouchType}
+import ch.ethz.inf.pm.td.compiler.{ValidPureSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_SWall
-import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**

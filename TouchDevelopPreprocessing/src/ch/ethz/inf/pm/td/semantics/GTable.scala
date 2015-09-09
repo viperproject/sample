@@ -1,13 +1,14 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper, CloudUpdateSemantics, CloudQuerySemantics}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
-case class GTable(rowTyp: AAny) extends AMutable_Collection {
+case class GTable(rowTyp: AAny,modifiers:Set[Modifier]) extends AMutableLinearCloudCollection {
 
   override def typeName: TypeName = TypeName("Table",List(rowTyp.typeName))
   override def keyType = TNumber
@@ -21,16 +22,19 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),
     returnType = rowTyp,
-    semantics = new ApiMemberSemantics {
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
         // Create row with backlink to this table for removal
-        var newState = New[S](rowTyp, initials = Map(field_table -> this0))(state, pp)
-        val row = newState.expr
-        newState = Insert[S](this0, Count[S](this0)(newState, pp), row)(newState, pp)
-        newState = IncreaseLength[S](this0)(newState, pp)
-        Return[S](row)(newState, pp)
+        var curState = state
+        curState = New[S](rowTyp, initials = Map(field_table -> this0))(state, pp)
+        val row = curState.expr
+        curState = Insert[S](this0, Count[S](this0)(curState, pp), row)(curState, pp)
+        curState = IncreaseLength[S](this0)(curState, pp)
+        Return[S](row)(curState, pp)
+
       }
-    }
+    }, modifiers)
   )
 
   /** Just another name for at index */
@@ -57,7 +61,7 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = GCollection(rowTyp),
-    semantics = new ApiMemberSemantics {
+    semantics = CloudQueryWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val t = GCollection(rowTyp)
         New[S](t,initials = Map(
@@ -65,7 +69,7 @@ case class GTable(rowTyp: AAny) extends AMutable_Collection {
           t.field_count -> Field[S](this0,GTable.this.field_count)
         ))
       }
-    }
+    }, modifiers)
   )
 
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++

@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_TSprite_Set extends AMutable_Collection {
+trait Default_TSprite_Set extends AMutableLinearCollection {
 
   lazy val typeName = TypeName("Sprite Set")
           
