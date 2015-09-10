@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.tools
 
-import ch.ethz.inf.pm.td.compiler.{TouchException, ScriptCache}
-import ch.ethz.inf.pm.td.parser.{VariableDefinition, Declaration, TableDefinition}
+import ch.ethz.inf.pm.td.compiler.{ScriptRetriever, TouchException}
+import ch.ethz.inf.pm.td.parser.TableDefinition
 import ch.ethz.inf.pm.td.webapi.ScriptQuery
 import net.liftweb.json.MappingException
 
@@ -44,7 +44,7 @@ object FindConstruct {
     containItself.get(id) match {
       case Some(x) => x
       case None =>
-        val scr = ScriptCache.get(id)
+        val scr = ScriptRetriever.getLocally(id)
         val res = scr.get.declarations.exists {
           case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
             isCloudEnabled || isCloudPartiallyEnabled

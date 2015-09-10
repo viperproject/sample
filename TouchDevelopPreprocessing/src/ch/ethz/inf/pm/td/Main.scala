@@ -4,6 +4,7 @@ import java.io.IOException
 
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
+import ch.ethz.inf.pm.td.tools.{FindCloud, FindConstruct}
 import ch.ethz.inf.pm.td.webapi._
 import net.liftweb.json.MappingException
 
@@ -24,7 +25,7 @@ object Main {
    */
   object Mode extends Enumeration {
     type Mode = Value
-    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics = Value
+    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud = Value
   }
 
   def main(args: Array[String]) {
@@ -54,6 +55,10 @@ object Main {
       case "-feedMode" => mode = Mode.FeedMode; false
       case "-statistics" => mode = Mode.Statistics; false
       case "-fetchMode" => mode = Mode.FetchMode; false
+
+        // Undocumented tools
+      case "-findCloud" => mode = Mode.FindCloud; false
+
       case _ => true
     }
 
@@ -70,6 +75,8 @@ object Main {
         runFetchMode(nonOptions)
       case Mode.Statistics =>
         printStatistics(nonOptions)
+      case Mode.FindCloud =>
+        FindCloud.main(nonOptions)
     }
 
   }

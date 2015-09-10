@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Modifier}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, CloudEnabledModifier}
+import ch.ethz.inf.pm.td.domain.TouchState
 
 /**
  * @author Lucas Brutschy
@@ -25,9 +26,9 @@ trait CloudUpdateSemantics extends CloudOperationSemantics {
                                      (implicit pp: ProgramPoint, state: S): S = {
 
     val curState = super.forwardSemantics[S](this0,method,parameters)
-    if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier)) {
+    if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier) && state.isInstanceOf[TouchState.Default[_]]) {
 
-      println(this0,method)
+      println(this0._2,method.name)
 
     }
     curState
@@ -54,9 +55,9 @@ trait CloudQuerySemantics extends CloudOperationSemantics {
                                      (implicit pp: ProgramPoint, state: S): S = {
 
     val curState = super.forwardSemantics[S](this0,method,parameters)
-    if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier)) {
+    if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier) && state.isInstanceOf[TouchState.Default[_]]) {
 
-      println(this0,method)
+      println(this0._2,method.name)
 
     }
     curState

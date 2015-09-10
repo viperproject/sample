@@ -286,19 +286,19 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
 
-                // Try implicit conversion to Ref
-                if (!this.isInstanceOf[GRef]) {
-                  val refType = GRef(this)
-                  refType.getDeclaration(method) match {
-                    case Some(x) =>
-                      x.semantics.forwardSemantics[S](this0,x,parameters)
-                    case None =>
-                      Unimplemented[S](this.toString + "." + method, returnedType)
-                  }
-
-                } else {
+//                // Try implicit conversion to Ref
+//                if (!this.isInstanceOf[GRef]) {
+//                  val refType = GRef(this)
+//                  refType.getDeclaration(method) match {
+//                    case Some(x) =>
+//                      x.semantics.forwardSemantics[S](this0,x,parameters)
+//                    case None =>
+//                      Unimplemented[S](this.toString + "." + method, returnedType)
+//                  }
+//
+//                } else {
                   Unimplemented[S](this.toString + "." + method, returnedType)
-                }
+//                }
 
             }
 

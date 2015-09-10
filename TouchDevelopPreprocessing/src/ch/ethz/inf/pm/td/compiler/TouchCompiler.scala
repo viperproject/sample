@@ -47,44 +47,9 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   val cfgGenerator = new CFGGenerator(this)
 
-  /**
-   * This takes one of the following arguments:
-   *
-   * http://www.touchdevelop.com/api/[pubID]/... Some URL to a script
-   * https://www.touchdevelop.com/api/[pubID]/... Some URL to a script
-   * td://[pubID] Some PubID in uri form
-   * Some path to a local file with extension .td for source code.
-   * Some path to a local file with extension .json for a cached json representation
-   *
-   * It uses either the WebAST importer or the script parser to get the corresponding
-   * TouchDevelop AST. If a URL or a pubID is provided, we may use the local cache
-   *
-   */
-  def retrieveScript(path: String): (Script, String) = {
-    try {
-      if (path.startsWith("http://"))
-        (ScriptCache.get(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
-      else if (path.startsWith("https://"))
-        (ScriptCache.get(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
-      else if (path.startsWith("td://"))
-        (ScriptCache.get(path.substring(5)).get, path.substring(5))
-      else if (path.startsWith("mongo://"))
-        (MongoImporter.get(path.substring(8)).get, path.substring(8))
-      else if (path.toLowerCase.endsWith(".td"))
-        (ScriptParser(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
-      else if (path.toLowerCase.endsWith(".json"))
-        (WebASTImporter.convertFromString(Source.fromFile(path, "utf-8").getLines().mkString("\n")).get, ScriptQuery.pubIDfromFilename(path))
-      else throw TouchException("Unrecognized path " + path)
-    } catch {
-      case x:NoSuchElementException =>
-        throw TouchException("Failed to open " + path)
-    }
-  }
-
-
   def compileFile(path: String): List[ClassDefinition] = {
 
-    val (script, pubID) = retrieveScript(path)
+    val (script, pubID) = ScriptRetriever.getPath(path)
 
     // Compile
     main = compileScriptRecursive(script, pubID)
@@ -129,7 +94,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
     for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.libIdentifier.isEmpty) {
-      val (libScript, libPubID) = retrieveScript("td://" + lib.libIdentifier)
+      val (libScript, libPubID) = ScriptRetriever.getPath("td://" + lib.libIdentifier)
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
@@ -145,12 +110,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def getSourceCode(path: String): String = {
-    val (script, pubID) = retrieveScript(path)
+    val (script, pubID) = ScriptRetriever.getPath(path)
     var parsed = Set(pubID)
 
     def getSourceCodeRecursive(pubID: String): String = {
       if (!parsed.contains(pubID) && !pubID.isEmpty) {
-        val (libScript, libPubID) = retrieveScript("td://" + pubID)
+        val (libScript, libPubID) = ScriptRetriever.getPath("td://" + pubID)
         parsed = parsed + libPubID
         val libDef = discoverRequiredLibraries(libScript)
         PrettyPrinter(libScript) + (for (lib <- libDef) yield {
@@ -208,7 +173,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val matches = (for (clazz <- parsedScripts; if clazz.typ.name == classType.name; method <- clazz.methods) yield {
       if (method.name.toString.equals(name) && method.arguments.head.size == parameters.size) {
         var ok: Boolean = true
-        for (i <- 0 to method.arguments.head.size - 1) {
+        for (i <- method.arguments.head.indices) {
           if (!parameters(i).lessEqual(method.arguments.head(i).typ))
             ok = false
         }
@@ -219,7 +184,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
     if (matches.length == 1)
       matches.head
-    else if (matches.length == 0)
+    else if (matches.isEmpty)
       None
     else throw new TouchException("Local or library call may resolve to multiple methods.")
   }
