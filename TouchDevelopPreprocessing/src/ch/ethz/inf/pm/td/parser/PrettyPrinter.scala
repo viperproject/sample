@@ -5,9 +5,7 @@ import org.apache.commons.lang3.StringEscapeUtils
 
 /**
  *
- * Lucas Brutschy
- * Date: 8/23/12
- * Time: 6:54 PM
+ * @author Lucas Brutschy
  *
  */
 object PrettyPrinter {
