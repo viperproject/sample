@@ -49,7 +49,7 @@ object AccumulatingTimer extends LazyLogging {
   def stop(s:String) {
     times.get(s) match {
       case Some(TimeEntry(n,x,Some(y))) => times(s) = TimeEntry(n+1,x+(System.currentTimeMillis-y),None)
-      case None => throw new RuntimeException("Stopping an entry that was never started")
+      case _ => throw new RuntimeException("Stopping an entry that was never started")
     }
   }
 
@@ -59,6 +59,7 @@ object AccumulatingTimer extends LazyLogging {
         val diff = (System.currentTimeMillis-y).toFloat/1000
         logger.info(s+" finished after "+f"$diff%2.2fs")
         times(s) = TimeEntry(n+1,x+(System.currentTimeMillis-y),None)
+      case _ => throw new RuntimeException("Stopping an entry that was never started")
     }
   }
 
