@@ -76,7 +76,7 @@ object PrettyPrinter {
   }
 
   def apply(s: List[Statement])(implicit ppPrinter:((IdPositional,String) => String)): String = {
-    s.map(apply).map(_.split("\n")).flatten.map("  " + _).mkString("\n")
+    s.map(apply).flatMap(_.split("\n")).map("  " + _).mkString("\n")
   }
 
   def apply(s: Statement)(implicit ppPrinter:((IdPositional,String) => String)): String = {
