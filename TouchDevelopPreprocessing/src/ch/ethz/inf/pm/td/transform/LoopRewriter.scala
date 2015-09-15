@@ -16,34 +16,32 @@ import ch.ethz.inf.pm.td.parser.For
  *
  * Transforms for-loops and for-each loops
  *
- * Lucas Brutschy
- * Date: 8/23/12
- * Time: 4:55 PM
+ * @author Lucas Brutschy
  *
  */
 
 object LoopRewriter {
 
-  def apply(s: Script): Script = Script(s.declarations map apply,s.isLibrary)
+  def apply(s: Script): Script = Script(s.declarations map apply, s.isLibrary)
 
   def apply(d: Declaration): Declaration = {
     d match {
-      case a:ActionDefinition => a.copy(body = a.body flatMap apply).copyPos(a)
+      case a: ActionDefinition => a.copy(body = a.body flatMap apply).copyPos(a)
       case _ => d
     }
   }
 
   def replace(inlineAction: InlineAction, from: Expression, to: Expression): InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters, inlineAction.body.map(replace(_, from, to)),inlineAction.typ))
+    pos(InlineAction(inlineAction.handlerName, inlineAction.inParameters, inlineAction.outParameters, inlineAction.body.map(replace(_, from, to)), inlineAction.typ))
   }
 
   def replace(optParam: OptionalParameter, from: Expression, to: Expression): OptionalParameter = {
     implicit val defPos = optParam
-    pos(OptionalParameter(optParam.name,replace(optParam.expr,from,to)))
+    pos(OptionalParameter(optParam.name, replace(optParam.expr, from, to)))
   }
 
-  def replace(e: Expression, from: Expression, to: Expression) : Expression = e match {
+  def replace(e: Expression, from: Expression, to: Expression): Expression = e match {
     case Access(subject, property, args) =>
       Access(replace(subject, from, to), property, args.map(replace(_, from, to)))
     case _ =>
@@ -82,11 +80,11 @@ object LoopRewriter {
 
         bnd match {
 
-          case Literal(numTyp,value) if TouchAnalysisParameters.get.unrollForLoopsUpTo >= Math.round(value.toDouble).toInt =>
+          case Literal(numTyp, value) if TouchAnalysisParameters.get.unrollForLoopsUpTo >= Math.round(value.toDouble).toInt =>
 
             val bodyNew = body flatMap apply
             val idxOld = pos(LocalReference(idx))
-            (for (i <- 0 to Math.round(value.toDouble).toInt-1) yield {
+            (for (i <- 0 to Math.round(value.toDouble).toInt - 1) yield {
               if (TouchAnalysisParameters.get.renameForLoopUnrollings) {
                 val posSuffix = "it" + i
                 val idxNew = pos(Literal(numTyp, i.toString))
@@ -111,12 +109,12 @@ object LoopRewriter {
             // }
 
             val idxExp = pos(LocalReference(idx))
-            val storedBound = pos(LocalReference(annotateName(idx,"bound")))
+            val storedBound = pos(LocalReference(annotateName(idx, "bound")))
             val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
             val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
             val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
             val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
-            indexInit :: upperBoundStore :: While(condition, (body map apply).flatten ::: bodyPostfix :: Nil) :: Nil
+            indexInit :: upperBoundStore :: While(condition, (body flatMap apply) ::: bodyPostfix :: Nil) :: Nil
 
         }
 
@@ -138,51 +136,51 @@ object LoopRewriter {
         //     __elem_index__ = __elem_index__ + 1;
         //   }
 
-        val idxExp = pos(LocalReference(annotateName(elem,"index")))
-        val storedCollection = pos(LocalReference(annotateName(elem,"collection")))
+        val idxExp = pos(LocalReference(annotateName(elem, "index")))
+        val storedCollection = pos(LocalReference(annotateName(elem, "collection")))
         val elemExp = pos(LocalReference(elem))
         val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
-        val collectionStore = pos(ExpressionStatement(pos(Access(storedCollection, Identifier(":="), List(pos(Access(coll,pos(Identifier("copy")),Nil)))))))
+        val collectionStore = pos(ExpressionStatement(pos(Access(storedCollection, Identifier(":="), List(pos(Access(coll, pos(Identifier("copy")), Nil)))))))
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         val atIndexExpr = pos(Access(storedCollection, pos(Identifier("at index")), List(idxExp)))
-        val rewrittenBody = (body map apply).flatten.map(replace(_, elemExp, atIndexExpr))
+        val rewrittenBody = (body flatMap apply).map(replace(_, elemExp, atIndexExpr))
 
         val conditionalBody = guards match {
-          case Literal(_,"true")::Nil => rewrittenBody
-          case head::tail =>
-            val guardCondition = tail.foldLeft(head)((left:Expression,right:Expression) => pos(Access(left,pos(Identifier("and")),List(right))))
+          case Literal(_, "true") :: Nil => rewrittenBody
+          case head :: tail =>
+            val guardCondition = tail.foldLeft(head)((left: Expression, right: Expression) => pos(Access(left, pos(Identifier("and")), List(right))))
             val guardConditionReplaced = replace(guardCondition, elemExp, atIndexExpr)
-            List(pos(If(guardConditionReplaced,rewrittenBody,Nil)))
+            List(pos(If(guardConditionReplaced, rewrittenBody, Nil)))
           case Nil => rewrittenBody
         }
-        val countMinusOne = Access(pos(Access(storedCollection, pos(Identifier("count")),Nil)),pos(Identifier("-")),List(pos(Literal(pos(TypeName("Number")), "1"))))
+        val countMinusOne = Access(pos(Access(storedCollection, pos(Identifier("count")), Nil)), pos(Identifier("-")), List(pos(Literal(pos(TypeName("Number")), "1"))))
         val condition = pos(Access(idxExp, pos(Identifier("≤")), List(countMinusOne))) // Less-Equal count -1 is tighter than Less count, since
-        val whileLoop = pos(While(condition, conditionalBody ::: bodyPostfix :: Nil))
+      val whileLoop = pos(While(condition, conditionalBody ::: bodyPostfix :: Nil))
         indexInit :: collectionStore :: whileLoop :: Nil
 
-      case i@If(cond,thenBody,elseBody) =>
-        List(pos(If(cond,(thenBody map apply).flatten,(elseBody map apply).flatten)))
-      case w@While(cond,body) =>
-        List(pos(While(cond,(body map apply).flatten)))
+      case i@If(cond, thenBody, elseBody) =>
+        List(pos(If(cond, thenBody flatMap apply, elseBody flatMap apply)))
+      case w@While(cond, body) =>
+        List(pos(While(cond, body flatMap apply)))
       case w@Box(body) =>
-        List(pos(Box((body map apply).flatten)))
-      case w@WhereStatement(expr,handlers,optParam) =>
-        List(pos(WhereStatement(expr,handlers map apply,optParam)))
+        List(pos(Box(body flatMap apply)))
+      case w@WhereStatement(expr, handlers, optParam) =>
+        List(pos(WhereStatement(expr, handlers map apply, optParam)))
       case _ =>
         List(s)
     }
   }
 
-  def apply(inlineAction:InlineAction):InlineAction = {
+  def apply(inlineAction: InlineAction): InlineAction = {
     implicit val defPos = inlineAction
-    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map apply).flatten,inlineAction.typ))
+    pos(InlineAction(inlineAction.handlerName, inlineAction.inParameters, inlineAction.outParameters, inlineAction.body flatMap apply, inlineAction.typ))
   }
 
-  def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2
+  def annotateName(s1: String, s2: String) = "__" + s1 + "_" + s2
 
-  def pos[T <: IdPositional](posNew:T)(implicit defPos:IdPositional):T = {
+  def pos[T <: IdPositional](posNew: T)(implicit defPos: IdPositional): T = {
     posNew.pos = defPos.pos
-    posNew.appendIdComponent("["+id+"]")
+    posNew.appendIdComponent("[" + id + "]")
     id = id + 1
     posNew
   }
