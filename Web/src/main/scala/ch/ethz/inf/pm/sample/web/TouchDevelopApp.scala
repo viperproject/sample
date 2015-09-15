@@ -52,7 +52,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
     val analyzer = new TouchAnalysis[Apron.OptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    analyzer.analyze(entryState) map { x => AnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
+    analyzer.analyze(Nil,entryState) map { x => AnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
   }
 
 }
