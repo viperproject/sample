@@ -89,6 +89,10 @@ object PrettyPrinter {
         case If(condition, thenBody, elseBody) => "if (" + apply(condition) + ") then {\n" + apply(thenBody) + "\n}" +
           (if (elseBody.nonEmpty) " else {\n" + apply(elseBody) + "\n}" else "")
         case WhereStatement(expr, handlers, optParams) => apply(expr) + (optParams map apply).mkString("") + (handlers map apply).mkString("")
+        case Break() => "break;"
+        case Continue() => "continue;"
+        case Return(expr) => "return "+apply(expr) + ";"
+        case Show(expr) => "return "+apply(expr) + ";"
       })
   }
 
