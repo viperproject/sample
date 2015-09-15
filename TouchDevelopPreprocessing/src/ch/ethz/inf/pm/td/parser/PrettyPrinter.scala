@@ -5,6 +5,8 @@ import org.apache.commons.lang3.StringEscapeUtils
 
 /**
  *
+ * Pretty prints an AST in a human-readable format
+ *
  * @author Lucas Brutschy
  *
  */
