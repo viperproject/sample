@@ -45,6 +45,8 @@ object PrettyPrinter {
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
             "usage " + "{\n    " + (usages map apply).mkString("\n    ") + "\n  }" + "\n  " +
             (resolves map apply).mkString("\n  ") + "\n}"
+        case LibAbstractType(id) =>
+          "abstract type "+apply(id)
       })
   }
 
