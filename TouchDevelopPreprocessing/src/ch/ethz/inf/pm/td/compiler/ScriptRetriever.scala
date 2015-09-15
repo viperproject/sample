@@ -4,8 +4,7 @@ import java.io.{IOException, File, PrintWriter}
 import java.util.NoSuchElementException
 
 import ch.ethz.inf.pm.td.parser.{ScriptParser, Script}
-import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher, WebASTImporter}
-import com.mongodb.casbah.Imports._
+import ch.ethz.inf.pm.td.webapi.{JApp, ScriptQuery, URLFetcher, WebASTImporter}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.io.Source
@@ -27,20 +26,18 @@ object ScriptRetriever extends LazyLogging {
    * TouchDevelop AST. If a URL or a pubID is provided, we may use the local cache
    *
    */
-  def getPath(path: String): (Script, String) = {
+  def getPath(path: String): ((Script,Option[JApp]), String) = {
     try {
       if (path.startsWith("http://"))
         (ScriptRetriever.getLocally(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
       else if (path.startsWith("https://"))
         (ScriptRetriever.getLocally(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
       else if (path.startsWith("td://"))
-        (ScriptRetriever.getLocally(path.substring(5)).get, path.substring(5))
-      else if (path.startsWith("mongo://"))
-        (MongoImporter.get(path.substring(8)).get, path.substring(8))
+        (ScriptRetriever.getMongo(path.substring(5)).get, path.substring(5))
       else if (path.toLowerCase.endsWith(".td"))
-        (ScriptParser(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
+        ((ScriptParser(Source.fromFile(path).getLines().mkString("\n")),None), ScriptQuery.pubIDfromFilename(path))
       else if (path.toLowerCase.endsWith(".json"))
-        (WebASTImporter.convertFromString(Source.fromFile(path, "utf-8").getLines().mkString("\n")).get, ScriptQuery.pubIDfromFilename(path))
+        (WebASTImporter.convertFromStringBoth(Source.fromFile(path, "utf-8").getLines().mkString("\n")).get, ScriptQuery.pubIDfromFilename(path))
       else throw TouchException("Unrecognized path " + path)
     } catch {
       case x:NoSuchElementException =>
@@ -48,7 +45,40 @@ object ScriptRetriever extends LazyLogging {
     }
   }
 
-  def getLocally(pubID:String):Option[Script] = {
+  /**
+   * Tries to fetch the file from a local database
+   */
+  def getMongo(pubID:String):Option[(Script,Option[JApp])] = {
+    import com.mongodb.casbah.Imports._
+
+    try {
+      import com.novus.salat._
+      import com.novus.salat.global._
+      val client =  MongoClient()("tb")("programs")
+      client.findOne(MongoDBObject("programID" -> pubID)) match {
+
+        case Some(x) =>
+
+          val res = x.get("ast")
+          val japp = grater[JApp].asObject(res.asInstanceOf[BasicDBObject])
+          Some(WebASTImporter.convert(japp),Some(japp))
+
+        case None =>
+
+          getLocally(pubID)
+
+      }
+
+    } catch {
+
+      case x:MongoException =>
+        getLocally(pubID)
+    }
+
+  }
+
+
+  def getLocally(pubID:String):Option[(Script,Option[JApp])] = {
     val cache = new File(CACHE_DIR)
     if (cache.isDirectory || cache.mkdir()) {
       val file = new File(CACHE_DIR + File.separator + pubID + ".json")
@@ -63,46 +93,18 @@ object ScriptRetriever extends LazyLogging {
             case x:IOException =>
               logger.debug("Cache could not be written")
           }
-          WebASTImporter.convertFromString(results)
+          WebASTImporter.convertFromStringBoth(results)
         } else {
           None
         }
       } else {
-        WebASTImporter.convertFromString(Source.fromFile(file, "utf-8").getLines().mkString("\n"))
+        WebASTImporter.convertFromStringBoth(Source.fromFile(file, "utf-8").getLines().mkString("\n"))
       }
     } else {
       // Can not use read or write cache
       logger.debug("Cache can not be read or written")
-      WebASTImporter.queryAndConvert(pubID)
+      WebASTImporter.queryAndConvertBoth(pubID)
     }
   }
-
-}
-
-object MongoImporter {
-
-  lazy val client = {
-    MongoClient()("tb")("programs")
-  }
-
-  def get(programID: String): Option[Script] = {
-
-    client.findOne(MongoDBObject("programID" -> programID)) match {
-
-      case Some(x) =>
-
-        x.get("program") match {
-          case x: String => WebASTImporter.convertFromString(x)
-          case _ => throw TouchException("Unexpected contents in database")
-        }
-
-      case None =>
-
-        throw TouchException("Could not find program in database")
-
-    }
-
-  }
-
 
 }

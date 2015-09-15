@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 import ch.ethz.inf.pm.td.tools.{FindCloud, FindConstruct}
 import ch.ethz.inf.pm.td.webapi._
+import com.mongodb.MongoException
 import net.liftweb.json.MappingException
 
 
@@ -321,13 +322,18 @@ object Main {
    */
   def runFetchMode(args: Array[String]) {
 
-
-    val query = new NewScripts
+    var query:ScriptQuery = new Scripts
 
     var redownload = false
+    val Search = """-search=([^\s]+)""".r
     args filter {
 
-      case "-redownload" =>        redownload = true;     false
+      case "-redownload" => redownload = true; false
+      case "-new" => query = new NewScripts; false
+      case "-top" => query = new TopScripts; false
+      case "-featured" => query = new FeaturedScripts; false
+      case Search(q) => query = new ScriptSearch(q); false
+
       case _ => true
 
     }
@@ -341,43 +347,52 @@ object Main {
     val programs = mongoClient("tb")("programs")
     for (script <- query) {
 
-      if (redownload || programs.findOne(MongoDBObject("programID" -> script.id)).isEmpty) {
+      try {
 
-        if (redownload) {
-          programs.findAndRemove(MongoDBObject("programID" -> script.id))
-        }
+        if (redownload || programs.findOne(MongoDBObject("programID" -> script.id)).isEmpty) {
 
-        val url = ScriptQuery.webastURLfromPubID(script.id)
-        println("Trying to download "+url)
-        var scriptText = ""
-        var webAST:Option[JApp] = None
-        try {
-          scriptText = URLFetcher.fetchFile(url)
-          webAST = WebASTImporter.parseAST(scriptText)
-        } catch {
-          case x:MappingException =>
-            println("Failed to parse: "+x.getMessage)
+          if (redownload) {
+            programs.findAndRemove(MongoDBObject("programID" -> script.id))
+          }
+
+          val url = ScriptQuery.webastURLfromPubID(script.id)
+          println("Trying to download " + url)
+          var scriptText = ""
+          var webAST: Option[JApp] = None
+          try {
+            scriptText = URLFetcher.fetchFile(url)
+            webAST = WebASTImporter.parseAST(scriptText)
+          } catch {
+            case x: MappingException =>
+              println("Failed to parse: " + x.getMessage)
+              println(scriptText)
+            case x: IOException =>
+              println("Failed to download: " + x.getMessage)
+          }
+
+          if (scriptText.nonEmpty) {
+            println("Creating new record for " + script.id)
+            programs.insert(MongoDBObject(
+              "programID" -> script.id,
+              "script" -> grater[ScriptRecord].asDBObject(script),
+              "ast" -> (webAST match {
+                case None => None
+                case Some(x) => Some(grater[JApp].asDBObject(x))
+              }),
+              "fetchedAt" -> System.currentTimeMillis / 1000
+            ))
+          } else {
+            println("Seems like I failed to download")
             println(scriptText)
-          case x:IOException =>
-            println("Failed to download: "+x.getMessage)
-        }
-
-        if (scriptText.nonEmpty) {
-          println("Creating new record for " + script.id)
-          programs.insert(MongoDBObject(
-            "programID" -> script.id,
-            "script" -> grater[ScriptRecord].asDBObject(script),
-            "ast" -> (webAST match {
-              case None => None
-              case Some(x) => Some(grater[JApp].asDBObject(x))
-            }),
-            "program" -> scriptText,
-            "fetchedAt" -> System.currentTimeMillis / 1000
-          ))
+          }
         } else {
-          println("Seems like I failed to download")
-          println(scriptText)
+          println("skipping existing " + script.id)
         }
+      } catch {
+
+        case x: MongoException =>
+          println("Some mongo operation failed. Continuing with next one." + x.getLocalizedMessage)
+
       }
 
     }

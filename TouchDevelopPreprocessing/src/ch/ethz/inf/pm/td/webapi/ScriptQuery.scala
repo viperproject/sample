@@ -291,6 +291,8 @@ trait SearchService extends ScriptQuery {
 
 }
 
+class Scripts extends ScriptQuery with ErrorFilter
+
 class NewScripts extends ScriptQuery with ErrorFilter with NewService
 
 class TopScripts extends ScriptQuery with ErrorFilter with TopService

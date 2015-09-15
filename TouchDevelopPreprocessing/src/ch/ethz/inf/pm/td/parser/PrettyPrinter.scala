@@ -87,7 +87,7 @@ object PrettyPrinter {
         case Skip() => "skip;"
         case MetaStatement(key, value) => "meta " + apply(key) + " \"" + value + "\";"
         case If(condition, thenBody, elseBody) => "if (" + apply(condition) + ") then {\n" + apply(thenBody) + "\n}" +
-          (if (elseBody.length > 0) " else {\n" + apply(elseBody) + "\n}" else "")
+          (if (elseBody.nonEmpty) " else {\n" + apply(elseBody) + "\n}" else "")
         case WhereStatement(expr, handlers, optParams) => apply(expr) + (optParams map apply).mkString("") + (handlers map apply).mkString("")
       })
   }

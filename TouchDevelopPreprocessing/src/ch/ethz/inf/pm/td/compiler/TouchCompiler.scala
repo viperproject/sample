@@ -49,7 +49,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def compileFile(path: String): List[ClassDefinition] = {
 
-    val (script, pubID) = ScriptRetriever.getPath(path)
+    val ((script,_), pubID) = ScriptRetriever.getPath(path)
 
     // Compile
     main = compileScriptRecursive(script, pubID)
@@ -94,7 +94,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
     for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.libIdentifier.isEmpty) {
-      val (libScript, libPubID) = ScriptRetriever.getPath("td://" + lib.libIdentifier)
+      val ((libScript,_), libPubID) = ScriptRetriever.getPath("td://" + lib.libIdentifier)
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
@@ -110,12 +110,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def getSourceCode(path: String): String = {
-    val (script, pubID) = ScriptRetriever.getPath(path)
+    val ((script,_), pubID) = ScriptRetriever.getPath(path)
     var parsed = Set(pubID)
 
     def getSourceCodeRecursive(pubID: String): String = {
       if (!parsed.contains(pubID) && !pubID.isEmpty) {
-        val (libScript, libPubID) = ScriptRetriever.getPath("td://" + pubID)
+        val ((libScript,_), libPubID) = ScriptRetriever.getPath("td://" + pubID)
         parsed = parsed + libPubID
         val libDef = discoverRequiredLibraries(libScript)
         PrettyPrinter(libScript) + (for (lib <- libDef) yield {

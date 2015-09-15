@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.webapi
 
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
+import com.novus.salat.annotations._
 import net.liftweb.json.JsonAST.{JArray, JString, JObject}
 import net.liftweb.json.{JValue, DefaultFormats, TypeHints, parse, parseOpt}
 
@@ -33,6 +34,13 @@ object WebASTImporter {
     query(pubID) map convert
   }
 
+  def queryAndConvertBoth(pubID: String): Option[(Script,Option[JApp])] = {
+    query(pubID) match {
+      case Some(script) => Some(convert(script),Some(script))
+      case None => None
+    }
+  }
+
   def query(pubID: String): Option[JApp] = {
     val url = ScriptQuery.webastURLfromPubID(pubID)
     val string = URLFetcher.fetchFile(url)
@@ -53,6 +61,16 @@ object WebASTImporter {
     val json = parseOpt(string)
     json match {
       case Some(x) => Some(convert(x.extract[JApp]))
+      case None => None
+    }
+  }
+
+  def convertFromStringBoth(string:String): Option[(Script,Option[JApp])] = {
+    val json = parseOpt(string)
+    json match {
+      case Some(x) =>
+        val japp = x.extract[JApp]
+        Some(convert(japp),Some(japp))
       case None => None
     }
   }
@@ -292,16 +310,20 @@ object types {
 
 import types._
 
+@Salat
 trait JNode {
   val id: String
 }
 
+@Salat
 trait JDecl extends JNode {
   val name: String
 }
 
+@Salat
 trait JToken extends JNode
 
+@Salat
 trait JExpr extends JToken
 
 case class JOperator(id: String, op: String) extends JToken
@@ -398,6 +420,7 @@ case class JExprHolder(
                         locals: List[JLocalDef] // locals variables defined in this expression
                         ) extends JNode
 
+@Salat
 trait JStmt extends JNode {
 
   // this is available when using the short form
@@ -421,6 +444,7 @@ case class JForeach(
                      body: List[JStmt]
                      ) extends JStmt
 
+@Salat
 trait JCondition extends JNode {
   // this is available when using the short form
   val locals: Option[List[JLocalDef]]
@@ -482,6 +506,7 @@ case class JBoxed(id: String, body: List[JStmt]) extends JStmt
 case class JExprStmt(id: String,expr: JExprHolder) extends JStmt
 case class JInlineActions(id: String, expr: JExprHolder, actions: List[JAbstractInlineParameters]) extends JStmt
 
+@Salat
 trait JAbstractInlineParameters
 
 case class JInlineAction(
@@ -503,6 +528,7 @@ case class JOptionalParameter(
                                expr: JExprHolder
                                ) extends JNode with JAbstractInlineParameters
 
+@Salat
 trait JActionBase extends JDecl {
   val inParameters: List[JLocalDef]
   val outParameters: List[JLocalDef]
@@ -626,6 +652,7 @@ case class JLibRecordType(
                            fields: List[JRecordField]
                            ) extends JDecl
 
+@Salat
 trait JGlobalDef extends JDecl {
   val comment: String
   val `type`: JTypeRef
@@ -644,7 +671,7 @@ case class JArt(
                  isCloudEnabled: Boolean,
                  url: String,
                  // If it's a String art, contains its value.
-                 value: String
+                 value: Option[String]
                  ) extends JGlobalDef
 
 case class JData(
@@ -669,6 +696,7 @@ case class JLibrary(
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl
 
+@Salat
 trait JBinding extends JNode {
   val id: String
   val name: String // name of the formal argument
