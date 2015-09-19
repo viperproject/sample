@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.parser
 
-import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 import org.apache.commons.lang3.StringEscapeUtils
 import ch.ethz.inf.pm.td.compiler.TouchException
@@ -30,8 +29,8 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val actionDefinition: PackratParser[Declaration] = positioned (
     ("private".? ~ "action" ~ actionHeader ~ block | "private".? ~ "event" ~ actionHeader ~ block) ^^ {
-      case x~"action"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = false,isPrivate = x != None)
-      case x~"event"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = true,isPrivate = x != None)
+      case x~"action"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = false,isPrivate = x.isDefined)
+      case x~"event"~a~b => ActionDefinition(a._1,a._2,a._3,b,isEvent = true,isPrivate = x.isDefined)
     }
   )
 

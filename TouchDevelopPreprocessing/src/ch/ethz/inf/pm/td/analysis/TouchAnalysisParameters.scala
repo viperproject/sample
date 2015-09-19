@@ -225,7 +225,15 @@ case class TouchAnalysisParameters(
                                      * For potential integration with editor
                                      * May be incompatible with HTML reporting
                                      */
-                                    includeLibraryStableComponent: Boolean = false
+                                    includeLibraryStableComponent: Boolean = false,
+
+
+                                    /**
+                                     * Settings for the mongodb server
+                                     */
+                                    mongoServer:String = "localhost",
+                                    mongoPort:Int = 27017,
+                                    mongoDatabase:String = "tb"
 
                                     )
 

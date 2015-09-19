@@ -34,6 +34,10 @@ object PrettyPrinter {
             (if (isEvent) "event " else "action ") +
             apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
             " {\n" + apply(body) + "\n}"
+        case PageDefinition(ident, in, out, initBody, displayBody, isEvent, isPrivate) =>
+          (if (isPrivate) "private " else "") + "page " +
+            apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
+            " {\n" + apply(initBody) + apply(displayBody)  + "\n}" // TODO: This is not how /text does it
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
         case VariableDefinition(variable, map) => "var " + apply(variable) + " {" + map.map(x => x._1 + "=" + x._2 + ";").mkString("\n") + " }"
         case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>

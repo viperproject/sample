@@ -58,13 +58,14 @@ object LoopUnroller {
     def unrollInlineAction(inlineAction: InlineAction): InlineAction = {
       implicit val defPos = inlineAction
       val transformed = InlineAction(inlineAction.handlerName, inlineAction.inParameters,
-        inlineAction.outParameters, (inlineAction.body map unrollStatement).flatten,inlineAction.typ)
+        inlineAction.outParameters, inlineAction.body flatMap unrollStatement,inlineAction.typ)
       transformed.copyPos(inlineAction)
     }
 
     def unrollDeclaration(d: Declaration): Declaration = {
       d match {
-        case a: ActionDefinition => a.copy(body = (a.body map unrollStatement).flatten).copyPos(a)
+        case a: ActionDefinition => a.copy(body = a.body flatMap unrollStatement).copyPos(a)
+        case a: PageDefinition => a.copy(initBody = a.initBody flatMap unrollStatement, displayBody = a.displayBody flatMap unrollStatement).copyPos(a)
         case _ => d
       }
     }

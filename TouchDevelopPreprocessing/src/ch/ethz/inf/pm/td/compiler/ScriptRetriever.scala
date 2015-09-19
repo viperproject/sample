@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.compiler
 import java.io.{IOException, File, PrintWriter}
 import java.util.NoSuchElementException
 
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{ScriptParser, Script}
 import ch.ethz.inf.pm.td.webapi.{JApp, ScriptQuery, URLFetcher, WebASTImporter}
 import com.typesafe.scalalogging.LazyLogging
@@ -54,7 +55,8 @@ object ScriptRetriever extends LazyLogging {
     try {
       import com.novus.salat._
       import com.novus.salat.global._
-      val client =  MongoClient()("tb")("programs")
+      val settings = TouchAnalysisParameters.get
+      val client =  MongoClient(settings.mongoServer,settings.mongoPort)(settings.mongoDatabase)("programs")
       client.findOne(MongoDBObject("programID" -> pubID)) match {
 
         case Some(x) =>
@@ -72,6 +74,7 @@ object ScriptRetriever extends LazyLogging {
     } catch {
 
       case x:MongoException =>
+        logger.info("got mongo exception" + x.getMessage)
         getLocally(pubID)
     }
 

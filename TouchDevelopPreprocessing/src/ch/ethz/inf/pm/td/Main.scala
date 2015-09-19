@@ -36,6 +36,11 @@ object Main {
     val JobID = "-jobID=(.*)".r
     val Timeout = "-timeout=(.*)".r
 
+    // MongoSettings
+    val MongoServer = "-mongoServer=(.*)".r
+    val MongoPort = "-mongoPort=(.*)".r
+    val MongoDatabase = "-mongoDatabase=(.*)".r
+
     val nonOptions = args.filter{
       case ExportPath(x) => FileSystemExporter.exportPath = x; false
       case "-json" => Exporters.exportAsJSON = true; false
@@ -56,6 +61,10 @@ object Main {
       case "-feedMode" => mode = Mode.FeedMode; false
       case "-statistics" => mode = Mode.Statistics; false
       case "-fetchMode" => mode = Mode.FetchMode; false
+
+      case MongoServer(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoServer = x)); false
+      case MongoPort(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoPort = x.toInt)); false
+      case MongoDatabase(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoDatabase = x)); false
 
         // Undocumented tools
       case "-findCloud" => mode = Mode.FindCloud; false
@@ -157,9 +166,10 @@ object Main {
 
     }
 
+    val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
-    val mongoClient = MongoClient("localhost", 27017)
-    val collection = mongoClient("tb")("analysisJobs")
+    val mongoClient = MongoClient(settings.mongoServer, settings.mongoPort)
+    val collection = mongoClient(settings.mongoDatabase)("analysisJobs")
 
     mode match {
 
@@ -253,9 +263,10 @@ object Main {
    */
   def runFeedMode(args: Array[String]) {
 
+    val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
-    val mongoClient = MongoClient("localhost", 27017)
-    val collection = mongoClient("tb")("analysisJobs")
+    val mongoClient = MongoClient(settings.mongoServer, settings.mongoPort)
+    val collection = mongoClient(settings.mongoDatabase)("analysisJobs")
 
     val query = new NewScripts
 
@@ -340,11 +351,12 @@ object Main {
 
     println("Downloading fresh scripts, adding them to database")
 
+    val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
     import com.novus.salat._
     import com.novus.salat.global._
-    val mongoClient = MongoClient("localhost", 27017)
-    val programs = mongoClient("tb")("programs")
+    val mongoClient = MongoClient(settings.mongoServer, settings.mongoPort)
+    val programs = mongoClient(settings.mongoDatabase)("programs")
     for (script <- query) {
 
       try {
@@ -417,9 +429,10 @@ object Main {
     }
     if (otherArgs.nonEmpty) { println("Invalid argument"); sys.exit(1) }
 
+    val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
-    val mongoClient = MongoClient("localhost", 27017)
-    val collection = mongoClient("tb")("analysisJobs")
+    val mongoClient = MongoClient(settings.mongoServer, settings.mongoPort)
+    val collection = mongoClient(settings.mongoDatabase)("analysisJobs")
 
     while (true) {
 

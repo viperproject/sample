@@ -31,6 +31,17 @@ case class MetaDeclaration(ident:String,value:String)
   extends Declaration
   with IdPositional
 
+
+case class PageDefinition(ident:String,
+                            inParameters:List[Parameter],
+                            outParameters:List[Parameter],
+                            initBody:List[Statement],
+                            displayBody:List[Statement],
+                            isEvent:Boolean,
+                            isPrivate:Boolean)
+  extends Declaration
+  with IdPositional
+
 case class ActionDefinition(ident:String,
                             inParameters:List[Parameter],
                             outParameters:List[Parameter],

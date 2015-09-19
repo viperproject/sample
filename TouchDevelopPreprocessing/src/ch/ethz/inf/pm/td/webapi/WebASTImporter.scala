@@ -105,9 +105,9 @@ object WebASTImporter {
             val createRecord = Access(paramRecord, Identifier("create").setId(id), Nil).setId(id)
             val assignment = Access(LocalReference(modParam.ident).setId(id), Identifier(":=").setId(id), List(createRecord)).setId(id)
             val initCode = ExpressionStatement(assignment).setId(id)
-            ActionDefinition(name, inParameters.tail map convert, outParameters map convert, initCode :: convert(initBody) ::: convert(displayBody), isEvent = false, isPrivate).setId(id)
+            PageDefinition(name, inParameters.tail map convert, outParameters map convert, initCode :: convert(initBody), convert(displayBody), isEvent = false, isPrivate).setId(id)
           case _ =>
-            ActionDefinition(name, inParameters map convert, outParameters map convert, convert(initBody) ::: convert(displayBody), isEvent = false, isPrivate).setId(id)
+            PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isEvent = false, isPrivate).setId(id)
         }
       case JEvent(id, name, inParameters, outParameters, isPrivate, _, _,_, _, _,  eventName, eventVariableId, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
@@ -600,8 +600,8 @@ case class JEvent(
                    isAsync: Boolean,
                    description: String,
                    // when building provide name or both eventName and eventVariableId (which take precedence over name)
-                   eventName: String,
-                   eventVariableId: JNodeRef,
+                   eventName: Option[String],
+                   eventVariableId: Option[JNodeRef],
                    body: List[JStmt]
                    ) extends JActionBase
 

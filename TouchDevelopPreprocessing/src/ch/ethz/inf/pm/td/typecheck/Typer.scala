@@ -128,6 +128,9 @@ object Typer {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st(a) = ScopeSymbolTable(a, null, Map.empty) ++ inParameters ++ outParameters
         for (smt <- body) processStatement(a, st, smt)
+      case a@PageDefinition(name, inParameters, outParameters, initBody, displayBody, isEvent, isPrivate) =>
+        st(a) = ScopeSymbolTable(a, null, Map.empty) ++ inParameters ++ outParameters
+        for (smt <- initBody ++ displayBody) processStatement(a, st, smt)
       case _ => ()
     }
   }

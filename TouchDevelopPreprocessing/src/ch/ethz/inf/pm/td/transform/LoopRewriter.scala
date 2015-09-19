@@ -27,6 +27,7 @@ object LoopRewriter {
   def apply(d: Declaration): Declaration = {
     d match {
       case a: ActionDefinition => a.copy(body = a.body flatMap apply).copyPos(a)
+      case a: PageDefinition => a.copy(initBody = a.initBody flatMap apply, displayBody = a.displayBody flatMap apply).copyPos(a)
       case _ => d
     }
   }

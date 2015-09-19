@@ -21,6 +21,7 @@ object Matcher {
     onDeclaration(decl)
     decl match {
       case ActionDefinition(_,_,_,bd,_,_) => bd.foreach(apply)
+      case PageDefinition(_,_,_,initBody,displayBody,_,_) => initBody.foreach(apply); displayBody.foreach(apply)
       case _ => ()
     }
   }
