@@ -6,6 +6,7 @@ import java.util.NoSuchElementException
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{ScriptParser, Script}
 import ch.ethz.inf.pm.td.webapi.{JApp, ScriptQuery, URLFetcher, WebASTImporter}
+import com.novus.salat.util.MissingTypeHint
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.io.Source
@@ -62,8 +63,14 @@ object ScriptRetriever extends LazyLogging {
         case Some(x) =>
 
           val res = x.get("ast")
-          val japp = grater[JApp].asObject(res.asInstanceOf[BasicDBObject])
-          Some(WebASTImporter.convert(japp),Some(japp))
+          try {
+            val japp = grater[JApp].asObject(res.asInstanceOf[BasicDBObject])
+            Some(WebASTImporter.convert(japp),Some(japp))
+          } catch {
+            case x:MissingTypeHint =>
+              // Seems like the web interface added this. Here is my ugly trick: parse the JSON
+              WebASTImporter.convertFromStringBoth(res.asInstanceOf[BasicDBObject].toString)
+          }
 
         case None =>
 

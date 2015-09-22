@@ -4,7 +4,7 @@ import java.io.IOException
 
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
-import ch.ethz.inf.pm.td.tools.{FindCloud, FindConstruct}
+import ch.ethz.inf.pm.td.tools.{Instrumentation, FindCloud, FindConstruct}
 import ch.ethz.inf.pm.td.webapi._
 import com.mongodb.MongoException
 import net.liftweb.json.MappingException
@@ -26,7 +26,7 @@ object Main {
    */
   object Mode extends Enumeration {
     type Mode = Value
-    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud = Value
+    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument = Value
   }
 
   def main(args: Array[String]) {
@@ -61,6 +61,7 @@ object Main {
       case "-feedMode" => mode = Mode.FeedMode; false
       case "-statistics" => mode = Mode.Statistics; false
       case "-fetchMode" => mode = Mode.FetchMode; false
+      case "-instrument" => mode = Mode.Instrument; false
 
       case MongoServer(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoServer = x)); false
       case MongoPort(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoPort = x.toInt)); false
@@ -87,6 +88,8 @@ object Main {
         printStatistics(nonOptions)
       case Mode.FindCloud =>
         FindCloud.main(nonOptions)
+      case Mode.Instrument =>
+        Instrumentation.main(nonOptions)
     }
 
   }
@@ -110,6 +113,7 @@ object Main {
         |    Watches a the mongodb for incoming analysis jobs (nonterminating)
         |    Allows options as above
         |    -waitTime=[int] how often to poll, in ms.
+        |
         |
         |  (3) FeedMode, enabled by -feedMode
         |    Constantly feeds new analysis jobs into the database
@@ -135,6 +139,10 @@ object Main {
         |  (6) Fetch Mode, enabled by -fetchMode
         |    Downloads all scripts, puts them into the database, and scans for a specific feature
         |    -redownload    redownload existing scripts in database
+        |
+        |  (6) Instrument Mode, enabled by -instrument
+        |    Inserts runtime instrumentation into the script
+        |    -print    prints results instead of storing them in the database
         |
       """.stripMargin)
 
@@ -439,9 +447,14 @@ object Main {
       collection.findAndModify(MongoDBObject("status" -> "Waiting"), $set("status" -> "Initializing")) match {
         case Some(x) =>
           TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = x.getAs[Int]("timeout")))
-          if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
-          TouchRun.main(x.getAs[String]("url").toArray)
+          // Objective may be analysis or instrumentation
+          if (x.getAsOrElse[String]("objective","analysis") == "instrumentation") {
+            Instrumentation.main(x.getAs[String]("url").toArray)
+          } else {
+            if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
+            TouchRun.main(x.getAs[String]("url").toArray)
+          }
         case _ =>
           Thread.sleep(waitTime)
       }

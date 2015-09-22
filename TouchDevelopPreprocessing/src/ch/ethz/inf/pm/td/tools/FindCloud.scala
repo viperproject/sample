@@ -66,8 +66,8 @@ object FindCloud {
     "uvjba", // A bit interesting: Contains a concurrency bug (which is robust) -- It is a proper application and short!
     "cvuz",  // Could be very interesting, chat application
     "gbtxe", // Could be very interesting, social network
-    "", //
-    "", //
+    "whpgc", // Could be very interesting, vulcanization calc
+    "qwidc", //
     "", //
     "", //
     "", //
@@ -117,14 +117,14 @@ object FindCloud {
           } else if (excludedScripts.contains(programID)) {
             println("skipping " + programID + " (manually excluded)")
             None
+          } else if (update != programID) {
+            println("skipping "+programID+", as it is outdated. update: "+update)
+            None
           } else if (ishidden) {
             println("skipping " + programID + " (ishidden)")
             None
           } else if (excludedUsers.contains(user)) {
             println("skipping "+programID+" (by Microsoft employee)")
-            None
-          } else if (update != programID) {
-            println("skipping "+programID+", as it is outdated. update: "+update)
             None
           } else {
             Some("td://"+programID)

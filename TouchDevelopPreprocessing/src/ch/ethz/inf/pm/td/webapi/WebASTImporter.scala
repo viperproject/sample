@@ -383,14 +383,14 @@ case class JCall(
                   args: List[JExpr],
                   // If we are calling a *`type`* T on an expression (e.g. create ->
                   // Collection of -> T), then T will be in there.
-                  typeArgs: Option[List[JTypeRef]],
+                  typeArgs: Option[List[JTypeRef]] = None,
                   // The field below, if present, determines without ambiguity the nature
                   // of the call.
                   // - extension (the new special syntax)
                   // - field (reading a record field)
                   // Other types of calls can be determined by careful inspection of the
                   // receiver. See the C++ code emitter.
-                  callType: Option[String]
+                  callType: Option[String] = None
                   ) extends JExpr
 
 // Expressions can be represented in two different manners.
@@ -415,7 +415,7 @@ case class JCall(
 case class JExprHolder(
                         id: String,
                         // if tokens is unset, will try to use tree
-                        tokens: List[JToken],
+                        tokens: Option[List[JToken]],
                         tree: JExpr,
                         locals: List[JLocalDef] // locals variables defined in this expression
                         ) extends JNode
