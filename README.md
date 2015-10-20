@@ -11,4 +11,4 @@ This analyzer is generic with respect to:
 
 Sample is the engine that infers specification in [Semper](http://www.pm.inf.ethz.ch/research/semper).
 
-If you are new to Sample, take a look at the [Wiki](https://bitbucket.org/semperproject/sample/wiki) to get started.
+If you are new to Sample, take a look at the [Wiki](https://bitbucket.org/viperproject/sample/wiki) to get started.
