@@ -4,7 +4,7 @@ import java.io.IOException
 
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
-import ch.ethz.inf.pm.td.tools.{Instrumentation, FindCloud, FindConstruct}
+import ch.ethz.inf.pm.td.tools.{AnalyzeRecords, Instrumentation, FindCloud, FindConstruct}
 import ch.ethz.inf.pm.td.webapi._
 import com.mongodb.MongoException
 import net.liftweb.json.MappingException
@@ -26,7 +26,7 @@ object Main {
    */
   object Mode extends Enumeration {
     type Mode = Value
-    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument = Value
+    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument, AnalyzeRecords = Value
   }
 
   def main(args: Array[String]) {
@@ -69,6 +69,7 @@ object Main {
 
         // Undocumented tools
       case "-findCloud" => mode = Mode.FindCloud; false
+      case "-analyzeRecords" => mode = Mode.AnalyzeRecords; false
 
       case _ => true
     }
@@ -88,6 +89,8 @@ object Main {
         printStatistics(nonOptions)
       case Mode.FindCloud =>
         FindCloud.main(nonOptions)
+      case Mode.AnalyzeRecords =>
+        AnalyzeRecords.main(nonOptions)
       case Mode.Instrument =>
         Instrumentation.main(nonOptions)
     }

@@ -13,7 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
  */
 object Instrumentation extends LazyLogging {
 
-  val LIBRARY_ID = "wwxeimjf"
+  val LIBRARY_ID = "qvohalzg"
   var freshID = 324
   def fresh = { freshID += 1; freshID }
 
@@ -85,8 +85,6 @@ object Instrumentation extends LazyLogging {
 
   def traverse(x:JDecl)(implicit cloudDeclarations:Set[Target], scriptID:ScriptID): ResultState = {
 
-    // FIXME: Cloud declarations are fucked
-
     implicit val parentID:String = x.id
     val s = ResultState.empty ++ cloudDeclarations
 
@@ -95,8 +93,8 @@ object Instrumentation extends LazyLogging {
         implicit val parentField:String = x.id
         a.body.foldLeft(s)(traverse(x.id,"body"))
       case p:JPage =>
-        val x1 = p.displayBody.foldLeft(s)(traverse(x.id,"displayBody"))
-        val x2 = p.displayBody.foldLeft(s)(traverse(x.id,"initBody"))
+        val x1 = p.displayBody.foldLeft(s)(traverse(x.id,"displayBody",inDisplayBody = true))
+        val x2 = p.initBody.foldLeft(s)(traverse(x.id,"initBody"))
         x1 ++ x2
       case e:JEvent =>
         e.body.foldLeft(s)(traverse(x.id,"body"))
@@ -106,53 +104,55 @@ object Instrumentation extends LazyLogging {
 
   }
 
-  def processExprHolder(expr:JExprHolder, parentID:String, parentField:String, insertBeforeID:String)(inState:ResultState)(implicit scriptID:ScriptID): ResultState = {
-    val ret = getOps(State.empty ++ inState.tgts,expr.tree)
-    val result = if (ret.stmts.isEmpty) Nil else List(JResult(parentID,parentField,insertBeforeID,ret.stmts))
-    inState ++ result ++ ret.tgts
+  def processExprHolder(expr:JExprHolder, parentID:String, parentField:String, insertBeforeID:String, inDisplayBody:Boolean)(inState:ResultState)(implicit scriptID:ScriptID): ResultState = {
+    if (!inDisplayBody) {
+      val ret = getOps(State.empty ++ inState.tgts,expr.tree)
+      val result = if (ret.stmts.isEmpty) Nil else List(JResult(parentID,parentField,insertBeforeID,ret.stmts))
+      inState ++ result ++ ret.tgts
+    } else inState
   }
 
-  def traverse(parentID:String, parentField:String)(state:ResultState, x:JStmt)(implicit cloudDeclarations:Set[Target], scriptID:ScriptID): ResultState = {
+  def traverse(parentID:String, parentField:String, inDisplayBody:Boolean = false)(state:ResultState, x:JStmt)(implicit cloudDeclarations:Set[Target], scriptID:ScriptID): ResultState = {
 
     x match {
       case JExprStmt(id,expr) =>
-        processExprHolder(expr,parentID,parentField,id)(state)
+        processExprHolder(expr,parentID,parentField,id,inDisplayBody)(state)
       case JBoxed(id,body) =>
-        body.foldLeft(state)(traverse(id,"body"))
+        body.foldLeft(state)(traverse(id,"body",inDisplayBody))
       case JIf(id,condition,thenBody,elseBody,isElseIf) =>
-        val state1 = processExprHolder(condition,parentID,parentField,id)(state)
-        val state2 = thenBody.foldLeft(state1){traverse(id,"thenBody")}
-        val state3 = elseBody.foldLeft(state2){traverse(id,"elseBody")}
+        val state1 = processExprHolder(condition,parentID,parentField,id,inDisplayBody)(state)
+        val state2 = thenBody.foldLeft(state1){traverse(id,"thenBody",inDisplayBody)}
+        val state3 = elseBody.foldLeft(state2){traverse(id,"elseBody",inDisplayBody)}
         state3
       case JWhile(id,condition,body) =>
         // Insert before the loop
-        val state1 = processExprHolder(condition,parentID,parentField,id)(state)
+        val state1 = processExprHolder(condition,parentID,parentField,id,inDisplayBody)(state)
         // Insert at the end of the loop
-        val state2 = processExprHolder(condition,id,"body","")(state1)
-        val state3 = body.foldLeft(state2){traverse(id,"body")}
+        val state2 = processExprHolder(condition,id,"body","",inDisplayBody)(state1)
+        val state3 = body.foldLeft(state2){traverse(id,"body",inDisplayBody)}
         state3
       case JFor(id,index,bound,body) =>
         // Bound executed only once
-        val state1 = processExprHolder(bound,parentID,parentField,id)(state)
-        val state2 = body.foldLeft(state1){traverse(id,"body")}
+        val state1 = processExprHolder(bound,parentID,parentField,id,inDisplayBody)(state)
+        val state2 = body.foldLeft(state1){traverse(id,"body",inDisplayBody)}
         state2
       case JForeach(id,iterator,collection,conditions,body) =>
         // Collection is only evaluated once.
-        val state1 = processExprHolder(collection,parentID,parentField,id)(state)
+        val state1 = processExprHolder(collection,parentID,parentField,id,inDisplayBody)(state)
         // TODO: Handle conditions
-        val state2 = body.foldLeft(state1){traverse(id,"body")}
+        val state2 = body.foldLeft(state1){traverse(id,"body",inDisplayBody)}
         state2
       case JInlineActions(id,expr,actions) =>
         var curState = state
         for(action <- actions) {
           action match {
             case JInlineAction(inlineID,_,_,_,body,_,_,_) =>
-              curState = body.foldLeft(curState){traverse(inlineID,"body")}
+              curState = body.foldLeft(curState){traverse(inlineID,"body",inDisplayBody = false)} // leaving display body
             case JOptionalParameter(_,name,_,subExpr) =>
-              curState = processExprHolder(subExpr,parentID,parentField,id)(curState)
+              curState = processExprHolder(subExpr,parentID,parentField,id,inDisplayBody)(curState)
           }
         }
-        curState = processExprHolder(expr,parentID,parentField,id)(curState)
+        curState = processExprHolder(expr,parentID,parentField,id,inDisplayBody)(curState)
         curState
       case _ =>
         state
@@ -163,37 +163,37 @@ object Instrumentation extends LazyLogging {
 
   def getOps(state:State, x:JExpr)(implicit scriptID:ScriptID):State = {
 
-    x match {
-      case c:JCall =>
-        if (c.args.nonEmpty) {
-          findTarget(c.args.head)(state) match {
-            case Some(target) =>
-              val sub = c.args.tail.foldLeft(state)(getOps)
-              println(target+"  "+c.name)
-              sub ++ makeInstrumentation(x.id,c.name,List(
-                ("String",JStringLiteral(x.id+fresh,target.transTarget.toString))
-              ))
-            case None =>
+    // READ ACCESS?
+    findTarget(x)(state) match {
+      case Some(target) =>
+        println(target + "  " + "get")
+        state ++ makeInstrumentation(x.id, "get", List(
+          ("String", JStringLiteral(x.id + fresh, target.transTarget.toString))
+        ))
+      case None =>
+
+        x match {
+          case c: JCall =>
+            if (c.args.nonEmpty) {
+              findTarget(c.args.head)(state) match {
+                case Some(target) =>
+                  val sub = c.args.tail.foldLeft(state)(getOps)
+                  println(target + "  " + c.name)
+                  sub ++ makeInstrumentation(x.id, c.name, List(
+                    ("String", JStringLiteral(x.id + fresh, target.transTarget.toString))
+                  ))
+                case None =>
+                  c.args.foldLeft(state)(getOps)
+              }
+            } else {
               c.args.foldLeft(state)(getOps)
-          }
-        } else {
-          c.args.foldLeft(state)(getOps)
-        }
-        // TODO: Support for local refs?
-      case JShow(_,expr) => getOps(state,expr)
-      case JReturn(_,expr) => getOps(state,expr)
-      case _ =>
-        // READ ACCESS?
-        findTarget(x)(state) match {
-          case Some(target) =>
-            state ++ makeInstrumentation(x.id,"get",List(
-              ("String",JStringLiteral(x.id+fresh,target.transTarget.toString))
-            ))
-          case None =>
-            state
+            }
+          // TODO: Support for local refs?
+          case JShow(_, expr) => getOps(state, expr)
+          case JReturn(_, expr) => getOps(state, expr)
+          case _ => state
         }
     }
-
   }
 
   def findTarget(expr:JExpr)(state:State)(implicit scriptID:ScriptID):Option[Target] = {
@@ -230,11 +230,6 @@ object Instrumentation extends LazyLogging {
                   id = ast.id+fresh,
                   name = "op",
                   `type` = "Json Builder"
-                ),
-                JLocalDef(
-                  id = ast.id+fresh,
-                  name = "pid",
-                  `type` = "String"
                 )
               ),
               outParameters = Nil,
@@ -292,8 +287,7 @@ object Instrumentation extends LazyLogging {
           JCall(id+fresh,"Instrumentation Library","♻",None,List(
             JSingletonRef(id+fresh,"♻","♻")
           )),
-          JLocalRef(id+fresh,opVarName,opVarID),
-          JStringLiteral(id+fresh,scriptID.id)
+          JLocalRef(id+fresh,opVarName,opVarID)
         )), Nil
       ))
     )

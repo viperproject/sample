@@ -1,12 +1,9 @@
 package ch.ethz.inf.pm.td.tools
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Lattice, SetDomain}
-import ch.ethz.inf.pm.sample.oorepresentation.Variable
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.ScriptRetriever
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
-import ch.ethz.inf.pm.td.webapi.{JRecord, JPage, JApp}
 
 import scala.collection.mutable
 import scala.io.Source
@@ -16,78 +13,118 @@ import scala.io.Source
  */
 object FindCloud {
 
+  val HARD_PRUNE = true // prune hard.
+
   // Interesting: kjxzcgcv
   // Interesting: kmac
   // Interesting: gmxr
   // A bit intere
 
   val excludedScripts = Set(
-    "cpmjwmwm", // Broken
-    "ibtjkefl", // Broken
-    "ctbgc", // Broken
-    "mfixc", // Broken
-    "aeklg", // Nothing
-    "kmac", // Does make sense to use cloud
-    "oaoja", //  Does make sense to use cloud
-    "qjcbmkie", // Duplicate of sxseehfr
-    "ogccg", // Does not reference the clodu
-    "afbd",  // Just one of the maps
-    "wiwxa", // Just one of the maps
-    "akyuo", // Just one of the maps
-    "ynoqc", // Just one of the maps
-    "mwgcc", // Just one of the maps
-    "ylhcc", // Just one of the counters - its fine
-    "acayip", // Just one of the counters - its fine
-    "celr", // Just one of the counters - its fine
-    "gmoe", // Just one of the counters - its fine
-    "kwcc", // Just one of the counters - its fine
-    "pgksa", // Just one of the counters - its fine
-    "urigi", // Just one of the counters - its fine
-    "kxmfa", // Just one of the counters - its fine
-    "azuuc", // Just one of the counters - its fine
-    "mudz", // Just one of the counters - its fine
-    "gvdkc", // Just one of the counters - its fine
-    "iueq", // Just one of the counters - its fine
-    "sneva", // Just one of the cloud pics
-    "cclle", // Just one of the cloud pics
-    "ssevc", // Just one of the cloud pics
-    "ckiqg", // Just one of the cloud pics
-    "spyxa", // Just one of the cloud pics
-    "ecsic", // Just one of the favorite numbers
-    "klwf",  // Interesting, but partly broken!
-    "gmxr",  // Interesting, but multi-player mode broken!
-    "mogbb", // Okay interesting, but does not really make sense to use cloud types here!
-    "ohgxa", // Okay interesting -- game seems broken, but advertisements may be interesting
-    "wbuei", // Okay interesting, but can't interfere with each other
-    "ulvma", // Okay interesting, but can't interfere with each other
-    "kzwue", // Just one of the counters - it contains a bug (which is robust)
-    "uilfc", // A bit interesting: Contains a concurrency bug (which is robust)
-    "okdcc", // A bit interesting: Contains a concurrency bug (which is robust)
-    "uvjba", // A bit interesting: Contains a concurrency bug (which is robust) -- It is a proper application and short!
-    "cvuz",  // Could be very interesting, chat application
-    "gbtxe", // Could be very interesting, social network
-    "whpgc", // Could be very interesting, vulcanization calc
-    "qwidc", //
-    "", //
-    "", //
-    "", //
-    "", //
-    "" //
+      ""
+//    "cpmjwmwm", // Broken
+//    "ibtjkefl", // Broken
+//    "ctbgc", // Broken
+//    "mfixc", // Broken
+//    "aeklg", // Nothing
+//    "avfrc", // Nothing
+//    "kmac", // Does make sense to use cloud
+//    "oaoja", //  Does make sense to use cloud
+//    "qjcbmkie", // Duplicate of sxseehfr
+//    "ogccg", // Does not reference the clodu
+//    "afbd",  // Just one of the maps
+//    "wiwxa", // Just one of the maps
+//    "akyuo", // Just one of the maps
+//    "ynoqc", // Just one of the maps
+//    "mwgcc", // Just one of the maps
+//    "grrvc", // Just one of the maps
+//    "ylhcc", // Just one of the counters - its fine
+//    "acayip", // Just one of the counters - its fine
+//    "celr", // Just one of the counters - its fine
+//    "gmoe", // Just one of the counters - its fine
+//    "kwcc", // Just one of the counters - its fine
+//    "pgksa", // Just one of the counters - its fine
+//    "urigi", // Just one of the counters - its fine
+//    "kxmfa", // Just one of the counters - its fine
+//    "azuuc", // Just one of the counters - its fine
+//    "mudz", // Just one of the counters - its fine
+//    "gvdkc", // Just one of the counters - its fine
+//    "iueq", // Just one of the counters - its fine
+//    "suwhg", // Just one of the counters - its fine
+//    "iyju", // Just one of the counters - its fine
+//    "yevee", // Just one of the counters - its fine
+//    "sneva", // Just one of the cloud pics
+//    "cclle", // Just one of the cloud pics
+//    "ssevc", // Just one of the cloud pics
+//    "ckiqg", // Just one of the cloud pics
+//    "spyxa", // Just one of the cloud pics
+//    "mayyg", // Just one of the cloud pics
+//    "qhimb", // Just one of the cloud pics
+//    "ecsic", // Just one of the favorite numbers
+//    "cjicc", // Just one of the voters
+//    "wbova", // Number voter, but seems completely fine
+//    "ikpvc", // Does not make much sense to use cloud types like that - Flying Rocks game
+//    "gdbo",  // Picture diary, uses cloud for backup only - not interesting
+//    "snuy",  // SAME as gdbo
+//    "klwf",  // Interesting, but partly broken!
+//    "gmxr",  // Interesting, but multi-player mode broken!
+//    "mogbb", // Okay interesting, but does not really make sense to use cloud types here!
+//    "ohgxa", // Okay interesting -- game seems broken, advertisements seem top be fine
+//    "wbuei", // Okay interesting, but can't interfere with each other
+//    "ulvma", // Okay interesting, but can't interfere with each other
+//    "uilfc", // SAME AS kzwue
+//    "wxwsc", // SAME AS fqaba
+//    "ecsng", // SAME as qzju
+//    "okdcc", // Allows arbitrary modification of a row (through user). Also, a shit script
+//    "kzwue", // Just one of the counters - it contains a bug (which is robust)
+//    "uvjba", // A bit interesting: Contains a concurrency bug (which is robust) -- It is a proper application and short!
+//    "gcane", // A bit interesting: Contains a concurrency bug (which is robust) -- It is a proper application and short! (same as above)
+//    //  "cvuz",  // Could be very interesting, chat application, did not find anything
+//    "gbtxe", // Could be very interesting, social network
+//    "whpgc", // Could be very interesting, vulcanization calc
+//    "qnpge", // Could be very interesting, metaverse
+//    "qhqec", // Could be VERY interesting - Expense Tracker
+//    "kqfnc", // Could be VERY interesting - HackER - clearly not robust. Not supposed to be used in the cloud
+//    "fqaba", // Could be very interesting, Chatter Box (I could not see non-robust behavior)
+//    "qwidc", // Contains the sorting code. Pretty sure this is not robust, or is it?
+//    "pyhy",  // Broken due to TD bug
+//    "cavke", // Could be interesting, did not find anything (TouchDatabase)
+//    "qzju"   // Could be interesting, did not find anything (cloud cards)
   )
 
+  val fromThePaper = Set(
+    "ruef",  // Lets users enter their qualities (either from a list, or
+             //   freely entered) and finds and displays other users that share them.
+    "spji",  // A chat application.
+    "vkrpa", // Program a tiny robot using a simple language,
+             //   then share your scripts with other users.
+    "nggfa", // An app for quickly polling an audience and displaying
+             //   the responses as a grid of colors.
+    "nvoha", // Allows easy recording of expenses in a table.
+    "etww",  // Used to determine the winner of the “Touch of
+             //   Summer” coding contest.
+    "blqz",  // A general-purpose list that can be concurrently edited.
+    "nvjh",  // A library for matching multiple players
+             //   to play games together.
+    "sxjua"  // A simple rock/paper/scissors game that
+             //   uses the cloud game selector library
+  )
+
+
   val excludedUsers = Set(
-    "pboj", // TD Samples
-    "jeiv", // TD Docs
-    "frsk", // TD Demo
-    "vnzw", // TD Tests. ret
-    "wonm", // Michal
-    "ajlk", // Peli
-    "gxfb", // Nikolai
-    "ikyp", // Tom
-    "bqsl", // Sebastian
-    "dlkr", // Manuel
-    "expza", // Jonathan
-    "lxxx" // Microsoft Virtual Academy
+      ""
+//    "pboj", // TD Samples
+//    "jeiv", // TD Docs
+//    "frsk", // TD Demo
+//    "vnzw", // TD Tests. ret
+//    "wonm", // Michal
+//    "ajlk", // Peli
+//    "gxfb", // Nikolai
+//    "ikyp", // Tom
+//    "bqsl", // Sebastian
+//    "dlkr", // Manuel
+//    "expza", // Jonathan
+//    "lxxx" // Microsoft Virtual Academy
   )
 
   def main(args:Array[String]) {
@@ -97,6 +134,8 @@ object FindCloud {
 
       val files = if (arg.endsWith(".txt")) {
         Source.fromFile(arg, "utf-8").getLines()
+      } else if (arg == "-paperExamples") {
+        fromThePaper.map("td://"+_)
       } else if (arg == "-readFromDB") {
 
         val settings = TouchAnalysisParameters.get
@@ -240,8 +279,11 @@ object FindCloud {
             matching = Set.empty
             visitExpr(e)
             for (m <- matching) {
-              retState = retState + (subj,m)
-              set += ("   " + PrettyPrinter(stmt)({ (pp: IdPositional, s: String) => s })) + "// referencing " + m
+              val entry = ("   " + PrettyPrinter(stmt)({ (pp: IdPositional, s: String) => s })) + "// referencing " + m
+              if (!HARD_PRUNE || entry.contains("at") || entry.contains("add")) {
+                retState = retState + (subj,m)
+              }
+              set += entry
             }
           case ExpressionStatement(expr) =>
             matching = Set.empty
