@@ -10,8 +10,8 @@ package object vdha {
 
   object DefaultGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
     def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
-      val newRightIds = left.edgeLocalAndAccessPathIds diff right.ids.getNonTop
-      val newLeftIds = right.edgeLocalAndAccessPathIds diff left.ids.getNonTop
+      val newRightIds = left.edgeLocalAndAccessPathIds diff right.ids.getNonTopUnsafe
+      val newLeftIds = right.edgeLocalAndAccessPathIds diff left.ids.getNonTopUnsafe
       val newLeft = left.createVariables(newLeftIds)
       val newRight = right.createVariables(newRightIds)
       newLeft.glb(newRight)
@@ -65,11 +65,11 @@ package object vdha {
   implicit class ExtendedSemanticDomain[S <: SemanticDomain[S]](state: S) {
     /** Returns all variable identifiers in the state. */
     def variableIds: Set[VariableIdentifier] =
-      state.ids.getNonTop.collect({ case id: VariableIdentifier => id })
+      state.ids.getNonTopUnsafe.collect({ case id: VariableIdentifier => id })
 
     /** Returns all value heap identifiers in the state. */
     def valueHeapIds: Set[ValueHeapIdentifier] =
-      state.ids.getNonTop.collect({ case id: ValueHeapIdentifier => id })
+      state.ids.getNonTopUnsafe.collect({ case id: ValueHeapIdentifier => id })
 
     /** Returns all value heap identifiers of a certain vertex in the state. */
     def valueHeapIds(vertex: Vertex): Set[ValueHeapIdentifier] =
@@ -77,7 +77,7 @@ package object vdha {
 
     /** Returns all edge-local identifiers in the state. */
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
-      state.ids.getNonTop.collect({ case id: EdgeLocalIdentifier => id })
+      state.ids.getNonTopUnsafe.collect({ case id: EdgeLocalIdentifier => id })
 
     /** Returns all source edge-local identifiers in the state. */
     def sourceEdgeLocalIds: Set[EdgeLocalIdentifier] =
@@ -93,11 +93,11 @@ package object vdha {
 
     /** Returns all access path identifiers in th state. */
     def accPathIds: Set[AccessPathIdentifier] =
-      state.ids.getNonTop.collect({ case id: AccessPathIdentifier => id })
+      state.ids.getNonTopUnsafe.collect({ case id: AccessPathIdentifier => id })
 
     /** Returns all edge-local and access path identifiers in the state. */
     def edgeLocalAndAccessPathIds: Set[Identifier] =
-      state.ids.getNonTop.filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
+      state.ids.getNonTopUnsafe.filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
         id.isInstanceOf[AccessPathIdentifier])
 
     /** Returns the GLB of this and another state, but takes the union

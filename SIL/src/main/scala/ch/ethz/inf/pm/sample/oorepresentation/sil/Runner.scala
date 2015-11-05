@@ -177,7 +177,7 @@ case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
     case event: PredicateIdentifierMergeEvent =>
       // Only abort the analysis if the merge affects the predicate IDs
       // in the original state
-      if (initialPreds.ids.getNonTop.intersect(event.predIdMerge.predIds.toSet).nonEmpty) {
+      if (initialPreds.ids.getNonTopUnsafe.intersect(event.predIdMerge.predIds.toSet).nonEmpty) {
         val preds = state.generalValState.predDefs
         throw new AnalysisRestartException(preds)
       }

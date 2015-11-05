@@ -79,7 +79,7 @@ case class PredicateDefinitionsDomain(
 
     // Nothing to do when none of the predicate identifiers to be merged occur.
     // TODO: Investigate why this situation can occur for firstnaturals.sil.
-    if (ids.getNonTop.diff(predIdMerge.predIds.toSet[Identifier]).isEmpty) return this
+    if (ids.getNonTopUnsafe.diff(predIdMerge.predIds.toSet[Identifier]).isEmpty) return this
 
     var newMap = map.mapValues(_.merge(predIdMerge))
     val newTargetPredBody = Lattice.bigLub(newMap.filterKeys(predIdMerge.predIds.contains).values)

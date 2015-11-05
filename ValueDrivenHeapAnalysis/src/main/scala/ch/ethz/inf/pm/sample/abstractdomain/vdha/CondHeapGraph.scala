@@ -100,7 +100,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    */
   def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
-    val accessPathIds = expr.ids.getNonTop.collect {
+    val accessPathIds = expr.ids.getNonTopUnsafe.collect {
       case v: VariableIdentifier if !v.typ.isNumericalType =>
         AccessPathIdentifier(v)
       case apId: AccessPathIdentifier => apId

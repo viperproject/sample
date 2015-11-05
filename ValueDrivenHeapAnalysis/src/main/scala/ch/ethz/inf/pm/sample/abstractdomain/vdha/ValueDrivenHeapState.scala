@@ -94,8 +94,8 @@ trait ValueDrivenHeapState[
       abstractHeap = abstractHeap.createVariables(ids),
       generalValState = generalValState.createVariables(ids))
   } ensuring (result =>
-    ids.subsetOf(result.generalValState.ids.getNonTop) &&
-    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids.getNonTop)),
+    ids.subsetOf(result.generalValState.ids.getNonTopUnsafe) &&
+    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids.getNonTopUnsafe)),
     "the variable is created in all value states")
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
@@ -272,7 +272,7 @@ trait ValueDrivenHeapState[
             // We build the replacement that for each ValueHeapIdentifier corresponding to the vertex, expands it to
             // target EdgeLocalIdentifier.
             val repl = new Replacement()
-            for (id <- leftCond.ids.getNonTop.collect({
+            for (id <- leftCond.ids.getNonTopUnsafe.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
               repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last.getName)), id)))

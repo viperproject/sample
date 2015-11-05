@@ -21,7 +21,7 @@ case class SummaryNodeWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
 
     // Handling of summary nodes on the right side -> Materialize
     val res =
-      if (expr.ids.getNonTop.filter(x => !x.representsSingleVariable).nonEmpty) {
+      if (expr.ids.getNonTop.exists(x => !x.representsSingleVariable)) {
         materializeSummaryNodes(expr, wrapped, (someExpr, someState) => {
           someState.assign(variable, someExpr)
         })
@@ -41,7 +41,7 @@ case class SummaryNodeWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
     if (expr.ids.isTop) return this
 
     // Handling of summary nodes on the right side -> Materialize
-    if (expr.ids.getNonTop.filter(x => !x.representsSingleVariable).nonEmpty) {
+    if (expr.ids.getNonTop.exists(x => !x.representsSingleVariable)) {
       wrapperFactory(materializeSummaryNodes(expr, wrapped, (someExpr, someState) => {
         someState.assume(someExpr)
       }))

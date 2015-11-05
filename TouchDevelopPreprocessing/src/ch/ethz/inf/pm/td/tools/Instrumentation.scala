@@ -181,7 +181,10 @@ object Instrumentation extends LazyLogging {
                   println(target + "  " + c.name)
                   sub ++ makeInstrumentation(x.id, c.name, List(
                     ("String", JStringLiteral(x.id + fresh, target.transTarget.toString))
-                  ))
+                  ) :: c.args.tail map { y =>
+                    ("String", JStringLiteral(x.id + fresh, y.toString))
+                  }
+                  )
                 case None =>
                   c.args.foldLeft(state)(getOps)
               }

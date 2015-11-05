@@ -829,8 +829,8 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
 
   def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
     // Create all non-predicate instance variables that are missing
-    val newRightIds = (left.edgeLocalAndAccessPathIds diff right.ids.getNonTop).filterNot(_.typ == PredType)
-    val newLeftIds = (right.edgeLocalAndAccessPathIds diff left.ids.getNonTop).filterNot(_.typ == PredType)
+    val newRightIds = (left.edgeLocalAndAccessPathIds diff right.ids.getNonTopUnsafe).filterNot(_.typ == PredType)
+    val newLeftIds = (right.edgeLocalAndAccessPathIds diff left.ids.getNonTopUnsafe).filterNot(_.typ == PredType)
 
     // Problem: Just creating all missing predicate instance variables
     // and setting them to bottom does not work, because the resulting

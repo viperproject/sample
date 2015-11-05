@@ -620,6 +620,7 @@ trait IdentifierSet extends SetDomain[Identifier,IdentifierSet] with SimplifiedM
 
   def getNonTop:Set[Identifier]
 
+  def getNonTopUnsafe:Set[Identifier]
 
 }
 
@@ -632,6 +633,7 @@ object IdentifierSet {
     override def fold(idsA: Set[Identifier], idB: Identifier) = this
     override def add(ids: Set[Identifier]) = factory(ids)
     override def getNonTop:Set[Identifier] = Set.empty
+    override def getNonTopUnsafe:Set[Identifier] = Set.empty
   }
 
   object Top extends SetDomain.Top[Identifier,IdentifierSet] with IdentifierSet {
@@ -641,6 +643,7 @@ object IdentifierSet {
     override def fold(idsA: Set[Identifier], idB: Identifier) = this
     override def add(ids: Set[Identifier]) = this
     override def getNonTop:Set[Identifier] = throw new UnsupportedOperationException("Invalid access")
+    override def getNonTopUnsafe:Set[Identifier] = { println("trying to convert top lattice to set --- unsound"); Set.empty }
   }
 
   case class Inner(value:Set[Identifier]) extends SetDomain.Inner[Identifier,IdentifierSet,Inner] with IdentifierSet {
@@ -650,6 +653,7 @@ object IdentifierSet {
     override def fold(idsA: Set[Identifier], idB: Identifier) = factory(value -- idsA + idB)
     override def add(ids: Set[Identifier]) = factory(value ++ ids)
     override def getNonTop:Set[Identifier] = value
+    override def getNonTopUnsafe:Set[Identifier] = value
   }
 
 }
