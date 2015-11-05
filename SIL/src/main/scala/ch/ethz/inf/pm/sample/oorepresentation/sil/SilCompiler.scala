@@ -41,7 +41,7 @@ class SilCompiler extends Compiler {
     classes.get
   }
 
-  def allMethods: List[MethodDeclaration] = classes.get.map(_.methods).flatten
+  def allMethods: List[MethodDeclaration] = classes.get.flatMap(_.methods)
 
   def allMethodNames(): List[String] =
     for (clazz <- classes.get; method <- clazz.methods) yield method.name.toString
@@ -72,6 +72,6 @@ class SilCompiler extends Compiler {
   }
 
   def refType: RefType =
-    classes.get(0).typ.asInstanceOf[RefType]
+    classes.get.head.typ.asInstanceOf[RefType]
 }
 

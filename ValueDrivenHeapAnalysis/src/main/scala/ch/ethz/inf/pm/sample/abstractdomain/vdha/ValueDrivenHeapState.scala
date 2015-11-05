@@ -65,7 +65,7 @@ trait ValueDrivenHeapState[
         abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
     } else {
-      createNonObjectVariables(Set(variable)).copy(expr = ExpressionSet(variable))
+      createNonObjectVariables(IdentifierSet.Inner(Set(variable))).copy(expr = ExpressionSet(variable))
     }
   }
 
@@ -88,14 +88,14 @@ trait ValueDrivenHeapState[
     *            identifiers are added at once, so this method takes a set.
     * @return the new state, with unmodified expression
     */
-  protected def createNonObjectVariables(ids: Set[Identifier]): T = {
-    require(ids.forall(!_.typ.isObject), "cannot create object variables")
+  protected def createNonObjectVariables(ids: IdentifierSet): T = {
+    require(ids.getNonTopUnsafe.forall(!_.typ.isObject), "cannot create object variables")
     copy(
-      abstractHeap = abstractHeap.createVariables(ids),
-      generalValState = generalValState.createVariables(ids))
+      abstractHeap = abstractHeap.createVariables(ids.getNonTopUnsafe),
+      generalValState = generalValState.createVariables(ids.getNonTopUnsafe))
   } ensuring (result =>
-    ids.subsetOf(result.generalValState.ids.getNonTopUnsafe) &&
-    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids.getNonTopUnsafe)),
+    ids.lessEqual(result.generalValState.ids) &&
+    result.abstractHeap.edges.forall(e => ids.lessEqual(e.state.ids)),
     "the variable is created in all value states")
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
@@ -600,7 +600,7 @@ trait ValueDrivenHeapState[
 
     // Create the value heap identifiers in all states
     var newState = copy(abstractHeap = newAbstractHeap)
-    newState = newState.createNonObjectVariables(newVertex.valueHeapIds)
+    newState = newState.createNonObjectVariables(IdentifierSet.Inner(newVertex.valueHeapIds))
 
     // Create the new edges
     val newEdges = typ.objectFields.map(field => {

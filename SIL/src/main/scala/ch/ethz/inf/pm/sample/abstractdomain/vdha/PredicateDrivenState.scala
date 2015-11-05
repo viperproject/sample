@@ -213,7 +213,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     // First create definitions for the given IDs in all edge states,
     // then put Folded labels on the individual edges
-    createNonObjectVariables(predIds.toSet).mapEdges(edge => {
+    createNonObjectVariables(IdentifierSet.Inner(predIds.toSet)).mapEdges(edge => {
       edgeVerticesToPredId.get(edge.vertices) match {
         case Some(predId) =>
           val predInstId = PredicateInstanceIdentifier.make(predId)
@@ -333,7 +333,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val predInstId = PredicateInstanceIdentifier.make(predId)
 
         result
-          .createNonObjectVariables(Set(predId))
+          .createNonObjectVariables(IdentifierSet.Inner(Set(predId)))
           .assignPredicateInstanceState(List(left), predInstId, Unfolded)
       case _ =>
         result
