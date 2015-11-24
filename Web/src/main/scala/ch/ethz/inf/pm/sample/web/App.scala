@@ -70,7 +70,7 @@ abstract class App extends ScalatraServlet {
     val analysisRunner = availableAnalysisRunners(params("index").toInt)
     analysisRunnerOption = Some[AnalysisRunner[_ <: State[_]]](analysisRunner)
     resultsOption = None
-    redirect("/")
+    redirect("/"+prefix+"/")
   }
 
   /** Renders the list of analysis results that the user can inspect. */
@@ -138,10 +138,10 @@ abstract class App extends ScalatraServlet {
 class SilApp extends App {
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
   val availableAnalysisRunners = Seq(
-    PredicateAnalysisRunner
+    PredicateAnalysisRunner,
 // TODO: Instantiates existential type with several types
-//    DefaultAnalysisRunner,
-//    PreciseAnalysisRunner
+    DefaultAnalysisRunner,
+    PreciseAnalysisRunner
   )
   val prefix = "sil"
 }

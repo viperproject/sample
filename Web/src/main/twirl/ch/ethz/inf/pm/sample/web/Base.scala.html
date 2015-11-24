@@ -39,7 +39,7 @@
                     </a>
                     <ul class="dropdown-menu">
                         @app.availableAnalysisRunners.zipWithIndex.map { runnerAndIndex =>
-                        <li><a href="/runner/?index=@runnerAndIndex._2">@runnerAndIndex._1.toString</a></li>
+                        <li><a href="/@app.prefix/runner/?index=@runnerAndIndex._2">@runnerAndIndex._1.toString</a></li>
                         }
                     </ul>
                 </li>
