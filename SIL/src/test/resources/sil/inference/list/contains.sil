@@ -2,8 +2,8 @@
 // to terminate before the fixed point is reached
 //:: IgnoreFile(/sample/issue/999/)
 
-var next: Ref
-var val: Int
+field next: Ref
+field val: Int
 
 /** Returns true if the given `needle` reference occurs as an element
   * of the given linked list. */

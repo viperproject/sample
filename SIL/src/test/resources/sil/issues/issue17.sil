@@ -1,8 +1,8 @@
 // Issue #17 Assume non-nullness when accessing an AccessPathExpression
 
-var b: Ref
-var c: Ref
-var val: Int
+field b: Ref
+field c: Ref
+field val: Int
 
 method issue(a: Ref) {
     a.b.c.val := 5

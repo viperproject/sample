@@ -1,11 +1,11 @@
 // Test that the inferred precondition only includes permissions
 // to fields that are actually accessed
 
-var ref: Ref
-var otherRef: Ref
+field ref: Ref
+field otherRef: Ref
 
-var val: Int
-var otherVal: Int
+field val: Int
+field otherVal: Int
 
 /** Method that accesses the fields 'ref' and 'val' of its parameter. */
 method accessFields(this: Ref) {

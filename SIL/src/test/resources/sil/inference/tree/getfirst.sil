@@ -1,6 +1,6 @@
-var val: Int
-var left: Ref
-var right: Ref
+field val: Int
+field left: Ref
+field right: Ref
 
 /** Returns the value of the leftmost child. */
 method getFirst(tree: Ref) returns (first: Int) {

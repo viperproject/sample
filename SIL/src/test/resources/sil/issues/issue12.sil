@@ -1,6 +1,6 @@
 // Issue #12: Numerical AccessPathExpressions not supported in assignField
 
-var val: Int
+field val: Int
 
 method copy(this: Ref) returns (other: Ref) {
     other := new()

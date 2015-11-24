@@ -1,10 +1,7 @@
 resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.7.0-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.1.1")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.0.4")
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.1")
 
-addSbtPlugin("org.scalatra.sbt" % "scalatra-sbt" % "0.3.5")
-
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.12.0")
-
+addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.1.9")

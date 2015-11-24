@@ -1,5 +1,5 @@
-var val1: Int
-var val2: Int
+field val1: Int
+field val2: Int
 
 /** Assigns values to one of the fields of the given object
   * depending on the given flag.

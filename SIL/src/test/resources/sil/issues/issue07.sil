@@ -1,6 +1,6 @@
 // Issue #7: Assuming ReferenceComparisonExpression is not implemented yet
 
-var next: Ref
+field next: Ref
 
 method issue(this: Ref) {
     assert(this.next == this.next)

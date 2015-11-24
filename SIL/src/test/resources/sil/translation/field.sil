@@ -1,6 +1,6 @@
 // Test declaration and access of fields
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 method test_access(this: Ref)
 	requires (this != null)

@@ -1,7 +1,7 @@
 // Issue 34: Imprecise simple boolean variable assignment
 
 method issue(b: Bool) {
-    var bLocal: Bool
+    field bLocal: Bool
     bLocal := b
     assert (bLocal == b)
 }

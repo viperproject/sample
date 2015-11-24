@@ -23,7 +23,7 @@ class MongoExporter extends ErrorExporter {
     try {
       MongoExporter.client.update(MongoDBObject("jobID" -> Exporters.jobID), $set("debug" -> s))
     } catch {
-      case x: MongoException.Network => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
       case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
     }
 
@@ -34,7 +34,7 @@ class MongoExporter extends ErrorExporter {
     try {
       MongoExporter.client.update(MongoDBObject("jobID" -> Exporters.jobID), $set("status" -> s))
     } catch {
-      case x: MongoException.Network => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
       case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
     }
 
@@ -96,7 +96,7 @@ class MongoExporter extends ErrorExporter {
       ))
 
     } catch {
-      case x: MongoException.Network => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
       case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
     }
 

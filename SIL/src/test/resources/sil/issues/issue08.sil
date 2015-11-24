@@ -1,6 +1,6 @@
 // Issue #8: HeapGraph.isBottom returns true if there is an uninitialized local variable
 
-var val: Int
+field val: Int
 
 method issue8() {
     var t: Ref

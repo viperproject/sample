@@ -1,5 +1,5 @@
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Returns the value of the first list element. */
 method peek(list: Ref) returns (res: Int) {

@@ -1,8 +1,8 @@
 // Issue #23: Null-edge states of argument variables contain identifiers
 // of nonexistent heap vertices
 
-var val: Int
-var ref: Ref
+field val: Int
+field ref: Ref
 
 method issue(a: Ref) {
     var local: Ref

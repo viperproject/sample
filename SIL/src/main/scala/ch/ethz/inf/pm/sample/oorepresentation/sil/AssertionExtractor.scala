@@ -58,7 +58,7 @@ case class DefaultPredicateRegistry(
 
     if (samplePredBody.isShallow && hideShallowPredicates) {
       val formalPredArg = silPred.formalArgs.head.localVar
-      silPred.body.transform()(post = {
+      silPred.body.get.transform()(post = { // FIXME: can we have none here?
         case rcv: sil.LocalVar if formalPredArg == rcv => localVar
       })
     } else {
@@ -132,7 +132,7 @@ case class PredicateRegistryBuilder(
       case (predId, (samplePred, silPred)) =>
         val predBody = extractedPreds.map(predId)
         if (silPred.body == null) {
-          silPred.body = buildBody(predBody, predMap)
+          silPred.body = Some(buildBody(predBody, predMap))
         }
     })
 

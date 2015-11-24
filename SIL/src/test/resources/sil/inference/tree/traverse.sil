@@ -1,6 +1,6 @@
-var left: Ref
-var right: Ref
-var val: Int
+field left: Ref
+field right: Ref
+field val: Int
 
 /** Traverses a binary tree by recursing to the left or right child,
   * depending on the value at the current node.

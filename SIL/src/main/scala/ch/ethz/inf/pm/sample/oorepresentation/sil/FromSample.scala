@@ -42,7 +42,7 @@ object DefaultSampleConverter extends SampleConverter {
     }
     case sample.UnaryArithmeticExpression(inner, op, typ) => op match {
       case ArithmeticOperator.`+` => go(inner)
-      case ArithmeticOperator.`-` => sil.Neg(go(inner))()
+      case ArithmeticOperator.`-` => sil.Minus(go(inner))()
     }
     case sample.Constant(c, typ, pp) => typ match {
       case sample.BoolType => c match {

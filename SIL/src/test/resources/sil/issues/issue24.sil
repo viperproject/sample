@@ -1,6 +1,6 @@
 // Issue #24: Imprecision in field assignment
 
-var val: Int
+field val: Int
 
 method issue(a: Ref, b: Ref) {
     var bVal: Int

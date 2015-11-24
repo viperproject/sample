@@ -10,16 +10,10 @@ unmanagedJars in Compile <++= baseDirectory map { base =>
   customJars.classpath
 }
 
-libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2"
+libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.4"
 
-libraryDependencies += "net.liftweb" %% "lift-json" % "2.6-RC2"
+libraryDependencies += "net.liftweb" %% "lift-json" % "2.6.2"
 
-// Make sure to use the same version of scalatest that was used to compile
-// the SIL testing infrastructure class files to avoid IncompatibleClassErrors
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1"
-
-libraryDependencies += "org.mongodb" %% "casbah" % "2.7.4"
-
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0"
+libraryDependencies += "org.mongodb" %% "casbah" % "3.0.0"
 
 libraryDependencies += "com.novus" %% "salat" % "1.9.9"

@@ -1,5 +1,5 @@
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Traverses a given linked list and sets the value of each element to zero. */
 method setToZero(list: Ref)

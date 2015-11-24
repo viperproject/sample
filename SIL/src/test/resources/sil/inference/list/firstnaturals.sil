@@ -1,5 +1,5 @@
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Returns a linked list of the first n natural numbers. */
 method firstNaturals(n: Int)

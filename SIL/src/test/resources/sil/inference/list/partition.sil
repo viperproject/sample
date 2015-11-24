@@ -1,7 +1,7 @@
 //:: IgnoreFile(/sample/issue/41/)
 
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Partitions a list into two lists where one of the list contains
   * all list elements whose value is smaller than the given key,

@@ -1,5 +1,5 @@
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Prepends a new element with a given value to the given list. */
 method prepend(this: Ref, val: Int) returns (newList: Ref) {

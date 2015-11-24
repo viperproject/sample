@@ -1,4 +1,4 @@
-var val: Int
+field val: Int
 
 /** Sets the value of a container. */
 method set(c: Ref, i: Int) {

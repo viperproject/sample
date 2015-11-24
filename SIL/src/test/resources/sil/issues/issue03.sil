@@ -1,6 +1,6 @@
 // Issue #3: AccessPathIdentifier.identifiers is not implemented
 
-var val: Int
+field val: Int
 
 method issue(this: Ref) {
     this.val := 2

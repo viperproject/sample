@@ -1,6 +1,6 @@
 // Issue #22: Infinite loop when analyzing program with loop
 
-var next: Ref
+field next: Ref
 
 method traverse(list: Ref) {
     var cur: Ref

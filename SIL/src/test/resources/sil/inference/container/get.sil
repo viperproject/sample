@@ -1,4 +1,4 @@
-var val: Int
+field val: Int
 
 /** Returns the value stored in the given container. */
 method get(c: Ref) returns (i: Int) {

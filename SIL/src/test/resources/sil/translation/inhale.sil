@@ -5,7 +5,7 @@ method test_pure_inhale(b: Bool) {
 	assert (!b)
 }
 
-var f: Int
+field f: Int
 
 method test_inhale_with_permissions(b: Bool, this: Ref) {
 	inhale (acc(this.f, write))

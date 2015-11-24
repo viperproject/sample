@@ -1,4 +1,4 @@
-var val: Int
+field val: Int
 
 /** Creates a new container whose value is the same as the given container.
   * Returns null if and only if the parameter is null.
@@ -36,7 +36,7 @@ method testOldValue() {
 }
 
 method testNull() {
-    var res: Ref
+    field res: Ref
     res := copyNullable(null)
 
     assert(res == null)

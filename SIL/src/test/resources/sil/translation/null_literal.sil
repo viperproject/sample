@@ -1,5 +1,5 @@
 // Test the null literal
-var field: Ref
+field field: Ref
 
 method test_variables(flag: Bool) {
 	var a: Ref

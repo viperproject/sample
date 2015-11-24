@@ -1,5 +1,5 @@
-var val: Int
-var next: Ref
+field val: Int
+field next: Ref
 
 /** Reverses a linked list in place and returns the first element
   * of the reversed list.

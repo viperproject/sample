@@ -1,6 +1,6 @@
 // Issue #19: Imprecision when assuming expression on materialized heap
 
-var val: Int
+field val: Int
 
 method issue(a: Ref, b: Ref) {
     if (a.val > b.val) {

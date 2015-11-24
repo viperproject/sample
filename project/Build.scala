@@ -1,6 +1,5 @@
 import sbt._
-import Keys._
-import org.scalatra.sbt._
+import sbt.Keys._
 import play.twirl.sbt.SbtTwirl
 
 object SampleBuild extends Build {
@@ -48,9 +47,7 @@ object SampleBuild extends Build {
   lazy val web = Project(
     id = "sample-web",
     base = file("Web"),
-    settings =
-      Defaults.coreDefaultSettings ++
-      ScalatraPlugin.scalatraSettings).enablePlugins(SbtTwirl).dependsOn(
+    settings = Defaults.coreDefaultSettings).enablePlugins(SbtTwirl).dependsOn(
     core, numerical, valuedrivenheap, sil, touchdevelop)
 
   // Custom configuration key to specify apron shared library location
@@ -72,6 +69,12 @@ object SampleBuild extends Build {
     scalacOptions in Compile ++= Seq(
       "-optimise",
       "-Xelide-below", "3000"
+    ),
+    libraryDependencies ++= Seq(
+      "ch.qos.logback" % "logback-classic" % "1.1.3" % "runtime", // Logging Backend
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",  // Logging Frontend
+      "org.scalatest" % "scalatest_2.11" % "2.2.1",               // Testing Framework
+      "org.scalaz" %% "scalaz-core" % "7.1.5"                     // Functional Programming
     )
   )
 

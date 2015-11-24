@@ -85,10 +85,11 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
       name = sample.MethodIdentifier(f.name),
       parametricType = Nil,
       arguments = f.formalArgs.map(go).toList :: List(resultVarDecl) :: Nil,
-      returnType = go(f.exp.typ),
+      returnType = go(f.result.typ),
       body = {
         val cfg = new sample.ControlFlowGraph(go(f.pos))
-        val resultAssign = sample.Assignment(go(f.pos), resultVar, right = go(f.exp))
+        // FIXME: may not allow functions without bodies
+        val resultAssign = sample.Assignment(go(f.pos), resultVar, right = go(f.body.get))
         cfg.addNode(resultAssign :: resultVar :: Nil)
         cfg
       },
@@ -137,7 +138,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
   def convert(pos: sil.Position): sample.ProgramPoint = pos match {
     case sil.NoPosition => sample.DummyProgramPoint
-    case pos: sil.RealPosition => sample.WrappedProgramPoint(pos)
+    case pos: sil.HasLineColumn => sample.WrappedProgramPoint(pos)
   }
 
   def convert(p: sil.Type): sample.Type = p match {
@@ -312,7 +313,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
     // Reorder null-ness check expressions such that the null literals always
     // appear on the right side. Makes it easier to pattern-match later.
-    val normalizedBody = pred.body.transform()(post = {
+    val normalizedBody = pred.body.get.transform()(post = { // TODO: may not allow abstract predicates
       case n @ sil.NeCmp(left @ sil.NullLit(), right) =>
         n.copy(right, left)(n.pos, n.info)
     })

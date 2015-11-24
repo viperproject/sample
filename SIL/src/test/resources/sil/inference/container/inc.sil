@@ -1,4 +1,4 @@
-var val: Int
+field val: Int
 
 /** Returns a new container whose value is one greater than the value
   * of the given container.

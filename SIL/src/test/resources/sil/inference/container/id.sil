@@ -1,4 +1,4 @@
-var val: Int
+field val: Int
 
 /** Just accesses the value of the given container and returns the container.
   * The inferred post-condition must only give permission to one heap location.

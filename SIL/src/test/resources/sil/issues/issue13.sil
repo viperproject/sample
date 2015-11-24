@@ -1,7 +1,7 @@
 // Issue #13: IllegalArgumentException in apron.Environment:
 // environment has duplicate names
 
-var val: Int
+field val: Int
 
 method issue13(this: Ref) {
     if (this.val < 0) {
