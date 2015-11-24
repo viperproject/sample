@@ -47,8 +47,8 @@ object SampleBuild extends Build {
   lazy val web = Project(
     id = "sample-web",
     base = file("Web"),
-    settings = Defaults.coreDefaultSettings).enablePlugins(SbtTwirl).dependsOn(
-    core, numerical, valuedrivenheap, sil, touchdevelop)
+    settings = Defaults.coreDefaultSettings++ com.earldouglas.xwp.XwpPlugin.jetty()
+  ).enablePlugins(SbtTwirl).dependsOn(core, numerical, valuedrivenheap, sil, touchdevelop)
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",

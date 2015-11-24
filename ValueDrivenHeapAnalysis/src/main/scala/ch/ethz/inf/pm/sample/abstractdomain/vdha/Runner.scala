@@ -9,7 +9,7 @@ E <: SemanticDomain[E], // Edge state domain
 T <: ValueDrivenHeapState[E, T]]
   extends EntryStateBuilder[T] {
 
-  protected def topApronInterface: Apron.Polyhedra = Apron.Polyhedra.Top
+  protected def topApronInterface: Apron.Polyhedra = Apron.Polyhedra.Top.factory()
 
   protected def topHeapGraph: HeapGraph[E] =
     HeapGraph[E]()
