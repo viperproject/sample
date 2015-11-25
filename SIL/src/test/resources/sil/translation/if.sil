@@ -36,7 +36,7 @@ method test_elsif() {
 	var a: Int
 	if (false) {
 		a := 2
-	} elsif (true) {
+	} elseif (true) {
 		a := 3
 	} else {
 		a := 1

@@ -123,7 +123,7 @@ trait ValueDrivenHeapState[
         .addHeapVertices(SUMMARY, objectTypes)
 
       // Create general value state, retaining old variable identifiers
-      val newGeneralValState = generalValState.top()
+      val newGeneralValState = generalValState.factory()
         .createVariables(generalValState.variableIds)
         .createVariables(newAbstractHeap.heapVertices.flatMap(_.valueHeapIds))
 

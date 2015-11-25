@@ -27,7 +27,7 @@ class ValueDrivenHeapAnalysis extends Analysis {
   def reset() {}
 
   def getInitialState: ValueDrivenHeapState.Default[Apron.Polyhedra] = {
-    val generalValState = Apron.Polyhedra.Top
+    val generalValState = Apron.Polyhedra.Top.factory()
     ValueDrivenHeapState.Default(new HeapGraph[Apron.Polyhedra](), generalValState, ExpressionSet())
   }
 

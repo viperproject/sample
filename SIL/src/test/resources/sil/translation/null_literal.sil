@@ -1,5 +1,5 @@
 // Test the null literal
-field field: Ref
+field f: Ref
 
 method test_variables(flag: Bool) {
 	var a: Ref
@@ -22,11 +22,11 @@ method test_fields(this: Ref)
 	var local: Ref
 
 	local := new()
-	this.field := local
-	assert (this.field != null)
+	this.f := local
+	assert (this.f != null)
 }
 
 method test_fields_of_params(this: Ref) {
 	//:: ExpectedOutput(sample.assert.failed)
-	assert (this.field == null)
+	assert (this.f == null)
 }

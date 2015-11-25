@@ -36,7 +36,7 @@ method testOldValue() {
 }
 
 method testNull() {
-    field res: Ref
+    var res: Ref
     res := copyNullable(null)
 
     assert(res == null)
