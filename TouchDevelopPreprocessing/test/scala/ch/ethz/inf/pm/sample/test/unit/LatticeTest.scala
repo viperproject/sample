@@ -275,7 +275,7 @@ class ApronOptOctagonsTest extends ApronTest[Apron.OptOctagons] {
   override def factory = Apron.OptOctagons.Bottom
 }
 
-class ApronOptOctagonsTest extends ApronTest[Apron.FloatOptOctagons] {
+class ApronFloatOptOctagonsTest extends ApronTest[Apron.FloatOptOctagons] {
   override def factory = Apron.FloatOptOctagons.Bottom
 }
 

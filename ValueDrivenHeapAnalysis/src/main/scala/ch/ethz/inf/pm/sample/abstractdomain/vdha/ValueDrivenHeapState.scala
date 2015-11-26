@@ -600,7 +600,7 @@ trait ValueDrivenHeapState[
 
     // Create the value heap identifiers in all states
     var newState = copy(abstractHeap = newAbstractHeap)
-    newState = newState.createNonObjectVariables(IdentifierSet.Inner(newVertex.valueHeapIds))
+    newState = newState.createNonObjectVariables(IdentifierSet.Bottom.factory(newVertex.valueHeapIds))
 
     // Create the new edges
     val newEdges = typ.objectFields.map(field => {

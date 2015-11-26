@@ -67,8 +67,9 @@ object SampleBuild extends Build {
       p => "-Djava.library.path=" + p
     },
     scalacOptions in Compile ++= Seq(
-      "-optimise",
-      "-Xelide-below", "3000"
+      "-optimise"
+      //"-Xelide-below", "3000",
+      //"-Xdisable-assertions"
     ),
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.1.3" % "runtime", // Logging Backend

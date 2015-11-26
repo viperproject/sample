@@ -609,7 +609,6 @@ object SetDomain {
  */
 trait IdentifierSet extends SetDomain[Identifier,IdentifierSet] with SimplifiedMergeDomain[IdentifierSet] {
 
-
   override def factory(value: Set[Identifier]): IdentifierSet =
     if (value.isEmpty) IdentifierSet.Bottom
     else IdentifierSet.Inner(value)
