@@ -821,12 +821,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     // DEBUG CODE
     if (SystemParameters.DEBUG) {
       val removedIdentifiers = r.removedIdentifiers
-      val addedIdentifiers = r.addedIdentifiers
       val ids = result.ids.getNonTop
       val remaining = ids intersect removedIdentifiers
-      val nonAdded = addedIdentifiers -- ids
       assert (remaining.isEmpty)
-      assert (nonAdded.isEmpty)
+      // The following is not always true, if we have no domain that wants to represent the identifier (no value domain)
+      //val addedIdentifiers = r.addedIdentifiers
+      //val nonAdded = addedIdentifiers -- ids
+      //assert (nonAdded.isEmpty)
     }
 
     if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.merge")
