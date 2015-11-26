@@ -17,7 +17,22 @@ trait Apron[T <: Apron[T]]
 
   def manager:apron.Manager
 
-  def factory() = factory(new Abstract1(manager,new Environment()),IdentifierSet.Bottom)
+  def factory() = factory(new Abstract1(manager,makeEnvironment(Set.empty)),IdentifierSet.Bottom)
+
+  /** Overwrite this to get a float domain */
+  def isFloatDomain = false
+
+  protected def makeEnvironment(ids:Set[Identifier]): Environment =
+    if (!isFloatDomain)
+      new Environment(ids.map(_.getName).toArray,new Array[String](0))
+    else
+      new Environment(new Array[String](0),ids.map(_.getName).toArray)
+
+  protected def addEnvironment(env:Environment, ids:Set[Identifier]): Environment =
+    if (!isFloatDomain)
+      env.add(ids.map(_.getName).toArray,new Array[String](0))
+    else
+      env.add(new Array[String](0),ids.map(_.getName).toArray)
 
 }
 
@@ -27,7 +42,7 @@ object Apron {
     this:T =>
 
     override def add(ids:Set[Identifier]) =
-      factory(new Abstract1(manager,new Environment(new Array[String](0),ids.map(_.getName).toArray)), IdentifierSet.Inner(ids))
+      factory(new Abstract1(manager,makeEnvironment(ids)), IdentifierSet.Inner(ids))
 
     override def createVariable(variable: Identifier, typ: Type) = add(Set(variable))
 
@@ -156,7 +171,7 @@ object Apron {
     override def add(idsA: Set[Identifier]) = {
       val newIdsA = filterNonExisting(idsA) filter numerical
       if (newIdsA.nonEmpty) {
-        val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(newIdsA))
+        val newEnv = addEnvironment(apronState.getEnvironment,newIdsA)
         factory(apronState.changeEnvironmentCopy(manager, newEnv, false), ids ++ newIdsA)
       } else this
     }
@@ -165,7 +180,7 @@ object Apron {
       if (numerical(idB)) {
         val newIdsA = filterExisting(idsA) filter numerical
         if (!exists(idB) && newIdsA.nonEmpty) {
-          val newEnv = apronState.getEnvironment.add(new Array[String](0), SA(idB))
+          val newEnv = addEnvironment(apronState.getEnvironment,Set(idB))
           factory(apronState.changeEnvironmentCopy(manager, newEnv, false).foldCopy(manager, SA(idB :: newIdsA.toList)), ids.fold(newIdsA, idB))
         } else remove(newIdsA).add(Set(idB))
       } else this
@@ -263,6 +278,25 @@ object Apron {
     object Top extends Octagons with Apron.Top[Octagons]
     case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends Octagons with Apron.Inner[Octagons,Inner]
   }
+
+  trait FloatOptOctagons extends Apron[FloatOptOctagons] {
+    override def manager = FloatOptOctagons.manager
+    override def bottom(): FloatOptOctagons = FloatOptOctagons.Bottom
+    override def top(): FloatOptOctagons = FloatOptOctagons.Top
+    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+      if (apronState.isBottom(manager)) FloatOptOctagons.Bottom
+      else if (ids.isTop && apronState.isTop(manager)) FloatOptOctagons.Top
+      else FloatOptOctagons.Inner(apronState, ids)
+    override def isFloatDomain = true
+  }
+
+  object FloatOptOctagons {
+    def manager = new apron.OptOctagon
+    object Bottom extends FloatOptOctagons with Apron.Bottom[FloatOptOctagons]
+    object Top extends FloatOptOctagons with Apron.Top[FloatOptOctagons]
+    case class Inner(apronState:apron.Abstract1, ids:IdentifierSet) extends FloatOptOctagons with Apron.Inner[FloatOptOctagons,Inner]
+  }
+
 
   trait OptOctagons extends Apron[OptOctagons] {
     override def manager = OptOctagons.manager
