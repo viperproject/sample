@@ -43,4 +43,5 @@ install:
 	$(INSTALL) $(SOINST) $(LIBDIR);
 
 clean:
-	rm $(OBJS) liblinkedlistapi.so
+	rm -f $(OBJS) liblinkedlistapi.so
+

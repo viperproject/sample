@@ -116,4 +116,4 @@ install:
 
 clean:
 	(cd LinkedListAPI; make clean)
-	-rm $(OBJS) $(SOINST) 
+	-rm -f $(OBJS) $(SOINST) 

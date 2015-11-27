@@ -96,7 +96,6 @@ APRONH     = $(addprefix apron/apron_,$(addsuffix .h,$(APRONMODS)))
 GMPALL     = $(GMPCLASS) $(GMPH) libjgmp.so
 APRONALL   = $(APRONCLASS) $(APRONH) $(APRONO) libjapron.so
 
-
 # built and installed in JAVA_PREFIX
 JAVAINST   = gmp.jar apron.jar
 
