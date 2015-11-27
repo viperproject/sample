@@ -144,6 +144,9 @@ endif
 ifneq ($(HAS_CPP),)
 	(cd apronxx; $(MAKE) install)
 endif
+ifneq ($(HAS_JAVA),)
+	(cd japron; $(MAKE) install)
+endif
 
 clean:
 	(cd num; $(MAKE) clean)
@@ -183,6 +186,10 @@ uninstall:
 ifneq ($(OCAMLFIND),)
 	$(OCAMLFIND) remove apron
 endif
+ifneq ($(HAS_JAVA),)
+	(cd japron; $(MAKE) uninstall)
+endif
+
 
 doc:
 	(cd apron; $(MAKE) html apron.pdf)

@@ -40,12 +40,12 @@ OCAMLFIND = ocamlfind
 # Where to install and to find APRON
 # ($(APRON_PREFIX)/include, $(APRON_PREFIX)/lib)
 #
-APRON_PREFIX = /tmp
+APRON_PREFIX = /usr/local
 
 # Where to install and to find MLGMPIDL
 # ($(MLGMPIDL_PREFIX)/lib)
 # Only if you do not use FINDLIB
-MLGMPIDL_PREFIX = /tmp
+MLGMPIDL_PREFIX = /usr/local
 
 # Where to install Java .jar files
 #
@@ -53,15 +53,15 @@ JAVA_PREFIX = /tmp
 
 # Where to find GMP ($(GMP_PREFIX)/include, ($GMP_PREFIX)/lib
 #
-GMP_PREFIX = /usr
+GMP_PREFIX = /usr/local
 
 # Where to find MPFR ($(MPFR_PREFIX)/include, ($MPFR_PREFIX)/lib
 #
-MPFR_PREFIX = /usr
+MPFR_PREFIX = /usr/local
 
 # Where to find PPL ($(PPL_PREFIX)/include, $(PPL_PREFIX)/lib
 #
-PPL_PREFIX = /usr
+PPL_PREFIX = /usr/local
 
 # Where to find OCAML ($(CAML_PREFIX)/bin, $(CAML_PREFIX)/lib/ocaml, ...)
 #
