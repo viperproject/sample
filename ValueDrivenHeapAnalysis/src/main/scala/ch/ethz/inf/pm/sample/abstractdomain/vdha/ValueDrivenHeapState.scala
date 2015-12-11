@@ -362,7 +362,7 @@ trait ValueDrivenHeapState[
   // see https://bitbucket.org/semperproject/sample/commits/e1f5be3
 
   /** Delegates to `getVariableValue(id: VariableIdentifier)`. */
-  final def getVariableValue(id: Assignable): T = id match {
+  final def getVariableValue(id: Identifier): T = id match {
     case id: VariableIdentifier => getVariableValue(id)
     case _ => throw new IllegalArgumentException(
       "variable access must occur via a variable identifier")
@@ -655,7 +655,7 @@ trait ValueDrivenHeapState[
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
   def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
   def optimizeSummaryNodes(): T = ???
-  def backwardGetVariableValue(id: Assignable): T = ???
+  def backwardGetVariableValue(id: Identifier): T = ???
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
   def backwardAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???

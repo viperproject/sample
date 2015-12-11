@@ -395,7 +395,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @return The abstract state obtained after accessing the variable, that is, the state that contains
    *         as expression the symbolic representation of the value of the given variable
    */
-  def getVariableValue(id: Assignable): S
+  def getVariableValue(id: Identifier): S
 
   /**
    * Accesses a field of an object.
@@ -415,7 +415,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @param id The accessed variable
    * @return The abstract state obtained BEFORE accessing the variable
    */
-  def backwardGetVariableValue(id: Assignable): S
+  def backwardGetVariableValue(id: Identifier): S
 
   /**
    * Performs the backward semantics of a field access.
@@ -551,7 +551,7 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
   def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]) = ???
   def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression) = ???
   def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression) = ???
-  def backwardGetVariableValue(id: Assignable) = ???
+  def backwardGetVariableValue(id: Identifier) = ???
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type) = ???
   def undoPruneUnreachableHeap(preState: S) = ???
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean) = ???

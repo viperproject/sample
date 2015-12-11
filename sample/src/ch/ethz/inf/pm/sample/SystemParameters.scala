@@ -30,7 +30,7 @@ object SystemParameters {
   var isValueDrivenHeapAnalysis = false
 
   /**
-   * The number of iterations after whom widening is applied
+   * The number of iterations after which widening is applied
    */
   var wideningLimit: Int = 2
 

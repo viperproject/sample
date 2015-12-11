@@ -399,13 +399,13 @@ I <: HeapIdentifier[I]](
     setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
-  def getVariableValue(id: Assignable): AbstractState[N, H, I] = {
+  def getVariableValue(id: Identifier): AbstractState[N, H, I] = {
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
-  def backwardGetVariableValue(id: Assignable): AbstractState[N, H, I] = {
+  def backwardGetVariableValue(id: Identifier): AbstractState[N, H, I] = {
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))

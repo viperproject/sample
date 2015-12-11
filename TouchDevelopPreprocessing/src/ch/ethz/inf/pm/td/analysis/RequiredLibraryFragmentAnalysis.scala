@@ -108,7 +108,7 @@ class AccessCollectingState(myType: Type)
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
 
-  def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.typ)
+  def getVariableValue(id: Identifier): AccessCollectingState = this.setType(id.typ)
 
   def pruneVariables(filter: VariableIdentifier => Boolean): AccessCollectingState = this
 
@@ -124,7 +124,7 @@ class AccessCollectingState(myType: Type)
 
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = this
 
-  def backwardGetVariableValue(id: Assignable): AccessCollectingState = this
+  def backwardGetVariableValue(id: Identifier): AccessCollectingState = this
 
   def throws(t: ExpressionSet): AccessCollectingState = this
 
