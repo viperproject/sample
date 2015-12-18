@@ -511,9 +511,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @param id The variable to access
    * @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
    */
-  override def getVariableValue(id: Assignable): T = id match {
-    case i: Identifier => copy(expr = new ExpressionSet(id.typ).add(i))
-  }
+  override def getVariableValue(id: Identifier): T = copy(expr = new ExpressionSet(id.typ).add(id))
 
   /**
    * Returns the top value of the lattice
@@ -1332,7 +1330,7 @@ object TouchState {
       super.assignField(obj, field, right)
     }
 
-    override def getVariableValue(id: Assignable): PreAnalysis = {
+    override def getVariableValue(id: Identifier): PreAnalysis = {
       analysis.Localization.collectAccess(id.asInstanceOf[Identifier])
       super.getVariableValue(id)
     }

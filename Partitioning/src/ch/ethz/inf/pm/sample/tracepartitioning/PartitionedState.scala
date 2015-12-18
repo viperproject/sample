@@ -311,7 +311,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @see #map
    */
-  override def getVariableValue(i: Assignable): PartitionedState[D] = {
+  override def getVariableValue(i: Identifier): PartitionedState[D] = {
     map(_.getVariableValue(i))
   }
 
@@ -338,7 +338,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @see #map
    */
-  override def backwardGetVariableValue(i: Assignable): PartitionedState[D] = {
+  override def backwardGetVariableValue(i: Identifier): PartitionedState[D] = {
     map(_.backwardGetVariableValue(i))
   }
 
