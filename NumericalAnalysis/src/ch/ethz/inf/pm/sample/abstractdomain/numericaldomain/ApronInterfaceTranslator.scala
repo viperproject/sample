@@ -29,7 +29,7 @@ case class ApronInterfaceTranslator (
    */
   def translateAll(): Set[Expression] = {
     val linearConstraints = apronInterface.apronState.toLincons(apronInterface.manager)
-    linearConstraints.map(translate).flatten.toSet
+    linearConstraints.flatMap(translate).toSet
   }
 
   /**
@@ -47,8 +47,8 @@ case class ApronInterfaceTranslator (
     // Negate all negative terms
     rightTerms = rightTerms.map(negateTerm)
 
-    var leftExps = leftTerms.toList map translate
-    var rightExps = rightTerms.toList map translate
+    var leftExps = leftTerms.toList map translateTerm
+    var rightExps = rightTerms.toList map translateTerm
 
     // Determine the type of expression. As a simple heuristic, just take the
     // type of the first expression
@@ -98,7 +98,7 @@ case class ApronInterfaceTranslator (
    * @param t the Apron term to translate
    * @return the term expressed as a Sample expression
    */
-  def translate(t: Linterm1): Expression = {
+  def translateTerm(t: Linterm1): Expression = {
     val id = resolve(t.getVariable)
     val coeff = Constant(t.coeff.toString, id.typ, id.pp)
     BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*, id.typ)

@@ -57,8 +57,8 @@ trait PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   PredicateDrivenHeapState[Apron.Polyhedra]] {
 
   def topState = {
-    val generalValState = PredicateDrivenHeapState.makeTopEdgeState(topApronInterface)
-    PredicateDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
+    val generalValState = PredicateDrivenHeapState.makeTopEdgeState(emptyApronState)
+    PredicateDrivenHeapState(emptyHeapGraph, generalValState, ExpressionSet())
   }
 }
 

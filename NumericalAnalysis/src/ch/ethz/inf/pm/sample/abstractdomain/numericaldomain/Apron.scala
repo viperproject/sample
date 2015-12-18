@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, Type, DummyBooleanType}
 
@@ -53,9 +54,29 @@ object Apron {
   trait Top[T <: Apron[T]] extends NumericalDomain.Relational.Top[T] with Apron[T] with SimplifiedMergeDomain.Top[T] with BooleanExpressionSimplifier[T] {
     this:T =>
 
-    override def assumeSimplified(expr: Expression) = this
+    if (SystemParameters.DEBUG) {
+      println("It is typically not a good idea to create general top apron states.")
+    }
 
-    override def assign(variable: Identifier, expr: Expression) = this
+    override def assumeSimplified(expr: Expression) =
+      expr.ids match {
+        case IdentifierSet.Inner(x) =>
+          factory(new Abstract1(manager,makeEnvironment(x)),IdentifierSet.Top).assume(expr)
+        case IdentifierSet.Top =>
+          this
+        case IdentifierSet.Bottom =>
+          bottom()
+      }
+
+    override def assign(variable: Identifier, expr: Expression) =
+      expr.ids match {
+        case IdentifierSet.Inner(x) =>
+          factory(new Abstract1(manager,makeEnvironment(x + variable)),IdentifierSet.Top).assign(variable,expr)
+        case IdentifierSet.Top =>
+          this
+        case IdentifierSet.Bottom =>
+          bottom()
+      }
 
   }
 
@@ -66,6 +87,10 @@ object Apron {
     this:T =>
 
     val apronState:apron.Abstract1
+
+    /**
+      * This is a superset of the environment defined inside the state!
+      */
     val ids:IdentifierSet
 
     // COMBINATIONS
@@ -223,14 +248,14 @@ object Apron {
       val translator = ApronInterfaceTranslator()(this)
       (for (id <- ids) yield {
         apronState.toLincons(manager).toList.filter(translator.constraintContains(_, id.getName))
-      }).flatten.map(translator.translate).flatten
+      }).flatten.flatMap(translator.translate)
     }
 
     override def getStringOfId(id: Identifier): String = {
       val translator = ApronInterfaceTranslator()(this)
       val constraints = apronState.toLincons(manager).toList.filter(translator.constraintContains(_, id.getName))
       if (constraints.isEmpty) return "⊤"
-      val expressions = constraints.map(translator.translate).flatten.map(ExpPrettyPrinter)
+      val expressions = constraints.flatMap(translator.translate).map(ExpPrettyPrinter)
       expressions.sorted.mkString("\n")
     }
 
@@ -256,15 +281,14 @@ object Apron {
       if (interval.inf() == interval.sup()) {
         SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString,DummyNumericalType)))
       } else {
-        SetDomain.Default.Top[Constant]
+        SetDomain.Default.Top[Constant]()
       }
     }
   }
 
   trait Octagons extends Apron[Octagons] {
     override def manager = Octagons.manager
-    override def bottom(): Octagons =
-      Octagons.Bottom
+    override def bottom(): Octagons = Octagons.Bottom
     override def top(): Octagons = Octagons.Top
     override def factory(apronState: Abstract1, ids: IdentifierSet) =
       if (apronState.isBottom(manager)) Octagons.Bottom

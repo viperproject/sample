@@ -9,9 +9,10 @@ E <: SemanticDomain[E], // Edge state domain
 T <: ValueDrivenHeapState[E, T]]
   extends EntryStateBuilder[T] {
 
-  protected def topApronInterface: Apron.Polyhedra = Apron.Polyhedra.Top.factory()
+  protected def emptyApronState: Apron.Polyhedra =
+    Apron.Polyhedra.Bottom.factory()
 
-  protected def topHeapGraph: HeapGraph[E] =
+  protected def emptyHeapGraph: HeapGraph[E] =
     HeapGraph[E]()
 }
 
@@ -20,7 +21,7 @@ object DefaultHeapEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   ValueDrivenHeapState.Default[Apron.Polyhedra]] {
 
   def topState = {
-    ValueDrivenHeapState.Default[Apron.Polyhedra](topHeapGraph, topApronInterface, ExpressionSet())
+    ValueDrivenHeapState.Default[Apron.Polyhedra](emptyHeapGraph, emptyApronState, ExpressionSet())
   }
 }
 
@@ -29,7 +30,7 @@ object PreciseHeapEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   PreciseValueDrivenHeapState.Default[Apron.Polyhedra]] {
 
   def topState = {
-    val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)
-    PreciseValueDrivenHeapState.Default(topHeapGraph, generalValState, ExpressionSet())
+    val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(emptyApronState)
+    PreciseValueDrivenHeapState.Default(emptyHeapGraph, generalValState, ExpressionSet())
   }
 }

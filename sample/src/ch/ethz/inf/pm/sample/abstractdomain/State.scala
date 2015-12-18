@@ -127,10 +127,10 @@ object Lattice extends LazyLogging {
   trait Inner[S <: Lattice[S], I <: Lattice.Inner[S,I]] extends Lattice[S] {
     this:S =>
 
-    if (SystemParameters.DEBUG) {
-      assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
-      assert { lessEqual(top()) && !top().lessEqual(this) }
-    }
+//    if (SystemParameters.DEBUG) {
+//      assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
+//      assert { lessEqual(top()) && !top().lessEqual(this) }
+//    }
 
     override final def isTop: Boolean = false
     override final def isBottom: Boolean = false
