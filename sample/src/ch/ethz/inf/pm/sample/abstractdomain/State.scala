@@ -6,70 +6,62 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Set
 
-/**
- * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
- *
- * @tparam T The current type of the Lattice
- * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
- */
+/** The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure.
+  *
+  * @tparam T The current type of the Lattice
+  * @author Pietro Ferrara, Lucas Brutschy
+  * @since 0.1
+  */
 trait Lattice[T <: Lattice[T]] {
   this: T =>
 
-  /**
-   * Returns a new instance of the lattice
-   *
-   * @return A new instance of the current object
-   */
+  /** Returns a new instance of the lattice.
+    *
+    * @return A new instance of the current object
+    */
   def factory(): T
 
-  /**
-   * Returns the top value of the lattice
-   *
-   * @return The top value, that is, a value x that is greater or equal than any other value
-   */
+  /** Returns the top value of the lattice.
+    *
+    * @return The top value, that is, a value x that is greater than or equal to any other value
+    */
   def top(): T
 
-  /**
-   * Returns the bottom value of the lattice
-   *
-   * @return The bottom value, that is, a value x that is less or equal than any other value
-   */
+  /** Returns the bottom value of the lattice.
+    *
+    * @return The bottom value, that is, a value x that is less than or to any other value
+    */
   def bottom(): T
 
-  /**
-   * Computes the upper bound of two elements
-   *
-   * @param other The other value
-   * @return The least upper bound, that is, an element that is greater or equal than the two arguments
-   */
+  /** Computes the least upper bound of two elements.
+    *
+    * @param other The other value
+    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
+    *         and less than or equal to any other upper bound of the two arguments
+    */
   def lub(other: T): T
 
-  /**
-   * Computes the greatest lower bound of two elements
-   *
-   * @param other The other value
-   * @return The greatest upper bound, that is, an element that is less or equal than the two arguments,
-   *         and greater or equal than any other lower bound of the two arguments
-   */
+  /** Computes the greatest lower bound of two elements.
+    *
+    * @param other The other value
+    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
+    *         and greater than or equal to any other lower bound of the two arguments
+    */
   def glb(other: T): T
 
-  /**
-   * Computes widening of two elements
-   *
-   * @param other The new value
-   * @return The widening of <code>left</code> and <code>right</code>
-   */
+  /** Computes the widening of two elements.
+    *
+    * @param other The new value
+    * @return The widening of `this` and `other`
+    */
   def widening(other: T): T
 
-  /**
-   * Returns true iff <code>this</code> is less or equal than <code>r</code>
-   *
-   * @param other The value to compare
-   * @return true iff <code>this</code> is less or equal than <code>r</code>
-   */
+  /** Returns true if and only if `this` is less than or equal to `other`.
+    *
+    * @param other The value to compare
+    * @return true if and only if `this` is less than or equal to `other`
+    */
   def lessEqual(other: T): Boolean
-
 
   /** Glb as implemented in many domains is not "strict" enough in that
     * it does not remove identifiers uncommon to `this` and `other`. Not pretty,
@@ -78,34 +70,32 @@ trait Lattice[T <: Lattice[T]] {
     */
   def strictGlb(other: T): T = glb(other)
 
-  /**
-   * Checks whether the given domain element is equivalent to bottom ("false")
-   * @return bottom
-   */
-  def isBottom:Boolean
+  /** Checks whether the given domain element is equivalent to bottom.
+    *
+    * @return bottom
+    */
+  def isBottom: Boolean
 
-  /**
-   * Checks whether the given domain element is equivalent to bottom ("false")
-   * @return bottom
-   */
-  def isTop:Boolean
+  /** Checks whether the given domain element is equivalent to top.
+    *
+    * @return bottom
+    */
+  def isTop: Boolean
 
-  /**
-   * Checks semantic equality of the two states. Not necessarily an equal representation / hashcode!
-   *
-   * FIXME: should this be the same as equals?
-   */
+  /** Checks semantic equality of the two states. Not necessarily an equal representation / hashcode!
+    *
+    * @todo should this be the same as equals?
+    */
   def equivalent(other: T): Boolean = other.lessEqual(this) && this.lessEqual(other)
 
 }
 
 object Lattice extends LazyLogging {
 
-  /**
-   * Defines a top lattice element
-   *
-   * @author Lucas Brutschy
-   */
+  /** Defines a top lattice element.
+    *
+    * @author Lucas Brutschy
+    */
   trait Top[S <: Lattice[S]] extends Lattice[S] {
     this:S =>
 
@@ -119,18 +109,12 @@ object Lattice extends LazyLogging {
 
   }
 
-  /**
-   * Defines a lattice element that is neither top nor bottom
-   *
-   * @author Lucas Brutschy
-   */
+  /** Defines a lattice element that is neither top nor bottom.
+    *
+    * @author Lucas Brutschy
+    */
   trait Inner[S <: Lattice[S], I <: Lattice.Inner[S,I]] extends Lattice[S] {
     this:S =>
-
-//    if (SystemParameters.DEBUG) {
-//      assert { !lessEqual(bottom()) && bottom().lessEqual(this) }
-//      assert { lessEqual(top()) && !top().lessEqual(this) }
-//    }
 
     override final def isTop: Boolean = false
     override final def isBottom: Boolean = false
@@ -165,11 +149,10 @@ object Lattice extends LazyLogging {
 
   }
 
-  /**
-   * Defines a bottom lattice element
-   *
-   * @author Lucas Brutschy
-   */
+  /** Defines a bottom lattice element.
+    *
+    * @author Lucas Brutschy
+    */
   trait Bottom[S <: Lattice[S]] extends Lattice[S] {
     this:S =>
 
@@ -183,8 +166,7 @@ object Lattice extends LazyLogging {
 
   }
 
-  /** Mixin that causes a lattice to have a must semantics, where the
-    * join operator uses the greatest lower bound.
+  /** Mixin that causes a lattice to have a must semantics, where the join operator uses the greatest lower bound.
     *
     * @tparam T the self-type of the lattice
     */
@@ -218,7 +200,7 @@ object Lattice extends LazyLogging {
     elements.reduceLeft(_ widening _)
   }
 
-  /** Returns (over-approximation) of least fix point of function iterates  */
+  /** Returns (over-approximation) of least fix point of function iterates.  */
   def lfp[S <: Lattice[S]](s: S, f: (S => S), wideningLimit: Int): S = {
     var iteration = 1
     var prev = s
@@ -234,15 +216,12 @@ object Lattice extends LazyLogging {
       }
       else cur = prev.lub(f(prev))
     }
-
     cur
   }
 
 }
 
-/**
- * A Lattice that does not do anything useful except for preserving its one value
- */
+/** A Lattice that does not do anything useful except for preserving its one value. */
 trait DummyLattice[T <: DummyLattice[T]] extends Lattice[T] {
   this:T =>
 }
@@ -259,285 +238,252 @@ object DummyLattice {
 
 }
 
-/**
- * The representation of a state of our analysis.
- * Two main components can be distinguished:
- * - a SymbolicAbstractValue that is aimed at representing the expression returned by the previous statement
- * - an HeapAndAnotherDomain state, that is, an abstract state of an heap analysis and of another semantic domain
- *
- * This is the most generic level to build up an abstract state. We strongly discourage the use of this interface
- * since there are simpler interface (e.g., SemanticDomain or HeapAndAnotherDomain)
- *
- * @tparam S The current type of the state
- * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
+/** The representation of a state of our analysis.
+  *
+  * Two main components can be distinguished:
+  * - a `SymbolicAbstractValue` that is aimed at representing the expression returned by the previous statement
+  * - an `HeapAndAnotherDomain` state, that is, an abstract state of an heap analysis and of another semantic domain
+  *
+  * This is the most generic level to build up an abstract state. We strongly discourage the use of this interface
+  * since there are simpler interface (e.g., `SemanticDomain` or `HeapAndAnotherDomain`).
+  *
+  * @tparam S The current type of the state
+  * @author Pietro Ferrara, Lucas Brutschy
+  * @since 0.1
  */
 trait State[S <: State[S]] extends Lattice[S] {
   this: S =>
 
-  /**
-   * Signals that we are going to analyze the statement at program point pp
-   * This is particularly important to eventually partition a state following
-   * the specified directives
-   *
-   * @param pp The point of the program that is going to be analyzed
-   * @return The abstract state eventually modified
-   */
+  /** Signals that we are going to analyze the statement at program point `pp`.
+    *
+    * This is particularly important to eventually partition a state following the specified directives.
+    *
+    * @param pp The point of the program that is going to be analyzed
+    * @return The abstract state eventually modified
+    */
   def before(pp: ProgramPoint): S
 
-  /**
-   * Creates an object
-   *
-   * @param typ The dynamic type of the created object
-   * @param pp The point of the program that creates the object
-   * @return The abstract state after the creation of the object
-   */
+  /** Creates an object
+    *
+    * @param typ The dynamic type of the created object
+    * @param pp The point of the program that creates the object
+    * @return The abstract state after the creation of the object
+    */
   def createObject(typ: Type, pp: ProgramPoint): S
 
-  /**
-   * Undoes the effect of object creation. Intended to be the backward version
-   * of createObject and should only be used on a post state immediately after
-   * object creation.
-   *
-   * @param oldPreState
-   * @param obj the heap id of the object to be removed
-   * @param fields the fields that were created
-   * @return state without the object
-   */
+  /** Undoes the effect of object creation.
+    *
+    * Intended to be the backward version of createObject
+    * and should only be used on a post state immediately after object creation.
+    *
+    * @param oldPreState
+    * @param obj the heap id of the object to be removed
+    * @param fields the fields that were created
+    * @return state without the object
+    */
   def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]): S
 
-  /**
-   * Creates a variable
-   *
-   * @param x The name of the variable
-   * @param typ The static type of the variable
-   * @param pp The program point that creates the variable
-   * @return The abstract state after the creation of the variable
-   */
+  /** Creates a variable.
+    *
+    * @param x The name of the variable
+    * @param typ The static type of the variable
+    * @param pp The program point that creates the variable
+    * @return The abstract state after the creation of the variable
+    */
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S
 
-  /**
-   * Creates a variable for an argument
-   *
-   * @param x The name of the argument
-   * @param typ The static type of the argument
-   * @return The abstract state after the creation of the argument
-   */
+  /** Creates a variable for an argument.
+    *
+    * @param x The name of the argument
+    * @param typ The static type of the argument
+    * @return The abstract state after the creation of the argument
+    */
   def createVariableForArgument(x: ExpressionSet, typ: Type): S
 
-  /**
-   * Assigns an expression to a variable
-   *
-   * @param x The assigned variable
-   * @param right The assigned expression
-   * @return The abstract state after the assignment
-   */
+  /** Assigns an expression to a variable.
+    *
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state after the assignment
+    */
   def assignVariable(x: ExpressionSet, right: ExpressionSet): S
 
-  /**
-   * Assigns an expression to a field of an object.
-   *
-   * @param obj the object whose field is assigned
-   * @param field the assigned field
-   * @param right the assigned expression
-   * @return the abstract state after the assignment
-   */
+  /** Assigns an expression to a field of an object.
+    *
+    * @param obj the object whose field is assigned
+    * @param field the assigned field
+    * @param right the assigned expression
+    * @return the abstract state after the assignment
+    */
   def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): S
 
-  /**
-   * Refining backward transformer for field assignments
-   *
-   * @param oldPreState state before this operation
-   * @param obj field target object
-   * @param field field to be assigned
-   * @param right assigned expression
-   * @return refined pre state before the field assignment
-   */
+  /** Refining backward transformer for field assignments.
+    *
+    * @param oldPreState state before this operation
+    * @param obj field target object
+    * @param field field to be assigned
+    * @param right assigned expression
+    * @return refined pre state before the field assignment
+    */
   def backwardAssignField(oldPreState: S, obj: ExpressionSet, field: String, right: ExpressionSet): S
 
-  /**
-   * Assigns an expression to an argument
-   *
-   * @param x The assigned argument
-   * @param right The expression to be assigned
-   * @return The abstract state after the assignment
-   */
+  /** Assigns an expression to an argument.
+    *
+    * @param x The assigned argument
+    * @param right The expression to be assigned
+    * @return The abstract state after the assignment
+    */
   def setArgument(x: ExpressionSet, right: ExpressionSet): S
 
-  /**
-   * Forgets the value of a variable
-   *
-   * @param x The variable to be forgotten
-   * @return The abstract state obtained after forgetting the variable
-   */
+  /** Forgets the value of a variable.
+    *
+    * @param x The variable to be forgotten
+    * @return The abstract state obtained after forgetting the variable
+    */
   def setVariableToTop(x: ExpressionSet): S
 
-  /**
-   * Removes a variable
-   *
-   * @param x The variable to be removed
-   * @return The abstract state obtained after removing the variable
-   */
+  /** Removes a variable.
+    *
+    * @param x The variable to be removed
+    * @return The abstract state obtained after removing the variable
+    */
   def removeVariable(x: ExpressionSet): S
 
-  /**
-   * Throws an exception
-   *
-   * @param t The thrown exception
-   * @return The abstract state after the thrown
-   */
+  /** Throws an exception.
+    *
+    * @param t The thrown exception
+    * @return The abstract state after the thrown
+    */
   def throws(t: ExpressionSet): S
 
-  /**
-   * Gets the value of a variable
-   *
-   * @param id The variable to access
-   * @return The abstract state obtained after accessing the variable, that is, the state that contains
-   *         as expression the symbolic representation of the value of the given variable
-   */
+  /** Gets the value of a variable.
+    *
+    * @param id The variable to access
+    * @return The abstract state obtained after accessing the variable, that is, the state that contains
+    *         as expression the symbolic representation of the value of the given variable
+    */
   def getVariableValue(id: Identifier): S
 
-  /**
-   * Accesses a field of an object.
-   *
-   * @param obj the object on which the field access is performed
-   * @param field the name of the field
-   * @param typ the type of the field
-   * @return The abstract state obtained after the field access, that is,
-   *         the state that contains as expression the symbolic representation
-   *         of the value of the given field access
-   */
+  /** Accesses a field of an object.
+    *
+    * @param obj the object on which the field access is performed
+    * @param field the name of the field
+    * @param typ the type of the field
+    * @return The abstract state obtained after the field access, that is,
+    *         the state that contains as expression the symbolic representation of the value of the given field access
+    */
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
-  /**
-   * Performs the backward semantics of a variable access
-   *
-   * @param id The accessed variable
-   * @return The abstract state obtained BEFORE accessing the variable
-   */
+  /** Performs the backward semantics of a variable access.
+    *
+    * @param id The accessed variable
+    * @return The abstract state obtained BEFORE accessing the variable
+    */
   def backwardGetVariableValue(id: Identifier): S
 
-  /**
-   * Performs the backward semantics of a field access.
-   *
-   * @param obj the object on which the field access is performed
-   * @param field the name of the field
-   * @param typ the type of the field
-   * @return the abstract state obtained before the field access
-   */
+  /** Performs the backward semantics of a field access.
+    *
+    * @param obj the object on which the field access is performed
+    * @param field the name of the field
+    * @param typ the type of the field
+    * @return the abstract state obtained before the field access
+    */
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
-  /**
-   * Performs refining backward assignment of variables
-   *
-   * @param oldPreState the pre state to be refined
-   * @param x The assigned variable
-   * @param right The assigned expression
-   * @return The abstract state before the assignment
-   */
+  /** Performs refining backward assignment of variables.
+    *
+    * @param oldPreState the pre state to be refined
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state before the assignment
+    */
   def backwardAssignVariable(oldPreState: S, x: ExpressionSet, right: ExpressionSet): S
 
-  /**
-   * Evaluates a numerical constant
-   *
-   * @param value The string representing the numerical constant
-   * @param typ The type of the numerical constant
-   * @param pp The program point that contains the constant
-   * @return The abstract state after the evaluation of the constant, that is, the
-   *         state that contains an expression representing this constant
-   */
+  /** Evaluates a numerical constant.
+    *
+    * @param value The string representing the numerical constant
+    * @param typ The type of the numerical constant
+    * @param pp The program point that contains the constant
+    * @return The abstract state after the evaluation of the constant, that is, the
+    *         state that contains an expression representing this constant
+    */
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): S
 
-  /**
-   * Assumes that a boolean expression holds
-   *
-   * @param cond The assumed expression
-   * @return The abstract state after assuming that the expression holds
-   */
+  /** Assumes that a boolean expression holds.
+    *
+    * @param cond The assumed expression
+    * @return The abstract state after assuming that the expression holds
+    */
   def assume(cond: ExpressionSet): S
 
-  /**
-   * Assumes that the current expression holds
-   *
-   * @return The abstract state after assuming that the expression holds
-   */
+  /** Assumes that the current expression holds.
+    *
+    * @return The abstract state after assuming that the expression holds
+    */
   def testTrue(): S
 
-  /**
-   * Assumes that the current expression does not hold
-   *
-   * @return The abstract state after assuming that the expression does not hold
-   */
+  /** Assumes that the current expression does not hold.
+    *
+    * @return The abstract state after assuming that the expression does not hold
+    */
   def testFalse(): S
 
-  /** Returns the current expression */
+  /** Returns the current expression. */
   def expr: ExpressionSet
 
-  /**
-   * Sets the current expression
-   *
-   * @param expr The current expression
-   * @return The abstract state after changing the current expression with the given one
-   */
+  /** Sets the current expression.
+    *
+    * @param expr The current expression
+    * @return The abstract state after changing the current expression with the given one
+    */
   def setExpression(expr: ExpressionSet): S
 
-  /**
-   * Removes the current expression
-   *
-   * @return The abstract state after removing the current expression
-   */
+  /** Removes the current expression.
+    *
+    * @return The abstract state after removing the current expression
+    */
   def removeExpression(): S
 
-  /**
-   * Removes all variables satisfying filter
-   */
+  /** Removes all variables satisfying filter. */
   def pruneVariables(filter: VariableIdentifier => Boolean): S
 
-  /**
-   * Undoes the effect of `pruneVariables`.
-   *
-   * All the variables that existed in `unprunedPreState` and that match
-   * the given filter are created and set to top.
-   *
-   * @param unprunedPreState state before pruning
-   * @param filter the filter that was used to prune variables
-   * @return state with pruned variables created again
-   */
+  /** Undoes the effect of `pruneVariables`.
+    *
+    * All the variables that existed in `unprunedPreState` and that match the given filter are created and set to top.
+    *
+    * @param unprunedPreState state before pruning
+    * @param filter the filter that was used to prune variables
+    * @return state with pruned variables created again
+    */
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
 
-  /**
-   * Performs abstract garbage collection
-   */
+  /** Performs abstract garbage collection. */
   def pruneUnreachableHeap(): S
 
-  /**
-   * Undoes the effect of pruning the unreachable heap ids. That is,
-   * all heap ids present in `preState` but not in this state are created
-   * and set to top. Everything else stays the same as in the
-   * post state (this `State`)
-   *
-   * @param preState old pre state before heap pruning was applied
-   * @return unpruned heap
-   */
+  /** Undoes the effect of pruning the unreachable heap ids. That is,
+    * all heap ids present in `preState` but not in this state are created
+    * and set to top. Everything else stays the same as in the post state (this state).
+    *
+    * @param preState old pre state before heap pruning was applied
+    * @return unpruned heap
+    */
   def undoPruneUnreachableHeap(preState: S): S
 
-  /**
-   * May try to explain an error
-   *
-   * @param expr An error-expression that should be infeasible but exposes an error
-   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
-   */
+  /** May try to explain an error.
+    *
+    * @param expr An error-expression that should be infeasible but exposes an error
+    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+    */
   def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] = Set.empty
 
-  /**
-   * Returns all objects pointed to by the field which may / must match the given filter
-   *
-   * @param objs An expression containing objects
-   * @param field  The name of the field
-   * @param typ    The type of the field
-   * @param filter The filter, that, given an object and a state, returns whether it matches
-   * @return       A may set and a must set of object
-   */
+  /** Returns all objects pointed to by the field which may / must match the given filter.
+    *
+    * @param objs An expression containing objects
+    * @param field  The name of the field
+    * @param typ    The type of the field
+    * @param filter The filter, that, given an object and a state, returns whether it matches
+    * @return       A may set and a must set of object
+    */
   def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter:(Identifier,S) => Boolean): (Set[Identifier],Set[Identifier]) =
     (Set.empty,Set.empty)
 
@@ -562,46 +508,71 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
   * performs the corresponding operations pair-wise for all `Expression`s
   * and finally computes the upper bound or all resulting states.
   *
-  * That is, classes implementing this trait only need to supply operations
-  * for single `Expression`s, not `ExpressionSet`s and can thus avoid a lot of
-  * boiler-plate code.
-  *
-  * In addition, the implemented methods also handle the cases where
-  * the this state or any argument is bottom.
+  * Classes implementing this trait only need to supply operations
+  * for single `Expression`s, not `ExpressionSet`s and can thus avoid a lot of boiler-plate code.
+  * In addition, the implemented methods also handle the cases where this state or any argument is bottom.
   *
   * @tparam S the self-type of the state
   */
 trait SimpleState[S <: SimpleState[S]] extends State[S] {
   this: S =>
+
+  /** Executes the given function only if this state and the given `ExpressionSet` are non-bottom. */
+  def unlessBottom(set: ExpressionSet, f: => S): S =
+    if (isBottom) {
+      bottom()
+    } else if (set.isBottom) {
+      bottom()
+    } else f
+
+  /** Creates a variable given a `VariableIdentifier`.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x The name of the variable
+    * @param typ The static type of the variable
+    * @param pp The program point that creates the variable
+    * @return The abstract state after the creation of the variable
+    */
+  def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S
+
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S = {
     require(x.getNonTop.forall(_.isInstanceOf[VariableIdentifier]),
       "can only create variable from variable identifiers")
-
     unlessBottom(x, {
       val variable = unpackSingle(x).asInstanceOf[VariableIdentifier]
       createVariable(variable, typ, pp).setUnitExpression()
     })
   }
 
-  /** Creates a variable given a `VariableIdentifier`.
+  /** Creates a variable for an argument given a `VariableIdentifier`.
+    *
     * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x The name of the argument
+    * @param typ The static type of the argument
+    * @return The abstract state after the creation of the argument
     */
-  def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S
+  def createVariableForArgument(x: VariableIdentifier, typ: Type): S
 
   def createVariableForArgument(x: ExpressionSet, typ: Type): S = {
     require(x.getNonTop.forall(_.isInstanceOf[VariableIdentifier]),
       "can only create variable from variable identifiers")
-
     unlessBottom(x, {
       val variable = unpackSingle(x).asInstanceOf[VariableIdentifier]
       createVariableForArgument(variable, typ).setUnitExpression()
     })
   }
 
-  /** Creates an argument variable given a `VariableIdentifier`.
+  /** Assigns an expression to a variable.
+    *
     * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state after the assignment
     */
-  def createVariableForArgument(x: VariableIdentifier, typ: Type): S
+  def assignVariable(x: Expression, right: Expression): S
 
   def assignVariable(leftSet: ExpressionSet, rightSet: ExpressionSet): S = {
     unlessBottom(leftSet, {
@@ -612,17 +583,23 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           Lattice.bigLub(for (
             left <- leftSet.getNonTop;
             right <- rightSet.getNonTop)
-          yield assignVariable(left, right))
+            yield assignVariable(left, right))
         }
         result.setUnitExpression()
       })
     })
   }
 
-  /** Assigns an expression to a variable.
+  /** Assigns an expression to a field of an object.
+    *
     * Implementations can already assume that this state is non-bottom.
+    *
+    * @param obj the object whose field is assigned
+    * @param field the assigned field
+    * @param right the assigned expression
+    * @return the abstract state after the assignment
     */
-  def assignVariable(x: Expression, right: Expression): S
+  def assignField(obj: Expression, field: String, right: Expression): S
 
   def assignField(objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
     unlessBottom(objSet, {
@@ -641,8 +618,12 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-  /** Sets given variable/ids to top
+  /** Forgets the value of a variable.
+    *
     * Implementations can assume this state is non-bottom
+    *
+    * @param varExpr The variable to be forgotten
+    * @return The abstract state obtained after forgetting the variable
     */
   def setVariableToTop(varExpr: Expression): S
 
@@ -653,8 +634,12 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-  /** Removes the given variable.
+  /** Removes a variable.
+    *
     * Implementations can assume this state is non-bottom
+    *
+    * @param varExpr The variable to be removed
+    * @return The abstract state obtained after removing the variable
     */
   def removeVariable(varExpr: VariableIdentifier): S
 
@@ -667,10 +652,17 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-  /** Assigns an expression to a field.
+  /** Accesses a field of an object.
+    *
     * Implementations can already assume that this state is non-bottom.
+    *
+    * @param obj the object on which the field access is performed
+    * @param field the name of the field
+    * @param typ the type of the field
+    * @return The abstract state obtained after the field access, that is,
+    *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
     */
-  def assignField(obj: Expression, field: String, right: Expression): S
+  def getFieldValue(obj: Expression, field: String, typ: Type): S
 
   def getFieldValue(objSet: ExpressionSet, field: String, typ: Type): S = {
     unlessBottom(objSet, {
@@ -678,10 +670,16 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-  /** Returns a new state whose `ExpressionSet` holds the value of the given field.
+  /** Performs refining backward assignment of variables.
+    *
     * Implementations can already assume that this state is non-bottom.
+    *
+    * @param oldPreState the pre state to be refined
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state before the assignment
     */
-  def getFieldValue(obj: Expression, field: String, typ: Type): S
+  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
 
   def backwardAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
     unlessBottom(varSet, {
@@ -699,8 +697,17 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-
-  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
+  /** Refining backward transformer for field assignments.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param oldPreState state before this operation
+    * @param obj field target object
+    * @param field field to be assigned
+    * @param right assigned expression
+    * @return refined pre state before the field assignment
+    */
+  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
 
   def backwardAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
     unlessBottom(objSet, {
@@ -719,7 +726,14 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
-  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
+  /** Assumes that a boolean expression holds.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param cond The assumed expression
+    * @return The abstract state after assuming that the expression holds
+    */
+  def assume(cond: Expression): S
 
   def assume(condSet: ExpressionSet): S = {
     // Return this, not bottom, when set of conditions is empty
@@ -729,24 +743,27 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     }
   }
 
-  /** Assumes an expression.
-   * Implementations can already assume that this state is non-bottom.
-   */
-  def assume(cond: Expression): S
+  /** May try to explain an error.
+    *
+    * @param expr An error-expression that should be infeasible but exposes an error
+    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+    */
+  def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
 
+  override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
+    expr.getNonTop.flatMap(this.explainError)
+
+  /** Assumes that the current expression holds.
+    *
+    * @return The abstract state after assuming that the expression holds
+    */
   def testTrue(): S = assume(expr).setUnitExpression()
 
+  /** Assumes that the current expression does not hold.
+    *
+    * @return The abstract state after assuming that the expression does not hold
+    */
   def testFalse(): S = assume(expr.not()).setUnitExpression()
-
-  /** Executes the given function only if this state and the given
-    * `ExpressionSet` is not bottom. */
-  def unlessBottom(set: ExpressionSet, f: => S): S =
-    if (isBottom) {
-      bottom()
-    } else if (set.isBottom) {
-      bottom()
-    }
-    else f
 
   /** @todo merge with `removeExpression`. */
   def setUnitExpression(): S = {
@@ -754,58 +771,50 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     setExpression(ExpressionSet(unitExp))
   }
 
-  override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
-    expr.getNonTop.flatMap(this.explainError)
-
-  def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
-
   private def unpackSingle(set: ExpressionSet): Expression = {
-    require(set.getNonTop.size == 1,
-      "ExpressionSet must contain exactly one Expression")
+    require(set.getNonTop.size == 1, "ExpressionSet must contain exactly one Expression")
     set.getNonTop.head
   }
 }
 
-/**
- * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
- * that when joins, meets or widens returns a replacement.
- *
- * @tparam T The current type of the LatticeWithReplacement
- * @author Pietro Ferrara
- * @since 0.1
- */
+/** The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
+  * that when joins, meets or widens returns a replacement.
+  *
+  * @tparam T The current type of the LatticeWithReplacement
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 
-  /**
-   * Computes the upper bound of two elements, returning a replacement.
-   * @param other The other value
-   * @return The least upper bound, that is, an element that is greater
-   *         or equal than the two arguments
-   */
+  /** Computes the least upper bound of two elements, returning a replacement.
+    *
+    * @param other The other value
+    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
+    *         and less than or equal to any other upper bound of the two arguments
+    */
   def lubWithReplacement(other: T): (T, Replacement)
 
-  /**
-   * Computes the greatest lower bound of two elements.
-   * @param other The other value
-   * @return The greatest upper bound, that is, an element that is less
-   *         or equal than the two arguments, and greater or equal than
-   *         any other lower bound of the two arguments
-   */
+  /** Computes the greatest lower bound of two elements, returning a replacement.
+    *
+    * @param other The other value
+    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
+    *         and greater than or equal to any other lower bound of the two arguments
+    */
   def glbWithReplacement(other: T): (T, Replacement)
 
-  /**
-   * Computes widening of two elements.
-   * @param other The new value
-   * @return The widening of <code>left</code> and <code>right</code>
-   */
+  /** Computes the widening of two elements, returning a replacement.
+    *
+    * @param other The new value
+    * @return The widening of `this` and `other`
+    */
   def wideningWithReplacement(other: T): (T, Replacement)
 
 }
 
-/**
- * Some trivial helper functions that execute forward/backward semantics on single and list of states
- * @author Pietro
- */
+/** Some trivial helper functions that execute forward/backward semantics on single and list of states.
+  *
+  * @author Pietro
+  */
 object UtilitiesOnStates {
 
   def forwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {

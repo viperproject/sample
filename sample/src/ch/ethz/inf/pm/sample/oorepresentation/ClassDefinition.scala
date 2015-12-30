@@ -231,12 +231,13 @@ class PackageDefinition(programpoint: ProgramPoint, name: PackageIdentifier, cla
   override def toString: String = "package " + name + "\n\n" + ToStringUtilities.listToNewLineRepresentation[ClassDefinition](classes)
 }
 
-/**
- * This trait represents a type. It extends <code>Lattice</code> in order to represent the type hierarchy.
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** Represents a type.
+  *
+  * It extends `Lattice` in order to represent the type hierarchy.
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 trait Type extends Lattice[Type] {
 
   /** Returns `true` iff the current type is not a primitive type. */

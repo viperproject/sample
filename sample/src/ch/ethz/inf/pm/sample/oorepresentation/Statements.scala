@@ -21,9 +21,9 @@ trait ProgramPoint {
 }
 
 case object DummyProgramPoint extends ProgramPoint {
-  override def description = "D"
+  override def description = "Dummy"
 
-  override def toString = "D"
+  override def toString = "Dummy"
 }
 
 abstract class LineColumnProgramPoint extends ProgramPoint {

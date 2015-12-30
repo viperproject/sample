@@ -196,9 +196,7 @@ object FunctionalDomain {
 trait MergeDomain[T <: MergeDomain[T]] extends Lattice[T] {
   this : T =>
 
-  /**
-   * For each set of identifiers in the domain of f, this method merges these identifiers
-   * into the given one.
+  /** For each set of identifiers in the domain of f, this method merges these identifiers into the given one.
    *
    * @param f The identifiers to merge
    * @return the state after the merge
@@ -206,7 +204,6 @@ trait MergeDomain[T <: MergeDomain[T]] extends Lattice[T] {
   def merge(f: Replacement): T
 
 }
-
 
 /**
  * Simplifies the implementation of the merge function by restricting the set of allowed replacements
@@ -372,71 +369,70 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
 }
 
 
-/**
- * A domain that is represented by a set.
- *
- * The lattice operators are the common ones of sets, that is, the upper bound
- * is the union, the lower bound the intersection, and so on.
- *
- * @tparam V The type of the values contained in the set
- * @tparam T The type of the current set domain
- * @author Lucas Brutschy, Pietro Ferrara
- */
+/** A domain that is represented by a set.
+  *
+  * The lattice operators are the common ones of sets, that is, the upper bound
+  * is the union, the lower bound the intersection, and so on.
+  *
+  * @tparam V The type of the values contained in the set
+  * @tparam T The type of the current set domain
+  * @author Lucas Brutschy, Pietro Ferrara
+  */
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   this: T =>
 
-  /**
-   * Constructs a new set domain of the concrete type
-   *
-   * This has to make sure that the corresponding top or bottom element is returned
-   *
-   * @return a fresh, empty instance of the set domain
-   */
+  /** Constructs a new set domain of the concrete type
+    *
+    * This has to make sure that the corresponding top or bottom element is returned
+    *
+    * @return a fresh, empty instance of the set domain
+    */
   def factory(value: Set[V] = Set.empty[V]): T
 
-  /**
-   * Removes an element from the set. Formally, return = old(this)\setminus {v}
-   * @param v The element to be removed
-   * @return The abstract state without the given element.
-   */
+  /** Removes an element from the set. Formally, return = old(this)\setminus {v}
+    *
+    * @param v The element to be removed
+    * @return The abstract state without the given element.
+    */
   def -(v: V): T
 
-  /**
-   * Removes a set from the set. Formally, return = old(this) \setminus v
-   * @param v The element to be removed
-   * @return The abstract state without the given set of elements.
-   */
+  /** Removes a set from the set. Formally, return = old(this) \setminus v
+    *
+    * @param v The element to be removed
+    * @return The abstract state without the given set of elements.
+    */
   def --(v: T): T
 
-  /**
-   * Adds an element to the set. Formally, return = old(this) \cup {v}
-   * @param v The element to be added
-   * @return The abstract state with the given element as well.
-   */
+  /** Adds an element to the set. Formally, return = old(this) \cup {v}
+    *
+    * @param v The element to be added
+    * @return The abstract state with the given element as well.
+    */
   def +(v: V): T
 
-  /**
-   * Adds an element to the set. Formally, return = old(this) \cup V
-   * @param v The element to be added
-   * @return The abstract state with the given element as well.
-   */
+  /** Adds an element to the set. Formally, return = old(this) \cup V
+    *
+    * @param v The element to be added
+    * @return The abstract state with the given element as well.
+    */
   def ++(v: T): T
 
-  /**
-   * Checks whether an element is in the set
-   * @return A new instance of the current object
-   */
+  /** Checks whether an element is in the set
+    *
+    * @return A new instance of the current object
+    */
   def contains(v: V): Boolean
 
-  /**
-   * Converts a set domain into a set. For that, we have to know the universe,
-   * so that we can represent top. Note that sometimes, the result of this
-   * function can be very large (e.g. all possible identifiers), so
-   * its use is generally not advised
-   *
-   * @param universe All possible values of V
-   * @return A representation of this domain as a set
-   */
+  /** Converts a set domain into a set. For that, we have to know the universe,
+    * so that we can represent top.
+    *
+    * Note that sometimes, the result of this
+    * function can be very large (e.g. all possible identifiers), so
+    * its use is generally not advised
+    *
+    * @param universe All possible values of V
+    * @return A representation of this domain as a set
+    */
   def toSet(universe:Set[V]):Set[V]
 
   override def factory(): T = top()

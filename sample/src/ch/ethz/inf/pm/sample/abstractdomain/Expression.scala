@@ -83,15 +83,15 @@ object AbstractOperatorIdentifiers extends Enumeration {
 }
 
 
-/**
- * Expressions are used to represents the values returned by statements. For instance, an assignment returns
- * a UnitExpression, while a variable access returns a VariableIdentifier and a field access returns a heap
- * identifier. Expressions represent the results of method calls and arithmetic and boolean operations as
- * well. 
- *
- * @author Pietro Ferrara & Lucas Brutschy
- * @since 0.1
- */
+/** Expressions are used to represents the values returned by statements.
+  *
+  * For instance, an assignment returns a UnitExpression, while a variable access returns a VariableIdentifier
+  * and a field access returns a heap identifier.
+  * Expressions represent the results of method calls and arithmetic and boolean operations as well.
+  *
+  * @author Pietro Ferrara, Lucas Brutschy
+  * @since 0.1
+  */
 trait Expression {
 
   /** The type of this expression. */
@@ -103,13 +103,12 @@ trait Expression {
   /** All identifiers that are part of this expression. */
   def ids: IdentifierSet
 
-  /**
-   * Replace one identifier by another in this expression (and all sub-expressions)
-   *
-   * @param a The identifier to be replaced
-   * @param b The replacement identifier
-   * @return An replaced version of this expression
-   */
+  /** Replace one identifier by another in this expression (and all sub-expressions)
+    *
+    * @param a The identifier to be replaced
+    * @param b The replacement identifier
+    * @return An replaced version of this expression
+    */
   def replace(a: Identifier, b: Identifier): Expression = {
     transform({
       case x: Identifier => if (x.equals(a)) b else x;
@@ -117,31 +116,23 @@ trait Expression {
     })
   }
 
-  /**
-   * Runs f on the expression and all sub-expressions
-   *
-   * This also replaces identifiers inside heap ID sets.
-   *
-   * @param f the transformer
-   * @return the transformed expression
-   */
+  /** Runs f on the expression and all sub-expressions
+    *
+    * This also replaces identifiers inside heap ID sets.
+    *
+    * @param f the transformer
+    * @return the transformed expression
+    */
   def transform(f: (Expression => Expression)): Expression
 
-  /**
-   * Checks if function f evaluates to true for any sub-expression
-   */
+  /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
 
   // SHORTHANDS
   def equal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.==,DummyBooleanType)
   def unequal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.!=,DummyBooleanType)
 
-  /**
-   * It was checked that this expression is simplified the following way:
-   *
-   * - It does not contain conjunctions or disjunctions
-   * - It does not contain negations
-   */
+  /** Whether the expression does not contain conjunctions, disjunctions or negations. */
   var canonical:Boolean = false
 
 }

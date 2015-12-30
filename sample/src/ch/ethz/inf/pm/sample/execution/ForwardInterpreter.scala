@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph, ProgramPointUtils}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -11,7 +12,7 @@ object ForwardInterpreter {
   val startBlockId: Int = 0
 }
 
-trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
+trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging {
 
   /**
    * Perform forward abstract interpretation, given a previous `CFGState` but starting from a new initial state.
@@ -101,6 +102,8 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
       // Need to call this to make trace partitioning possible
       val tempState = previousState.before(ProgramPointUtils.identifyingPP(statement))
       val transformedState = statement.forwardSemantics(tempState)
+      logger.debug(statement.toString)
+      logger.debug(transformedState.toString.replace("\n",","))
       previousState = transformedState
       resultingStates append transformedState
     }

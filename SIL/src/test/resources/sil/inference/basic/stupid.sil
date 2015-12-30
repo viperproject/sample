@@ -1,0 +1,7 @@
+
+method Foo()
+{
+    var x : Ref
+    //x := new()
+    //var y : Ref
+}
