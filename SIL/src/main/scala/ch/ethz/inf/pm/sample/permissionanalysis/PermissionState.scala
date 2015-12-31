@@ -3,12 +3,13 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 /** Reference variable
   *
   * @param id the identifier corresponding to the variable
+  * @author Caterina Urban
   */
 case class Ref(id: Identifier) {
   def name: String = id.getName
@@ -23,6 +24,7 @@ case class Ref(id: Identifier) {
 /** Wrapper that turns a `Ref` into an `Expression`
   *
   * @param ref the `Ref` to turn into an `Expression`
+  * @author Caterina Urban
   */
 case class RefExpression(ref: Ref) extends Expression {
 
@@ -50,7 +52,14 @@ case class RefExpression(ref: Ref) extends Expression {
 case class Obj(typ: Type, pp: ProgramPoint) {
 
   /** The name of the object. */
-  def name : String = "Object allocated " + pp.description
+  def name : String = "O" + number
+
+  def number : String = pp match {
+    case pp:LineColumnProgramPoint => pp.getLine.toString
+    case _ => pp.description
+  }
+
+  override def toString : String = name
 
   override def equals(o: Any) = o match {
     case that: Obj => that.name.equals(this.name)
@@ -81,11 +90,33 @@ case class ObjExpression(obj: Obj) extends Expression {
 
 }
 
+/** Field of an object.
+  *
+  * @param obj the object
+  * @param field the field name
+  */
+case class Fld(obj: Obj, field: String) {
+
+  /** The name of the object field. */
+  def name : String = obj.name + "." + field
+
+  override def equals(o: Any) = o match {
+    case that: Obj => that.name.equals(this.name)
+    case _ => false
+  }
+  override def hashCode = name.hashCode
+}
+
 /** Permission Inference State
+  *
+  * Note that each abstract state must include an `ExpressionSet`!
+  * It is accessed during the analysis to retrieve the result of each statement!!
   *
   * @author Caterina Urban
   */
-case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
+case class PermissionState(exprSet: ExpressionSet,
+                           refToObj: Map[Ref,Set[Obj]],
+                           objFieldToObj: Map[Obj,Map[String,Set[Obj]]])
   extends SimpleState[PermissionState]
   with StateWithBackwardAnalysisStubs[PermissionState]
   with LazyLogging
@@ -179,8 +210,9 @@ case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
     */
   override def bottom(): PermissionState = {
     logger.debug("*** bottom()")
-    
-    PermissionState(exprSet.bottom(),refToObj.empty)  // return a new state with bottom exprSet and empty refToObj map
+
+    // return a new state with bottom exprSet and empty refToObj map
+    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty)
   }
 
   /** Creates an object at allocation site.
@@ -257,7 +289,10 @@ case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
     this
   }
 
-  /** The current expression. */
+  /** The current expression.
+    *
+    * Invoked after each statement to retrieve its result.
+    */
   override def expr: ExpressionSet = {
     logger.debug("*** expr: " + this.exprSet.toString)
     
@@ -276,6 +311,23 @@ case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
     this
   }
 
+  def evaluatePath(obj: AccessPathIdentifier) : Set[Obj] = {
+    val path = obj.stringPath
+
+    //foldLeft[B](z: B)(f: (B, A) ⇒ B): B
+
+    val keys = refToObj.keySet
+    val id = keys.find((ref) => ref.name == path.head)
+
+
+    val fst = refToObj(path.head)
+    path.foldLeft(fst)(
+      (s,f) => s.map
+    )(path.tail)
+
+    Set[Obj]()
+  }
+
   /** Accesses a field of an object.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -290,7 +342,15 @@ case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
     logger.debug("*** getFieldValue(obj: " + obj.toString + ", field: " + field + ", typ: " + typ.toString + "): implement me!")
-    
+    obj match {
+      case obj:AccessPathIdentifier =>
+        //val id = VariableIdentifier
+        //val ref = Ref()
+        //val obj = Obj(Ref,obj.pp)
+        //val fld = Fld()
+        println(obj.objName)
+      case _ => println("something else")
+    }
     this
   }
 
@@ -306,7 +366,13 @@ case class PermissionState(exprSet: ExpressionSet, refToObj: Map[Ref,Set[Obj]])
     */
   override def getVariableValue(id: Identifier): PermissionState = {
     logger.debug("*** getVariableValue(id : " + id.toString + "): fully implement me!")
-    
+
+    id match {
+      case _: AccessPathIdentifier => println("AccessPathIdentifier")
+      case _: VariableIdentifier => println("VariableIdentifier")
+      case _ => println("Unknown")
+    }
+
     // warning: handling Ref variable declarations only
     if (id.typ.isObject) { // the variable is of type Ref
       // handling variable declarations `var x : Ref` and variable assignments `x = ...`
@@ -515,5 +581,6 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
 }
 
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
-  override def topState: PermissionState = PermissionState(ExpressionSet(),Map[Ref,Set[Obj]]())
+  override def topState: PermissionState =
+    PermissionState(ExpressionSet(),Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]]())
 }
