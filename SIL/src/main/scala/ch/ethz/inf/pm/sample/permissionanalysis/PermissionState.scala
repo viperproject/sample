@@ -48,6 +48,7 @@ case class RefExpression(ref: Ref) extends Expression {
   *
   * @param typ the type of the object
   * @param pp the object allocation site
+  * @author Caterina Urban
   */
 case class Obj(typ: Type, pp: ProgramPoint) {
 
@@ -70,7 +71,8 @@ case class Obj(typ: Type, pp: ProgramPoint) {
 
 /** Wrapper that turns an `Obj` into an `Expression`
   *
-  * @param obj the `Obj` to turn into an Expression
+  * @param obj the `Obj` to turn into an `Expression`
+  * @author Caterina Urban
   */
 case class ObjExpression(obj: Obj) extends Expression {
 
@@ -94,8 +96,9 @@ case class ObjExpression(obj: Obj) extends Expression {
   *
   * @param obj the object
   * @param field the field name
+  * @author Caterina Urban
   */
-case class Fld(obj: Obj, field: String) {
+case class Fld(obj: Obj, field: String, typ: Type) {
 
   /** The name of the object field. */
   def name : String = obj.name + "." + field
@@ -105,6 +108,29 @@ case class Fld(obj: Obj, field: String) {
     case _ => false
   }
   override def hashCode = name.hashCode
+}
+
+/** Wrapper that turns a `Fld` into an `Expression`
+  *
+  * @param fld the `Fld` to turn into an `Expression`
+  * @author Caterina Urban
+  */
+case class FldExpression(fld: Fld) extends Expression {
+
+  /** The type of the expression. */
+  override def typ: Type = fld.typ
+  /** Point in the program where the expression is located. */
+  override def pp: ProgramPoint = fld.obj.pp
+  /** The string representation of the expression. */
+  override def toString : String = fld.name
+
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = ???
+  /** Runs `f` on the expression and all sub-expressions. */
+  override def transform(f: (Expression) => Expression): Expression = f(this)
+  /** Checks if `f` evaluates to `true` on the expression and all sub-expressions. */
+  override def contains(f: (Expression) => Boolean): Boolean = f(this)
+
 }
 
 /** Permission Inference State
@@ -151,10 +177,16 @@ case class PermissionState(exprSet: ExpressionSet,
   override def assignVariable(x: Expression, right: Expression): PermissionState = {
     logger.debug("*** assignVariable(x: " + x.toString + ", right: " + right.toString + "): fully implement me!")
 
+    // x match {
+    //   case _: AccessPathIdentifier => println("AccessPathIdentifier")
+    //   case _: VariableIdentifier => println("VariableIdentifier")
+    //   case _ => println("Unknown")
+    // }
+
     // warning: handling Ref variable assignment to Object only
     {
       x match {
-        case x: Identifier =>
+        case x: VariableIdentifier =>
           val xref = Ref(x) // create new Ref
           right match {
               case right: ObjExpression => // `x = new()`
@@ -199,7 +231,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return The abstract state eventually modified
     */
   override def before(pp: ProgramPoint): PermissionState = {
-    logger.debug("*** before: " + pp.toString)
+    logger.debug("*** before(pp: " + pp.toString + ")")
 
     this  // return the current state without modification
   }
@@ -227,8 +259,10 @@ case class PermissionState(exprSet: ExpressionSet,
     logger.debug("*** createObject(typ: " + typ.toString + ", pp: " + pp.toString + ")")
     
     val obj = Obj(typ,pp) // create new Obj
+    val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[Obj]]()) // add key to objFieldToObj map
     val exp = ObjExpression(obj) // turn Obj into Expression
-    this.copy(exprSet = ExpressionSet(exp)) // return the current state with updated exprSet
+    // return the current state with updated exprSet and updated objFieldToObj map
+    this.copy(exprSet = ExpressionSet(exp), objFieldToObj = objFieldToObjmap)
   }
 
   /** Creates a variable given a `VariableIdentifier`.
@@ -251,7 +285,8 @@ case class PermissionState(exprSet: ExpressionSet,
       val ref = Ref(x) // create new Ref
       val refToObjmap = refToObj + (ref -> Set[Obj]()) // add key to refToObj map
       val exp = RefExpression(ref) // turn Ref into Expression
-      this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap) // return the current state with updated exprSet and refToObj
+      // return the current state with updated exprSet and refToObj
+      this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap)
     } else {
       this // TODO
     }
@@ -311,61 +346,71 @@ case class PermissionState(exprSet: ExpressionSet,
     this
   }
 
-  def evaluatePath(obj: AccessPathIdentifier) : Set[Obj] = {
-    val path = obj.stringPath
-
-    //foldLeft[B](z: B)(f: (B, A) ⇒ B): B
-
-    val keys = refToObj.keySet
-    val id = keys.find((ref) => ref.name == path.head)
-
-
-    val fst = refToObj(path.head)
-    path.foldLeft(fst)(
-      (s,f) => s.map
-    )(path.tail)
-
-    Set[Obj]()
+  /** Evaluates a path of object fields
+    *
+    * @param path the object fields path to evaluate
+    * @param objFieldToObjmap the current objFieldToObj map updated with missing fields
+    * @return the set of objects referenced by the path (except the last field)
+    */
+  private def evaluatePath(path: List[String], objFieldToObjmap: Map[Obj,Map[String,Set[Obj]]]) : Set[Obj] = {
+    val keys = refToObj.keySet // set of all Ref variables
+    // retrieving the Ref variable corresponding to the head of the path
+    val id = keys.find((ref) => ref.name == path.head).get
+    val fst = refToObj(id) // set of objects pointed by the Ref variable
+    // path evaluation
+    path.drop(1).dropRight(1).foldLeft(fst)(
+      (set,next) => // next path segment
+        set.foldLeft(Set[Obj]())(
+          (s,obj) => s ++ objFieldToObjmap.get(obj).get.get(next).get
+        )
+    )
   }
 
   /** Accesses a field of an object.
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param obj the object on which the field access is performed
-    * @param field the name of the field
-    * @param typ the type of the field
-    * @return The abstract state obtained after the field access, that is,
-    *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
-    *
-    * @todo implement me!
+    * @param obj the object from which the field access is performed
+    * @param field the name of the field to be accessed
+    * @param typ the type of the field to be accessed
+    * @return The abstract state obtained after the field access, that is, a new state whose `ExpressionSet`
+    *         holds the objects referenced by the access path (up to the given field excluded).
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
-    logger.debug("*** getFieldValue(obj: " + obj.toString + ", field: " + field + ", typ: " + typ.toString + "): implement me!")
+    logger.debug("*** getFieldValue(obj: " + obj.toString + ", field: " + field + ", typ: " + typ.toString + ")")
     obj match {
       case obj:AccessPathIdentifier =>
-        //val id = VariableIdentifier
-        //val ref = Ref()
-        //val obj = Obj(Ref,obj.pp)
-        //val fld = Fld()
-        println(obj.objName)
-      case _ => println("something else")
+        val path = obj.stringPath // path to evaluate
+        // update objFieldToObj map
+        val segment = if (typ.isObject) path.drop(1) else path.drop(1).dropRight(1)
+        val objFieldToObjmap = segment.foldLeft(objFieldToObj)(
+          (map,next) =>
+            map.mapValues[Map[String,Set[Obj]]](
+              (m) => if (m.contains(next)) m else m + (next -> Set[Obj]())
+            )
+        )
+        // evaluate path
+        val objSet = evaluatePath(path,objFieldToObjmap)
+
+        val expr = objSet.foldLeft(ExpressionSet())(
+          (e,o) => e add ExpressionSet(FldExpression(Fld(o,field,typ)))
+        )
+        // return the current state with updated exprSet and updated objFieldToObj
+        this.copy(exprSet = expr, objFieldToObj = objFieldToObjmap)
+      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
-    this
   }
 
   /** Gets the value of a variable.
     *
-    * Invoked by variable declarations (`var x : Ref`) and variable assignments (`x = ...`, ...)
+    * Invoked by variable declarations (`var x : Ref`) and variable assignments (`x = ...`, `... = x`)
     *
     * @param id The variable to access
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable
-    *
-    * @todo fully implement me!
     */
   override def getVariableValue(id: Identifier): PermissionState = {
-    logger.debug("*** getVariableValue(id : " + id.toString + "): fully implement me!")
+    logger.debug("*** getVariableValue(id : " + id.toString + ")")
 
     id match {
       case _: AccessPathIdentifier => println("AccessPathIdentifier")
@@ -373,13 +418,8 @@ case class PermissionState(exprSet: ExpressionSet,
       case _ => println("Unknown")
     }
 
-    // warning: handling Ref variable declarations only
-    if (id.typ.isObject) { // the variable is of type Ref
-      // handling variable declarations `var x : Ref` and variable assignments `x = ...`
-      this.copy(exprSet = ExpressionSet(id)) // return the current state with updated exprSet
-    } else {
-      this // TODO
-    }
+    // return the current state with updated exprSet
+    this.copy(exprSet = ExpressionSet(id))
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -446,9 +486,16 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet.lub(other.expr) // join the exprSets
     val refToObjmap = this.refToObj ++ other.refToObj.map {
-      case (k : Ref,v : Set[Obj]) => k -> (this.refToObj.getOrElse(k,Set[Obj]()) ++ v)
+      case (k: Ref,v: Set[Obj]) => k -> (this.refToObj.getOrElse(k,Set[Obj]()) ++ v)
     } // merge the refToObjs
-    this.copy(exprSet = exp, refToObj = refToObjmap) // return the current state with updated exprSet and refToObj
+    val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
+      case (o: Obj,m: Map[String,Set[Obj]]) => o ->
+        (this.objFieldToObj(o) ++ other.objFieldToObj(o).map {
+          case (s: String, v: Set[Obj]) => s -> (this.objFieldToObj(o).getOrElse(s,Set[Obj]()) ++ v)
+        })
+    } // merge the objFieldToObjmap
+    // return the current state with updated exprSet and updated refToObj and updated objFieldToObjmap
+    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
   }
 
   /** Performs abstract garbage collection.
@@ -476,8 +523,9 @@ case class PermissionState(exprSet: ExpressionSet,
     */
   override def removeExpression(): PermissionState = {
     logger.debug("*** removeExpression()")
-    
-    this.copy(exprSet = ExpressionSet()) // return the current state with a new exprSet
+
+    // return the current state with a new exprSet
+    this.copy(exprSet = ExpressionSet())
   }
 
   /** Removes a variable.
@@ -510,6 +558,8 @@ case class PermissionState(exprSet: ExpressionSet,
   }
 
   /** Sets the current expression.
+    *
+    * Invoked after statements that do not have results (like assignments to variables and fields).
     *
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one
