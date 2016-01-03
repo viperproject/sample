@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, ProgramPoint, Type}
@@ -141,8 +142,12 @@ case class FldExpression(fld: Fld) extends Expression {
   * @author Caterina Urban
   */
 case class PermissionState(exprSet: ExpressionSet,
+                           // map from Ref variables to heap Obj objects
                            refToObj: Map[Ref,Set[Obj]],
-                           objFieldToObj: Map[Obj,Map[String,Set[Obj]]])
+                           // map from heap Obj objects to a map from Ref fields to heap Obj objects
+                           objFieldToObj: Map[Obj,Map[String,Set[Obj]]],
+                           // polyhedra abstract domain
+                           numDom : Apron.Polyhedra)
   extends SimpleState[PermissionState]
   with StateWithBackwardAnalysisStubs[PermissionState]
   with LazyLogging
@@ -160,7 +165,17 @@ case class PermissionState(exprSet: ExpressionSet,
     */
   override def assignField(obj: Expression, field: String, right: Expression): PermissionState = {
     logger.debug("*** assignField(obj: " + obj.toString + ", field: " + field.toString + ", right: " + right.toString + "): implement me!")
-    
+
+    obj match {
+      case obj: FldExpression =>
+        println("FldExpression")
+        right match {
+          case right: VariableIdentifier => println("VariableIdentifier")
+          case _ => println("not VariableIdentifier")
+        }
+      case _ => println("not FldExpression")
+    }
+
     this
   }
 
@@ -175,13 +190,12 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo fully implement me!
     */
   override def assignVariable(x: Expression, right: Expression): PermissionState = {
-    logger.debug("*** assignVariable(x: " + x.toString + ", right: " + right.toString + "): fully implement me!")
-
-    // x match {
-    //   case _: AccessPathIdentifier => println("AccessPathIdentifier")
-    //   case _: VariableIdentifier => println("VariableIdentifier")
-    //   case _ => println("Unknown")
-    // }
+    val id = x match {
+      case _: AccessPathIdentifier => "AccessPathIdentifier"
+      case _: VariableIdentifier => "VariableIdentifier"
+      case _ => "Unknown"
+    }
+    logger.debug("*** assignVariable(x[" + id + "]: " + x.toString + ", right: " + right.toString + "): fully implement me!")
 
     // warning: handling Ref variable assignment to Object only
     {
@@ -244,7 +258,7 @@ case class PermissionState(exprSet: ExpressionSet,
     logger.debug("*** bottom()")
 
     // return a new state with bottom exprSet and empty refToObj map
-    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty)
+    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty,numDom.bottom())
   }
 
   /** Creates an object at allocation site.
@@ -410,13 +424,12 @@ case class PermissionState(exprSet: ExpressionSet,
     *         as expression the symbolic representation of the value of the given variable
     */
   override def getVariableValue(id: Identifier): PermissionState = {
-    logger.debug("*** getVariableValue(id : " + id.toString + ")")
-
-    id match {
-      case _: AccessPathIdentifier => println("AccessPathIdentifier")
-      case _: VariableIdentifier => println("VariableIdentifier")
-      case _ => println("Unknown")
+    val typ = id match {
+      case _: AccessPathIdentifier => "AccessPathIdentifier"
+      case _: VariableIdentifier => "VariableIdentifier"
+      case _ => "Unknown"
     }
+    logger.debug("*** getVariableValue(id[" + typ + "] : " + id.toString + ")")
 
     // return the current state with updated exprSet
     this.copy(exprSet = ExpressionSet(id))
@@ -444,7 +457,7 @@ case class PermissionState(exprSet: ExpressionSet,
     */
   override def isBottom: Boolean = {
     logger.debug("*** isBottom: implement me!")
-    
+
     false
   }
 
@@ -470,9 +483,16 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
-      case (k : Ref,v : Set[Obj]) => v subsetOf this.refToObj.getOrElse(k,Set[Obj]())
+      case (k: Ref,v: Set[Obj]) => v subsetOf other.refToObj.getOrElse(k,Set[Obj]())
     } // test the refToObjs
-    exp && refToObjmap
+    val objFieldToObjmap = this.objFieldToObj.forall {
+      case (o: Obj, m: Map[String,Set[Obj]]) => m.forall {
+        case (f: String, s: Set[Obj]) =>
+          s subsetOf other.objFieldToObj.getOrElse(o,Map[String,Set[Obj]]()).getOrElse(f,Set[Obj]())
+      }
+    } // test the objFieldToObjs
+    val num = this.numDom.lessEqual(other.numDom) // test the numDoms
+    exp && refToObjmap && objFieldToObjmap && num
   }
 
   /** Computes the least upper bound of two elements.
@@ -494,8 +514,10 @@ case class PermissionState(exprSet: ExpressionSet,
           case (s: String, v: Set[Obj]) => s -> (this.objFieldToObj(o).getOrElse(s,Set[Obj]()) ++ v)
         })
     } // merge the objFieldToObjmap
-    // return the current state with updated exprSet and updated refToObj and updated objFieldToObjmap
-    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+    val num = this.numDom.lub(other.numDom) // join the numDoms
+
+    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
+    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
   }
 
   /** Performs abstract garbage collection.
@@ -631,6 +653,6 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
 }
 
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
-  override def topState: PermissionState =
-    PermissionState(ExpressionSet(),Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]]())
+  override def topState: PermissionState = PermissionState(ExpressionSet(),
+    Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]](),Apron.Polyhedra.Top)
 }
