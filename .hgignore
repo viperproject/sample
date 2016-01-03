@@ -16,7 +16,3 @@ apron.sbt
 
 # Folder with temporary files created by Silicon
 tmp/
-*.so
-*.o
-*.a
-*.h
