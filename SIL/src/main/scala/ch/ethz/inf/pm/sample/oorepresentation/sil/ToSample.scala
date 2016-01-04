@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import com.typesafe.scalalogging.LazyLogging
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 import scala.collection.mutable
 import viper.silver.{ast => sil}
@@ -245,7 +246,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
     case p: sil.PermExp => ???
     case sil.Old(exp) => ???
-    case e: sil.SeqExp => ???
+    case e: sil.SeqExp => throw new NotImplementedError("It's me missing!")
     case sil.AnySetCardinality(_) |
          sil.AnySetContains(_, _) |
          sil.AnySetIntersection(_, _) |

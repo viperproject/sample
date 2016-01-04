@@ -262,7 +262,7 @@ object Apron {
     override def toString:String = {
       val exps = ApronInterfaceTranslator()(this).translateAll() map ExpPrettyPrinter
       if (exps.isEmpty) return "⊤"
-      "Environment: " + ids + "\n" + exps.toList.sorted.mkString("\n")
+      "Environment: " + ids + ", Constraints: " + exps.toList.sorted.mkString("; ")
     }
 
     // HELPERS

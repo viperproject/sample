@@ -122,7 +122,11 @@ case class StupidState(expressionSet: ExpressionSet, numerical: Apron.Polyhedra)
   override def pruneUnreachableHeap(): StupidState = this
 
   /** Returns the current expression */
-  override def expr: ExpressionSet = this.expressionSet
+  override def expr: ExpressionSet = {
+    println("*** expr: " + this.expressionSet.toString)
+
+    this.expressionSet
+  }
 
   /**
    * Creates an object
@@ -139,7 +143,10 @@ case class StupidState(expressionSet: ExpressionSet, numerical: Apron.Polyhedra)
    * @param expr The current expression
    * @return The abstract state after changing the current expression with the given one
    */
-  override def setExpression(expr: ExpressionSet): StupidState = this.copy(expressionSet = expr)
+  override def setExpression(expr: ExpressionSet): StupidState = {
+    println("*** setExpression(expr: " + expr.toString + ")")
+    this.copy(expressionSet = expr)
+  }
 
   /**
    * Gets the value of a variable

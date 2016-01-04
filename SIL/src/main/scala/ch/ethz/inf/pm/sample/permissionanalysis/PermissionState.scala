@@ -163,7 +163,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): PermissionState = {
-    logger.debug("*** assignField(obj: " + obj.toString + ", field: " + field.toString + ", right: " + right.toString + ")")
+    logger.debug("*** assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
     obj match {
       case obj: FldExpression =>
@@ -229,7 +229,7 @@ case class PermissionState(exprSet: ExpressionSet,
       case _: VariableIdentifier => "VariableIdentifier"
       case _ => "Unknown"
     }
-    logger.debug("*** assignVariable(x[" + idx + "]: " + x.toString + ", right[" + idright + "]: " + right.toString + ")")
+    logger.debug("*** assignVariable(" + x.toString + ": " + idx + "; " + right.toString + ": " + idright + ")")
 
     x match {
       case x: VariableIdentifier =>
@@ -263,7 +263,8 @@ case class PermissionState(exprSet: ExpressionSet,
             case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
           }
         } else {  // the assigned variable is not a `Ref`
-          throw new NotImplementedError("A variable assignment implementation is missing.") // TODO
+          // return the current state with updated numDom
+          this.copy(numDom = numDom.assign(x,right))
         }
       case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
     }
@@ -279,7 +280,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def assume(cond: Expression): PermissionState = {
-    logger.debug("*** assume(cond :" + cond.toString + "): implement me!")
+    logger.debug("*** assume(" + cond.toString + "): implement me!")
     
     this
   }
@@ -292,7 +293,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return The abstract state eventually modified
     */
   override def before(pp: ProgramPoint): PermissionState = {
-    logger.debug("*** before(pp: " + pp.toString + ")")
+    logger.debug("*** before(" + pp.toString + ")")
 
     this  // return the current state without modification
   }
@@ -317,7 +318,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return The abstract state with updated exprSet after the creation of the object
     */
   override def createObject(typ: Type, pp: ProgramPoint): PermissionState = {
-    logger.debug("*** createObject(typ: " + typ.toString + ", pp: " + pp.toString + ")")
+    logger.debug("*** createObject(" + typ.toString + "; " + pp.toString + ")")
     
     val obj = Obj(typ,pp) // create new Obj
     val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[Obj]]()) // add key to objFieldToObj map
@@ -335,21 +336,19 @@ case class PermissionState(exprSet: ExpressionSet,
     * @param typ The static type of the variable
     * @param pp The program point that creates the variable
     * @return The abstract state after the creation of the variable
-    *
-    * @todo fully implement me!
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): PermissionState = {
-    logger.debug("*** createVariable(x: " + x.toString + ", typ: " + typ.toString + ", pp: " + pp.toString + "): fully implement me!")
-    
-    // warning: handling Ref variable declarations only
-    if (typ.isObject) {
+    logger.debug("*** createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
+
+    if (typ.isObject) { // the variable to be created is a `Ref`
       val ref = Ref(x) // create new Ref
       val refToObjmap = refToObj + (ref -> Set[Obj]()) // add key to refToObj map
       val exp = RefExpression(ref) // turn Ref into Expression
       // return the current state with updated exprSet and refToObj
       this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap)
-    } else {
-      this // TODO
+    } else { // the variable to be created is not a `Ref`
+      // return the current state with updated numDom
+      this.copy(numDom = numDom.createVariable(x))
     }
   }
 
@@ -360,13 +359,19 @@ case class PermissionState(exprSet: ExpressionSet,
     * @param x The name of the argument
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument
-    *
-    * @todo implement me!
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): PermissionState = {
-    logger.debug("*** createVariableForArgument(x: " + x.toString + ", typ: " + typ.toString + "): implement me!")
-    
-    this
+    logger.debug("*** createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
+
+    if (typ.isObject) { // the variable to be created is a `Ref`
+      val ref = Ref(x) // create new Ref
+      val refToObjmap = refToObj + (ref -> Set[Obj]()) // add key to refToObj map
+      val exp = RefExpression(ref) // turn Ref into Expression
+      // return the current state with updated exprSet and refToObj
+      this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap)
+    } else { // the variable to be created is not a `Ref`
+      throw new NotImplementedError("An argument creation implementation is missing.") // TODO
+    }
   }
 
   /** Evaluates a numerical constant.
@@ -376,13 +381,13 @@ case class PermissionState(exprSet: ExpressionSet,
     * @param pp The program point that contains the constant
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant
-    *
-    * @todo implement me!
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): PermissionState = {
-    logger.debug("*** evalConstant(value: " + value + ", typ: " + typ.toString + ", pp: " + pp.toString + "): implement me!")
-    
-    this
+    logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
+
+    val const = new Constant(value, typ, pp)
+    // return the current state with updated exprSet
+    this.copy(exprSet = ExpressionSet(const))
   }
 
   /** Evaluates a path of object fields
@@ -438,7 +443,12 @@ case class PermissionState(exprSet: ExpressionSet,
     *         holds the objects referenced by the access path (up to the given field excluded).
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
-    logger.debug("*** getFieldValue(obj: " + obj.toString + ", field: " + field + ", typ: " + typ.toString + ")")
+    val idobj = obj match {
+      case _: AccessPathIdentifier => "AccessPathIdentifier"
+      case _ => "Unknown"
+    }
+    logger.debug("*** getFieldValue(" + obj.toString + ": " + idobj + "; " + field + "; " + typ.toString + ")")
+
     obj match {
       case obj:AccessPathIdentifier =>
         val path = obj.stringPath // path to evaluate
@@ -474,11 +484,10 @@ case class PermissionState(exprSet: ExpressionSet,
     */
   override def getVariableValue(id: Identifier): PermissionState = {
     val typ = id match {
-      case _: AccessPathIdentifier => "AccessPathIdentifier"
       case _: VariableIdentifier => "VariableIdentifier"
       case _ => "Unknown"
     }
-    logger.debug("*** getVariableValue(id[" + typ + "] : " + id.toString + ")")
+    logger.debug("*** getVariableValue(" + id.toString + ": " + typ + ")")
 
     // return the current state with updated exprSet
     this.copy(exprSet = ExpressionSet(id))
@@ -493,7 +502,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def glb(other: PermissionState): PermissionState = {
-    logger.debug("*** glb(other: " + other.repr + "): implement me!")
+    logger.debug("*** glb(" + other.repr + "): implement me!")
     
     this
   }
@@ -528,7 +537,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return `true` if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: PermissionState): Boolean = {
-    logger.debug("*** lessEqual(other: " + other.repr + ")")
+    logger.debug("*** lessEqual(" + other.repr + ")")
 
     val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
@@ -551,7 +560,7 @@ case class PermissionState(exprSet: ExpressionSet,
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: PermissionState): PermissionState = {
-    logger.debug("*** lub(other: " + other.repr + ")")
+    logger.debug("*** lub(" + other.repr + ")")
 
     val exp = this.exprSet.lub(other.expr) // join the exprSets
     val refToObjmap = this.refToObj ++ other.refToObj.map {
@@ -584,7 +593,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): PermissionState = {
-    logger.debug("*** pruneVariables(filter: " + filter.toString + "): implement me!")
+    logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
     
     this
   }
@@ -610,7 +619,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): PermissionState = {
-    logger.debug("*** removeVariable(varExpr: " + varExpr.toString + "): implement me!")
+    logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
     
     this
   }
@@ -619,7 +628,7 @@ case class PermissionState(exprSet: ExpressionSet,
     *
     * @return the default string representation of the current state
     */
-  def repr: String = {
+  private def repr: String = {
     "PermissionState(" +
       exprSet.toString + ", " +
       refToObj.toString + ", " +
@@ -636,7 +645,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): PermissionState = {
-    logger.debug("*** setArgument(other: " + x.toString + ", right: " + right.toString + "): implement me!")
+    logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
     
     this
   }
@@ -649,7 +658,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @return The abstract state after changing the current expression with the given one
     */
   override def setExpression(expr: ExpressionSet): PermissionState = {
-    logger.debug("*** setExpression(expr: " + expr.toString + ")")
+    logger.debug("*** setExpression(" + expr.toString + ")")
     
     this.copy(exprSet = expr) // return the current state with updated exprSet
   }
@@ -664,7 +673,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): PermissionState = {
-    logger.debug("*** setVariableToTop(varExpr: " + varExpr.toString + "): implement me!")
+    logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
     
     this
   }
@@ -677,7 +686,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def throws(t: ExpressionSet): PermissionState = {
-    logger.debug("*** throws(t: " + t.toString + "): implement me!")
+    logger.debug("*** throws(" + t.toString + "): implement me!")
     
     this
   }
@@ -715,7 +724,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def widening(other: PermissionState): PermissionState = {
-    logger.debug("*** widening(other: " + other.repr + "): implement me!")
+    logger.debug("*** widening(" + other.repr + "): implement me!")
     
     this
   }
@@ -729,5 +738,5 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
 
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
   override def topState: PermissionState = PermissionState(ExpressionSet(),
-    Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]](),Apron.Polyhedra.Top)
+    Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]](),Apron.Polyhedra.Bottom.factory())
 }
