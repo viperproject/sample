@@ -123,7 +123,7 @@ case class StupidState(expressionSet: ExpressionSet, numerical: Apron.Polyhedra)
 
   /** Returns the current expression */
   override def expr: ExpressionSet = {
-    println("*** expr: " + this.expressionSet.toString)
+    //println("*** expr: " + this.expressionSet.toString)
 
     this.expressionSet
   }
@@ -144,7 +144,7 @@ case class StupidState(expressionSet: ExpressionSet, numerical: Apron.Polyhedra)
    * @return The abstract state after changing the current expression with the given one
    */
   override def setExpression(expr: ExpressionSet): StupidState = {
-    println("*** setExpression(expr: " + expr.toString + ")")
+    //println("*** setExpression(expr: " + expr.toString + ")")
     this.copy(expressionSet = expr)
   }
 

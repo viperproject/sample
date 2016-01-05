@@ -51,46 +51,17 @@ case class RefExpression(ref: Ref) extends Expression {
   * @param pp the object allocation site
   * @author Caterina Urban
   */
-case class Obj(typ: Type, pp: ProgramPoint) {
-
-  /** The name of the object. */
-  def name : String = "O" + number
-
-  def number : String = pp match {
+case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier {
+  /** The name of the heap identifier. */
+  override def getName: String = "O" + number
+  private def number : String = pp match {
     case pp:LineColumnProgramPoint => pp.getLine.toString
     case _ => pp.description
   }
-
-  override def toString : String = name
-
-  override def equals(o: Any) = o match {
-    case that: Obj => that.name.equals(this.name)
-    case _ => false
-  }
-  override def hashCode = name.hashCode
-}
-
-/** Wrapper that turns an `Obj` into an `Expression`
-  *
-  * @param obj the `Obj` to turn into an `Expression`
-  * @author Caterina Urban
-  */
-case class ObjExpression(obj: Obj) extends Expression {
-
-  /** The type of the expression. */
-  override def typ: Type = obj.typ
-  /** Point in the program where the expression is located. */
-  override def pp: ProgramPoint = obj.pp
-  /** The string representation of the expression. */
-  override def toString : String = obj.name
-
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = ???
-  /** Runs `f` on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = f(this)
-  /** Checks if `f` evaluates to `true` on the expression and all sub-expressions. */
-  override def contains(f: (Expression) => Boolean): Boolean = f(this)
-
+  /** The name of the field represented by the identifier. */
+  override def getField: Option[String] = None
+  /** Whether the identifier is a summary node. */
+  override def representsSingleVariable: Boolean = false
 }
 
 /** Field of an object.
@@ -99,40 +70,15 @@ case class ObjExpression(obj: Obj) extends Expression {
   * @param field the field name
   * @author Caterina Urban
   */
-case class Fld(obj: Obj, field: String, typ: Type) {
-
+case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extends Identifier {
   /** The name of the object field. */
-  def name : String = obj.name + "." + field
-
-  override def equals(o: Any) = o match {
-    case that: Obj => that.name.equals(this.name)
-    case _ => false
-  }
-  override def hashCode = name.hashCode
-
-}
-
-/** Wrapper that turns a `Fld` into an `Expression`
-  *
-  * @param fld the `Fld` to turn into an `Expression`
-  * @author Caterina Urban
-  */
-case class FldExpression(fld: Fld) extends Expression {
-
-  /** The type of the expression. */
-  override def typ: Type = fld.typ
-  /** Point in the program where the expression is located. */
-  override def pp: ProgramPoint = fld.obj.pp
-  /** The string representation of the expression. */
-  override def toString : String = fld.name
-
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = ???
-  /** Runs `f` on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = f(this)
-  /** Checks if `f` evaluates to `true` on the expression and all sub-expressions. */
-  override def contains(f: (Expression) => Boolean): Boolean = f(this)
-
+  override def getName: String = obj.getName + "." + field
+  /** The name of the field represented by the identifier. */
+  override def getField: Option[String] = Some(field)
+  /** Whether the identifier is a summary node. */
+  override def representsSingleVariable: Boolean = obj.representsSingleVariable
+  /** Point in the program where the identifier is located. */
+  override def pp: ProgramPoint = obj.pp
 }
 
 /** Permission Inference State
@@ -144,9 +90,9 @@ case class FldExpression(fld: Fld) extends Expression {
   */
 case class PermissionState(exprSet: ExpressionSet,
                            // map from `Ref` variables to heap `Obj` objects
-                           refToObj: Map[Ref,Set[Obj]],
+                           refToObj: Map[Ref,Set[HeapIdentifier]],
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
-                           objFieldToObj: Map[Obj,Map[String,Set[Obj]]],
+                           objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]],
                            // polyhedra abstract domain
                            numDom : Apron.Polyhedra)
   extends SimpleState[PermissionState]
@@ -166,35 +112,35 @@ case class PermissionState(exprSet: ExpressionSet,
     logger.debug("*** assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
     obj match {
-      case obj: FldExpression =>
-        if (obj.fld.typ.isObject) { // the assigned field is a `Ref`
+      case obj: FieldIdentifier =>
+        if (obj.typ.isObject) { // the assigned field is a `Ref`
           right match {
 
-            case right: FldExpression => // e.g., `x.f := y.g`
-              val s = objFieldToObj(right.fld.obj)(right.fld.field) // retrieve the heap `Obj` objects
-              val o = obj.fld.obj // retrieve `Obj` whose field is assigned
-              val f = obj.fld.field // retrieve assigned field
+            case right: FieldIdentifier => // e.g., `x.f := y.g`
+              val s = objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
+              val o = obj.obj // retrieve `Obj` whose field is assigned
+              val f = obj.field // retrieve assigned field
               // weak update
               val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap)
 
-            case right: ObjExpression => // e.g., `x.f := new()`
-              val o = obj.fld.obj // retrieve `Obj` whose field is assigned
-              val f = obj.fld.field // retrieve assigned field
+            case right: HeapIdentifier => // e.g., `x.f := new()`
+              val o = obj.obj // retrieve `Obj` whose field is assigned
+              val f = obj.field // retrieve assigned field
               val objFieldToObjmap = objFieldToObj +
                 // add key to objFieldToObjmap
-                (right.obj -> Map[String,Set[Obj]]()) +
+                (right -> Map[String,Set[HeapIdentifier]]()) +
                 // weak update
-                (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right.obj))))
+                (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap)
 
             case right: VariableIdentifier => // e.g., `x.f := y`
               val id = Ref(right) // create `Ref` variable
               val s = refToObj(id) // retrieve the corresponding heap `Obj` objects
-              val o = obj.fld.obj // retrieve `Obj` whose field is assigned
-              val f = obj.fld.field // retrieve assigned field
+              val o = obj.obj // retrieve `Obj` whose field is assigned
+              val f = obj.field // retrieve assigned field
               // weak update
               val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
               // return the current state with updated objFieldToObj
@@ -203,24 +149,12 @@ case class PermissionState(exprSet: ExpressionSet,
             case _ => throw new NotImplementedError("A field assignment implementation is missing.")
           }
         } else {  // the assigned field is not a `Ref`
-          right match {
-            case right : FldExpression => // e.g., `x.f := y.g`
-              val id = VariableIdentifier(obj.fld.name)(obj.fld.typ,obj.pp)
-              val rhs = VariableIdentifier(right.fld.name)(right.fld.typ,right.pp)
-              // weak update
-              val num = numDom.lub(numDom.assign(id,rhs))
-              // return the current state with updated numDom
-              this.copy(numDom = num)
-
-            case _ =>
-              val id = VariableIdentifier(obj.fld.name)(obj.fld.typ,obj.pp)
-              // weak update
-              val num = numDom.lub(numDom.assign(id,right))
-              // return the current state with updated numDom
-              this.copy(numDom = num)
-          }
+          // weak update
+          val num = numDom lub numDom.assign(obj,right)
+          // return the current state with updated numDom
+          this.copy(numDom = num)
         }
-      case _ => throw new IllegalArgumentException("A field assignment must occur via a FldExpression.")
+      case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
     }
   }
 
@@ -238,8 +172,8 @@ case class PermissionState(exprSet: ExpressionSet,
       case _ => "Unknown"
     }
     val idright = right match {
-      case _: FldExpression => "FldExpression"
-      case _: ObjExpression => "ObjExpression"
+      case _: FieldIdentifier => "FieldIdentifier"
+      case _: HeapIdentifier => "HeapIdentifier"
       case _: VariableIdentifier => "VariableIdentifier"
       case _ => "Unknown: " + right.getClass.getSimpleName
     }
@@ -250,42 +184,33 @@ case class PermissionState(exprSet: ExpressionSet,
         if (x.typ.isObject) { // the assigned variable is a `Ref`
           val xref = Ref(x) // create new `Ref` variable
           right match {
-            case right: FldExpression => // e.g., `x := y.g`
-              val s = this.objFieldToObj(right.fld.obj)(right.fld.field) // retrieve the heap `Obj` objects
+            case right: FieldIdentifier => // e.g., `x := y.g`
+              val s = this.objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
               // add xref -> s to refToObj map
               val refToObjmap = this.refToObj + (xref -> s)
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap)
 
-            case right: ObjExpression => // e.g., `x = new()`
-              val rightobj = Obj(right.typ, right.pp) // create new Obj
-              // add xref -> rightobj to refToObj map
-              val refToObjmap = this.refToObj + (xref -> Set[Obj](rightobj))
+            case right: HeapIdentifier => // e.g., `x = new()`
+              // add xref -> right to refToObj map
+              val refToObjmap = this.refToObj + (xref -> Set[HeapIdentifier](right))
               // add key to objFieldToObj map
-              val objFieldToObjmap = this.objFieldToObj + (rightobj -> Map[String,Set[Obj]]())
+              val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
               // return the current state with updated refToObj and updated objFieldToObj
               this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
 
             case right: VariableIdentifier => // e.g., `x := y`
               val rightref = Ref(right)
               // add xref -> refToObj[rightref] to refToObj map
-              val refToObjmap = this.refToObj + (xref -> this.refToObj.getOrElse(rightref, Set[Obj]()))
+              val refToObjmap = this.refToObj + (xref -> this.refToObj.getOrElse(rightref, Set[HeapIdentifier]()))
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap)
 
             case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
           }
         } else {  // the assigned variable is not a `Ref`
-          right match {
-            case right : FldExpression => // e.g., `x := y.g`
-              val id = VariableIdentifier(right.fld.name)(right.fld.typ,right.pp)
-              // return the current state with updated numDom
-              this.copy(numDom = numDom.assign(x,id))
-
-            case _ =>
-              // return the current state with updated numDom
-              this.copy(numDom = numDom.assign(x,right))
-          }
+          // return the current state with updated numDom
+          this.copy(numDom = numDom.assign(x,right))
         }
       case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
     }
@@ -301,9 +226,51 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def assume(cond: Expression): PermissionState = {
-    logger.debug("*** assume(" + cond.toString + "): implement me!")
-    
-    this
+    val idcond = cond match {
+      case cond:ReferenceComparisonExpression => "ReferenceComparisonExpression"
+      case _ => "Unknown: " + cond.getClass.getSimpleName
+    }
+    logger.debug("*** assume(" + cond.toString + ": " + idcond + "): implement me!")
+
+    cond match {
+      case cond:BinaryArithmeticExpression =>
+        // return the current state with updated numDom
+        this.copy(numDom = numDom.assume(cond))
+
+      case cond:Constant =>
+        // return the current state with updated numDom
+        this.copy(numDom = numDom.assume(cond))
+
+      case cond:NegatedBooleanExpression =>
+        val exp = cond.exp
+        exp match {
+          case cond:BinaryArithmeticExpression =>
+            // return the current state with updated numDom
+            this.copy(numDom = numDom.assume(cond))
+
+          case cond:Constant =>
+            // return the current state with updated numDom
+            this.copy(numDom = numDom.assume(cond))
+
+          case exp:ReferenceComparisonExpression =>
+            if (exp.op == ArithmeticOperator.==) {
+              this
+            } else { // exp.op == ArithmeticOperator.!=
+              this
+            }
+
+          case _ => throw new NotImplementedError("An assume(NegatedBooleanExpression) implementation is missing.")
+        }
+
+      case cond:ReferenceComparisonExpression =>
+        if (cond.op == ArithmeticOperator.==) {
+          this
+        } else { // cond.op == ArithmeticOperator.!=
+          this
+        }
+
+      case _ => throw new NotImplementedError("An assume implementation is missing.")
+    }
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -341,11 +308,10 @@ case class PermissionState(exprSet: ExpressionSet,
   override def createObject(typ: Type, pp: ProgramPoint): PermissionState = {
     logger.debug("*** createObject(" + typ.toString + "; " + pp.toString + ")")
     
-    val obj = Obj(typ,pp) // create new Obj
-    val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[Obj]]()) // add key to objFieldToObj map
-    val exp = ObjExpression(obj) // turn Obj into Expression
+    val obj = HeapIdentifier(typ,pp) // create new Obj
+    val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
     // return the current state with updated exprSet and updated objFieldToObj map
-    this.copy(exprSet = ExpressionSet(exp), objFieldToObj = objFieldToObjmap)
+    this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap)
   }
 
   /** Creates a variable given a `VariableIdentifier`.
@@ -363,7 +329,7 @@ case class PermissionState(exprSet: ExpressionSet,
 
     if (typ.isObject) { // the variable to be created is a `Ref`
       val ref = Ref(x) // create new Ref
-      val refToObjmap = refToObj + (ref -> Set[Obj]()) // add key to refToObj map
+      val refToObjmap = refToObj + (ref -> Set[HeapIdentifier]()) // add key to refToObj map
       val exp = RefExpression(ref) // turn Ref into Expression
       // return the current state with updated exprSet and refToObj
       this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap)
@@ -385,10 +351,10 @@ case class PermissionState(exprSet: ExpressionSet,
     logger.debug("*** createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
-      val obj = Obj(typ,x.pp) // create new Obj
+      val obj = HeapIdentifier(typ,x.pp) // create new Obj
       val ref = Ref(x) // create new Ref
-      val refToObjmap = refToObj + (ref -> Set[Obj](obj)) // add key to refToObj map
-      val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[Obj]]()) // add key to objFieldToObj map
+      val refToObjmap = refToObj + (ref -> Set[HeapIdentifier](obj)) // add key to refToObj map
+      val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
       val exp = RefExpression(ref) // turn Ref into Expression
       // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
       this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
@@ -420,7 +386,7 @@ case class PermissionState(exprSet: ExpressionSet,
     * @param objFieldToObjmap the current objFieldToObj map updated with missing fields
     * @return the set of objects referenced by the path (except the last field)
     */
-  private def evaluatePath(path: List[String], objFieldToObjmap: Map[Obj,Map[String,Set[Obj]]]) : Set[Obj] = {
+  private def evaluatePath(path: List[String], objFieldToObjmap: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]) : Set[HeapIdentifier] = {
     val keys = refToObj.keySet // set of all Ref variables
     // retrieving the Ref variable corresponding to the head of the path
     val id = keys.find((ref) => ref.name == path.head).get
@@ -428,7 +394,7 @@ case class PermissionState(exprSet: ExpressionSet,
     // path evaluation
     path.drop(1).dropRight(1).foldLeft(fst)(
       (set,next) => // next path segment
-        set.foldLeft(Set[Obj]())(
+        set.foldLeft(Set[HeapIdentifier]())(
           (s,obj) => s ++ objFieldToObjmap.get(obj).get.get(next).get
         )
     )
@@ -480,15 +446,15 @@ case class PermissionState(exprSet: ExpressionSet,
         val segment = if (typ.isObject) path.drop(1) else path.drop(1).dropRight(1)
         val objFieldToObjmap = segment.foldLeft(objFieldToObj)(
           (map,next) =>
-            map.mapValues[Map[String,Set[Obj]]](
-              (m) => if (m.contains(next)) m else m + (next -> Set[Obj]())
+            map.mapValues[Map[String,Set[HeapIdentifier]]](
+              (m) => if (m.contains(next)) m else m + (next -> Set[HeapIdentifier]())
             )
         )
         // evaluate path into the set of objects referenced by it (up to the given field excluded)
         val objSet = evaluatePath(path,objFieldToObjmap)
         val expr = objSet.foldLeft(ExpressionSet())(
           (e,o) => {
-            val fld = FldExpression(Fld(o,field,typ)) // create new FldExpression
+            val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
             e add ExpressionSet(fld)
           }
         )
@@ -565,12 +531,12 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
-      case (k: Ref,v: Set[Obj]) => v subsetOf other.refToObj.getOrElse(k,Set[Obj]())
+      case (k: Ref,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
     } // test the refToObjs
     val objFieldToObjmap = this.objFieldToObj.forall {
-      case (o: Obj, m: Map[String,Set[Obj]]) => m.forall {
-        case (f: String, s: Set[Obj]) =>
-          s subsetOf other.objFieldToObj.getOrElse(o,Map[String,Set[Obj]]()).getOrElse(f,Set[Obj]())
+      case (o: HeapIdentifier, m: Map[String,Set[HeapIdentifier]]) => m.forall {
+        case (f: String, s: Set[HeapIdentifier]) =>
+          s subsetOf other.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(f,Set[HeapIdentifier]())
       }
     } // test the objFieldToObjs
     val num = this.numDom.lessEqual(other.numDom) // test the numDoms
@@ -586,18 +552,18 @@ case class PermissionState(exprSet: ExpressionSet,
   override def lub(other: PermissionState): PermissionState = {
     logger.debug("*** lub(" + other.repr + ")")
 
-    val exp = this.exprSet.lub(other.expr) // join the exprSets
+    val exp = this.exprSet lub other.expr // join the exprSets
     val refToObjmap = this.refToObj ++ other.refToObj.map {
-      case (k: Ref,v: Set[Obj]) => k -> (this.refToObj.getOrElse(k,Set[Obj]()) ++ v)
+      case (k: Ref,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
     } // merge the refToObjs
     val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
-      case (o: Obj,m: Map[String,Set[Obj]]) => o ->
-        (this.objFieldToObj.getOrElse(o,Map[String,Set[Obj]]()) ++ other.objFieldToObj(o).map {
-          case (s: String, v: Set[Obj]) => s ->
-            (this.objFieldToObj.getOrElse(o,Map[String,Set[Obj]]()).getOrElse(s,Set[Obj]()) ++ v)
+      case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
+        (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()) ++ other.objFieldToObj(o).map {
+          case (s: String, v: Set[HeapIdentifier]) => s ->
+            (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()) ++ v)
         })
     } // merge the objFieldToObjmap
-    val num = this.numDom.lub(other.numDom) // join the numDoms
+    val num = this.numDom lub other.numDom // join the numDoms
 
     // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
     this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
@@ -748,9 +714,23 @@ case class PermissionState(exprSet: ExpressionSet,
     * @todo implement me!
     */
   override def widening(other: PermissionState): PermissionState = {
-    logger.debug("*** widening(" + other.repr + "): implement me!")
-    
-    this
+    logger.debug("*** widening(" + other.repr + ")")
+
+    val exp = this.exprSet widening other.expr // widen the exprSets
+    val refToObjmap = this.refToObj ++ other.refToObj.map {
+        case (k: Ref,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
+      } // merge the refToObjs
+    val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
+        case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
+          (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()) ++ other.objFieldToObj(o).map {
+            case (s: String, v: Set[HeapIdentifier]) => s ->
+              (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()) ++ v)
+          })
+      } // merge the objFieldToObjmap
+    val num = this.numDom widening other.numDom // widen the numDoms
+
+    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
+    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
   }
 }
 
@@ -762,5 +742,5 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
 
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
   override def topState: PermissionState = PermissionState(ExpressionSet(),
-    Map[Ref,Set[Obj]](),Map[Obj,Map[String,Set[Obj]]](),Apron.Polyhedra.Bottom.factory())
+    Map[Ref,Set[HeapIdentifier]](),Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),Apron.Polyhedra.Bottom.factory())
 }
