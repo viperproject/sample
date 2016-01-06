@@ -5,24 +5,20 @@ import play.twirl.sbt.SbtTwirl
 object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
-    base = file(".")) aggregate(core, heap, numerical, touchdevelop,
+    base = file(".")) aggregate(core, numerical, touchdevelop,
     scalapreproc, partitioning, string, valuedrivenheap, sil, web)
 
   lazy val core = Project(
     id = "sample-core",
     base = file("sample"))
 
-  lazy val heap = Project(
-    id = "sample-heap",
-    base = file("HeapAnalysis")) dependsOn core
-
   lazy val numerical = Project(
     id = "sample-numerical",
-    base = file("NumericalAnalysis")) dependsOn(core, heap)
+    base = file("NumericalAnalysis")) dependsOn(core)
 
   lazy val touchdevelop = Project(
     id = "sample-touchdevelop",
-    base = file("TouchDevelopPreprocessing")) dependsOn(core, heap, numerical, string)
+    base = file("TouchDevelopPreprocessing")) dependsOn(core, numerical, string)
 
   lazy val scalapreproc = Project(
     id = "sample-scala-preprocessing",
