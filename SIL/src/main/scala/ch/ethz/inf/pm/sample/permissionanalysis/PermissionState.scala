@@ -7,44 +7,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
-/** Reference variable
-  *
-  * @param id the identifier corresponding to the variable
-  * @author Caterina Urban
-  */
-case class Ref(id: Identifier) {
-  def name: String = id.getName
-
-  override def equals(o: Any) = o match {
-    case that: Ref => that.name.equals(this.name)
-    case _ => false
-  }
-  override def hashCode = name.hashCode
-}
-
-/** Wrapper that turns a `Ref` into an `Expression`
-  *
-  * @param ref the `Ref` to turn into an `Expression`
-  * @author Caterina Urban
-  */
-case class RefExpression(ref: Ref) extends Expression {
-
-  /** The type of the expression. */
-  override def typ: Type = ref.id.typ
-  /** Point in the program where the expression is located. */
-  override def pp: ProgramPoint = ref.id.pp
-  /** The string representation of the expression. */
-  override def toString : String = ref.name
-
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = ???
-  /** Runs `f` on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = f(this)
-  /** Checks if `f` evaluates to `true` on the expression and all sub-expressions. */
-  override def contains(f: (Expression) => Boolean): Boolean = f(this)
-
-}
-
 /** Object created at object allocation site.
   *
   * @param typ the type of the object
@@ -90,7 +52,7 @@ case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extend
   */
 case class PermissionState(exprSet: ExpressionSet,
                            // map from `Ref` variables to heap `Obj` objects
-                           refToObj: Map[Ref,Set[HeapIdentifier]],
+                           refToObj: Map[VariableIdentifier,Set[HeapIdentifier]],
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
                            objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]],
                            // polyhedra abstract domain
@@ -137,8 +99,7 @@ case class PermissionState(exprSet: ExpressionSet,
               this.copy(objFieldToObj = objFieldToObjmap)
 
             case right: VariableIdentifier => // e.g., `x.f := y`
-              val id = Ref(right) // create `Ref` variable
-              val s = refToObj(id) // retrieve the corresponding heap `Obj` objects
+              val s = refToObj(right) // retrieve the corresponding heap `Obj` objects
               val o = obj.obj // retrieve `Obj` whose field is assigned
               val f = obj.field // retrieve assigned field
               // weak update
@@ -182,27 +143,25 @@ case class PermissionState(exprSet: ExpressionSet,
     x match {
       case x: VariableIdentifier =>
         if (x.typ.isObject) { // the assigned variable is a `Ref`
-          val xref = Ref(x) // create new `Ref` variable
           right match {
             case right: FieldIdentifier => // e.g., `x := y.g`
               val s = this.objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
               // add xref -> s to refToObj map
-              val refToObjmap = this.refToObj + (xref -> s)
+              val refToObjmap = this.refToObj + (x -> s)
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap)
 
             case right: HeapIdentifier => // e.g., `x = new()`
               // add xref -> right to refToObj map
-              val refToObjmap = this.refToObj + (xref -> Set[HeapIdentifier](right))
+              val refToObjmap = this.refToObj + (x -> Set[HeapIdentifier](right))
               // add key to objFieldToObj map
               val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
               // return the current state with updated refToObj and updated objFieldToObj
               this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
 
             case right: VariableIdentifier => // e.g., `x := y`
-              val rightref = Ref(right)
               // add xref -> refToObj[rightref] to refToObj map
-              val refToObjmap = this.refToObj + (xref -> this.refToObj.getOrElse(rightref, Set[HeapIdentifier]()))
+              val refToObjmap = this.refToObj + (x -> this.refToObj.getOrElse(right, Set[HeapIdentifier]()))
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap)
 
@@ -222,54 +181,129 @@ case class PermissionState(exprSet: ExpressionSet,
     *
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds
-    *
-    * @todo implement me!
     */
   override def assume(cond: Expression): PermissionState = {
-    val idcond = cond match {
-      case cond:ReferenceComparisonExpression => "ReferenceComparisonExpression"
-      case _ => "Unknown: " + cond.getClass.getSimpleName
-    }
-    logger.debug("*** assume(" + cond.toString + ": " + idcond + "): implement me!")
+    logger.debug("*** assume(" + cond.toString + ")")
 
     cond match {
-      case cond:BinaryArithmeticExpression =>
-        // return the current state with updated numDom
+      // Constant
+      case cond:Constant => // return the current state with updated numDom
         this.copy(numDom = numDom.assume(cond))
 
-      case cond:Constant =>
-        // return the current state with updated numDom
+      // Identifier
+      case cond: Identifier => // return the current state with updated numDom
         this.copy(numDom = numDom.assume(cond))
 
-      case cond:NegatedBooleanExpression =>
-        val exp = cond.exp
-        exp match {
-          case cond:BinaryArithmeticExpression =>
-            // return the current state with updated numDom
+      // BinaryArithmeticExpression
+      case cond: BinaryArithmeticExpression => // return the current state with updated numDom
+        this.copy(numDom = numDom.assume(cond))
+
+      // BinaryBooleanExpression
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
+        if (cond.canonical) // return the current state with updated numDom
+          this.copy(numDom = numDom.assume(cond))
+        else
+          this.assume(left).assume(right)
+      case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) =>
+        if (cond.canonical) // return the current state with updated numDom
+          this.copy(numDom = numDom.assume(cond))
+        else
+          this.assume(left) lub this.assume(right)
+
+      // NegatedBooleanExpression
+      case cond:NegatedBooleanExpression => {
+        cond.exp match {
+          // Constant
+          case c: Constant => // return the current state with updated numDom
             this.copy(numDom = numDom.assume(cond))
 
-          case cond:Constant =>
-            // return the current state with updated numDom
+          // Identifier (i.e., FieldIdentifier, VariableIdentifier)
+          case id: Identifier => // return the current state with updated numDom
             this.copy(numDom = numDom.assume(cond))
 
-          case exp:ReferenceComparisonExpression =>
-            if (exp.op == ArithmeticOperator.==) {
-              this
-            } else { // exp.op == ArithmeticOperator.!=
-              this
+          // BinaryArithmeticExpression
+          case BinaryArithmeticExpression(left, right, op, typ) =>
+            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+
+          // BinaryBooleanExpression
+          case BinaryBooleanExpression(left, right, op, typ) =>
+            val nleft = NegatedBooleanExpression(left)
+            val nright = NegatedBooleanExpression(right)
+            val nop = op match {
+              case BooleanOperator.&& => BooleanOperator.||
+              case BooleanOperator.|| => BooleanOperator.&&
             }
+            this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
 
-          case _ => throw new NotImplementedError("An assume(NegatedBooleanExpression) implementation is missing.")
+          // NegatedBooleanExpression
+          case NegatedBooleanExpression(exp) => this.assume(exp)
+
+          // ReferenceComparisonExpression
+          case ReferenceComparisonExpression(left, right, op, typ) =>
+            val nop = op match {
+              case ArithmeticOperator.== => ArithmeticOperator.!=
+              case ArithmeticOperator.!= => ArithmeticOperator.==
+            }
+            this.assume(ReferenceComparisonExpression(left, right, nop, typ))
+
+          case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
+            + cond.exp.getClass.getSimpleName + " is missing.")
         }
+      }
 
-      case cond:ReferenceComparisonExpression =>
-        if (cond.op == ArithmeticOperator.==) {
+      case ReferenceComparisonExpression(left, right, op, typ) =>
+        if (op == ArithmeticOperator.==) {
+          println(left.getClass.getSimpleName, left.typ)
+          println(right.getClass.getSimpleName, right.typ)
           this
         } else { // cond.op == ArithmeticOperator.!=
+          println(left.getClass.getSimpleName, left.typ)
+          println(right.getClass.getSimpleName, right.typ)
           this
         }
 
       case _ => throw new NotImplementedError("An assume implementation is missing.")
+    }
+  }
+
+  /** Assumes that a NegatedBooleanExpression expression holds. */
+  private def assumeNegatedBooleanExpression(cond: NegatedBooleanExpression): PermissionState = {
+    cond.exp match {
+      // Constant
+      case Constant("false",_,_) => this
+      case Constant("true",_,_) => this.bottom()
+
+      // Identifier (i.e., FieldIdentifier, VariableIdentifier)
+      case id:Identifier => assert(id.typ.isBooleanType)
+        this.assume(BinaryArithmeticExpression(id, Constant("0",id.typ,id.pp), ArithmeticOperator.==))
+
+      // BinaryArithmeticExpression
+      case BinaryArithmeticExpression(left, right, op, typ) =>
+        this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+
+      // BinaryBooleanExpression
+      case BinaryBooleanExpression(left, right, op, typ) =>
+        val nleft = NegatedBooleanExpression(left)
+        val nright = NegatedBooleanExpression(right)
+        val nop = op match {
+          case BooleanOperator.&& => BooleanOperator.||
+          case BooleanOperator.|| => BooleanOperator.&&
+        }
+        this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
+
+      // NegatedBooleanExpression
+      case NegatedBooleanExpression(exp) => this.assume(exp)
+
+      // ReferenceComparisonExpression
+      case ReferenceComparisonExpression(left, right, op, typ) =>
+        val nop = op match {
+          case ArithmeticOperator.== => ArithmeticOperator.!=
+          case ArithmeticOperator.!= => ArithmeticOperator.==
+        }
+        this.assume(ReferenceComparisonExpression(left, right, nop, typ))
+
+      case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
+        + cond.exp.getClass.getSimpleName + " is missing.")
     }
   }
 
@@ -328,11 +362,9 @@ case class PermissionState(exprSet: ExpressionSet,
     logger.debug("*** createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
-      val ref = Ref(x) // create new Ref
-      val refToObjmap = refToObj + (ref -> Set[HeapIdentifier]()) // add key to refToObj map
-      val exp = RefExpression(ref) // turn Ref into Expression
+      val refToObjmap = refToObj + (x -> Set[HeapIdentifier]()) // add key to refToObj map
       // return the current state with updated exprSet and refToObj
-      this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap)
+      this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap)
     } else { // the variable to be created is not a `Ref`
       // return the current state with updated numDom
       this.copy(numDom = numDom.createVariable(x,typ))
@@ -352,12 +384,10 @@ case class PermissionState(exprSet: ExpressionSet,
 
     if (typ.isObject) { // the variable to be created is a `Ref`
       val obj = HeapIdentifier(typ,x.pp) // create new Obj
-      val ref = Ref(x) // create new Ref
-      val refToObjmap = refToObj + (ref -> Set[HeapIdentifier](obj)) // add key to refToObj map
+      val refToObjmap = refToObj + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
       val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
-      val exp = RefExpression(ref) // turn Ref into Expression
       // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
-      this.copy(exprSet = ExpressionSet(exp), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+      this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
     } else { // the variable to be created is not a `Ref`
       // return the current state with updated numDom
       this.copy(numDom = numDom.createVariable(x,typ))
@@ -531,7 +561,7 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
-      case (k: Ref,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
+      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
     } // test the refToObjs
     val objFieldToObjmap = this.objFieldToObj.forall {
       case (o: HeapIdentifier, m: Map[String,Set[HeapIdentifier]]) => m.forall {
@@ -554,7 +584,7 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet lub other.expr // join the exprSets
     val refToObjmap = this.refToObj ++ other.refToObj.map {
-      case (k: Ref,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
+      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
     } // merge the refToObjs
     val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
       case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
@@ -718,7 +748,7 @@ case class PermissionState(exprSet: ExpressionSet,
 
     val exp = this.exprSet widening other.expr // widen the exprSets
     val refToObjmap = this.refToObj ++ other.refToObj.map {
-        case (k: Ref,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
+        case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
       } // merge the refToObjs
     val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
         case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
@@ -741,6 +771,6 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
 }
 
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
-  override def topState: PermissionState = PermissionState(ExpressionSet(),
-    Map[Ref,Set[HeapIdentifier]](),Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),Apron.Polyhedra.Bottom.factory())
+  override def topState: PermissionState = PermissionState(ExpressionSet(),Map[VariableIdentifier,Set[HeapIdentifier]](),
+    Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),Apron.Polyhedra.Bottom.factory())
 }

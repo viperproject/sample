@@ -1,7 +1,21 @@
+field data : Int
+field test : Bool
 
 method Foo()
 {
     var x : Ref
+    x := new()
+    x.test := true
+    if (!x.test) {
+        x.data := 0
+    }
+
+    //var x : Ref
     //x := new()
-    //var y : Ref
+    //if (x != null) {
+    //    x.data := 0
+    //} else {
+    //    x := new()
+    //    x.data := 0
+    //}
 }
