@@ -1,21 +1,31 @@
-field data : Int
-field test : Bool
+field data: Seq[Int]
+field holds: Int
 
-method Foo()
+//method Foo(this: Ref)
+//{
+//    var i: Int;
+//    i := |this.data|;
+//    var res: Int
+//    res := 0
+//
+//    while(i > 0)
+//    {
+//        res := res + this.data[i]
+//        i := i - 1
+//    }
+//}
+
+
+method Foo(this: Ref)
 {
-    var x : Ref
-    x := new()
-    x.test := true
-    if (!x.test) {
-        x.data := 0
-    }
+    var i : Int
+    i := |this.data|
+    var res: Int
+    res := 0
 
-    //var x : Ref
-    //x := new()
-    //if (x != null) {
-    //    x.data := 0
-    //} else {
-    //    x := new()
-    //    x.data := 0
-    //}
+    while (i > 0)
+    {
+        res := res + this.data[i]
+        i := i - 1
+    }
 }

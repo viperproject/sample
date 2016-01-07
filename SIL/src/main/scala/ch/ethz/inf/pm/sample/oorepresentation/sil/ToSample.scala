@@ -246,7 +246,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
     case p: sil.PermExp => ???
     case sil.Old(exp) => ???
-    case e: sil.SeqExp => throw new NotImplementedError("It's me missing!")
+
     case sil.AnySetCardinality(_) |
          sil.AnySetContains(_, _) |
          sil.AnySetIntersection(_, _) |
@@ -257,6 +257,15 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
          sil.EmptySet(_) |
          sil.ExplicitMultiset(_) |
          sil.ExplicitSet(_) => ???
+
+      // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
+      // their length (e.g., |data|) is treated as another unbounded variable
+
+    case e: sil.SeqLength => // sequence length, e.g., |this.data|
+      makeVariable(e.pos, e.typ, e.toString)
+    case sil.SeqIndex(sil.FieldAccess(rcv, field),_) => // sequence access, e.g., this.data[i]
+      sample.FieldAccess(go(e.pos),go(rcv),field.name,go(field.typ))
+    case e: sil.SeqExp => throw new NotImplementedError("A SeqExp conversion is missing!")
   }
 
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {

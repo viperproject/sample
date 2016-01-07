@@ -266,47 +266,6 @@ case class PermissionState(exprSet: ExpressionSet,
     }
   }
 
-  /** Assumes that a NegatedBooleanExpression expression holds. */
-  private def assumeNegatedBooleanExpression(cond: NegatedBooleanExpression): PermissionState = {
-    cond.exp match {
-      // Constant
-      case Constant("false",_,_) => this
-      case Constant("true",_,_) => this.bottom()
-
-      // Identifier (i.e., FieldIdentifier, VariableIdentifier)
-      case id:Identifier => assert(id.typ.isBooleanType)
-        this.assume(BinaryArithmeticExpression(id, Constant("0",id.typ,id.pp), ArithmeticOperator.==))
-
-      // BinaryArithmeticExpression
-      case BinaryArithmeticExpression(left, right, op, typ) =>
-        this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
-
-      // BinaryBooleanExpression
-      case BinaryBooleanExpression(left, right, op, typ) =>
-        val nleft = NegatedBooleanExpression(left)
-        val nright = NegatedBooleanExpression(right)
-        val nop = op match {
-          case BooleanOperator.&& => BooleanOperator.||
-          case BooleanOperator.|| => BooleanOperator.&&
-        }
-        this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
-
-      // NegatedBooleanExpression
-      case NegatedBooleanExpression(exp) => this.assume(exp)
-
-      // ReferenceComparisonExpression
-      case ReferenceComparisonExpression(left, right, op, typ) =>
-        val nop = op match {
-          case ArithmeticOperator.== => ArithmeticOperator.!=
-          case ArithmeticOperator.!= => ArithmeticOperator.==
-        }
-        this.assume(ReferenceComparisonExpression(left, right, nop, typ))
-
-      case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
-        + cond.exp.getClass.getSimpleName + " is missing.")
-    }
-  }
-
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
     * This is particularly important to eventually partition a state following the specified directives.
@@ -463,11 +422,7 @@ case class PermissionState(exprSet: ExpressionSet,
     *         holds the objects referenced by the access path (up to the given field excluded).
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
-    val idobj = obj match {
-      case _: AccessPathIdentifier => "AccessPathIdentifier"
-      case _ => "Unknown"
-    }
-    logger.debug("*** getFieldValue(" + obj.toString + ": " + idobj + "; " + field + "; " + typ.toString + ")")
+    logger.debug("*** getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
     obj match {
       case obj:AccessPathIdentifier =>
@@ -503,11 +458,7 @@ case class PermissionState(exprSet: ExpressionSet,
     *         as expression the symbolic representation of the value of the given variable
     */
   override def getVariableValue(id: Identifier): PermissionState = {
-    val typ = id match {
-      case _: VariableIdentifier => "VariableIdentifier"
-      case _ => "Unknown"
-    }
-    logger.debug("*** getVariableValue(" + id.toString + ": " + typ + ")")
+    logger.debug("*** getVariableValue(" + id.toString + ")")
 
     // return the current state with updated exprSet
     this.copy(exprSet = ExpressionSet(id))

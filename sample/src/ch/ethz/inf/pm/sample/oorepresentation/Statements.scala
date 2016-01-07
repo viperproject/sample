@@ -266,7 +266,7 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
  * type of the accessed field 
  * It extends variable as it is seen as a variable access
  *
- * obj is null iff the field access is preceeded by a statement that returns a variable
+ * obj is null iff the field access is preceded by a statement that returns a variable
  *
  * @author Pietro Ferrara
  * @version 0.1
