@@ -18,3 +18,6 @@ unmanagedJars in Compile <++= baseDirectory map { base =>
   val customJars = apronDirectories ** "*.jar"
   customJars.classpath
 }
+
+// Breeze@ScalaNLP: provides a DSL for solving linear programs, using Apache's Simplex Solver as the backend
+libraryDependencies  += "org.scalanlp" %% "breeze" % "0.11.2" withSources()

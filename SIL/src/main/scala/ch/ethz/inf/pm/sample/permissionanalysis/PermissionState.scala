@@ -2,9 +2,9 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
+import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, AnalysisResult, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
-import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, LineColumnProgramPoint, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 /** Object created at object allocation site.
@@ -715,13 +715,25 @@ case class PermissionState(exprSet: ExpressionSet,
   }
 }
 
-object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
-  val analysis = SimpleAnalysis[PermissionState](PermissionEntryStateBuilder)
 
-  override def toString = "Stupid Analysis"
-}
-
+/** Builds permission analysis entry states for given method declarations. */
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
   override def topState: PermissionState = PermissionState(ExpressionSet(),Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),Apron.Polyhedra.Bottom.factory())
 }
+
+class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntryStateBuilder) {
+  override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
+    val result = analyze(method, entryStateBuilder.build(method))
+    println("Analysis Result:\n" + result)
+    result
+  }
+}
+
+object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
+  //val analysis = SimpleAnalysis[PermissionState](PermissionEntryStateBuilder)
+  val analysis = new PermissionAnalysis
+
+  override def toString = "Stupid Analysis"
+}
+

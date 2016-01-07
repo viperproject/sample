@@ -1,5 +1,5 @@
-field data: Seq[Int]
-field holds: Int
+//field data: Seq[Int]
+//field holds: Int
 
 //method Foo(this: Ref)
 //{
@@ -16,16 +16,13 @@ field holds: Int
 //}
 
 
-method Foo(this: Ref)
+method Foo()
 {
     var i : Int
-    i := |this.data|
-    var res: Int
-    res := 0
+    i := 0
 
-    while (i > 0)
+    while (i < 3)
     {
-        res := res + this.data[i]
-        i := i - 1
+        i := i + 1
     }
 }
