@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisRunner
+import ch.ethz.inf.pm.sample.permissionanalysis.{PointsToNumericalAnalysisRunner, PermissionAnalysisRunner}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.stupidanalysis.StupidAnalysisRunner
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
@@ -16,7 +16,7 @@ object Main {
     SystemParameters.progressOutput = new StdOutOutput()
     //DefaultAnalysisRunner.main(args)
     //StupidAnalysisRunner.main(args)
-    PermissionAnalysisRunner.main(args)
+    PointsToNumericalAnalysisRunner.main(args)
 
     for (r <- Reporter.seenErrors) {
       println(r)

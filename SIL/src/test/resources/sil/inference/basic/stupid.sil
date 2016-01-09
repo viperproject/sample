@@ -15,14 +15,12 @@
 //    }
 //}
 
+field data : Int
 
-method Foo()
+method Foo(this: Ref)
 {
-    var i : Int
-    i := 0
-
-    while (i < 3)
-    {
-        i := i + 1
-    }
+    this.data := 0
+    var x : Ref
+    x := this
+    x.data := 0
 }

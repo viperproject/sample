@@ -12,15 +12,18 @@ object PermissionSolver {
     val x = Real("x")
     val y = Real("y")
 
-    val obj = y // objective function
+    val obj = x+y // objective function
     var prob = obj.subjectTo() // problem
-    prob = prob.subjectTo(y >= x + 1) // adding constraint
-    prob = prob.subjectTo(x >= 3) // adding constraint
+    prob = prob.subjectTo(x + y >= 4) // adding constraint
+    prob = prob.subjectTo(y >= 1) // adding constraint
+    prob = prob.subjectTo(x >= 1) // adding constraint
     val res = minimize(prob).result // solving
 
+
+
     println("Result:")
-    println(x.name + ": " + res.data.apply(0).toInt)
-    println(y.name + ": " + res.data.apply(1).toInt)
+    println(x.name + ": " + res.data.apply(0).toFloat)
+    println(y.name + ": " + res.data.apply(1).toFloat)
 
     println("\nDone.")
   }
