@@ -287,8 +287,12 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
   override def bottom(): PointsToNumericalState = {
     logger.debug("*** bottom()")
 
-    // return a new state with bottom exprSet and empty refToObj map
-    PointsToNumericalState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty,numDom.bottom())
+    // return a new state with bottom exprSet, empty refToObj, empty objFieldToObj, bottom numDom
+    val expr = exprSet.bottom()
+    val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
+    val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
+    val num = numDom.bottom()
+    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
   }
 
   /** Creates an object at allocation site.
@@ -408,8 +412,12 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
     */
   override def factory(): PointsToNumericalState = {
     logger.debug("*** factory(): implement me!")
-    
-    this
+
+    val expr = ExpressionSet()
+    val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
+    val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
+    val num = numDom.factory()
+    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
   }
 
   /** Accesses a field of an object.
@@ -667,20 +675,23 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
   /** Returns the top value of the lattice.
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
-    *
-    * @todo implement me!
     */
   override def top(): PointsToNumericalState = {
-    logger.debug("*** top(): implement me!")
-    
-    this
+    logger.debug("*** top()")
+
+    // return a new state with top exprSet, empty refToObj, empty objFieldToObj, top numDom
+    val expr = exprSet.top()
+    val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
+    val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
+    val num = numDom.top()
+    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
   }
 
   /** The state string representation.
     *
     * @return the string representation of the current state
     */
-  override def toString(): String = {
+  override def toString: String = {
     "PermissionState(\n" +
     "\texprSet: " + exprSet.toString + "\n" +
     "\trefToObj: " + refToObj.toString + "\n" +
