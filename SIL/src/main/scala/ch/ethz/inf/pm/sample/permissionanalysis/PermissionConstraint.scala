@@ -65,33 +65,190 @@ case object FractionalPermission extends PermissionsType {
 /** Access permission constraints solver. */
 object PermissionSolver {
 
-  private var constraints: Set[Constraint] = Set[Constraint]() // set of constraints
+  /** Set of constraints to be solved. */
+  private var constraints: Set[Constraint] = Set[Constraint]()
 
+  /** Collects the SymbolicValues within an ArithmeticExpression */
+  private def extractSymbolicValues(a: ArithmeticExpression): Set[SymbolicValue] = a match {
+    case Value(value) => Set[SymbolicValue]()
+    case Mul(mul, right) => Set[SymbolicValue](right)
+    case Add(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
+  }
+
+  /** Collects the SymbolicValues within a Constraint */
+  private def extractSymbolicValues(c: Constraint): Set[SymbolicValue] = c match {
+    case Eq(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
+    case Geq(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
+    case Grt(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
+  }
+
+  /** Collects the SymbolicValues within a set of Constraints */
+  private def extractSymbolicValues(set: Set[Constraint]): Set[SymbolicValue] = {
+    var variables = Set[SymbolicValue]()
+    for(c : Constraint <- set)
+      variables = variables ++ extractSymbolicValues(c)
+    variables
+  }
+
+  /** Converts an ArithmeticExpression into a LinearProgram#Expression (accepted by Breeze) */
+  private def convertExpression(lp: LinearProgram)(vars:  Map[SymbolicValue,lp.Variable], a: ArithmeticExpression) : lp.Expression = a match {
+    case Value(value) => throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
+    case Mul(mul, right) => vars(right) * mul
+    case Add(left, right) => (left, right) match {
+      case (l: Value, r: Value) =>
+        throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
+      case (l: Value, r: ArithmeticExpression) => convertExpression(lp)(vars,r) + l.value
+      case (l: ArithmeticExpression, r: Value) => convertExpression(lp)(vars,l) + r.value
+      case _ => convertExpression(lp)(vars,left) + convertExpression(lp)(vars,right)
+    }
+  }
+
+  /** Converts a Constraint into a LinearProgram#Constraint (accepted by Breeze) */
+  private def convertConstraint(lp: LinearProgram)(vars: Map[SymbolicValue,lp.Variable], c: Constraint) : Set[lp.Constraint] = c match {
+    case Eq(left, right) => (left, right) match {
+      case (l: Value, r: Value) =>
+        throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
+      case (l: Value, r: ArithmeticExpression) =>
+        val e = convertExpression(lp)(vars,r)
+        Set[lp.Constraint](e >= l.value, e <= l.value)
+      case (l: ArithmeticExpression, r: Value) =>
+        val e = convertExpression(lp)(vars,l)
+        Set[lp.Constraint](e >= r.value, e <= r.value)
+      case _ =>
+        val l = convertExpression(lp)(vars,left)
+        var r = convertExpression(lp)(vars,right)
+        Set[lp.Constraint](l >= r, l <= r)
+    }
+    case Geq(left, right) => (left, right) match {
+      case (l: Value, r: Value) =>
+        throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
+      case (l: Value, r: ArithmeticExpression) =>
+        val e = convertExpression(lp)(vars,r)
+        Set[lp.Constraint](e >= l.value)
+      case (l: ArithmeticExpression, r: Value) =>
+        val e = convertExpression(lp)(vars,l)
+        Set[lp.Constraint](e >= r.value)
+      case _ =>
+        val l = convertExpression(lp)(vars,left)
+        var r = convertExpression(lp)(vars,right)
+        Set[lp.Constraint](l >= r)
+    }
+    case Grt(left, right) => (left, right) match {
+      case (l: Value, r: Value) =>
+        throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
+      case (l: Value, r: ArithmeticExpression) =>
+        val e = convertExpression(lp)(vars,r)
+        Set[lp.Constraint](e >= l.value)
+      case (l: ArithmeticExpression, r: Value) =>
+        val e = convertExpression(lp)(vars,l)
+        Set[lp.Constraint](e >= r.value)
+      case _ =>
+        val l = convertExpression(lp)(vars,left)
+        var r = convertExpression(lp)(vars,right)
+        Set[lp.Constraint](l - r >= 0.01)
+    }
+  }
+
+  /** Solves a set of constraints. */
+  def solve(constraints: Set[Constraint]) : Map[SymbolicValue,Double] = {
+
+    val lp = new LinearProgram()  // linear program
+
+    // array of symbolic values
+    val sym : Array[SymbolicValue] = this.extractSymbolicValues(constraints).toArray
+    // map from symbolic values to corresponding LinearProgram#Variable (accepted by Breeze)
+    val symToVars : Map[SymbolicValue,lp.Variable] = sym.foldLeft(Map[SymbolicValue,lp.Variable]())(
+      (m, s) => m + (s -> lp.Real(s.toString))
+    )
+
+    // list of values corresponding to symbolic variables
+    val vars = symToVars.values.toList
+    // objective function: the sum of the variables
+    val obj = vars.drop(1).foldLeft(vars.head : lp.Expression)(
+      (exp: lp.Expression, v: lp.Variable) => exp + v
+    )
+
+    // lp problem
+    var prob = obj.subjectTo()
+    // adding variable bounds
+    for (v <- vars) {
+      prob = prob.subjectTo(v >= 0).subjectTo(v <= 1)
+    }
+    // adding constraints
+    for (c <- constraints) {
+      for (s <- convertConstraint(lp)(symToVars,c)) {
+        prob = prob.subjectTo(s)
+      }
+    }
+    // solving lp problem
+    val res = lp.minimize(prob).result
+
+    // returning the result
+    var result = Map[SymbolicValue,Double]()
+    for (i <- 1 to sym.length) {
+      result = result + (sym(i-1) -> res.valueAt(i-1))
+    }
+    result
+  }
+
+  /** Converts a Double to a rational number string representation. */
+  private def doubleToRational(d: Double) : String = {
+
+    def gcd(a: Int,b: Int): Int = if (b == 0) a else gcd(b, a % b)
+
+    val s = d.toString
+    val n = s.length - 1 - s.indexOf('.')
+    var r = d
+    var den = 1
+    for (i <- 1 to n) {
+      r = r * 10
+      den = den * 10
+    }
+    var num = Math.round(r).toInt
+
+    var g = gcd(num,den)
+    while (g != 1) {
+      num = num / g
+      den = den / g
+      g = gcd(num,den)
+    }
+
+    if (den != 1)
+      num.toString + "/" + den.toString
+    else
+      num.toString
+  }
+
+  // Temporary main method (used to experiment).
   def main(args:Array[String]) = {
 
     val lp = new LinearProgram()
-    import lp._
 
-    val x = Real("x")
-    val y = Real("y")
+    val x = lp.Real("x")
+    val y = lp.Real("y")
 
-    val obj : lp.Expression = x+y // objective function
+    val obj : lp.Expression = x + y // objective function
     var prob = obj.subjectTo() // problem
-    prob = prob.subjectTo(x + y >= 4 : lp.Constraint) // adding constraint
-    prob = prob.subjectTo(y >= 1) // adding constraint
-    prob = prob.subjectTo(x >= 1) // adding constraint
+    prob = prob.subjectTo(x + y >= 2 : lp.Constraint) // adding constraint
+    prob = prob.subjectTo(x >= 0) // adding constraint
+    prob = prob.subjectTo(x <= 1) // adding constraint
+    prob = prob.subjectTo(y >= 0) // adding constraint
+    prob = prob.subjectTo(y <= 1) // adding constraint
 
-
-
-    val res = minimize(prob).result // solving
-
-
+    val res = lp.minimize(prob).result // solving
 
     println("Result:")
     println(x.name + ": " + res.valueAt(0))
     println(y.name + ": " + res.valueAt(1))
 
     println("\nDone.")
+
+    val z = new SymbolicPermissionPredicate(new Path(List("x")))
+    val w = new SymbolicPermissionPredicate(new Path(List("y")))
+    val c = Geq(Add(Mul(1,z),Mul(1,w)),Value(2))
+    val s = Set[Constraint](c)
+    val result = solve(s)
+    println(result.mapValues((d) => doubleToRational(d)))
   }
 
 }

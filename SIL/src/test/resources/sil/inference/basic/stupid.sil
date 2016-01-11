@@ -1,26 +1,33 @@
-//field data: Seq[Int]
-//field holds: Int
-
-//method Foo(this: Ref)
-//{
-//    var i: Int;
-//    i := |this.data|;
-//    var res: Int
-//    res := 0
-//
-//    while(i > 0)
-//    {
-//        res := res + this.data[i]
-//        i := i - 1
-//    }
-//}
-
-field data : Int
+field data: Int
+field holds: Int
 
 method Foo(this: Ref)
+    //requires acc(x.holds)
 {
-    this.data := 0
+
+    var i: Int
+    var res: Int
     var x : Ref
-    x := this
-    x.data := 0
+    var y : Ref
+    x := new()
+    y := x
+
+    i := 10
+    res := 0
+
+    while(i > 0)
+        invariant acc(x.holds, 1/2)
+    {
+        res := res + x.holds
+        i := i - 1
+    }
+
+
+
+    while(i < 10)
+        invariant acc(x.holds)
+    {
+        x.holds := res + 3
+        i := i + 1
+    }
 }

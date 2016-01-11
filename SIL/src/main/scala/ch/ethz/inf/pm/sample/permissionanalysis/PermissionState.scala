@@ -33,13 +33,13 @@ sealed abstract class SymbolicValue(var path : Path) {
   def factory() : SymbolicValue
 }
 
-case class SymbolicAbstractPredicates(c: String, name: String, p: Path) extends SymbolicValue(p) {
-  override def toString : String = "Predicate(" + c.toString + "." + name + ", " + path.toString() + ")"
+case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
+  override def toString : String = "Permission(" + path.toString() + ")"
   override def equals(a : Any) : Boolean = a match {
-    case x : SymbolicAbstractPredicates => c.equals(x.c) && name.equals(x.name) && path.equals(x.path)
+    case x : SymbolicPermissionPredicate => path.equals(x.path)
     case _ => false
   }
-  override def factory() : SymbolicValue = new SymbolicAbstractPredicates(c, name, p)
+  override def factory() : SymbolicValue = new SymbolicPermissionPredicate(p)
 }
 
 /** Symbolic permission monomial
@@ -47,45 +47,45 @@ case class SymbolicAbstractPredicates(c: String, name: String, p: Path) extends 
   * @param n the number of times the symbolic value is taken into account
   * @param s symbolic value taken into account
   */
-class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
-
-  def -(b : CountedSymbolicValues) = {
-    assert(this.sameSymbolicValue(b))
-    new CountedSymbolicValues(this.n-b.n, this.s)
-  }
-
-  def +(b : CountedSymbolicValues) = {
-    assert(this.sameSymbolicValue(b))
-    new CountedSymbolicValues(this.n+b.n, this.s)
-  }
-
-  override def equals(a : Any) : Boolean = a match {
-    case b: CountedSymbolicValues =>
-      n.equals(b.n) && ((b.s==null && s==null) || (b.s!=null && s!=null && s.equals(b.s)))
-    case _ => false
-  }
-
-  def glb(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
-    assert(a.sameSymbolicValue(b))
-    new CountedSymbolicValues(Math.max(a.n, b.n), a.s)
-  }
-
-  def lub(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
-    assert(a.sameSymbolicValue(b))
-    new CountedSymbolicValues(Math.min(a.n, b.n), a.s)
-  }
-
-  def sameSymbolicValue(a : CountedSymbolicValues) : Boolean = {
-    if (this.s==null && a.s==null) return true
-    if (this.s==null || a.s==null) return false
-    this.s.equals(a.s)
-  }
-
-  override def toString = s match {
-    case null => n.toString
-    case k => n.toString + "*" + s.toString
-  }
-}
+//class CountedSymbolicValues(n : Double, s : SymbolicValue) {
+//
+//  def -(b : CountedSymbolicValues) = {
+//    assert(this.sameSymbolicValue(b))
+//    new CountedSymbolicValues(this.n-b.n, this.s)
+//  }
+//
+//  def +(b : CountedSymbolicValues) = {
+//    assert(this.sameSymbolicValue(b))
+//    new CountedSymbolicValues(this.n+b.n, this.s)
+//  }
+//
+//  override def equals(a : Any) : Boolean = a match {
+//    case b: CountedSymbolicValues =>
+//      n.equals(b.n) && ((b.s==null && s==null) || (b.s!=null && s!=null && s.equals(b.s)))
+//    case _ => false
+//  }
+//
+//  def glb(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
+//    assert(a.sameSymbolicValue(b))
+//    new CountedSymbolicValues(Math.max(a.n, b.n), a.s)
+//  }
+//
+//  def lub(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
+//    assert(a.sameSymbolicValue(b))
+//    new CountedSymbolicValues(Math.min(a.n, b.n), a.s)
+//  }
+//
+//  def sameSymbolicValue(a : CountedSymbolicValues) : Boolean = {
+//    if (this.s == null && a.s == null) return true
+//    if (this.s == null || a.s == null) return false
+//    this.s.equals(a.s)
+//  }
+//
+//  override def toString = s match {
+//    case null => n.toString
+//    case k => n.toString + "*" + s.toString
+//  }
+//}
 
 /** Permission Inference State
   *
