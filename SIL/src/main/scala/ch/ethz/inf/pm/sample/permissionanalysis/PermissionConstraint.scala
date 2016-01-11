@@ -65,8 +65,19 @@ case object FractionalPermission extends PermissionsType {
 /** Access permission constraints solver. */
 object PermissionSolver {
 
+  /** Considered access permissions. */
+  var permissionType : PermissionsType = FractionalPermission
+
   /** Set of constraints to be solved. */
   private var constraints: Set[Constraint] = Set[Constraint]()
+
+  /** Gets the current set of constraints. */
+  def getConstraints() : Set[Constraint] = constraints
+
+  /** Adds a constraint to the current set of constraints. */
+  def addConstraint(c : Constraint) = {
+      constraints = constraints + c
+  }
 
   /** Collects the SymbolicValues within an ArithmeticExpression */
   private def extractSymbolicValues(a: ArithmeticExpression): Set[SymbolicValue] = a match {
@@ -138,14 +149,14 @@ object PermissionSolver {
         throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
       case (l: Value, r: ArithmeticExpression) =>
         val e = convertExpression(lp)(vars,r)
-        Set[lp.Constraint](e >= l.value)
+        Set[lp.Constraint](e - l.value <= -0.0001)
       case (l: ArithmeticExpression, r: Value) =>
         val e = convertExpression(lp)(vars,l)
-        Set[lp.Constraint](e >= r.value)
+        Set[lp.Constraint](e - r.value >= 0.0001)
       case _ =>
         val l = convertExpression(lp)(vars,left)
         var r = convertExpression(lp)(vars,right)
-        Set[lp.Constraint](l - r >= 0.01)
+        Set[lp.Constraint](l - r >= 0.0001)
     }
   }
 
@@ -192,7 +203,7 @@ object PermissionSolver {
   }
 
   /** Converts a Double to a rational number string representation. */
-  private def doubleToRational(d: Double) : String = {
+  def doubleToRational(d: Double) : String = {
 
     def gcd(a: Int,b: Int): Int = if (b == 0) a else gcd(b, a % b)
 
@@ -214,9 +225,9 @@ object PermissionSolver {
     }
 
     if (den != 1)
-      num.toString + "/" + den.toString
+      d.toString + "->" + num.toString + "/" + den.toString
     else
-      num.toString
+      d.toString + "->" + num.toString
   }
 
   // Temporary main method (used to experiment).
@@ -245,8 +256,10 @@ object PermissionSolver {
 
     val z = new SymbolicPermissionPredicate(new Path(List("x")))
     val w = new SymbolicPermissionPredicate(new Path(List("y")))
-    val c = Geq(Add(Mul(1,z),Mul(1,w)),Value(2))
-    val s = Set[Constraint](c)
+    val cz = Grt(Mul(1,z),Value(0))
+    val cw = Grt(Mul(1,w),Value(0))
+    val c = Grt(Add(Mul(1,z),Mul(1,w)),Value(0))
+    val s = Set[Constraint](c,cz,cw)
     val result = solve(s)
     println(result.mapValues((d) => doubleToRational(d)))
   }

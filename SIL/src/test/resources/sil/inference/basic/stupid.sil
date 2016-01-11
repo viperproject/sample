@@ -1,33 +1,16 @@
-field data: Int
 field holds: Int
 
 method Foo(this: Ref)
-    //requires acc(x.holds)
 {
 
     var i: Int
     var res: Int
-    var x : Ref
-    var y : Ref
-    x := new()
-    y := x
-
     i := 10
     res := 0
 
     while(i > 0)
-        invariant acc(x.holds, 1/2)
     {
-        res := res + x.holds
+        res := res + this.holds
         i := i - 1
-    }
-
-
-
-    while(i < 10)
-        invariant acc(x.holds)
-    {
-        x.holds := res + 3
-        i := i + 1
     }
 }

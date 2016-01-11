@@ -14,9 +14,9 @@ object Main {
 
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
-    //DefaultAnalysisRunner.main(args)
-    //StupidAnalysisRunner.main(args)
-    PointsToNumericalAnalysisRunner.main(args)
+
+    //PointsToNumericalAnalysisRunner.main(args)
+    PermissionAnalysisRunner.main(args)
 
     for (r <- Reporter.seenErrors) {
       println(r)

@@ -42,11 +42,11 @@ case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
   override def factory() : SymbolicValue = new SymbolicPermissionPredicate(p)
 }
 
-/** Symbolic permission monomial
-  *
-  * @param n the number of times the symbolic value is taken into account
-  * @param s symbolic value taken into account
-  */
+///** Symbolic permission monomial
+//  *
+//  * @param n the number of times the symbolic value is taken into account
+//  * @param s symbolic value taken into account
+//  */
 //class CountedSymbolicValues(n : Double, s : SymbolicValue) {
 //
 //  def -(b : CountedSymbolicValues) = {
@@ -94,7 +94,7 @@ case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
   *
   * @author Caterina Urban
   */
-case class PermissionState(heap: PointsToNumericalState)
+case class PermissionState(heapNum: PointsToNumericalState)
   extends SimpleState[PermissionState]
   with StateWithBackwardAnalysisStubs[PermissionState]
   with LazyLogging
@@ -111,52 +111,16 @@ case class PermissionState(heap: PointsToNumericalState)
   override def assignField(obj: Expression, field: String, right: Expression): PermissionState = {
     logger.debug("*** assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
-//    obj match {
-//      case obj: FieldIdentifier =>
-//        if (obj.typ.isObject) { // the assigned field is a `Ref`
-//          right match {
-//
-//            case right: FieldIdentifier => // e.g., `x.f := y.g`
-//              val s = objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
-//              val o = obj.obj // retrieve `Obj` whose field is assigned
-//              val f = obj.field // retrieve assigned field
-//              // weak update
-//              val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
-//              // return the current state with updated objFieldToObj
-//              this.copy(objFieldToObj = objFieldToObjmap)
-//
-//            case right: HeapIdentifier => // e.g., `x.f := new()`
-//              val o = obj.obj // retrieve `Obj` whose field is assigned
-//              val f = obj.field // retrieve assigned field
-//              val objFieldToObjmap = objFieldToObj +
-//                // add key to objFieldToObjmap
-//                (right -> Map[String,Set[HeapIdentifier]]()) +
-//                // weak update
-//                (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
-//              // return the current state with updated objFieldToObj
-//              this.copy(objFieldToObj = objFieldToObjmap)
-//
-//            case right: VariableIdentifier => // e.g., `x.f := y`
-//              val s = refToObj(right) // retrieve the corresponding heap `Obj` objects
-//              val o = obj.obj // retrieve `Obj` whose field is assigned
-//              val f = obj.field // retrieve assigned field
-//              // weak update
-//              val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
-//              // return the current state with updated objFieldToObj
-//              this.copy(objFieldToObj = objFieldToObjmap)
-//
-//            case _ => throw new NotImplementedError("A field assignment implementation is missing.")
-//          }
-//        } else {  // the assigned field is not a `Ref`
-//          // weak update
-//          val num = numDom lub numDom.assign(obj,right)
-//          // return the current state with updated numDom
-//          this.copy(numDom = num)
-//        }
-//      case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
-//    }
+    obj match {
+      case obj: FieldIdentifier =>
 
-    this
+        val sym = new SymbolicPermissionPredicate(new Path(List(obj.obj.getName,obj.field)))
+        val c = PermissionSolver.permissionType.ensureWrite(Mul(1,sym))
+        PermissionSolver.addConstraint(c)
+
+        this.copy(heapNum = heapNum.assignField(obj, field, right))
+      case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
+    }
   }
 
   /** Assigns an expression to a variable.
@@ -214,7 +178,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
 //    }
 
-    this
+    this.copy(heapNum = heapNum.assignVariable(x, right))
   }
 
   /** Assumes that a boolean expression holds.
@@ -307,7 +271,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //      case _ => throw new NotImplementedError("An assume implementation is missing.")
 //    }
 
-    this
+    this.copy(heapNum = heapNum.assume(cond))
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -332,7 +296,7 @@ case class PermissionState(heap: PointsToNumericalState)
 
 //    // return a new state with bottom exprSet and empty refToObj map
 //    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty,numDom.bottom())
-    this
+    this.copy(heapNum = heapNum.bottom())
   }
 
   /** Creates an object at allocation site.
@@ -351,7 +315,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    // return the current state with updated exprSet and updated objFieldToObj map
 //    this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap)
 
-    this
+    this.copy(heapNum = heapNum.createObject(typ, pp))
   }
 
   /** Creates a variable given a `VariableIdentifier`.
@@ -376,7 +340,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //      this.copy(numDom = numDom.createVariable(x,typ))
 //    }
 
-    this
+    this.copy(heapNum = heapNum.createVariable(x, typ, pp))
   }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
@@ -401,7 +365,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //      this.copy(numDom = numDom.createVariable(x,typ))
 //    }
 
-    this
+    this.copy(heapNum = heapNum.createVariableForArgument(x, typ))
   }
 
   /** Evaluates a numerical constant.
@@ -419,7 +383,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    // return the current state with updated exprSet
 //    this.copy(exprSet = ExpressionSet(const))
 
-    this
+    this.copy(heapNum = heapNum.evalConstant(value, typ, pp))
   }
 
   /** The current expression.
@@ -427,9 +391,9 @@ case class PermissionState(heap: PointsToNumericalState)
     * Invoked after each statement to retrieve its result.
     */
   override def expr: ExpressionSet = {
-    logger.debug("*** expr: " + this.heap.exprSet.toString)
+    logger.debug("*** expr: " + this.heapNum.exprSet.toString)
     
-    this.heap.exprSet // return exprSet
+    this.heapNum.exprSet // return exprSet
   }
 
   /** Returns a new instance of the lattice.
@@ -441,7 +405,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def factory(): PermissionState = {
     logger.debug("*** factory(): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.factory())
   }
 
   /** Accesses a field of an object.
@@ -457,31 +421,18 @@ case class PermissionState(heap: PointsToNumericalState)
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
     logger.debug("*** getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
-//    obj match {
-//      case obj:AccessPathIdentifier =>
-//        val path = obj.stringPath // path to evaluate
-//        // update objFieldToObj map
-//        val segment = if (typ.isObject) path.drop(1) else path.drop(1).dropRight(1)
-//        val objFieldToObjmap = segment.foldLeft(objFieldToObj)(
-//          (map,next) =>
-//            map.mapValues[Map[String,Set[HeapIdentifier]]](
-//              (m) => if (m.contains(next)) m else m + (next -> Set[HeapIdentifier]())
-//            )
-//        )
-//        // evaluate path into the set of objects referenced by it (up to the given field excluded)
-//        val objSet = evaluatePath(path,objFieldToObjmap)
-//        val expr = objSet.foldLeft(ExpressionSet())(
-//          (e,o) => {
-//            val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
-//            e add ExpressionSet(fld)
-//          }
-//        )
-//        // return the current state with updated exprSet, updated objFieldToObj
-//        this.copy(exprSet = expr, objFieldToObj = objFieldToObjmap)
-//      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
-//    }
+    obj match {
+      case obj:AccessPathIdentifier =>
 
-    this
+        val sym = new SymbolicPermissionPredicate(new Path(obj.stringPath))
+        val c = PermissionSolver.permissionType.ensureRead(Mul(1,sym))
+        PermissionSolver.addConstraint(c)
+
+        // return the current state with updated updated heapNum
+        this.copy(heapNum = heapNum.getFieldValue(obj, field, typ))
+
+      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
+    }
   }
 
   /** Gets the value of a variable.
@@ -498,7 +449,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    // return the current state with updated exprSet
 //    this.copy(exprSet = ExpressionSet(id))
 
-    this
+    this.copy(heapNum = heapNum.getVariableValue(id))
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -512,7 +463,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def glb(other: PermissionState): PermissionState = {
     logger.debug("*** glb(" + other.repr + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum glb other.heapNum)
   }
 
   /** Checks whether the given domain element is equivalent to bottom.
@@ -524,7 +475,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def isBottom: Boolean = {
     logger.debug("*** isBottom: implement me!")
 
-    false
+    heapNum.isBottom
   }
 
   /** Checks whether the given domain element is equivalent to top.
@@ -536,7 +487,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def isTop: Boolean = {
     logger.debug("*** isTop: implement me!")
     
-    false
+    heapNum.isTop
   }
 
   /** Returns true if and only if `this` is less than or equal to `other`.
@@ -560,7 +511,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    val num = this.numDom.lessEqual(other.numDom) // test the numDoms
 //    exp && refToObjmap && objFieldToObjmap && num
 
-    false
+    heapNum lessEqual other.heapNum
   }
 
   /** Computes the least upper bound of two elements.
@@ -588,7 +539,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
 //    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
 
-    this
+    this.copy(heapNum = heapNum lub other.heapNum)
   }
 
   /** Performs abstract garbage collection.
@@ -598,7 +549,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def pruneUnreachableHeap(): PermissionState = {
     logger.debug("*** pruneUnreachableHeap(): implement me!")
 
-    this
+    this.copy(heapNum = heapNum.pruneUnreachableHeap())
   }
 
   /** Removes all variables satisfying filter.
@@ -608,7 +559,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): PermissionState = {
     logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.pruneVariables(filter))
   }
 
   /** Removes the current expression.
@@ -621,7 +572,7 @@ case class PermissionState(heap: PointsToNumericalState)
 //    // return the current state with a new exprSet
 //    this.copy(exprSet = ExpressionSet())
 
-    this
+    this.copy(heapNum = heapNum.removeExpression())
   }
 
   /** Removes a variable.
@@ -636,7 +587,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def removeVariable(varExpr: VariableIdentifier): PermissionState = {
     logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.removeVariable(varExpr))
   }
 
   /** The default state string representation.
@@ -645,10 +596,12 @@ case class PermissionState(heap: PointsToNumericalState)
     */
   private def repr: String = {
     "PermissionState(" +
-      heap.exprSet.toString + ", " +
-      heap.refToObj.toString + ", " +
-      heap.objFieldToObj.toString + ", " +
-      heap.numDom.toString + ")"
+      "PointsToNumericalState(" +
+      heapNum.exprSet.toString + ", " +
+      heapNum.refToObj.toString + ", " +
+      heapNum.objFieldToObj.toString + ", " +
+      heapNum.numDom.toString + ")" +
+    ")"
   }
 
   /** Assigns an expression to an argument.
@@ -662,7 +615,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def setArgument(x: ExpressionSet, right: ExpressionSet): PermissionState = {
     logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.setArgument(x, right))
   }
 
   /** Sets the current expression.
@@ -677,7 +630,7 @@ case class PermissionState(heap: PointsToNumericalState)
     
 //    this.copy(exprSet = expr) // return the current state with updated exprSet
 
-    this
+    this.copy(heapNum = heapNum.setExpression(expr))
   }
 
   /** Forgets the value of a variable.
@@ -692,7 +645,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def setVariableToTop(varExpr: Expression): PermissionState = {
     logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.setVariableToTop(varExpr))
   }
 
   /** Throws an exception.
@@ -705,7 +658,7 @@ case class PermissionState(heap: PointsToNumericalState)
   override def throws(t: ExpressionSet): PermissionState = {
     logger.debug("*** throws(" + t.toString + "): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.throws(t))
   }
 
   /** Returns the top value of the lattice.
@@ -717,14 +670,14 @@ case class PermissionState(heap: PointsToNumericalState)
   override def top(): PermissionState = {
     logger.debug("*** top(): implement me!")
     
-    this
+    this.copy(heapNum = heapNum.top())
   }
 
   /** The state string representation.
     *
     * @return the string representation of the current state
     */
-  override def toString: String = heap.toString()
+  override def toString: String = "PermissionState(" + heapNum.toString + ")"
 
   /** Computes the widening of two elements.
     *
@@ -753,7 +706,7 @@ case class PermissionState(heap: PointsToNumericalState)
     //    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
     //  }
 
-    this
+    this.copy(heapNum = heapNum widening other.heapNum)
   }
 }
 
@@ -768,6 +721,10 @@ object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
 class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntryStateBuilder) {
   override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
     val result = analyze(method, entryStateBuilder.build(method))
+
+    val solution = PermissionSolver.solve(PermissionSolver.getConstraints())
+    println(solution.mapValues((d) => PermissionSolver.doubleToRational(d)))
+
     //val cfg = result.cfgState
 
     //if (cfg.cfg.initialBlockInLoop(0)) println("0 is loop")
