@@ -43,22 +43,17 @@ case class Grt(left : ArithmeticExpression, right : ArithmeticExpression) extend
 
 /** Access permissions. */
 sealed trait PermissionsType {
-  def ensureWrite(level : ArithmeticExpression) : Constraint
-  def ensureRead(level : ArithmeticExpression) : Constraint
+  def ensureWrite(level : ArithmeticExpression) : Constraint = new Eq(level, new Value(maxLevel))
+  def ensureRead(level : ArithmeticExpression) : Constraint = new Grt(level, new Value(minLevel))
   def maxLevel : Double
   def minLevel : Double
-  def float : Boolean
-  def permissionToString(value : Double) : String
+  def permissionToString(value : Double) : String = value.toString
 }
 
 /** Fractional permissions. */
 case object FractionalPermission extends PermissionsType {
-  override def ensureWrite(level : ArithmeticExpression): Constraint = new Eq(level, new Value(1))
-  override def ensureRead(level : ArithmeticExpression): Constraint = new Grt(level, new Value(0))
   override def maxLevel: Double = 1
   override def minLevel: Double = 0
-  override def float: Boolean = true
-  override def permissionToString(value : Double): String = value.toString
 }
 
 
@@ -67,12 +62,14 @@ object PermissionSolver {
 
   /** Considered access permissions. */
   var permissionType : PermissionsType = FractionalPermission
+  /** Smallest permission value. */
+  private val epsilon : Double = 0.1
 
   /** Set of constraints to be solved. */
   private var constraints: Set[Constraint] = Set[Constraint]()
 
   /** Gets the current set of constraints. */
-  def getConstraints() : Set[Constraint] = constraints
+  def getConstraints : Set[Constraint] = constraints
 
   /** Adds a constraint to the current set of constraints. */
   def addConstraint(c : Constraint) = {
@@ -102,61 +99,61 @@ object PermissionSolver {
   }
 
   /** Converts an ArithmeticExpression into a LinearProgram#Expression (accepted by Breeze) */
-  private def convertExpression(lp: LinearProgram)(vars:  Map[SymbolicValue,lp.Variable], a: ArithmeticExpression) : lp.Expression = a match {
+  private def extractExpression(lp: LinearProgram)(vars:  Map[SymbolicValue,lp.Variable], a: ArithmeticExpression) : lp.Expression = a match {
     case Value(value) => throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
     case Mul(mul, right) => vars(right) * mul
     case Add(left, right) => (left, right) match {
       case (l: Value, r: Value) =>
         throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
-      case (l: Value, r: ArithmeticExpression) => convertExpression(lp)(vars,r) + l.value
-      case (l: ArithmeticExpression, r: Value) => convertExpression(lp)(vars,l) + r.value
-      case _ => convertExpression(lp)(vars,left) + convertExpression(lp)(vars,right)
+      case (l: Value, r: ArithmeticExpression) => extractExpression(lp)(vars,r).asInstanceOf[lp.Expression] + l.value
+      case (l: ArithmeticExpression, r: Value) => extractExpression(lp)(vars,l).asInstanceOf[lp.Expression] + r.value
+      case _ => extractExpression(lp)(vars,left).asInstanceOf[lp.Expression] + extractExpression(lp)(vars,right).asInstanceOf[lp.Expression]
     }
   }
 
   /** Converts a Constraint into a LinearProgram#Constraint (accepted by Breeze) */
-  private def convertConstraint(lp: LinearProgram)(vars: Map[SymbolicValue,lp.Variable], c: Constraint) : Set[lp.Constraint] = c match {
+  private def extractConstraint(lp: LinearProgram)(vars: Map[SymbolicValue,lp.Variable], c: Constraint) : Set[lp.Constraint] = c match {
     case Eq(left, right) => (left, right) match {
       case (l: Value, r: Value) =>
         throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
       case (l: Value, r: ArithmeticExpression) =>
-        val e = convertExpression(lp)(vars,r)
-        Set[lp.Constraint](e >= l.value, e <= l.value)
+        val e = extractExpression(lp)(vars,r)
+        Set[lp.Constraint]((e >= l.value).asInstanceOf[lp.Constraint], (e <= l.value).asInstanceOf[lp.Constraint])
       case (l: ArithmeticExpression, r: Value) =>
-        val e = convertExpression(lp)(vars,l)
-        Set[lp.Constraint](e >= r.value, e <= r.value)
+        val e = extractExpression(lp)(vars,l)
+        Set[lp.Constraint]((e >= r.value).asInstanceOf[lp.Constraint], (e <= r.value).asInstanceOf[lp.Constraint])
       case _ =>
-        val l = convertExpression(lp)(vars,left)
-        var r = convertExpression(lp)(vars,right)
-        Set[lp.Constraint](l >= r, l <= r)
+        val l = extractExpression(lp)(vars,left)
+        val r = extractExpression(lp)(vars,right)
+        Set[lp.Constraint]((l >= r).asInstanceOf[lp.Constraint], (l <= r).asInstanceOf[lp.Constraint])
     }
     case Geq(left, right) => (left, right) match {
       case (l: Value, r: Value) =>
         throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
       case (l: Value, r: ArithmeticExpression) =>
-        val e = convertExpression(lp)(vars,r)
-        Set[lp.Constraint](e >= l.value)
+        val e = extractExpression(lp)(vars,r)
+        Set[lp.Constraint]((e >= l.value).asInstanceOf[lp.Constraint])
       case (l: ArithmeticExpression, r: Value) =>
-        val e = convertExpression(lp)(vars,l)
-        Set[lp.Constraint](e >= r.value)
+        val e = extractExpression(lp)(vars,l)
+        Set[lp.Constraint]((e >= r.value).asInstanceOf[lp.Constraint])
       case _ =>
-        val l = convertExpression(lp)(vars,left)
-        var r = convertExpression(lp)(vars,right)
-        Set[lp.Constraint](l >= r)
+        val l = extractExpression(lp)(vars,left)
+        val r = extractExpression(lp)(vars,right)
+        Set[lp.Constraint]((l >= r).asInstanceOf[lp.Constraint])
     }
     case Grt(left, right) => (left, right) match {
       case (l: Value, r: Value) =>
         throw new IllegalArgumentException("Cannot convert a Value into a LinearProgram#Expression.")
       case (l: Value, r: ArithmeticExpression) =>
-        val e = convertExpression(lp)(vars,r)
-        Set[lp.Constraint](e - l.value <= -0.0001)
+        val e = extractExpression(lp)(vars,r)
+        Set[lp.Constraint]((e - l.value + epsilon <= 0).asInstanceOf[lp.Constraint])
       case (l: ArithmeticExpression, r: Value) =>
-        val e = convertExpression(lp)(vars,l)
-        Set[lp.Constraint](e - r.value >= 0.0001)
+        val e = extractExpression(lp)(vars,l)
+        Set[lp.Constraint]((e - r.value >= epsilon).asInstanceOf[lp.Constraint])
       case _ =>
-        val l = convertExpression(lp)(vars,left)
-        var r = convertExpression(lp)(vars,right)
-        Set[lp.Constraint](l - r >= 0.0001)
+        val l = extractExpression(lp)(vars,left)
+        val r = extractExpression(lp)(vars,right)
+        Set[lp.Constraint]((l - r >= epsilon).asInstanceOf[lp.Constraint])
     }
   }
 
@@ -187,8 +184,8 @@ object PermissionSolver {
     }
     // adding constraints
     for (c <- constraints) {
-      for (s <- convertConstraint(lp)(symToVars,c)) {
-        prob = prob.subjectTo(s)
+      for (s <- extractConstraint(lp)(symToVars,c)) {
+        prob = prob.subjectTo(s.asInstanceOf[lp.Constraint])
       }
     }
     // solving lp problem

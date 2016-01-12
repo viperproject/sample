@@ -52,6 +52,7 @@ object ExpressionFactory {
     } else left.top()
   }
 
+  /** @author Caterina Urban */
   def createPermissionExpression(ids: ExpressionSet, perms: ExpressionSet, ty: Type) : ExpressionSet = {
     if (!ids.isTop && !perms.isTop) {
       var result = new ExpressionSet(ty)

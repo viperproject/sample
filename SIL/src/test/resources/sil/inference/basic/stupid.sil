@@ -3,17 +3,6 @@ field holds: Int
 method Foo(this: Ref)
 {
 
-    //var i: Int
-    //var res: Int
-    //i := 10
-    //res := 0
-
-    inhale acc(this.holds)
-    exhale acc(this.holds)
-
-    //while(i > 0)
-    //{
-    //    res := res + this.holds
-    //    i := i - 1
-    //}
+    var i: Int
+    i := this.holds
 }

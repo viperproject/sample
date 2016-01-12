@@ -24,6 +24,7 @@ class Path(val p : List[String]) {
   * and each possible occurrence of an access permission in a pre- or post-condition, or monitor invariant.
   *
   * @param path the path for which we specify the access permission
+  * @author Caterina Urban
   */
 sealed abstract class SymbolicValue(var path : Path) {
   def setPath(p : Path) : SymbolicValue =
@@ -46,6 +47,7 @@ case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
   *
   * @param n the number of times the symbolic value is taken into account
   * @param s symbolic value taken into account
+  * @author Caterina Urban
   */
 class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
 
@@ -53,7 +55,6 @@ class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
     assert(this.sameSymbolicValue(b))
     new CountedSymbolicValues(this.n-b.n, this.s)
   }
-
   def +(b : CountedSymbolicValues) = {
     assert(this.sameSymbolicValue(b))
     new CountedSymbolicValues(this.n+b.n, this.s)
@@ -69,7 +70,6 @@ class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
     assert(a.sameSymbolicValue(b))
     new CountedSymbolicValues(Math.max(a.n, b.n), a.s)
   }
-
   def lub(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
     assert(a.sameSymbolicValue(b))
     new CountedSymbolicValues(Math.min(a.n, b.n), a.s)
@@ -85,6 +85,38 @@ class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
     case null => n.toString
     case k => n.toString + "*" + s.toString
   }
+}
+
+/** Symbolic permission.
+  *
+  * @author Caterina Urban
+  */
+class SymbolicPermission extends Lattice[SymbolicPermission] {
+
+  var value : Set[CountedSymbolicValues] = Set.empty[CountedSymbolicValues]
+
+  /** Returns the bottom value of the lattice. */
+  override def bottom(): SymbolicPermission = ???
+  /** Returns a new instance of the lattice. */
+  override def factory(): SymbolicPermission = ???
+  /** Returns the top value of the lattice. */
+  override def top(): SymbolicPermission = ???
+
+  /** Checks whether the given domain element is equivalent to bottom. */
+  override def isBottom: Boolean = false
+  /** Returns true if and only if `this` is less than or equal to `other`. */
+  override def lessEqual(other: SymbolicPermission): Boolean = ???
+  /** Checks whether the given domain element is equivalent to top. */
+  override def isTop: Boolean = ???
+
+  /** Computes the greatest lower bound of two elements. */
+  override def glb(other: SymbolicPermission): SymbolicPermission = ???
+  /** Computes the least upper bound of two elements. */
+  override def lub(other: SymbolicPermission): SymbolicPermission = ???
+  /** Computes the widening of two elements. */
+  override def widening(other: SymbolicPermission): SymbolicPermission = ???
+
+  override def toString : String = if (isBottom) "⊥" else value.mkString("", " + ", "0")
 }
 
 /** Permission Inference State.
@@ -736,7 +768,7 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
   override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
     val result = analyze(method, entryStateBuilder.build(method))
 
-    val solution = PermissionSolver.solve(PermissionSolver.getConstraints())
+    val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
     println(solution.mapValues((d) => PermissionSolver.doubleToRational(d)))
 
     //val cfg = result.cfgState

@@ -5,12 +5,20 @@ import ch.ethz.inf.pm.sample.abstractdomain.{PermissionExpression, ExpressionSet
 import ch.ethz.inf.pm.sample.oorepresentation.sil.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, NativeMethodSemantics}
 
+/** Object enumerating methods to handle permissions.
+  *
+  * @author Caterina Urban
+  */
 object PermissionMethods extends Enumeration {
   val permission = Value(Constants.GhostSymbolPrefix + "permission")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
 }
 
+/** Object adding Inhale/Exhale semantics.
+  *
+  * @author Caterina Urban
+  */
 object PermissionMethodSemantics extends NativeMethodSemantics {
 
   /**
@@ -35,17 +43,7 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
     case state: PermissionState =>
       val nativeMethod = PermissionMethods.values.find(_.toString == operator)
       nativeMethod match {
-        case Some(PermissionMethods.permission) => // TODO
-
-//          thisExpr: Type Int: {O3.holds}
-//      operator: ☐permission
-//      parameters: List(Type Bool: {true})
-
-          println("thisExpr: " + thisExpr)
-          println("operator: " + operator)
-          println("parameters: " + parameters)
-          println("returnedtype: " + returnedtype)
-
+        case Some(PermissionMethods.permission) =>
           val thenExpr = createPermissionExpression(thisExpr, parameters(0), returnedtype)
           Some(state.setExpression(thenExpr).asInstanceOf[S])
         case Some(PermissionMethods.inhale) => Some(state.inhale(thisExpr).asInstanceOf[S])

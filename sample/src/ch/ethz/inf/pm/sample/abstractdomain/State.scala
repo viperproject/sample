@@ -811,7 +811,10 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 
 }
 
-/** Trait adding Inhale/Exhale functionalities to a SimpleState. */
+/** Trait adding Inhale/Exhale methods to a SimpleState.
+  *
+  * @author Caterina Urban
+  */
 trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S] {
   this: S =>
 
