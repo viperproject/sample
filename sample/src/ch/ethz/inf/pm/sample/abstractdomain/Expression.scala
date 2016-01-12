@@ -617,3 +617,21 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 }
+
+/** Inhale/Exhale expression.
+  *
+  * @param id the identifier for which we inhale/exhale permissions
+  * @param p the value of the inhaled/exhaled permission
+  */
+case class PermissionExpression(id: Expression, p: Expression) extends Expression {
+  /** The type of this expression. */
+  override def typ: Type = id.typ
+  /** Runs f on the expression and all sub-expressions. */
+  override def transform(f: (Expression) => Expression): Expression = PermissionExpression(id.transform(f),p)
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = id.ids
+  /** Point in the program where this expression is located. */
+  override def pp: ProgramPoint = id.pp
+  /** Checks if function f evaluates to true for any sub-expression. */
+  override def contains(f: (Expression) => Boolean): Boolean = id.contains(f)
+}

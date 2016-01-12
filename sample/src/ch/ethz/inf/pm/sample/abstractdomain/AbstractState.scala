@@ -52,6 +52,16 @@ object ExpressionFactory {
     } else left.top()
   }
 
+  def createPermissionExpression(ids: ExpressionSet, perms: ExpressionSet, ty: Type) : ExpressionSet = {
+    if (!ids.isTop && !perms.isTop) {
+      var result = new ExpressionSet(ty)
+      for (id <- ids.getNonTop)
+        for (perm <- perms.getNonTop)
+          result = result.add(new PermissionExpression(id, perm))
+      result
+    } else ids.top()
+  }
+
   def createUnaryExpression(v: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
     if (!v.isTop) {
       var result = new ExpressionSet(ty)

@@ -336,8 +336,6 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
     for (v <- removedVariables)
       result = result.remove(v)
 
-
-
     for (s <- r.keySet()) {
       if (!(ids glb IdentifierSet.Inner(s)).isBottom) {
 

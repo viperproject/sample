@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
+import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethods
 import com.typesafe.scalalogging.LazyLogging
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
@@ -167,12 +168,6 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         name = NativeMethods.assert.toString,
         args = exp :: Nil,
         returnType = sample.TopType)
-    case sil.Inhale(exp) =>
-      makeNativeMethodCall(
-        pos = s.pos,
-        name = NativeMethods.assume.toString,
-        args = exp :: Nil,
-        returnType = sample.TopType)
     case sil.NewStmt(lhs, fields) =>
       // TODO: Do something with fields
       sample.Assignment(go(s.pos), go(lhs), sample.New(go(s.pos), refType))
@@ -187,8 +182,6 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         returnedType = sample.TopType)
 
     // Stubs
-    case sil.Exhale(e) =>
-      sample.EmptyStatement(go(s.pos))
     case sil.Fold(acc) =>
       sample.EmptyStatement(go(s.pos))
     case sil.Unfold(acc) =>
@@ -199,6 +192,24 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
          sil.Label(_) |
          sil.While(_, _, _, _) =>
       sys.error(s"unexpected statement $s (should not be part of the CFG)")
+
+      // Inhale and Exhale statements are converted into native method calls
+      // @author Caterina Urban
+
+    case sil.Inhale(exp) =>
+      println("ToSample(inhale): " + s)
+      makeNativeMethodCall(
+        pos = s.pos,
+        name = PermissionMethods.inhale.toString,
+        args = exp :: Nil,
+        returnType = sample.TopType)
+    case sil.Exhale(exp) =>
+      println("ToSample(exhale): " + s)
+      makeNativeMethodCall(
+        pos = s.pos,
+        name = PermissionMethods.exhale.toString,
+        args = exp :: Nil,
+        returnType = sample.TopType)
   }
 
   def convert(e: sil.Exp): sample.Statement = e match {
@@ -237,14 +248,11 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
       go(inner)
 
     // Stubs
-    case sil.AccessPredicate(loc, perm) =>
-      go(sil.TrueLit()()) // Ignore
     case sil.QuantifiedExp(vars, inner) =>
       go(sil.TrueLit()()) // Ignore
     case sil.InhaleExhaleExp(in, ex) =>
       go(sil.TrueLit()()) // Ignore
 
-    case p: sil.PermExp => ???
     case sil.Old(exp) => ???
 
     case sil.AnySetCardinality(_) |
@@ -258,14 +266,31 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
          sil.ExplicitMultiset(_) |
          sil.ExplicitSet(_) => ???
 
+      // Access predicates
+      // @author Caterina Urban
+
+    case sil.AccessPredicate(loc, perm) =>
+      makeNativeMethodCall(
+        pos = e.pos,
+        name = PermissionMethods.permission.toString,
+        args = loc :: perm :: Nil,
+        returnType = go(loc.typ))
+    case p: sil.PermExp =>
+      p match {
+        case x: sil.FullPerm => go(sil.TrueLit()())
+        case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
+      }
+
+
       // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
       // their length (e.g., |data|) is treated as another unbounded variable
+      // @author Caterina Urban
 
     case e: sil.SeqLength => // sequence length, e.g., |this.data|
       makeVariable(e.pos, e.typ, e.toString)
     case sil.SeqIndex(sil.FieldAccess(rcv, field),_) => // sequence access, e.g., this.data[i]
       sample.FieldAccess(go(e.pos),go(rcv),field.name,go(field.typ))
-    case e: sil.SeqExp => throw new NotImplementedError("A SeqExp conversion is missing!")
+    case e: sil.SeqExp => throw new NotImplementedError("A sil.SeqExp conversion is missing!")
   }
 
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
@@ -387,6 +412,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
         case b: sil.Constraining =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
+        case b: sil.ConstrainingBlock =>
+          throw new IllegalArgumentException("The implementation for sil.ConstrainingBlock is missing.")
       }
       // Create new node and register its index *before* recursing
       val index = cfg.addNode(stmts)

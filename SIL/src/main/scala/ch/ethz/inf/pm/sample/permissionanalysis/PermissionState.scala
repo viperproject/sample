@@ -42,52 +42,52 @@ case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
   override def factory() : SymbolicValue = new SymbolicPermissionPredicate(p)
 }
 
-///** Symbolic permission monomial
-//  *
-//  * @param n the number of times the symbolic value is taken into account
-//  * @param s symbolic value taken into account
-//  */
-//class CountedSymbolicValues(n : Double, s : SymbolicValue) {
-//
-//  def -(b : CountedSymbolicValues) = {
-//    assert(this.sameSymbolicValue(b))
-//    new CountedSymbolicValues(this.n-b.n, this.s)
-//  }
-//
-//  def +(b : CountedSymbolicValues) = {
-//    assert(this.sameSymbolicValue(b))
-//    new CountedSymbolicValues(this.n+b.n, this.s)
-//  }
-//
-//  override def equals(a : Any) : Boolean = a match {
-//    case b: CountedSymbolicValues =>
-//      n.equals(b.n) && ((b.s==null && s==null) || (b.s!=null && s!=null && s.equals(b.s)))
-//    case _ => false
-//  }
-//
-//  def glb(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
-//    assert(a.sameSymbolicValue(b))
-//    new CountedSymbolicValues(Math.max(a.n, b.n), a.s)
-//  }
-//
-//  def lub(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
-//    assert(a.sameSymbolicValue(b))
-//    new CountedSymbolicValues(Math.min(a.n, b.n), a.s)
-//  }
-//
-//  def sameSymbolicValue(a : CountedSymbolicValues) : Boolean = {
-//    if (this.s == null && a.s == null) return true
-//    if (this.s == null || a.s == null) return false
-//    this.s.equals(a.s)
-//  }
-//
-//  override def toString = s match {
-//    case null => n.toString
-//    case k => n.toString + "*" + s.toString
-//  }
-//}
+/** Symbolic permission monomial
+  *
+  * @param n the number of times the symbolic value is taken into account
+  * @param s symbolic value taken into account
+  */
+class CountedSymbolicValues(val n : Double, val s : SymbolicValue) {
 
-/** Permission Inference State
+  def -(b : CountedSymbolicValues) = {
+    assert(this.sameSymbolicValue(b))
+    new CountedSymbolicValues(this.n-b.n, this.s)
+  }
+
+  def +(b : CountedSymbolicValues) = {
+    assert(this.sameSymbolicValue(b))
+    new CountedSymbolicValues(this.n+b.n, this.s)
+  }
+
+  override def equals(a : Any) : Boolean = a match {
+    case b: CountedSymbolicValues =>
+      n.equals(b.n) && ((b.s==null && s==null) || (b.s!=null && s!=null && s.equals(b.s)))
+    case _ => false
+  }
+
+  def glb(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
+    assert(a.sameSymbolicValue(b))
+    new CountedSymbolicValues(Math.max(a.n, b.n), a.s)
+  }
+
+  def lub(a : CountedSymbolicValues, b : CountedSymbolicValues) = {
+    assert(a.sameSymbolicValue(b))
+    new CountedSymbolicValues(Math.min(a.n, b.n), a.s)
+  }
+
+  def sameSymbolicValue(a : CountedSymbolicValues) : Boolean = {
+    if (this.s == null && a.s == null) return true
+    if (this.s == null || a.s == null) return false
+    this.s.equals(a.s)
+  }
+
+  override def toString = s match {
+    case null => n.toString
+    case k => n.toString + "*" + s.toString
+  }
+}
+
+/** Permission Inference State.
   *
   * Note that each abstract state must include an `ExpressionSet`!
   * It is accessed during the analysis to retrieve the result of each statement!!
@@ -95,7 +95,7 @@ case class SymbolicPermissionPredicate(p: Path) extends SymbolicValue(p) {
   * @author Caterina Urban
   */
 case class PermissionState(heapNum: PointsToNumericalState)
-  extends SimpleState[PermissionState]
+  extends SimplePermissionState[PermissionState]
   with StateWithBackwardAnalysisStubs[PermissionState]
   with LazyLogging
 {
@@ -386,6 +386,13 @@ case class PermissionState(heapNum: PointsToNumericalState)
     this.copy(heapNum = heapNum.evalConstant(value, typ, pp))
   }
 
+  /** Exhales permissions. */
+  override def exhale(acc: Expression) : PermissionState = {
+    logger.debug("*** exhale(" + acc.toString + "): implement me!")
+
+    this
+  }
+
   /** The current expression.
     *
     * Invoked after each statement to retrieve its result.
@@ -464,6 +471,13 @@ case class PermissionState(heapNum: PointsToNumericalState)
     logger.debug("*** glb(" + other.repr + "): implement me!")
     
     this.copy(heapNum = heapNum glb other.heapNum)
+  }
+
+  /** Inhales permissions. */
+  override def inhale(acc: Expression) : PermissionState = {
+    logger.debug("*** inahle(" + acc.toString + "): implement me!")
+
+    this
   }
 
   /** Checks whether the given domain element is equivalent to bottom.

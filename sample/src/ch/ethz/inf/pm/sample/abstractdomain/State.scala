@@ -811,6 +811,37 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 
 }
 
+/** Trait adding Inhale/Exhale functionalities to a SimpleState. */
+trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S] {
+  this: S =>
+
+  /** Inhales permissions.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param acc The permission to inhale
+    * @return The abstract state after inhaling the permission
+    */
+  def inhale(acc: Expression): S
+
+  def inhale(acc: ExpressionSet) : S = unlessBottom(acc, {
+      Lattice.bigLub(acc.getNonTop.map(inhale))
+    })
+
+  /** Exhales permissions.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param acc The permission to exhale
+    * @return The abstract state after exhaling the permission
+    */
+  def exhale(acc: Expression): S
+
+  def exhale(acc: ExpressionSet) : S = unlessBottom(acc, {
+    Lattice.bigLub(acc.getNonTop.map(exhale))
+  })
+}
+
 /** Some trivial helper functions that execute forward/backward semantics on single and list of states.
   *
   * @author Pietro

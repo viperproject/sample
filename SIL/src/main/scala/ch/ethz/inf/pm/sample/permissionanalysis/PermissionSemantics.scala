@@ -1,9 +1,17 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+import ch.ethz.inf.pm.sample.abstractdomain.{PermissionExpression, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, NativeMethodSemantics}
 
-object PermissionNativeMethodSemantics extends NativeMethodSemantics {
+object PermissionMethods extends Enumeration {
+  val permission = Value(Constants.GhostSymbolPrefix + "permission")
+  val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
+  val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
+}
+
+object PermissionMethodSemantics extends NativeMethodSemantics {
 
   /**
     * It defines the forward semantics of native method calls
@@ -23,7 +31,29 @@ object PermissionNativeMethodSemantics extends NativeMethodSemantics {
                                                           typeparameters: List[Type],
                                                           returnedtype: Type,
                                                           programpoint: ProgramPoint,
-                                                          state: S): Option[S] = ???
+                                                          state: S): Option[S] = state match {
+    case state: PermissionState =>
+      val nativeMethod = PermissionMethods.values.find(_.toString == operator)
+      nativeMethod match {
+        case Some(PermissionMethods.permission) => // TODO
+
+//          thisExpr: Type Int: {O3.holds}
+//      operator: ☐permission
+//      parameters: List(Type Bool: {true})
+
+          println("thisExpr: " + thisExpr)
+          println("operator: " + operator)
+          println("parameters: " + parameters)
+          println("returnedtype: " + returnedtype)
+
+          val thenExpr = createPermissionExpression(thisExpr, parameters(0), returnedtype)
+          Some(state.setExpression(thenExpr).asInstanceOf[S])
+        case Some(PermissionMethods.inhale) => Some(state.inhale(thisExpr).asInstanceOf[S])
+        case Some(PermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])
+        case None => None
+      }
+    case _ => throw new IllegalArgumentException("PermissionMethodSemantics expects a PermissionState.")
+  }
 
   /**
     * It defines the backward semantics of native method calls
