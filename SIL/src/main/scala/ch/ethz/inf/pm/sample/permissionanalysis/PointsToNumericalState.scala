@@ -20,6 +20,13 @@ case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier {
     case pp:LineColumnProgramPoint => pp.getLine.toString
     case _ => pp.description
   }
+  /** Custom equals. */
+  override def equals(o: Any) = o match {
+    case that: HeapIdentifier => this.getName equals that.getName
+    case _ => false
+  }
+  /** Custo hashCode. */
+  override def hashCode = getName.hashCode
   /** The name of the field represented by the identifier. */
   override def getField: Option[String] = None
   /** Whether the identifier is a summary node. */
@@ -609,8 +616,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
     *
     * @return the default string representation of the current state
     */
-  private def repr: String = {
-    "PermissionState(" +
+  def repr: String = {
+    "PointsToNumericalState(" +
       exprSet.toString + ", " +
       refToObj.toString + ", " +
       objFieldToObj.toString + ", " +
@@ -692,7 +699,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
     * @return the string representation of the current state
     */
   override def toString: String = {
-    "PermissionState(\n" +
+    "PointsToNumericalState(\n" +
     "\texprSet: " + exprSet.toString + "\n" +
     "\trefToObj: " + refToObj.toString + "\n" +
     "\tobjFieldToObj: " + objFieldToObj.toString + "\n" +

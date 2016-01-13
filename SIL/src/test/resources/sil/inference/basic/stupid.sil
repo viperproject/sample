@@ -1,8 +1,7 @@
-field holds: Int
+field data: Int
 
 method Foo(this: Ref)
 {
-
-    var i: Int
-    i := this.holds
+    var x : Int
+    x := this.data
 }

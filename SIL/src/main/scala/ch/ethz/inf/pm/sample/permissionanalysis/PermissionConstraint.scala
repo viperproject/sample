@@ -2,8 +2,10 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import breeze.optimize.linear._
 
-
-/** Arithmetic expressions. */
+/** Arithmetic expressions.
+  *
+  * @author Caterina Urban
+  */
 sealed trait ArithmeticExpression
 
 /** Simple numerical value. */
@@ -21,8 +23,10 @@ case class Add(left : ArithmeticExpression, right : ArithmeticExpression) extend
   override def toString: String = left.toString + "+" + right.toString
 }
 
-
-/** Constraints. */
+/** Constraints.
+  *
+  * @author Caterina Urban
+  */
 sealed trait Constraint
 
 /** Equality constraint. */
@@ -40,8 +44,10 @@ case class Grt(left : ArithmeticExpression, right : ArithmeticExpression) extend
   override def toString = left.toString + ">" + right.toString
 }
 
-
-/** Access permissions. */
+/** Access permissions.
+  *
+  * @author Caterina Urban
+  */
 sealed trait PermissionsType {
   def ensureWrite(level : ArithmeticExpression) : Constraint = new Eq(level, new Value(maxLevel))
   def ensureRead(level : ArithmeticExpression) : Constraint = new Grt(level, new Value(minLevel))
@@ -56,8 +62,10 @@ case object FractionalPermission extends PermissionsType {
   override def minLevel: Double = 0
 }
 
-
-/** Access permission constraints solver. */
+/** Access permission constraints solver.
+  *
+  * @author Caterina Urban
+  */
 object PermissionSolver {
 
   /** Considered access permissions. */
@@ -67,13 +75,25 @@ object PermissionSolver {
 
   /** Set of constraints to be solved. */
   private var constraints: Set[Constraint] = Set[Constraint]()
-
   /** Gets the current set of constraints. */
   def getConstraints : Set[Constraint] = constraints
-
   /** Adds a constraint to the current set of constraints. */
   def addConstraint(c : Constraint) = {
       constraints = constraints + c
+  }
+
+  /** Converts a SymbolicPermission into an ArithmeticExpression. */
+  def convertSymbolicPermission(s: SymbolicPermission) : ArithmeticExpression =
+    s.value.foldLeft(new Value(0) : ArithmeticExpression)(
+      (exp, v) => new Add(exp, convertCountedSymbolicValue(v))
+    )
+  /** Converts a CountedSymbolicValue into an ArithmeticExpression. */
+  def convertCountedSymbolicValue(s: CountedSymbolicValue) : ArithmeticExpression = {
+    if (s.s == null) {
+      new Value(s.n)
+    } else {
+      new Mul(s.n.toInt, s.s)
+    }
   }
 
   /** Collects the SymbolicValues within an ArithmeticExpression */
@@ -82,14 +102,12 @@ object PermissionSolver {
     case Mul(mul, right) => Set[SymbolicValue](right)
     case Add(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
   }
-
   /** Collects the SymbolicValues within a Constraint */
   private def extractSymbolicValues(c: Constraint): Set[SymbolicValue] = c match {
     case Eq(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
     case Geq(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
     case Grt(left, right) => extractSymbolicValues(left) ++ extractSymbolicValues(right)
   }
-
   /** Collects the SymbolicValues within a set of Constraints */
   private def extractSymbolicValues(set: Set[Constraint]): Set[SymbolicValue] = {
     var variables = Set[SymbolicValue]()
@@ -110,7 +128,6 @@ object PermissionSolver {
       case _ => extractExpression(lp)(vars,left).asInstanceOf[lp.Expression] + extractExpression(lp)(vars,right).asInstanceOf[lp.Expression]
     }
   }
-
   /** Converts a Constraint into a LinearProgram#Constraint (accepted by Breeze) */
   private def extractConstraint(lp: LinearProgram)(vars: Map[SymbolicValue,lp.Variable], c: Constraint) : Set[lp.Constraint] = c match {
     case Eq(left, right) => (left, right) match {
@@ -222,9 +239,9 @@ object PermissionSolver {
     }
 
     if (den != 1)
-      d.toString + "->" + num.toString + "/" + den.toString
+      num.toString + "/" + den.toString
     else
-      d.toString + "->" + num.toString
+      num.toString
   }
 
   // Temporary main method (used to experiment).
@@ -251,8 +268,8 @@ object PermissionSolver {
 
     println("\nDone.")
 
-    val z = new SymbolicPermissionPredicate(new Path(List("x")))
-    val w = new SymbolicPermissionPredicate(new Path(List("y")))
+    val z = new SymbolicPrecondition(new Path(List("x")))
+    val w = new SymbolicPrecondition(new Path(List("y")))
     val cz = Grt(Mul(1,z),Value(0))
     val cw = Grt(Mul(1,w),Value(0))
     val c = Grt(Add(Mul(1,z),Mul(1,w)),Value(0))
