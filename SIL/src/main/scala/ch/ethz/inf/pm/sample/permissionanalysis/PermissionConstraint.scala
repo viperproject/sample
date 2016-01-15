@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
+import breeze.linalg.SparseVector
 import breeze.optimize.linear._
 
 /** Arithmetic expressions.
@@ -178,6 +179,7 @@ object PermissionSolver {
   def solve(constraints: Set[Constraint]) : Map[SymbolicValue,Double] = {
 
     val lp = new LinearProgram()  // linear program
+    var result = Map[SymbolicValue, Double]() // result
 
     // array of symbolic values
     val sym : Array[SymbolicValue] = this.extractSymbolicValues(constraints).toArray
@@ -188,32 +190,32 @@ object PermissionSolver {
 
     // list of values corresponding to symbolic variables
     val vars = symToVars.values.toList
-    // objective function: the sum of the variables
-    val obj = vars.drop(1).foldLeft(vars.head : lp.Expression)(
-      (exp: lp.Expression, v: lp.Variable) => exp + v
-    )
+    if (vars.length > 0) {
+      // objective function: the sum of the variables
+      val obj = vars.drop(1).foldLeft(vars.head: lp.Expression)(
+        (exp: lp.Expression, v: lp.Variable) => exp + v
+      )
 
-    // lp problem
-    var prob = obj.subjectTo()
-    // adding variable bounds
-    for (v <- vars) {
-      prob = prob.subjectTo(v >= 0).subjectTo(v <= 1)
-    }
-    // adding constraints
-    for (c <- constraints) {
-      for (s <- extractConstraint(lp)(symToVars,c)) {
-        prob = prob.subjectTo(s.asInstanceOf[lp.Constraint])
+      // lp problem
+      var prob = obj.subjectTo()
+      // adding variable bounds
+      for (v <- vars) {
+        prob = prob.subjectTo(v >= 0).subjectTo(v <= 1)
       }
-    }
-    // solving lp problem
-    val res = lp.minimize(prob).result
+      // adding constraints
+      for (c <- constraints) {
+        for (s <- extractConstraint(lp)(symToVars, c)) {
+          prob = prob.subjectTo(s.asInstanceOf[lp.Constraint])
+        }
+      }
+      // solving lp problem
+      val res = lp.minimize(prob).result
 
-    // returning the result
-    var result = Map[SymbolicValue,Double]()
-    for (i <- 1 to sym.length) {
-      result = result + (sym(i-1) -> res.valueAt(i-1))
-    }
-    result
+      // computing the result
+      for (i <- 1 to sym.length) {
+        result = result + (sym(i - 1) -> res.valueAt(i - 1))
+      }; result
+    } else result
   }
 
   /** Converts a Double to a rational number string representation. */

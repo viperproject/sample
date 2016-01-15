@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, ProgramPoint, Type}
@@ -64,7 +64,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
                            objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]],
                            // polyhedra abstract domain
-                           numDom : Apron.Polyhedra)
+                           numDom : BoxedNonRelationalNumericalDomain[DoubleInterval]) // TODO: Apron.Polyhedra
   extends SimpleState[PointsToNumericalState]
   with StateWithBackwardAnalysisStubs[PointsToNumericalState]
   with LazyLogging
@@ -387,7 +387,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet,
     * @param objFieldToObjmap the current objFieldToObj map updated with missing fields
     * @return the set of objects referenced by the path (except the last field)
     */
-  private def evaluatePath(path: List[String], objFieldToObjmap: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]) : Set[HeapIdentifier] = {
+  def evaluatePath(path: List[String], objFieldToObjmap: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]) : Set[HeapIdentifier] = {
     val keys = refToObj.keySet // set of all Ref variables
     // retrieving the Ref variable corresponding to the head of the path
     val id = keys.find((ref) => ref.name == path.head).get
@@ -740,7 +740,7 @@ object PointsToNumericalEntryStateBuilder extends EntryStateBuilder[PointsToNume
   override def topState: PointsToNumericalState = PointsToNumericalState(ExpressionSet(),
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    Apron.Polyhedra.Bottom.factory())
+    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)) // TODO: Apron.Polyhedra.Bottom.factory()
 }
 
 /** Runs the PointsTo+Numerical analysis. */

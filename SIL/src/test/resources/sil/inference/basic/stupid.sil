@@ -1,7 +1,6 @@
-field data: Int
+field f: Int
 
-method Foo(this: Ref)
+method Foo(x: Ref)
 {
-    var x : Int
-    x := this.data
+    x.f := 0
 }

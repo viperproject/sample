@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, AnalysisResult, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
@@ -107,20 +107,17 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
 
   /** Custom constructor(s). */
   def this(el: CountedSymbolicValue) = {
-    this(); this.addSymbolicValue(el)
+    this(); value = if (el.n != 0) value + el else value
   }
   def this(s: Set[CountedSymbolicValue]) = {
-    this(); value = s
+    this(); value = s.filter((el) => el.n != 0)
   }
 
   /** Set of counted symbolic values. */
   var value : Set[CountedSymbolicValue] = Set.empty[CountedSymbolicValue]
-  /** Adds a counted symbolic value to the current set of counted symbolic values */
-  private def addSymbolicValue(el: CountedSymbolicValue) : SymbolicPermission = {
-    if (el.n != 0) {
-      value = value + el
-    }; this
-  }
+
+  /** */
+
 
   /** Returns the bottom value of the lattice. */
   override def bottom(): SymbolicPermission = ???
@@ -139,9 +136,16 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
   /** Computes the greatest lower bound of two elements. */
   override def glb(other: SymbolicPermission): SymbolicPermission = ???
   /** Computes the least upper bound of two elements. */
-  override def lub(other: SymbolicPermission): SymbolicPermission = ???
+  override def lub(other: SymbolicPermission): SymbolicPermission = {
+    val symval = this.value union other.value.map(
+      (s) => this.value.foldLeft(s)(
+        (el, v) => if (s sameSymbolicValue v) el lub v else el
+      )
+    )
+    new SymbolicPermission(symval)
+  }
   /** Computes the widening of two elements. */
-  override def widening(other: SymbolicPermission): SymbolicPermission = ???
+  override def widening(other: SymbolicPermission): SymbolicPermission = this lub other
 
   override def toString : String = if (isBottom) "⊥" else if (value.isEmpty) "0" else value.mkString("", " + ", "")
 }
@@ -195,52 +199,9 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state after the assignment
     */
   override def assignVariable(x: Expression, right: Expression): PermissionState = {
-    val idx = x match {
-      case _: VariableIdentifier => "VariableIdentifier"
-      case _ => "Unknown"
-    }
-    val idright = right match {
-      case _: FieldIdentifier => "FieldIdentifier"
-      case _: HeapIdentifier => "HeapIdentifier"
-      case _: VariableIdentifier => "VariableIdentifier"
-      case _ => "Unknown: " + right.getClass.getSimpleName
-    }
-    logger.debug("*** assignVariable(" + x.toString + ": " + idx + "; " + right.toString + ": " + idright + ")")
+    logger.debug("*** assignVariable(" + x.toString + "; " + right.toString + ")")
 
-//    x match {
-//      case x: VariableIdentifier =>
-//        if (x.typ.isObject) { // the assigned variable is a `Ref`
-//          right match {
-//            case right: FieldIdentifier => // e.g., `x := y.g`
-//              val s = this.objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
-//              // add xref -> s to refToObj map
-//              val refToObjmap = this.refToObj + (x -> s)
-//              // return the current state with updated refToObj
-//              this.copy(refToObj = refToObjmap)
-//
-//            case right: HeapIdentifier => // e.g., `x = new()`
-//              // add xref -> right to refToObj map
-//              val refToObjmap = this.refToObj + (x -> Set[HeapIdentifier](right))
-//              // add key to objFieldToObj map
-//              val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
-//              // return the current state with updated refToObj and updated objFieldToObj
-//              this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
-//
-//            case right: VariableIdentifier => // e.g., `x := y`
-//              // add xref -> refToObj[rightref] to refToObj map
-//              val refToObjmap = this.refToObj + (x -> this.refToObj.getOrElse(right, Set[HeapIdentifier]()))
-//              // return the current state with updated refToObj
-//              this.copy(refToObj = refToObjmap)
-//
-//            case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
-//          }
-//        } else {  // the assigned variable is not a `Ref`
-//          // return the current state with updated numDom
-//          this.copy(numDom = numDom.assign(x,right))
-//        }
-//      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
-//    }
-
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.assignVariable(x, right))
   }
 
@@ -254,86 +215,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def assume(cond: Expression): PermissionState = {
     logger.debug("*** assume(" + cond.toString + ")")
 
-//    cond match {
-//      // Constant
-//      case cond:Constant => // return the current state with updated numDom
-//        this.copy(numDom = numDom.assume(cond))
-//
-//      // Identifier
-//      case cond: Identifier => // return the current state with updated numDom
-//        this.copy(numDom = numDom.assume(cond))
-//
-//      // BinaryArithmeticExpression
-//      case cond: BinaryArithmeticExpression => // return the current state with updated numDom
-//        this.copy(numDom = numDom.assume(cond))
-//
-//      // BinaryBooleanExpression
-//      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
-//        if (cond.canonical) // return the current state with updated numDom
-//          this.copy(numDom = numDom.assume(cond))
-//        else
-//          this.assume(left).assume(right)
-//      case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) =>
-//        if (cond.canonical) // return the current state with updated numDom
-//          this.copy(numDom = numDom.assume(cond))
-//        else
-//          this.assume(left) lub this.assume(right)
-//
-//      // NegatedBooleanExpression
-//      case cond:NegatedBooleanExpression => {
-//        cond.exp match {
-//          // Constant
-//          case c: Constant => // return the current state with updated numDom
-//            this.copy(numDom = numDom.assume(cond))
-//
-//          // Identifier (i.e., FieldIdentifier, VariableIdentifier)
-//          case id: Identifier => // return the current state with updated numDom
-//            this.copy(numDom = numDom.assume(cond))
-//
-//          // BinaryArithmeticExpression
-//          case BinaryArithmeticExpression(left, right, op, typ) =>
-//            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
-//
-//          // BinaryBooleanExpression
-//          case BinaryBooleanExpression(left, right, op, typ) =>
-//            val nleft = NegatedBooleanExpression(left)
-//            val nright = NegatedBooleanExpression(right)
-//            val nop = op match {
-//              case BooleanOperator.&& => BooleanOperator.||
-//              case BooleanOperator.|| => BooleanOperator.&&
-//            }
-//            this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
-//
-//          // NegatedBooleanExpression
-//          case NegatedBooleanExpression(exp) => this.assume(exp)
-//
-//          // ReferenceComparisonExpression
-//          case ReferenceComparisonExpression(left, right, op, typ) =>
-//            val nop = op match {
-//              case ArithmeticOperator.== => ArithmeticOperator.!=
-//              case ArithmeticOperator.!= => ArithmeticOperator.==
-//            }
-//            this.assume(ReferenceComparisonExpression(left, right, nop, typ))
-//
-//          case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
-//            + cond.exp.getClass.getSimpleName + " is missing.")
-//        }
-//      }
-//
-//      case ReferenceComparisonExpression(left, right, op, typ) =>
-//        if (op == ArithmeticOperator.==) {
-//          println(left.getClass.getSimpleName, left.typ)
-//          println(right.getClass.getSimpleName, right.typ)
-//          this
-//        } else { // cond.op == ArithmeticOperator.!=
-//          println(left.getClass.getSimpleName, left.typ)
-//          println(right.getClass.getSimpleName, right.typ)
-//          this
-//        }
-//
-//      case _ => throw new NotImplementedError("An assume implementation is missing.")
-//    }
-
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.assume(cond))
   }
 
@@ -359,6 +241,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
 
 //    // return a new state with bottom exprSet and empty refToObj map
 //    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty,numDom.bottom())
+
     this.copy(heapNum = heapNum.bottom())
   }
 
@@ -410,6 +293,12 @@ case class PermissionState(heapNum: PointsToNumericalState,
     logger.debug("*** createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
+
+      // method Foo(x: Ref, ...) { ... }
+      //
+      // heap.refToObj + (x -> o)
+      // idToSym + (o -> acc(x))
+
       val obj = HeapIdentifier(typ,x.pp) // create new Obj
       // create new SymbolicPermission (with SymbolicPrecondition as CountedSymbolicValue)
       val pre = new SymbolicPrecondition(new Path(List(x.getName)))
@@ -435,10 +324,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): PermissionState = {
     logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
 
-//    val const = new Constant(value, typ, pp)
-//    // return the current state with updated exprSet
-//    this.copy(exprSet = ExpressionSet(const))
-
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.evalConstant(value, typ, pp))
   }
 
@@ -484,55 +370,41 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
     logger.debug("*** getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
-    // call getFieldValue on heapNum
-    val heap = heapNum.getFieldValue(obj, field, typ)
+    obj match {
+      case obj:AccessPathIdentifier =>
+        // call getFieldValue on heapNum
+        val heap = heapNum.getFieldValue(obj, field, typ)
 
-//    // merge the symbolic permissions of the different heap identifiers
-//    var perm = new SymbolicPermission()
-//    for (id : FieldIdentifier <- heap.exprSet) {
-//      perm = perm lub idToSym(id.obj)
-//    }
-//    // update the path of the counted symbolic values
-//    val csv = perm.value.map(
-//      (s) => CountedSymbolicValue(s.n, s.s.setPath(new Path(s.s.path.p ::: List[String](field))))
-//    )
-//    val sym = new SymbolicPermission(csv)
-//    // add key to idToSym map
-//    var idToSymmap = idToSym
-//    for (id: FieldIdentifier <- heap.exprSet) {
-//      idToSymmap = idToSymmap + (id -> sym)
-//    }
+        // x.f
+        // heap.refToObj: x -> {o1, ...}, ...
+        // idToSym: o1 -> acc(x), ...
+        //
+        // idToSym: o1 -> acc(x), o1.f -> acc(x.f), ...
 
-    var idToSymmap = idToSym
-    val ids = heap.exprSet.getNonTop
-    val x = ids.head
-    x match {
-      case id: FieldIdentifier =>
-        // retrieve the associated symbolic permission
-        val sym = getSymbolicPermission(id)
-        // add key to idToSym map
-        idToSymmap = idToSymmap + (id -> sym)
-        // create constraint to ensure read permissions
-        val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(sym))
-        // add constraint to solver
-        PermissionSolver.addConstraint(c)
-      case _ => throw new IllegalArgumentException("A field access should return a FieldIdentifier")
+        val path = obj.stringPath // path to evaluate
+        // evaluate path into the set of objects referenced by it (up to the given field excluded)
+        val objSet = heapNum.evaluatePath(path,heapNum.objFieldToObj)
+
+        // update idToSym
+        val idToSymmap = objSet.foldLeft(idToSym)(
+          (m: Map[Identifier,SymbolicPermission],o : HeapIdentifier) => {
+            val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
+            // retrieve the associated symbolic permission
+            val sym = getSymbolicPermission(fld)
+            // create constraint to ensure read permissions
+            val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(sym))
+            // add constraint to solver
+            PermissionSolver.addConstraint(c)
+            // add key to idToSym map
+            m + (fld -> sym)
+          }
+        )
+
+        // return the current state with updated heapNum and updated idToSym
+        this.copy(heapNum = heap, idToSym = idToSymmap)
+
+      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
-//    for (id <- ids) {  // TODO: this needs to be fixed to merge the symbolic permissions for the same field
-//      case id: FieldIdentifier =>
-//        // retrieve the associated symbolic permission
-//        val sym = getSymbolicPermission(id)
-//        // add key to idToSym map
-//        idToSymmap = idToSymmap + (id -> sym)
-//        // create constraint to ensure read permissions
-//        val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(sym))
-//        // add constraint to solver
-//        PermissionSolver.addConstraint(c)
-//      case _ => throw new IllegalArgumentException("A field access should return a FieldIdentifier")
-//    }
-
-    // return the current state with updated heapNum and updated idToSym
-    this.copy(heapNum = heap, idToSym = idToSymmap)
   }
 
   /** Retrieves the symbolic permission associated with a field identifier, or creates a new symbolic permission
@@ -548,8 +420,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
       val perm = idToSym(obj) // retrieve the associated symbolic permission
       // update the path of the counted symbolic values
       val csv = perm.value.map(
-        (s) =>
-          CountedSymbolicValue(s.n, s.s.factory().setPath(new Path(s.s.path.p ::: List[String](id.field))))
+        (s) => CountedSymbolicValue(s.n, s.s.factory().setPath(new Path(s.s.path.p ::: List[String](id.field))))
       )
       // create and return new SymbolicPermission
       new SymbolicPermission(csv)
@@ -566,9 +437,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def getVariableValue(id: Identifier): PermissionState = {
     logger.debug("*** getVariableValue(" + id.toString + ")")
 
-//    // return the current state with updated exprSet
-//    this.copy(exprSet = ExpressionSet(id))
-
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.getVariableValue(id))
   }
 
@@ -590,7 +459,20 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def inhale(acc: Expression) : PermissionState = {
     logger.debug("*** inahle(" + acc.toString + "): implement me!")
 
-    this
+    acc match {
+      case acc: PermissionExpression =>
+        acc.id match {
+          case id: FieldIdentifier =>
+            // retrieve the symbolic permission associated with the permission expression
+            val sym = idToSym(id)
+
+            this //TODO: ...
+
+          case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
+        }
+
+      case _ => this.assume(acc)
+    }
   }
 
   /** Checks whether the given domain element is equivalent to bottom.
@@ -696,9 +578,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def removeExpression(): PermissionState = {
     logger.debug("*** removeExpression()")
 
-//    // return the current state with a new exprSet
-//    this.copy(exprSet = ExpressionSet())
-
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.removeExpression())
   }
 
@@ -754,9 +634,8 @@ case class PermissionState(heapNum: PointsToNumericalState,
     */
   override def setExpression(expr: ExpressionSet): PermissionState = {
     logger.debug("*** setExpression(" + expr.toString + ")")
-    
-//    this.copy(exprSet = expr) // return the current state with updated exprSet
 
+    // return the current state with updated heapNum
     this.copy(heapNum = heapNum.setExpression(expr))
   }
 
@@ -847,7 +726,7 @@ object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
     PointsToNumericalState(ExpressionSet(),
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    Apron.Polyhedra.Bottom.factory()),
+    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)), //TODO: Apron.Polyhedra.Bottom.factory()
     // map from a `Identifier` to its `SymbolicPermission`
     Map[Identifier,SymbolicPermission]())
 }
@@ -856,11 +735,14 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
   override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
     val result = analyze(method, entryStateBuilder.build(method))
 
-//    val constraints = PermissionSolver.getConstraints
-//    println("Constraints: " + constraints)
-
     val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
-    println(solution.mapValues((d) => PermissionSolver.doubleToRational(d)))
+    println("\nResult: ")
+    for ((s,v) <- solution) {
+      if (v >= 1)
+        println("acc(" + s.path.toString + ")")
+      else if (v > 0)
+        println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
+    }
 
     //val cfg = result.cfgState
 
