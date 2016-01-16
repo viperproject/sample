@@ -197,14 +197,12 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
       // @author Caterina Urban
 
     case sil.Inhale(exp) =>
-      println("ToSample(inhale): " + s)
       makeNativeMethodCall(
         pos = s.pos,
         name = PermissionMethods.inhale.toString,
         args = exp :: Nil,
         returnType = sample.TopType)
     case sil.Exhale(exp) =>
-      println("ToSample(exhale): " + s)
       makeNativeMethodCall(
         pos = s.pos,
         name = PermissionMethods.exhale.toString,
@@ -277,10 +275,10 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         returnType = go(loc.typ))
     case p: sil.PermExp =>
       p match {
-        case x: sil.FullPerm => go(sil.TrueLit()())
+        case x: sil.FullPerm => sample.ConstantStatement(go(p.pos), "1", sample.IntType)
+        case x: sil.FractionalPerm => throw new NotImplementedError("A sil.FractionalPerm conversion is missing!")
         case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
       }
-
 
       // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
       // their length (e.g., |data|) is treated as another unbounded variable

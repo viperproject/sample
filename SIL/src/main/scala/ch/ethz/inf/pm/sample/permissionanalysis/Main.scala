@@ -1,12 +1,11 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.permissionanalysis.{PointsToNumericalAnalysisRunner, PermissionAnalysisRunner}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.sample.stupidanalysis.StupidAnalysisRunner
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
-/**
-  * @author Lucas Brutschy
+/** Main for the permission inference.
+  *
+  * @author Lucas Brutschy, Caterina Urban
   */
 object Main {
 
@@ -21,7 +20,6 @@ object Main {
     for (r <- Reporter.seenErrors) {
       println(r)
     }
-
     if (Reporter.seenErrors.isEmpty) {
       println("No errors")
     }

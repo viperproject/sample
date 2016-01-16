@@ -44,10 +44,7 @@ trait AnalysisRunner[S <: State[S]] {
   }
 }
 
-case class AnalysisResult[S <: State[S]](
-                                          method: MethodDeclaration,
-                                          cfgState: TrackingCFGState[S]) {
-}
+case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
 
 /** Builds analysis entry states for given method declarations. */
 trait EntryStateBuilder[S <: State[S]] {

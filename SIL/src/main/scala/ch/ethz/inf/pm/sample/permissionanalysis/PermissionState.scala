@@ -2,10 +2,11 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
-import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, AnalysisResult, EntryStateBuilder}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
+import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, SimpleAnalysis, AnalysisResult, EntryStateBuilder}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{DefaultSilConverter, SilAnalysisRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.{ast => sil}
 
 /** Path to a location.
   *
@@ -63,34 +64,36 @@ case class CountedSymbolicValue(n : Double, s : SymbolicValue) {
   /** Custom constructor(s). */
   def this(n: Double) = this(n, null)
 
-  def -(b : CountedSymbolicValue) = {
-    assert(this.sameSymbolicValue(b))
-    CountedSymbolicValue(this.n-b.n, this.s)
-  }
-  def +(b : CountedSymbolicValue) = {
-    assert(this.sameSymbolicValue(b))
-    CountedSymbolicValue(this.n+b.n, this.s)
-  }
-
   override def equals(a : Any) : Boolean = a match {
-    case x: CountedSymbolicValue =>
-      this.n.equals(x.n) && ((x.s==null && this.s==null) || (x.s!=null && this.s!=null && this.s.equals(x.s)))
+    case x: CountedSymbolicValue => (this.n equals x.n) && this.sameSymbolicValue(x)
     case _ => false
   }
-
-  def glb(b : CountedSymbolicValue) = {
-    assert(this.sameSymbolicValue(b))
-    CountedSymbolicValue(Math.max(this.n, b.n), this.s)
-  }
-  def lub(b : CountedSymbolicValue) = {
-    assert(this.sameSymbolicValue(b))
-    CountedSymbolicValue(Math.min(this.n, b.n), this.s)
-  }
-
   def sameSymbolicValue(a : CountedSymbolicValue) : Boolean = {
     if (this.s == null && a.s == null) return true
     if (this.s == null || a.s == null) return false
     this.s.equals(a.s)
+  }
+
+  /** Least upper bound of counted symbolic values. */
+  def lub(b : CountedSymbolicValue) = {
+    assert(this.sameSymbolicValue(b))
+    CountedSymbolicValue(Math.min(this.n, b.n), this.s)
+  }
+  /** Greatest lower bound of counted symbolic values. */
+  def glb(b : CountedSymbolicValue) = {
+    assert(this.sameSymbolicValue(b))
+    CountedSymbolicValue(Math.max(this.n, b.n), this.s)
+  }
+
+  /** Addition of counted symbolic values. */
+  def +(b : CountedSymbolicValue) = {
+    assert(this.sameSymbolicValue(b))
+    CountedSymbolicValue(this.n+b.n, this.s)
+  }
+  /** Subtraction of counted symbolic values. */
+  def -(b : CountedSymbolicValue) = {
+    assert(this.sameSymbolicValue(b))
+    CountedSymbolicValue(this.n-b.n, this.s)
   }
 
   override def toString = s match {
@@ -106,18 +109,56 @@ case class CountedSymbolicValue(n : Double, s : SymbolicValue) {
 class SymbolicPermission extends Lattice[SymbolicPermission] {
 
   /** Custom constructor(s). */
-  def this(el: CountedSymbolicValue) = {
-    this(); value = if (el.n != 0) value + el else value
+  def this(v: CountedSymbolicValue) = {
+    this(); this.value = if (v.n != 0) this.value + v else this.value
   }
   def this(s: Set[CountedSymbolicValue]) = {
-    this(); value = s.filter((el) => el.n != 0)
+    this(); this.value = s.filter((el) => el.n != 0)
   }
 
   /** Set of counted symbolic values. */
-  var value : Set[CountedSymbolicValue] = Set.empty[CountedSymbolicValue]
+  var value : Set[CountedSymbolicValue] = Set[CountedSymbolicValue]()
 
-  /** */
+  private def addCountedSymbolicValue(s: Set[CountedSymbolicValue], v: CountedSymbolicValue): Set[CountedSymbolicValue] = {
+    var added = false
+    val sym: Set[CountedSymbolicValue] = s.map(
+      // adding the counted symbolic value with an existing element with the same symbolic value
+      (el) => if (el.sameSymbolicValue(v)) { added = true; el + v } else el
+    )
+    // adding the counted symbolic value in case there is no element with the same symbolic value
+    if (!added && v.n != 0) sym + v else sym
+  }
+  /** Adds a counted symbolic value to the current set of counted symbolic values. */
+  def +(v: CountedSymbolicValue): SymbolicPermission = {
+    val sym: Set[CountedSymbolicValue] = addCountedSymbolicValue(this.value,v)
+    new SymbolicPermission(sym)
+  }
+  /** Adds a symbolic permission with the current symbolic permission. */
+  def ++(v: SymbolicPermission): SymbolicPermission = {
+    val sym: Set[CountedSymbolicValue] = v.value.foldLeft(this.value)(addCountedSymbolicValue)
+    new SymbolicPermission(sym)
+  }
 
+  private def subCountedSymbolicValue(s: Set[CountedSymbolicValue], v: CountedSymbolicValue): Set[CountedSymbolicValue] = {
+    var subtracted = false
+    val sym: Set[CountedSymbolicValue] = s.map(
+      // subtracting the counted symbolic value from an existing element with the same symbolic value
+      (s) => if (s.sameSymbolicValue(v)) { subtracted = true; s - v } else s
+    )
+    // adding the negated counted symbolic value in case there is no element with the same symbolic value
+    if (!subtracted && v.n != 0) sym + CountedSymbolicValue(-v.n,v.s) else sym
+    // if (!subtracted) throw new IllegalArgumentException("Trying to give away without owning a permission!") else sym
+  }
+  /** Subtracts a counted symbolic value from the current set of counted symbolic values. */
+  def -(v : CountedSymbolicValue) : SymbolicPermission= {
+    val sym: Set[CountedSymbolicValue] = subCountedSymbolicValue(this.value,v)
+    new SymbolicPermission(sym)
+  }
+  /** Subtracts a symbolic permission from the current symbolic permission. */
+  def --(v: SymbolicPermission): SymbolicPermission = {
+    val sym: Set[CountedSymbolicValue] = v.value.foldLeft(this.value)(subCountedSymbolicValue)
+    new SymbolicPermission(sym)
+  }
 
   /** Returns the bottom value of the lattice. */
   override def bottom(): SymbolicPermission = ???
@@ -137,12 +178,12 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
   override def glb(other: SymbolicPermission): SymbolicPermission = ???
   /** Computes the least upper bound of two elements. */
   override def lub(other: SymbolicPermission): SymbolicPermission = {
-    val symval = this.value union other.value.map(
+    val sym = this.value union other.value.map(
       (s) => this.value.foldLeft(s)(
         (el, v) => if (s sameSymbolicValue v) el lub v else el
       )
     )
-    new SymbolicPermission(symval)
+    new SymbolicPermission(sym)
   }
   /** Computes the widening of two elements. */
   override def widening(other: SymbolicPermission): SymbolicPermission = this lub other
@@ -183,7 +224,18 @@ case class PermissionState(heapNum: PointsToNumericalState,
         val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
         // add constraint to solver
         PermissionSolver.addConstraint(c)
-
+        // ensure read permissions for all field identifiers in the right-hand side
+        for (id <- right.ids.getNonTop) {
+          id match {
+            case id: FieldIdentifier =>
+              val s = idToSym(id) // retrieve the associated symbolic permission
+              // create constraint to ensure read permissions
+              val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+              // add constraint to solver
+              PermissionSolver.addConstraint(c)
+            case _ => // nothing to be done
+          }
+        }
         // return the current state with updated heapNum
         this.copy(heapNum = heapNum.assignField(obj, field, right))
       case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
@@ -201,6 +253,18 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def assignVariable(x: Expression, right: Expression): PermissionState = {
     logger.debug("*** assignVariable(" + x.toString + "; " + right.toString + ")")
 
+    // ensure read permissions for all field identifiers in the right-hand side
+    for (id <- right.ids.getNonTop) {
+      id match {
+        case id: FieldIdentifier =>
+          val s = idToSym(id) // retrieve the associated symbolic permission
+          // create constraint to ensure read permissions
+          val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+          // add constraint to solver
+          PermissionSolver.addConstraint(c)
+        case _ => // nothing to be done
+      }
+    }
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.assignVariable(x, right))
   }
@@ -215,6 +279,18 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def assume(cond: Expression): PermissionState = {
     logger.debug("*** assume(" + cond.toString + ")")
 
+    // ensure read permissions for all field identifiers in the condition
+    for (id <- cond.ids.getNonTop) {
+      id match {
+        case id: FieldIdentifier =>
+          val s = idToSym(id) // retrieve the associated symbolic permission
+          // create constraint to ensure read permissions
+          val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+          // add constraint to solver
+          PermissionSolver.addConstraint(c)
+        case _ => // nothing to be done
+      }
+    }
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.assume(cond))
   }
@@ -332,7 +408,31 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def exhale(acc: Expression) : PermissionState = {
     logger.debug("*** exhale(" + acc.toString + "): implement me!")
 
-    this
+    acc match {
+      case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
+        acc.id match {
+          case id: FieldIdentifier =>
+            // retrieve the symbolic permission associated with the permission expression
+            val sym: SymbolicPermission = idToSym(id)
+            // create a counted symbolic value to add to the symbolic permission
+            val v: CountedSymbolicValue = new CountedSymbolicValue(acc.p.toString.toDouble)
+            // update key in idToSym map
+            val idToSymmap = idToSym + (id -> (sym - v))
+
+            // create constraint to ensure proper exhale
+            // val c = new Geq(PermissionSolver.convertSymbolicPermission(sym), PermissionSolver.convertCountedSymbolicValue(v))
+            // add constraint to solver
+            // PermissionSolver.addConstraint(c)
+
+            // return the current state with updated idToSym
+            this.copy(idToSym = idToSymmap)
+          case _ => throw new IllegalArgumentException("A permission exhale must occur via a FieldIdentifier")
+        }
+      case _ =>
+        val asserted: PermissionState = this.setExpression(ExpressionSet(acc))
+        assert(asserted.testFalse() lessEqual this.bottom())
+        this.assume(acc)
+    }
   }
 
   /** The current expression.
@@ -391,10 +491,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
             val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
             // retrieve the associated symbolic permission
             val sym = getSymbolicPermission(fld)
-            // create constraint to ensure read permissions
-            val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(sym))
-            // add constraint to solver
-            PermissionSolver.addConstraint(c)
             // add key to idToSym map
             m + (fld -> sym)
           }
@@ -457,20 +553,29 @@ case class PermissionState(heapNum: PointsToNumericalState,
 
   /** Inhales permissions. */
   override def inhale(acc: Expression) : PermissionState = {
-    logger.debug("*** inahle(" + acc.toString + "): implement me!")
+    logger.debug("*** inahle(" + acc.toString + ")")
 
     acc match {
-      case acc: PermissionExpression =>
+      case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
         acc.id match {
           case id: FieldIdentifier =>
             // retrieve the symbolic permission associated with the permission expression
-            val sym = idToSym(id)
+            val sym: SymbolicPermission = idToSym(id)
+            // create a counted symbolic value to add to the symbolic permission
+            val v: CountedSymbolicValue = new CountedSymbolicValue(acc.p.toString.toDouble)
+            // update key in idToSym map
+            val idToSymmap = idToSym + (id -> (sym + v))
 
-            this //TODO: ...
+            // create constraint to ensure proper inhale
+            // val m = new CountedSymbolicValue(PermissionSolver.permissionType.maxLevel)
+            // val c = new Geq(PermissionSolver.convertCountedSymbolicValue(m), PermissionSolver.convertSymbolicPermission(sym + v))
+            // add constraint to solver
+            // PermissionSolver.addConstraint(c)
 
+            // return the current state with updated idToSym
+            this.copy(idToSym = idToSymmap)
           case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
         }
-
       case _ => this.assume(acc)
     }
   }
@@ -732,6 +837,7 @@ object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
 }
 
 class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntryStateBuilder) {
+
   override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
     val result = analyze(method, entryStateBuilder.build(method))
 
@@ -756,14 +862,59 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
     //  (l) => l.last.head
     //))
 
-    //println("Analysis Result:\n" + result)
     result
   }
 }
 
 /** Runs the Access Permission Inference analysis. */
 object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
+
+  /** The analysis to be run. */
   val analysis = new PermissionAnalysis
+
+  /** Extends a sil.Program with permissions inferred by the PermissionAnalysis. */
+  def extendProgram(prog: sil.Program, results: List[AnalysisResult[PermissionState]]): sil.Program = {
+    // map of method names to control flow graphs
+    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
+    // extending program methods
+    val extMethods = prog.methods.map(
+      method => methodNameToCfgState.get(method.name) match {
+        case Some(cfgState) => extendMethod(prog, method, cfgState)
+        case None => method
+      }
+    )
+    // building the extended program
+    prog.copy(methods = extMethods)(prog.pos, prog.info)
+  }
+
+  /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
+  def extendMethod(prog: sil.Program, method: sil.Method, cfgState: AbstractCFGState[PermissionState]): sil.Method = {
+
+    var entryState = cfgState.entryState()
+    var exitState = cfgState.exitState()
+
+    // removing all return variables from the entry state, since we cannot refer to them in the precondition
+    val returnVarIds = method.formalReturns.map(DefaultSilConverter.convert).map(_.variable.id)
+    entryState = returnVarIds.foldLeft(entryState)(_.removeVariable(_))
+
+    // removing all local variables from the exit state, since we cannot refer to them in the postcondition
+    val localVarIds = method.locals.map(DefaultSilConverter.convert).map(_.variable.id)
+    exitState = localVarIds.foldLeft(exitState)(_.removeVariable(_))
+
+    method
+  }
+
+  /** Runs the permission analysis on each method within a program. */
+  override protected def _run(): List[AnalysisResult[PermissionState]] = {
+    prepareContext()
+    val results = methodsToAnalyze.map(analysis.analyze)
+
+    // extending program with inferred permission
+    val extProgram = extendProgram(DefaultSilConverter.prog,results)
+    println("\nExtended Program:\n" + extProgram)
+
+    results
+  }
 
   override def toString = "Access Permission Inference Analysis"
 }
