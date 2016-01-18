@@ -81,9 +81,9 @@ object PermissionSolver {
   /** Gets the current set of constraints. */
   def getConstraints : Set[Constraint] = constraints
   /** Adds a constraint to the current set of constraints. */
-  def addConstraint(c : Constraint) = {
-      constraints = constraints + c
-  }
+  def addConstraint(c : Constraint) = { constraints = constraints + c }
+  /** Empties the current set of constraints. */
+  def emptyConstraints() = { constraints = Set.empty[Constraint] }
 
   /** Converts a SymbolicPermission into an ArithmeticExpression. */
   def convertSymbolicPermission(s: SymbolicPermission) : ArithmeticExpression =

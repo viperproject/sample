@@ -639,23 +639,12 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def lub(other: PermissionState): PermissionState = {
     logger.debug("*** lub(" + other.repr + ")")
 
-//    val exp = this.exprSet lub other.expr // join the exprSets
-//    val refToObjmap = this.refToObj ++ other.refToObj.map {
-//      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
-//    } // merge the refToObjs
-//    val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
-//      case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
-//        (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()) ++ other.objFieldToObj(o).map {
-//          case (s: String, v: Set[HeapIdentifier]) => s ->
-//            (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()) ++ v)
-//        })
-//    } // merge the objFieldToObjmap
-//    val num = this.numDom lub other.numDom // join the numDoms
-//
-//    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
-//    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
+    val idToSymmap = this.idToSym ++ other.idToSym.map {
+      case (k: Identifier,v: SymbolicPermission) => k -> (this.idToSym.getOrElse(k,new SymbolicPermission()) lub v)
+    } // merge the refToObjs
 
-    this.copy(heapNum = heapNum lub other.heapNum)
+    // return the current state with updated heapNum and updated idToSym
+    this.copy(heapNum = heapNum lub other.heapNum, idToSym = idToSymmap)
   }
 
   /** Performs abstract garbage collection.
@@ -854,6 +843,7 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
         println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
     }
     permissions = permissions + (method.name.toString -> solution)
+    PermissionSolver.emptyConstraints()
 
     //val cfg = result.cfgState
 
@@ -924,7 +914,7 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
             if (v >= 1) {
               val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
               precondition = precondition ++ Seq[sil.Exp](perm)
-            } else if (v >= 0) {
+            } else if (v > 0) {
               val (num, den) = PermissionSolver.doubleToRational(v)
               val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
               precondition = precondition ++ Seq[sil.Exp](perm)
