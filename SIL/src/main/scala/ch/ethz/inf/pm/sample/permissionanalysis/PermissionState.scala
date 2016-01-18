@@ -1,22 +1,26 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
+import java.io.{File, PrintWriter}
+
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
-import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, SimpleAnalysis, AnalysisResult, EntryStateBuilder}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{DefaultSilConverter, SilAnalysisRunner}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{sample, DefaultSilConverter, SilAnalysisRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.SourcePosition
 import viper.silver.{ast => sil}
 
 /** Path to a location.
   *
   * A path is a sequence starting with a variable and followed by field identifiers (e.g., x.f).
+  * Note that, for efficiency the path is stored in reverse order.
   *
   * @param p the list of strings forming the path
   * @author Caterina Urban
   */
-class Path(val p : List[String]) {
-  override def toString : String = this.p.mkString(".")
+class Path(val p: List[String], val t: List[Type], val l: List[ProgramPoint]) {
+  override def toString : String = this.p.reverse.mkString(".")
   override def equals(a: Any) : Boolean = a match {
     case x: Path => this.p.corresponds(x.p)(_ equals _)
     case _ => false
@@ -31,12 +35,9 @@ class Path(val p : List[String]) {
   * @param path the path for which we specify the access permission
   * @author Caterina Urban
   */
-sealed abstract class SymbolicValue(var path : Path) {
-  def setPath(p : Path) : SymbolicValue = { path=p; this }
-//    if (path == null) {
-//      path=p; this
-//    } else throw new RuntimeException("The path of the symbolic value is already initialized.")
-  def factory() : SymbolicValue
+sealed abstract class SymbolicValue(var path: Path) {
+  def setPath(p: Path): SymbolicValue = { path=p; this }
+  def factory(): SymbolicValue
 }
 
 /** Symbolic precondition value. */
@@ -46,7 +47,7 @@ case class SymbolicPrecondition(p: Path) extends SymbolicValue(p) {
     case x : SymbolicPrecondition => path.equals(x.path)
     case _ => false
   }
-  override def factory() : SymbolicValue = new SymbolicPrecondition(p)
+  override def factory() : SymbolicValue = SymbolicPrecondition(p)
 }
 
 /** Counted symbolic value.
@@ -59,7 +60,7 @@ case class SymbolicPrecondition(p: Path) extends SymbolicValue(p) {
   * @param s symbolic value taken into account
   * @author Caterina Urban
   */
-case class CountedSymbolicValue(n : Double, s : SymbolicValue) {
+case class CountedSymbolicValue(n: Double, s: SymbolicValue) {
 
   /** Custom constructor(s). */
   def this(n: Double) = this(n, null)
@@ -377,8 +378,8 @@ case class PermissionState(heapNum: PointsToNumericalState,
 
       val obj = HeapIdentifier(typ,x.pp) // create new Obj
       // create new SymbolicPermission (with SymbolicPrecondition as CountedSymbolicValue)
-      val pre = new SymbolicPrecondition(new Path(List(x.getName)))
-      val sym = new SymbolicPermission(new CountedSymbolicValue(1,pre))
+      val pre = SymbolicPrecondition(new Path(List(x.getName), List(typ), List(x.pp)))
+      val sym = new SymbolicPermission(CountedSymbolicValue(1,pre))
       // add key to idToSym map
       val idToSymmap = idToSym + (obj -> sym)
       // return the current state with updated heapNum and updated idToSym
@@ -515,9 +516,10 @@ case class PermissionState(heapNum: PointsToNumericalState,
       val obj = id.obj // retrieve the heap identifier
       val perm = idToSym(obj) // retrieve the associated symbolic permission
       // update the path of the counted symbolic values
-      val csv = perm.value.map(
-        (s) => CountedSymbolicValue(s.n, s.s.factory().setPath(new Path(s.s.path.p ::: List[String](id.field))))
-      )
+      val csv = perm.value.map(s => {
+        val v = s.s.factory().setPath(new Path(id.field :: s.s.path.p, id.typ :: s.s.path.t, id.pp :: s.s.path.l))
+        CountedSymbolicValue(s.n, v)
+      })
       // create and return new SymbolicPermission
       new SymbolicPermission(csv)
   }
@@ -838,6 +840,8 @@ object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
 
 class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntryStateBuilder) {
 
+  var permissions = Map[String, Map[SymbolicValue,Double]]()
+
   override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
     val result = analyze(method, entryStateBuilder.build(method))
 
@@ -849,6 +853,7 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
       else if (v > 0)
         println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
     }
+    permissions = permissions + (method.name.toString -> solution)
 
     //val cfg = result.cfgState
 
@@ -890,30 +895,60 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
   /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
   def extendMethod(prog: sil.Program, method: sil.Method, cfgState: AbstractCFGState[PermissionState]): sil.Method = {
 
-    var entryState = cfgState.entryState()
-    var exitState = cfgState.exitState()
+    def typToSilver(typ: Type): sil.Type = typ match {
+      case sample.IntType => sil.Int
+      case sample.BoolType => sil.Bool
+      case sample.RefType(_) => sil.Ref
+    }
 
-    // removing all return variables from the entry state, since we cannot refer to them in the precondition
-    val returnVarIds = method.formalReturns.map(DefaultSilConverter.convert).map(_.variable.id)
-    entryState = returnVarIds.foldLeft(entryState)(_.removeVariable(_))
+    def ppToSilver(pp: ProgramPoint): sil.Position = pp match {
+      case sample.DummyProgramPoint => sil.NoPosition
+      case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
+    }
 
-    // removing all local variables from the exit state, since we cannot refer to them in the postcondition
-    val localVarIds = method.locals.map(DefaultSilConverter.convert).map(_.variable.id)
-    exitState = localVarIds.foldLeft(exitState)(_.removeVariable(_))
+    // update the method precondition
+    var precondition: Seq[sil.Exp] = method.pres
+    for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())) {
+      s match {
+        case s: SymbolicPrecondition =>
+          // extracting all information from the path of the symbolic value
+          val ids: List[(String, Type, ProgramPoint)] = (s.path.p, s.path.t, s.path.l).zipped.toList.reverse
+          if (ids.length > 1) {
+            // creating the corresponding field access
+            val fst = sil.LocalVar(ids.head._1)(typToSilver(ids.head._2), ppToSilver(ids.head._3))
+            val snd = sil.FieldAccess(fst, sil.Field(ids.tail.head._1, typToSilver(ids.tail.head._2))())()
+            val acc: sil.FieldAccess = ids.tail.tail.foldLeft[sil.FieldAccess](snd)(
+              (exp, fld) => sil.FieldAccess(exp, sil.Field(fld._1, typToSilver(fld._2))())()
+            )
+            // adding access permission to the method precondition
+            if (v >= 1) {
+              val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
+              precondition = precondition ++ Seq[sil.Exp](perm)
+            } else if (v >= 0) {
+              val (num, den) = PermissionSolver.doubleToRational(v)
+              val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
+              precondition = precondition ++ Seq[sil.Exp](perm)
+            }
+          }
+        case _ =>
+      }
+    }
 
-    method
+    // return the method with updated precondition
+    method.copy(_pres = precondition)(method.pos, method.info)
   }
 
-  /** Runs the permission analysis on each method within a program. */
-  override protected def _run(): List[AnalysisResult[PermissionState]] = {
-    prepareContext()
-    val results = methodsToAnalyze.map(analysis.analyze)
+  override def main(args: Array[String]) {
+    val results = run(new File(args(0)).toPath)
 
     // extending program with inferred permission
-    val extProgram = extendProgram(DefaultSilConverter.prog,results)
-    println("\nExtended Program:\n" + extProgram)
+    val out = extendProgram(DefaultSilConverter.prog,results)
+    println("\nExtended Program:\n" + out)
 
-    results
+    val outName = args(0).split('.')(0) + "X.sil"
+    val pw = new PrintWriter(new File(outName))
+    pw.write(out.toString)
+    pw.close
   }
 
   override def toString = "Access Permission Inference Analysis"

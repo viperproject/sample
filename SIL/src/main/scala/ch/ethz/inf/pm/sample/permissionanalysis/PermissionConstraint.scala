@@ -2,6 +2,8 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import breeze.linalg.SparseVector
 import breeze.optimize.linear._
+import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.sil.IntType
 
 /** Arithmetic expressions.
   *
@@ -218,8 +220,8 @@ object PermissionSolver {
     } else result
   }
 
-  /** Converts a Double to a rational number string representation. */
-  def doubleToRational(d: Double) : String = {
+  /** Converts a Double to a rational number representation. */
+  def doubleToRational(d: Double): (Int, Int) = {
 
     def gcd(a: Int,b: Int): Int = if (b == 0) a else gcd(b, a % b)
 
@@ -240,44 +242,7 @@ object PermissionSolver {
       g = gcd(num,den)
     }
 
-    if (den != 1)
-      num.toString + "/" + den.toString
-    else
-      num.toString
-  }
-
-  // Temporary main method (used to experiment).
-  def main(args:Array[String]) = {
-
-    val lp = new LinearProgram()
-
-    val x = lp.Real("x")
-    val y = lp.Real("y")
-
-    val obj : lp.Expression = x + y // objective function
-    var prob = obj.subjectTo() // problem
-    prob = prob.subjectTo(x + y >= 2 : lp.Constraint) // adding constraint
-    prob = prob.subjectTo(x >= 0) // adding constraint
-    prob = prob.subjectTo(x <= 1) // adding constraint
-    prob = prob.subjectTo(y >= 0) // adding constraint
-    prob = prob.subjectTo(y <= 1) // adding constraint
-
-    val res = lp.minimize(prob).result // solving
-
-    println("Result:")
-    println(x.name + ": " + res.valueAt(0))
-    println(y.name + ": " + res.valueAt(1))
-
-    println("\nDone.")
-
-    val z = new SymbolicPrecondition(new Path(List("x")))
-    val w = new SymbolicPrecondition(new Path(List("y")))
-    val cz = Grt(Mul(1,z),Value(0))
-    val cw = Grt(Mul(1,w),Value(0))
-    val c = Grt(Add(Mul(1,z),Mul(1,w)),Value(0))
-    val s = Set[Constraint](c,cz,cw)
-    val result = solve(s)
-    println(result.mapValues((d) => doubleToRational(d)))
+    (num, den)
   }
 
 }
