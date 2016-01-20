@@ -175,9 +175,9 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
               // add xref -> right to refToObj map
               val refToObjmap = this.refToObj + (x -> Set[HeapIdentifier](right))
               // add key to objFieldToObj map
-              val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
-              // return the current state with updated refToObj and updated objFieldToObj
-              this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
+              // val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
 
             case right: VariableIdentifier => // e.g., `x := y`
               // add xref -> refToObj[rightref] to refToObj map
@@ -333,16 +333,16 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       // add key to objFieldToObj map
       var objFieldToObjmap = objFieldToObj - obj + (obj -> objFieldToObj(obj))
       // update objFieldToObj map adding the summary node version of Obj where Obj was present
-      objFieldToObjmap = objFieldToObj.mapValues(
+      objFieldToObjmap = objFieldToObjmap.mapValues(
        m => m.mapValues(s => if (s.contains(obj)) s - obj + obj else s)
       )
       // return the current state with updated exprSet, update refToObj and updated objFieldToObj map
-      this.copy(exprSet = ExpressionSet(obj), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
+      this.copy(exprSet = ExpressionSet(obj), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
     } else { // the Obj was never created before
       // add key to objFieldToObj map
       val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]())
       // return the current state with updated exprSet and updated objFieldToObj map
-      this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
+      this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap)
     }
   }
 
@@ -571,15 +571,15 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     logger.debug("*** lub(" + other.repr + ")")
 
     val exp = this.exprSet lub other.expr // join the exprSets
-    val refToObjmap = this.refToObj ++ other.refToObj.map {
-      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
+    val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
+      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
     } // merge the refToObjs
-    val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
+    val objFieldToObjmap = this.objFieldToObj.filterKeys(k => !other.objFieldToObj.contains(k)) ++ other.objFieldToObj.map {
       case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
-        (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()) ++ other.objFieldToObj(o).map {
+        (other.objFieldToObj(o).map {
           case (s: String, v: Set[HeapIdentifier]) => s ->
-            (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()) ++ v)
-        })
+            (v ++ this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()))
+        } ++ (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]())))
     } // merge the objFieldToObjmap
     val num = this.numDom lub other.numDom // join the numDoms
 
@@ -748,15 +748,15 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     logger.debug("*** widening(" + other.repr + ")")
 
     val exp = this.exprSet widening other.expr // widen the exprSets
-    val refToObjmap = this.refToObj ++ other.refToObj.map {
-        case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (this.refToObj.getOrElse(k,Set[HeapIdentifier]()) ++ v)
-      } // merge the refToObjs
-    val objFieldToObjmap = this.objFieldToObj ++ other.objFieldToObj.map {
+    val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
+      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
+    } // merge the refToObjs
+    val objFieldToObjmap = this.objFieldToObj.filterKeys(k => !other.objFieldToObj.contains(k)) ++ other.objFieldToObj.map {
         case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
-          (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()) ++ other.objFieldToObj(o).map {
+          (other.objFieldToObj(o).map {
             case (s: String, v: Set[HeapIdentifier]) => s ->
-              (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()) ++ v)
-          })
+              (v ++ this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()))
+          } ++ (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]())))
       } // merge the objFieldToObjmap
     val num = this.numDom widening other.numDom // widen the numDoms
 
