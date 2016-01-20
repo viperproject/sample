@@ -163,8 +163,8 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   def explainError(expr: Expression): Set[(String, ProgramPoint)]
 
   override def toString = {
-    if (isBottom) "_|_"
-    else if (isTop) "T"
+    if (isBottom) "⊥"
+    else if (isTop) "⊤"
     else {
       ids match {
         case IdentifierSet.Inner(v) => v map { x: Identifier => x.toString + " -> " + getStringOfId(x) } mkString "\n"

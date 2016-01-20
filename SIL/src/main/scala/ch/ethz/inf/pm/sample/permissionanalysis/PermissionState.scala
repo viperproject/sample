@@ -376,7 +376,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
       // heap.refToObj + (x -> o)
       // idToSym + (o -> acc(x))
 
-      val obj = HeapIdentifier(typ,x.pp) // create new Obj
+      val obj = HeapIdentifier(typ, x.pp) // create new Obj
       // create new SymbolicPermission (with SymbolicPrecondition as CountedSymbolicValue)
       val pre = SymbolicPrecondition(new Path(List(x.getName), List(typ), List(x.pp)))
       val sym = new SymbolicPermission(CountedSymbolicValue(1,pre))
@@ -916,6 +916,7 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
               precondition = precondition ++ Seq[sil.Exp](perm)
             } else if (v > 0) {
               val (num, den) = PermissionSolver.doubleToRational(v)
+              //val perm = sil.FieldAccessPredicate(acc, sil.WildcardPerm()())()
               val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
               precondition = precondition ++ Seq[sil.Exp](perm)
             }
