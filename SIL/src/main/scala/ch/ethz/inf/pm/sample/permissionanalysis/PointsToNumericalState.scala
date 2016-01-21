@@ -102,19 +102,22 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
               val s = objFieldToObj(right.obj)(right.field) // retrieve the heap `Obj` objects
               val o = obj.obj // retrieve `Obj` whose field is assigned
               val f = obj.field // retrieve assigned field
-              // weak update
-              val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
+              val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> s)))
+              } else { // weak update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
+              }
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
             case right: HeapIdentifier => // e.g., `x.f := new()`
               val o = obj.obj // retrieve `Obj` whose field is assigned
               val f = obj.field // retrieve assigned field
-              val objFieldToObjmap = objFieldToObj +
-                // add key to objFieldToObjmap
-                (right -> Map[String,Set[HeapIdentifier]]()) +
-                // weak update
-                (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
+              val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> Set[HeapIdentifier](right))))
+              } else { // weak update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
+              }
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
@@ -123,15 +126,22 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
               val o = obj.obj // retrieve `Obj` whose field is assigned
               val f = obj.field // retrieve assigned field
               // weak update
-              val objFieldToObjmap = objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
+              val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> s)))
+              } else { // weak update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ s))))
+              }
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
             case _ => throw new NotImplementedError("A field assignment implementation is missing.")
           }
         } else {  // the assigned field is not a `Ref`
-          // weak update
-          val num = numDom lub numDom.assign(obj,right)
+          val num = if (obj.obj.representsSingleVariable) { // strong update
+            numDom.assign(obj,right)
+          } else { // weak update
+            numDom lub numDom.assign(obj,right)
+          }
           // return the current state with updated numDom
           this.copy(numDom = num)
         }
@@ -174,8 +184,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
             case right: HeapIdentifier => // e.g., `x = new()`
               // add xref -> right to refToObj map
               val refToObjmap = this.refToObj + (x -> Set[HeapIdentifier](right))
-              // add key to objFieldToObj map
-              // val objFieldToObjmap = this.objFieldToObj + (right -> Map[String,Set[HeapIdentifier]]())
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
 
@@ -271,15 +279,49 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
         }
       }
 
-      case ReferenceComparisonExpression(left, right, op, typ) => // TODO: actually implement this!
-        if (op == ArithmeticOperator.==) {
-          println(left.getClass.getSimpleName, left.typ)
-          println(right.getClass.getSimpleName, right.typ)
-          this
-        } else { // cond.op == ArithmeticOperator.!=
-          println(left.getClass.getSimpleName, left.typ)
-          println(right.getClass.getSimpleName, right.typ)
-          this
+      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
+        (left, right) match {
+          case (left: VariableIdentifier, right: VariableIdentifier) =>
+            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
+            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+            val intersection = l intersect r
+            if (intersection.isEmpty) { // there is no common Obj
+              this.bottom() // return the bottom state
+            } else { // there is at least a common Obj
+              val refToObjmap = refToObj + (left -> intersection, right -> intersection)
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            }
+          case (left: VariableIdentifier, Constant("null",_,_)) =>
+            val refToObjmap = refToObj - left // remove key from refToObj map
+            // return the current state with updated refToObj
+            this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+          case (Constant("null",_,_), right: VariableIdentifier) =>
+            val refToObjmap = refToObj - right // remove key from refToObj map
+            // return the current state with updated refToObj
+            this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+        }
+
+      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
+        (left, right) match {
+          case (left: VariableIdentifier, right: VariableIdentifier) =>
+            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
+            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+            val lr = l diff r
+            val rl = r diff l
+            if (lr.isEmpty && rl.isEmpty) { // there are none or only common Obj
+              this.bottom() // return the bottom state
+            } else {
+              val refToObjmap = refToObj + (left -> lr, right -> rl)
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            }
+          case (left: VariableIdentifier, Constant("null",_,_)) =>
+            val l = refToObj.getOrElse(left,Set[HeapIdentifier]())
+            if (l.isEmpty) this.bottom() else this
+          case (Constant("null",_,_), right: VariableIdentifier) =>
+            val r = refToObj.getOrElse(right,Set[HeapIdentifier]())
+            if (r.isEmpty) this.bottom() else this
         }
 
       case _ => throw new NotImplementedError("An assume implementation is missing.")
@@ -304,7 +346,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
   override def bottom(): PointsToNumericalState = {
-    logger.debug("*** bottom()")
+    // logger.debug("*** bottom()")
 
     // return a new state with bottom exprSet, empty refToObj, empty objFieldToObj, bottom numDom
     val expr = exprSet.bottom()
@@ -382,10 +424,26 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
     if (typ.isObject) { // the variable to be created is a `Ref`
       val obj = HeapIdentifier(typ, x.pp) // create new Obj
-      val refToObjmap = refToObj + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
-      val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
-      // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
-      this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+      if (objFieldToObj.contains(obj)) { // the Obj was created already
+        obj.setSummary(true)  // turn the Obj into a summary node
+        // update refToObj map adding the summary node version of Obj where Obj was present
+        var refToObjmap = refToObj.mapValues(s => if (s.contains(obj)) s - obj + obj else s)
+        refToObjmap = refToObjmap + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
+        // add key to objFieldToObj map
+        var objFieldToObjmap = objFieldToObj - obj + (obj -> objFieldToObj(obj))
+        // update objFieldToObj map adding the summary node version of Obj where Obj was present
+        objFieldToObjmap = objFieldToObjmap.mapValues(
+          m => m.mapValues(s => if (s.contains(obj)) s - obj + obj else s)
+        )
+        // return the current state with updated exprSet, update refToObj and updated objFieldToObj map
+        this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+      } else { // the Obj was never created before
+        val refToObjmap = refToObj + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
+        // add key to objFieldToObj map
+        val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]())
+        // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
+        this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+      }
     } else { // the variable to be created is not a `Ref`
       // return the current state with updated numDom
       this.copy(numDom = numDom.createVariable(x,typ))
@@ -401,7 +459,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     *         state that contains an expression representing this constant
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): PointsToNumericalState = {
-    logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
+    // logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
 
     val const = new Constant(value, typ, pp)
     // return the current state with updated exprSet
@@ -433,7 +491,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * Invoked after each statement to retrieve its result.
     */
   override def expr: ExpressionSet = {
-    logger.debug("*** expr: " + this.exprSet.toString)
+    // logger.debug("*** expr: " + this.exprSet.toString)
     
     this.exprSet // return exprSet
   }
@@ -510,7 +568,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments
-    *
     * @todo implement me!
     */
   override def glb(other: PointsToNumericalState): PointsToNumericalState = {
@@ -524,7 +581,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return `true` if and only if the state is equivalent to bottom
     */
   override def isBottom: Boolean = {
-    logger.debug("*** isBottom: " + this.repr)
+    // logger.debug("*** isBottom: " + this.repr)
 
     numDom.isBottom
   }
@@ -534,7 +591,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return `true` if and only if the state is equivalent to top
     */
   override def isTop: Boolean = {
-    logger.debug("*** isTop")
+    // logger.debug("*** isTop")
     
     numDom.isTop
   }
@@ -545,7 +602,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return `true` if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: PointsToNumericalState): Boolean = {
-    logger.debug("*** lessEqual(" + other.repr + ")")
+    // logger.debug("*** lessEqual(" + other.repr + ")")
 
     val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
@@ -568,7 +625,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: PointsToNumericalState): PointsToNumericalState = {
-    logger.debug("*** lub(" + other.repr + ")")
+    // logger.debug("*** lub(" + other.repr + ")")
 
     val exp = this.exprSet lub other.expr // join the exprSets
     val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
@@ -589,7 +646,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): PointsToNumericalState = {
-    logger.debug("*** pruneUnreachableHeap()")
+    // logger.debug("*** pruneUnreachableHeap()")
 
     // retrieve all Obj reachable from Ref variables
     val objFromRef = refToObj.foldLeft(Set[HeapIdentifier]())((r, s) => r ++ s._2)
@@ -623,7 +680,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return The abstract state obtained after removing the current expression
     */
   override def removeExpression(): PointsToNumericalState = {
-    logger.debug("*** removeExpression()")
+    // logger.debug("*** removeExpression()")
 
     // return the current state with a new exprSet
     this.copy(exprSet = ExpressionSet())
@@ -635,7 +692,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     *
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable
-    *
     * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): PointsToNumericalState = {
@@ -661,7 +717,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @param x The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
-    *
     * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): PointsToNumericalState = {
@@ -678,7 +733,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     * @return The abstract state after changing the current expression with the given one
     */
   override def setExpression(expr: ExpressionSet): PointsToNumericalState = {
-    logger.debug("*** setExpression(" + expr.toString + ")")
+    // logger.debug("*** setExpression(" + expr.toString + ")")
     
     this.copy(exprSet = expr) // return the current state with updated exprSet
   }
@@ -689,7 +744,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable
-    *
     * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): PointsToNumericalState = {
@@ -702,7 +756,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown
-    *
     * @todo implement me!
     */
   override def throws(t: ExpressionSet): PointsToNumericalState = {
@@ -795,19 +848,22 @@ object PointsToNumericalAnalysisRunner extends SilAnalysisRunner[PointsToNumeric
         if (stmts.isEmpty) {
           val states: List[PointsToNumericalState] = g.blockStates(i).last // post-states of each statement
           for (s: PointsToNumericalState <- states) {
-            println("\n* \n")
+            println("\n******************* \n")
             println(s)
           }
         } else {
           val states: List[PointsToNumericalState] = g.blockStates(i).last.drop(1) // post-states of each statement
           // print statements and corresponding post-states
           for ((c: Statement, s: PointsToNumericalState) <- stmts zip states) {
-            println("\n* " + c + "\n")
+            println("\n******************* " + c + "\n")
             println(s)
           }
         }
         i = i + 1
       }
+
+      println("\n******************* \n")
+      println(g.exitState()) // printing the exit state of the control-flow graph
     }
   }
 
