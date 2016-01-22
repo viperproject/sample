@@ -38,16 +38,25 @@ class Path(val p: List[String], val t: List[Type], val l: List[ProgramPoint]) {
 sealed abstract class SymbolicValue(var path: Path) {
   def setPath(p: Path): SymbolicValue = { path=p; this }
   def factory(): SymbolicValue
+  override def toString : String = "acc(" + path.toString() + ")"
 }
 
 /** Symbolic precondition value. */
 case class SymbolicPrecondition(p: Path) extends SymbolicValue(p) {
-  override def toString : String = "acc(" + path.toString() + ")"
   override def equals(a : Any) : Boolean = a match {
     case x : SymbolicPrecondition => path.equals(x.path)
     case _ => false
   }
   override def factory() : SymbolicValue = SymbolicPrecondition(p)
+}
+
+/** Symbolic access permission value. */
+case class SymbolicAccess(p: Path) extends SymbolicValue(p) {
+  override def equals(a : Any) : Boolean = a match {
+    case x : SymbolicAccess => path.equals(x.path)
+    case _ => false
+  }
+  override def factory(): SymbolicValue = SymbolicAccess(p)
 }
 
 /** Counted symbolic value.
@@ -254,6 +263,16 @@ case class PermissionState(heapNum: PointsToNumericalState,
   override def assignVariable(x: Expression, right: Expression): PermissionState = {
     logger.debug("*** assignVariable(" + x.toString + "; " + right.toString + ")")
 
+    var idToSymmap = idToSym
+    (x, right) match {
+      case (x: VariableIdentifier, right: HeapIdentifier) =>
+        // create new SymbolicPermission (with SymbolicAccessPermission as CountedSymbolicValue)
+        val acc = SymbolicAccess(new Path(List(x.getName), List(x.typ), List(x.pp)))
+        val sym = new SymbolicPermission(CountedSymbolicValue(1,acc))
+        // add key to idToSym map
+        idToSymmap = idToSymmap + (right -> sym)
+      case _ => // nothing to be done
+    }
     // ensure read permissions for all field identifiers in the right-hand side
     for (id <- right.ids.getNonTop) {
       id match {
@@ -263,11 +282,11 @@ case class PermissionState(heapNum: PointsToNumericalState,
           val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
           // add constraint to solver
           PermissionSolver.addConstraint(c)
-        case _ => // nothing to be done
+        case _ => //  nothing to be done
       }
     }
-    // return the current state with updated heapNum
-    this.copy(heapNum = heapNum.assignVariable(x, right))
+    // return the current state with updated heapNum and possibly updated idToSym
+    this.copy(heapNum = heapNum.assignVariable(x, right), idToSym = idToSymmap)
   }
 
   /** Assumes that a boolean expression holds.
@@ -449,7 +468,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object
-    *
     * @todo implement me!
     */
   override def factory(): PermissionState = {
@@ -544,7 +562,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments
-    *
     * @todo implement me!
     */
   override def glb(other: PermissionState): PermissionState = {
@@ -561,21 +578,23 @@ case class PermissionState(heapNum: PointsToNumericalState,
       case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
         acc.id match {
           case id: FieldIdentifier =>
-            // retrieve the symbolic permission associated with the permission expression
-            val sym: SymbolicPermission = idToSym(id)
-            // create a counted symbolic value to add to the symbolic permission
-            val v: CountedSymbolicValue = new CountedSymbolicValue(acc.p.toString.toDouble)
-            // update key in idToSym map
-            val idToSymmap = idToSym + (id -> (sym + v))
+            if (id.obj.representsSingleVariable) {
+              // retrieve the symbolic permission associated with the permission expression
+              val sym: SymbolicPermission = idToSym(id)
+              // create a counted symbolic value to add to the symbolic permission
+              val v: CountedSymbolicValue = new CountedSymbolicValue(acc.p.toString.toDouble)
+              // update key in idToSym map
+              val idToSymmap = idToSym + (id -> (sym + v))
 
-            // create constraint to ensure proper inhale
-            // val m = new CountedSymbolicValue(PermissionSolver.permissionType.maxLevel)
-            // val c = new Geq(PermissionSolver.convertCountedSymbolicValue(m), PermissionSolver.convertSymbolicPermission(sym + v))
-            // add constraint to solver
-            // PermissionSolver.addConstraint(c)
+              // create constraint to ensure proper inhale
+              // val m = new CountedSymbolicValue(PermissionSolver.permissionType.maxLevel)
+              // val c = new Geq(PermissionSolver.convertCountedSymbolicValue(m), PermissionSolver.convertSymbolicPermission(sym + v))
+              // add constraint to solver
+              // PermissionSolver.addConstraint(c)
 
-            // return the current state with updated idToSym
-            this.copy(idToSym = idToSymmap)
+              // return the current state with updated idToSym
+              this.copy(idToSym = idToSymmap)
+            } else { this } // no inhale on summary nodes
           case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
         }
       case _ => this.assume(acc)
@@ -585,7 +604,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
   /** Checks whether the given domain element is equivalent to bottom.
     *
     * @return `true` if and only if the state is equivalent to bottom
-    *
     * @todo implement me!
     */
   override def isBottom: Boolean = {
@@ -597,7 +615,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
   /** Checks whether the given domain element is equivalent to top.
     *
     * @return `true` if and only if the state is equivalent to top
-    *
     * @todo implement me!
     */
   override def isTop: Boolean = {
@@ -684,7 +701,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable
-    *
     * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): PermissionState = {
@@ -712,7 +728,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param x The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
-    *
     * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): PermissionState = {
@@ -741,7 +756,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable
-    *
     * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): PermissionState = {
@@ -754,7 +768,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown
-    *
     * @todo implement me!
     */
   override def throws(t: ExpressionSet): PermissionState = {
@@ -766,7 +779,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
   /** Returns the top value of the lattice.
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
-    *
     * @todo implement me!
     */
   override def top(): PermissionState = {
@@ -789,7 +801,6 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @param other The new value
     * @return The widening of `this` and `other`
-    *
     * @todo implement me!
     */
   override def widening(other: PermissionState): PermissionState = {
