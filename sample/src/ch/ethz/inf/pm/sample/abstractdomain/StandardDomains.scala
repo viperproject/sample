@@ -139,7 +139,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   override def equals(a: Any): Boolean = a match {
-    case right: T =>
+    case right: T @unchecked =>
       if (isBottom && right.isBottom) return true
       if (isBottom || right.isBottom) return false
       if (isTop && right.isTop) return true

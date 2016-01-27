@@ -122,28 +122,28 @@ object Lattice extends LazyLogging {
     def lub(other: S): S = other match {
       case _ if other.isBottom => this
       case _ if other.isTop    => other
-      case a:I                 => lubInner(a)
+      case a:I @unchecked      => lubInner(a)
     }
     def lubInner(other:I):S
 
     def glb(other: S): S = other match {
       case _ if other.isBottom => other
       case _ if other.isTop    => this
-      case a:I                 => glbInner(a)
+      case a:I @unchecked      => glbInner(a)
     }
     def glbInner(other:I):S
 
     def widening(other: S): S = other match {
       case _ if other.isBottom => this
       case _ if other.isTop    => other
-      case a:I                 => wideningInner(a)
+      case a:I @unchecked      => wideningInner(a)
     }
     def wideningInner(other:I):S
 
     def lessEqual(other: S): Boolean = other match {
       case _ if other.isBottom => false
       case _ if other.isTop    => true
-      case a:I                 => lessEqualInner(a)
+      case a:I @unchecked      => lessEqualInner(a)
     }
     def lessEqualInner(other:I): Boolean
 

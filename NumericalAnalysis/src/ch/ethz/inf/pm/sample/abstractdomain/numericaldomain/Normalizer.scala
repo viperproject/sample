@@ -138,7 +138,7 @@ object Normalizer {
 
     case x: Identifier => Some(Monomial((1.0, x) :: Nil, 0.0))
 
-    case x: HeapIdSetDomain[I] =>
+    case x: HeapIdSetDomain[I @unchecked] =>
       if (x.value.size != 1) None
       else Some(Monomial((1.0, x.value.iterator.next()) :: Nil, 0.0))
 

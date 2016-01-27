@@ -63,7 +63,10 @@ object SampleBuild extends Build {
       p => "-Djava.library.path=" + p
     },
     scalacOptions in Compile ++= Seq(
-      "-optimise"
+      "-optimise",
+      "-unchecked",
+      "-deprecation",
+      "-feature"
       //"-Xelide-below", "3000",
       //"-Xdisable-assertions"
     ),

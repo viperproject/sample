@@ -146,7 +146,7 @@ case class StaticVariablePackingDomain
 
   override def glb(other: StaticVariablePackingDomain[Cheap, Relational]) =
     factory(cheap.glb(other.cheap),MapUtil.mergeMapsOptional(map,other.map) {
-      case (None, _) => None
+      case (None, None) => None
       case (Some(x), None) => Some(x)
       case (None, Some(x)) => Some(x)
       case (Some(x), Some(y)) => Some(x glb y)

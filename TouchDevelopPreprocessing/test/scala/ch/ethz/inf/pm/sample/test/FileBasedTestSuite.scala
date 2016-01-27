@@ -1,16 +1,28 @@
 package ch.ethz.inf.pm.sample.test
 
 import java.net.{URI, URL}
+import java.nio.file._
 import java.util.regex.Pattern
 
-import org.scalatest._
-import java.nio.file._
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchRun}
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, SpaceSavingProgramPoint}
+import org.scalatest._
 import scala.collection.JavaConversions._
 
 import scala.io.Source
+
+class FileBasedTestSuite extends TouchGuruTestSuite {
+
+  def testDirectories: Seq[String] = Seq("automated_tests")
+
+  def runOnFile(file: String): Seq[SampleMessage] = {
+    val res = TouchRun.runSingle(file, Some(touchGuruOptions))
+    assert(!TouchRun.threadFailed)
+    res
+  }
+
+}
 
 abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
 
@@ -51,78 +63,80 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
 }
 
 /**
- * A test suite for end-to-end toolchain testing that operates on source files
- * in resource directories.
- *
- * This abstract class is agnostic w.r.t. to the kind of testing performed
- * on the test input. It just locates the test files and builds the test input.
- * Subclasses need to implement the actual testing logic in `registerTest`.
- *
- * @author Stefan Heule
- */
+  * A test suite for end-to-end toolchain testing that operates on source files
+  * in resource directories.
+  *
+  * This abstract class is agnostic w.r.t. to the kind of testing performed
+  * on the test input. It just locates the test files and builds the test input.
+  * Subclasses need to implement the actual testing logic in `registerTest`.
+  *
+  * @author Stefan Heule
+  */
 abstract class ResourceBasedTestSuite extends FunSuite {
   // Subclasses can extend the test input with further information
   // such as annotations
   type InputType <: TestInput
 
   /**
-   * The test directories where tests can be found.
-   * The directories must be relative because they are resolved via
-   * [[java.lang.ClassLoader]].
-   * @see http://stackoverflow.com/a/7098501/491216.
-   * @return A sequence of test directories.
-   */
+    * The test directories where tests can be found.
+    * The directories must be relative because they are resolved via
+    * [[java.lang.ClassLoader]].
+    *
+    * @see http://stackoverflow.com/a/7098501/491216.
+    * @return A sequence of test directories.
+    */
   def testDirectories: Seq[String]
 
   /**
-   * Registers a test based on the test input.
-   * To be implemented by subclasses.
-   * @param input the test input as built in `buildTestInput`
-   */
+    * Registers a test based on the test input.
+    * To be implemented by subclasses.
+    *
+    * @param input the test input as built in `buildTestInput`
+    */
   def registerTest(input: InputType)
 
   /**
-   * Builds the test input from the given source file.
-   *
-   * @param file the canonical test source file. The test input implementation
-   *             will decide what other files are part of the same test, if any
-   * @param prefix part of the test file path. Together with the test file name
-   *               it should uniquely identify the test
-   * @return the test input
-   */
+    * Builds the test input from the given source file.
+    *
+    * @param file the canonical test source file. The test input implementation
+    *             will decide what other files are part of the same test, if any
+    * @param prefix part of the test file path. Together with the test file name
+    *               it should uniquely identify the test
+    * @return the test input
+    */
   def buildTestInput(file: Path, prefix: String): InputType
 
   /**
-   * Recursively registers all files found in the given directory as a test.
-   *
-   * The prefix is used for naming and tagging the ScalaTest test case that is eventually
-   * generated for each test file found. Subdirectories of `dir` will be appended to the
-   * initial prefix.
-   *
-   * It is thus reasonable to make the initial prefix the (relative) root test directory.
-   * For example, given the following directories and files
-   *   .../issues/test1.scala
-   *              test2.scala
-   *   .../all/basic/test1.scala
-   *                 test2.scala
-   *                 test3.scala
-   * it would be reasonable to make the calls
-   *   registerTestDirectory(path_of(".../issues"), "issues")
-   *   registerTestDirectory(path_of(".../all/basic"), "all/basic")
-   * or
-   *   registerTestDirectory(path_of(".../issues"), "issues")
-   *   registerTestDirectory(path_of(".../all"), "all")
-   * to - in both cases - get ScalaTest test cases that can be identified by
-   *   issues/test1.scala
-   *   issues/test2.scala
-   *   all/basic/test1.scala
-   *   all/basic/test2.scala
-   *   all/basic/test3.scala
-   *
-   * @param dir The directory to recursively search for files. Every file in the directory is
-   *            assumed to be a test file.
-   * @param prefix The initial prefix used for naming and tagging the resulting ScalaTest tests.
-   */
+    * Recursively registers all files found in the given directory as a test.
+    *
+    * The prefix is used for naming and tagging the ScalaTest test case that is eventually
+    * generated for each test file found. Subdirectories of `dir` will be appended to the
+    * initial prefix.
+    *
+    * It is thus reasonable to make the initial prefix the (relative) root test directory.
+    * For example, given the following directories and files
+    *   .../issues/test1.scala
+    *              test2.scala
+    *   .../all/basic/test1.scala
+    *                 test2.scala
+    *                 test3.scala
+    * it would be reasonable to make the calls
+    *   registerTestDirectory(path_of(".../issues"), "issues")
+    *   registerTestDirectory(path_of(".../all/basic"), "all/basic")
+    * or
+    *   registerTestDirectory(path_of(".../issues"), "issues")
+    *   registerTestDirectory(path_of(".../all"), "all")
+    * to - in both cases - get ScalaTest test cases that can be identified by
+    *   issues/test1.scala
+    *   issues/test2.scala
+    *   all/basic/test1.scala
+    *   all/basic/test2.scala
+    *   all/basic/test3.scala
+    *
+    * @param dir The directory to recursively search for files. Every file in the directory is
+    *            assumed to be a test file.
+    * @param prefix The initial prefix used for naming and tagging the resulting ScalaTest tests.
+    */
   private def registerTestDirectory(dir: Path, prefix: String) {
     assert(dir != null, "Directory must not be null")
     assert(Files.isDirectory(dir), "Path must represent a directory")
@@ -175,27 +189,27 @@ abstract class ResourceBasedTestSuite extends FunSuite {
   }
 
   /**
-   * Returns a class loader that can be used to access resources
-   * such as test files via [[java.lang.ClassLoader]].
-   *
-   * @return A class loader for accessing resources.
-   */
+    * Returns a class loader that can be used to access resources
+    * such as test files via [[java.lang.ClassLoader]].
+    *
+    * @return A class loader for accessing resources.
+    */
   private def classLoader: ClassLoader = getClass.getClassLoader
 
   private var openFileSystems: Seq[FileSystem] = Seq()
   addShutdownHookForOpenFileSystems()
 
   /**
-   * Creates a path from the given URL, which, for example, could have been
-   * obtained by calling [[java.lang.ClassLoader]]. The current implementation
-   * can handle URLs that point into the normal file system (file:...) or
-   * into a jar file (jar:...).
-   *
-   * Based on code taken from http://stackoverflow.com/a/15718001/491216.
-   *
-   * @param resource The URL to turn into a path.
-   * @return The path obtained from the URL.
-   */
+    * Creates a path from the given URL, which, for example, could have been
+    * obtained by calling [[java.lang.ClassLoader]]. The current implementation
+    * can handle URLs that point into the normal file system (file:...) or
+    * into a jar file (jar:...).
+    *
+    * Based on code taken from http://stackoverflow.com/a/15718001/491216.
+    *
+    * @param resource The URL to turn into a path.
+    * @return The path obtained from the URL.
+    */
   private def pathFromResource(resource: URL): Path = {
     assert(resource != null, "Resource URL must not be null")
 
@@ -283,23 +297,23 @@ abstract class ResourceBasedTestSuite extends FunSuite {
 
 
 /**
- * End-to-end test suite that extracts [[TestAnnotations]]
- * from input files and asserts that the output of the system under test
- * agrees with the annotations.
- *
- * It's possible to test multiple systems (e.g. verifiers) at once.
- * The test suite will run each test on each system.
- */
+  * End-to-end test suite that extracts [[TestAnnotations]]
+  * from input files and asserts that the output of the system under test
+  * agrees with the annotations.
+  *
+  * It's possible to test multiple systems (e.g. verifiers) at once.
+  * The test suite will run each test on each system.
+  */
 abstract class AnnotationBasedTestSuite extends ResourceBasedTestSuite {
   override type InputType = AnnotatedTestInput
 
   /**
-   * The systems to test each input on.
-   *
-   * This method is not modeled as a constant field deliberately, such that
-   * subclasses can instantiate a new [[SystemUnderTest]]
-   * for each test input.
-   */
+    * The systems to test each input on.
+    *
+    * This method is not modeled as a constant field deliberately, such that
+    * subclasses can instantiate a new [[SystemUnderTest]]
+    * for each test input.
+    */
   def systemsUnderTest: Seq[SystemUnderTest]
 
   def buildTestInput(file: Path, prefix: String) =
@@ -348,16 +362,16 @@ abstract class AnnotationBasedTestSuite extends ResourceBasedTestSuite {
 }
 
 /**
- * Finds the inconsistencies between the expected output and the actual
- * output of the system under test and builds the corresponding errors.
- *
- * It assumes that all annotations are relevant. That is, filter the
- * annotations first to exclude annotations specific to other projects
- * before giving them to the matcher.
- *
- * @param actualOutputs the output produced by the system under test
- * @param expectedOutputs the output expected according to the annotations
- */
+  * Finds the inconsistencies between the expected output and the actual
+  * output of the system under test and builds the corresponding errors.
+  *
+  * It assumes that all annotations are relevant. That is, filter the
+  * annotations first to exclude annotations specific to other projects
+  * before giving them to the matcher.
+  *
+  * @param actualOutputs the output produced by the system under test
+  * @param expectedOutputs the output expected according to the annotations
+  */
 case class OutputMatcher(
                           actualOutputs: Seq[AbstractOutput],
                           expectedOutputs: Seq[LocatedAnnotation]) {
@@ -425,11 +439,11 @@ trait SystemUnderTest {
 }
 
 /**
- * An output produced by a system under test.
- *
- * Its `toString` method will be used to output an error message
- * if the output was not supposed occur.
- */
+  * An output produced by a system under test.
+  *
+  * Its `toString` method will be used to output an error message
+  * if the output was not supposed occur.
+  */
 trait AbstractOutput {
   /** Whether the output belongs to the given line in the given file. */
   def isSameLine(file: Path, lineNr: Int): Boolean
@@ -455,11 +469,11 @@ case class DefaultAnnotatedTestInput(
                                       annotations: TestAnnotations) extends AnnotatedTestInput {
 
   /**
-   * Create a test input that is specific to the given project.
-   *
-   * It creates an additional tag, filters files according to annotations
-   * and also filters the annotations themselves.
-   */
+    * Create a test input that is specific to the given project.
+    *
+    * It creates an additional tag, filters files according to annotations
+    * and also filters the annotations themselves.
+    */
   def makeForProject(projectName: String): DefaultAnnotatedTestInput = copy(
     name = s"$name [$projectName]",
     files = files.filter(!annotations.isFileIgnored(_, projectName)),
@@ -469,9 +483,9 @@ case class DefaultAnnotatedTestInput(
 
 object DefaultAnnotatedTestInput extends TestAnnotationParser {
   /**
-   * Creates an annotated test input by parsing all annotations in the files
-   * that belong to the given test input.
-   */
+    * Creates an annotated test input by parsing all annotations in the files
+    * that belong to the given test input.
+    */
   def apply(i: TestInput): DefaultAnnotatedTestInput =
     DefaultAnnotatedTestInput(i.name, i.prefix, i.files, i.tags,
       parseAnnotations(i.files))
@@ -482,13 +496,12 @@ object DefaultAnnotatedTestInput extends TestAnnotationParser {
 
 
 /**
- * The result of parsing the test annotations in a single file.
- *
- * @param errors The errors encountered during parsing.
- * @param annotations The test annotations found.
- *
- * @author Stefan Heule
- */
+  * The result of parsing the test annotations in a single file.
+  *
+  * @param errors The errors encountered during parsing.
+  * @param annotations The test annotations found.
+  * @author Stefan Heule
+  */
 sealed case class TestAnnotations(
                                    errors: Seq[TestAnnotationParseError],
                                    annotations: Seq[TestAnnotation]) {
@@ -510,12 +523,12 @@ sealed case class TestAnnotations(
   }
 
   /**
-   * Returns all test annotations except those that are specific
-   * to a different project than the given one.
-   *
-   * @param project the name of the project
-   * @return the filtered test annotations
-   */
+    * Returns all test annotations except those that are specific
+    * to a different project than the given one.
+    *
+    * @param project the name of the project
+    * @return the filtered test annotations
+    */
   def filterByProject(project: String): TestAnnotations =
     copy(annotations = annotations filter {
       case a: ProjectSpecificAnnotation => a.project.equalsIgnoreCase(project)
@@ -523,9 +536,9 @@ sealed case class TestAnnotations(
     })
 
   /**
-   * Returns all test annotations except those output annotations
-   * whose key id does not start with the given key id prefix.
-   */
+    * Returns all test annotations except those output annotations
+    * whose key id does not start with the given key id prefix.
+    */
   def filterByKeyIdPrefix(keyIdPrefix: String): TestAnnotations =
     copy(annotations = annotations filter {
       case OutputAnnotation(id, _, _) => id.keyId.startsWith(keyIdPrefix)
@@ -567,9 +580,9 @@ sealed trait LocatedAnnotation extends TestAnnotation {
 }
 
 /**
- * Test annotations that have a location and an identifier
- * (i.e. describe an output of some sort).
- */
+  * Test annotations that have a location and an identifier
+  * (i.e. describe an output of some sort).
+  */
 sealed trait OutputAnnotation extends LocatedAnnotation {
   def id: OutputAnnotationId
 
@@ -577,9 +590,9 @@ sealed trait OutputAnnotation extends LocatedAnnotation {
 }
 
 /**
- * Test annotation that is specific to a certain project.
- * Further details should be given by the referenced issue.
- */
+  * Test annotation that is specific to a certain project.
+  * Further details should be given by the referenced issue.
+  */
 sealed trait ProjectSpecificAnnotation extends TestAnnotation {
   def project: String
   def issueNr: Int
@@ -629,12 +642,12 @@ case class IgnoreFileList(
                            issueNr: Int) extends ProjectSpecificAnnotation
 
 /**
- * The types of errors that can be revealed by
- * [[AnnotationBasedTestSuite]].
- *
- * This enumeration makes it easy to group errors by type and to
- * store data that is not specific to an individual error, but an error type.
- */
+  * The types of errors that can be revealed by
+  * [[AnnotationBasedTestSuite]].
+  *
+  * This enumeration makes it easy to group errors by type and to
+  * store data that is not specific to an individual error, but an error type.
+  */
 object TestErrorType extends Enumeration {
   type TestErrorType = Value
 
@@ -667,11 +680,11 @@ object TestErrorType extends Enumeration {
 }
 
 /**
- * An error revealed by the test suite.
- *
- * It would be possible to create separate case classes for each type of error,
- * but for the moment, the error type and an error message is enough.
- */
+  * An error revealed by the test suite.
+  *
+  * It would be possible to create separate case classes for each type of error,
+  * but for the moment, the error type and an error message is enough.
+  */
 abstract class TestError(val errorType: TestErrorType.Value) {
   def message: String
 }
@@ -735,21 +748,21 @@ object DefaultTestInput {
   val fileListRegex = """(.*)_file\d*.*""".r
 
   /**
-   * Creates the default test input from the given source file and prefix.
-   *
-   * It is possible to create a single test with multiple files by naming
-   * the files foo_file1.ext foo_file2.ext etc. and putting them into
-   * the same directory. They are ordered according to their number.
-   *
-   * Tests are named by their first file, e.g. `basic/functions.sil`. Tests are
-   * also tagged by their name and their file name (with and without extension):
-   * In the example the tags would be `basic/functions.sil`, `functions.sil` and
-   * `functions`. These tags can be used to execute just a single test:
-   * `test-only * -- -n functions`.
-   *
-   * @param file the canonical test file representing the test
-   * @param prefix zero or more parent folders of the test file
-   */
+    * Creates the default test input from the given source file and prefix.
+    *
+    * It is possible to create a single test with multiple files by naming
+    * the files foo_file1.ext foo_file2.ext etc. and putting them into
+    * the same directory. They are ordered according to their number.
+    *
+    * Tests are named by their first file, e.g. `basic/functions.sil`. Tests are
+    * also tagged by their name and their file name (with and without extension):
+    * In the example the tags would be `basic/functions.sil`, `functions.sil` and
+    * `functions`. These tags can be used to execute just a single test:
+    * `test-only * -- -n functions`.
+    *
+    * @param file the canonical test file representing the test
+    * @param prefix zero or more parent folders of the test file
+    */
   def apply(file: Path, prefix: String): DefaultTestInput = {
     val name = file.getFileName.toString match {
       case fileListRegex(n) => prefix + "/" + n
@@ -793,23 +806,23 @@ object DefaultTestInput {
 
 
 /**
- * A parser for test annotations.  For an explanation of possible annotations and their syntax see
- * [[https://bitbucket.org/semperproject/sil/wiki/End-to-End%20Testing%20of%20Verifiers%20Based%20on%20SIL the description on the wiki]].
- *
- * @author Stefan Heule
- */
+  * A parser for test annotations.  For an explanation of possible annotations and their syntax see
+  * [[https://bitbucket.org/semperproject/sil/wiki/End-to-End%20Testing%20of%20Verifiers%20Based%20on%20SIL the description on the wiki]].
+  *
+  * @author Stefan Heule
+  */
 trait TestAnnotationParser {
 
   /**
-   * Sequence that starts a comment in the language that is parsed. Can be overridden if a language is used that
-   * has something else than `//` as the start of a single line comment.
-   */
+    * Sequence that starts a comment in the language that is parsed. Can be overridden if a language is used that
+    * has something else than `//` as the start of a single line comment.
+    */
   val commentStart = "//"
 
   /**
-   * Takes a sequence of files as input and parses all test annotations present in those
-   * files and returns an object describing the result.
-   */
+    * Takes a sequence of files as input and parses all test annotations present in those
+    * files and returns an object describing the result.
+    */
   def parseAnnotations(files: Seq[Path]): TestAnnotations = {
     val (parseErrors, annotations) = (files map parseAnnotations).unzip
     TestAnnotations(parseErrors.flatten, annotations.flatten)
@@ -891,9 +904,9 @@ trait TestAnnotationParser {
   }
 
   /**
-   * A regular expression that matches an output id,
-   * either only using the output reason, or with the full id.
-   */
+    * A regular expression that matches an output id,
+    * either only using the output reason, or with the full id.
+    */
   val outputIdPattern = "([^:]*)(:(.*))?"
 
   /** Try to parse the annotation as `ExpectedOutput`, and otherwise use `next`. */

@@ -409,7 +409,7 @@ object HeapIdSetDomain {
   trait Inner[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] with SetDomain.Inner[I, HeapIdSetDomain[I], Inner[I]] {
 
     override def equals(x: Any): Boolean = x match {
-      case x: I => if (value.size == 1) x.equals(value.head) else false
+      case x: I @unchecked  => if (value.size == 1) x.equals(value.head) else false
       case _ => super.equals(x);
     }
 
@@ -421,10 +421,10 @@ object HeapIdSetDomain {
       for ((froms, tos) <- rep.value) {
 
         val fromsI = froms collect {
-          case x: I => x
+          case x: I @unchecked => x
         }
         val tosI = tos collect {
-          case x: I => x
+          case x: I @unchecked => x
         }
 
         if (value.intersect(fromsI).nonEmpty) {

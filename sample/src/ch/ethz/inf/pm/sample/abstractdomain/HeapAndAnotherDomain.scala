@@ -238,7 +238,7 @@ I <: HeapIdentifier[I]](
   private def applyToAssignable[L <: Lattice[L]](variable: Assignable, state: L, functor: (L, Identifier) => L): L = {
     variable match {
       case x: VariableIdentifier => functor(state, x)
-      case x: I => functor(state, x): L
+      case x: I @unchecked => functor(state, x): L
     }
   }
 
