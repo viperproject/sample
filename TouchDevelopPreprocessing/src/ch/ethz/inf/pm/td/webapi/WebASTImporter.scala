@@ -780,7 +780,6 @@ case class JApp(
 
                  platform: String, // comma-separated
                  isLibrary: Boolean,
-                 allowExport: Boolean,
                  showAd: Boolean,
                  hasIds: Boolean, // does it have stable, persistent ids for every stmt
                  rootId: String,

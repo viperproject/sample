@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.tools
 
 import ch.ethz.inf.pm.td.compiler.{ScriptRetriever, TouchException}
 import ch.ethz.inf.pm.td.parser.TableDefinition
-import ch.ethz.inf.pm.td.webapi.ScriptQuery
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, JLibrary, ScriptQuery}
 import net.liftweb.json.MappingException
 
 import scala.collection.mutable
@@ -21,7 +21,7 @@ object FindConstruct {
     for (s <- new ScriptQuery) {
       if (i%100 == 0) println("checked "+i+"...")
       try {
-        val deps = s.librarydependencyids.filter(isCloudEnabled)
+        val deps = getLibs(s.id).filter(isCloudEnabled)
         containThroughDependencies += (s.id -> deps.toSet)
         if (isCloudEnabled(s.id)) {
           println(s.id + " " + s.name + " contains cloud types")
@@ -38,6 +38,14 @@ object FindConstruct {
     }
 
 
+  }
+
+  def getLibs(id:String): List[String] = {
+    val scr = WebASTImporter.query(id)
+    scr.get.decls.collect {
+      case JLibrary(_,_,libIdentifier,_,_,_,_,_,_) =>
+        libIdentifier
+    }
   }
 
   def isCloudEnabled(id:String): Boolean = {

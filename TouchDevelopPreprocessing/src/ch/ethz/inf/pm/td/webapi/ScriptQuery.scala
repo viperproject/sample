@@ -14,32 +14,17 @@ import java.text.SimpleDateFormat
 case class ScriptRecord(
                          time: Int,
                          id: String,
-                         url: String,
                          name: String,
                          description: String,
                          userid: String,
                          username: String,
-                         //userscore: Int,
-                         //userhaspicture: Boolean,
-                         //icon: String,
-                         //iconbackground: String,
-                         //iconurl: String,
-                         //positivereviews: Int,
-                         //subscribers: Int,
                          comments: Int,
                          screenshots: Int,
-                         //capabilities: List[String],
-                         //flows: List[String],
-                         haserrors: Boolean,
                          rootid: String,
+                         baseid: String,
                          updateid: String,
                          ishidden: Boolean,
                          islibrary: Boolean,
-                         installations: Int,
-                         runs: Int,
-                         librarydependencyids: List[String],
-                         screenshotthumburl: String,
-                         screenshoturl: String,
                          toptagids: List[String]) {
 
   def getAstURL: String = ScriptQuery.astURLfromPubID(id)
@@ -50,7 +35,7 @@ case class ScriptRecord(
 
 object ScriptQuery {
 
-  val baseURL = "http://www.touchdevelop.com/api/"
+  val baseURL = "https://www.touchdevelop.com/api/"
   val options = ""
   val text = "/text"
   val ast = "/ast"
@@ -185,12 +170,6 @@ class ScriptQuery extends IteratorOverPrograms {
 
 }
 
-trait ErrorFilter extends ScriptQuery {
-  override def filter(s: ScriptRecord) = super.filter(s) && !s.haserrors
-
-  override def label = super.label + ",no-errors"
-}
-
 trait HiddenFilter extends ScriptQuery {
   override def filter(s: ScriptRecord) = super.filter(s) && !s.ishidden
 
@@ -291,15 +270,15 @@ trait SearchService extends ScriptQuery {
 
 }
 
-class Scripts extends ScriptQuery with ErrorFilter
+class Scripts extends ScriptQuery
 
-class NewScripts extends ScriptQuery with ErrorFilter with NewService
+class NewScripts extends ScriptQuery  with NewService
 
-class TopScripts extends ScriptQuery with ErrorFilter with TopService
+class TopScripts extends ScriptQuery with TopService
 
-class FeaturedScripts extends ScriptQuery with ErrorFilter with FeaturedService
+class FeaturedScripts extends ScriptQuery  with FeaturedService
 
-class ScriptSearch(query: String) extends ScriptQuery with ErrorFilter with SearchService {
+class ScriptSearch(query: String) extends ScriptQuery with SearchService {
   setQuery(query)
 }
 
