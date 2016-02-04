@@ -594,7 +594,6 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
   override def lessEqual(other: PointsToNumericalState): Boolean = {
     // logger.debug("*** lessEqual(" + other.repr + ")")
 
-    val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
     val refToObjmap = this.refToObj.forall {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
     } // test the refToObjs
@@ -605,7 +604,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       }
     } // test the objFieldToObjs
     val num = this.numDom.lessEqual(other.numDom) // test the numDoms
-    exp && refToObjmap && objFieldToObjmap && num
+    refToObjmap && objFieldToObjmap && num
   }
 
   /** Computes the least upper bound of two elements.

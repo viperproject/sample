@@ -1,0 +1,17 @@
+field data: Int
+
+field rabbit: Bool
+
+field parrot: Int
+
+method Foo(this: Ref)
+  requires acc(this.rabbit, 1 / 10)
+{
+  inhale acc(this.parrot, write)
+  if (this.rabbit) {
+    this.data := this.data + this.parrot
+  } else {
+    this.data := 0
+  }
+  exhale acc(this.parrot, write)
+}
