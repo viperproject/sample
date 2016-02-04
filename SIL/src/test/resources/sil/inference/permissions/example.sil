@@ -1,18 +1,11 @@
-field val: Int
-field next: Ref
+field data: Int
+field rabbit: Bool
+field parrot: Int
 
-method Foo()
+method Foo(this: Ref, b: Bool)
 {
-    var i: Int
-    i := 0 - 5
-    var hd: Ref
-    var elem: Ref
-    while (i < 3) 
-    {
-        elem := new(val, next)
-        elem.val := i
-        elem.next := hd
-        hd := elem
-        i := i + 1
+    this.data := 0
+    while (this.data < 10) {
+        this.data := this.data + 1
     }
 }

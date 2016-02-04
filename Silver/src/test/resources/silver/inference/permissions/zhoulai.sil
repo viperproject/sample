@@ -1,0 +1,17 @@
+field val: Int
+field next: Ref
+
+method Foo()
+{
+    var i: Int
+    i := 0 - 5
+    var hd: Ref
+    var elem: Ref
+    while (i < 3) {
+        elem := new()
+        elem.val := i
+        elem.next := hd
+        hd := elem
+        i := i + 1
+    }
+}
