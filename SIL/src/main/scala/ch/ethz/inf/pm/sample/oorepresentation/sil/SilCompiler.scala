@@ -3,8 +3,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.{FileReader, BufferedReader}
 import java.nio.file.{Files, Paths}
-import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethodSemantics
-
 import scala.io.Source
 import viper.silver.parser.Parser
 import viper.silver.{ast => sil}
@@ -69,7 +67,7 @@ class SilCompiler extends Compiler {
 
   def getNativeMethodsSemantics() =
     ArithmeticAndBooleanNativeMethodSemantics ::
-      RichNativeMethodSemantics :: PermissionMethodSemantics :: Nil
+      RichNativeMethodSemantics :: Nil
 
   def reset(): Unit = {
     classes = None
