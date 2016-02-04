@@ -35,18 +35,18 @@ method test_inequality() {
 	assert (!(true != true))
 }
 
-method test_tertium_non_datur(b: Bool) {
-	assert (b || !b)
-	assert (b == true || b == false)
-}
+//method test_tertium_non_datur(b: Bool) {
+//	assert (b || !b)
+//	assert (b == true || b == false)
+//}
 
-method test_relational(b: Bool) {
-  var bLocal: Bool
-  bLocal := b
-  if (bLocal) {
-    assert b
-  }
-}
+//method test_relational(b: Bool) {
+//  var bLocal: Bool
+//  bLocal := b
+//  if (bLocal) {
+//    assert b
+//  }
+//}
 
 method test_implication2() {
 	var b: Bool
@@ -61,11 +61,11 @@ method test_implication2() {
 	assert (!b ==> (a == 129309))
 }
 
-method test_implication3(b: Bool) {
-	var a: Int
-	a := 10
-	if (b) {
-		a := 20
-	}
-	assert (b ==> (a == 20))
-}
+//method test_implication3(b: Bool) {
+//	var a: Int
+//	a := 10
+//	if (b) {
+//		a := 20
+//	}
+//	assert (b ==> (a == 20))
+//}

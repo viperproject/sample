@@ -1,15 +1,15 @@
-method test_pure_inhale(b: Bool) {
-	inhale (b)
-	assert (b)
-	//:: ExpectedOutput(sample.assert.failed)
-	assert (!b)
-}
+//method test_pure_inhale(b: Bool) {
+//	inhale (b)
+//	assert (b)
+//	//:: ExpectedOutput(sample.assert.failed)
+//	assert (!b)
+//}
 
-field f: Int
+//field f: Int
 
-method test_inhale_with_permissions(b: Bool, this: Ref) {
-	inhale (acc(this.f, write))
-	exhale (acc(this.f, write))
-	inhale (acc(this.f, write) && b) // inhale (b) should not be ignored
-	assert (b)
-}
+//method test_inhale_with_permissions(b: Bool, this: Ref) {
+//	inhale (acc(this.f, write))
+//	exhale (acc(this.f, write))
+//	inhale (acc(this.f, write) && b) // inhale (b) should not be ignored
+//	assert (b)
+//}

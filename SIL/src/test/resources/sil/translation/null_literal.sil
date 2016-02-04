@@ -16,15 +16,15 @@ method test_variables(flag: Bool) {
 	assert (a != null)
 }
 
-method test_fields(this: Ref)
-	requires (this == null)
-{
-	var local: Ref
-
-	local := new()
-	this.f := local
-	assert (this.f != null)
-}
+//method test_fields(this: Ref)
+//	requires (this == null)
+//{
+//	var local: Ref
+//
+//	local := new()
+//	this.f := local
+//	assert (this.f != null)
+//}
 
 method test_fields_of_params(this: Ref) {
 	//:: ExpectedOutput(sample.assert.failed)
