@@ -1,8 +1,7 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import scala.Some
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /** Native method semantic for arithmetic and boolean operators */

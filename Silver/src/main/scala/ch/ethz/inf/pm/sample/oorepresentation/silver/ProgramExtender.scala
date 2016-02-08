@@ -1,13 +1,13 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.{vdha}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha._
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap._
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap.UnfoldGhostOpEvent
 
 case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
   type T = PredicateDrivenHeapState[S]

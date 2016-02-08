@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import breeze.linalg.SparseVector
 import breeze.optimize.linear._
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.sil.IntType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
 
 /** Arithmetic expressions.
   *

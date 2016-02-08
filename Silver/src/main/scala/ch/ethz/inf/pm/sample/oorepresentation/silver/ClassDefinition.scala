@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.{oorepresentation => rep}
 import ch.ethz.inf.pm.sample.oorepresentation._

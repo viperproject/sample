@@ -5,7 +5,8 @@ import java.io.{File, PrintWriter}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{sample, DefaultSilConverter, SilAnalysisRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilAnalysisRunner, DefaultSilConverter}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition

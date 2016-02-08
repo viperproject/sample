@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import java.nio.file.Path
-import ch.ethz.inf.pm.sample.oorepresentation.sil.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.permissionanalysis.{PointsToNumericalAnalysisRunner, PermissionAnalysisRunner}
 import viper.silver.frontend.{Frontend, SilFrontend}
 import viper.silver.verifier._

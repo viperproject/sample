@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
 import ch.ethz.inf.pm.sample.abstractdomain.{PermissionExpression, ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.Constants
+import ch.ethz.inf.pm.sample.oorepresentation.silver.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, NativeMethodSemantics}
 
 /** Object enumerating methods to handle permissions.

@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample.{oorepresentation => rep, abstractdomain => dom}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap.PredicateDefinitionsDomain
 
-package object sil {
+package object silver {
 
   /**
    * Makes it possible to access many different Sample types and values
@@ -56,29 +56,29 @@ package object sil {
     val ValueHeapIdentifier = dom.vdha.ValueHeapIdentifier
 
     // Simplon-specific types and values
-    type RefType = rep.sil.RefType
+    type RefType = rep.silver.RefType
 
-    val BoolType = rep.sil.BoolType
-    val BottomType = rep.sil.BottomType
-    val IntType = rep.sil.IntType
-    val RefType = rep.sil.RefType
-    val TopType = rep.sil.TopType
+    val BoolType = rep.silver.BoolType
+    val BottomType = rep.silver.BottomType
+    val IntType = rep.silver.IntType
+    val RefType = rep.silver.RefType
+    val TopType = rep.silver.TopType
 
-    val WrappedProgramPoint = rep.sil.WrappedProgramPoint
+    val WrappedProgramPoint = rep.silver.WrappedProgramPoint
     val PackageIdentifier = rep.DummyPackageIdentifier
     val ClassIdentifier = rep.DummyClassIdentifier
     val MethodIdentifier = rep.DummyMethodIdentifier
 
     // Simplon-specific abstract domains
-    type PredicatesDomain = dom.vdha.PredicateDefinitionsDomain
-    type PredicateBody = dom.vdha.PredicateBody
-    type NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
-    type PredicateIdentifier = dom.vdha.PredicateIdentifier
+    type PredicatesDomain = dom.valueheap.PredicateDefinitionsDomain
+    type PredicateBody = dom.valueheap.PredicateBody
+    type NestedPredicatesDomain = dom.valueheap.NestedPredicatesDomain
+    type PredicateIdentifier = dom.valueheap.PredicateIdentifier
 
-    val PredicatesDomain = dom.vdha.PredicateDefinitionsDomain
-    val PredicateBody = dom.vdha.PredicateBody
-    val NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
-    val PredicateIdentifier = dom.vdha.PredicateIdentifier
+    val PredicatesDomain = dom.valueheap.PredicateDefinitionsDomain
+    val PredicateBody = dom.valueheap.PredicateBody
+    val NestedPredicatesDomain = dom.valueheap.NestedPredicatesDomain
+    val PredicateIdentifier = dom.valueheap.PredicateIdentifier
   }
 
 }

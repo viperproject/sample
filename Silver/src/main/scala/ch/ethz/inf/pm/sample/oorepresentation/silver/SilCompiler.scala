@@ -1,10 +1,8 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.{FileReader, BufferedReader}
 import java.nio.file.{Files, Paths}
-import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethodSemantics
-
 import scala.io.Source
 import viper.silver.parser.Parser
 import viper.silver.{ast => sil}
@@ -12,6 +10,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import viper.silver.parser.Translator
 import viper.silver.parser.Resolver
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethodSemantics
 
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None

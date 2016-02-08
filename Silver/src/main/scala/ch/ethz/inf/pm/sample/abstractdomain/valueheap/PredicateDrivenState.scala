@@ -1,10 +1,11 @@
-package ch.ethz.inf.pm.sample.abstractdomain.vdha
+package ch.ethz.inf.pm.sample.abstractdomain.valueheap
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, PredType}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, PredType}
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron}
 import com.typesafe.scalalogging.LazyLogging
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
@@ -33,8 +34,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
 
-  import PredicateInstanceState.{Folded, Unfolded}
   import PredicateDrivenHeapState._
+  import PredicateInstanceState.{Folded, Unfolded}
 
   /** Copies the state and adds a new ghost operation subscriber
     * to the new state.
@@ -725,6 +726,7 @@ object PredicateDrivenHeapState {
 
     /** Applies a transformation to the predicate state
       * in this edge state and returns the resulting edge state.
+      *
       * @param f the function to apply
       * @return the transformed edge state.
       */
@@ -736,6 +738,7 @@ object PredicateDrivenHeapState {
 
     /** Applies a transformation to the predicate instances state
       * in this edge state and returns the resulting edge state.
+      *
       * @param f the function to apply
       * @return the transformed edge state.
       */
@@ -746,6 +749,7 @@ object PredicateDrivenHeapState {
 
     /** Applies a transformation to the predicate definitions state
       * in this edge state and returns the resulting edge state.
+      *
       * @param f the function to apply
       * @return the transformed edge state.
       */

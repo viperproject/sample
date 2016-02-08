@@ -5,8 +5,8 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, SimpleAnalysis, EntryStateBuilder}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
 import com.typesafe.scalalogging.LazyLogging
 
 /** Object created at object allocation site.

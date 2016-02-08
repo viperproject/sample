@@ -1,6 +1,6 @@
-package ch.ethz.inf.pm.sample.abstractdomain.vdha
+package ch.ethz.inf.pm.sample.abstractdomain.valueheap
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Replacement, Identifier, SemanticDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, SemanticDomain}
 
 /** Subscribes to ghost operations performed by `PredicateDrivenHeapState`. */
 trait GhostOpSubscriber[S <: SemanticDomain[S]] {

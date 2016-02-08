@@ -1,8 +1,9 @@
-package ch.ethz.inf.pm.sample.abstractdomain.vdha
+package ch.ethz.inf.pm.sample.abstractdomain.valueheap
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.{ValueHeapIdentifier, EdgeLocalIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, DummyProgramPoint, Type}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import com.typesafe.scalalogging.LazyLogging
 

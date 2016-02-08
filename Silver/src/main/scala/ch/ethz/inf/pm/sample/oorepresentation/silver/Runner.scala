@@ -1,5 +1,6 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap._
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleAnalysis, AnalysisRunner, Analysis}
@@ -8,7 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap.PredicateDrivenHeapState._
 
 /** Analysis runner for SIL programs. */
 trait SilAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
@@ -167,6 +168,7 @@ case class AnalysisRestartException(preds: PredicateDefinitionsDomain) extends E
 
 /** Subscriber that aborts the analysis when a predicate merge happens during the
   * analysis inside of the `PredicateDrivenHeapState`.
+  *
   * @tparam S type of the semantic domain
   */
 case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](

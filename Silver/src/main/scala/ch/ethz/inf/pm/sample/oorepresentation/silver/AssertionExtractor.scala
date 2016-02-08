@@ -1,11 +1,10 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.vdha._
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import viper.silver.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, ApronInterfaceTranslator}
 

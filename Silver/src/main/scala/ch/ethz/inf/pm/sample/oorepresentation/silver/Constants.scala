@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 object Constants {
   // Prefix for symbols that do not exist in the original SIL program.

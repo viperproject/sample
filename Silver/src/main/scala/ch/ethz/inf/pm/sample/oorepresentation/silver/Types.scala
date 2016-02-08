@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type

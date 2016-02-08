@@ -1,11 +1,11 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
+import ch.ethz.inf.pm.sample.abstractdomain.valueheap.{PredicateBody, PredicateIdentifier}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethods
 import com.typesafe.scalalogging.LazyLogging
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
+import viper.silver.{ast => sil}
 
 import scala.collection.mutable
-import viper.silver.{ast => sil}
 
 trait SilConverter {
   /** Converts a whole SIL program to a list of Sample class definition. */
@@ -385,7 +385,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
   /**
    * Converts a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
-   * @param b the SIL block
+    *
+    * @param b the SIL block
    * @param cfg the Sample CFG to extend
    * @param indices maps already translated SIL blocks to Sample CFG node indices
    * @return the Sample CFG node index corresponding to the SIL block
@@ -459,7 +460,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
   /**
    * Converts a conjunction of boolean SIL expressions to a Statement.
-   * @param conj sequence of boolean SIL expressions
+    *
+    * @param conj sequence of boolean SIL expressions
    * @return true if the list of SIL expressions is empty
    */
   private def makeConjunction(conj: Seq[sil.Exp]): sample.Statement = go(conj match {

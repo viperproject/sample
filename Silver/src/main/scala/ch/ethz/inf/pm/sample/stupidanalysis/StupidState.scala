@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.{HeapGraph, DefaultHeapEntryStateBuilder, ValueDrivenHeapState}
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.SilAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /** Stupid Analysis State
@@ -216,12 +216,14 @@ case class StupidState(expressionSet: ExpressionSet, numerical: Apron.Polyhedra)
 
   /**
    * Checks whether the given domain element is equivalent to bottom ("false")
+ *
    * @return bottom
    */
   override def isBottom: Boolean = expressionSet.isBottom || numerical.isBottom
 
   /**
    * Checks whether the given domain element is equivalent to bottom ("false")
+ *
    * @return bottom
    */
   override def isTop: Boolean = expressionSet.isTop && numerical.isTop
