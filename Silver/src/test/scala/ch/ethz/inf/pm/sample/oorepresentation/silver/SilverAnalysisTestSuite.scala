@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.oorepresentation.sil
+package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import viper.silver.frontend.{SilFrontend}
 import viper.silver.verifier._
