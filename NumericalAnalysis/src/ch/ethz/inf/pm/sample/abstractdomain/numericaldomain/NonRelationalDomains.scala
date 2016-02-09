@@ -47,9 +47,11 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   override def assign(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = {
     if (variable.typ.isNumericalType) {
-      if (variable.representsSingleVariable)
-        this.add(variable, eval(expr))
-      else this.add(variable, this.get(variable).lub(eval(expr)))
+      if (this.ids.contains(variable)) {
+        if (variable.representsSingleVariable)
+          this.add(variable, eval(expr))
+        else this.add(variable, this.get(variable).lub(eval(expr)))
+      } else bottom()
     } else this
   }
 
@@ -67,7 +69,8 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   /**
    * Adds [key->value] to the domain
-   * @param key The key
+    *
+    * @param key The key
    * @param value The value
    * @return The state of the domain after the assignment
    */
@@ -284,7 +287,8 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 
   /**
    * Encodes non-relational information as a constraint
-   * @param id the identifier this domain restricts
+    *
+    * @param id the identifier this domain restricts
    * @return a constraint, for example 1<id<5 for the interval (1,5), None in case of top or bottom
    */
   def asConstraint(id: Identifier): Option[Expression]
