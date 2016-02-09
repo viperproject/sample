@@ -165,7 +165,7 @@ sealed abstract class Partitioning[D <: State[D]] extends Lattice[Partitioning[D
  * @version 0.1
  */
 case class Node[D <: State[D]](directive: Directive[D], children: List[Partitioning[D]]) extends Partitioning[D] {
-	require(children.length > 0)
+	require(children.nonEmpty)
 	require(children.exists(!_.isSupremum))
 	require(children.length == tokens.length)
 

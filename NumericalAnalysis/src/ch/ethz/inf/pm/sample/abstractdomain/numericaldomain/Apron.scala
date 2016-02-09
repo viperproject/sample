@@ -129,7 +129,7 @@ object Apron {
 
             val nonExisting = filterNonExisting(expr.ids.getNonTop)
             if (nonExisting.nonEmpty)
-              add(nonExisting).assume(expr)
+              bottom()
             else {
               val translator = new ApronInterfaceTranslator()(this)
               translator.toTcons1(expr, apronState.getEnvironment) match {
@@ -158,7 +158,7 @@ object Apron {
         } else {
           val nonExisting = filterNonExisting(expr.ids.getNonTop)
           if (!exists(variable) || nonExisting.nonEmpty) {
-            add(nonExisting + variable).assign(variable, expr)
+            bottom()
           } else {
             val translator = new ApronInterfaceTranslator()(this)
             val exprIntern = translator.toTexpr1Intern(expr, apronState.getEnvironment)
