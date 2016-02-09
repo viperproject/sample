@@ -831,10 +831,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
 /** Builds permission analysis entry states for given method declarations. */
 object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
   override def topState: PermissionState = PermissionState(
-    PointsToNumericalState(ExpressionSet(),
-    Map[VariableIdentifier,Set[HeapIdentifier]](),
-    Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)), //TODO: Apron.Polyhedra.Bottom.factory()
+    PointsToNumericalEntryStateBuilder.topState,
     // map from a `Identifier` to its `SymbolicPermission`
     Map[Identifier,SymbolicPermission]())
 }

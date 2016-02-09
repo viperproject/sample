@@ -94,7 +94,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
                            objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]],
                            // intervals/polyhedra abstract domain
-                           // TODO: numDom: Apron.Polyhedra
+                           // TODO: numDom: Apron.Polyhedra)
                            numDom : BoxedNonRelationalNumericalDomain[DoubleInterval])
   extends SimpleState[PointsToNumericalState]
   with StateWithBackwardAnalysisStubs[PointsToNumericalState]
@@ -865,7 +865,8 @@ object PointsToNumericalEntryStateBuilder extends EntryStateBuilder[PointsToNume
   override def topState: PointsToNumericalState = PointsToNumericalState(ExpressionSet(),
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)) // TODO: Apron.Polyhedra.Bottom.factory()
+    // TODO: Apron.Polyhedra.Bottom.factory())
+    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
 }
 
 /** Runs the PointsTo+Numerical analysis. */

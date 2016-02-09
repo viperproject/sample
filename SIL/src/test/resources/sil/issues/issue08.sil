@@ -1,11 +1,11 @@
 // Issue #8: HeapGraph.isBottom returns true if there is an uninitialized local variable
 
-field val: Int
-
-method issue8() {
-    var t: Ref
-    var n: Ref
-    t := new()
-    t.val := 5
-    assert(t.val == 5) // State must not be bottom here
-}
+//field val: Int
+//
+//method issue8() {
+//    var t: Ref
+//    var n: Ref
+//    t := new()
+//    t.val := 5
+//    assert(t.val == 5) // State must not be bottom here
+//}
