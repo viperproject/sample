@@ -1,6 +1,11 @@
+field val: Int
 
- method test_something() {
- 	var x: Int
- 	x := 0
- 	assert (x == 0)
- }
+method test_assignField(this: Ref) {
+    if (this != null) {
+        this.val := 9
+    } else {
+        this := new()
+        this.val := 0
+    }
+    assert(this.val >= 0)
+}

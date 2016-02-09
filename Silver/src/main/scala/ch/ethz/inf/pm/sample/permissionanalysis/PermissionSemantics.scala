@@ -50,7 +50,7 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
         case Some(PermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])
         case None => None
       }
-    case _ => throw new IllegalArgumentException("PermissionMethodSemantics expects a PermissionState.")
+    case _ => None
   }
 
   /**

@@ -2,11 +2,12 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, SimpleAnalysis, EntryStateBuilder}
+import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{RichNativeMethodSemantics, ArithmeticAndBooleanNativeMethodSemantics, SilAnalysisRunner}
 import com.typesafe.scalalogging.LazyLogging
 
 /** Object created at object allocation site.
@@ -38,6 +39,24 @@ case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier {
   override def representsSingleVariable: Boolean = !summary
   /** String representation of the heap identifier. */
   override def toString: String = if (summary) "Σ" + number else "O" + number
+}
+
+/** Null object.
+  *
+  * @author Caterina Urban
+  */
+object NullHeapIdentifier extends HeapIdentifier(DummyRefType, DummyProgramPoint) {
+  override def getName: String = "null"
+  override def toString: String = "null"
+}
+
+case object DummyRefType extends DummyType {
+  def name = "Ref"
+  def isBottom = false
+  def isTop = false
+  def isObject = true
+  def isNumericalType = false
+  def possibleFields: Set[Identifier] = Set.empty
 }
 
 /** Field of an object.
@@ -179,7 +198,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
             case right: VariableIdentifier => // e.g., `x := y`
               // add xref -> refToObj[rightref] to refToObj map
-              val refToObjmap = this.refToObj + (x -> this.refToObj.getOrElse(right, Set[HeapIdentifier]()))
+              val refToObjmap = this.refToObj + (x -> this.refToObj.getOrElse(right, Set[HeapIdentifier](NullHeapIdentifier)))
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
 
@@ -205,39 +224,51 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
     cond match {
       // Constant
-      case cond:Constant => // return the current state with updated numDom
-        this.copy(numDom = numDom.assume(cond))
+      case cond:Constant =>
+        val num = numDom.assume(cond)
+        // return the current state with updated numDom
+        if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
       // Identifier
-      case cond: Identifier => // return the current state with updated numDom
-        this.copy(numDom = numDom.assume(cond))
+      case cond: Identifier =>
+        val num = numDom.assume(cond)
+        // return the current state with updated numDom
+        if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
       // BinaryArithmeticExpression
-      case cond: BinaryArithmeticExpression => // return the current state with updated numDom
-        this.copy(numDom = numDom.assume(cond))
+      case cond: BinaryArithmeticExpression =>
+        val num = numDom.assume(cond)
+        // return the current state with updated numDom
+        if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
       // BinaryBooleanExpression
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
-        if (cond.canonical) // return the current state with updated numDom
-          this.copy(numDom = numDom.assume(cond))
-        else
-          this.assume(left).assume(right)
+        if (cond.canonical) {
+          val num = numDom.assume(cond)
+          // return the current state with updated numDom
+          if (num.isBottom) this.bottom() else this.copy(numDom = num)
+        } else this.assume(left).assume(right)
       case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) =>
-        if (cond.canonical) // return the current state with updated numDom
-          this.copy(numDom = numDom.assume(cond))
-        else
-          this.assume(left) lub this.assume(right)
+        if (cond.canonical) {
+          val num = numDom.assume(cond)
+          // return the current state with updated numDom
+          if (num.isBottom) this.bottom() else this.copy(numDom = num)
+        } else this.assume(left) lub this.assume(right)
 
       // NegatedBooleanExpression
       case cond: NegatedBooleanExpression => {
         cond.exp match {
           // Constant
-          case c: Constant => // return the current state with updated numDom
-            this.copy(numDom = numDom.assume(cond))
+          case c: Constant =>
+            val num = numDom.assume(cond)
+            // return the current state with updated numDom
+            if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
           // Identifier (i.e., FieldIdentifier, VariableIdentifier)
-          case id: Identifier => // return the current state with updated numDom
-            this.copy(numDom = numDom.assume(cond))
+          case id: Identifier =>
+            val num = numDom.assume(cond)
+            // return the current state with updated numDom
+            if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
           // BinaryArithmeticExpression
           case BinaryArithmeticExpression(left, right, op, typ) =>
@@ -283,13 +314,21 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, Constant("null",_,_)) =>
-            val refToObjmap = refToObj - left // remove key from refToObj map
-            // return the current state with updated refToObj
-            this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
+            if (l.contains(NullHeapIdentifier)) {
+              // replace key into refToObj map
+              val refToObjmap = refToObj + (left -> Set[HeapIdentifier](NullHeapIdentifier))
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            } else this.bottom() // return the bottom state
           case (Constant("null",_,_), right: VariableIdentifier) =>
-            val refToObjmap = refToObj - right // remove key from refToObj map
-            // return the current state with updated refToObj
-            this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+            if (r.contains(NullHeapIdentifier)) {
+              // replace key into refToObj map
+              val refToObjmap = refToObj + (right -> Set[HeapIdentifier](NullHeapIdentifier))
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            } else this.bottom() // return the bottom state
         }
 
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
@@ -307,11 +346,21 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, Constant("null",_,_)) =>
-            val l = refToObj.getOrElse(left,Set[HeapIdentifier]())
-            if (l.isEmpty) this.bottom() else this
+            val l = refToObj.getOrElse(left,Set[HeapIdentifier]()) - NullHeapIdentifier
+            if (l.isEmpty) this.bottom() else {
+              // replace key into refToObj map
+              val refToObjmap = refToObj + (left -> l)
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            }
           case (Constant("null",_,_), right: VariableIdentifier) =>
-            val r = refToObj.getOrElse(right,Set[HeapIdentifier]())
-            if (r.isEmpty) this.bottom() else this
+            val r = refToObj.getOrElse(right,Set[HeapIdentifier]()) - NullHeapIdentifier
+            if (r.isEmpty) this.bottom() else {
+              // replace key into refToObj map
+              val refToObjmap = refToObj + (right -> r)
+              // return the current state with updated refToObj
+              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            }
         }
 
       case _ => throw new NotImplementedError("An assume implementation is missing.")
@@ -392,7 +441,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     logger.debug("*** ----------------createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
-      val refToObjmap = refToObj + (x -> Set[HeapIdentifier]()) // add key to refToObj map
+      // add key to refToObj map
+      val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier))
       // return the current state with updated exprSet and refToObj
       this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap)
     } else { // the variable to be created is not a `Ref`
@@ -418,7 +468,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
         obj.setSummary(true)  // turn the Obj into a summary node
         // update refToObj map adding the summary node version of Obj where Obj was present
         var refToObjmap = refToObj.mapValues(s => if (s.contains(obj)) s - obj + obj else s)
-        refToObjmap = refToObjmap + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
+        // add key to refToObj map
+        refToObjmap = refToObjmap + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
         // add key to objFieldToObj map
         var objFieldToObjmap = objFieldToObj - obj + (obj -> objFieldToObj(obj))
         // update objFieldToObj map adding the summary node version of Obj where Obj was present
@@ -428,7 +479,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
         // return the current state with updated exprSet, update refToObj and updated objFieldToObj map
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
       } else { // the Obj was never created before
-        val refToObjmap = refToObj + (x -> Set[HeapIdentifier](obj)) // add key to refToObj map
+        // add key to refToObj map
+        val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
         // add key to objFieldToObj map
         val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]())
         // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
@@ -594,6 +646,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
   override def lessEqual(other: PointsToNumericalState): Boolean = {
     // logger.debug("*** lessEqual(" + other.repr + ")")
 
+    val exp = this.exprSet lessEqual other.exprSet // test the exprSets
     val refToObjmap = this.refToObj.forall {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
     } // test the refToObjs

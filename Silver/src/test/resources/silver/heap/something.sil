@@ -1,6 +1,0 @@
-
-method test_something() {
-	var x: Int
-	x := 0
-	assert (x == 0)
-}
