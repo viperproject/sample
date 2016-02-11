@@ -11,7 +11,7 @@ import viper.silver.testing.SilSuite
 import viper.silver.verifier._
 
 class PointsToNumericalAnalysisTestSuite extends SilSuite {
-  override def testDirectories = Seq("silver/heap")
+  override def testDirectories = Seq("silver/heap/intervals", "silver/heap/polyhedra")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
     val fe = new DummySilFrontend()

@@ -95,8 +95,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
                            objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]],
                            // intervals/polyhedra abstract domain
-                           // TODO: numDom: Apron.Polyhedra)
-                           numDom : BoxedNonRelationalNumericalDomain[DoubleInterval])
+                           numDom: Apron.Polyhedra)
+                           // TODO: numDom : BoxedNonRelationalNumericalDomain[DoubleInterval])
   extends SimpleState[PointsToNumericalState]
   with StateWithBackwardAnalysisStubs[PointsToNumericalState]
   with LazyLogging
@@ -503,8 +503,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
         }
         // add key to objFieldToObj map
         val objFieldToObjmap = objFieldToObj + (obj -> fieldMap)
-        // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
-        this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
+        // return the current state with updated exprSet, refToObj, objFieldToObj, numDom
+        this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
       }
     } else { // the variable to be created is not a `Ref`
       // return the current state with updated numDom
@@ -590,7 +590,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       case obj:AccessPathIdentifier =>
         val path = obj.stringPath // path to evaluate
         // evaluate path into the set of objects referenced by it (up to the given field excluded)
-        val objSet = evaluatePath(path,objFieldToObj)
+        val objSet = evaluatePath(path,objFieldToObj) - NullHeapIdentifier
         val expr = objSet.foldLeft(ExpressionSet())(
           (e,o) => {
             val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
@@ -712,14 +712,25 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     for (id <- objFromRef) {
       reach = objFieldToObj.getOrElse(id,Map[String,Set[HeapIdentifier]]()).foldLeft(reach)((r,s) => r ++ s._2)
     }
-    // remove all unreachable Obj
+    // collect and remove all unreachable Obj
+    var unreach = Set[HeapIdentifier]()
     var objFieldToObjmap = objFieldToObj
     for (key <- objFieldToObj.keys) {
-      if (!reach.contains(key))
+      if (!reach.contains(key)) {
         objFieldToObjmap = objFieldToObjmap - key
+        unreach = unreach + key
+      }
     }
-    // return the current state with updated objFieldToObj
-    this.copy(objFieldToObj = objFieldToObjmap)
+    // prune variables from numDom
+    var num = numDom
+    for (obj <- unreach) {
+      for (f <- fieldSet) {
+        num = num.removeVariable(FieldIdentifier(obj,f._2,f._1))
+      }
+    }
+
+    // return the current state with updated objFieldToObj and numDom
+    this.copy(objFieldToObj = objFieldToObjmap, numDom = num)
   }
 
   /** Removes all variables satisfying filter.
@@ -887,8 +898,8 @@ object PointsToNumericalEntryStateBuilder extends EntryStateBuilder[PointsToNume
   override def topState: PointsToNumericalState = PointsToNumericalState(ExpressionSet(), fields,
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    // TODO: Apron.Polyhedra.Bottom.factory())
-    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
+    Apron.Polyhedra.Bottom.factory())
+    // TODO: new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
 
   override def build(method: MethodDeclaration): PointsToNumericalState = {
     fields = Set[(Type,String)]()
