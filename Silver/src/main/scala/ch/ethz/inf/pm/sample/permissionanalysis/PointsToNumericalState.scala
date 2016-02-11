@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{RichNativeMethodSemantics, ArithmeticAndBooleanNativeMethodSemantics, SilAnalysisRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import com.typesafe.scalalogging.LazyLogging
 
 /** Object created at object allocation site.
@@ -89,6 +89,7 @@ case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extend
   * @author Caterina Urban
   */
 case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` used to store the result of each statement
+                           fieldSet: Set[(Type,String)], // fields declared within the program
                            // map from `Ref` variables to heap `Obj` objects
                            refToObj: Map[VariableIdentifier,Set[HeapIdentifier]],
                            // map from heap `Obj` objects to a map from `Ref` fields to heap `Obj` objects
@@ -389,10 +390,11 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
     // return a new state with bottom exprSet, empty refToObj, empty objFieldToObj, bottom numDom
     val expr = exprSet.bottom()
+    val fields = Set[(Type,String)]()
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.bottom()
-    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
+    PointsToNumericalState(expr,fields,refToObjmap,objFieldToObjmap,num)
   }
 
   /** Creates an object at allocation site.
@@ -420,10 +422,19 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       // return the current state with updated exprSet, update refToObj and updated objFieldToObj map
       this.copy(exprSet = ExpressionSet(obj), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
     } else { // the Obj was never created before
+      // prepare fields to add to objFieldToObj map and add variables to numDom
+      var fieldMap = Map[String,Set[HeapIdentifier]]()
+      var num = numDom
+      for (f <- fieldSet) {
+        f._1 match {
+          case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapIdentifier]())
+          case _ => num = num.createVariable(FieldIdentifier(obj,f._2,f._1),f._1)
+        }
+      }
       // add key to objFieldToObj map
-      val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]())
-      // return the current state with updated exprSet and updated objFieldToObj map
-      this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap)
+      val objFieldToObjmap = objFieldToObj + (obj -> fieldMap)
+      // return the current state with updated exprSet, updated objFieldToObj map and updated numDom
+      this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap, numDom = num)
     }
   }
 
@@ -481,8 +492,17 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       } else { // the Obj was never created before
         // add key to refToObj map
         val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
+        // prepare fields to add to objFieldToObj map and add variables to numDom
+        var fieldMap = Map[String,Set[HeapIdentifier]]()
+        var num = numDom
+        for (f <- fieldSet) {
+          f._1 match {
+            case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapIdentifier]())
+            case _ => num = num.createVariable(FieldIdentifier(obj,f._2,f._1),f._1)
+          }
+        }
         // add key to objFieldToObj map
-        val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]())
+        val objFieldToObjmap = objFieldToObj + (obj -> fieldMap)
         // return the current state with updated exprSet, updated refToObj and updated objFieldToObj
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
       }
@@ -546,10 +566,11 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     // logger.debug("*** factory()")
 
     val expr = ExpressionSet()
+    val fields = Set[(Type,String)]()
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.factory()
-    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
+    PointsToNumericalState(expr,fields,refToObjmap,objFieldToObjmap,num)
   }
 
   /** Accesses a field of an object.
@@ -568,24 +589,16 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     obj match {
       case obj:AccessPathIdentifier =>
         val path = obj.stringPath // path to evaluate
-        // update objFieldToObj map
-        val segment = if (typ.isObject) path.drop(1) else path.drop(1).dropRight(1)
-        val objFieldToObjmap = segment.foldLeft(objFieldToObj)(
-          (map,next) =>
-            map.mapValues[Map[String,Set[HeapIdentifier]]](
-              (m) => if (m.contains(next)) m else m + (next -> Set[HeapIdentifier]())
-            )
-        )
         // evaluate path into the set of objects referenced by it (up to the given field excluded)
-        val objSet = evaluatePath(path,objFieldToObjmap)
+        val objSet = evaluatePath(path,objFieldToObj)
         val expr = objSet.foldLeft(ExpressionSet())(
           (e,o) => {
             val fld = FieldIdentifier(o,field,typ) // create new FieldIdentifier
             e add ExpressionSet(fld)
           }
         )
-        // return the current state with updated exprSet, updated objFieldToObj
-        this.copy(exprSet = expr, objFieldToObj = objFieldToObjmap)
+        // return the current state with updated exprSet
+        this.copy(exprSet = expr)
       case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
   }
@@ -646,7 +659,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
   override def lessEqual(other: PointsToNumericalState): Boolean = {
     // logger.debug("*** lessEqual(" + other.repr + ")")
 
-    val exp = this.exprSet lessEqual other.exprSet // test the exprSets
+    //val exp = this.exprSet lessEqual other.exprSet // test the exprSets
+    //val fields = this.fieldSet subsetOf other.fieldSet // test the fieldSets
     val refToObjmap = this.refToObj.forall {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
     } // test the refToObjs
@@ -670,6 +684,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     // logger.debug("*** lub(" + other.repr + ")")
 
     val exp = this.exprSet lub other.expr // join the exprSets
+    val fields = this.fieldSet ++ other.fieldSet // join the fieldSets
     val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
     } // merge the refToObjs
@@ -682,8 +697,8 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     } // merge the objFieldToObjmap
     val num = this.numDom lub other.numDom // join the numDoms
 
-    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
-    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
+    // return the current state with updated exprSet, fieldSet, refToObj, objFieldToObj and numDom
+    this.copy(exprSet = exp, fieldSet = fields, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
   }
 
   /** Performs abstract garbage collection. */
@@ -749,6 +764,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
   def repr: String = {
     "PointsToNumericalState(" +
       exprSet.toString + ", " +
+      //fieldSet.toString + ", " +
       refToObj.toString + ", " +
       objFieldToObj.toString + ", " +
       numDom.toString + ")"
@@ -815,10 +831,11 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
 
     // return a new state with top exprSet, empty refToObj, empty objFieldToObj, top numDom
     val expr = exprSet.top()
+    val fields = Set[(Type,String)]()
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.top()
-    PointsToNumericalState(expr,refToObjmap,objFieldToObjmap,num)
+    PointsToNumericalState(expr,fields,refToObjmap,objFieldToObjmap,num)
   }
 
   /** The state string representation.
@@ -828,6 +845,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
   override def toString: String = {
     "PointsToNumericalState(\n" +
     "\texprSet: " + exprSet.toString + "\n" +
+    //"\tfieldSet: " + fieldSet.toString + "\n" +
     "\trefToObj: " + refToObj.toString + "\n" +
     "\tobjFieldToObj: " + objFieldToObj.toString + "\n" +
     "\tnumDom: " + numDom.toString + "\n" +
@@ -843,6 +861,7 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
     logger.debug("*** ----------------widening(" + other.repr + ")")
 
     val exp = this.exprSet widening other.expr // widen the exprSets
+    val fields = this.fieldSet ++ other.fieldSet // join the fieldSets
     val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
     } // merge the refToObjs
@@ -855,18 +874,30 @@ case class PointsToNumericalState(exprSet: ExpressionSet, // `ExpressionSet` use
       } // merge the objFieldToObjmap
     val num = this.numDom widening other.numDom // widen the numDoms
 
-    // return the current state with updated exprSet, updated refToObj, updated objFieldToObjmap and updated numDom
-    this.copy(exprSet = exp, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
+    // return the current state with updated exprSet, fieldSet, refToObj, objFieldToObj and numDom
+    this.copy(exprSet = exp, fieldSet = fields, refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
   }
 }
 
 /** Builds PointsTo+Numerical analysis entry states for given method declarations. */
 object PointsToNumericalEntryStateBuilder extends EntryStateBuilder[PointsToNumericalState] {
-  override def topState: PointsToNumericalState = PointsToNumericalState(ExpressionSet(),
+
+  private var fields: Set[(Type,String)] = Set[(Type,String)]()
+
+  override def topState: PointsToNumericalState = PointsToNumericalState(ExpressionSet(), fields,
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
     // TODO: Apron.Polyhedra.Bottom.factory())
     new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
+
+  override def build(method: MethodDeclaration): PointsToNumericalState = {
+    fields = Set[(Type,String)]()
+    for(f <- method.classDef.fields) {
+      fields = fields + ((f.typ, f.variable.toString))
+    }
+    method.initializeArgument[PointsToNumericalState](topState.copy(fieldSet = fields))
+  }
+
 }
 
 /** Runs the PointsTo+Numerical analysis. */
