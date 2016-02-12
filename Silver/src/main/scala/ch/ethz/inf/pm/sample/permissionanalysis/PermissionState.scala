@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{NumericalDomain, DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilAnalysisRunner, DefaultSilConverter}
@@ -11,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, P
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition
 import viper.silver.{ast => sil}
+import ch.ethz.inf.pm.sample.execution.{Analysis}
 
 /** Path to a location.
   *
@@ -204,18 +206,21 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
 
 /** Permission Inference State.
   *
-  * Note that each abstract state must include an `ExpressionSet`!
-  * It is accessed during the analysis to retrieve the result of each statement!!
-  *
+  * @tparam N the numerical domain
+  * @tparam T the pointsto+numerical state
+  * @tparam S the permission state
   * @author Caterina Urban
   */
-case class PermissionState(heapNum: PointsToNumericalState,
-                           // map from a `Identifier` to its `SymbolicPermission`
-                           idToSym: Map[Identifier,SymbolicPermission])
-  extends SimplePermissionState[PermissionState]
-  with StateWithBackwardAnalysisStubs[PermissionState]
+trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
+  extends SimplePermissionState[S]
+  with StateWithBackwardAnalysisStubs[S]
   with LazyLogging
 {
+  this: S =>
+  
+  def heapNum: T
+  def idToSym: Map[Identifier,SymbolicPermission] // map from an `Identifier` to its `SymbolicPermission`
+  
   /** Assigns an expression to a field of an object.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -225,7 +230,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param right the assigned expression
     * @return the abstract state after the assignment
     */
-  override def assignField(obj: Expression, field: String, right: Expression): PermissionState = {
+  override def assignField(obj: Expression, field: String, right: Expression): S = {
     logger.debug("*** PermissionState.assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
     obj match {
@@ -261,7 +266,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param right The assigned expression
     * @return The abstract state after the assignment
     */
-  override def assignVariable(x: Expression, right: Expression): PermissionState = {
+  override def assignVariable(x: Expression, right: Expression): S = {
     logger.debug("*** PermissionState.assignVariable(" + x.toString + "; " + right.toString + ")")
 
     var idToSymmap = idToSym
@@ -297,7 +302,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds
     */
-  override def assume(cond: Expression): PermissionState = {
+  override def assume(cond: Expression): S = {
     logger.debug("*** PermissionState.assume(" + cond.toString + ")")
 
     // ensure read permissions for all field identifiers in the condition
@@ -323,7 +328,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param pp The point of the program that is going to be analyzed
     * @return The abstract state eventually modified
     */
-  override def before(pp: ProgramPoint): PermissionState = {
+  override def before(pp: ProgramPoint): S = {
     logger.debug("\n*** PermissionState.before(" + pp.toString + "): " + this.repr)
 
     this  // return the current state without modification
@@ -333,7 +338,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): PermissionState = {
+  override def bottom(): S = {
     // logger.debug("*** bottom()")
 
 //    // return a new state with bottom exprSet and empty refToObj map
@@ -341,6 +346,8 @@ case class PermissionState(heapNum: PointsToNumericalState,
 
     this.copy(heapNum = heapNum.bottom())
   }
+
+  def copy(heapNum: T = heapNum, idToSym: Map[Identifier,SymbolicPermission] = idToSym): S
 
   /** Creates an object at allocation site.
     *
@@ -350,7 +357,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param pp The allocation site of the object
     * @return The abstract state with updated exprSet after the creation of the object
     */
-  override def createObject(typ: Type, pp: ProgramPoint): PermissionState = {
+  override def createObject(typ: Type, pp: ProgramPoint): S = {
     logger.debug("*** PermissionState.createObject(" + typ.toString + "; " + pp.toString + ")")
     
 //    val obj = HeapIdentifier(typ,pp) // create new Obj
@@ -371,7 +378,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param pp The program point that creates the variable
     * @return The abstract state after the creation of the variable
     */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): PermissionState = {
+  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S = {
     logger.debug("*** PermissionState.createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
 
     // return the current state with updated heapNum
@@ -386,7 +393,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument
     */
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): PermissionState = {
+  override def createVariableForArgument(x: VariableIdentifier, typ: Type): S = {
     logger.debug("*** PermissionState.createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
@@ -418,7 +425,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant
     */
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): PermissionState = {
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
     // logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
 
     // return the current state with updated heapNum
@@ -426,7 +433,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
   }
 
   /** Exhales permissions. */
-  override def exhale(acc: Expression) : PermissionState = {
+  override def exhale(acc: Expression) : S = {
     logger.debug("*** PermissionState.exhale(" + acc.toString + "): implement me!")
 
     acc match {
@@ -450,7 +457,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
           case _ => throw new IllegalArgumentException("A permission exhale must occur via a FieldIdentifier")
         }
       case _ =>
-        val asserted: PermissionState = this.setExpression(ExpressionSet(acc))
+        val asserted: S = this.setExpression(ExpressionSet(acc))
         assert(asserted.testFalse() lessEqual this.bottom())
         this.assume(acc)
     }
@@ -471,7 +478,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return A new instance of the current object
     * @todo implement me!
     */
-  override def factory(): PermissionState = {
+  override def factory(): S = {
     // logger.debug("*** factory(): implement me!")
     
     this.copy(heapNum = heapNum.factory())
@@ -487,7 +494,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state obtained after the field access, that is, a new state whose `ExpressionSet`
     *         holds the objects referenced by the access path (up to the given field excluded).
     */
-  override def getFieldValue(obj: Expression, field: String, typ: Type): PermissionState = {
+  override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
     logger.debug("*** PermissionState.getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
     obj match {
@@ -551,7 +558,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable
     */
-  override def getVariableValue(id: Identifier): PermissionState = {
+  override def getVariableValue(id: Identifier): S = {
     logger.debug("*** PermissionState.getVariableValue(" + id.toString + ")")
 
     // return the current state with updated heapNum
@@ -565,14 +572,14 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *         and greater than or equal to any other lower bound of the two arguments
     * @todo implement me!
     */
-  override def glb(other: PermissionState): PermissionState = {
+  override def glb(other: S): S = {
     logger.debug("*** glb(" + other.repr + "): implement me!")
     
     ???
   }
 
   /** Inhales permissions. */
-  override def inhale(acc: Expression) : PermissionState = {
+  override def inhale(acc: Expression) : S = {
     logger.debug("*** inahle(" + acc.toString + ")")
 
     acc match {
@@ -629,7 +636,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param other The value to compare
     * @return `true` if and only if `this` is less than or equal to `other`
     */
-  override def lessEqual(other: PermissionState): Boolean = {
+  override def lessEqual(other: S): Boolean = {
     // logger.debug("*** lessEqual(" + other.repr + ")")
 
 //    val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
@@ -654,7 +661,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments
     */
-  override def lub(other: PermissionState): PermissionState = {
+  override def lub(other: S): S = {
     // logger.debug("*** lub(" + other.repr + ")")
 
     val idToSymmap = this.idToSym ++ other.idToSym.map {
@@ -669,7 +676,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @todo implement me!
     */
-  override def pruneUnreachableHeap(): PermissionState = {
+  override def pruneUnreachableHeap(): S = {
     // logger.debug("*** pruneUnreachableHeap(): implement me!")
 
     this.copy(heapNum = heapNum.pruneUnreachableHeap())
@@ -679,7 +686,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @todo implement me!
     */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): PermissionState = {
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): S = {
     logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
     
     ???
@@ -689,7 +696,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     *
     * @return The abstract state obtained after removing the current expression
     */
-  override def removeExpression(): PermissionState = {
+  override def removeExpression(): S = {
     // logger.debug("*** removeExpression()")
 
     // return the current state with updated heapNum
@@ -704,7 +711,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state obtained after removing the variable
     * @todo implement me!
     */
-  override def removeVariable(varExpr: VariableIdentifier): PermissionState = {
+  override def removeVariable(varExpr: VariableIdentifier): S = {
     logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
     
     ???
@@ -731,7 +738,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state after the assignment
     * @todo implement me!
     */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): PermissionState = {
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): S = {
     logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
     
     ???
@@ -744,7 +751,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one
     */
-  override def setExpression(expr: ExpressionSet): PermissionState = {
+  override def setExpression(expr: ExpressionSet): S = {
     // logger.debug("*** setExpression(" + expr.toString + ")")
 
     // return the current state with updated heapNum
@@ -759,7 +766,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state obtained after forgetting the variable
     * @todo implement me!
     */
-  override def setVariableToTop(varExpr: Expression): PermissionState = {
+  override def setVariableToTop(varExpr: Expression): S = {
     logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
     
     ???
@@ -771,7 +778,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The abstract state after the thrown
     * @todo implement me!
     */
-  override def throws(t: ExpressionSet): PermissionState = {
+  override def throws(t: ExpressionSet): S = {
     logger.debug("*** throws(" + t.toString + "): implement me!")
     
     ???
@@ -782,7 +789,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The top value, that is, a value x that is greater than or equal to any other value
     * @todo implement me!
     */
-  override def top(): PermissionState = {
+  override def top(): S = {
     // logger.debug("*** top(): implement me!")
     
     this.copy(heapNum = heapNum.top())
@@ -804,7 +811,7 @@ case class PermissionState(heapNum: PointsToNumericalState,
     * @return The widening of `this` and `other`
     * @todo implement me!
     */
-  override def widening(other: PermissionState): PermissionState = {
+  override def widening(other: S): S = {
     logger.debug("*** PermissionState.widening(" + other.repr + ")")
 
     //    val exp = this.exprSet widening other.expr // widen the exprSets
@@ -828,19 +835,83 @@ case class PermissionState(heapNum: PointsToNumericalState,
   }
 }
 
-/** Builds permission analysis entry states for given method declarations. */
-object PermissionEntryStateBuilder extends EntryStateBuilder[PermissionState] {
-  override def topState: PermissionState = PermissionState(
-    PointsToNumericalEntryStateBuilder.topState,
+/** Permission Inference State using Intervals.
+  *
+  * @param heapNum pointsto+intervals state
+  * @param idToSym map from an `Identifier` to its `SymbolicPermission`
+  * @author Caterina Urban
+  */
+case class PermissionIntervalsState(heapNum: PointsToIntervalsState,
+                                    idToSym: Map[Identifier, SymbolicPermission])
+  extends PermissionState[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
+  override def copy(heapNum: PointsToIntervalsState,
+                    idToSym: Map[Identifier, SymbolicPermission]): PermissionIntervalsState =
+    PermissionIntervalsState(heapNum, idToSym)
+}
+
+/** Permission Inference State using Polyhedra.
+  *
+  * @param heapNum pointsto+polyhedra state
+  * @param idToSym map from an `Identifier` to its `SymbolicPermission`
+  * @author Caterina Urban
+  */
+case class PermissionPolyhedraState(heapNum: PointsToPolyhedraState,
+                                    idToSym: Map[Identifier, SymbolicPermission])
+  extends PermissionState[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
+  override def copy(heapNum: PointsToPolyhedraState,
+                    idToSym: Map[Identifier, SymbolicPermission]): PermissionPolyhedraState =
+    PermissionPolyhedraState(heapNum, idToSym)
+}
+
+/** Permission Inference entry states for given method declarations.
+  *
+  * @tparam N the numerical domain
+  * @tparam T the pointsto+numerical state
+  * @tparam S the permission state
+  * @author Caterina Urban
+  */
+trait PermissionEntryStateBuilder[N <: NumericalDomain[N],
+  T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]] extends EntryStateBuilder[S]
+
+/** Permission Inference entry states using Intervals for given method declarations.
+  *
+  * @author Caterina Urban
+  */
+object PermissionIntervalsEntryStateBuilder
+  extends PermissionEntryStateBuilder[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
+  override def topState: PermissionIntervalsState = PermissionIntervalsState(
+    PointsToIntervalsEntryStateBuilder.topState,
     // map from a `Identifier` to its `SymbolicPermission`
     Map[Identifier,SymbolicPermission]())
 }
 
-class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntryStateBuilder) {
+/** Permission Inference entry states using Polyhedra for given method declarations.
+  *
+  * @author Caterina Urban
+  */
+object PermissionPolyhedraEntryStateBuilder
+  extends PermissionEntryStateBuilder[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
+  override def topState: PermissionPolyhedraState = PermissionPolyhedraState(
+    PointsToPolyhedraEntryStateBuilder.topState,
+    // map from a `Identifier` to its `SymbolicPermission`
+    Map[Identifier,SymbolicPermission]())
+}
+
+/** Permission Inference.
+  *
+  * @tparam N the numerical domain
+  * @tparam T the pointsto+numerical state
+  * @tparam S the permission state
+  * @author Caterina Urban
+  */
+trait PermissionAnalysis[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
+  extends Analysis[S] {
+
+  def entryStateBuilder: PermissionEntryStateBuilder[N,T,S]
 
   var permissions = Map[String, Map[SymbolicValue,Double]]()
 
-  override def analyze(method: MethodDeclaration): AnalysisResult[PermissionState] = {
+  override def analyze(method: MethodDeclaration): AnalysisResult[S] = {
     val result = analyze(method, entryStateBuilder.build(method))
 
     val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
@@ -868,16 +939,43 @@ class PermissionAnalysis extends SimpleAnalysis[PermissionState](PermissionEntry
 
     result
   }
+
 }
 
-/** Runs the Access Permission Inference analysis. */
-object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
+/** Permission Inference using Intervals.
+  *
+  * @author Caterina Urban
+  */
+object PermissionIntervalsAnalysis
+  extends PermissionAnalysis[BoxedNonRelationalNumericalDomain[DoubleInterval],
+  PointsToIntervalsState, PermissionIntervalsState] {
+  override def entryStateBuilder = PermissionIntervalsEntryStateBuilder
+}
+
+/** Permission Inference using Polyhedra.
+  *
+  * @author Caterina Urban
+  */
+object PermissionPolyhedraAnalysis
+  extends PermissionAnalysis[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
+  override def entryStateBuilder = PermissionPolyhedraEntryStateBuilder
+}
+
+/** Runs the Permission Inference.
+  *
+  * @tparam N the numerical domain
+  * @tparam T the pointsto+numerical state
+  * @tparam S the permission state
+  * @author Caterina Urban
+  */
+trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
+  extends SilAnalysisRunner[S] {
 
   /** The analysis to be run. */
-  val analysis = new PermissionAnalysis
+  val analysis : PermissionAnalysis[N,T,S]
 
   /** Extends a sil.Program with permissions inferred by the PermissionAnalysis. */
-  def extendProgram(prog: sil.Program, results: List[AnalysisResult[PermissionState]]): sil.Program = {
+  def extendProgram(prog: sil.Program, results: List[AnalysisResult[S]]): sil.Program = {
     // map of method names to control flow graphs
     val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
     // extending program methods
@@ -892,7 +990,7 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
   }
 
   /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
-  def extendMethod(method: sil.Method, cfgState: AbstractCFGState[PermissionState]): sil.Method = {
+  def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
 
     def typToSilver(typ: Type): sil.Type = typ match {
       case sample.IntType => sil.Int
@@ -943,7 +1041,7 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
     method.copy(_pres = precondition, _body = body)(method.pos, method.info)
   }
 
-  def extendStmt(stmt: sil.Stmt, cfgState: AbstractCFGState[PermissionState]): sil.Stmt =
+  def extendStmt(stmt: sil.Stmt, cfgState: AbstractCFGState[S]): sil.Stmt =
     stmt match {
       case stmt: sil.If => stmt
 
@@ -1006,3 +1104,22 @@ object PermissionAnalysisRunner extends SilAnalysisRunner[PermissionState] {
   override def toString = "Access Permission Inference Analysis"
 }
 
+/** Runs the Permission Inference using Intervals.
+  *
+  * @author Caterina Urban
+  */
+object PermissionIntervalsAnalysisRunner
+  extends PermissionAnalysisRunner[BoxedNonRelationalNumericalDomain[DoubleInterval], PointsToIntervalsState, PermissionIntervalsState] {
+  override val analysis = PermissionIntervalsAnalysis
+  override def toString = "Permission-Intervals Analysis"
+}
+
+/** Runs the Permission Inference using Polyhedra.
+  *
+  * @author Caterina Urban
+  */
+object PermissionPolyhedraAnalysisRunner
+  extends PermissionAnalysisRunner[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
+  override val analysis = PermissionPolyhedraAnalysis
+  override def toString = "Permission-Polyhedra Analysis"
+}

@@ -40,7 +40,7 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
                                                           returnedtype: Type,
                                                           programpoint: ProgramPoint,
                                                           state: S): Option[S] = state match {
-    case state: PermissionState =>
+    case state: PermissionState[_,_,_] =>
       val nativeMethod = PermissionMethods.values.find(_.toString == operator)
       nativeMethod match {
         case Some(PermissionMethods.permission) =>

@@ -14,8 +14,9 @@ object Main {
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
 
-    //PointsToNumericalAnalysisRunner.main(args)
-    PermissionAnalysisRunner.main(args)
+    //PointsToIntervalsAnalysisRunner.main(args)
+    //PermissionIntervalsAnalysisRunner.main(args)
+    PermissionPolyhedraAnalysisRunner.main(args)
 
     for (r <- Reporter.seenErrors) {
       println(r)
