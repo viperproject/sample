@@ -29,7 +29,7 @@ class PointsToIntervalsAnalysisTestSuite extends SilSuite {
 }
 
 class PointsToPolyhedraAnalysisTestSuite extends SilSuite {
-  override def testDirectories = Seq("silver/heap/polyhedra")
+  override def testDirectories = Seq("silver/heap")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
     val fe = new DummySilFrontend()

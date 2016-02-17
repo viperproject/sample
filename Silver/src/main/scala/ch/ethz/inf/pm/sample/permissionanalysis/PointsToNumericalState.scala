@@ -134,16 +134,17 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
-            case right: HeapIdentifier => // e.g., `x.f := new()`
-              val o = obj.obj // retrieve `Obj` whose field is assigned
-              val f = obj.field // retrieve assigned field
-              val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
-                objFieldToObj + (o -> (objFieldToObj(o) + (f -> Set[HeapIdentifier](right))))
-              } else { // weak update
-                objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
-              }
-              // return the current state with updated objFieldToObj
-              this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
+            // NOTE: the following case is commented because x.f := new() is not possible in Silver
+            //case right: HeapIdentifier => // e.g., `x.f := new()`
+            //  val o = obj.obj // retrieve `Obj` whose field is assigned
+            //  val f = obj.field // retrieve assigned field
+            //  val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
+            //    objFieldToObj + (o -> (objFieldToObj(o) + (f -> Set[HeapIdentifier](right))))
+            //  } else { // weak update
+            //    objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
+            //  }
+            //  // return the current state with updated objFieldToObj
+            //  this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
             case right: VariableIdentifier => // e.g., `x.f := y`
               val s = refToObj(right) // retrieve the corresponding heap `Obj` objects
@@ -307,30 +308,75 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
 
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
         (left, right) match {
-          case (left: VariableIdentifier, right: VariableIdentifier) =>
-            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
-            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+          case (left: Identifier, right: Identifier) =>
+            val l = left match {
+              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]())
+              case left: FieldIdentifier => objFieldToObj.getOrElse(left.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(left.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
+            val r = right match {
+              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]())
+              case right: FieldIdentifier => objFieldToObj.getOrElse(right.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(right.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
             val intersection = l intersect r
             if (intersection.isEmpty) { // there is no common Obj
               this.bottom() // return the bottom state
             } else { // there is at least a common Obj
-              val refToObjmap = refToObj + (left -> intersection, right -> intersection)
-              // return the current state with updated refToObj
-              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+              var refToObjmap = refToObj
+              refToObjmap = left match {
+                case left: VariableIdentifier => refToObjmap + (left -> intersection)
+                case _ => refToObjmap
+              }
+              refToObjmap = right match {
+                case right: VariableIdentifier => refToObjmap + (right -> intersection)
+                case _ => refToObjmap
+              }
+              var objFieldToObjmap = objFieldToObj
+              objFieldToObjmap = left match {
+                case left: FieldIdentifier =>
+                  objFieldToObjmap + (left.obj -> Map[String,Set[HeapIdentifier]](left.field -> intersection))
+                case _ => objFieldToObjmap
+              }
+              objFieldToObjmap = right match {
+                case right: FieldIdentifier =>
+                  objFieldToObjmap + (right.obj -> Map[String,Set[HeapIdentifier]](right.field -> intersection))
+                case _ => objFieldToObjmap
+              }
+              // return the current state with updated refToObj and objFieldToObj
+              this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
             }
-          case (left: VariableIdentifier, Constant("null",_,_)) =>
-            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
+          case (left: Identifier, Constant("null",_,_)) =>
+            val l = left match {
+              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]())
+              case left: FieldIdentifier => objFieldToObj.getOrElse(left.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(left.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
             if (l.contains(NullHeapIdentifier)) {
               // replace key into refToObj map
-              val refToObjmap = refToObj + (left -> Set[HeapIdentifier](NullHeapIdentifier))
+              val refToObjmap = left match {
+                case left: VariableIdentifier => refToObj + (left -> Set[HeapIdentifier](NullHeapIdentifier))
+                case _ => refToObj
+              }
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             } else this.bottom() // return the bottom state
-          case (Constant("null",_,_), right: VariableIdentifier) =>
-            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+          case (Constant("null",_,_), right: Identifier) =>
+            val r = right match {
+              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]())
+              case right: FieldIdentifier => objFieldToObj.getOrElse(right.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(right.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
             if (r.contains(NullHeapIdentifier)) {
               // replace key into refToObj map
-              val refToObjmap = refToObj + (right -> Set[HeapIdentifier](NullHeapIdentifier))
+              val refToObjmap = right match {
+                case right: VariableIdentifier => refToObj + (right -> Set[HeapIdentifier](NullHeapIdentifier))
+                case _ => refToObj
+              }
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             } else this.bottom() // return the bottom state
@@ -338,31 +384,76 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
 
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
         (left, right) match {
-          case (left: VariableIdentifier, right: VariableIdentifier) =>
-            val l: Set[HeapIdentifier] = refToObj.getOrElse(left,Set[HeapIdentifier]())
-            val r: Set[HeapIdentifier] = refToObj.getOrElse(right,Set[HeapIdentifier]())
+          case (left: Identifier, right: Identifier) =>
+            val l = left match {
+              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]())
+              case left: FieldIdentifier => objFieldToObj.getOrElse(left.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(left.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
+            val r = right match {
+              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]())
+              case right: FieldIdentifier => objFieldToObj.getOrElse(right.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(right.field,Set[HeapIdentifier]())
+              case _ => Set[HeapIdentifier]()
+            }
             val lr = l diff r
             val rl = r diff l
             if (lr.isEmpty && rl.isEmpty) { // there are none or only common Obj
               this.bottom() // return the bottom state
-            } else {
-              val refToObjmap = refToObj + (left -> lr, right -> rl)
-              // return the current state with updated refToObj
-              this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
+            } else { // there is at least a common Obj
+              var refToObjmap = refToObj
+              refToObjmap = left match {
+                case left: VariableIdentifier => refToObjmap + (left -> lr)
+                case _ => refToObjmap
+              }
+              refToObjmap = right match {
+                case right: VariableIdentifier => refToObjmap + (right -> rl)
+                case _ => refToObjmap
+              }
+              var objFieldToObjmap = objFieldToObj
+              objFieldToObjmap = left match {
+                case left: FieldIdentifier =>
+                  objFieldToObjmap + (left.obj -> Map[String,Set[HeapIdentifier]](left.field -> lr))
+                case _ => objFieldToObjmap
+              }
+              objFieldToObjmap = right match {
+                case right: FieldIdentifier =>
+                  objFieldToObjmap + (right.obj -> Map[String,Set[HeapIdentifier]](right.field -> rl))
+                case _ => objFieldToObjmap
+              }
+              // return the current state with updated refToObj and objFieldToObj
+              this.copy(refToObj = refToObjmap, objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
             }
-          case (left: VariableIdentifier, Constant("null",_,_)) =>
-            val l = refToObj.getOrElse(left,Set[HeapIdentifier]()) - NullHeapIdentifier
+          case (left: Identifier, Constant("null",_,_)) =>
+            val l = left match {
+              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case left: FieldIdentifier => objFieldToObj.getOrElse(left.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(left.field,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case _ => Set[HeapIdentifier]()
+            }
             if (l.isEmpty) this.bottom() else {
               // replace key into refToObj map
-              val refToObjmap = refToObj + (left -> l)
+              val refToObjmap = left match {
+                case left: VariableIdentifier => refToObj + (left -> l)
+                case _ => refToObj
+              }
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             }
-          case (Constant("null",_,_), right: VariableIdentifier) =>
-            val r = refToObj.getOrElse(right,Set[HeapIdentifier]()) - NullHeapIdentifier
+          case (Constant("null",_,_), right: Identifier) =>
+            val r = right match {
+              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case right: FieldIdentifier => objFieldToObj.getOrElse(right.obj,Map[String,Set[HeapIdentifier]]()).
+                getOrElse(right.field,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case _ => Set[HeapIdentifier]()
+            }
             if (r.isEmpty) this.bottom() else {
               // replace key into refToObj map
-              val refToObjmap = refToObj + (right -> r)
+              val refToObjmap = right match {
+                case right: VariableIdentifier => refToObj + (right -> r)
+                case _ => refToObj
+              }
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             }
