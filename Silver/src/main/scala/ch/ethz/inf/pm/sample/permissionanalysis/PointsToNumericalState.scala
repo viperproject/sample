@@ -591,17 +591,19 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
         // return the current state with updated exprSet, update refToObj and updated objFieldToObj map
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
       } else { // the Obj was never created before
-        // add key to refToObj map
-        val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
         // prepare fields to add to objFieldToObj map and add variables to numDom
         var fieldMap = Map[String,Set[HeapIdentifier]]()
         var num = numDom
         for (f <- fieldSet) {
           f._1 match {
-            case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapIdentifier]())
+            case _:RefType =>
+              obj.setSummary(true) // turn the Obj into a summary node
+              fieldMap = fieldMap + (f._2 -> Set[HeapIdentifier](obj, NullHeapIdentifier))
             case _ => num = num.createVariable(FieldIdentifier(obj,f._2,f._1),f._1)
           }
         }
+        // add key to refToObj map
+        val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
         // add key to objFieldToObj map
         val objFieldToObjmap = objFieldToObj + (obj -> fieldMap)
         // return the current state with updated exprSet, refToObj, objFieldToObj, numDom
@@ -758,7 +760,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     * @return `true` if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: S): Boolean = {
-    // logger.debug("*** lessEqual(" + other.repr + ")")
+    logger.debug("*** lessEqual(" + this.repr + ", " + other.repr + ")")
 
     //val exp = this.exprSet lessEqual other.exprSet // test the exprSets
     //val fields = this.fieldSet subsetOf other.fieldSet // test the fieldSets
@@ -782,19 +784,21 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: S): S = {
-    // logger.debug("*** lub(" + other.repr + ")")
+    logger.debug("*** lub(" + this.repr + ", " + other.repr + ")")
 
     val exp = this.exprSet lub other.expr // join the exprSets
     val fields = this.fieldSet ++ other.fieldSet // join the fieldSets
     val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
     } // merge the refToObjs
+    def mergeFieldMaps (first: Map[String,Set[HeapIdentifier]], second: Map[String,Set[HeapIdentifier]]) = {
+      first.filterKeys(k => !second.contains(k)) ++ second.map {
+        case (k: String, v: Set[HeapIdentifier]) => k -> (v ++ first.getOrElse(k,Set[HeapIdentifier]()))
+      }
+    } // method to merge field maps
     val objFieldToObjmap = this.objFieldToObj.filterKeys(k => !other.objFieldToObj.contains(k)) ++ other.objFieldToObj.map {
       case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
-        (other.objFieldToObj(o).map {
-          case (s: String, v: Set[HeapIdentifier]) => s ->
-            (v ++ this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()))
-        } ++ (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]())))
+        mergeFieldMaps(m, this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()))
     } // merge the objFieldToObjmap
     val num = this.numDom lub other.numDom // join the numDoms
 
@@ -977,13 +981,15 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     val refToObjmap = this.refToObj.filterKeys(k => !other.refToObj.contains(k)) ++ other.refToObj.map {
       case (k: VariableIdentifier,v: Set[HeapIdentifier]) => k -> (v ++ this.refToObj.getOrElse(k,Set[HeapIdentifier]()))
     } // merge the refToObjs
+    def mergeFieldMaps (first: Map[String,Set[HeapIdentifier]], second: Map[String,Set[HeapIdentifier]]) = {
+      first.filterKeys(k => !second.contains(k)) ++ second.map {
+        case (k: String, v: Set[HeapIdentifier]) => k -> (v ++ first.getOrElse(k,Set[HeapIdentifier]()))
+      }
+    } // method to merge field maps
     val objFieldToObjmap = this.objFieldToObj.filterKeys(k => !other.objFieldToObj.contains(k)) ++ other.objFieldToObj.map {
         case (o: HeapIdentifier,m: Map[String,Set[HeapIdentifier]]) => o ->
-          (other.objFieldToObj(o).map {
-            case (s: String, v: Set[HeapIdentifier]) => s ->
-              (v ++ this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(s,Set[HeapIdentifier]()))
-          } ++ (this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]())))
-      } // merge the objFieldToObjmap
+          mergeFieldMaps(m, this.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()))
+    } // merge the objFieldToObjmap
     val num = this.numDom widening other.numDom // widen the numDoms
 
     // return the current state with updated exprSet, fieldSet, refToObj, objFieldToObj and numDom
