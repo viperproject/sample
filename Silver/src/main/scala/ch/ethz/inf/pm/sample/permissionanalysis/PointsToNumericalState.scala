@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, EntryStateBuilder}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
 /** Object created at object allocation site.
@@ -104,6 +105,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
   // map from heap objects to a map from `Ref` fields to heap objects
   def objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]
   def numDom: T // intervals/polyhedra abstract domain
+  def currentPP: ProgramPoint
 
   /** Assigns an expression to a field of an object.
     *
@@ -397,9 +399,11 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
                 getOrElse(right.field,Set[HeapIdentifier]())
               case _ => Set[HeapIdentifier]()
             }
-            val lr = l diff r
-            val rl = r diff l
-            if (lr.isEmpty && rl.isEmpty) { // there are none or only common Obj
+            val intersection = l intersect r
+            val lr = l diff intersection
+            val rl = r diff intersection
+            if (lr.isEmpty && rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable) {
+              // there are only common Obj
               this.bottom() // return the bottom state
             } else { // there is at least a common Obj
               var refToObjmap = refToObj
@@ -427,31 +431,41 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
             }
           case (left: Identifier, Constant("null",_,_)) =>
             val l = left match {
-              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case left: VariableIdentifier => refToObj.getOrElse(left,Set[HeapIdentifier]())
               case left: FieldIdentifier => objFieldToObj.getOrElse(left.obj,Map[String,Set[HeapIdentifier]]()).
-                getOrElse(left.field,Set[HeapIdentifier]()) - NullHeapIdentifier
+                getOrElse(left.field,Set[HeapIdentifier]())
               case _ => Set[HeapIdentifier]()
             }
-            if (l.isEmpty) this.bottom() else {
+            val r = Set[HeapIdentifier](NullHeapIdentifier)
+            val intersection = l intersect r
+            val lr = l diff intersection
+            if (lr.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
+              this.bottom()
+            else {
               // replace key into refToObj map
               val refToObjmap = left match {
-                case left: VariableIdentifier => refToObj + (left -> l)
+                case left: VariableIdentifier => refToObj + (left -> lr)
                 case _ => refToObj
               }
               // return the current state with updated refToObj
               this.copy(refToObj = refToObjmap).pruneUnreachableHeap()
             }
           case (Constant("null",_,_), right: Identifier) =>
+            val l = Set[HeapIdentifier](NullHeapIdentifier)
             val r = right match {
-              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]()) - NullHeapIdentifier
+              case right: VariableIdentifier => refToObj.getOrElse(right,Set[HeapIdentifier]())
               case right: FieldIdentifier => objFieldToObj.getOrElse(right.obj,Map[String,Set[HeapIdentifier]]()).
-                getOrElse(right.field,Set[HeapIdentifier]()) - NullHeapIdentifier
+                getOrElse(right.field,Set[HeapIdentifier]())
               case _ => Set[HeapIdentifier]()
             }
-            if (r.isEmpty) this.bottom() else {
+            val intersection = l intersect r
+            val rl = r diff intersection
+            if (rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
+              this.bottom()
+            else {
               // replace key into refToObj map
               val refToObjmap = right match {
-                case right: VariableIdentifier => refToObj + (right -> r)
+                case right: VariableIdentifier => refToObj + (right -> rl)
                 case _ => refToObj
               }
               // return the current state with updated refToObj
@@ -472,8 +486,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     */
   override def before(pp: ProgramPoint): S = {
     logger.debug("\n*** ----------------before(" + pp.toString + "): " + this.repr)
-
-    this  // return the current state without modification
+    this.copy(currentPP = pp)  // return the current state without updated currentPP
   }
 
   /** Returns the bottom value of the lattice.
@@ -489,14 +502,16 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.bottom()
-    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num)
+    val currentPP = DummyProgramPoint
+    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num,currentPP)
   }
 
   def copy(exprSet: ExpressionSet = exprSet,
            fieldSet: Set[(Type, String)] = fieldSet,
            refToObj: Map[VariableIdentifier, Set[HeapIdentifier]] = refToObj,
            objFieldToObj: Map[HeapIdentifier, Map[String, Set[HeapIdentifier]]] = objFieldToObj,
-           numDom: T = numDom): S
+           numDom: T = numDom,
+           currentPP: ProgramPoint = currentPP): S
 
   /** Creates an object at allocation site.
     *
@@ -637,18 +652,22 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     * @param objFieldToObjmap the current objFieldToObj map updated with missing fields
     * @return the set of objects referenced by the path (except the last field)
     */
-  def evaluatePath(path: List[String], objFieldToObjmap: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]) : Set[HeapIdentifier] = {
+  def evaluatePath(path: List[String],
+                   objFieldToObjmap: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]) : Set[HeapIdentifier] = {
     val keys = refToObj.keySet // set of all Ref variables
     // retrieving the Ref variable corresponding to the head of the path
     val id = keys.find((ref) => ref.name == path.head).get
     val fst = refToObj(id) // set of objects pointed by the Ref variable
     // path evaluation
-    path.drop(1).dropRight(1).foldLeft(fst)(
+    val ids = path.drop(1).dropRight(1).foldLeft(fst)(
       (set,next) => // next path segment
         set.foldLeft(Set[HeapIdentifier]())(
-          (s,obj) => s ++ objFieldToObjmap.get(obj).get.get(next).get
+          (s,obj) => s ++ objFieldToObjmap.getOrElse(obj,Map[String,Set[HeapIdentifier]]()).
+            getOrElse(next,Set[HeapIdentifier]())
         )
     )
+    if (ids.contains(NullHeapIdentifier)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+    ids - NullHeapIdentifier // return the objects referenced by the path (except the last field)
   }
 
   /** The current expression.
@@ -673,7 +692,8 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.factory()
-    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num)
+    val currentPP = DummyProgramPoint
+    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num,currentPP)
   }
 
   /** Accesses a field of an object.
@@ -951,7 +971,8 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     val refToObjmap = Map[VariableIdentifier,Set[HeapIdentifier]]()
     val objFieldToObjmap = Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]()
     val num = numDom.top()
-    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num)
+    val currentPP = DummyProgramPoint
+    this.copy(expr,fields,refToObjmap,objFieldToObjmap,num,currentPP)
   }
 
   /** The state string representation.
@@ -1010,14 +1031,16 @@ case class PointsToIntervalsState(exprSet: ExpressionSet,
                                   fieldSet: Set[(Type, String)],
                                   refToObj: Map[VariableIdentifier, Set[HeapIdentifier]],
                                   objFieldToObj: Map[HeapIdentifier, Map[String, Set[HeapIdentifier]]],
-                                  numDom: BoxedNonRelationalNumericalDomain[DoubleInterval])
+                                  numDom: BoxedNonRelationalNumericalDomain[DoubleInterval],
+                                  currentPP: ProgramPoint)
   extends PointsToNumericalState[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState] {
   override def copy(exprSet: ExpressionSet,
                     fieldSet: Set[(Type, String)],
                     refToObj: Map[VariableIdentifier, Set[HeapIdentifier]],
                     objFieldToObj: Map[HeapIdentifier, Map[String, Set[HeapIdentifier]]],
-                    numDom: BoxedNonRelationalNumericalDomain[DoubleInterval]): PointsToIntervalsState =
-    PointsToIntervalsState(exprSet, fieldSet, refToObj, objFieldToObj, numDom)
+                    numDom: BoxedNonRelationalNumericalDomain[DoubleInterval],
+                    currentPP: ProgramPoint): PointsToIntervalsState =
+    PointsToIntervalsState(exprSet, fieldSet, refToObj, objFieldToObj, numDom, currentPP)
 }
 
 /** PointsTo+Polyhedra Analysis State.
@@ -1033,14 +1056,16 @@ case class PointsToPolyhedraState(exprSet: ExpressionSet,
                                   fieldSet: Set[(Type, String)],
                                   refToObj: Map[VariableIdentifier, Set[HeapIdentifier]],
                                   objFieldToObj: Map[HeapIdentifier, Map[String, Set[HeapIdentifier]]],
-                                  numDom: Apron.Polyhedra)
+                                  numDom: Apron.Polyhedra,
+                                  currentPP: ProgramPoint)
   extends PointsToNumericalState[Apron.Polyhedra,PointsToPolyhedraState] {
   override def copy(exprSet: ExpressionSet,
                     fieldSet: Set[(Type, String)],
                     refToObj: Map[VariableIdentifier, Set[HeapIdentifier]],
                     objFieldToObj: Map[HeapIdentifier, Map[String, Set[HeapIdentifier]]],
-                    numDom: Polyhedra): PointsToPolyhedraState =
-    PointsToPolyhedraState(exprSet, fieldSet, refToObj, objFieldToObj, numDom)
+                    numDom: Polyhedra,
+                    currentPP: ProgramPoint): PointsToPolyhedraState =
+    PointsToPolyhedraState(exprSet, fieldSet, refToObj, objFieldToObj, numDom, currentPP)
 }
 
 /** PointsTo+Numerical analysis entry states for given method declarations.
@@ -1073,7 +1098,7 @@ object PointsToIntervalsEntryStateBuilder
   override def topState = PointsToIntervalsState(ExpressionSet(), fields,
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
+    new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top), DummyProgramPoint)
 
 }
 
@@ -1087,7 +1112,7 @@ object PointsToPolyhedraEntryStateBuilder
   override def topState = PointsToPolyhedraState(ExpressionSet(), fields,
     Map[VariableIdentifier,Set[HeapIdentifier]](),
     Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]](),
-    Apron.Polyhedra.Bottom.factory())
+    Apron.Polyhedra.Bottom.factory(), DummyProgramPoint)
 
 }
 

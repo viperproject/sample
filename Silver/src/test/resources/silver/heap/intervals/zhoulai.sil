@@ -14,7 +14,7 @@ method Foo()
         elem.val := i
         elem.next := hd
         hd := elem
-        assert(hd == elem)
         i := i + 1
     }
+    assert(-5 <= elem.val)
 }

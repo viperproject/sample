@@ -53,6 +53,11 @@ object Reporter {
     reportError(err)
   }
 
+  def reportInfo(message: String, pp: ProgramPoint, id: String = "warning"): Unit = {
+    val info = SampleInfo(id, message, pp)
+    seenInfos += info
+  }
+
   def reportImprecision(message:String,pp:ProgramPoint) {
     if (!hasImprecision(message,pp) && enableOutputOfPrecisionWarnings) {
       SystemParameters.progressOutput.put("PRECISION: "+message+" at "+pp.toString)
