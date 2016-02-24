@@ -1,0 +1,17 @@
+
+field n: Ref
+
+method test_myers(b: Bool) {
+    var z: Ref
+    var x: Ref
+    var y: Ref
+    z := new()
+    x := new()
+    y := new()
+    while (b) {
+        x.n := y
+        y.n := z
+        z := x
+    }
+    assert(x != y && y != z)
+}

@@ -1,0 +1,12 @@
+
+field val: Int
+
+method test_assignIntField(this: Ref) {
+    if (this != null) {
+        this.val := 9
+    } else {
+        this := new()
+        this.val := 0
+    }
+    assert(this.val >= 0 && this.val <= 9)
+}

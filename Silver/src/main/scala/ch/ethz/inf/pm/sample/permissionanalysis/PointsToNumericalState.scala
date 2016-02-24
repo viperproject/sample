@@ -1121,6 +1121,9 @@ trait PointsToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNume
             println(s)
           }
         } else {
+          // printing the block pre-state
+          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
+          println(g.blockStates(i).last.head)
           val states: List[T] = g.blockStates(i).last.drop(1) // post-states of each statement
           // print statements and corresponding post-states
           for ((c: Statement, s) <- stmts zip states) {

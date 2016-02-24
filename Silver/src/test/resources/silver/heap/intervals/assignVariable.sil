@@ -1,0 +1,14 @@
+
+method test_assignVariable_int() {
+	var x: Int
+	x := 0
+	assert(x == 0)
+}
+
+method test_assignVariable_ref() {
+    var x: Ref
+    var y: Ref
+    x := new()
+    y := x
+    assert(x != null && null != y && x == y)
+}

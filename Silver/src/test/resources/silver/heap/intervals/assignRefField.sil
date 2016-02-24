@@ -1,0 +1,18 @@
+
+field next: Ref
+
+method test_assignRefField(b: Bool) {
+    var x: Ref
+    x := new()
+    var y: Ref
+    y := new()
+    if (b) {
+        x.next := y
+        y.next := y
+    } else {
+        x.next := x
+        y.next := x
+    }
+    //:: ExpectedOutput(sample.assert.failed)
+    assert (x.next != x || y.next != y)
+}
