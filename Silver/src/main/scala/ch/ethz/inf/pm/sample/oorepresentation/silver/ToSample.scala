@@ -181,20 +181,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         parameters = args.map(go).toList,
         returnedType = sample.TopType)
 
-    // Stubs
-    case sil.Fold(acc) =>
-      sample.EmptyStatement(go(s.pos))
-    case sil.Unfold(acc) =>
-      sample.EmptyStatement(go(s.pos))
-    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) => ???
-    case sil.Goto(_) |
-         sil.If(_, _, _) |
-         sil.Label(_) |
-         sil.While(_, _, _, _) =>
-      sys.error(s"unexpected statement $s (should not be part of the CFG)")
-
-      // Inhale and Exhale statements are converted into native method calls
-      // @author Caterina Urban
+    // Inhale and Exhale statements are converted into native method calls
+    // @author Caterina Urban
 
     case sil.Inhale(exp) =>
       makeNativeMethodCall(
@@ -208,6 +196,18 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         name = PermissionMethods.exhale.toString,
         args = exp :: Nil,
         returnType = sample.TopType)
+
+    // Stubs
+    case sil.Fold(acc) =>
+      sample.EmptyStatement(go(s.pos))
+    case sil.Unfold(acc) =>
+      sample.EmptyStatement(go(s.pos))
+    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) => ???
+    case sil.Goto(_) |
+         sil.If(_, _, _) |
+         sil.Label(_) |
+         sil.While(_, _, _, _) =>
+      sys.error(s"unexpected statement $s (should not be part of the CFG)")
   }
 
   def convert(e: sil.Exp): sample.Statement = e match {
@@ -245,27 +245,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
     case sil.Unfolding(acc, inner) =>
       go(inner)
 
-    // Stubs
-    case sil.QuantifiedExp(vars, inner) =>
-      go(sil.TrueLit()()) // Ignore
-    case sil.InhaleExhaleExp(in, ex) =>
-      go(sil.TrueLit()()) // Ignore
-
-    case sil.Old(exp) => ???
-
-    case sil.AnySetCardinality(_) |
-         sil.AnySetContains(_, _) |
-         sil.AnySetIntersection(_, _) |
-         sil.AnySetMinus(_, _) |
-         sil.AnySetSubset(_, _) |
-         sil.AnySetUnion(_, _) |
-         sil.EmptyMultiset(_) |
-         sil.EmptySet(_) |
-         sil.ExplicitMultiset(_) |
-         sil.ExplicitSet(_) => ???
-
-      // Access predicates
-      // @author Caterina Urban
+    // Access predicates
+    // @author Caterina Urban
 
     case sil.AccessPredicate(loc, perm) =>
       makeNativeMethodCall(
@@ -280,15 +261,34 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
         case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
       }
 
-      // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
-      // their length (e.g., |data|) is treated as another unbounded variable
-      // @author Caterina Urban
+    // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
+    // their length (e.g., |data|) is treated as another unbounded variable
+    // @author Caterina Urban
 
     case e: sil.SeqLength => // sequence length, e.g., |this.data|
       makeVariable(e.pos, e.typ, e.toString)
     case sil.SeqIndex(sil.FieldAccess(rcv, field),_) => // sequence access, e.g., this.data[i]
       sample.FieldAccess(go(e.pos),go(rcv),field.name,go(field.typ))
     case e: sil.SeqExp => throw new NotImplementedError("A sil.SeqExp conversion is missing!")
+
+    // Stubs
+    case sil.QuantifiedExp(vars, inner) =>
+      go(sil.TrueLit()()) // Ignore
+    case sil.InhaleExhaleExp(in, ex) =>
+      go(sil.TrueLit()()) // Ignore
+
+    case sil.Old(exp) => ???
+    case e: sil.SeqExp => ???
+    case sil.AnySetCardinality(_) |
+         sil.AnySetContains(_, _) |
+         sil.AnySetIntersection(_, _) |
+         sil.AnySetMinus(_, _) |
+         sil.AnySetSubset(_, _) |
+         sil.AnySetUnion(_, _) |
+         sil.EmptyMultiset(_) |
+         sil.EmptySet(_) |
+         sil.ExplicitMultiset(_) |
+         sil.ExplicitSet(_) => ???
   }
 
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
@@ -411,8 +411,8 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
         case b: sil.Constraining =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
-        case b: sil.ConstrainingBlock =>
-          throw new IllegalArgumentException("The implementation for sil.ConstrainingBlock is missing.")
+        //case b: sil.ConstrainingBlock =>
+        //  throw new IllegalArgumentException("The implementation for sil.ConstrainingBlock is missing.")
       }
       // Create new node and register its index *before* recursing
       val index = cfg.addNode(stmts)

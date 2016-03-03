@@ -87,6 +87,8 @@ case class CountedSymbolicValue(n: Double, s: SymbolicValue) {
     this.s.equals(a.s)
   }
 
+  def evaluate(result: Map[SymbolicValue, Double]): Double = n * result(s)
+
   /** Least upper bound of counted symbolic values. */
   def lub(b : CountedSymbolicValue) = {
     assert(this.sameSymbolicValue(b))
@@ -173,6 +175,8 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
     new SymbolicPermission(sym)
   }
 
+  def evaluate(result: Map[SymbolicValue, Double]): Double = value.foldLeft(0.0)(_ + _.evaluate(result))
+
   /** Returns the bottom value of the lattice. */
   override def bottom(): SymbolicPermission = ???
   /** Returns a new instance of the lattice. */
@@ -217,9 +221,11 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   with LazyLogging
 {
   this: S =>
-  
+
+  // points-to+numerical state
   def heapNum: T
-  def idToSym: Map[Identifier,SymbolicPermission] // map from an `Identifier` to its `SymbolicPermission`
+  // map from an `Identifier` to its `SymbolicPermission`
+  def idToSym: Map[Identifier,SymbolicPermission]
   
   /** Assigns an expression to a field of an object.
     *
@@ -231,7 +237,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): S = {
-    logger.debug("*** PermissionState.assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
+    logger.info("*** assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
     obj match {
       case obj: FieldIdentifier =>
@@ -267,7 +273,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state after the assignment
     */
   override def assignVariable(x: Expression, right: Expression): S = {
-    logger.debug("*** PermissionState.assignVariable(" + x.toString + "; " + right.toString + ")")
+    logger.info("*** assignVariable(" + x.toString + "; " + right.toString + ")")
 
     var idToSymmap = idToSym
     (x, right) match {
@@ -303,7 +309,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state after assuming that the expression holds
     */
   override def assume(cond: Expression): S = {
-    logger.debug("*** PermissionState.assume(" + cond.toString + ")")
+    logger.info("*** assume(" + cond.toString + ")")
 
     // ensure read permissions for all field identifiers in the condition
     for (id <- cond.ids.getNonTop) {
@@ -329,9 +335,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state eventually modified
     */
   override def before(pp: ProgramPoint): S = {
-    logger.debug("\n*** PermissionState.before(" + pp.toString + "): " + this.repr)
-
-    this  // return the current state without modification
+    logger.info("\n*** before(" + pp.toString + "): " + this.repr)
+    // return the current state with updated heapNum
+    this.copy(heapNum = heapNum.before(pp))
   }
 
   /** Returns the bottom value of the lattice.
@@ -339,7 +345,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
   override def bottom(): S = {
-    // logger.debug("*** bottom()")
+    // logger.info("*** bottom()")
 
 //    // return a new state with bottom exprSet and empty refToObj map
 //    PermissionState(exprSet.bottom(),refToObj.empty,objFieldToObj.empty,numDom.bottom())
@@ -358,7 +364,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state with updated exprSet after the creation of the object
     */
   override def createObject(typ: Type, pp: ProgramPoint): S = {
-    logger.debug("*** PermissionState.createObject(" + typ.toString + "; " + pp.toString + ")")
+    logger.info("*** createObject(" + typ.toString + "; " + pp.toString + ")")
     
 //    val obj = HeapIdentifier(typ,pp) // create new Obj
 //    val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
@@ -379,7 +385,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state after the creation of the variable
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S = {
-    logger.debug("*** PermissionState.createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
+    logger.info("*** createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
 
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.createVariable(x, typ, pp))
@@ -394,7 +400,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state after the creation of the argument
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): S = {
-    logger.debug("*** PermissionState.createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
+    logger.info("*** createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
 
     if (typ.isObject) { // the variable to be created is a `Ref`
 
@@ -426,7 +432,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     *         state that contains an expression representing this constant
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
-    // logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
+    // logger.info("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
 
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.evalConstant(value, typ, pp))
@@ -434,7 +440,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
 
   /** Exhales permissions. */
   override def exhale(acc: Expression) : S = {
-    logger.debug("*** PermissionState.exhale(" + acc.toString + "): implement me!")
+    logger.info("*** exhale(" + acc.toString + "): implement me!")
 
     acc match {
       case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
@@ -468,7 +474,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * Invoked after each statement to retrieve its result.
     */
   override def expr: ExpressionSet = {
-    // logger.debug("*** expr: " + this.heapNum.exprSet.toString)
+    // logger.info("*** expr: " + this.heapNum.exprSet.toString)
     
     this.heapNum.exprSet // return exprSet
   }
@@ -479,7 +485,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def factory(): S = {
-    // logger.debug("*** factory(): implement me!")
+    // logger.info("*** factory(): implement me!")
     
     this.copy(heapNum = heapNum.factory())
   }
@@ -495,7 +501,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     *         holds the objects referenced by the access path (up to the given field excluded).
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
-    logger.debug("*** PermissionState.getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
+    logger.info("*** getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
     obj match {
       case obj:AccessPathIdentifier =>
@@ -559,7 +565,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     *         as expression the symbolic representation of the value of the given variable
     */
   override def getVariableValue(id: Identifier): S = {
-    logger.debug("*** PermissionState.getVariableValue(" + id.toString + ")")
+    logger.info("*** getVariableValue(" + id.toString + ")")
 
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.getVariableValue(id))
@@ -573,14 +579,14 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def glb(other: S): S = {
-    logger.debug("*** glb(" + other.repr + "): implement me!")
+    logger.info("*** glb(" + other.repr + "): implement me!")
     
     ???
   }
 
   /** Inhales permissions. */
   override def inhale(acc: Expression) : S = {
-    logger.debug("*** inahle(" + acc.toString + ")")
+    logger.info("*** inahle(" + acc.toString + ")")
 
     acc match {
       case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
@@ -615,7 +621,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def isBottom: Boolean = {
-    // logger.debug("*** isBottom: implement me!")
+    // logger.info("*** isBottom: implement me!")
 
     heapNum.isBottom
   }
@@ -626,7 +632,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def isTop: Boolean = {
-    // logger.debug("*** isTop: implement me!")
+    // logger.info("*** isTop: implement me!")
     
     heapNum.isTop
   }
@@ -637,7 +643,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return `true` if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: S): Boolean = {
-    // logger.debug("*** lessEqual(" + other.repr + ")")
+    // logger.info("*** lessEqual(" + other.repr + ")")
 
 //    val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
 //    val refToObjmap = this.refToObj.forall {
@@ -662,7 +668,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: S): S = {
-    // logger.debug("*** lub(" + other.repr + ")")
+    // logger.info("*** lub(" + other.repr + ")")
 
     val idToSymmap = this.idToSym ++ other.idToSym.map {
       case (k: Identifier,v: SymbolicPermission) => k -> (this.idToSym.getOrElse(k,new SymbolicPermission()) lub v)
@@ -672,13 +678,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     this.copy(heapNum = heapNum lub other.heapNum, idToSym = idToSymmap)
   }
 
-  /** Performs abstract garbage collection.
-    *
-    * @todo implement me!
-    */
+  /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): S = {
-    // logger.debug("*** pruneUnreachableHeap(): implement me!")
-
+    // logger.info("*** pruneUnreachableHeap()")
     this.copy(heapNum = heapNum.pruneUnreachableHeap())
   }
 
@@ -687,7 +689,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): S = {
-    logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
+    logger.info("*** pruneVariables(" + filter.toString + "): implement me!")
     
     ???
   }
@@ -697,8 +699,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state obtained after removing the current expression
     */
   override def removeExpression(): S = {
-    // logger.debug("*** removeExpression()")
-
+    // logger.info("*** removeExpression()")
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.removeExpression())
   }
@@ -712,7 +713,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): S = {
-    logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
+    logger.info("*** removeVariable(" + varExpr.toString + "): implement me!")
     
     ???
   }
@@ -727,8 +728,8 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
       heapNum.exprSet.toString + ", " +
       heapNum.refToObj.toString + ", " +
       heapNum.objFieldToObj.toString + ", " +
-      heapNum.numDom.toString + ")" +
-    ")"
+      heapNum.numDom.toString + "), " +
+      idToSym.toString + ")"
   }
 
   /** Assigns an expression to an argument.
@@ -739,7 +740,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): S = {
-    logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
+    logger.info("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
     
     ???
   }
@@ -752,8 +753,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @return The abstract state after changing the current expression with the given one
     */
   override def setExpression(expr: ExpressionSet): S = {
-    // logger.debug("*** setExpression(" + expr.toString + ")")
-
+    // logger.info("*** setExpression(" + expr.toString + ")")
     // return the current state with updated heapNum
     this.copy(heapNum = heapNum.setExpression(expr))
   }
@@ -767,7 +767,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): S = {
-    logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
+    logger.info("*** setVariableToTop(" + varExpr.toString + "): implement me!")
     
     ???
   }
@@ -779,7 +779,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def throws(t: ExpressionSet): S = {
-    logger.debug("*** throws(" + t.toString + "): implement me!")
+    logger.info("*** throws(" + t.toString + "): implement me!")
     
     ???
   }
@@ -790,7 +790,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def top(): S = {
-    // logger.debug("*** top(): implement me!")
+    // logger.info("*** top(): implement me!")
     
     this.copy(heapNum = heapNum.top())
   }
@@ -812,7 +812,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     * @todo implement me!
     */
   override def widening(other: S): S = {
-    logger.debug("*** PermissionState.widening(" + other.repr + ")")
+    logger.info("*** widening(" + other.repr + ")")
 
     //    val exp = this.exprSet widening other.expr // widen the exprSets
     //    val refToObjmap = this.refToObj ++ other.refToObj.map {
@@ -871,7 +871,19 @@ case class PermissionPolyhedraState(heapNum: PointsToPolyhedraState,
   * @author Caterina Urban
   */
 trait PermissionEntryStateBuilder[N <: NumericalDomain[N],
-  T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]] extends EntryStateBuilder[S]
+  T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]] extends EntryStateBuilder[S] {
+
+  protected var fields: Set[(Type,String)] = Set[(Type,String)]()
+
+  override def build(method: MethodDeclaration): S = {
+    fields = Set[(Type,String)]()
+    for(f <- method.classDef.fields) {
+      fields = fields + ((f.typ, f.variable.toString))
+    }
+    method.initializeArgument[S](topState.copy(heapNum = topState.heapNum.copy(fieldSet = fields)))
+  }
+
+}
 
 /** Permission Inference entry states using Intervals for given method declarations.
   *
@@ -880,7 +892,7 @@ trait PermissionEntryStateBuilder[N <: NumericalDomain[N],
 object PermissionIntervalsEntryStateBuilder
   extends PermissionEntryStateBuilder[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
   override def topState: PermissionIntervalsState = PermissionIntervalsState(
-    PointsToIntervalsEntryStateBuilder.topState,
+    PointsToIntervalsEntryStateBuilder.topState, // top points-to+intervals state
     // map from a `Identifier` to its `SymbolicPermission`
     Map[Identifier,SymbolicPermission]())
 }
@@ -892,8 +904,8 @@ object PermissionIntervalsEntryStateBuilder
 object PermissionPolyhedraEntryStateBuilder
   extends PermissionEntryStateBuilder[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def topState: PermissionPolyhedraState = PermissionPolyhedraState(
-    PointsToPolyhedraEntryStateBuilder.topState,
-    // map from a `Identifier` to its `SymbolicPermission`
+    PointsToPolyhedraEntryStateBuilder.topState, // top points-to+polyhedra state
+    // map from an `Identifier` to its `SymbolicPermission`
     Map[Identifier,SymbolicPermission]())
 }
 
@@ -904,16 +916,18 @@ object PermissionPolyhedraEntryStateBuilder
   * @tparam S the permission state
   * @author Caterina Urban
   */
-trait PermissionAnalysis[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
+trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
   extends Analysis[S] {
+
+  // map between method names and constraint solutions
+  var permissions = Map[String, Map[SymbolicValue,Double]]()
 
   def entryStateBuilder: PermissionEntryStateBuilder[N,T,S]
 
-  var permissions = Map[String, Map[SymbolicValue,Double]]()
-
   override def analyze(method: MethodDeclaration): AnalysisResult[S] = {
+    // analyze the method
     val result = analyze(method, entryStateBuilder.build(method))
-
+    // solve the accumulated constraints
     val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
     println("\nResult: ")
     for ((s,v) <- solution) {
@@ -922,22 +936,11 @@ trait PermissionAnalysis[N <: NumericalDomain[N], T <: PointsToNumericalState[N,
       else if (v > 0)
         println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
     }
+    // add entry to the map between method names and constraint solutions
     permissions = permissions + (method.name.toString -> solution)
+    // clear the accumulated constraints (for the analysis of the next method)
     PermissionSolver.emptyConstraints()
-
-    //val cfg = result.cfgState
-
-    //if (cfg.cfg.initialBlockInLoop(0)) println("0 is loop")
-    //if (cfg.cfg.initialBlockInLoop(1)) println("1 is loop")
-    //if (cfg.cfg.initialBlockInLoop(2)) println("2 is loop")
-    //if (cfg.cfg.initialBlockInLoop(3)) println("3 is loop")
-    //if (cfg.cfg.initialBlockInLoop(4)) println("4 is loop")
-    //println(cfg.blockStates)
-    //println("states: " + cfg.blockStates.mapValues[PermissionState](
-    //  (l) => l.last.head
-    //))
-
-    result
+    result  // return the result of the analysis
   }
 
 }
@@ -947,7 +950,7 @@ trait PermissionAnalysis[N <: NumericalDomain[N], T <: PointsToNumericalState[N,
   * @author Caterina Urban
   */
 object PermissionIntervalsAnalysis
-  extends PermissionAnalysis[BoxedNonRelationalNumericalDomain[DoubleInterval],
+  extends PermissionInference[BoxedNonRelationalNumericalDomain[DoubleInterval],
   PointsToIntervalsState, PermissionIntervalsState] {
   override def entryStateBuilder = PermissionIntervalsEntryStateBuilder
 }
@@ -957,7 +960,7 @@ object PermissionIntervalsAnalysis
   * @author Caterina Urban
   */
 object PermissionPolyhedraAnalysis
-  extends PermissionAnalysis[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
+  extends PermissionInference[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
   override def entryStateBuilder = PermissionPolyhedraEntryStateBuilder
 }
 
@@ -968,11 +971,11 @@ object PermissionPolyhedraAnalysis
   * @tparam S the permission state
   * @author Caterina Urban
   */
-trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
+trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
   extends SilAnalysisRunner[S] {
 
   /** The analysis to be run. */
-  val analysis : PermissionAnalysis[N,T,S]
+  val analysis : PermissionInference[N,T,S]
 
   /** Extends a sil.Program with permissions inferred by the PermissionAnalysis. */
   def extendProgram(prog: sil.Program, results: List[AnalysisResult[S]]): sil.Program = {
@@ -992,22 +995,11 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
   /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
 
-    def typToSilver(typ: Type): sil.Type = typ match {
-      case sample.IntType => sil.Int
-      case sample.BoolType => sil.Bool
-      case sample.RefType(_) => sil.Ref
-    }
-
-    def ppToSilver(pp: ProgramPoint): sil.Position = pp match {
-      case sample.DummyProgramPoint => sil.NoPosition
-      case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
-    }
-
     // update the method precondition
     var precondition: Seq[sil.Exp] = method.pres
     for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())) {
       s match {
-        case s: SymbolicPrecondition =>
+        case s: SymbolicPrecondition => // we only care about preconditions
           // extracting all information from the path of the symbolic value
           val ids: List[(String, Type, ProgramPoint)] = (s.path.p, s.path.t, s.path.l).zipped.toList.reverse
           if (ids.length > 1) {
@@ -1018,7 +1010,7 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
               (exp, fld) => sil.FieldAccess(exp, sil.Field(fld._1, typToSilver(fld._2))())()
             )
             // adding access permission to the method precondition
-            if (v >= 1) {
+            if (v == 1) {
               val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
               precondition = precondition ++ Seq[sil.Exp](perm)
             } else if (v > 0) {
@@ -1028,12 +1020,12 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
               precondition = precondition ++ Seq[sil.Exp](perm)
             }
           }
-        case _ =>
+        case _ => // nothing to be done
       }
     }
 
     // update the method body
-    val body = extendStmt(method.body, cfgState)
+    val body = extendStmt(method.body, method, cfgState)
 
     // TODO: update the method postcondition
 
@@ -1041,7 +1033,7 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
     method.copy(_pres = precondition, _body = body)(method.pos, method.info)
   }
 
-  def extendStmt(stmt: sil.Stmt, cfgState: AbstractCFGState[S]): sil.Stmt =
+  def extendStmt(stmt: sil.Stmt, method: sil.Method, cfgState: AbstractCFGState[S]): sil.Stmt =
     stmt match {
       case stmt: sil.If => stmt
 
@@ -1063,38 +1055,78 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
         // TODO: wip
       case stmt: sil.Seqn =>
         val seq: Seq[sil.Stmt] = stmt.ss.foldRight(Seq[sil.Stmt]())(
-          (s: sil.Stmt, ss: Seq[sil.Stmt]) => ss.+:(extendStmt(s,cfgState))
+          (s: sil.Stmt, ss: Seq[sil.Stmt]) => ss.+:(extendStmt(s,method,cfgState))
         )
         sil.Seqn(seq)(stmt.pos,stmt.info)
 
       case stmt: sil.While =>
-
+        // retrieve the position of the loop head
         val pos = DefaultSilConverter.convert(stmt.cond.pos)
-        println("POS: " + pos)
+        // retrieve the block index and the statement index within the block of the loop head
         val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
           case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
             case (stmt, stmtIdx) =>
-              if (stmt.getPC() == pos) Some(CFGPosition(blockIdx, stmtIdx))
-              else None
+              if (stmt.getPC() == pos) Some(CFGPosition(blockIdx, stmtIdx)) else None
           })
         })
-        println("WHAT IS THIS: " + cfgPositions)
-        println("CFG:\n" + cfgState.cfg)
-
-        // update the loop invariants
-        val invariants: Seq[sil.Exp] = stmt.invs
-        sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,cfgState))(stmt.pos,stmt.info)
+        // retrieve the result of the analysis at the loop head
+        val pre = cfgState.preStateAt(cfgPositions.head)
+        // update the method loop invariants
+        var invariants: Seq[sil.Exp] = stmt.invs
+        for ((id: Identifier,sym: SymbolicPermission) <- pre.idToSym) {
+          // for each pair of identifier and symbolic permission...
+          id match {
+            case id: FieldIdentifier => // we only care about FieldIdentifiers
+              // retrieve the paths leading to the heap identifier of the field identifier
+              val paths = pre.heapNum.pathFromObj(id.obj)
+              for ((x,p) <- paths) { // for all retrieved paths...
+                // creating the corresponding field access
+                val typ = typToSilver(x.typ)
+                val fst = sil.LocalVar(x.toString)(typ, ppToSilver(x.pp))
+                val ids = (id.field::p).reverse // note that the paths are stored in reverse order for efficiency
+                val snd = sil.FieldAccess(fst, sil.Field(ids.head, typ)())()
+                val acc: sil.FieldAccess = ids.tail.foldLeft[sil.FieldAccess](snd)(
+                  (exp, fld) => sil.FieldAccess(exp, sil.Field(fld, typ)())()
+                )
+                // adding access permission to the loop invariants
+                val v = sym.evaluate(analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]()))
+                if (v >= 1) {
+                  val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
+                  invariants = invariants ++ Seq[sil.Exp](perm)
+                } else if (v > 0) {
+                  val (num, den) = PermissionSolver.doubleToRational(v)
+                  val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
+                  invariants = invariants ++ Seq[sil.Exp](perm)
+                }
+              } //TODO: handle the case of different/equal paths
+            case _ => // nothing to be done
+          }
+        }
+        sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,method,cfgState))(stmt.pos,stmt.info)
 
       case _ => println(stmt.getClass); stmt
     }
 
-  override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+  // convert sample.ProgramPoint to sil.ProgramPoint
+  def ppToSilver(pp: ProgramPoint): sil.Position = pp match {
+    case sample.DummyProgramPoint => sil.NoPosition
+    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
+  }
 
+  // convert sample.Type to sil.Type
+  def typToSilver(typ: Type): sil.Type = typ match {
+    case sample.IntType => sil.Int
+    case sample.BoolType => sil.Bool
+    case sample.RefType(_) => sil.Ref
+  }
+
+  override def main(args: Array[String]) {
+    // run the analysis and the permission inference
+    val results = run(new File(args(0)).toPath)
     // extending program with inferred permission
     val out = extendProgram(DefaultSilConverter.prog,results)
     println("\nExtended Program:\n" + out)
-
+    // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"
     val pw = new PrintWriter(new File(outName))
     pw.write(out.toString)
@@ -1109,7 +1141,7 @@ trait PermissionAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalSt
   * @author Caterina Urban
   */
 object PermissionIntervalsAnalysisRunner
-  extends PermissionAnalysisRunner[BoxedNonRelationalNumericalDomain[DoubleInterval], PointsToIntervalsState, PermissionIntervalsState] {
+  extends PermissionInferenceRunner[BoxedNonRelationalNumericalDomain[DoubleInterval], PointsToIntervalsState, PermissionIntervalsState] {
   override val analysis = PermissionIntervalsAnalysis
   override def toString = "Permission-Intervals Analysis"
 }
@@ -1119,7 +1151,7 @@ object PermissionIntervalsAnalysisRunner
   * @author Caterina Urban
   */
 object PermissionPolyhedraAnalysisRunner
-  extends PermissionAnalysisRunner[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
+  extends PermissionInferenceRunner[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
   override val analysis = PermissionPolyhedraAnalysis
   override def toString = "Permission-Polyhedra Analysis"
 }

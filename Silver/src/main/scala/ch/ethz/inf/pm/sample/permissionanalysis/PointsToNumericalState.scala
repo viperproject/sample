@@ -83,10 +83,6 @@ case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extend
   * The points-to analysis is a simple allocation-site abstraction.
   * The numerical analysis uses the intervals/polyhedra abstract domain.
   *
-  * For reference:
-  * A. Rountev, A. Milanova, B. G. Ryder - Points-to Analysis for Java Using Annotated Constraints (OOPSLA 2001)
-  * Z. Fu, T. Jensen, D. Pichardie - Lifting Numerical Abstract Domains to Heap-manipulating Programs (2013).
-  *
   * @tparam T the numerical domain
   * @tparam S the pointsto+numerical state
   * @author Caterina Urban
@@ -106,6 +102,42 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
   def objFieldToObj: Map[HeapIdentifier,Map[String,Set[HeapIdentifier]]]
   def numDom: T // intervals/polyhedra abstract domain
   def currentPP: ProgramPoint
+
+  // retrieves all different shortest paths from which a heap identifier is reachable
+  def pathFromObj(obj: HeapIdentifier): Set[(VariableIdentifier,List[String])] = {
+    var paths = Set[(VariableIdentifier,List[String])]() // set of complete paths to the given heap identifier
+
+    for (v: VariableIdentifier <- refToObj.keySet) { // for all variables...
+      if (refToObj(v).contains(obj)) { // the given heap identifier is directly reachable from the variable
+        paths = paths + ((v,List[String]())) // add path to the set of complete paths
+      } else { // variant of breadth-first search
+        var objs = objFieldToObj.keySet // set of all heap identifiers
+        var queue = Set[(List[String],HeapIdentifier)]()
+        for (o <- refToObj(v)) { // for all heap identifiers directly reachable from the variable...
+          // populate the queue with the heap identifiers directly reachable from the variable
+          queue = queue + ((List[String](),o))
+          objs = objs - o // remove the heap identifiers from the set of all heap identifiers
+        }
+        while (!queue.isEmpty) {
+          val el: (List[String], HeapIdentifier) = queue.head // pop an element from the queue
+          for ((f,ss) <- objFieldToObj(el._2)) { // for all pairs of field and set of heap identifiers...
+            if (ss.contains(obj)) { // the given heap identifier is directly reachable via the field
+              paths = paths + ((v, f::el._1)) // add path to the set of complete paths
+              // note that the path is stored in reverse order for efficiency
+            } else {
+              for (o <- ss if objs.contains(o)) { // for all (unseen) heap identifiers directly reachable via the field...
+                // populate the queue with the heap identifiers directly reachable via the field
+                queue = queue + ((f::el._1,o))
+                objs = objs - o // remove the heap identifiers from the set of all (remaining) heap identifiers
+              }
+            }
+          }
+        }
+      }
+    }
+
+    paths
+  }
 
   /** Assigns an expression to a field of an object.
     *
@@ -486,7 +518,8 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     */
   override def before(pp: ProgramPoint): S = {
     logger.debug("\n*** ----------------before(" + pp.toString + "): " + this.repr)
-    this.copy(currentPP = pp)  // return the current state without updated currentPP
+    // return the current state without updated currentPP
+    this.copy(currentPP = pp)
   }
 
   /** Returns the bottom value of the lattice.
@@ -900,7 +933,6 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
   def repr: String = {
     "PointsToNumericalState(" +
       exprSet.toString + ", " +
-      //fieldSet.toString + ", " +
       refToObj.toString + ", " +
       objFieldToObj.toString + ", " +
       numDom.toString + ")"
@@ -928,7 +960,6 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     */
   override def setExpression(expr: ExpressionSet): S = {
     // logger.debug("*** setExpression(" + expr.toString + ")")
-    
     this.copy(exprSet = expr) // return the current state with updated exprSet
   }
 

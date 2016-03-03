@@ -103,8 +103,8 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging 
       val tempState = previousState.before(ProgramPointUtils.identifyingPP(statement))
       val transformedState = statement.forwardSemantics(tempState)
       //logger.debug(tempState.toString)
-      logger.debug(statement.toString)
-      logger.debug(transformedState.toString)//.replace("\n",",")
+      logger.info(statement.toString)
+      logger.info(transformedState.toString)//.replace("\n",",")
       previousState = transformedState
       resultingStates append transformedState
     }
