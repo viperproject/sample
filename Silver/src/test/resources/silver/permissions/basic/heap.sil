@@ -1,0 +1,19 @@
+
+field f: Ref
+
+method set_f(monitor: Ref, value: Ref)
+  //requires acc(monitor.f, write)
+  //requires monitor != null && value != null
+  //ensures acc(monitor.f, write)
+{
+  monitor.f := value
+}
+
+method t3(r:Ref) returns (res:Ref)
+    //requires r!=null
+    //requires acc(r.f)
+    //requires r.f!=null
+    //requires acc(r.f.f)
+{
+    res := r.f.f
+}
