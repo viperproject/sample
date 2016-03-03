@@ -87,7 +87,7 @@ case class CountedSymbolicValue(n: Double, s: SymbolicValue) {
     this.s.equals(a.s)
   }
 
-  def evaluate(result: Map[SymbolicValue, Double]): Double = n * result(s)
+  def evaluate(result: Map[SymbolicValue, Double]): Double = n * result.getOrElse(s,0.0)
 
   /** Least upper bound of counted symbolic values. */
   def lub(b : CountedSymbolicValue) = {
@@ -224,8 +224,10 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
 
   // points-to+numerical state
   def heapNum: T
-  // map from an `Identifier` to its `SymbolicPermission`
+  // map from an identifier to its symbolic permission
   def idToSym: Map[Identifier,SymbolicPermission]
+  // map from an identifier to its currently associated set of symbolic permissions
+  def idToPerm: Map[Identifier,Set[SymbolicPermission]]
   
   /** Assigns an expression to a field of an object.
     *
@@ -353,7 +355,8 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     this.copy(heapNum = heapNum.bottom())
   }
 
-  def copy(heapNum: T = heapNum, idToSym: Map[Identifier,SymbolicPermission] = idToSym): S
+  def copy(heapNum: T = heapNum, idToSym: Map[Identifier,SymbolicPermission] = idToSym,
+           idToPerm: Map[Identifier, Set[SymbolicPermission]] = idToPerm): S
 
   /** Creates an object at allocation site.
     *
@@ -842,11 +845,13 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   * @author Caterina Urban
   */
 case class PermissionIntervalsState(heapNum: PointsToIntervalsState,
-                                    idToSym: Map[Identifier, SymbolicPermission])
+                                    idToSym: Map[Identifier, SymbolicPermission],
+                                    idToPerm: Map[Identifier, Set[SymbolicPermission]])
   extends PermissionState[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
   override def copy(heapNum: PointsToIntervalsState,
-                    idToSym: Map[Identifier, SymbolicPermission]): PermissionIntervalsState =
-    PermissionIntervalsState(heapNum, idToSym)
+                    idToSym: Map[Identifier, SymbolicPermission],
+                    idToPerm: Map[Identifier, Set[SymbolicPermission]]): PermissionIntervalsState =
+    PermissionIntervalsState(heapNum, idToSym, idToPerm)
 }
 
 /** Permission Inference State using Polyhedra.
@@ -856,11 +861,13 @@ case class PermissionIntervalsState(heapNum: PointsToIntervalsState,
   * @author Caterina Urban
   */
 case class PermissionPolyhedraState(heapNum: PointsToPolyhedraState,
-                                    idToSym: Map[Identifier, SymbolicPermission])
+                                    idToSym: Map[Identifier, SymbolicPermission],
+                                    idToPerm: Map[Identifier, Set[SymbolicPermission]])
   extends PermissionState[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def copy(heapNum: PointsToPolyhedraState,
-                    idToSym: Map[Identifier, SymbolicPermission]): PermissionPolyhedraState =
-    PermissionPolyhedraState(heapNum, idToSym)
+                    idToSym: Map[Identifier, SymbolicPermission],
+                    idToPerm: Map[Identifier, Set[SymbolicPermission]]): PermissionPolyhedraState =
+    PermissionPolyhedraState(heapNum, idToSym, idToPerm)
 }
 
 /** Permission Inference entry states for given method declarations.
@@ -893,8 +900,10 @@ object PermissionIntervalsEntryStateBuilder
   extends PermissionEntryStateBuilder[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
   override def topState: PermissionIntervalsState = PermissionIntervalsState(
     PointsToIntervalsEntryStateBuilder.topState, // top points-to+intervals state
-    // map from a `Identifier` to its `SymbolicPermission`
-    Map[Identifier,SymbolicPermission]())
+    // map from an identifier to its symbolic permission`
+    Map[Identifier,SymbolicPermission](),
+    // map from an identifier to its currently associated set of symbolic permissions
+    Map[Identifier,Set[SymbolicPermission]]())
 }
 
 /** Permission Inference entry states using Polyhedra for given method declarations.
@@ -905,8 +914,10 @@ object PermissionPolyhedraEntryStateBuilder
   extends PermissionEntryStateBuilder[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def topState: PermissionPolyhedraState = PermissionPolyhedraState(
     PointsToPolyhedraEntryStateBuilder.topState, // top points-to+polyhedra state
-    // map from an `Identifier` to its `SymbolicPermission`
-    Map[Identifier,SymbolicPermission]())
+    // map from an identifier to its symbolic permission`
+    Map[Identifier,SymbolicPermission](),
+    // map from an identifier to its currently associated set of symbolic permissions
+    Map[Identifier,Set[SymbolicPermission]]())
 }
 
 /** Permission Inference.
@@ -995,8 +1006,31 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
   /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
 
+    // retrieve the result of the analysis at the method entry
+    val pre = cfgState.entryState()
+    println("PRE: " + pre)
+
     // update the method precondition
     var precondition: Seq[sil.Exp] = method.pres
+    // add non-nullness preconditions
+    //for ((id: Identifier,sym: SymbolicPermission) <- pre.idToSym) {
+    //  // for each pair of identifier and symbolic permission...
+    //  id match {
+    //    case id: HeapIdentifier => // we only care about HeapIdentifiers
+    //      // retrieve the paths leading to the heap identifier of the field identifier
+    //      val paths = pre.heapNum.pathFromObj(id)
+    //      for ((x,_) <- paths) { // for all retrieved paths...
+    //        // adding non-nullness precondition to the method preconditions
+    //        val v = sym.evaluate(analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]()))
+    //        if (v > 0) {
+    //          val left = sil.LocalVar(x.toString)(typToSilver(x.typ), ppToSilver(x.pp))
+    //          precondition = precondition ++ Seq[sil.Exp](sil.NeCmp(left,sil.NullLit()())())
+    //        }
+    //      }
+    //    case _ => // nothing to be done
+    //  }
+    //}
+    // add access preconditions
     for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())) {
       s match {
         case s: SymbolicPrecondition => // we only care about preconditions
@@ -1027,7 +1061,8 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
     // update the method body
     val body = extendStmt(method.body, method, cfgState)
 
-    // TODO: update the method postcondition
+    // update the method postcondition
+    // TODO
 
     // return the method with updated precondition, updated body and updated postcondition
     method.copy(_pres = precondition, _body = body)(method.pos, method.info)
