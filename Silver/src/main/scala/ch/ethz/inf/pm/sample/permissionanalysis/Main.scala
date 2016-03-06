@@ -19,6 +19,7 @@ object Main {
     //PermissionIntervalsAnalysisRunner.main(args)
     PermissionPolyhedraAnalysisRunner.main(args)
 
+
     println()
     for (w <- Reporter.seenInfos) {
       println(w)

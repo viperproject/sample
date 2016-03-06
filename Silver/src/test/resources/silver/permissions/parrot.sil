@@ -3,6 +3,8 @@ field rabbit: Bool
 field parrot: Int
 
 method Foo(this: Ref)
+	//requires acc(this.rabbit, 1 / 10)
+    //requires acc(this.data, write)
 {
 	inhale acc(this.parrot)
 	if (this.rabbit) {

@@ -1,0 +1,23 @@
+
+field f: Ref
+
+method Foo1(this: Ref, that: Ref)
+  //requires acc(this.f, write)
+{
+    this.f := that
+}
+
+method Foo2(this: Ref, that: Ref)
+  //requires acc(this.f, write)
+  //requires acc(this.f.f, write)
+{
+	this.f.f := that
+}
+
+method Foo3(this: Ref, that: Ref)
+  //requires acc(this.f, write)
+  //requires acc(that.f, write)
+{
+    this.f := that
+	this.f.f := that
+}

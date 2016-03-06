@@ -1,7 +1,0 @@
-field val: Int
-
-method Foo(this: Ref)
-  requires acc(this.val, write)
-{
-  this.val := 0
-}

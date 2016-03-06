@@ -7,11 +7,11 @@ method test_vmcai2004a(this: Ref) {
     assert (this.val < 0)
 }
 
-field next: Ref
-
-method test_vmcai2004b(this: Ref) {
-    while (this.next.val >= 0) {
-        this.next.val := -2 * this.next.val + 10
-    }
-    assert (this.next.val < 0)
-}
+//field next: Ref
+//
+//method test_vmcai2004b(this: Ref) {
+//    while (this.next.val >= 0) {
+//        this.next.val := -2 * this.next.val + 10
+//    }
+//    assert (this.next.val < 0)
+//}

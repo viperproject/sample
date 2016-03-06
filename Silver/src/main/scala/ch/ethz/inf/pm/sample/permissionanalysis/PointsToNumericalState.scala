@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.LineColumnPosition
 
 /** Object created at object allocation site.
   *
@@ -24,7 +25,7 @@ case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier {
   /** The name of the heap identifier. */
   override def getName: String = "O" + number
   private def number : String = pp match {
-    case pp:LineColumnProgramPoint => pp.getLine.toString
+    case pp:LineColumnProgramPoint => pp.getLine.toString + pp.getColumn.toString
     case _ => pp.description
   }
   /** Custom equals. */
@@ -113,19 +114,20 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
       } else { // variant of breadth-first search
         var objs = objFieldToObj.keySet // set of all heap identifiers
         var queue = Set[(List[String],HeapIdentifier)]()
-        for (o <- refToObj(v)) { // for all heap identifiers directly reachable from the variable...
+        for (o <- refToObj(v) - NullHeapIdentifier) { // for all heap identifiers directly reachable from the variable...
           // populate the queue with the heap identifiers directly reachable from the variable
           queue = queue + ((List[String](),o))
           objs = objs - o // remove the heap identifiers from the set of all heap identifiers
         }
         while (!queue.isEmpty) {
           val el: (List[String], HeapIdentifier) = queue.head // pop an element from the queue
+          queue = queue - el
           for ((f,ss) <- objFieldToObj(el._2)) { // for all pairs of field and set of heap identifiers...
             if (ss.contains(obj)) { // the given heap identifier is directly reachable via the field
               paths = paths + ((v, f::el._1)) // add path to the set of complete paths
               // note that the path is stored in reverse order for efficiency
             } else {
-              for (o <- ss if objs.contains(o)) { // for all (unseen) heap identifiers directly reachable via the field...
+              for (o <- ss - NullHeapIdentifier if objs.contains(o)) { // for all (unseen) heap identifiers directly reachable via the field...
                 // populate the queue with the heap identifiers directly reachable via the field
                 queue = queue + ((f::el._1,o))
                 objs = objs - o // remove the heap identifiers from the set of all (remaining) heap identifiers
@@ -640,20 +642,23 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
       } else { // the Obj was never created before
         // prepare fields to add to objFieldToObj map and add variables to numDom
-        var fieldMap = Map[String,Set[HeapIdentifier]]()
+        val sumObj = HeapIdentifier(typ, DummyProgramPoint).setSummary(true)
+        var objFieldMap = Map[String,Set[HeapIdentifier]]()
+        var sumFieldMap = Map[String,Set[HeapIdentifier]]()
         var num = numDom
         for (f <- fieldSet) {
           f._1 match {
             case _:RefType =>
-              obj.setSummary(true) // turn the Obj into a summary node
-              fieldMap = fieldMap + (f._2 -> Set[HeapIdentifier](obj, NullHeapIdentifier))
-            case _ => num = num.createVariable(FieldIdentifier(obj,f._2,f._1),f._1)
+              objFieldMap = objFieldMap + (f._2 -> Set[HeapIdentifier](obj, sumObj, NullHeapIdentifier))
+              sumFieldMap = sumFieldMap + (f._2 -> Set[HeapIdentifier](sumObj, NullHeapIdentifier))
+            case _ => num = num.createVariable(FieldIdentifier(obj,f._2,f._1),f._1).
+              createVariable(FieldIdentifier(sumObj,f._2,f._1),f._1)
           }
         }
         // add key to refToObj map
         val refToObjmap = refToObj + (x -> Set[HeapIdentifier](NullHeapIdentifier, obj))
         // add key to objFieldToObj map
-        val objFieldToObjmap = objFieldToObj + (obj -> fieldMap)
+        val objFieldToObjmap = objFieldToObj + (obj -> objFieldMap) + (sumObj -> sumFieldMap)
         // return the current state with updated exprSet, refToObj, objFieldToObj, numDom
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap, numDom = num)
       }
