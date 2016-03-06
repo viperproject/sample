@@ -1142,6 +1142,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
         val pre = cfgState.preStateAt(cfgPositions.head)
         // update the method loop invariants
         var invariants: Seq[sil.Exp] = stmt.invs
+
         // add access permissions
         for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- pre.idToSym) {
           // for each pair of identifier and set of symbolic permissions...
@@ -1169,6 +1170,62 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
           } //TODO: handle the case of different/equal paths
 
         }
+
+        // add equalities between paths within the heap
+        var eqSet = Set[sil.Exp]() // current set of equalities to add
+        for (obj: HeapIdentifier <- pre.heapNum.objFieldToObj.keys) { // for all heap objects...
+        val paths = pre.heapNum.pathFromObj(obj) // retrieve paths leading to the given heap object
+          if (paths.size > 1) { // if there are at least two different paths...
+          var curr = paths.head // first path
+          var currIds = curr._2.drop(1).foldLeft(pre.heapNum.refToObj(curr._1))(
+              (set,next) => // next path segment
+                set.foldLeft(Set[HeapIdentifier]())(
+                  (s,obj) => s ++ pre.heapNum.objFieldToObj.getOrElse(obj,Map[String,Set[HeapIdentifier]]()).
+                    getOrElse(next,Set[HeapIdentifier]())
+                )
+            ) // evaluate the first path
+            for (p <- paths - curr) { // second path
+            // evaluate the second path
+            val pIds = p._2.drop(1).foldLeft(pre.heapNum.refToObj(p._1))(
+                (set,next) => // next path segment
+                  set.foldLeft(Set[HeapIdentifier]())(
+                    (s,obj) => s ++ pre.heapNum.objFieldToObj.getOrElse(obj,Map[String,Set[HeapIdentifier]]()).
+                      getOrElse(next,Set[HeapIdentifier]())
+                  )
+              )
+              if (currIds == pIds) {
+                // creating the field access corresponding to the first path
+                val currTyp = typToSilver(curr._1.typ)
+                val currFst = sil.LocalVar(curr._1.toString)(currTyp, ppToSilver(curr._1.pp))
+                var currExp: sil.Exp = currFst
+                if (curr._2.size > 1) {
+                  val currNms = curr._2.tail.reverse // note that the paths are stored in reverse order for efficiency
+                  val currSnd = sil.FieldAccess(currFst, sil.Field(currNms.head, currTyp)())()
+                  val currAcc: sil.FieldAccess = currNms.tail.foldLeft[sil.FieldAccess](currSnd)(
+                    (exp, fld) => sil.FieldAccess(exp, sil.Field(fld, currTyp)())()
+                  )
+                  currExp = currAcc
+                }
+                // creating the field access corresponding to the second path
+                val pTyp = typToSilver(p._1.typ)
+                val pFst = sil.LocalVar(p._1.toString)(pTyp, ppToSilver(p._1.pp))
+                var pExp: sil.Exp = pFst
+                if (p._2.size > 1) {
+                  val pNms = p._2.tail.reverse // note that the paths are stored in reverse order for efficiency
+                  val pSnd = sil.FieldAccess(pFst, sil.Field(pNms.head, pTyp)())()
+                  val pAcc: sil.FieldAccess = pNms.tail.foldLeft[sil.FieldAccess](pSnd)(
+                    (exp, fld) => sil.FieldAccess(exp, sil.Field(fld, pTyp)())())
+                  pExp = pAcc
+                }
+                // adding equality to invariants
+                eqSet = eqSet + sil.EqCmp(currExp,pExp)()
+              }
+              curr = p; currIds = pIds
+            }
+          }
+        }
+        for (eq <- eqSet) { invariants = invariants ++ Seq[sil.Exp](eq) }
+
         sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,method,cfgState))(stmt.pos,stmt.info)
 
       case _ => println(stmt.getClass); stmt

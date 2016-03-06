@@ -1,0 +1,15 @@
+
+field data: Int
+
+method Foo(this: Ref)
+    //requires acc(this.data, write)
+{
+    var i: Int
+    i := 0
+    while (i < 100)
+        //invariant acc(this.data, write)
+    {
+        this.data := this.data + i
+        i := i + 1
+    }
+}
