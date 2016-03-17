@@ -242,6 +242,10 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
 
     obj match {
       case obj: FieldIdentifier =>
+        //val idToSymmap = if (obj.obj.representsSingleVariable) { // strong update
+        //  idToSym - obj // remove information about permissions of the field identifier
+        //} else { idToSym }
+        // add constraints to the solver
         for (sym <- idToPerm(obj)) { // for all currently associated symbolic permissions...
           // create constraint to ensure write permissions
           val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
@@ -261,8 +265,8 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
             case _ => // nothing to be done
           }
         }
-        // return the current state with updated heapNum
-        this.copy(heapNum = heapNum.assignField(obj, field, right))
+        // return the current state with updated heapNum //and updated idToSym
+        this.copy(heapNum = heapNum.assignField(obj, field, right)) //idToSym = idToSymmap
       case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
     }
   }
@@ -628,10 +632,11 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   override def inhale(acc: Expression) : S = {
     logger.info("*** inahle(" + acc.toString + ")")
 
-    //acc match {
-    //  case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
-    //    acc.id match {
-    //      case id: FieldIdentifier =>
+    acc match {
+      case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
+        acc.id match {
+          case id: FieldIdentifier =>
+            println("INHALE: " + idToSym(id))
     //        if (id.obj.representsSingleVariable) {
     //          // retrieve the symbolic permission associated with the permission expression
     //          val sym: SymbolicPermission = idToSym()
@@ -649,10 +654,19 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     //          // return the current state with updated idToSym
     //          this.copy(idToSym = idToSymmap)
     //        } else { this } // no inhale on summary nodes
-    //      case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
-    //    }
-    //  case _ => this.assume(acc)
-    //}
+
+            //// add constraints to the solver
+            //for (sym <- idToPerm(obj)) { // for all currently associated symbolic permissions...
+            //// create constraint to ensure write permissions
+            //val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
+            //  // add constraint to solver
+            //  PermissionSolver.addConstraint(c)3
+            //}
+
+          case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
+        }
+      case _ => this.assume(acc)
+    }
     this
   }
 
@@ -1146,9 +1160,22 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
         // add access permissions
         for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- pre.idToSym) {
           // for each pair of identifier and set of symbolic permissions...
-
           val paths = pre.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
-          for ((x,p) <- paths) { // for all retrieved paths...
+          // select the shortest paths among the retrieved paths
+          var shortest = Set[(VariableIdentifier,List[String])]()
+          if (paths.size > 0) { // if there is at least one retrieved path
+            // select the first path as the shortest
+            shortest = Set[(VariableIdentifier,List[String])](paths.head)
+            for ((x,p) <- paths.tail) { // for all remaining paths
+              if (p.size < shortest.head._2.size) { // the current path is shorter than the ones collected so far
+                // start collecting shorter paths
+                shortest = Set[(VariableIdentifier,List[String])]((x,p))
+              } else if (p.size == shortest.head._2.size) { // the current path is as long as the one collected so far
+                shortest = shortest + ((x,p)) // add the current path to the collection
+              }
+            }
+          }
+          for ((x,p) <- shortest) { // for all retrieved shortest paths...
             // creating the corresponding field access
             val typ = typToSilver(x.typ)
             val fst = sil.LocalVar(x.toString)(typ, ppToSilver(x.pp))
@@ -1167,8 +1194,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
               val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
               invariants = invariants ++ Seq[sil.Exp](perm)
             }
-          } //TODO: handle the case of different/equal paths
-
+          }
         }
 
         // add equalities between paths within the heap

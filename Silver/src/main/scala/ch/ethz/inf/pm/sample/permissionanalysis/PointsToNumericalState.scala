@@ -170,17 +170,17 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
               // return the current state with updated objFieldToObj
               this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
-            // NOTE: the following case is commented because x.f := new() is not possible in Silver
-            //case right: HeapIdentifier => // e.g., `x.f := new()`
-            //  val o = obj.obj // retrieve `Obj` whose field is assigned
-            //  val f = obj.field // retrieve assigned field
-            //  val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
-            //    objFieldToObj + (o -> (objFieldToObj(o) + (f -> Set[HeapIdentifier](right))))
-            //  } else { // weak update
-            //    objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) + right))))
-            //  }
-            //  // return the current state with updated objFieldToObj
-            //  this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
+            case right: Constant => // e.g., `x.f := null`
+              val o = obj.obj // retrieve `Obj` whose field is assigned
+              val f = obj.field // retrieve assigned field
+              // weak update
+              val objFieldToObjmap = if (o.representsSingleVariable) { // strong update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> Set[HeapIdentifier](NullHeapIdentifier))))
+              } else { // weak update
+                objFieldToObj + (o -> (objFieldToObj(o) + (f -> (objFieldToObj(o)(f) ++ Set[HeapIdentifier](NullHeapIdentifier)))))
+              }
+              // return the current state with updated objFieldToObj
+              this.copy(objFieldToObj = objFieldToObjmap).pruneUnreachableHeap()
 
             case right: VariableIdentifier => // e.g., `x.f := y`
               val s = refToObj(right) // retrieve the corresponding heap `Obj` objects
