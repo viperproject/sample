@@ -151,7 +151,6 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
 
     // Stubs
     case sil.Perm |
-         sil.Pred |
          sil.DomainType(_, _) |
          sil.TypeVar(_) |
          sil.SeqType(_) |
