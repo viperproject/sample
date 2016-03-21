@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import scala.collection.mutable
 import VertexConstants._
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.LocalVariableVertex
+import scala.language.implicitConversions
 
 trait ValueDrivenHeapState[
     S <: SemanticDomain[S],

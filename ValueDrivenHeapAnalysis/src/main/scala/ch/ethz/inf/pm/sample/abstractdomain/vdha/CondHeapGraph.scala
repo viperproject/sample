@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import scala.language.implicitConversions
 
 /**
  * Combines a heap graph with a condition that the heap graph must satisfy.

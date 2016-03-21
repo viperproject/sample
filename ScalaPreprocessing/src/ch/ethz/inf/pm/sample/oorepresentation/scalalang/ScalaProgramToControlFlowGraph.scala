@@ -6,24 +6,21 @@ import scala.tools.nsc.symtab._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
-
-//import ch.ethz.inf.pm.sample.gui._
-import scala.collection.mutable.HashMap
+import scala.language.postfixOps
 import scala.tools.nsc.plugins.PluginComponent
-//import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
-class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends LineColumnProgramPoint {
+class ScalaProgramPoint(pos : scala.reflect.internal.util.Position) extends LineColumnProgramPoint {
   var row : Int = try{
 	  pos.line
   }
   catch {
-	  case _ => -1
+	  case _: Throwable => -1
   }
   var column : Int  = try{
 	  pos.column
   }
   catch {
-	  case _ => -1
+	  case _: Throwable => -1
   }
 
   def this(r : Int, c : Int) ={
@@ -391,7 +388,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 		  				  typeParamsToExistentials(typ.typeSymbol, typ.typeSymbol.typeParams)
 		  				}
                    		catch {
-                   		  case _ => null
+                   		  case _: Throwable => null
                         }
                        else null
     var isTop : Boolean = false

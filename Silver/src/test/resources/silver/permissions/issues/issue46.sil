@@ -1,0 +1,14 @@
+
+field f: Ref
+
+method Foo4(this: Ref, that: Ref, other: Ref, b: Int)
+  //requires acc(this.f, write)
+  //requires b > 0 ? acc(that.f, write) : acc(other.f, write)
+{
+	if (b > 0) {
+		this.f := that
+	} else {
+		this.f := other
+	}
+	this.f.f := this
+}

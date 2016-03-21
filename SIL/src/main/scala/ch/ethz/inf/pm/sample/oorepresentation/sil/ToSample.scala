@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 import viper.silver.{ast => sil}
+import scala.language.reflectiveCalls
 
 trait SilConverter {
   /** Converts a whole SIL program to a list of Sample class definition. */

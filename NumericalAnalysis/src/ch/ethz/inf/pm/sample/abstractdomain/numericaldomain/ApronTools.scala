@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
+import scala.language.implicitConversions
 
 object ApronTools {
   implicit def intToScalar(i: Int): Scalar = new apron.DoubleScalar(i.toDouble)

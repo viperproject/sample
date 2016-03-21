@@ -1,16 +1,15 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
-import org.scalatest.{BeforeAndAfter, FunSuite}
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import apron.Polka
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyBooleanType, DummyNumericalType, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 
 /** Tests ApronInterfaceTranslator. */
-class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with ShouldMatchers {
+class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Matchers {
   val dom:Apron.Polyhedra = Apron.Polyhedra.Bottom
   val numType = DummyNumericalType
   val boolType = DummyBooleanType

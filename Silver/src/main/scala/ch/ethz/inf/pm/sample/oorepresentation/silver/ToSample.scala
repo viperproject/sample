@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.valueheap.{PredicateBody, PredicateI
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethods
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
+import scala.language.reflectiveCalls
 
 import scala.collection.mutable
 
@@ -278,7 +279,6 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
       go(sil.TrueLit()()) // Ignore
 
     case sil.Old(exp) => ???
-    case e: sil.SeqExp => ???
     case sil.AnySetCardinality(_) |
          sil.AnySetContains(_, _) |
          sil.AnySetIntersection(_, _) |

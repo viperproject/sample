@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import org.scalatest.FunSuite
+import org.scalatest.{FunSuite, Matchers}
 import org.scalatest.matchers.ShouldMatchers
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
-class SampleConverterTest extends FunSuite with ShouldMatchers {
+class SampleConverterTest extends FunSuite with Matchers {
   val pp = sample.DummyProgramPoint
   val intType = sample.IntType
   val refType = sample.RefType()

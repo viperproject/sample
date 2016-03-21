@@ -36,7 +36,7 @@ object Matcher {
       case For(loc,up,body) => apply(up); apply(body)
       case While(cond,body) => apply(cond); apply(body)
       case Foreach(loc,coll,guards,body) => apply(coll); apply(guards); apply(body)
-      case If(cond,then,els) => apply(cond); apply(then); apply(els)
+      case If(cond,thn,els) => apply(cond); apply(thn); apply(els)
       case Box(body) => apply(body)
       case WhereStatement(expr,handlers,optParam) => apply(expr); handlers foreach apply; optParam foreach apply
       case ExpressionStatement(expr) => apply(expr)

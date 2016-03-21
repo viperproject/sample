@@ -146,8 +146,8 @@ object WebASTImporter {
         y match {
           case JIf(id2, cond2, then2, els2, isElseIf2) :: xs if isElseIf2 =>
             x match {
-              case JIf(id, cond, then, els, isElseIf) =>
-                JIf(id, cond, then, els ::: List(JIf(id2, cond2, then2, els2, false)), isElseIf) :: xs
+              case JIf(id, cond, thn, els, isElseIf) =>
+                JIf(id, cond, thn, els ::: List(JIf(id2, cond2, then2, els2, false)), isElseIf) :: xs
               case _ =>
                 throw new TouchException("not reachable")
             }

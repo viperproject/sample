@@ -50,7 +50,7 @@ import java.util.Properties
 	        // dir will be [...]/build/build.main/
 	        stream = new java.io.FileInputStream(dir.getParentFile.getParent +"/"+ propFilename)
 	      } catch {
-	        case _ => ()
+	        case _: Throwable => ()
 	      }
 	    }
 	    if (stream == null) None

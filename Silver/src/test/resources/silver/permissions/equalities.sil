@@ -1,0 +1,18 @@
+
+field f: Ref
+
+method Foo(this: Ref, that: Ref)
+{
+    var x: Ref
+    var i: Int
+    i := 0
+
+    this.f := that
+
+    while (i < 10)
+    {
+        x := new()
+        this.f.f := x
+        i := i + 1
+    }
+}

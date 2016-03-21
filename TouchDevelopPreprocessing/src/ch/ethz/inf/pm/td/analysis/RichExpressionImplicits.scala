@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
 import ch.ethz.inf.pm.td.semantics.{TBoolean, TNumber, TString}
+import scala.language.implicitConversions
 
 import scala.collection.immutable.Range.Inclusive
 

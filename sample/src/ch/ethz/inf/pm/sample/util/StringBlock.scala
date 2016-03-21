@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.util
 
+import scala.language.implicitConversions
+
 object StringBlock {
 
 	def apply(s: String) = new StringBlock(s.split("\n"))

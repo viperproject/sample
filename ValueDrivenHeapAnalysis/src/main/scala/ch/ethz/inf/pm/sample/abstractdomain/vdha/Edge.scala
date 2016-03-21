@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.Predef._
+import scala.language.reflectiveCalls
 
 case class Edge[S <: SemanticDomain[S]](
     source: Vertex,

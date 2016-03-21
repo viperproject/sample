@@ -1,9 +1,8 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{FunSuite, Matchers}
 
-class WeightedGraphTest extends FunSuite with ShouldMatchers {
+class WeightedGraphTest extends FunSuite with Matchers {
 
   type NodeValType = String
   class TestGraph extends WeightedGraph[NodeValType, Nothing]

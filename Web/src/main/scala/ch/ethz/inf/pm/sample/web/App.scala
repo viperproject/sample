@@ -8,6 +8,7 @@ import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
+import scala.language.existentials
 
 /** Web application that lets users analyze programs and explore the result.
   *

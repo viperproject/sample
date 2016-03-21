@@ -261,7 +261,7 @@ object FindCloud {
                 visitExpr(x)
                 for (m <- matching) set += ("   if (" + PrettyPrinter(x)({ (pp: IdPositional, s: String) => s })+") {...}" + "// referencing " + m)
             }
-          case If(cond, then, els) =>
+          case If(cond, thn, els) =>
             matching = Set.empty
             visitExpr(cond)
             for (m <- matching) set += ("   if (" + PrettyPrinter(cond)({ (pp: IdPositional, s: String) => s })+") {...}" + "// referencing " + m)
@@ -309,7 +309,7 @@ object FindCloud {
         case For(loc,up,body) => visitStmt(body)
         case While(cond,body) => visitStmt(body)
         case Foreach(loc,coll,guards,body) => visitStmt(body)
-        case If(cond,then,els) => visitStmt(then); visitStmt(els)
+        case If(cond,thn,els) => visitStmt(thn); visitStmt(els)
         case Box(body) => visitStmt(body)
         case WhereStatement(expr,handlers,optParam) =>
           val tmp = insideDisplayCode

@@ -528,7 +528,6 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
         // set of heap objects pointed to by the path head
         val rcvs: Set[HeapIdentifier] = heapNum.refToObj(head.asInstanceOf[VariableIdentifier]) - NullHeapIdentifier
         val perm = Set[SymbolicPermission]() // initially empty symbolic permission
-
         // evaluation of the path
         val eval = tail.foldLeft((objs, rcvs, perm))((curr, next) => {
           // for each following path segment...

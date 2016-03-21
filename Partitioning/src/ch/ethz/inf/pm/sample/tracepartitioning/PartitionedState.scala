@@ -486,8 +486,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
   private[this] def mapValue(x: ExpressionSet, f: (D, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
       ex <- x.getNonTop
-      val px = this.partitioning
-      val pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
+      px = this.partitioning
+      pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -511,9 +511,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     val separate = for {
       ex <- x.getNonTop
       ey <- y.getNonTop
-      val px = this.partitioning
-      val py = this.partitioning
-      val pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
+      px = this.partitioning
+      py = this.partitioning
+      pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -539,10 +539,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       ex <- x.getNonTop
       ey <- y.getNonTop
       ez <- z.getNonTop
-      val px = this.partitioning
-      val py = this.partitioning
-      val pz = this.partitioning
-      val pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey), new ExpressionSet(z.getType()).add(ez)))
+      px = this.partitioning
+      py = this.partitioning
+      pz = this.partitioning
+      pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey), new ExpressionSet(z.getType()).add(ez)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -562,9 +562,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
   private[this] def mapValueList(xs: List[ExpressionSet], f: (D, List[ExpressionSet]) => D): PartitionedState[D] = {
     val separate = for {
       cx <- combinations(xs)
-      val es = cx.map(_.getNonTop.head)
-      val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
-      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield ExpressionSet(e)))
+      es = cx.map(_.getNonTop.head)
+      ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
+      pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield ExpressionSet(e)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -586,10 +586,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     val separate = for {
       cx <- combinations(xs)
       cy <- combinations(ys)
-      val n = cx.length
-      val es = cx.map(_.getNonTop.head):::cy.map(_.getNonTop.head)
-      val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
-      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
+      n = cx.length
+      es = cx.map(_.getNonTop.head):::cy.map(_.getNonTop.head)
+      ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
+      pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
           for ((e, t) <- es.zip(ss).take(n)) yield ExpressionSet(e),
           for ((e, t) <- es.zip(ss).drop(n)) yield ExpressionSet(e))

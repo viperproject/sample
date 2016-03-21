@@ -22,7 +22,7 @@ object Localization {
   private var ppToMethod:Map[ProgramPoint,MethodDeclaration] = Map.empty
   private var variablePacker:Option[VariablePackingClassifier] = None
   private var enablePruning = false
-  private var currentlyCollecting:Stack[ProgramPoint] = Stack.empty
+  private var currentlyCollecting:List[ProgramPoint] = List.empty
   private var readInside:Map[ProgramPoint,IdentifierSet] = Map.empty
 
 
@@ -75,13 +75,13 @@ object Localization {
 
   def enterCollectingFunction(pp:ProgramPoint,callTarget:MethodDeclaration):Unit = {
     ppToMethod = ppToMethod + (pp -> callTarget)
-    currentlyCollecting = currentlyCollecting.push(pp)
+    currentlyCollecting = pp :: currentlyCollecting
   }
 
   def exitCollectingFunction(pp:ProgramPoint):Unit = {
 
     // update stack
-    val (callee,callStack) = currentlyCollecting.pop2
+    val (callee,callStack) = (currentlyCollecting.head, currentlyCollecting.tail)
     if (SystemParameters.DEBUG) assert { callee == pp }
     currentlyCollecting = callStack
 
@@ -105,7 +105,7 @@ object Localization {
   def reset() = {
     variablePacker = None
     enablePruning = false
-    currentlyCollecting = Stack.empty
+    currentlyCollecting = List.empty
     readInside = Map.empty
     ppToMethod = Map.empty
   }

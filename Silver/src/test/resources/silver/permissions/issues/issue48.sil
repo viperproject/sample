@@ -1,0 +1,11 @@
+
+field f: Ref
+
+method Foo(this: Ref)
+    //requires acc(this.f, read)
+    //requires acc(this.f.f, write)
+{
+	var x: Ref
+	x := this.f
+	x.f := null
+}

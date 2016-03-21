@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.util
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, IdentifierSet, SetDomain}
+import scala.language.implicitConversions
 
 object Predef {
   implicit def extendedBoolean(a: Boolean): Object {def implies(b: => Boolean): Boolean} = new {

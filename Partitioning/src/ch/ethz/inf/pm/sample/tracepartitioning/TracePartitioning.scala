@@ -15,7 +15,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaProgramPoint
 import scala.collection.mutable
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import tools.nsc.util.Position
+import scala.reflect.internal.util.Position
+import scala.language.implicitConversions
 
 /**
  * Global object responsible for settings etc.

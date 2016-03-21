@@ -63,7 +63,7 @@ object Directive {
 					None
 			}
 		} catch {
-			case _ => None
+			case _: Throwable => None
 		}
 	}
 
