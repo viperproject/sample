@@ -19,15 +19,14 @@ object Main {
     //PermissionIntervalsAnalysisRunner.main(args)
     PermissionPolyhedraAnalysisRunner.main(args)
 
-
-    println()
-    for (w <- Reporter.seenInfos) {
-      println(w)
-    }
-    if (Reporter.seenErrors.isEmpty) println("No errors")
-    for (e <- Reporter.seenErrors) {
-      println(e)
-    }
+    //println()
+    //for (w <- Reporter.seenInfos) {
+    //  println(w)
+    //}
+    //if (Reporter.seenErrors.isEmpty) println("No errors")
+    //for (e <- Reporter.seenErrors) {
+    //  println(e)
+    //}
 
   }
 

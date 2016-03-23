@@ -9,11 +9,11 @@ method set_f(monitor: Ref, value: Ref)
   monitor.f := value
 }
 
-method t3(r:Ref) returns (res:Ref)
-    //requires r!=null
-    //requires acc(r.f)
-    //requires r.f!=null
-    //requires acc(r.f.f)
-{
-    res := r.f.f
-}
+//method t3(r:Ref) returns (res:Ref)
+//    //requires r!=null
+//    //requires acc(r.f)
+//    //requires r.f!=null
+//    //requires acc(r.f.f)
+//{
+//    res := r.f.f
+//}

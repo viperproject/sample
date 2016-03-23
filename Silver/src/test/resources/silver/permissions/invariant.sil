@@ -3,6 +3,7 @@ field data: Int
 
 method Foo(this: Ref)
     //requires acc(this.data, write)
+    //ensures acc(this.data, write)
 {
     var i: Int
     i := 0

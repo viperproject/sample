@@ -4,14 +4,18 @@ import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{NumericalDomain, DoubleInterval, BoxedNonRelationalNumericalDomain, Apron}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{RefType, sample, SilAnalysisRunner, DefaultSilConverter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, RefType, SilAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.execution.{Analysis}
+import ch.ethz.inf.pm.sample.execution.Analysis
+import ch.ethz.inf.pm.sample.reporting.Reporter
+import viper.silicon.Silicon
+import viper.silicon.interfaces.VerificationResult
+import viper.silver.verifier.Success
 
 /** Path to a location.
   *
@@ -987,13 +991,13 @@ trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N
     val result = analyze(method, entryStateBuilder.build(method))
     // solve the accumulated constraints
     val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
-    println("\nResult: ")
-    for ((s,v) <- solution) {
-      if (v >= 1)
-        println("acc(" + s.path.toString + ")")
-      else if (v > 0)
-        println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
-    }
+    //println("\nResult: ")
+    //for ((s,v) <- solution) {
+    //  if (v >= 1)
+    //    println("acc(" + s.path.toString + ")")
+    //  else if (v > 0)
+    //    println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
+    //}
     // add entry to the map between method names and constraint solutions
     permissions = permissions + (method.name.toString -> solution)
     // clear the accumulated constraints (for the analysis of the next method)
@@ -1055,28 +1059,9 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
 
     // retrieve the result of the analysis at the method entry
     val pre = cfgState.entryState()
-    println("PRE: " + pre)
-
+    //println("PRE: " + pre)
     // update the method precondition
     var precondition: Seq[sil.Exp] = method.pres
-    // add non-nullness preconditions
-    //for ((id: Identifier,sym: SymbolicPermission) <- pre.idToSym) {
-    //  // for each pair of identifier and symbolic permission...
-    //  id match {
-    //    case id: HeapIdentifier => // we only care about HeapIdentifiers
-    //      // retrieve the paths leading to the heap identifier of the field identifier
-    //      val paths = pre.heapNum.pathFromObj(id)
-    //      for ((x,_) <- paths) { // for all retrieved paths...
-    //        // adding non-nullness precondition to the method preconditions
-    //        val v = sym.evaluate(analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]()))
-    //        if (v > 0) {
-    //          val left = sil.LocalVar(x.toString)(typToSilver(x.typ), ppToSilver(x.pp))
-    //          precondition = precondition ++ Seq[sil.Exp](sil.NeCmp(left,sil.NullLit()())())
-    //        }
-    //      }
-    //    case _ => // nothing to be done
-    //  }
-    //}
     // add access preconditions
     for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())) {
       s match {
@@ -1108,11 +1093,57 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
     // update the method body
     val body = extendStmt(method.body, method, cfgState)
 
+    // retrieve the result of the analysis at the method exit
+    val post = cfgState.exitState()
+    println("POST: " + post)
     // update the method postcondition
-    // TODO
+    var postcondition: Seq[sil.Exp] = method.posts
+    // add access permissions
+    for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- post.idToSym) {
+      // for each pair of identifier and set of symbolic permissions...
+      val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
+      println("PATHS: " + paths)
+      // select the shortest paths among the retrieved paths
+      var shortest = Set[(VariableIdentifier,List[String])]()
+      if (paths.size > 0) { // if there is at least one retrieved path
+        // select the first path as the shortest
+        shortest = Set[(VariableIdentifier,List[String])](paths.head)
+        for ((x,p) <- paths.tail) { // for all remaining paths
+          if (p.size < shortest.head._2.size) { // the current path is shorter than the ones collected so far
+            // start collecting shorter paths
+            shortest = Set[(VariableIdentifier,List[String])]((x,p))
+          } else if (p.size == shortest.head._2.size) { // the current path is as long as the one collected so far
+            shortest = shortest + ((x,p)) // add the current path to the collection
+          }
+        }
+      }
+      println("SHORTEST: " + shortest)
+      for ((x,p) <- shortest) { // for all retrieved shortest paths...
+        // creating the corresponding field access
+        val typ = typToSilver(x.typ)
+        val fst = sil.LocalVar(x.toString)(typ, ppToSilver(x.pp))
+        val ids = (id.field::p).reverse // note that the paths are stored in reverse order for efficiency
+        val snd = sil.FieldAccess(fst, sil.Field(ids.head, typToSilver(id.typ))())()
+        val acc: sil.FieldAccess = ids.tail.foldLeft[sil.FieldAccess](snd)(
+          (exp, fld) => sil.FieldAccess(exp, sil.Field(fld, typ)())()
+        )
+        // adding access permission to the method postcondition
+        val vls = analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())
+        // when access depends on multiple symbolic values (e.g., o.f -> { 1.0*acc(x.f), 1.0*acc(y.f) }) we take the minimum
+        val v = sym.map(p => p.evaluate(vls)).min
+        if (v >= 1) {
+          val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
+          postcondition = postcondition ++ Seq[sil.Exp](perm)
+        } else if (v > 0) {
+          val (num, den) = PermissionSolver.doubleToRational(v)
+          val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
+          postcondition = postcondition ++ Seq[sil.Exp](perm)
+        }
+      }
+    }
 
     // return the method with updated precondition, updated body and updated postcondition
-    method.copy(_pres = precondition, _body = body)(method.pos, method.info)
+    method.copy(_pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
   }
 
   def extendStmt(stmt: sil.Stmt, method: sil.Method, cfgState: AbstractCFGState[S]): sil.Stmt =
@@ -1179,12 +1210,14 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
             val typ = typToSilver(x.typ)
             val fst = sil.LocalVar(x.toString)(typ, ppToSilver(x.pp))
             val ids = (id.field::p).reverse // note that the paths are stored in reverse order for efficiency
-            val snd = sil.FieldAccess(fst, sil.Field(ids.head, typ)())()
+            val snd = sil.FieldAccess(fst, sil.Field(ids.head, typToSilver(id.typ))())()
             val acc: sil.FieldAccess = ids.tail.foldLeft[sil.FieldAccess](snd)(
               (exp, fld) => sil.FieldAccess(exp, sil.Field(fld, typ)())()
             )
             // adding access permission to the loop invariants
-            val v = sym.head.evaluate(analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]()))
+            val vls = analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())
+            // when access depends on multiple symbolic values (e.g., o.f -> { 1.0*acc(x.f), 1.0*acc(y.f) }) we take the minimum
+            val v = sym.map(p => p.evaluate(vls)).min
             if (v >= 1) {
               val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
               invariants = invariants ++ Seq[sil.Exp](perm)
@@ -1253,7 +1286,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
 
         sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,method,cfgState))(stmt.pos,stmt.info)
 
-      case _ => println(stmt.getClass); stmt
+      case _ => stmt //println(stmt.getClass); stmt
     }
 
   // convert sample.ProgramPoint to sil.ProgramPoint
@@ -1272,14 +1305,29 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
   override def main(args: Array[String]) {
     // run the analysis and the permission inference
     val results = run(new File(args(0)).toPath)
-    // extending program with inferred permission
+    println("\n******************\n* AnalysisResult *\n******************\n")
+    for (w <- Reporter.seenInfos) {
+      println(w)
+    }
+    if (Reporter.seenErrors.isEmpty) println("No errors")
+    for (e <- Reporter.seenErrors) {
+      println(e)
+    }
+    // extend program with inferred permission
     val out = extendProgram(DefaultSilConverter.prog,results)
-    println("\nExtended Program:\n" + out)
+    println("\n********************\n* Extended Program *\n********************\n\n" + out)
     // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"
     val pw = new PrintWriter(new File(outName))
     pw.write(out.toString)
     pw.close
+    // verify the extended program with silicon
+    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+    silicon.parseCommandLine(Seq("dummy.sil"))
+    silicon.config.initialize { case _ => silicon.config.initialized = true }
+    silicon.start()
+    val result: viper.silver.verifier.VerificationResult = silicon.verify(out)
+    println("\n***********************\n* Verification Result * " + result + "\n***********************")
   }
 
   override def toString = "Access Permission Inference Analysis"

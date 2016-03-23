@@ -1,4 +1,13 @@
 
+//field f: Ref
+//
+//method Foo(this: Ref)
+//{
+//	var x: Ref
+//	x := this.f
+//	x.f := null
+//}
+
 field f: Ref
 
 method Foo(this: Ref, that: Ref)
@@ -16,7 +25,7 @@ method Foo(this: Ref, that: Ref)
     while (i < 10)
       //invariant acc(this.f, 1/2)
       //invariant acc(that.f, write)
-      //invariant this.f == that 
+      //invariant this.f == that
     {
         x := new()
         this.f.f := x
