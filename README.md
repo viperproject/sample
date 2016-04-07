@@ -1,3 +1,6 @@
+
+
+
 **Sample** (Static Analyzer of Multiple Programming LanguagEs) is a generic static analyzer
 based on the [abstract interpretation](http://en.wikipedia.org/wiki/Abstract_interpretation) theory.
 This analyzer is generic with respect to:
@@ -12,3 +15,8 @@ This analyzer is generic with respect to:
 Sample is the engine that infers specification in [Semper](http://www.pm.inf.ethz.ch/research/semper).
 
 If you are new to Sample, take a look at the [Wiki](https://bitbucket.org/viperproject/sample/wiki) to get started.
+
+**Build Status**
+
+[![Build Status](https://pmbuilds.inf.ethz.ch/buildStatus/icon?job=sample)](https://pmbuilds.inf.ethz.ch/job/sample/)
+
