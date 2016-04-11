@@ -5,8 +5,8 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{SimpleAnalysis, EntryStateBuilder}
-import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
+import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -642,7 +642,12 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
         this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap, objFieldToObj = objFieldToObjmap)
       } else { // the Obj was never created before
         // prepare fields to add to objFieldToObj map and add variables to numDom
-        val sumObj = HeapIdentifier(typ, DummyProgramPoint).setSummary(true)
+        val sumPP: WrappedProgramPoint = x.pp match {
+          case pp:WrappedProgramPoint =>
+            WrappedProgramPoint(LineColumnPosition(line = pp.pos.line,column = -1))
+          case _ => WrappedProgramPoint(LineColumnPosition(line = -1,column = -1))
+        }
+        val sumObj = HeapIdentifier(typ, sumPP).setSummary(true)
         var objFieldMap = Map[String,Set[HeapIdentifier]]()
         var sumFieldMap = Map[String,Set[HeapIdentifier]]()
         var num = numDom

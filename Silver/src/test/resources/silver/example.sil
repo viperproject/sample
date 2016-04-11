@@ -11,24 +11,8 @@
 field f: Ref
 
 method Foo(this: Ref, that: Ref)
-  //requires acc(this.f, write)
-  //requires acc(that.f, write)
-  //ensures acc(this.f, write)
-  //ensures acc(that.f, write)
 {
     var x: Ref
-    var i: Int
-    i := 0
-
-    this.f := that
-
-    while (i < 10)
-      //invariant acc(this.f, 1/2)
-      //invariant acc(that.f, write)
-      //invariant this.f == that
-    {
-        x := new()
-        this.f.f := x
-        i := i + 1
-    }
+    x := this.f
+    x.f := that
 }

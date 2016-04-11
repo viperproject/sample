@@ -639,7 +639,7 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
       case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
         acc.id match {
           case id: FieldIdentifier =>
-            println("INHALE: " + idToSym(id))
+            //println("INHALE: " + idToSym(id))
     //        if (id.obj.representsSingleVariable) {
     //          // retrieve the symbolic permission associated with the permission expression
     //          val sym: SymbolicPermission = idToSym()
@@ -1095,14 +1095,14 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
 
     // retrieve the result of the analysis at the method exit
     val post = cfgState.exitState()
-    println("POST: " + post)
+    //println("POST: " + post)
     // update the method postcondition
     var postcondition: Seq[sil.Exp] = method.posts
     // add access permissions
     for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- post.idToSym) {
       // for each pair of identifier and set of symbolic permissions...
       val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
-      println("PATHS: " + paths)
+      //println("PATHS: " + paths)
       // select the shortest paths among the retrieved paths
       var shortest = Set[(VariableIdentifier,List[String])]()
       if (paths.size > 0) { // if there is at least one retrieved path
@@ -1117,7 +1117,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
           }
         }
       }
-      println("SHORTEST: " + shortest)
+      //println("SHORTEST: " + shortest)
       for ((x,p) <- shortest) { // for all retrieved shortest paths...
         // creating the corresponding field access
         val typ = typToSilver(x.typ)
@@ -1160,7 +1160,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
               else None
           })
         })
-        println("WHAT IS THIS: " + cfgPositions)
+        //println("WHAT IS THIS: " + cfgPositions)
 
         val lhs = stmt.lhs
         stmt
