@@ -520,7 +520,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     */
   override def before(pp: ProgramPoint): S = {
     logger.debug("\n*** ----------------before(" + pp.toString + "): " + this.repr)
-    // return the current state without updated currentPP
+    // return the current state with updated currentPP
     this.copy(currentPP = pp)
   }
 
