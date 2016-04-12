@@ -16,8 +16,8 @@ object Main {
 
     //PointsToIntervalsAnalysisRunner.main(args)
 
-    PointsToPolyhedraAnalysisRunner.main(args)
-    //MayPointToPolyhedraAnalysisRunner.main(args)
+    //PointsToPolyhedraAnalysisRunner.main(args)
+    MayPointToPolyhedraAnalysisRunner.main(args)
 
     //PermissionIntervalsAnalysisRunner.main(args)
 

@@ -2,12 +2,13 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, NumericalDomain}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
 /** Heap node.
@@ -51,16 +52,16 @@ object NullHeapNode extends HeapNode(-1) {
 
 /** Field access.
   *
-  * @param obj the received heap node
+  * @param rcv the receiver heap node
   * @param field the field name
   * @param typ the field type
-  * @param pp the access program point
   * @author Caterina Urban
   */
-case class FieldAccess(obj: HeapNode, field: String, typ: Type, pp: ProgramPoint) extends Identifier {
-  override def getName: String = obj.getName + "." + field
+case class HeapAccess(rcv: HeapNode, field: String, typ: Type) extends Identifier {
+  override def getName: String = rcv.getName + "." + field
   override def getField: Option[String] = Some(field)
-  override def representsSingleVariable: Boolean = obj.representsSingleVariable
+  override def pp: ProgramPoint = rcv.pp
+  override def representsSingleVariable: Boolean = rcv.representsSingleVariable
 }
 
 /** MayPointTo+Numerical Analysis State.
@@ -113,9 +114,38 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @return The abstract state after the assignment
     */
   override def assignVariable(x: Expression, right: Expression): S = {
-    logger.debug("*** ----------------assignVariable(" + x.toString + "; " + right.toString + ")")
+    logger.trace("*** ----------------assignVariable(" + x.toString + "; " + right.toString + ")")
 
-    ???
+    x match {
+      case x: VariableIdentifier =>
+        if (x.typ.isObject) { // the assigned variable is a Ref
+          right match {
+            case right: HeapAccess => // e.g., `x := y.g`
+              val s = this.objFieldToObj(right.rcv)(right.field) // retrieve the heap `Obj` objects
+              // add xref -> s to refToObj map
+              val refMap = this.refToObj + (x -> s)
+              // return the current state with updated refToObj
+              this.copy(refToObj = refMap).pruneUnreachableHeap()
+
+            case right: HeapNode => // e.g., `x = new()`
+              // add xref -> right to refToObj map
+              val refMap = this.refToObj + (x -> Set[HeapNode](right))
+              // return the current state with updated refToObj
+              this.copy(refToObj = refMap).pruneUnreachableHeap()
+
+            case right: VariableIdentifier => // e.g., `x := y`
+              // add xref -> refToObj[rightref] to refToObj map
+              val refMap = this.refToObj + (x -> this.refToObj.getOrElse(right, Set[HeapNode](NullHeapNode)))
+              // return the current state with updated refToObj
+              this.copy(refToObj = refMap).pruneUnreachableHeap()
+
+            case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
+          }
+        } else {  // the assigned variable is not a Ref
+          this.copy(numDom = numDom.assign(x,right))  // return the current state with updated numDom
+        }
+      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
+    }
   }
 
   /** Assumes that a boolean expression holds.
@@ -128,7 +158,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   override def assume(cond: Expression): S = {
     logger.debug("*** ----------------assume(" + cond.toString + ")")
 
-    ???
+    this //TODO
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -148,13 +178,13 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   override def bottom(): S = {
     val fields = Set[(Type,String)]()
     val currentPP = DummyProgramPoint
-    val nonce = 0
+    val temp = 1
     // return a new state with bottom exprSet, empty refToObj, empty objFieldToObj, bottom numDom
     val expr = exprSet.bottom()
     val refToObj = Map[VariableIdentifier,Set[HeapNode]]()
     val objFieldToObj = Map[HeapNode,Map[String,Set[HeapNode]]]()
     val num = numDom.bottom()
-    this.copy(fields,currentPP,nonce,expr,refToObj,objFieldToObj,num)
+    this.copy(fields,currentPP,temp,expr,refToObj,objFieldToObj,num)
   }
 
   def copy(fieldSet: Set[(Type, String)] = fieldSet,
@@ -190,9 +220,15 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @return The abstract state after the creation of the variable
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S = {
-    logger.debug("*** ----------------createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
+    logger.trace("*** ----------------createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
 
-    ???
+    if (typ.isObject) { // the variable to be created is a Ref
+      val refToObjmap = refToObj + (x -> Set[HeapNode](NullHeapNode)) // add key to refToObj map
+      // return the current state with updated exprSet and refToObj
+      this.copy(exprSet = ExpressionSet(x), refToObj = refToObjmap)
+    } else { // the variable to be created is not a `Ref`
+      this.copy(numDom = numDom.createVariable(x,typ))  // return the current state with updated numDom
+    }
   }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
@@ -204,9 +240,36 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @return The abstract state after the creation of the argument
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): S = {
-    logger.debug("*** ----------------createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
+    logger.trace("*** ----------------createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
 
-    ???
+    if (typ.isObject) { // the variable to be created is a Ref
+      if (objFieldToObj.contains(SummaryHeapNode)) { // the summary heap node exists already
+        // add key to refToObj map
+        val refMap = refToObj + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+        // return the current state with updated refToObj and objFieldToObj
+        this.copy(exprSet = ExpressionSet(x), refToObj = refMap)
+      } else { // the summary heap node was never created before
+        // prepare fields to add to objFieldToObj map and add variables to numDom
+        var fieldMap = Map[String,Set[HeapNode]]()
+        var num = numDom
+        for (f <- fieldSet) { // for all fields declared within the program...
+          f._1 match {
+            case _:RefType =>
+              fieldMap = fieldMap + (f._2 -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+            case _ =>
+              num = num.createVariable(HeapAccess(SummaryHeapNode,f._2,f._1),f._1)
+          }
+        }
+        // add key to refToObj map
+        val refMap = refToObj + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+        // add key to objFieldToObj map
+        val objMap = objFieldToObj + (SummaryHeapNode -> fieldMap)
+        // return the current state with updated exprSet, refToObj, objFieldToObj and numDom
+        this.copy(exprSet = ExpressionSet(x), refToObj = refMap, objFieldToObj = objMap, numDom = num)
+      }
+    } else { // the variable to be created is not a Ref
+      this.copy(numDom = numDom.createVariable(x,typ))  // return the current state with updated numDom
+    }
   }
 
   /** Evaluates a numerical constant.
@@ -237,7 +300,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   override def factory(): S = {
     val fields = Set[(Type,String)]()
     val currentPP = DummyProgramPoint
-    val nonce = 0
+    val nonce = 1
     // return a new state with factory exprSet, empty refToObj, empty objFieldToObj, factory numDom
     val expr = ExpressionSet()
     val refToObj = Map[VariableIdentifier,Set[HeapNode]]()
@@ -259,7 +322,67 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
     logger.debug("*** ----------------getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
-    ???
+    obj match {
+      case obj:AccessPathIdentifier =>
+        val path: List[Identifier] = obj.path // path to evaluate
+
+        // path head evaluation
+        var temp = nonce
+        var refMap = refToObj
+        var objMap = objFieldToObj
+        var num = numDom
+
+        val head = path.head.asInstanceOf[VariableIdentifier]
+        var rcvSet = refToObj(head)  // initial receiver set
+        if (rcvSet.contains(SummaryHeapNode)) { // materialization already within the refMap
+          val freshR = HeapNode(temp); temp = temp + 1 // create fresh heap node
+          rcvSet = rcvSet - SummaryHeapNode + freshR // update receiver set
+          refMap = refMap + (head -> rcvSet) // add key to refMap to replace the summary node with the fresh node
+          // update refMap adding the fresh node where the summary node is present
+          refMap = refMap.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshR else s)
+          // update objMap adding the fresh node where the summary node is present
+          objMap = objMap.mapValues(
+            m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshR else s)
+          )
+          objMap = objMap + (freshR -> objMap(SummaryHeapNode)) // add key to objMap
+        }
+
+        // path tail evaluation
+        val eval = path.tail.dropRight(1).foldLeft((refMap,objMap,rcvSet))(
+          (curr,next) => {
+            var rM: Map[VariableIdentifier,Set[HeapNode]] = curr._1
+            var oM: Map[HeapNode,Map[String,Set[HeapNode]]] = curr._2
+            var rS = Set[HeapNode]()
+            for (obj: HeapNode <- curr._3) { // for all current receivers...
+              var tR = oM.getOrElse(obj,Map[String,Set[HeapNode]]()).getOrElse(next.getName,Set[HeapNode]())
+              if (tR.contains(SummaryHeapNode)) { // materialization
+                val freshO = HeapNode(temp); temp = temp + 1 // create fresh heap node
+                tR = tR - SummaryHeapNode + freshO // update receiver set
+                // update rM adding the fresh node where the summary node is present
+                rM = rM.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshO else s)
+                // update oM adding the fresh node where the summary node is present
+                oM = oM.mapValues(
+                  m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshO else s)
+                )
+                oM = oM + (freshO -> oM(SummaryHeapNode)) // add key to oM
+              }
+              rS = rS ++ tR
+            }
+            (rM,oM,rS)
+          }
+        )
+
+        // null pointer dereference warning report
+        if (eval._3.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        rcvSet = eval._3 - NullHeapNode
+        val expr = rcvSet.foldLeft(ExpressionSet())(
+          (exp,rcv) =>  exp add ExpressionSet(HeapAccess(rcv,field,typ))  // create new FieldIdentifier
+        )
+        //TODO: deal with the numerical domain when materializing
+        // return the current state with updated exprSet, refToObj, objFieldToObj, numDom
+        this.copy(nonce = temp, exprSet = expr, refToObj = eval._1, objFieldToObj = eval._2, numDom = numDom)
+      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
+    }
   }
 
   /** Gets the value of a variable.
@@ -308,7 +431,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   override def lessEqual(other: S): Boolean = {
     logger.debug("*** lessEqual(" + this.repr + ", " + other.repr + ")")
 
-    ???
+    false //TODO
   }
 
   /** Computes the least upper bound of two elements.
@@ -318,16 +441,60 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: S): S = {
-    logger.debug("*** lub(" + this.repr + ", " + other.repr + ")")
-
-    ???
+    logger.trace("*** lub(" + this.repr + ", " + other.repr + ")")
+    def zipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
+      var keyToObjmap = Map[K,Set[HeapNode]]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,None) =>
+          case (None,Some(o2)) => keyToObjmap = keyToObjmap + (key -> o2)
+          case (Some(o1),None) => keyToObjmap = keyToObjmap + (key -> o1)
+          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
+            val o = (o1 - SummaryHeapNode) ++ (o2 - SummaryHeapNode) ++ (o1 & o2)
+            keyToObjmap = keyToObjmap + (key -> o)
+        }
+      }; keyToObjmap
+    }
+    val fields = this.fieldSet ++ other.fieldSet  // join the fieldSets
+    val nonce = Math.max(this.nonce, other.nonce) // take the maximum nonce
+    val expr = this.exprSet lub other.expr // join the exprSets
+    val refMap = zipper[VariableIdentifier](this.refToObj,other.refToObj)  // merge the refToObjs
+    // merge the objFieldToObj
+    var objMap = Map[HeapNode,Map[String,Set[HeapNode]]]()
+    for (key <- this.objFieldToObj.keySet ++ other.objFieldToObj.keySet) { // for all keys present in either map...
+      (this.objFieldToObj.get(key),other.objFieldToObj.get(key)) match {
+        case (None,None) =>
+        case (None,Some(m2)) => objMap = objMap + (key -> m2)
+        case (Some(m1),None) => objMap = objMap + (key -> m1)
+        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
+          objMap = objMap + (key -> zipper[String](m1,m2))
+      }
+    }
+    val num = this.numDom lub other.numDom // join the numDoms
+    // return the current state with updated exprSet, refToObj, objFieldToObj and numDom
+    this.copy(fieldSet = fields, nonce = nonce, exprSet = expr, refToObj = refMap, objFieldToObj = objMap, numDom = num)
   }
 
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): S = {
-    //logger.debug("*** pruneUnreachableHeap()")
-
-    ???
+    // retrieve all heap nodes reachable from Ref variables
+    val objFromRef = refToObj.foldLeft(Set[HeapNode]())((r, s) => r ++ s._2)
+    // add all Obj reachable from fields of Obj reachable from Ref variables
+    var reach = objFromRef
+    for (id <- objFromRef) {
+      reach = objFieldToObj.getOrElse(id,Map[String,Set[HeapNode]]()).foldLeft(reach)((r,s) => r ++ s._2)
+    }
+    // collect and remove all unreachable Obj
+    var unreach = Set[HeapNode]()
+    var objMap = objFieldToObj
+    for (key <- objFieldToObj.keys) {
+      if (!reach.contains(key)) { objMap = objMap - key; unreach = unreach + key }
+    }
+    // prune variables from numDom
+    var num = numDom
+    for (obj <- unreach) { for (f <- fieldSet) { num = num.removeVariable(HeapAccess(obj,f._2,f._1)) } }
+    // return the current state with updated objFieldToObj and numDom
+    this.copy(objFieldToObj = objMap, numDom = num)
   }
 
   /** Removes all variables satisfying filter.
@@ -459,9 +626,38 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @return The widening of `this` and `other`
     */
   override def widening(other: S): S = {
-    logger.debug("*** ----------------widening(" + other.repr + ")")
-
-    ???
+    logger.trace("*** ----------------widening(" + other.repr + ")")
+    def zipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
+      var keyToObjmap = Map[K,Set[HeapNode]]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,None) =>
+          case (None,Some(o2)) => keyToObjmap = keyToObjmap + (key -> o2)
+          case (Some(o1),None) => keyToObjmap = keyToObjmap + (key -> o1)
+          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
+            val o = (o1 - SummaryHeapNode) ++ (o2 - SummaryHeapNode) ++ (o1 & o2)
+            keyToObjmap = keyToObjmap + (key -> o)
+        }
+      }; keyToObjmap
+    }
+    val fields = this.fieldSet ++ other.fieldSet  // join the fieldSets
+    val temp = Math.max(this.nonce, other.nonce) // take the maximum nonce
+    val expr = this.exprSet widening other.expr // widen the exprSets
+    val refMap = zipper[VariableIdentifier](this.refToObj,other.refToObj)  // merge the refToObjs
+    // merge the objFieldToObj
+    var objMap = Map[HeapNode,Map[String,Set[HeapNode]]]()
+    for (key <- this.objFieldToObj.keySet ++ other.objFieldToObj.keySet) { // for all keys present in either map...
+      (this.objFieldToObj.get(key),other.objFieldToObj.get(key)) match {
+        case (None,None) =>
+        case (None,Some(m2)) => objMap = objMap + (key -> m2)
+        case (Some(m1),None) => objMap = objMap + (key -> m1)
+        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
+          objMap = objMap + (key -> zipper[String](m1,m2))
+      }
+    }
+    val num = this.numDom widening other.numDom // widen the numDoms
+    // return the current state with updated exprSet, refToObj, objFieldToObj and numDom
+    this.copy(fieldSet = fields, nonce = temp, exprSet = expr, refToObj = refMap, objFieldToObj = objMap, numDom = num)
   }
 }
 
@@ -521,7 +717,7 @@ trait MayPointToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: MayPoin
 object MayPointToPolyhedraEntryStateBuilder
   extends MayPointToNumericalEntryStateBuilder[Apron.Polyhedra, MayPointToPolyhedraState] {
 
-  override def topState = MayPointToPolyhedraState(fields, DummyProgramPoint, 0,
+  override def topState = MayPointToPolyhedraState(fields, DummyProgramPoint, 1,
     ExpressionSet(),
     Map[VariableIdentifier,Set[HeapNode]](),
     Map[HeapNode,Map[String,Set[HeapNode]]](),
