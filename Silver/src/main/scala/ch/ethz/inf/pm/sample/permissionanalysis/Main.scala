@@ -6,8 +6,14 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.reporting.{SampleMessage, Reporter}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval}
+import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
+
+object NumDom {
+  type I = BoxedNonRelationalNumericalDomain[DoubleInterval]
+  type P = Apron.Polyhedra
+}
 
 /** Main for the permission inference.
   *
@@ -24,10 +30,11 @@ object Main {
 
     //PointsToPolyhedraAnalysisRunner.main(args)
     MayPointToPolyhedraAnalysisRunner.main(args)
-
+    
     //PermissionIntervalsAnalysisRunner.main(args)
 
     //PermissionPolyhedraAnalysisRunner.main(args)
+    AccessPolyhedraAnalysisRunner.main(args)
 
     //println()
     //for (w <- Reporter.seenInfos) {

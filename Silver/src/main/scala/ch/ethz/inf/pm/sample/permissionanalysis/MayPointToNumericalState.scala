@@ -682,6 +682,8 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
                 tR = tR - SummaryHeapNode + freshO // update receiver set
                 // update rM adding the fresh node where the summary node is present
                 rM = rM.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshO else s)
+                // add key to oM to replace the summary node with the fresh node
+                oM = oM + (obj -> (oM.getOrElse(obj,Map[String,Set[HeapNode]]()) + (next.getName -> tR)))
                 // update oM adding the fresh node where the summary node is present
                 oM = oM.mapValues(
                   m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshO else s)
@@ -715,6 +717,8 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
               rcvSet = rcvSet - SummaryHeapNode + freshE // update receiver set
               // update refMap adding the fresh node where the summary node is present
               refMap = refMap.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshE else s)
+              // add key to objMap to replace the summary node with the fresh node
+              objMap = objMap + (obj -> (objMap.getOrElse(obj,Map[String,Set[HeapNode]]()) + (field -> rcvSet)))
               // update objMap adding the fresh node where the summary node is present
               objMap = objMap.mapValues(
                 m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshE else s)
@@ -1113,8 +1117,8 @@ case class MayPointToIntervalsState(fieldSet: Set[(Type, String)],
                                     exprSet: ExpressionSet,
                                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
                                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                                    numDom: BoxedNonRelationalNumericalDomain[DoubleInterval])
-  extends MayPointToNumericalState[BoxedNonRelationalNumericalDomain[DoubleInterval],MayPointToIntervalsState] {
+                                    numDom: NumDom.I)
+  extends MayPointToNumericalState[NumDom.I,MayPointToIntervalsState] {
   override def copy(fieldSet: Set[(Type, String)],
                     currentPP: ProgramPoint,
                     flag: Boolean,
@@ -1122,7 +1126,7 @@ case class MayPointToIntervalsState(fieldSet: Set[(Type, String)],
                     exprSet: ExpressionSet,
                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                    numDom: BoxedNonRelationalNumericalDomain[DoubleInterval]): MayPointToIntervalsState =
+                    numDom: NumDom.I): MayPointToIntervalsState =
     MayPointToIntervalsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
@@ -1144,8 +1148,8 @@ case class MayPointToPolyhedraState(fieldSet: Set[(Type, String)],
                                     exprSet: ExpressionSet,
                                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
                                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                                    numDom: Apron.Polyhedra)
-  extends MayPointToNumericalState[Apron.Polyhedra,MayPointToPolyhedraState] {
+                                    numDom: NumDom.P)
+  extends MayPointToNumericalState[NumDom.P,MayPointToPolyhedraState] {
   override def copy(fieldSet: Set[(Type, String)],
                     currentPP: ProgramPoint,
                     flag: Boolean,
@@ -1153,7 +1157,7 @@ case class MayPointToPolyhedraState(fieldSet: Set[(Type, String)],
                     exprSet: ExpressionSet,
                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                    numDom: Polyhedra): MayPointToPolyhedraState =
+                    numDom: NumDom.P): MayPointToPolyhedraState =
     MayPointToPolyhedraState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
@@ -1182,7 +1186,7 @@ trait MayPointToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: MayPoin
   * @author Caterina Urban
   */
 object MayPointToIntervalsEntryStateBuilder
-  extends MayPointToNumericalEntryStateBuilder[BoxedNonRelationalNumericalDomain[DoubleInterval], MayPointToIntervalsState] {
+  extends MayPointToNumericalEntryStateBuilder[NumDom.I, MayPointToIntervalsState] {
 
   override def topState = MayPointToIntervalsState(fields, DummyProgramPoint, true, 1,
     ExpressionSet(),
@@ -1196,7 +1200,7 @@ object MayPointToIntervalsEntryStateBuilder
   * @author Caterina Urban
   */
 object MayPointToPolyhedraEntryStateBuilder
-  extends MayPointToNumericalEntryStateBuilder[Apron.Polyhedra, MayPointToPolyhedraState] {
+  extends MayPointToNumericalEntryStateBuilder[NumDom.P, MayPointToPolyhedraState] {
 
   override def topState = MayPointToPolyhedraState(fields, DummyProgramPoint, true, 1,
     ExpressionSet(),

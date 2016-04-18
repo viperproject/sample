@@ -8,11 +8,17 @@
 //	x.f := null
 //}
 
+//field f: Ref
+//
+//method Foo(this: Ref, that: Ref)
+//{
+//    this.f := that
+//    //this.f.f := null
+//}
+
 field f: Ref
 
-method Foo(this: Ref, that: Ref)
+method Foo(this: Ref)
 {
-    var x: Ref
-    x := this.f
-    x.f := that
+    this.f := null
 }

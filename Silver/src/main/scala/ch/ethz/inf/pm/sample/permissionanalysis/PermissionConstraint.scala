@@ -75,7 +75,7 @@ case object FractionalPermission extends PermissionsType {
   *
   * @author Caterina Urban
   */
-object PermissionSolver {
+object AccessPermissionSolver {
 
   /** Considered access permissions. */
   var permissionType : PermissionsType = FractionalPermission
@@ -92,7 +92,7 @@ object PermissionSolver {
   def emptyConstraints() = { constraints = Set.empty[Constraint] }
 
   /** Converts a SymbolicPermission into an ArithmeticExpression. */
-  def convertSymbolicPermission(s: SymbolicPermission) : ArithmeticExpression =
+  def convertSymbolicPermission(s: SymPermission) : ArithmeticExpression =
     s.value.foldLeft(new Value(0) : ArithmeticExpression)(
       (exp, v) => new Add(exp, convertCountedSymbolicValue(v))
     )

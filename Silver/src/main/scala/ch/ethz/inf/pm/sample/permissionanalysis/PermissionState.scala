@@ -62,15 +62,6 @@ case class SymbolicPrecondition(p: Path) extends SymbolicValue(p) {
   override def factory() : SymbolicValue = SymbolicPrecondition(p)
 }
 
-/** Symbolic access permission value. */
-case class SymbolicAccess(p: Path) extends SymbolicValue(p) {
-  override def equals(a : Any) : Boolean = a match {
-    case x : SymbolicAccess => path.equals(x.path)
-    case _ => false
-  }
-  override def factory(): SymbolicValue = SymbolicAccess(p)
-}
-
 /** Counted symbolic value.
   *
   * It is either a monomial `n * s` or a constant `n` (with `null` symbolic value).
@@ -130,7 +121,7 @@ case class CountedSymbolicValue(n: Double, s: SymbolicValue) {
   *
   * @author Caterina Urban
   */
-class SymbolicPermission extends Lattice[SymbolicPermission] {
+class SymPermission extends Lattice[SymPermission] {
 
   /** Custom constructor(s). */
   def this(v: CountedSymbolicValue) = {
@@ -153,14 +144,14 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
     if (!added && v.n != 0) sym + v else sym
   }
   /** Adds a counted symbolic value to the current set of counted symbolic values. */
-  def +(v: CountedSymbolicValue): SymbolicPermission = {
+  def +(v: CountedSymbolicValue): SymPermission = {
     val sym: Set[CountedSymbolicValue] = addCountedSymbolicValue(this.value,v)
-    new SymbolicPermission(sym)
+    new SymPermission(sym)
   }
   /** Adds a symbolic permission with the current symbolic permission. */
-  def ++(v: SymbolicPermission): SymbolicPermission = {
+  def ++(v: SymPermission): SymPermission = {
     val sym: Set[CountedSymbolicValue] = v.value.foldLeft(this.value)(addCountedSymbolicValue)
-    new SymbolicPermission(sym)
+    new SymPermission(sym)
   }
 
   private def subCountedSymbolicValue(s: Set[CountedSymbolicValue], v: CountedSymbolicValue): Set[CountedSymbolicValue] = {
@@ -174,45 +165,45 @@ class SymbolicPermission extends Lattice[SymbolicPermission] {
     // if (!subtracted) throw new IllegalArgumentException("Trying to give away without owning a permission!") else sym
   }
   /** Subtracts a counted symbolic value from the current set of counted symbolic values. */
-  def -(v : CountedSymbolicValue) : SymbolicPermission= {
+  def -(v : CountedSymbolicValue) : SymPermission= {
     val sym: Set[CountedSymbolicValue] = subCountedSymbolicValue(this.value,v)
-    new SymbolicPermission(sym)
+    new SymPermission(sym)
   }
   /** Subtracts a symbolic permission from the current symbolic permission. */
-  def --(v: SymbolicPermission): SymbolicPermission = {
+  def --(v: SymPermission): SymPermission = {
     val sym: Set[CountedSymbolicValue] = v.value.foldLeft(this.value)(subCountedSymbolicValue)
-    new SymbolicPermission(sym)
+    new SymPermission(sym)
   }
 
   def evaluate(result: Map[SymbolicValue, Double]): Double = value.foldLeft(0.0)(_ + _.evaluate(result))
 
   /** Returns the bottom value of the lattice. */
-  override def bottom(): SymbolicPermission = ???
+  override def bottom(): SymPermission = ???
   /** Returns a new instance of the lattice. */
-  override def factory(): SymbolicPermission = ???
+  override def factory(): SymPermission = ???
   /** Returns the top value of the lattice. */
-  override def top(): SymbolicPermission = ???
+  override def top(): SymPermission = ???
 
   /** Checks whether the given domain element is equivalent to bottom. */
   override def isBottom: Boolean = false
   /** Returns true if and only if `this` is less than or equal to `other`. */
-  override def lessEqual(other: SymbolicPermission): Boolean = ???
+  override def lessEqual(other: SymPermission): Boolean = ???
   /** Checks whether the given domain element is equivalent to top. */
   override def isTop: Boolean = ???
 
   /** Computes the greatest lower bound of two elements. */
-  override def glb(other: SymbolicPermission): SymbolicPermission = ???
+  override def glb(other: SymPermission): SymPermission = ???
   /** Computes the least upper bound of two elements. */
-  override def lub(other: SymbolicPermission): SymbolicPermission = {
+  override def lub(other: SymPermission): SymPermission = {
     val sym = this.value union other.value.map(
       (s) => this.value.foldLeft(s)(
         (el, v) => if (s sameSymbolicValue v) el lub v else el
       )
     )
-    new SymbolicPermission(sym)
+    new SymPermission(sym)
   }
   /** Computes the widening of two elements. */
-  override def widening(other: SymbolicPermission): SymbolicPermission = this lub other
+  override def widening(other: SymPermission): SymPermission = this lub other
 
   override def toString : String = if (isBottom) "⊥" else if (value.isEmpty) "0" else value.mkString("", " + ", "")
 }
@@ -234,9 +225,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   // points-to+numerical state
   def heapNum: T
   // map from field identifiers to their associated set of symbolic permissions
-  def idToSym: Map[FieldIdentifier, Set[SymbolicPermission]]
+  def idToSym: Map[FieldIdentifier, Set[SymPermission]]
   // map from field identifiers to their currently associated set of symbolic permissions
-  def idToPerm: Map[FieldIdentifier, Set[SymbolicPermission]]
+  def idToPerm: Map[FieldIdentifier, Set[SymPermission]]
   
   /** Assigns an expression to a field of an object.
     *
@@ -258,9 +249,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
         // add constraints to the solver
         for (sym <- idToPerm(obj)) { // for all currently associated symbolic permissions...
           // create constraint to ensure write permissions
-          val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
+          val c = AccessPermissionSolver.permissionType.ensureWrite(AccessPermissionSolver.convertSymbolicPermission(sym))
           // add constraint to solver
-          PermissionSolver.addConstraint(c)
+          AccessPermissionSolver.addConstraint(c)
         }
         // ensure read permissions for all field identifiers in the right-hand side
         for (id <- right.ids.getNonTop) {
@@ -268,9 +259,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
             case id: FieldIdentifier =>
               for (s <- idToPerm(id)) { // for all currently associated symbolic permissions...
                 // create constraint to ensure read permissions
-                val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+                val c = AccessPermissionSolver.permissionType.ensureRead(AccessPermissionSolver.convertSymbolicPermission(s))
                 // add constraint to solver
-                PermissionSolver.addConstraint(c)
+                AccessPermissionSolver.addConstraint(c)
               }
             case _ => // nothing to be done
           }
@@ -296,11 +287,11 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     for (id <- right.ids.getNonTop) {
       id match {
         case id: FieldIdentifier =>
-          for (s <- idToPerm.getOrElse(id,Set[SymbolicPermission]())) { // for all currently associated symbolic permissions...
+          for (s <- idToPerm.getOrElse(id,Set[SymPermission]())) { // for all currently associated symbolic permissions...
             // create constraint to ensure read permissions
-            val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+            val c = AccessPermissionSolver.permissionType.ensureRead(AccessPermissionSolver.convertSymbolicPermission(s))
             // add constraint to solver
-            PermissionSolver.addConstraint(c)
+            AccessPermissionSolver.addConstraint(c)
           }
         case _ => // nothing to be done
       }
@@ -325,9 +316,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
         case id: FieldIdentifier =>
           for (s <- idToPerm(id)) { // for all currently associated symbolic permissions...
           // create constraint to ensure read permissions
-          val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
+          val c = AccessPermissionSolver.permissionType.ensureRead(AccessPermissionSolver.convertSymbolicPermission(s))
             // add constraint to solver
-            PermissionSolver.addConstraint(c)
+            AccessPermissionSolver.addConstraint(c)
           }
         case _ => // nothing to be done
       }
@@ -362,8 +353,8 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     this.copy(heapNum = heapNum.bottom())
   }
 
-  def copy(heapNum: T = heapNum, idToSym: Map[FieldIdentifier,Set[SymbolicPermission]] = idToSym,
-           idToPerm: Map[FieldIdentifier,Set[SymbolicPermission]] = idToPerm): S
+  def copy(heapNum: T = heapNum, idToSym: Map[FieldIdentifier,Set[SymPermission]] = idToSym,
+           idToPerm: Map[FieldIdentifier,Set[SymPermission]] = idToPerm): S
 
   /** Creates an object at allocation site.
     *
@@ -423,11 +414,11 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
         val sumFld = FieldIdentifier(sumObj,f._2,f._1)
         // create new symbolic access precondition for the path formed by the variable being created and the current field
         val pre = SymbolicPrecondition(new Path(List(f._2, x.name), List(f._1, x.typ), List(x.pp, x.pp)))
-        val sym = new SymbolicPermission(CountedSymbolicValue(1,pre))
+        val sym = new SymPermission(CountedSymbolicValue(1,pre))
         // add keys to idToSym map
-        idToSymmap = idToSymmap + (fld -> Set[SymbolicPermission](sym))
+        idToSymmap = idToSymmap + (fld -> Set[SymPermission](sym))
         // note that the field identifier corresponding to the summary heap object could already be in the idToSym map
-        idToSymmap = idToSymmap + (sumFld -> (idToSymmap.getOrElse(sumFld,Set[SymbolicPermission]()) + sym))
+        idToSymmap = idToSymmap + (sumFld -> (idToSymmap.getOrElse(sumFld,Set[SymPermission]()) + sym))
       }
       // return the current state with updated heapNum and updated idToSym
       this.copy(heapNum = heapNum.createVariableForArgument(x, typ), idToSym = idToSymmap)
@@ -468,9 +459,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     //        val idToSymmap = idToSym + (id -> (sym - v))
     //
     //        // create constraint to ensure proper exhale
-    //        // val c = new Geq(PermissionSolver.convertSymbolicPermission(sym), PermissionSolver.convertCountedSymbolicValue(v))
+    //        // val c = new Geq(AccessPermissionSolver.convertSymbolicPermission(sym), AccessPermissionSolver.convertCountedSymbolicValue(v))
     //        // add constraint to solver
-    //        // PermissionSolver.addConstraint(c)
+    //        // AccessPermissionSolver.addConstraint(c)
     //
     //        // return the current state with updated idToSym
     //        this.copy(idToSym = idToSymmap)
@@ -518,13 +509,13 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
     logger.info("*** getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
-    def extendSym(sym: SymbolicPermission, field: String, typ: Type, pp: ProgramPoint): SymbolicPermission = {
+    def extendSym(sym: SymPermission, field: String, typ: Type, pp: ProgramPoint): SymPermission = {
       val csv = sym.value.map(s => { // for each symbolic value within the symbolic permission...
         val p: Path = s.s.path // retrieve the current path
         val v = s.s.factory().setPath(new Path(field::p.p, typ::p.t, pp::p.l)) // extend the current path
         CountedSymbolicValue(s.n, v) // create a new symbolic value
       })
-      new SymbolicPermission(csv) // create and return extended symbolic permission
+      new SymPermission(csv) // create and return extended symbolic permission
     }
 
     obj match {
@@ -537,18 +528,18 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
         val objs = Set[HeapIdentifier]() // initially empty set of heap objects
         // set of heap objects pointed to by the path head
         val rcvs: Set[HeapIdentifier] = heapNum.refToObj(head.asInstanceOf[VariableIdentifier]) - NullHeapIdentifier
-        val perm = Set[SymbolicPermission]() // initially empty symbolic permission
+        val perm = Set[SymPermission]() // initially empty symbolic permission
         // evaluation of the path
         val eval = tail.foldLeft((objs, rcvs, perm))((curr, next) => {
           // for each following path segment...
           val currc: Set[HeapIdentifier] = curr._1 // set of all heap objects collected so far
           val curro: Set[HeapIdentifier] = curr._2 // current set of receiver heap objects
-          val currp: Set[SymbolicPermission] = curr._3 // set of all symbolic permission collected so far
+          val currp: Set[SymPermission] = curr._3 // set of all symbolic permission collected so far
           //
           val nextc = currc ++ curro // next set of collected heap objects
           var nexto = Set[HeapIdentifier]() // next set of receiver heap object
           // new set of collected symbolic permissions
-          var newp: Set[SymbolicPermission] = idToSym.foldLeft(Set[SymbolicPermission]())(_ ++ _._2)
+          var newp: Set[SymPermission] = idToSym.foldLeft(Set[SymPermission]())(_ ++ _._2)
           for (o: HeapIdentifier <- curro) {
             // add newly reached heap objects
             nexto = nexto ++ heapNum.objFieldToObj.
@@ -557,11 +548,11 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
             // create a field identifier for the heap object
             val fld = FieldIdentifier(o, next.getName, next.typ)
             // remove unseen symbolic permissions
-            newp = newp intersect idToSym.getOrElse[Set[SymbolicPermission]](fld, Set[SymbolicPermission]())
+            newp = newp intersect idToSym.getOrElse[Set[SymPermission]](fld, Set[SymPermission]())
           }
           val nextp = if ((currc intersect curro).nonEmpty) {
             // if a current heap object was already seen
-            currp ++ newp.foldLeft[Set[SymbolicPermission]](Set[SymbolicPermission]())(
+            currp ++ newp.foldLeft[Set[SymPermission]](Set[SymPermission]())(
               // extend the paths of the symbolic permission in the new set of collected symbolic permissions
               (ps, p) => ps + extendSym(p, next.getName, next.typ, next.pp)
             )
@@ -655,10 +646,10 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     //          val idToSymmap = idToSym + (id -> (sym + v))
     //
     //          // create constraint to ensure proper inhale
-    //          // val m = new CountedSymbolicValue(PermissionSolver.permissionType.maxLevel)
-    //          // val c = new Geq(PermissionSolver.convertCountedSymbolicValue(m), PermissionSolver.convertSymbolicPermission(sym + v))
+    //          // val m = new CountedSymbolicValue(AccessPermissionSolver.permissionType.maxLevel)
+    //          // val c = new Geq(AccessPermissionSolver.convertCountedSymbolicValue(m), AccessPermissionSolver.convertSymbolicPermission(sym + v))
     //          // add constraint to solver
-    //          // PermissionSolver.addConstraint(c)
+    //          // AccessPermissionSolver.addConstraint(c)
     //
     //          // return the current state with updated idToSym
     //          this.copy(idToSym = idToSymmap)
@@ -667,9 +658,9 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
             //// add constraints to the solver
             //for (sym <- idToPerm(obj)) { // for all currently associated symbolic permissions...
             //// create constraint to ensure write permissions
-            //val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
+            //val c = AccessPermissionSolver.permissionType.ensureWrite(AccessPermissionSolver.convertSymbolicPermission(sym))
             //  // add constraint to solver
-            //  PermissionSolver.addConstraint(c)3
+            //  AccessPermissionSolver.addConstraint(c)3
             //}
 
           case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
@@ -735,10 +726,10 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     // logger.info("*** lub(" + other.repr + ")")
 
     val idToSymmap = this.idToSym.filterKeys(k => !other.idToSym.contains(k)) ++ other.idToSym.map {
-      case (k: FieldIdentifier,v: Set[SymbolicPermission]) => k -> (v ++ this.idToSym.getOrElse(k,Set[SymbolicPermission]()))
+      case (k: FieldIdentifier,v: Set[SymPermission]) => k -> (v ++ this.idToSym.getOrElse(k,Set[SymPermission]()))
     } // merge the itToSyms
     val idToPermmap = this.idToPerm.filterKeys(k => !other.idToPerm.contains(k)) ++ other.idToPerm.map {
-      case (k: FieldIdentifier,v: Set[SymbolicPermission]) => k -> (v ++ this.idToPerm.getOrElse(k,Set[SymbolicPermission]()))
+      case (k: FieldIdentifier,v: Set[SymPermission]) => k -> (v ++ this.idToPerm.getOrElse(k,Set[SymPermission]()))
     } // merge the itToPerm
 
     // return the current state with updated heapNum, updated idToSym and updated idToPerm
@@ -884,10 +875,10 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
     logger.info("*** widening(" + other.repr + ")")
 
     val idToSymmap = this.idToSym.filterKeys(k => !other.idToSym.contains(k)) ++ other.idToSym.map {
-      case (k: FieldIdentifier,v: Set[SymbolicPermission]) => k -> (v ++ this.idToSym.getOrElse(k,Set[SymbolicPermission]()))
+      case (k: FieldIdentifier,v: Set[SymPermission]) => k -> (v ++ this.idToSym.getOrElse(k,Set[SymPermission]()))
     } // merge the itToSyms
     val idToPermmap = this.idToPerm.filterKeys(k => !other.idToPerm.contains(k)) ++ other.idToPerm.map {
-      case (k: FieldIdentifier,v: Set[SymbolicPermission]) => k -> (v ++ this.idToPerm.getOrElse(k,Set[SymbolicPermission]()))
+      case (k: FieldIdentifier,v: Set[SymPermission]) => k -> (v ++ this.idToPerm.getOrElse(k,Set[SymPermission]()))
     } // merge the itToPerm
 
     // return the current state with updated heapNum, updated idToSym and updated idToPerm
@@ -902,12 +893,12 @@ trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T],
   * @author Caterina Urban
   */
 case class PermissionIntervalsState(heapNum: PointsToIntervalsState,
-                                    idToSym: Map[FieldIdentifier,Set[SymbolicPermission]],
-                                    idToPerm: Map[FieldIdentifier,Set[SymbolicPermission]])
+                                    idToSym: Map[FieldIdentifier,Set[SymPermission]],
+                                    idToPerm: Map[FieldIdentifier,Set[SymPermission]])
   extends PermissionState[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
   override def copy(heapNum: PointsToIntervalsState,
-                    idToSym: Map[FieldIdentifier, Set[SymbolicPermission]],
-                    idToPerm: Map[FieldIdentifier, Set[SymbolicPermission]]): PermissionIntervalsState =
+                    idToSym: Map[FieldIdentifier, Set[SymPermission]],
+                    idToPerm: Map[FieldIdentifier, Set[SymPermission]]): PermissionIntervalsState =
     PermissionIntervalsState(heapNum, idToSym, idToPerm)
 }
 
@@ -918,12 +909,12 @@ case class PermissionIntervalsState(heapNum: PointsToIntervalsState,
   * @author Caterina Urban
   */
 case class PermissionPolyhedraState(heapNum: PointsToPolyhedraState,
-                                    idToSym: Map[FieldIdentifier, Set[SymbolicPermission]],
-                                    idToPerm: Map[FieldIdentifier, Set[SymbolicPermission]])
+                                    idToSym: Map[FieldIdentifier, Set[SymPermission]],
+                                    idToPerm: Map[FieldIdentifier, Set[SymPermission]])
   extends PermissionState[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def copy(heapNum: PointsToPolyhedraState,
-                    idToSym: Map[FieldIdentifier, Set[SymbolicPermission]],
-                    idToPerm: Map[FieldIdentifier, Set[SymbolicPermission]]): PermissionPolyhedraState =
+                    idToSym: Map[FieldIdentifier, Set[SymPermission]],
+                    idToPerm: Map[FieldIdentifier, Set[SymPermission]]): PermissionPolyhedraState =
     PermissionPolyhedraState(heapNum, idToSym, idToPerm)
 }
 
@@ -954,13 +945,13 @@ trait PermissionEntryStateBuilder[N <: NumericalDomain[N],
   * @author Caterina Urban
   */
 object PermissionIntervalsEntryStateBuilder
-  extends PermissionEntryStateBuilder[BoxedNonRelationalNumericalDomain[DoubleInterval],PointsToIntervalsState,PermissionIntervalsState] {
+  extends PermissionEntryStateBuilder[NumDom.I,PointsToIntervalsState,PermissionIntervalsState] {
   override def topState: PermissionIntervalsState = PermissionIntervalsState(
     PointsToIntervalsEntryStateBuilder.topState, // top points-to+intervals state
     // map from an identifier to its symbolic permission`
-    Map[FieldIdentifier,Set[SymbolicPermission]](),
+    Map[FieldIdentifier,Set[SymPermission]](),
     // map from an identifier to its currently associated set of symbolic permissions
-    Map[FieldIdentifier,Set[SymbolicPermission]]())
+    Map[FieldIdentifier,Set[SymPermission]]())
 }
 
 /** Permission Inference entry states using Polyhedra for given method declarations.
@@ -968,13 +959,13 @@ object PermissionIntervalsEntryStateBuilder
   * @author Caterina Urban
   */
 object PermissionPolyhedraEntryStateBuilder
-  extends PermissionEntryStateBuilder[Apron.Polyhedra,PointsToPolyhedraState,PermissionPolyhedraState] {
+  extends PermissionEntryStateBuilder[NumDom.P,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def topState: PermissionPolyhedraState = PermissionPolyhedraState(
     PointsToPolyhedraEntryStateBuilder.topState, // top points-to+polyhedra state
     // map from an identifier to its symbolic permission`
-    Map[FieldIdentifier,Set[SymbolicPermission]](),
+    Map[FieldIdentifier,Set[SymPermission]](),
     // map from an identifier to its currently associated set of symbolic permissions
-    Map[FieldIdentifier,Set[SymbolicPermission]]())
+    Map[FieldIdentifier,Set[SymPermission]]())
 }
 
 /** Permission Inference.
@@ -996,18 +987,18 @@ trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N
     // analyze the method
     val result = analyze(method, entryStateBuilder.build(method))
     // solve the accumulated constraints
-    val solution = PermissionSolver.solve(PermissionSolver.getConstraints)
+    val solution = AccessPermissionSolver.solve(AccessPermissionSolver.getConstraints)
     //println("\nResult: ")
     //for ((s,v) <- solution) {
     //  if (v >= 1)
     //    println("acc(" + s.path.toString + ")")
     //  else if (v > 0)
-    //    println("acc(" + s.path.toString + ", " + PermissionSolver.doubleToRational(v) + ")")
+    //    println("acc(" + s.path.toString + ", " + AccessPermissionSolver.doubleToRational(v) + ")")
     //}
     // add entry to the map between method names and constraint solutions
     permissions = permissions + (method.name.toString -> solution)
     // clear the accumulated constraints (for the analysis of the next method)
-    PermissionSolver.emptyConstraints()
+    AccessPermissionSolver.emptyConstraints()
     result  // return the result of the analysis
   }
 
@@ -1018,8 +1009,7 @@ trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N
   * @author Caterina Urban
   */
 object PermissionIntervalsAnalysis
-  extends PermissionInference[BoxedNonRelationalNumericalDomain[DoubleInterval],
-  PointsToIntervalsState, PermissionIntervalsState] {
+  extends PermissionInference[NumDom.I, PointsToIntervalsState, PermissionIntervalsState] {
   override def entryStateBuilder = PermissionIntervalsEntryStateBuilder
 }
 
@@ -1028,7 +1018,7 @@ object PermissionIntervalsAnalysis
   * @author Caterina Urban
   */
 object PermissionPolyhedraAnalysis
-  extends PermissionInference[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
+  extends PermissionInference[NumDom.P, PointsToPolyhedraState, PermissionPolyhedraState] {
   override def entryStateBuilder = PermissionPolyhedraEntryStateBuilder
 }
 
@@ -1086,7 +1076,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
               val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
               precondition = precondition ++ Seq[sil.Exp](perm)
             } else if (v > 0) {
-              val (num, den) = PermissionSolver.doubleToRational(v)
+              val (num, den) = AccessPermissionSolver.doubleToRational(v)
               //val perm = sil.FieldAccessPredicate(acc, sil.WildcardPerm()())()
               val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
               precondition = precondition ++ Seq[sil.Exp](perm)
@@ -1105,7 +1095,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
     // update the method postcondition
     var postcondition: Seq[sil.Exp] = method.posts
     // add access permissions
-    for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- post.idToSym) {
+    for ((id: FieldIdentifier,sym: Set[SymPermission]) <- post.idToSym) {
       // for each pair of identifier and set of symbolic permissions...
       val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
       //println("PATHS: " + paths)
@@ -1141,7 +1131,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
           val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
           postcondition = postcondition ++ Seq[sil.Exp](perm)
         } else if (v > 0) {
-          val (num, den) = PermissionSolver.doubleToRational(v)
+          val (num, den) = AccessPermissionSolver.doubleToRational(v)
           val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
           postcondition = postcondition ++ Seq[sil.Exp](perm)
         }
@@ -1194,7 +1184,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
         var invariants: Seq[sil.Exp] = stmt.invs
 
         // add access permissions
-        for ((id: FieldIdentifier,sym: Set[SymbolicPermission]) <- pre.idToSym) {
+        for ((id: FieldIdentifier,sym: Set[SymPermission]) <- pre.idToSym) {
           // for each pair of identifier and set of symbolic permissions...
           val paths = pre.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
           // select the shortest paths among the retrieved paths
@@ -1228,7 +1218,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
               val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
               invariants = invariants ++ Seq[sil.Exp](perm)
             } else if (v > 0) {
-              val (num, den) = PermissionSolver.doubleToRational(v)
+              val (num, den) = AccessPermissionSolver.doubleToRational(v)
               val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
               invariants = invariants ++ Seq[sil.Exp](perm)
             }
