@@ -19,3 +19,13 @@ class MayPointToPolyhedraLatticeTest extends LatticeTest[MayPointToPolyhedraStat
   SystemParameters.typ = DummyRefType
   override def factory: MayPointToPolyhedraState = MayPointToPolyhedraEntryStateBuilder.topState
 }
+
+//class AccessIntervalsLatticeTest extends LatticeTest[AccessIntervalsState] {
+//  SystemParameters.typ = DummyRefType
+//  override def factory: AccessIntervalsState = AccessIntervalsEntryStateBuilder.topState
+//}
+
+//class AccessPolyhedraLatticeTest extends LatticeTest[AccessPolyhedraState] {
+//  SystemParameters.typ = DummyRefType
+//  override def factory: AccessPolyhedraState = AccessPolyhedraEntryStateBuilder.topState
+//}

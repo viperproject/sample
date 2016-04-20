@@ -656,7 +656,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
           objMap = objMap.mapValues(
             m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshR else s)
           )
-          objMap = objMap + (freshR -> objMap(SummaryHeapNode)) // add key to objMap
+          objMap = objMap + (freshR -> objMap(SummaryHeapNode).mapValues(s => s - freshR)) // add key to objMap
           for (f <- fieldSet) { // for all fields declared within the program...
             f._1 match {
               case _:RefType =>
@@ -688,7 +688,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
                 oM = oM.mapValues(
                   m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshO else s)
                 )
-                oM = oM + (freshO -> oM(SummaryHeapNode)) // add key to oM
+                oM = oM + (freshO -> oM(SummaryHeapNode).mapValues(s => s - freshO)) // add key to oM
                 for (f <- fieldSet) { // for all fields declared within the program...
                   f._1 match {
                     case _:RefType =>
@@ -723,7 +723,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
               objMap = objMap.mapValues(
                 m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshE else s)
               )
-              objMap = objMap + (freshE -> objMap(SummaryHeapNode)) // add key to objMap
+              objMap = objMap + (freshE -> objMap(SummaryHeapNode).mapValues(s => s - freshE)) // add key to objMap
               for (f <- fieldSet) { // for all fields declared within the program...
                 f._1 match {
                   case _:RefType =>
@@ -777,7 +777,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
       objMap = objMap.mapValues(
         m => m.mapValues(s => if (s.contains(SummaryHeapNode)) s + freshR else s)
       )
-      objMap = objMap + (freshR -> objMap(SummaryHeapNode)) // add key to objMap
+      objMap = objMap + (freshR -> objMap(SummaryHeapNode).mapValues(s => s - freshR)) // add key to objMap
       for (f <- fieldSet) { // for all fields declared within the program...
         f._1 match {
           case _:RefType =>
@@ -798,7 +798,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments
-    * @todo implement me!
     */
   override def glb(other: S): S = {
     logger.trace("*** glb(" + this.repr + ", " + other.repr + ")")
@@ -938,10 +937,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     this.copy(objToObj = objMap, numDom = num)
   }
 
-  /** Removes all variables satisfying filter.
-    *
-    * @todo implement me!
-    */
+  /** Removes all variables satisfying filter. */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): S = {
     logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
 
@@ -960,7 +956,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     *
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable
-    * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): S = {
     logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
@@ -985,7 +980,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @param x The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
-    * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): S = {
     logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
@@ -1008,7 +1002,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable
-    * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): S = {
     logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
@@ -1020,7 +1013,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown
-    * @todo implement me!
     */
   override def throws(t: ExpressionSet): S = {
     logger.debug("*** throws(" + t.toString + "): implement me!")

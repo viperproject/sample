@@ -96,6 +96,12 @@ class SymbolicPermission {
     (set, c: CountedAccess) => set + CountedAccess(c.n, SymbolicAccess(field :: c.s.path))
   ))
 
+  def glb(other: SymbolicPermission): SymbolicPermission = {
+    val sym = this.value intersect other.value.map(
+      (s) => this.value.foldLeft(s)((el, v) => if (s sameSymbolicAccess v) el glb v else el)
+    )
+    new SymbolicPermission(sym)
+  }
   def lub(other: SymbolicPermission): SymbolicPermission = {
     val sym = this.value union other.value.map(
       (s) => this.value.foldLeft(s)((el, v) => if (s sameSymbolicAccess v) el lub v else el)
@@ -165,38 +171,54 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     */
   override def assignField(obj: Expression, field: String, right: Expression): S = {
     logger.debug("*** assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
-    println(this)
-//    obj match {
-//      case obj: FieldIdentifier =>
-//        //val idToSymmap = if (obj.obj.representsSingleVariable) { // strong update
-//        //  idToSym - obj // remove information about permissions of the field identifier
-//        //} else { idToSym }
-//        // add constraints to the solver
-//        for (sym <- idToPerm(obj)) { // for all currently associated symbolic permissions...
-//        // create constraint to ensure write permissions
-//        val c = PermissionSolver.permissionType.ensureWrite(PermissionSolver.convertSymbolicPermission(sym))
-//          // add constraint to solver
-//          PermissionSolver.addConstraint(c)
-//        }
-//        // ensure read permissions for all field identifiers in the right-hand side
-//        for (id <- right.ids.getNonTop) {
-//          id match {
-//            case id: FieldIdentifier =>
-//              for (s <- idToPerm(id)) { // for all currently associated symbolic permissions...
-//              // create constraint to ensure read permissions
-//              val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
-//                // add constraint to solver
-//                PermissionSolver.addConstraint(c)
-//              }
-//            case _ => // nothing to be done
-//          }
-//        }
-//        // return the current state with updated heapNum //and updated idToSym
-//        this.copy(heapNum = heapNum.assignField(obj, field, right)) //idToSym = idToSymmap
-//      case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
-//    }
-    // return the current state with updated heapNum
-    this.copy(heapNum = heapNum.assignField(obj, field, right))
+
+    obj match {
+      case obj: HeapAccess =>
+        val heap = heapNum.assignField(obj, field, right)
+        var nodeMap = nodeToSym
+        // ensure write access permission
+        PermissionSolver.ensureWrite(nodeToSym(obj.rcv),VariableIdentifier(obj.field)(obj.typ))
+        // ensure read access permissions for all accesses in the right-hand side
+        for (id <- right.ids.getNonTop) {
+          id match {
+            case id: HeapAccess =>
+              val fId: Identifier = VariableIdentifier(id.field)(id.typ)
+              PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
+              // add key to nodeMap to represent the access
+              val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+              for (o <- rgtSet) {
+                if (!nodeMap.contains(o)) {
+                  nodeMap = nodeMap + (id.rcv -> nodeMap(id.rcv).extend(fId))
+                }
+              }
+            case _ => // nothing to be done
+          }
+        }
+        if (obj.typ.isObject) { // the assigned field is a Ref
+          right match {
+            case right: HeapAccess => // e.g., `x.f := y.g`
+
+              // return the current state with updated heapNum, nodeToSym
+              this.copy(heapNum = heap, nodeToSym = nodeMap).pruneUnreachableHeap()
+
+            case right: Constant => // e.g., `x.f := null`
+
+              // return the current state with updated heapNum, nodeToSym
+              this.copy(heapNum = heap, nodeToSym = nodeMap).pruneUnreachableHeap()
+
+            case right: VariableIdentifier => // e.g., `x.f := y`
+
+              // return the current state with updated heapNum, nodeToSym
+              this.copy(heapNum = heap, nodeToSym = nodeMap).pruneUnreachableHeap()
+
+            case _ => throw new NotImplementedError("A field assignment implementation is missing.")
+          }
+        } else {  // the assigned field is not a Ref
+          // return the current state with updated heapNum
+          this.copy(heapNum = heap).pruneUnreachableHeap()
+        }
+      case _ => throw new IllegalArgumentException("A field assignment must occur via a FieldIdentifier.")
+    }
   }
 
   /** Assigns an expression to a variable.
@@ -210,22 +232,26 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def assignVariable(x: Expression, right: Expression): S = {
     logger.debug("*** assignVariable(" + x.toString + "; " + right.toString + ")")
 
-//    // ensure read permissions for all field identifiers in the right-hand side
-//    for (id <- right.ids.getNonTop) {
-//      id match {
-//        case id: FieldIdentifier =>
-//          for (s <- idToPerm.getOrElse(id,Set[SymbolicAccessPermission]())) { // for all currently associated symbolic permissions...
-//          // create constraint to ensure read permissions
-//          val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
-//            // add constraint to solver
-//            PermissionSolver.addConstraint(c)
-//          }
-//        case _ => // nothing to be done
-//      }
-//    }
-//    // return the current state with updated heapNum and possibly updated idToSym
-//    this.copy(heapNum = heapNum.assignVariable(x, right))
-    ???
+    val heap = heapNum.assignVariable(x, right)
+    var nodeMap = nodeToSym
+    // ensure read access permissions for all accesses in the right-hand side
+    for (id <- right.ids.getNonTop) {
+      id match {
+        case id: HeapAccess =>
+          val fId: Identifier = VariableIdentifier(id.field)(id.typ)
+          PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
+        // add key to nodeMap to represent the access
+        val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+          for (o <- rgtSet) {
+            if (!nodeMap.contains(o)) {
+              nodeMap = nodeMap + (id.rcv -> nodeMap(id.rcv).extend(fId))
+            }
+          }
+        case _ => // nothing to be done
+      }
+    }
+    // return the current state with updated heapNum, nodeToSym
+    this.copy(heapNum = heap, nodeToSym = nodeMap)
   }
 
   /** Assumes that a boolean expression holds.
@@ -238,21 +264,26 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def assume(cond: Expression): S = {
     logger.debug("*** assume(" + cond.toString + ")")
 
-//    // ensure read permissions for all field identifiers in the right-hand side
-//    for (id <- cond.ids.getNonTop) {
-//      id match {
-//        case id: FieldIdentifier =>
-//          for (s <- idToPerm(id)) { // for all currently associated symbolic permissions...
-//          // create constraint to ensure read permissions
-//          val c = PermissionSolver.permissionType.ensureRead(PermissionSolver.convertSymbolicPermission(s))
-//            // add constraint to solver
-//            PermissionSolver.addConstraint(c)
-//          }
-//        case _ => // nothing to be done
-//      }
-//    }
+    val heap = heapNum.assume(cond)
+    var nodeMap = nodeToSym
+    // ensure read access permissions for all accesses in the expression
+    for (id <- cond.ids.getNonTop) {
+      id match {
+        case id: HeapAccess =>
+          val fId: Identifier = VariableIdentifier(id.field)(id.typ)
+          PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
+        // add key to nodeMap to represent the access
+        val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+          for (o <- rgtSet) {
+            if (!nodeMap.contains(o)) {
+              nodeMap = nodeMap + (id.rcv -> nodeMap(id.rcv).extend(fId))
+            }
+          }
+        case _ => // nothing to be done
+      }
+    }
     // return the current state with updated heapNum
-    this.copy(heapNum = heapNum.assume(cond))
+    this.copy(heapNum = heap)
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -272,7 +303,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): S = this.copy(heapNum = heapNum.bottom())
+  override def bottom(): S = this.copy(heapNum.bottom(), Map[HeapNode, SymbolicPermission]())
 
   def copy(heapNum: T = heapNum, nodeToSym: Map[HeapNode,SymbolicPermission] = nodeToSym): S
 
@@ -308,10 +339,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S = {
     logger.debug("*** createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
-
-//    // return the current state with updated heapNum
-//    this.copy(heapNum = heapNum.createVariable(x, typ, pp))
-    ???
+    // return the current state with updated heapNum
+    this.copy(heapNum = heapNum.createVariable(x, typ, pp))
   }
 
   /** Creates a variable for a method argument.
@@ -407,14 +436,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object
-    * @todo implement me!
     */
-  override def factory(): S = {
-    // logger.debug("*** factory(): implement me!")
-
-//    this.copy(heapNum = heapNum.factory())
-    ???
-  }
+  override def factory(): S = this.copy(heapNum.factory(), Map[HeapNode, SymbolicPermission]())
 
   /** Accesses a field of an object.
     *
@@ -436,28 +459,33 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
         val path: List[Identifier] = obj.path // path to evaluate
         // path head evaluation
         val partial = List[Identifier](path.head) // initial partial path
-        val nodeMap = nodeToSym // initial nodeMap
-        val rcvSet = heap.refToObj(path.head.asInstanceOf[VariableIdentifier]) // initial receiver set
+        var nodeMap = nodeToSym // initial nodeMap
+        val rcvSet = heap.refToObj(path.head.asInstanceOf[VariableIdentifier]) - NullHeapNode // initial receiver set
+        val initSet: Set[(HeapNode,List[Identifier])] = rcvSet.map(h => (h,partial)) // initial receiver+paths set
         // path tail evaluation
-        val eval = path.tail.dropRight(1).foldLeft(nodeMap,partial,rcvSet)(
+        val eval = path.tail.dropRight(1).foldLeft(nodeMap,initSet)(
           (curr,next) => {
             var nM: Map[HeapNode, SymbolicPermission] = curr._1
-            var pP: List[Identifier] = curr._2
-            var rS = Set[HeapNode]() // initially empty next receiver set
-            for (o <- curr._3) { // for all current receivers...
+            var iS = Set[(HeapNode,List[Identifier])]() // initially empty next receiver set
+            for ((o,pP) <- curr._2) { // for all current receivers...
               // add key to nM to represent the access
               if (!nM.contains(o)) { nM = nM + (o -> new SymbolicPermission(CountedAccess(1,SymbolicAccess(pP)))) }
-              PermissionSolver.ensureRead(nM(o),next) // add reading access permission
-              pP = next :: pP // extend the partial path
-              // update the next receiver set
-              rS = rS ++ heap.objToObj.getOrElse(o,Map[String,Set[HeapNode]]()).getOrElse(next.getName,Set[HeapNode]())
+              PermissionSolver.ensureRead(nM(o),next) // ensure read access permission
+              val rS = heap.objToObj.getOrElse(o,Map[String,Set[HeapNode]]()).getOrElse(next.getName,Set[HeapNode]()) - NullHeapNode
+              // update the next receiver+path set
+              iS = iS ++ rS.map(h => (h, next::pP)) // extend the partial path
             }
-            (nM, pP, rS)
+            (nM, iS)
           }
         )
-
+        nodeMap = eval._1
+        for ((o,p) <- eval._2) { // for all final receivers...
+          if (!nodeMap.contains(o)) {
+            nodeMap = nodeMap + (o -> new SymbolicPermission(CountedAccess(1,SymbolicAccess(p))))
+          }
+        } // add key to nodeMap to represent the access
         // return the current state with updated heapNum and nodeToSym
-        this.copy(heapNum = heap, nodeToSym = eval._1)
+        this.copy(heapNum = heap, nodeToSym = nodeMap)
       case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
   }
@@ -472,8 +500,17 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     */
   override def getVariableValue(id: Identifier): S = {
     logger.debug("*** getVariableValue(" + id.toString + ")")
-    // return the current state with updated heapNum
-    this.copy(heapNum = heapNum.getVariableValue(id))
+
+    val heap = heapNum.getVariableValue(id)
+    val pP = List[Identifier](id) // initial partial path
+    var nodeMap = nodeToSym // initial nodeMap
+    val rcvSet = heap.refToObj.getOrElse(id.asInstanceOf[VariableIdentifier],Set[HeapNode]()) // receiver set
+    for (o <- rcvSet - NullHeapNode) { // for all receivers...
+      // add key to nM to represent the access
+      if (!nodeMap.contains(o)) { nodeMap = nodeMap + (o -> new SymbolicPermission(CountedAccess(1,SymbolicAccess(pP)))) }
+    }
+    // return the current state with updated heapNum, nodeToSym
+    this.copy(heapNum = heap, nodeToSym = nodeMap)
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -481,12 +518,23 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments
-    * @todo implement me!
     */
   override def glb(other: S): S = {
     logger.debug("*** glb(" + other.repr + "): implement me!")
 
-    ???
+    def zipper[K](map1: Map[HeapNode,SymbolicPermission], map2: Map[HeapNode,SymbolicPermission]): Map[HeapNode,SymbolicPermission] = {
+      var nodeMap = Map[HeapNode,SymbolicPermission]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,_) =>
+          case (_,None) =>
+          case (Some(o1),Some(o2)) => nodeMap = nodeMap + (key -> (o1 glb o2))
+        }
+      }; nodeMap
+    }
+    val nodeMap = zipper[VariableIdentifier](this.nodeToSym,other.nodeToSym)  // merge the nodeToSyms
+    // return the current state with updated heapNum and nodeToSym
+    this.copy(heapNum = this.heapNum glb other.heapNum, nodeToSym = nodeMap)
   }
 
   /** Inhales permissions. */
@@ -550,23 +598,18 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     * @return `true` if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: S): Boolean = {
-    // logger.debug("*** lessEqual(" + other.repr + ")")
+    logger.debug("*** lessEqual(" + other.repr + ")")
 
-//    //    val exp = this.exprSet.lessEqual(other.exprSet) // test the exprSets
-//    //    val refToObjmap = this.refToObj.forall {
-//    //      case (k: VariableIdentifier,v: Set[HeapIdentifier]) => v subsetOf other.refToObj.getOrElse(k,Set[HeapIdentifier]())
-//    //    } // test the refToObjs
-//    //    val objFieldToObjmap = this.objFieldToObj.forall {
-//    //      case (o: HeapIdentifier, m: Map[String,Set[HeapIdentifier]]) => m.forall {
-//    //        case (f: String, s: Set[HeapIdentifier]) =>
-//    //          s subsetOf other.objFieldToObj.getOrElse(o,Map[String,Set[HeapIdentifier]]()).getOrElse(f,Set[HeapIdentifier]())
-//    //      }
-//    //    } // test the objFieldToObjs
-//    //    val num = this.numDom.lessEqual(other.numDom) // test the numDoms
-//    //    exp && refToObjmap && objFieldToObjmap && num
-//
-//    heapNum lessEqual other.heapNum
-    false //???
+    val heap = this.heapNum lessEqual other.heapNum
+    var nodeMap = true
+    for (key <- this.nodeToSym.keySet ++ other.nodeToSym.keySet) { // for all keys present in either map...
+      (this.nodeToSym.get(key),other.nodeToSym.get(key)) match {
+        case (None,_) =>
+        case (_,None) => nodeMap = false
+        case (Some(o1),Some(o2)) => nodeMap = (o1 equals o2) && nodeMap
+      }
+    }
+    heap && nodeMap
   }
 
   /** Computes the least upper bound of two elements.
@@ -598,13 +641,10 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def pruneUnreachableHeap(): S = {
 //    // logger.debug("*** pruneUnreachableHeap()")
 //    this.copy(heapNum = heapNum.pruneUnreachableHeap())
-    ???
+    this
   }
 
-  /** Removes all variables satisfying filter.
-    *
-    * @todo implement me!
-    */
+  /** Removes all variables satisfying filter. */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): S = {
     logger.debug("*** pruneVariables(" + filter.toString + "): implement me!")
 
@@ -623,7 +663,6 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable
-    * @todo implement me!
     */
   override def removeVariable(varExpr: VariableIdentifier): S = {
     logger.debug("*** removeVariable(" + varExpr.toString + "): implement me!")
@@ -650,7 +689,6 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     * @param x The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
-    * @todo implement me!
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): S = {
     logger.debug("*** setArgument(" + x.toString + "; " + right.toString + "): implement me!")
@@ -673,7 +711,6 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable
-    * @todo implement me!
     */
   override def setVariableToTop(varExpr: Expression): S = {
     logger.debug("*** setVariableToTop(" + varExpr.toString + "): implement me!")
@@ -685,7 +722,6 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown
-    * @todo implement me!
     */
   override def throws(t: ExpressionSet): S = {
     logger.debug("*** throws(" + t.toString + "): implement me!")
@@ -697,7 +733,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): S = this.copy(heapNum = heapNum.top())
+  override def top(): S = this.copy(heapNum.top(), Map[HeapNode, SymbolicPermission]())
 
   /** The state string representation.
     *
@@ -713,7 +749,6 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @param other The new value
     * @return The widening of `this` and `other`
-    * @todo implement me!
     */
   override def widening(other: S): S = {
     logger.debug("*** widening(" + other.repr + ")")
@@ -776,18 +811,18 @@ object PermissionSolver {
     p.value.foldLeft(Set[SymbolicAccess]())((set, c) => if (c.s != null) set + c.s else set)
 
   /** Converts a constraint into a LinearProgram#Constraint (accepted by Breeze) */
-  private def toConstraint(lp: LinearProgram)(vars: Map[SymbolicAccess,lp.Variable], c: PermissionConstraint): Set[lp.Constraint] = c match {
+  private def toConstraint(lp: LinearProgram)(z: lp.Expression, vars: Map[SymbolicAccess,lp.Variable], c: PermissionConstraint): Set[lp.Constraint] = c match {
     case EqP(left, right) =>
-      val l = toExpression(lp)(vars, left)
-      val r = toExpression(lp)(vars, right)
+      val l = toExpression(lp)(z, vars, left)
+      val r = toExpression(lp)(z, vars, right)
       Set[lp.Constraint]((l >= r).asInstanceOf[lp.Constraint], (l <= r).asInstanceOf[lp.Constraint])
     case GtP(left, right) =>
-      val l = toExpression(lp)(vars, left)
-      val r = toExpression(lp)(vars, right)
+      val l = toExpression(lp)(z, vars, left)
+      val r = toExpression(lp)(z, vars, right)
       Set[lp.Constraint]((l - r >= epsilon).asInstanceOf[lp.Constraint])
   }
-  private def toExpression(lp: LinearProgram)(vars: Map[SymbolicAccess,lp.Variable], p: SymbolicPermission): lp.Expression =
-    p.value.foldLeft(lp.Real("") - lp.Real("") + 0.0 : lp.Expression)(
+  private def toExpression(lp: LinearProgram)(z: lp.Expression, vars: Map[SymbolicAccess,lp.Variable], p: SymbolicPermission): lp.Expression =
+    p.value.foldLeft(z: lp.Expression)(
       (exp, v) => if (v.s == null) exp + v.n else exp + vars(v.s) * v.n
     )
 
@@ -795,6 +830,7 @@ object PermissionSolver {
   def solve(constraints: Set[PermissionConstraint]): Map[SymbolicAccess,Double] = {
 
     val lp = new LinearProgram() // linear program
+    val zero = lp.Real("") // special zero variable
     var result = Map[SymbolicAccess, Double]() // result
 
     // array of symbolic values
@@ -810,17 +846,15 @@ object PermissionSolver {
       val obj = vars.drop(1).foldLeft(vars.head: lp.Expression)((exp: lp.Expression, v: lp.Variable) => exp + v)
 
       var prob = obj.subjectTo() // lp problem
-      // adding variable bounds
-      for (v <- vars) { prob = prob.subjectTo(v >= 0).subjectTo(v <= 1) }
-      // adding constraints
-      for (c <- constraints) {
-        for (s <- toConstraint(lp)(symToVars, c)) { prob = prob.subjectTo(s.asInstanceOf[lp.Constraint]) }
+      prob = prob.subjectTo(zero >= 0).subjectTo(zero <= 0) // adding special constraint on special zero variable
+      for (v <- vars) { prob = prob.subjectTo(v >= 0).subjectTo(v <= 1) } // adding variable bounds
+      for (c <- constraints) { // adding constraints
+        for (s <- toConstraint(lp)(zero, symToVars, c)) { prob = prob.subjectTo(s.asInstanceOf[lp.Constraint]) }
       }
-      // solving lp problem
-      val res = lp.minimize(prob).result
+      val res = lp.minimize(prob).result // solving lp problem
 
-      // computing the result
-      for (i <- 1 to sym.length) { result = result + (sym(i - 1) -> res.valueAt(i - 1)) }; result
+      // computing the result (ignoring the special zero variable)
+      for (i <- 1 to sym.length) { result = result + (sym(i - 1) -> res.valueAt(i)) }; result
     } else result
   }
 
@@ -975,64 +1009,58 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
 
   /** Extends a sil.Program with permissions inferred by the PermissionAnalysis. */
   def extendProgram(prog: sil.Program, results: List[AnalysisResult[S]]): sil.Program = {
-    //// map of method names to control flow graphs
-    //val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    //// extending program methods
-    //val extMethods = prog.methods.map(
-    //  method => methodNameToCfgState.get(method.name) match {
-    //    case Some(cfgState) => extendMethod(method, cfgState)
-    //    case None => method
-    //  }
-    //)
-    //// building the extended program
-    //prog.copy(methods = extMethods)(prog.pos, prog.info)
-    prog
+    // map of method names to control flow graphs
+    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
+    // extending program methods
+    val extendMethods = prog.methods.map(
+      method => methodNameToCfgState.get(method.name) match {
+        case Some(cfgState) => extendMethod(method, cfgState)
+        case None => method
+      }
+    )
+    // building the extended program
+    prog.copy(methods = extendMethods)(prog.pos, prog.info)
   }
 
   /** Extends a sil.Method with permissions inferred by the PermissionAnalysis. */
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
-    //// retrieve the result of the analysis at the method entry
-    //val pre = cfgState.entryState()
-    ////println("PRE: " + pre)
-    //// update the method precondition
-    //var precondition: Seq[sil.Exp] = method.pres
-    //// add access preconditions
-    //for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicValue, Double]())) {
-    //  s match {
-    //    case s: SymbolicPrecondition => // we only care about preconditions
-    //      // extracting all information from the path of the symbolic value
-    //      val ids: List[(String, Type, ProgramPoint)] = (s.path.p, s.path.t, s.path.l).zipped.toList.reverse
-    //      if (ids.length > 1) {
-    //        // creating the corresponding field access
-    //        val fst = sil.LocalVar(ids.head._1)(typToSilver(ids.head._2), ppToSilver(ids.head._3))
-    //        val snd = sil.FieldAccess(fst, sil.Field(ids.tail.head._1, typToSilver(ids.tail.head._2))())()
-    //        val acc: sil.FieldAccess = ids.tail.tail.foldLeft[sil.FieldAccess](snd)(
-    //          (exp, fld) => sil.FieldAccess(exp, sil.Field(fld._1, typToSilver(fld._2))())()
-    //        )
-    //        // adding access permission to the method precondition
-    //        if (v == 1) {
-    //          val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
-    //          precondition = precondition ++ Seq[sil.Exp](perm)
-    //        } else if (v > 0) {
-    //          val (num, den) = AccessPermissionSolver.doubleToRational(v)
-    //          //val perm = sil.FieldAccessPredicate(acc, sil.WildcardPerm()())()
-    //          val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
-    //          precondition = precondition ++ Seq[sil.Exp](perm)
-    //        }
-    //      }
-    //    case _ => // nothing to be done
-    //  }
-    //}
-    //
-    //// update the method body
-    //val body = extendStmt(method.body, method, cfgState)
-    //
-    //// retrieve the result of the analysis at the method exit
-    //val post = cfgState.exitState()
-    ////println("POST: " + post)
-    //// update the method postcondition
-    //var postcondition: Seq[sil.Exp] = method.posts
-    //// add access permissions
+    // retrieve the result of the analysis at the method entry
+    val pre = cfgState.entryState()
+    //println("PRE: " + pre)
+    // update the method precondition
+    var precondition: Seq[sil.Exp] = method.pres
+    // add access preconditions
+    for ((s,v) <- analysis.permissions.getOrElse(method.name.toString, Map[SymbolicAccess, Double]())) {
+      // extracting all information from the path of the symbolic value
+      val ids: List[Identifier] = s.path.reverse
+      if (ids.length > 1) {
+        // creating the corresponding field access
+        val fst = sil.LocalVar(ids.head.getName)(typToSilver(ids.head.typ), ppToSilver(ids.head.pp))
+        val snd = sil.FieldAccess(fst, sil.Field(ids.tail.head.getName, typToSilver(ids.tail.head.typ))())()
+        val acc: sil.FieldAccess = ids.tail.tail.foldLeft[sil.FieldAccess](snd)(
+          (exp, fld) => sil.FieldAccess(exp, sil.Field(fld.getName, typToSilver(fld.typ))())()
+        )
+        // adding access permission to the method precondition
+        if (v == 1) {
+          val perm = sil.FieldAccessPredicate(acc, sil.FullPerm()())()
+          precondition = precondition ++ Seq[sil.Exp](perm)
+        } else if (v > 0) {
+          val (num, den) = AccessPermissionSolver.doubleToRational(v)
+          val perm = sil.FieldAccessPredicate(acc, sil.FractionalPerm(sil.IntLit(num)(), sil.IntLit(den)())())()
+          precondition = precondition ++ Seq[sil.Exp](perm)
+        }
+      }
+    }
+
+    // update the method body
+    val body = extendStmt(method.body, method, cfgState)
+
+    // retrieve the result of the analysis at the method exit
+    val post = cfgState.exitState()
+    //println("POST: " + post)
+    // update the method postcondition
+    var postcondition: Seq[sil.Exp] = method.posts
+    // add access permissions
     //for ((id: FieldIdentifier,sym: Set[SymPermission]) <- post.idToSym) {
     //  // for each pair of identifier and set of symbolic permissions...
     //  val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
@@ -1076,13 +1104,12 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
     //  }
     //}
     //
-    //// return the method with updated precondition, updated body and updated postcondition
-    //method.copy(_pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
-    method
+    // return the method with updated precondition, updated body and updated postcondition
+    method.copy(_pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
   }
 
-  //def extendStmt(stmt: sil.Stmt, method: sil.Method, cfgState: AbstractCFGState[S]): sil.Stmt =
-  //  stmt match {
+  def extendStmt(stmt: sil.Stmt, method: sil.Method, cfgState: AbstractCFGState[S]): sil.Stmt =
+    stmt match {
   //    case stmt: sil.If => stmt
   //
   //    case stmt: sil.NewStmt =>
@@ -1221,8 +1248,8 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
   //
   //      sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,method,cfgState))(stmt.pos,stmt.info)
   //
-  //    case _ => stmt //println(stmt.getClass); stmt
-  //  }
+      case _ => stmt //println(stmt.getClass); stmt
+    }
 
   def ppToSilver(pp: ProgramPoint): sil.Position = pp match { // convert sample.ProgramPoint to sil.ProgramPoint
     case sample.DummyProgramPoint => sil.NoPosition
