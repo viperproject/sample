@@ -240,11 +240,11 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
         case id: HeapAccess =>
           val fId: Identifier = VariableIdentifier(id.field)(id.typ)
           PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
-        // add key to nodeMap to represent the access
-        val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+          // add key to nodeMap to represent the access
+          val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
           for (o <- rgtSet) {
             if (!nodeMap.contains(o)) {
-              nodeMap = nodeMap + (id.rcv -> nodeMap(id.rcv).extend(fId))
+              nodeMap = nodeMap + (o -> nodeMap(id.rcv).extend(fId))
             }
           }
         case _ => // nothing to be done

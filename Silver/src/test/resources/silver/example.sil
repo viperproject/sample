@@ -18,9 +18,9 @@
 
 field f: Ref
 
-method Foo(this: Ref, that: Ref)
+method Foo(this: Ref)
 {
     var x: Ref
-    x := this
+    x := this.f
     x.f := null
 }
