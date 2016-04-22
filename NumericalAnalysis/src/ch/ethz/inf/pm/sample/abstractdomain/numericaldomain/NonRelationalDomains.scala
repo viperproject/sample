@@ -304,7 +304,7 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 }
 
 object NonRelationalNumericalDomain {
-  
+
   trait Bottom[S <: NonRelationalNumericalDomain[S]]
     extends NonRelationalNumericalDomain[S]
     with Lattice.Bottom[S] {
@@ -638,11 +638,17 @@ object IntegerInterval {
       case Bottom => Bottom
       case Top => Top
       case Inner(oLeft, oRight) =>
-        val a = left /  (if (oLeft == 0)   1 else oLeft)
-        val b = left /  (if (oRight == 0) -1 else oRight)
-        val c = right / (if (oLeft == 0)   1 else oLeft)
-        val d = right / (if (oRight == 0) -1 else oRight)
-        Inner(min(a, b, c, d), max(a, b, c, d))
+        if (oLeft < 0 && 0 < oRight) {
+          val lower = factory(oLeft, 0)
+          val upper = factory(0, oRight)
+          (this divide lower) lub (this divide upper)
+        } else {
+          val a = left / (if (oLeft == 0) 1 else oLeft)
+          val b = left / (if (oRight == 0) -1 else oRight)
+          val c = right / (if (oLeft == 0) 1 else oLeft)
+          val d = right / (if (oRight == 0) -1 else oRight)
+          Inner(min(a, b, c, d), max(a, b, c, d))
+        }
     }
 
     def valueGEQ: IntegerInterval = factory(left, Int.MaxValue)
@@ -702,7 +708,7 @@ object IntegerInterval {
     private def min(a: Int, b: Int, c: Int, d: Int): Int = Math.min(Math.min(a, b), Math.min(c, d))
 
   }
-  
+
 }
 
 sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval] {
@@ -827,11 +833,17 @@ object DoubleInterval {
         case Top => Top
         case DoubleInterval.Zero => Bottom
         case Inner(oLeft, oRight) =>
-          val a = if (oLeft == 0)  infinitySign(left)  else left / oLeft
-          val b = if (oRight == 0) invertedInfinitySign(left)  else left / oRight
-          val c = if (oLeft == 0)  infinitySign(right) else right / oLeft
-          val d = if (oRight == 0) invertedInfinitySign(right) else right / oRight
-          factory(min(a, b, c, d), max(a, b, c, d))
+          if (oLeft < 0 && 0 < oRight) {
+            val lower = factory(oLeft, 0)
+            val upper = factory(0, oRight)
+            (this divide lower) lub (this divide upper)
+          } else {
+            val a = if (oLeft == 0) infinitySign(left) else left / oLeft
+            val b = if (oRight == 0) invertedInfinitySign(left) else left / oRight
+            val c = if (oLeft == 0) infinitySign(right) else right / oLeft
+            val d = if (oRight == 0) invertedInfinitySign(right) else right / oRight
+            factory(min(a, b, c, d), max(a, b, c, d))
+          }
       }
 
     def valueGEQ = factory(left, Double.PositiveInfinity)

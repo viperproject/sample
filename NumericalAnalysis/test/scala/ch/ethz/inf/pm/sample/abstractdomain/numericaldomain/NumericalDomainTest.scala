@@ -76,8 +76,6 @@ class IntegerIntervalTest extends NonRelationalNumericalDomainTest[IntegerInterv
     IntegerInterval.Inner(0, 0)
   )
 
-  /*
-  TODO: issue 50
   test("[10, 20] / [-2, 2] = [-20, 20]") {
     val a = IntegerInterval.Inner(10, 20)
     val b = IntegerInterval.Inner(-2, 2)
@@ -87,7 +85,7 @@ class IntegerIntervalTest extends NonRelationalNumericalDomainTest[IntegerInterv
       !((a divide b) glb low).isBottom
       !((a divide b) glb high).isBottom
     }
-  }*/
+  }
 }
 
 
@@ -101,8 +99,6 @@ class DoubleIntervalTest extends NonRelationalNumericalDomainTest[DoubleInterval
     DoubleInterval.Inner(0, 0)
   )
 
-  /*
-  TODO: issue 50
   test("[10, 20] / [-2, 2] = Top") {
     val a = DoubleInterval.Inner(10, 20)
     val b = DoubleInterval.Inner(-2, 2)
@@ -110,7 +106,6 @@ class DoubleIntervalTest extends NonRelationalNumericalDomainTest[DoubleInterval
       (a divide b).isTop
     }
   }
-  */
 }
 
 
