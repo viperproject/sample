@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, Type}
 
 /**
   * Todo: make sure we do not have issues with infinity - infinity
@@ -22,20 +22,18 @@ object OctagonTest {
 
     val a: Identifier = VariableIdentifier("a")(DummyNumericalType)
     val b: Identifier = VariableIdentifier("x")(DummyNumericalType)
-    val c: Identifier = VariableIdentifier("c")(DummyNumericalType)
 
     val three = Constant("3", DummyNumericalType)
     val two = Constant("2", DummyNumericalType)
+    val e1 = BinaryArithmeticExpression(a, two, ArithmeticOperator.>, DummyBooleanType)
 
-    val o1 = Octagons.Top
-    val o2 = o1.assign(b, two)
-    val o3 = o2.assign(a, b);
-    val o4 = o3.assign(c, BinaryArithmeticExpression(three, a, ArithmeticOperator.-, DummyNumericalType))
+    val o1 = Octagons.Top.assume(e1)
+    val o2 = o1.assign(b, three).assign(a, b)
+    val o3 = o2.assume(e1);
 
     o1.print()
     o2.print()
     o3.print()
-    o4.print()
   }
 }
 
@@ -144,7 +142,27 @@ object Octagons {
     }
 
     def assumeNormalized(normalized: Normalized): Octagons = {
-      ???
+      val Normalized(literals, interval) = normalized
+      if (literals.isEmpty)
+        if (interval.high <= 0) this else Bottom
+      else {
+        val indices: List[Int] = literals.map(env.getIndex(_))
+        val matrix = getClosed.clone()
+
+        indices match {
+          case i :: Nil => matrix.assume(i ^ 1, i, -2 * interval.low)
+          case i :: j :: Nil => matrix.assume(j ^ 1, i, -interval.low)
+          case _ => {
+            val evaluated = literals.map(evaluate)
+            val toatalSum = evaluated.fold(Interval.Zero)(_ + _)
+            for (i <- 0 until indices.length; j <- i + 1 until indices.length) {
+              val partialSum = toatalSum - evaluated(i) - evaluated(j)
+              matrix.assume(j ^ 1, i, -partialSum.low)
+            }
+          }
+        }
+        factory(env, Some(matrix), None)
+      }
     }
 
     override def getConstraints(ids: Set[Identifier]): Set[Expression] = ???
@@ -168,7 +186,7 @@ object Octagons {
         if (exists(idA) && newIds.nonEmpty) {
           val newEnv = env - idA ++ newIds
           val commonIds = (env.set.getNonTop - idA).toList
-          val from = env.getIndices(commonIds) ++ List.fill(idsB.size)(env.getIndex(idA))
+          val from = env.getIndices(commonIds) ++ List.fill(idsB.size)(env.getPositive(idA))
           val to = newEnv.getIndices(commonIds) ++ newEnv.getIndices(idsB.toList)
           val newMat = Some(OctagonMatrix.top(newEnv.size).copy(getMatrix, from, to))
           val (newClosed, newOpen) = if (isClosed) (newMat, None) else (None, newMat)
@@ -184,8 +202,8 @@ object Octagons {
         if (exists(idA) && !exists(idB)) {
           val newEnv = env - idA + idB
           val commonIds = (env.set.getNonTop - idA).toList
-          val from = env.getIndex(idA) :: env.getIndices(commonIds)
-          val to = newEnv.getIndex(idB) :: newEnv.getIndices(commonIds)
+          val from = env.getPositive(idA) :: env.getIndices(commonIds)
+          val to = newEnv.getPositive(idB) :: newEnv.getIndices(commonIds)
           copy(newEnv, from, to);
         } else remove(Set(idA)).add(Set(idB))
       } else this
@@ -198,7 +216,7 @@ object Octagons {
           val newEnv = env -- idsA + idB
           val commonIds = (env.set.getNonTop -- idsA).toList
           val from = env.getIndices(commonIds) ++ env.getIndices(idsA.toList)
-          val to = newEnv.getIndices(commonIds) ++ List.fill(idsA.size)(newEnv.getIndex(idB))
+          val to = newEnv.getIndices(commonIds) ++ List.fill(idsA.size)(newEnv.getPositive(idB))
           val newClosed = Some(OctagonMatrix.top(newEnv.size).maxCopy(getClosed, from, to))
           val newOpen = None
           factory(newEnv, newClosed, newOpen)
@@ -231,7 +249,7 @@ object Octagons {
     override def setToTop(variable: Identifier): Octagons = {
       if (numerical(variable)) {
         if (exists(variable)) {
-          val newClosed = Some(getClosed.clone().assignTop(env.getIndex(variable)))
+          val newClosed = Some(getClosed.clone().assignTop(env.getPositive(variable)))
           val newOpen = None
           factory(env, newClosed, newOpen)
         } else add(Set(variable)).setToTop(variable)
@@ -249,7 +267,7 @@ object Octagons {
           if (nonExisting.nonEmpty) {
             createVariables(nonExisting).assign(variable, expr)
           } else {
-            val index = env.getIndex(variable);
+            val index = env.getPositive(variable);
             val Normalized(literals, interval) = normalize(expr)
 
             literals match {
@@ -260,12 +278,12 @@ object Octagons {
               case List(Positive(id)) => {
                 val matrix = getClosed.clone()
                 if (id == variable) matrix.assignAddition(index, interval)
-                else matrix.assignRelational(index, env.getIndex(id), interval)
+                else matrix.assignRelational(index, env.getPositive(id), interval)
                 factory(env, Some(matrix), None)
               }
               case List(Negative(id)) => {
                 val matrix = getClosed.clone()
-                if (id != variable) matrix.assignRelational(index, env.getIndex(id), Interval.Zero)
+                if (id != variable) matrix.assignRelational(index, env.getPositive(id), Interval.Zero)
                 matrix.assignNegate(index)
                 if (interval != Interval.Zero) matrix.assignAddition(index, interval)
                 factory(env, Some(matrix), None)
@@ -333,12 +351,14 @@ object Octagons {
     }
 
     def evaluate(value: Normalized): Interval =
-      value.literals.map(literal => literal match {
-        case Positive(id) => evaluate(id)
-        case Negative(id) => -evaluate(id)
-      }).fold(value.interval)(_ + _)
+      value.literals.map(evaluate).fold(value.interval)(_ + _)
 
-    def evaluate(id: Identifier) = getMatrix.getBounds(env.getIndex(id))
+    def evaluate(literal: Literal): Interval = literal match {
+      case Positive(id) => evaluate(id)
+      case Negative(id) => -evaluate(id)
+    }
+
+    def evaluate(id: Identifier): Interval = getMatrix.getBounds(env.getPositive(id))
 
     // HELPERS
 
@@ -466,10 +486,6 @@ object Octagons {
       arr.zip(other.arr).forall(p => p._1 <= p._2)
     }
 
-    def addConstraint(row: Int, col: Int, value: Int): OctagonMatrix = {
-      OctagonMatrix(dim, arr.clone()).set(row, col, value).close(row, col)
-    }
-
     def remove(index: Int): OctagonMatrix = {
       OctagonMatrix(dim, arr.clone()).assignTop(index)
     }
@@ -477,10 +493,10 @@ object Octagons {
     /**
       * Note: modifies the internal matrix
       */
-    def set(row: Int, col: Int, value: Int): OctagonMatrix = {
+    def assume(row: Int, col: Int, value: Double): OctagonMatrix = {
       val rc = index(row, col)
       arr(rc) = math.min(arr(rc), value)
-      this
+      close(row, col)
     }
 
     /**
@@ -513,6 +529,8 @@ object Octagons {
 
       this
     }
+
+    def getBound(row: Int, col: Int): Double = arr(index(row, col))
 
     def getBounds(i: Int): Interval = {
       val low = -arr(lower(i, i ^ 1)) / 2
@@ -781,7 +799,7 @@ object Octagons {
       * The map mapping from identifiers to their corresponding row [column]
       * index in the octagon matrix.
       */
-    private lazy val map = ids.zipWithIndex.map(p => (p._1, 2 * p._2)).toMap
+    private lazy val map = ids.zipWithIndex.toMap
 
     def isTop: Boolean = set.isTop
 
@@ -789,7 +807,16 @@ object Octagons {
 
     def size: Int = ids.length
 
-    def getIndex(id: Identifier): Int = map.get(id).get
+    def getPositive(id: Identifier): Int = 2 * map.get(id).get
+
+    def getNegative(id: Identifier): Int = 2 * map.get(id).get + 1
+
+    def getIndex(id: Identifier): Int = getPositive(id)
+
+    def getIndex(literal: Literal): Int = literal match {
+      case Positive(id) => getPositive(id)
+      case Negative(id) => getNegative(id)
+    }
 
     def getIndices(ids: List[Identifier]): List[Int] = ids.map(getIndex)
 
