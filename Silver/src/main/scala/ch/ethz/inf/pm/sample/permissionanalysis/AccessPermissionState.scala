@@ -317,14 +317,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     */
   override def createObject(typ: Type, pp: ProgramPoint): S = {
     logger.debug("*** createObject(" + typ.toString + "; " + pp.toString + ")")
-
-//    //    val obj = HeapIdentifier(typ,pp) // create new Obj
-//    //    val objFieldToObjmap = objFieldToObj + (obj -> Map[String,Set[HeapIdentifier]]()) // add key to objFieldToObj map
-//    //    // return the current state with updated exprSet and updated objFieldToObj map
-//    //    this.copy(exprSet = ExpressionSet(obj), objFieldToObj = objFieldToObjmap)
-//
-//    this.copy(heapNum = heapNum.createObject(typ, pp))
-    ???
+    // return the current state with updated heapNum
+    this.copy(heapNum = heapNum.createObject(typ, pp))
   }
 
   /** Creates a variable given a `VariableIdentifier`.
@@ -546,13 +540,14 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
 
   /** Inhales permissions. */
   override def inhale(acc: Expression) : S = {
-    logger.debug("*** inahle(" + acc.toString + ")")
+    logger.info("*** inhale(" + acc.toString + ")")
 
-//    acc match {
-//      case acc: PermissionExpression => //TODO: handle permission levels different than the full permission level
-//        acc.id match {
-//          case id: FieldIdentifier =>
-//          //println("INHALE: " + idToSym(id))
+    acc match {
+      case acc: PermissionExpression =>
+        acc.id match {
+          case id: HeapAccess =>
+            println(this)
+
 //          //        if (id.obj.representsSingleVariable) {
 //          //          // retrieve the symbolic permission associated with the permission expression
 //          //          val sym: SymbolicAccessPermission = idToSym()
@@ -578,13 +573,12 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
 //          //  // add constraint to solver
 //          //  PermissionSolver.addConstraint(c)3
 //          //}
-//
-//          case _ => throw new IllegalArgumentException("A permission inhale must occur via a FieldIdentifier")
-//        }
-//      case _ => this.assume(acc)
-//    }
-//    this
-    ???
+            this
+
+          case _ => throw new IllegalArgumentException("A permission inhale must occur via a HeapAccess")
+        }
+      case _ => this.assume(acc)
+    }
   }
 
   /** Checks whether the given domain element is equivalent to bottom.
@@ -760,16 +754,20 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def widening(other: S): S = {
     logger.debug("*** widening(" + other.repr + ")")
 
-//    val idToSymmap = this.idToSym.filterKeys(k => !other.idToSym.contains(k)) ++ other.idToSym.map {
-//      case (k: FieldIdentifier,v: Set[SymbolicAccessPermission]) => k -> (v ++ this.idToSym.getOrElse(k,Set[SymbolicAccessPermission]()))
-//    } // merge the itToSyms
-//    val idToPermmap = this.idToPerm.filterKeys(k => !other.idToPerm.contains(k)) ++ other.idToPerm.map {
-//        case (k: FieldIdentifier,v: Set[SymbolicAccessPermission]) => k -> (v ++ this.idToPerm.getOrElse(k,Set[SymbolicAccessPermission]()))
-//      } // merge the itToPerm
-//
-//    // return the current state with updated heapNum, updated idToSym and updated idToPerm
-//    this.copy(heapNum = heapNum widening other.heapNum, idToSym = idToSymmap, idToPerm = idToPermmap)
-    ???
+    def zipper[K](map1: Map[HeapNode,Set[SymbolicPermission]], map2: Map[HeapNode,Set[SymbolicPermission]]) = {
+      var nodeMap = Map[HeapNode,Set[SymbolicPermission]]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,None) =>
+          case (None,Some(o2)) => nodeMap = nodeMap + (key -> o2)
+          case (Some(o1),None) => nodeMap = nodeMap + (key -> o1)
+          case (Some(o1),Some(o2)) => nodeMap = nodeMap + (key -> (o1 ++ o2))
+        }
+      }; nodeMap
+    }
+    val nodeMap = zipper[VariableIdentifier](this.nodeToSym,other.nodeToSym)  // merge the nodeToSyms
+    // return the current state with updated heapNum and nodeToSym
+    this.copy(heapNum = this.heapNum widening other.heapNum, nodeToSym = nodeMap)
   }
 }
 
@@ -1072,8 +1070,8 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
     // update the method postcondition
     var postcondition: Seq[sil.Exp] = method.posts
     // add access permissions
-    //for ((id: FieldIdentifier,sym: Set[SymPermission]) <- post.idToSym) {
-    //  // for each pair of identifier and set of symbolic permissions...
+    for ((id: HeapNode,sym: Set[SymbolicPermission]) <- post.nodeToSym) {
+      // for each pair of identifier and set of symbolic permissions...
     //  val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
     //  //println("PATHS: " + paths)
     //  // select the shortest paths among the retrieved paths
@@ -1113,7 +1111,7 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
     //      postcondition = postcondition ++ Seq[sil.Exp](perm)
     //    }
     //  }
-    //}
+    }
     //
     // return the method with updated precondition, updated body and updated postcondition
     method.copy(_pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)

@@ -7,9 +7,9 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
-import ch.ethz.inf.pm.sample.abstractdomain.{PermissionExpression, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, PermissionExpression, SimplePermissionState, State}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.Constants
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, NativeMethodSemantics}
+import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 
 /** Object enumerating methods to handle permissions.
   *
@@ -46,7 +46,7 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
                                                           returnedtype: Type,
                                                           programpoint: ProgramPoint,
                                                           state: S): Option[S] = state match {
-    case state: PermissionState[_,_,_] =>
+    case state: SimplePermissionState[S] =>
       val nativeMethod = PermissionMethods.values.find(_.toString == operator)
       nativeMethod match {
         case Some(PermissionMethods.permission) =>
