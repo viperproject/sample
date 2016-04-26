@@ -126,11 +126,11 @@ class AccessCollectingState(myType: Type)
 
   def assume(cond: ExpressionSet): AccessCollectingState = this
 
-  def backwardAssignVariable(oldPreState: AccessCollectingState, x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
+  def refiningAssignVariable(oldPreState: AccessCollectingState, x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
 
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = this
+  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = this
 
-  def backwardGetVariableValue(id: Identifier): AccessCollectingState = this
+  def refiningGetVariableValue(id: Identifier): AccessCollectingState = this
 
   def throws(t: ExpressionSet): AccessCollectingState = this
 
@@ -167,7 +167,7 @@ class AccessCollectingState(myType: Type)
 
   def removeObject(oldPreState: AccessCollectingState, obj: ExpressionSet, fields: Option[Set[Identifier]]): AccessCollectingState = this
 
-  def backwardAssignField(oldPreState: AccessCollectingState, obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this
+  def refiningAssignField(oldPreState: AccessCollectingState, obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this
 
   def undoPruneVariables(unprunedPreState: AccessCollectingState, filter: (VariableIdentifier) => Boolean): AccessCollectingState = this
 

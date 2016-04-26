@@ -80,7 +80,7 @@ case class HeapAccess(rcv: HeapNode, field: String, typ: Type) extends Identifie
   * @author Caterina Urban
   */
 trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumericalState[T,S]]
-  extends SimpleState[S] with StateWithBackwardAnalysisStubs[S] with LazyLogging
+  extends SimpleState[S] with StateWithRefiningAnalysisStubs[S] with LazyLogging
 {
   this: S =>
 

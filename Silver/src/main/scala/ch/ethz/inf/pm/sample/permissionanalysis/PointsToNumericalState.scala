@@ -96,7 +96,7 @@ case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extend
   */
 trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalState[T,S]]
   extends SimpleState[S]
-  with StateWithBackwardAnalysisStubs[S]
+  with StateWithRefiningAnalysisStubs[S]
   with LazyLogging
 {
   this: S =>

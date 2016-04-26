@@ -80,7 +80,7 @@ trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
  */
 trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   extends SimpleState[T]
-  with StateWithBackwardAnalysisStubs[T]
+  with StateWithRefiningAnalysisStubs[T]
   with LazyLogging
   with TouchStateInterface[T]
 {

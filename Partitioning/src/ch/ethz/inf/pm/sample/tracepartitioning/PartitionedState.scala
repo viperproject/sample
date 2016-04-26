@@ -41,7 +41,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   /**
    * Auxiliary constructor for a single state.
-   * @param s The state
+    *
+    * @param s The state
    */
   def this(s: D) = this(Leaf[D](s))
 
@@ -194,8 +195,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param t
    * @param pp
    * @return The state after creating the object in all leaves
-   *
-   * @see #map
+    * @see #map
    */
   override def createObject(t: Type, pp: ProgramPoint): PartitionedState[D] = {
     map(_.createObject(t, pp))
@@ -209,8 +209,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param pp
    * @return The lub of all partitioned states after creating the variable for
    * each expression in x in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def createVariable(x: ExpressionSet, t: Type, pp: ProgramPoint): PartitionedState[D] = {
     mapValue(x, (s, v) => s.createVariable(v, t, pp))
@@ -223,8 +222,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param t
    * @return The lub of all partitioned states after creating the variable for
    * each expression of the argument in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def createVariableForArgument(x: ExpressionSet, t: Type): PartitionedState[D] = {
     mapValue(x, (s, v) => s.createVariableForArgument(v, t))
@@ -237,8 +235,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param r
    * @return The lub of all partitioned states after assigning each expression
    * in <code>r</code> to each variable in <code>x</code> in all leaves
-   *
-   * @see #mapValues
+    * @see #mapValues
    */
   override def assignVariable(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
     mapValues(x, r, (s, ex, er) => s.assignVariable(ex, er))
@@ -249,8 +246,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @return The lub of all partitioned states after assigning all possible
    * expressions to all possible combinations of fields in all leaves
-   *
-   * @see #mapValues
+    * @see #mapValues
    */
   override def assignField(o: ExpressionSet, f: String, r: ExpressionSet) = {
     mapValues(o, r, (s, ex, er) => s.assignField(ex, f, er))
@@ -263,8 +259,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param r
    * @return The lub of all partitioned states after assigning each parameter
    * in <code>r</code> to each variable in <code>x</code> in all leaves
-   *
-   * @see #mapValues
+    * @see #mapValues
    */
   override def setArgument(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
     mapValues(x, r, (s, ex, er) => s.setArgument(ex, er))
@@ -276,8 +271,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param x
    * @return The lub of all partitioned states after setting the parameter for
    * each expression in <code>x</code> in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def setVariableToTop(x: ExpressionSet): PartitionedState[D] = {
     mapValue(x, (s, v) => s.setVariableToTop(v))
@@ -289,8 +283,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param x
    * @return The lub of all partitioned states after removing each expression in
    * <code>x</code> in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def removeVariable(x: ExpressionSet): PartitionedState[D] = {
     mapValue(x, (s, v) => s.removeVariable(v))
@@ -302,8 +295,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param x
    * @return The lub of all partitioned states after throwing each exception in
    * <code>x</code> in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def throws(x: ExpressionSet): PartitionedState[D] = {
     mapValue(x, (s, v) => s.throws(v))
@@ -314,8 +306,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @param i
    * @return The state after getting the variable in each leaf
-   *
-   * @see #map
+    * @see #map
    */
   override def getVariableValue(i: Identifier): PartitionedState[D] = {
     map(_.getVariableValue(i))
@@ -329,8 +320,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param t
    * @return The lub of all partitioned states after mapping all combinations
    * on all leaves
-   *
-   * @see #mapValueList
+    * @see #mapValueList
    */
   override def getFieldValue(o: ExpressionSet, f: String, t: Type): PartitionedState[D] = {
     mapValue(o, (s, v) => s.getFieldValue(v, f, t))
@@ -341,11 +331,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @param i
    * @return The state before accessing the variables in all leaves
-   *
    * @see #map
    */
-  override def backwardGetVariableValue(i: Identifier): PartitionedState[D] = {
-    map(_.backwardGetVariableValue(i))
+  override def refiningGetVariableValue(i: Identifier): PartitionedState[D] = {
+    map(_.refiningGetVariableValue(i))
   }
 
   /**
@@ -355,11 +344,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param f
    * @param t
    * @return The state before accessing the field in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
-  override def backwardGetFieldValue(o: ExpressionSet, f: String, t: Type): PartitionedState[D] = {
-    mapValue(o, (s, v) => s.backwardGetFieldValue(v, f, t))
+  override def refiningGetFieldValue(o: ExpressionSet, f: String, t: Type): PartitionedState[D] = {
+    mapValue(o, (s, v) => s.refiningGetFieldValue(v, f, t))
   }
 
   /**
@@ -368,10 +356,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param x
    * @param r
    * @return The state before the assignment in all leaves
-   *
-   * @see #mapValues
+    * @see #mapValues
    */
-  override def backwardAssignVariable(oldPreState: PartitionedState[D], x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = ???
+  override def refiningAssignVariable(oldPreState: PartitionedState[D], x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = ???
 
   /**
    * Evaluates the numerical constant in all leaf states.
@@ -380,8 +367,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param t
    * @param pp
    * @return The state after evaluating the constant in all leaves
-   *
-   * @see #map
+    * @see #map
    */
   override def evalConstant(v: String, t: Type, pp: ProgramPoint): PartitionedState[D] = {
     map(_.evalConstant(v, t, pp))
@@ -392,8 +378,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @param c
    * @return The state after assuming the condition in all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   override def assume(c: ExpressionSet): PartitionedState[D] = {
     mapValue(c, (s, v) => s.assume(v))
@@ -403,8 +388,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * Assumes that the current expression holds in all leaf states.
    *
    * @return The state after assuming the current expression in all leaves
-   *
-   * @see #map
+    * @see #map
    */
   override def testTrue: PartitionedState[D] = {
     val result = map(_.testTrue)
@@ -416,8 +400,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @return The state after assuming the inverse of the current expression in
    * all leaves
-   *
-   * @see #map
+    * @see #map
    */
   override def testFalse: PartitionedState[D] = {
     val result = map(_.testFalse)
@@ -510,8 +493,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param f The function
    * @return The least upper bound after applying the function with all possible
    * combinations of deterministic arguments to all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, f: (D, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
@@ -537,8 +519,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @param f The function
    * @return The least upper bound after applying the function with all possible
    * combinations of deterministic arguments to all leaves
-   *
-   * @see #mapValue
+    * @see #mapValue
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, z: ExpressionSet, f: (D, ExpressionSet, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
@@ -650,7 +631,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   def removeObject(oldPreState: PartitionedState[D], obj: ExpressionSet, fields: Option[Set[Identifier]]): PartitionedState[D] = ???
 
-  def backwardAssignField(oldPreState: PartitionedState[D], obj: ExpressionSet, field: String, right: ExpressionSet): PartitionedState[D] = ???
+  def refiningAssignField(oldPreState: PartitionedState[D], obj: ExpressionSet, field: String, right: ExpressionSet): PartitionedState[D] = ???
 
   def undoPruneVariables(unprunedPreState: PartitionedState[D], filter: (VariableIdentifier) => Boolean): PartitionedState[D] = ???
 

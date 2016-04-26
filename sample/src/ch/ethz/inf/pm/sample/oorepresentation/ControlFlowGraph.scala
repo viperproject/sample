@@ -223,7 +223,9 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def forwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).forwardSemantics(state).exitState()
 
-  def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
+  def backwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).backwardSemantics(state).entryState()
+
+  def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
   override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)
 
@@ -341,6 +343,12 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
         iterationCount = iterationCount + ((i, itNumber + 1))
       }
     }
+    result
+  }
+
+  def backwardSemantics(exitState: S): ControlFlowGraphExecution[S] = {
+    val result: ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](this)
+    //
     result
   }
 

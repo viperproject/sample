@@ -51,27 +51,34 @@ abstract class LineColumnProgramPoint extends ProgramPoint {
  * These statements are supposed to be the atomic pieces of
  * an OO language
  *
- *
- * @author Pietro Ferrara
+  * @author Pietro Ferrara
  * @version 0.1
  */
 abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresentation {
   /**
    * The abstract forward semantics of the statement.
    *
-   * @param state the initial state
+   * @param state the pre state
    * @return the state obtained after the execution of the statement
    */
   def forwardSemantics[S <: State[S]](state: S): S
 
   /**
-   * The abstract (refining) backward semantics of the statement.
-   *
-   * @param state the post state
-   * @param oldPreState the old pre state to be refined
-   * @return the state obtained before the execution of the statement
-   */
-  def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  def backwardSemantics[S <: State[S]](state: S): S
+
+  /**
+    * The abstract (refining) backward semantics of the statement.
+    *
+    * @param state the post state
+    * @param oldPreState the pre state to be refined
+    * @return the state obtained before the execution of the statement
+    */
+  def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S
 
   /**
    * The program point of the statement.
@@ -152,18 +159,26 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     }
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     if (state.equals(state.bottom())) return state
-    var stateleft: S = left.backwardSemantics[S](state, oldPreState)
+    var stateleft: S = left.refiningSemantics[S](state, oldPreState)
     val exprleft = stateleft.expr
     stateleft = stateleft.removeExpression()
-    var stateright: S = right.backwardSemantics[S](stateleft, oldPreState)
+    var stateright: S = right.refiningSemantics[S](stateleft, oldPreState)
     val exprright = stateright.expr
     stateright = stateright.removeExpression()
     var result = stateright.setVariableToTop(exprleft)
     val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top()); //TODO type is wrong
     result = result.setExpression(condition)
-    result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
+    result.testTrue().refiningAssignVariable(oldPreState, exprleft, exprright)
   }
 
   override def toString: String = left + " = " + right
@@ -172,11 +187,13 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
 
   override def getChildren: List[Statement] = List(left, right)
 
+
 }
 
 /**
  * Represents the declaration of a variable.
- * @param programpoint where the variable is declared
+  *
+  * @param programpoint where the variable is declared
  * @param variable the variable being declared
  * @param typ the type of the variable declaration
  * @param right the optional statement assigned to the variable
@@ -215,10 +232,18 @@ case class VariableDeclaration(
     else state1
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     var st = state
     if (right.isDefined)
-      st = new Assignment(programpoint, variable, right.get).backwardSemantics[S](st, oldPreState)
+      st = new Assignment(programpoint, variable, right.get).refiningSemantics[S](st, oldPreState)
     st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
   }
 
@@ -256,7 +281,15 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.getVariableValue(id)
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.backwardGetVariableValue(id)
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.refiningGetVariableValue(id)
 
   override def toString: String = id.getName
 
@@ -269,7 +302,7 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
 /**
  * This class represents the access of a field of the form
  * <code>variable.field</code> where <code>typ</code> is the
- * type of the accessed field 
+ * type of the accessed field
  * It extends variable as it is seen as a variable access
  *
  * obj is null iff the field access is preceded by a statement that returns a variable
@@ -312,6 +345,14 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     }
   }
 
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
   private def getTypeOfStatement(s: Statement): Type = {
     s match {
       case v: Variable => v.id.typ
@@ -322,9 +363,9 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     }
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val (expr, newState) = UtilitiesOnStates.backwardExecuteStatement(state, oldPreState, obj)
-    newState.backwardGetFieldValue(expr, field, typ)
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+    val (expr, newState) = UtilitiesOnStates.refiningExecuteStatement(state, oldPreState, obj)
+    newState.refiningGetFieldValue(expr, field, typ)
   }
 
   override def hashCode(): Int = field.hashCode
@@ -383,7 +424,15 @@ case class MethodCall(
     forwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val body: Statement = method.normalize()
     val castedStatement = body.asInstanceOf[FieldAccess]
     val calledMethod = castedStatement.field
@@ -460,7 +509,15 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
   override def forwardSemantics[S <: State[S]](state: S): S =
     state.createObject(typ, pp)
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val ex = state.createObject(typ, pp).expr
     state.removeExpression().removeVariable(ex)
   }
@@ -491,7 +548,15 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.evalConstant(value, typ, pp)
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.evalConstant(value, typ, pp)
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.evalConstant(value, typ, pp)
 
   override def toString: String = value
 
@@ -524,7 +589,15 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
     state1 throws thrownExpr
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.top()
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.top()
 
   override def toString: String = "throw " + expr.toString
 
@@ -535,7 +608,7 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
 }
 
 /**
- * This class represents an empty statement 
+ * This class represents an empty statement
  *
  * @author Pietro Ferrara
  * @version 0.1
@@ -551,7 +624,15 @@ case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programp
    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.removeExpression()
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.removeExpression()
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = state
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.removeExpression()
 
   override def toString: String = "#empty statement#"
 

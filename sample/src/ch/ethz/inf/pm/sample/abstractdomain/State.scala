@@ -260,6 +260,49 @@ object DummyLattice {
 trait State[S <: State[S]] extends Lattice[S] {
   this: S =>
 
+  /** Assigns an expression to a field of an object.
+    *
+    * @param obj the object whose field is assigned
+    * @param field the assigned field
+    * @param right the assigned expression
+    * @return the abstract state after the assignment
+    */
+  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): S
+
+  /** Refining backward transformer for field assignments.
+    *
+    * @param oldPreState state before this operation
+    * @param obj field target object
+    * @param field field to be assigned
+    * @param right assigned expression
+    * @return refined pre state before the field assignment
+    */
+  def refiningAssignField(oldPreState: S, obj: ExpressionSet, field: String, right: ExpressionSet): S
+
+  /** Assigns an expression to a variable.
+    *
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state after the assignment
+    */
+  def assignVariable(x: ExpressionSet, right: ExpressionSet): S
+
+  /** Performs refining backward assignment of variables.
+    *
+    * @param oldPreState the pre state to be refined
+    * @param x The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state before the assignment
+    */
+  def refiningAssignVariable(oldPreState: S, x: ExpressionSet, right: ExpressionSet): S
+
+  /** Assumes that a boolean expression holds.
+    *
+    * @param cond The assumed expression
+    * @return The abstract state after assuming that the expression holds
+    */
+  def assume(cond: ExpressionSet): S
+
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
     * This is particularly important to eventually partition a state following the specified directives.
@@ -276,18 +319,6 @@ trait State[S <: State[S]] extends Lattice[S] {
     * @return The abstract state after the creation of the object
     */
   def createObject(typ: Type, pp: ProgramPoint): S
-
-  /** Undoes the effect of object creation.
-    *
-    * Intended to be the backward version of createObject
-    * and should only be used on a post state immediately after object creation.
-    *
-    * @param oldPreState
-    * @param obj the heap id of the object to be removed
-    * @param fields the fields that were created
-    * @return state without the object
-    */
-  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]): S
 
   /** Creates a variable.
     *
@@ -306,69 +337,25 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def createVariableForArgument(x: ExpressionSet, typ: Type): S
 
-  /** Assigns an expression to a variable.
+  /** Evaluates a numerical constant.
     *
-    * @param x The assigned variable
-    * @param right The assigned expression
-    * @return The abstract state after the assignment
+    * @param value The string representing the numerical constant
+    * @param typ The type of the numerical constant
+    * @param pp The program point that contains the constant
+    * @return The abstract state after the evaluation of the constant, that is, the
+    *         state that contains an expression representing this constant
     */
-  def assignVariable(x: ExpressionSet, right: ExpressionSet): S
+  def evalConstant(value: String, typ: Type, pp: ProgramPoint): S
 
-  /** Assigns an expression to a field of an object.
+  /** May try to explain an error.
     *
-    * @param obj the object whose field is assigned
-    * @param field the assigned field
-    * @param right the assigned expression
-    * @return the abstract state after the assignment
+    * @param expr An error-expression that should be infeasible but exposes an error
+    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
     */
-  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): S
+  def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] = Set.empty
 
-  /** Refining backward transformer for field assignments.
-    *
-    * @param oldPreState state before this operation
-    * @param obj field target object
-    * @param field field to be assigned
-    * @param right assigned expression
-    * @return refined pre state before the field assignment
-    */
-  def backwardAssignField(oldPreState: S, obj: ExpressionSet, field: String, right: ExpressionSet): S
-
-  /** Assigns an expression to an argument.
-    *
-    * @param x The assigned argument
-    * @param right The expression to be assigned
-    * @return The abstract state after the assignment
-    */
-  def setArgument(x: ExpressionSet, right: ExpressionSet): S
-
-  /** Forgets the value of a variable.
-    *
-    * @param x The variable to be forgotten
-    * @return The abstract state obtained after forgetting the variable
-    */
-  def setVariableToTop(x: ExpressionSet): S
-
-  /** Removes a variable.
-    *
-    * @param x The variable to be removed
-    * @return The abstract state obtained after removing the variable
-    */
-  def removeVariable(x: ExpressionSet): S
-
-  /** Throws an exception.
-    *
-    * @param t The thrown exception
-    * @return The abstract state after the thrown
-    */
-  def throws(t: ExpressionSet): S
-
-  /** Gets the value of a variable.
-    *
-    * @param id The variable to access
-    * @return The abstract state obtained after accessing the variable, that is, the state that contains
-    *         as expression the symbolic representation of the value of the given variable
-    */
-  def getVariableValue(id: Identifier): S
+  /** Returns the current expression. */
+  def expr: ExpressionSet
 
   /** Accesses a field of an object.
     *
@@ -380,13 +367,6 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
-  /** Performs the backward semantics of a variable access.
-    *
-    * @param id The accessed variable
-    * @return The abstract state obtained BEFORE accessing the variable
-    */
-  def backwardGetVariableValue(id: Identifier): S
-
   /** Performs the backward semantics of a field access.
     *
     * @param obj the object on which the field access is performed
@@ -394,33 +374,88 @@ trait State[S <: State[S]] extends Lattice[S] {
     * @param typ the type of the field
     * @return the abstract state obtained before the field access
     */
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): S
+  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
-  /** Performs refining backward assignment of variables.
+  /** Returns all objects pointed to by the field which may / must match the given filter.
     *
-    * @param oldPreState the pre state to be refined
-    * @param x The assigned variable
-    * @param right The assigned expression
-    * @return The abstract state before the assignment
+    * @param objs An expression containing objects
+    * @param field  The name of the field
+    * @param typ    The type of the field
+    * @param filter The filter, that, given an object and a state, returns whether it matches
+    * @return       A may set and a must set of object
     */
-  def backwardAssignVariable(oldPreState: S, x: ExpressionSet, right: ExpressionSet): S
+  def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter:(Identifier,S) => Boolean): (Set[Identifier],Set[Identifier]) =
+    (Set.empty,Set.empty)
 
-  /** Evaluates a numerical constant.
+  /** Gets the value of a variable.
     *
-    * @param value The string representing the numerical constant
-    * @param typ The type of the numerical constant
-    * @param pp The program point that contains the constant
-    * @return The abstract state after the evaluation of the constant, that is, the
-    *         state that contains an expression representing this constant
+    * @param id The variable to access
+    * @return The abstract state obtained after accessing the variable, that is, the state that contains
+    *         as expression the symbolic representation of the value of the given variable
     */
-  def evalConstant(value: String, typ: Type, pp: ProgramPoint): S
+  def getVariableValue(id: Identifier): S
 
-  /** Assumes that a boolean expression holds.
+  def merge(r:Replacement):S = this
+
+  /** Performs abstract garbage collection. */
+  def pruneUnreachableHeap(): S
+
+  /** Removes all variables satisfying filter. */
+  def pruneVariables(filter: VariableIdentifier => Boolean): S
+
+  /** Performs the backward semantics of a variable access.
     *
-    * @param cond The assumed expression
-    * @return The abstract state after assuming that the expression holds
+    * @param id The accessed variable
+    * @return The abstract state obtained BEFORE accessing the variable
     */
-  def assume(cond: ExpressionSet): S
+  def refiningGetVariableValue(id: Identifier): S
+
+  /** Removes the current expression.
+    *
+    * @return The abstract state after removing the current expression
+    */
+  def removeExpression(): S
+
+  /** Undoes the effect of object creation.
+    *
+    * Intended to be the backward version of createObject
+    * and should only be used on a post state immediately after object creation.
+    *
+    * @param oldPreState
+    * @param obj the heap id of the object to be removed
+    * @param fields the fields that were created
+    * @return state without the object
+    */
+  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]): S
+
+  /** Removes a variable.
+    *
+    * @param x The variable to be removed
+    * @return The abstract state obtained after removing the variable
+    */
+  def removeVariable(x: ExpressionSet): S
+
+  /** Assigns an expression to an argument.
+    *
+    * @param x The assigned argument
+    * @param right The expression to be assigned
+    * @return The abstract state after the assignment
+    */
+  def setArgument(x: ExpressionSet, right: ExpressionSet): S
+
+  /** Sets the current expression.
+    *
+    * @param expr The current expression
+    * @return The abstract state after changing the current expression with the given one
+    */
+  def setExpression(expr: ExpressionSet): S
+
+  /** Forgets the value of a variable.
+    *
+    * @param x The variable to be forgotten
+    * @return The abstract state obtained after forgetting the variable
+    */
+  def setVariableToTop(x: ExpressionSet): S
 
   /** Assumes that the current expression holds.
     *
@@ -434,37 +469,12 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def testFalse(): S
 
-  /** Returns the current expression. */
-  def expr: ExpressionSet
-
-  /** Sets the current expression.
+  /** Throws an exception.
     *
-    * @param expr The current expression
-    * @return The abstract state after changing the current expression with the given one
+    * @param t The thrown exception
+    * @return The abstract state after the thrown
     */
-  def setExpression(expr: ExpressionSet): S
-
-  /** Removes the current expression.
-    *
-    * @return The abstract state after removing the current expression
-    */
-  def removeExpression(): S
-
-  /** Removes all variables satisfying filter. */
-  def pruneVariables(filter: VariableIdentifier => Boolean): S
-
-  /** Undoes the effect of `pruneVariables`.
-    *
-    * All the variables that existed in `unprunedPreState` and that match the given filter are created and set to top.
-    *
-    * @param unprunedPreState state before pruning
-    * @param filter the filter that was used to prune variables
-    * @return state with pruned variables created again
-    */
-  def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
-
-  /** Performs abstract garbage collection. */
-  def pruneUnreachableHeap(): S
+  def throws(t: ExpressionSet): S
 
   /** Undoes the effect of pruning the unreachable heap ids. That is,
     * all heap ids present in `preState` but not in this state are created
@@ -475,36 +485,25 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def undoPruneUnreachableHeap(preState: S): S
 
-  /** May try to explain an error.
+  /** Undoes the effect of `pruneVariables`.
     *
-    * @param expr An error-expression that should be infeasible but exposes an error
-    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
-    */
-  def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] = Set.empty
-
-  /** Returns all objects pointed to by the field which may / must match the given filter.
+    * All the variables that existed in `unprunedPreState` and that match the given filter are created and set to top.
     *
-    * @param objs An expression containing objects
-    * @param field  The name of the field
-    * @param typ    The type of the field
-    * @param filter The filter, that, given an object and a state, returns whether it matches
-    * @return       A may set and a must set of object
+    * @param unprunedPreState state before pruning
+    * @param filter the filter that was used to prune variables
+    * @return state with pruned variables created again
     */
-  def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter:(Identifier,S) => Boolean): (Set[Identifier],Set[Identifier]) =
-    (Set.empty,Set.empty)
-
-  def merge(r:Replacement):S = this
-
+  def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
 }
 
-trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] extends SimpleState[S] {
+trait StateWithRefiningAnalysisStubs[S <: StateWithRefiningAnalysisStubs[S]] extends SimpleState[S] {
   this: S =>
 
+  def refiningAssignField(oldPreState: S, obj: Expression, field: String, right: Expression) = ???
+  def refiningAssignVariable(oldPreState: S, x: Expression, right: Expression) = ???
+  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type) = ???
+  def refiningGetVariableValue(id: Identifier) = ???
   def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]) = ???
-  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression) = ???
-  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression) = ???
-  def backwardGetVariableValue(id: Identifier) = ???
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type) = ???
   def undoPruneUnreachableHeap(preState: S) = ???
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean) = ???
 
@@ -685,9 +684,9 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     * @param right The assigned expression
     * @return The abstract state before the assignment
     */
-  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
+  def refiningAssignVariable(oldPreState: S, x: Expression, right: Expression): S
 
-  def backwardAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
+  def refiningAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
     unlessBottom(varSet, {
       unlessBottom(rhsSet, {
         val result = if (rhsSet.isTop) {
@@ -696,7 +695,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           Lattice.bigLub(for (
             left <- varSet.getNonTop;
             right <- rhsSet.getNonTop)
-          yield backwardAssignVariable(oldPreState, left, right))
+          yield refiningAssignVariable(oldPreState, left, right))
         }
         result.removeExpression()
       })
@@ -713,9 +712,9 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     * @param right assigned expression
     * @return refined pre state before the field assignment
     */
-  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
+  def refiningAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
 
-  def backwardAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
+  def refiningAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
     unlessBottom(objSet, {
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
@@ -725,7 +724,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
           Lattice.bigLub(for (
             obj <- objSet.getNonTop;
             right <- rightSet.getNonTop)
-          yield backwardAssignField(oldPreState, obj, field, right))
+          yield refiningAssignField(oldPreState, obj, field, right))
         }
         result.setUnitExpression()
       })
@@ -863,8 +862,8 @@ object UtilitiesOnStates {
     (expr, finalState)
   }
 
-  def backwardExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
-    val finalState = statement.backwardSemantics[S](state, oldPreState)
+  def refiningExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
+    val finalState = statement.refiningSemantics[S](state, oldPreState)
     val expr = finalState.expr
     (expr, finalState.setExpression(ExpressionFactory.unitExpr))
   }

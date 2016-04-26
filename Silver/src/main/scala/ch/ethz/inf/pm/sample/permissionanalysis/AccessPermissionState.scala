@@ -152,7 +152,7 @@ class SymbolicPermission {
   * @author Caterina Urban
   */
 trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T], S <: AccessPermissionState[N,T,S]]
-  extends SimplePermissionState[S] with StateWithBackwardAnalysisStubs[S] with LazyLogging
+  extends SimplePermissionState[S] with StateWithRefiningAnalysisStubs[S] with LazyLogging
 {
   this: S =>
 

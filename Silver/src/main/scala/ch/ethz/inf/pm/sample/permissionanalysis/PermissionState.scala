@@ -217,7 +217,7 @@ class SymPermission extends Lattice[SymPermission] {
   */
 trait PermissionState[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
   extends SimplePermissionState[S]
-  with StateWithBackwardAnalysisStubs[S]
+  with StateWithRefiningAnalysisStubs[S]
   with LazyLogging
 {
   this: S =>

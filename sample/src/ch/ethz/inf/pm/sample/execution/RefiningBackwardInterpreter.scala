@@ -48,7 +48,7 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
         val oldPreState = blockForwardPreStates(idx)
         // Call "before" for trace partitioning (still needed? was in old code)
         val tempState = postState.before(ProgramPointUtils.identifyingPP(stmt))
-        val transformedState = stmt.backwardSemantics(tempState, oldPreState)
+        val transformedState = stmt.refiningSemantics(tempState, oldPreState)
         val backwardRefinedState = safeGlb(oldPreState, transformedState)
         val newPreState =
           if (errorInfo.cfgPosition.blockIdx == currentBlockId && errorInfo.cfgPosition.stmtIdx == idx) {

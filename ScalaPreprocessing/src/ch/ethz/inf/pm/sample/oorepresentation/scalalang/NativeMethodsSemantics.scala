@@ -112,7 +112,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
             val fields = thisExpr.getType().possibleFields
 	          for(field <- fields) {
 	            if(field.equals(x)) {
-                val fieldAccess = state.backwardGetFieldValue(thisExpr, field.getName, returnedtype.top())
+                val fieldAccess = state.refiningGetFieldValue(thisExpr, field.getName, returnedtype.top())
                 return Some(fieldAccess)
 		        }
 	         }

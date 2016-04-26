@@ -661,13 +661,13 @@ trait ValueDrivenHeapState[
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
   def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
   def optimizeSummaryNodes(): T = ???
-  def backwardGetVariableValue(id: Identifier): T = ???
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
+  def refiningGetVariableValue(id: Identifier): T = ???
+  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
-  def backwardAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???
+  def refiningAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???
   def testBackwardTrue(): T = ???
   def testBackwardFalse(): T = ???
-  def backwardAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
+  def refiningAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
 }
 
 object ValueDrivenHeapState {

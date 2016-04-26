@@ -331,7 +331,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def backwardAssignField(oldPreState: AbstractState[N, H, I], obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
+  def refiningAssignField(oldPreState: AbstractState[N, H, I], obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
     obj match {
       case variable: Identifier =>
         factory(domain.backwardAssignField(oldPreState.domain, variable, field, right, right.typ, variable.pp), expr).setUnitExpression()
@@ -343,7 +343,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def backwardAssignVariable(oldPreState: AbstractState[N, H, I], lhs: Expression,
+  def refiningAssignVariable(oldPreState: AbstractState[N, H, I], lhs: Expression,
                              rhs: Expression): AbstractState[N, H, I] = {
     lhs match {
       case variable: Assignable => factory(domain.backwardAssign(oldPreState.domain, variable, rhs), expr)
@@ -422,7 +422,7 @@ I <: HeapIdentifier[I]](
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
-  def backwardGetVariableValue(id: Identifier): AbstractState[N, H, I] = {
+  def refiningGetVariableValue(id: Identifier): AbstractState[N, H, I] = {
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
@@ -448,7 +448,7 @@ I <: HeapIdentifier[I]](
     factory(result, new ExpressionSet(typ).add(heapId))
   }
 
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
+  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if (isBottom) return this
     var result: AbstractState[N, H, I] = bottom()
     for (exprVal <- obj.getNonTop) {
