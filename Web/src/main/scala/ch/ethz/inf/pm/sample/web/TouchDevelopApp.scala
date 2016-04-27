@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.{StdOutOutput, StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
-import ch.ethz.inf.pm.sample.execution.{TrackingCFGState, AnalysisResult, AnalysisRunner, SimpleAnalysis}
+import ch.ethz.inf.pm.sample.execution.{TrackingCFGState, AnalysisResult, AnalysisRunner, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 
@@ -66,7 +66,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 class TouchDevelopMayMustAnalysisRunner extends TouchDevelopAnalysisRunner[TouchEntryStateBuilder.State] {
   override val analysis = new TouchDevelopMayMustAnalysis
 }
-class TouchDevelopMayMustAnalysis extends SimpleAnalysis[TouchEntryStateBuilder.State](new TouchEntryStateBuilder(TouchAnalysisParameters.get))
+class TouchDevelopMayMustAnalysis extends SimpleForwardAnalysis[TouchEntryStateBuilder.State](new TouchEntryStateBuilder(TouchAnalysisParameters.get))
 
 
 

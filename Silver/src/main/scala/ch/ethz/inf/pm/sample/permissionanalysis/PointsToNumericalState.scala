@@ -11,7 +11,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleAnalysis}
+import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -1220,7 +1220,7 @@ trait PointsToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNume
   */
 object PointsToIntervalsAnalysisRunner
   extends PointsToNumericalAnalysisRunner[BoxedNonRelationalNumericalDomain[DoubleInterval], PointsToIntervalsState] {
-  override val analysis = SimpleAnalysis[PointsToIntervalsState](PointsToIntervalsEntryStateBuilder)
+  override val analysis = SimpleForwardAnalysis[PointsToIntervalsState](PointsToIntervalsEntryStateBuilder)
   override def toString = "PointsTo+Intervals Analysis"
 }
 
@@ -1230,6 +1230,6 @@ object PointsToIntervalsAnalysisRunner
   */
 object PointsToPolyhedraAnalysisRunner
   extends PointsToNumericalAnalysisRunner[Apron.Polyhedra, PointsToPolyhedraState] {
-  override val analysis = SimpleAnalysis[PointsToPolyhedraState](PointsToPolyhedraEntryStateBuilder)
+  override val analysis = SimpleForwardAnalysis[PointsToPolyhedraState](PointsToPolyhedraEntryStateBuilder)
   override def toString = "PointsTo+Polyhedra Analysis"
 }

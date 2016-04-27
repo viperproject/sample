@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.execution.Analysis
+import ch.ethz.inf.pm.sample.execution.ForwardAnalysis
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silicon.Silicon
 import viper.silicon.interfaces.VerificationResult
@@ -976,7 +976,7 @@ object PermissionPolyhedraEntryStateBuilder
   * @author Caterina Urban
   */
 trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
-  extends Analysis[S] {
+  extends ForwardAnalysis[S] {
 
   // map between method names and constraint solutions
   var permissions = Map[String, Map[SymbolicValue,Double]]()
@@ -1008,7 +1008,7 @@ trait PermissionInference[N <: NumericalDomain[N], T <: PointsToNumericalState[N
   *
   * @author Caterina Urban
   */
-object PermissionIntervalsAnalysis
+object PermissionIntervalsForwardAnalysis$
   extends PermissionInference[NumDom.I, PointsToIntervalsState, PermissionIntervalsState] {
   override def entryStateBuilder = PermissionIntervalsEntryStateBuilder
 }
@@ -1017,7 +1017,7 @@ object PermissionIntervalsAnalysis
   *
   * @author Caterina Urban
   */
-object PermissionPolyhedraAnalysis
+object PermissionPolyhedraForwardAnalysis$
   extends PermissionInference[NumDom.P, PointsToPolyhedraState, PermissionPolyhedraState] {
   override def entryStateBuilder = PermissionPolyhedraEntryStateBuilder
 }
@@ -1335,7 +1335,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
   */
 object PermissionIntervalsAnalysisRunner
   extends PermissionInferenceRunner[BoxedNonRelationalNumericalDomain[DoubleInterval], PointsToIntervalsState, PermissionIntervalsState] {
-  override val analysis = PermissionIntervalsAnalysis
+  override val analysis = PermissionIntervalsForwardAnalysis$
   override def toString = "Permission-Intervals Analysis"
 }
 
@@ -1345,6 +1345,6 @@ object PermissionIntervalsAnalysisRunner
   */
 object PermissionPolyhedraAnalysisRunner
   extends PermissionInferenceRunner[Apron.Polyhedra, PointsToPolyhedraState, PermissionPolyhedraState] {
-  override val analysis = PermissionPolyhedraAnalysis
+  override val analysis = PermissionPolyhedraForwardAnalysis$
   override def toString = "Permission-Polyhedra Analysis"
 }

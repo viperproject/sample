@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, NumericalDomain}
 import breeze.optimize.linear._
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.execution.{Analysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, SilAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -965,7 +965,7 @@ object AccessPolyhedraEntryStateBuilder
   * @author Caterina Urban
   */
 trait AccessPermissionInference[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T], S <: AccessPermissionState[N,T,S]]
-  extends Analysis[S] {
+  extends ForwardAnalysis[S] {
 
   // map between method names and constraint solutions
   var permissions = Map[String, Map[SymbolicAccess,Double]]()

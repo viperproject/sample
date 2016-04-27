@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleAnalysis, AnalysisRunner, Analysis}
+import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleForwardAnalysis, AnalysisRunner, ForwardAnalysis}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -29,7 +29,7 @@ trait SilAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 
 /** SIL analysis runner that uses the default heap analysis. */
 object DefaultAnalysisRunner extends SilAnalysisRunner[ValueDrivenHeapState.Default[Apron.Polyhedra]] {
-  val analysis = SimpleAnalysis[ValueDrivenHeapState.Default[Apron.Polyhedra]](DefaultHeapEntryStateBuilder)
+  val analysis = SimpleForwardAnalysis[ValueDrivenHeapState.Default[Apron.Polyhedra]](DefaultHeapEntryStateBuilder)
 
   override def toString = "Default Analysis"
 }
@@ -38,7 +38,7 @@ object DefaultAnalysisRunner extends SilAnalysisRunner[ValueDrivenHeapState.Defa
   * with edge disambiguation ghost states.
   */
 object PreciseAnalysisRunner extends SilAnalysisRunner[PreciseValueDrivenHeapState.Default[Apron.Polyhedra]] {
-  val analysis = SimpleAnalysis[PreciseValueDrivenHeapState.Default[Apron.Polyhedra]](PreciseHeapEntryStateBuilder)
+  val analysis = SimpleForwardAnalysis[PreciseValueDrivenHeapState.Default[Apron.Polyhedra]](PreciseHeapEntryStateBuilder)
 
   override def toString = "Precise Analysis"
 }
@@ -127,7 +127,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
   */
 case class PredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
-  extends Analysis[PredicateDrivenHeapState[S]] with LazyLogging {
+  extends ForwardAnalysis[PredicateDrivenHeapState[S]] with LazyLogging {
 
   type T = PredicateDrivenHeapState[S]
 
@@ -173,6 +173,7 @@ case class AnalysisRestartException(preds: PredicateDefinitionsDomain) extends E
 
 /** Subscriber that aborts the analysis when a predicate merge happens during the
   * analysis inside of the `PredicateDrivenHeapState`.
+ *
   * @tparam S type of the semantic domain
   */
 case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](

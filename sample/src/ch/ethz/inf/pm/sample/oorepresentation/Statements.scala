@@ -430,7 +430,7 @@ case class MethodCall(
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = ???
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val body: Statement = method.normalize()
@@ -515,7 +515,7 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = ???
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val ex = state.createObject(typ, pp).expr
@@ -554,7 +554,7 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = state.evalConstant(value, typ, pp)
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.evalConstant(value, typ, pp)
 
@@ -595,7 +595,7 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = ???
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.top()
 
@@ -630,7 +630,7 @@ case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programp
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = state.removeExpression()
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.removeExpression()
 

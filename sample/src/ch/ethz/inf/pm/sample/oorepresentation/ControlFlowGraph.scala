@@ -90,11 +90,11 @@ trait WeightedGraph[T, W] {
    *
    * @return the leaves of the graph
    */
-  def getLeafs: Set[T] = {
-    getLeafIds map { id => nodes(id) }
+  def getLeaves: Set[T] = {
+    getLeavesIds map { id => nodes(id) }
   }
 
-  def getLeafIds: Set[Int] = {
+  def getLeavesIds: Set[Int] = {
     var notLeafs: Set[Int] = Set.empty
     for ((i1, i2, w) <- edges) //{
       notLeafs = notLeafs + i1
@@ -223,7 +223,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def forwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).forwardSemantics(state).exitState()
 
-  def backwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).backwardSemantics(state).entryState()
+  def backwardSemantics[S <: State[S]](state: S): S = ???
 
   def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
@@ -346,11 +346,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     result
   }
 
-  def backwardSemantics(exitState: S): ControlFlowGraphExecution[S] = {
-    val result: ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](this)
-    //
-    result
-  }
+  def backwardSemantics(exitState: S): ControlFlowGraphExecution[S] = ???
 
   private def computeEntryState(current: ControlFlowGraphExecution[S], index: Int, it: Int): S = {
     var result: S = state.bottom()

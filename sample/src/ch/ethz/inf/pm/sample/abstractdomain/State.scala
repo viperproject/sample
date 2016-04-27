@@ -852,7 +852,7 @@ trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S
 
 /** Some trivial helper functions that execute forward/backward semantics on single and list of states.
   *
-  * @author Pietro
+  * @author Pietro Ferrara
   */
 object UtilitiesOnStates {
 
@@ -860,6 +860,12 @@ object UtilitiesOnStates {
     val finalState = statement.forwardSemantics[S](state)
     val expr = finalState.expr
     (expr, finalState)
+  }
+
+  def backwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
+    val initialState = statement.backwardSemantics(state)
+    val expr = initialState.expr
+    (expr, initialState)
   }
 
   def refiningExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
