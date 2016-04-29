@@ -4,11 +4,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
-
 /**
   * @author Jerome Dohrau, Caterina Urban
   */
-
 trait BackwardPermissionState[T <: BackwardPermissionState[T]]
   extends SimplePermissionState[T]
     with StateWithRefiningAnalysisStubs[T]
@@ -120,7 +118,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
     */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ??? // ignore
 
   /** Removes the current expression.
     *
@@ -133,10 +131,10 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @param t The thrown exception
     * @return The abstract state after the thrown
     */
-  override def throws(t: ExpressionSet): T = ???
+  override def throws(t: ExpressionSet): T = ??? // ignore
 
   /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ??? // ignore
 
   /** Evaluates a numerical constant.
     *
@@ -155,10 +153,10 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @param pp The point of the program that is going to be analyzed
     * @return The abstract state eventually modified
     */
-  override def before(pp: ProgramPoint): T = ???
+  override def before(pp: ProgramPoint): T = this
 
   /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): T = ???
+  override def pruneUnreachableHeap(): T = ??? // ignore
 
   /** Returns the current expression. */
   override def expr: ExpressionSet = ???
@@ -245,4 +243,110 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @return bottom
     */
   override def isTop: Boolean = ???
+
+  /**
+    * @author Jerome Dohrau
+    */
+  case class Tree(permission: Permission = Permission.None,
+                  children: Map[Identifier, Tree] = Map.empty[Identifier, Tree]) {
+    /**
+      * Returns the least upper bound of this and the other permission tree.
+      */
+    def lub(other: Tree): Tree = {
+      val lubPermission = permission.lub(other.permission)
+      val lubChildren = children.foldLeft(other.children) {
+        case (accumulated, (identifier, child)) => {
+          accumulated.get(identifier) match {
+            case Some(existing) => accumulated.updated(identifier, child.lub(existing))
+            case None => accumulated.updated(identifier, child)
+          }
+        }
+      }
+      Tree(lubPermission, lubChildren)
+    }
+
+    /**
+      * Returns the least upper bound of this and the other permission tree.
+      */
+    def glb(other: Tree): Tree = {
+      val glbPermission = permission.glb(other.permission)
+      val glbChildren = children.foldLeft(Map.empty[Identifier, Tree]) {
+        case (accumulated, (identifier, child)) => {
+          other.children.get(identifier) match {
+            case Some(existing) => accumulated.updated(identifier, child.glb(existing))
+            case None => accumulated
+          }
+        }
+      }
+      Tree(glbPermission, glbChildren)
+    }
+
+    /**
+      * Extracts the subtree at the specified path and returns the remainder of
+      * the tree as well as the extracted subtree.
+      *
+      * @param path the path to the subtree to be extracted
+      * @return a tuple containing the remainder of the tree and the extracted
+      *         subtree
+      */
+    def extract(path: List[Identifier]): (Tree, Tree) = {
+      if (path.isEmpty) {
+        val remainder = Tree(permission)
+        val extracted = Tree(Permission.None, children)
+        (remainder, extracted)
+      } else children.get(path.head) match {
+        case Some(child) => {
+          val (updated, extracted) = child.extract(path.tail)
+          val remainder = Tree(permission, children.updated(path.head, updated))
+          (remainder, extracted)
+        }
+        case None => (this, Tree())
+      }
+    }
+
+    /**
+      * Implants the specified tree at the specified path. If there is already a
+      * non-empty subtree at that path the least upper bound is computed.
+      *
+      * @param other the tree to be implanted
+      * @param path  the path to the place where the tree is implanted
+      * @return the tree with the other tree implanted
+      */
+    def implant(other: Tree, path: List[Identifier]): Tree = {
+      if (path.isEmpty) this.lub(other)
+      else {
+        val updated = children.get(path.head) match {
+          case Some(child) => child.implant(other, path.tail)
+          case None => path.tail.foldRight(other) {
+            // TODO: Depending on the implementation of the transformers this should not happen
+            case (identifier, accumulated) => Tree(Permission.None, Map(identifier -> accumulated))
+          }
+        }
+        Tree(permission, children.updated(path.head, updated))
+      }
+    }
+
+  }
+
+  object Permission {
+    def None: Permission = Permission(0.0)
+
+    def Read: Permission = Permission(0.1)
+
+    def Write: Permission = Permission(1.0)
+  }
+
+  /**
+    * Placeholder for permissions. This will be replaced by the real thing later.
+    *
+    * @param value the amount of permission
+    */
+  case class Permission(value: Double) {
+    def lub(other: Permission): Permission =
+      Permission(math.max(value, other.value))
+
+    def glb(other: Permission): Permission =
+      Permission(math.min(value, other.value))
+  }
+
 }
