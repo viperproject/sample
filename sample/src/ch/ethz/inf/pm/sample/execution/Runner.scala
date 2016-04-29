@@ -15,7 +15,7 @@ import java.io.File
 trait AnalysisRunner[S <: State[S]] {
   val compiler: Compiler
 
-  val analysis: ForwardAnalysis[S]
+  val analysis: Analysis[S]
 
   /** Which methods to analyze (by default: all of them). */
   def methodsToAnalyze: List[MethodDeclaration] =
@@ -62,12 +62,20 @@ trait EntryStateBuilder[S <: State[S]] {
   def build(method: MethodDeclaration): S = method.initializeArgument[S](topState)
 }
 
-/** Forward Analysis Runner
+/** Analysis.
+  *
+  * @tparam S the abstract state
+  * @author Caterina Urban
+  */
+trait Analysis[S <: State[S]] {
+  def analyze(method: MethodDeclaration): AnalysisResult[S]
+}
+
+/** Forward Analysis.
   *
   * @tparam S the abstract state
   */
-trait ForwardAnalysis[S <: State[S]] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S]
+trait ForwardAnalysis[S <: State[S]] extends Analysis[S] {
 
   /** Analyzes the given method with a `TrackingForwardInterpreter` starting
     * from the given entry state.
@@ -89,13 +97,12 @@ trait ForwardAnalysis[S <: State[S]] {
   }
 }
 
-/** Backward Analysis Runner.
+/** Backward Analysis.
   *
   * @tparam S the abstract state
   * @author Caterina Urban
   */
-trait BackwardAnalysis[S <: State[S]] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S]
+trait BackwardAnalysis[S <: State[S]] extends Analysis[S] {
 
   protected def analyze(method: MethodDeclaration, exitState: S): AnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {

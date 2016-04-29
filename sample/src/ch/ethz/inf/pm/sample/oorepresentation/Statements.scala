@@ -147,10 +147,8 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
         case f: FieldAccess => f.obj
         case _ => left
       }
-
     val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftToExecute)
     val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
-
     left match {
       case fa: FieldAccess =>
         rightState.assignField(leftExpr, fa.field, rightExpr)
@@ -165,7 +163,22 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = {
+    val lhs = left match {
+      case f: FieldAccess => f.obj
+      case _ => left
+    } // figure out whether we have a field or variable assignment
+    var leftState = lhs.backwardSemantics(state) // evaluate the left
+    val leftExpr = leftState.expr
+    leftState = leftState.removeExpression()
+    var rightState = right.backwardSemantics(leftState) // evaluate the right
+    val rightExpr = rightState.expr
+    rightState = rightState.removeExpression()
+    left match {
+      case f: FieldAccess => rightState.assignField(leftExpr, f.field, rightExpr)
+      case _ => rightState.assignVariable(leftExpr, rightExpr)
+    } // perform a field or variable assignment accordingly
+  }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     if (state.equals(state.bottom())) return state
@@ -238,7 +251,17 @@ case class VariableDeclaration(
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = {
+    right match {
+      case Some(right) => // the declaration contains an assignment
+        var resState = Assignment(programpoint, variable, right).backwardSemantics(state) // perform the assigment
+        resState = variable.backwardSemantics(resState) // evaluate the variable
+        resState.removeVariable(resState.expr) // remove the variable
+      case None => // the declaration does not contain an assigment
+        val resState = variable.backwardSemantics(state) // evaluate the variable
+        resState.removeVariable(resState.expr) // remove the variable
+    }
+  }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     var st = state
@@ -287,7 +310,7 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = state.getVariableValue(id)
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.refiningGetVariableValue(id)
 
@@ -351,7 +374,10 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = state
+  override def backwardSemantics[S <: State[S]](state: S): S = {
+    val objState = obj.backwardSemantics(state) // evaluate the receiver
+    objState.getFieldValue(objState.expr, field, typ) // get the field value
+  }
 
   private def getTypeOfStatement(s: Statement): Type = {
     s match {
@@ -430,13 +456,18 @@ case class MethodCall(
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = ???
+  override def backwardSemantics[S <: State[S]](state: S): S = {
+    val body: Statement = method.normalize()
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
+  }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val body: Statement = method.normalize()
     val castedStatement = body.asInstanceOf[FieldAccess]
     val calledMethod = castedStatement.field
-    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, oldPreState, getPC())
+    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S,
@@ -471,7 +502,7 @@ case class MethodCall(
     state.top()
   }
 
-  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, oldPreState: S, programpoint: ProgramPoint): S = {
+  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, programpoint: ProgramPoint): S = {
     // to be included when ExecutionHistoryState is committed
     ???
   }
@@ -506,8 +537,7 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
    * @return the state in which a fresh address pointing to something
    *         of type <code>typ</code> has been created
    */
-  override def forwardSemantics[S <: State[S]](state: S): S =
-    state.createObject(typ, pp)
+  override def forwardSemantics[S <: State[S]](state: S): S = state.createObject(typ, pp)
 
   /**
     * The abstract backward semantics of the statement.
@@ -515,7 +545,7 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
     * @param state the post state
     * @return the state obtained before the execution of the statement
     */
-  override def backwardSemantics[S <: State[S]](state: S): S = ???
+  override def backwardSemantics[S <: State[S]](state: S): S = state.createObject(typ, pp)
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val ex = state.createObject(typ, pp).expr

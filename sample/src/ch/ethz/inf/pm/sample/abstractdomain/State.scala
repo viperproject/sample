@@ -862,12 +862,6 @@ object UtilitiesOnStates {
     (expr, finalState)
   }
 
-  def backwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
-    val initialState = statement.backwardSemantics(state)
-    val expr = initialState.expr
-    (expr, initialState)
-  }
-
   def refiningExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.refiningSemantics[S](state, oldPreState)
     val expr = finalState.expr
