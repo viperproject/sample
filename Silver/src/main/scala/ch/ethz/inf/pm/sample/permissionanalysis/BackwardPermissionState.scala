@@ -17,6 +17,10 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     with LazyLogging {
   this: T =>
 
+  val permissions: Map[Identifier, PermissionTree]
+
+  def copy(permissions: Map[Identifier, PermissionTree]): T
+
   /** Inhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -108,13 +112,29 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param x     The assigned variable
+    * @param left  The assigned variable
     * @param right The assigned expression
     * @return The abstract state after the assignment
     */
-  override def assignVariable(x: Expression, right: Expression): T = {
+  override def assignVariable(left: Expression, right: Expression): T = {
     logger.trace("assignVariable")
-    this
+
+    left match {
+      case variable: VariableIdentifier => {
+        // check whether assigned variable is a ref
+        if (variable.typ.isObject) {
+          val leftPath = List(variable)
+          val rightPath = right match {
+            case id: VariableIdentifier => List(id)
+            case AccessPathIdentifier(path) => path
+            case _ => ???
+          }
+          assign(leftPath, rightPath)
+        }
+        else ???
+      }
+      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
+    }
   }
 
   /** Forgets the value of a variable.
@@ -259,7 +279,12 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def lessEqual(other: T): Boolean = {
     logger.trace("lessEqual")
-    false
+    permissions.forall {
+      case (identifier, tree) => other.permissions.get(identifier) match {
+        case Some(existing) => tree.lessThan(existing)
+        case None => false
+      }
+    }
   }
 
   /** Returns the top value of the lattice.
@@ -279,7 +304,15 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def lub(other: T): T = {
     logger.trace("lub")
-    this
+    val lubPermissions = permissions.foldLeft(other.permissions) {
+      case (accumulated, (identifier, tree)) => {
+        accumulated.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, tree.lub(existing))
+          case None => accumulated.updated(identifier, tree)
+        }
+      }
+    }
+    copy(permissions = lubPermissions)
   }
 
   /** Returns a new instance of the lattice.
@@ -299,7 +332,15 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def glb(other: T): T = {
     logger.trace("glb")
-    this
+    val glbPermissions = permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
+      case (accumulated, (identifier, tree)) => {
+        other.permissions.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, tree.glb(existing))
+          case None => accumulated
+        }
+      }
+    }
+    copy(permissions = glbPermissions)
   }
 
   /** Checks whether the given domain element is equivalent to bottom.
@@ -315,122 +356,184 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     *
     * @return bottom
     */
-  override def isTop: Boolean = ???
+  override def isTop: Boolean = false
 
-  /**
-    * @author Jerome Dohrau
-    */
-  case class Tree(permission: Permission = Permission.None,
-                  children: Map[Identifier, Tree] = Map.empty[Identifier, Tree]) {
-    /**
-      * Returns the least upper bound of this and the other permission tree.
-      */
-    def lub(other: Tree): Tree = {
-      val lubPermission = permission.lub(other.permission)
-      val lubChildren = children.foldLeft(other.children) {
-        case (accumulated, (identifier, child)) => {
-          accumulated.get(identifier) match {
-            case Some(existing) => accumulated.updated(identifier, child.lub(existing))
-            case None => accumulated.updated(identifier, child)
-          }
-        }
+  // HELPERS
+
+  private def read(path: List[Identifier]): T =
+    access(path, Permission.Read)
+
+  private def write(path: List[Identifier]) =
+    access(path, Permission.Write)
+
+  private def access(path: List[Identifier], permission: Permission): T = {
+    if (path.length < 2) this
+    else {
+      val (receiver :: first :: others) = path
+      val subtree = others.foldRight(PermissionTree(permission)) {
+        case (field, accumulated) => PermissionTree(Permission.Read, Map(field -> accumulated))
       }
-      Tree(lubPermission, lubChildren)
-    }
-
-    /**
-      * Returns the least upper bound of this and the other permission tree.
-      */
-    def glb(other: Tree): Tree = {
-      val glbPermission = permission.glb(other.permission)
-      val glbChildren = children.foldLeft(Map.empty[Identifier, Tree]) {
-        case (accumulated, (identifier, child)) => {
-          other.children.get(identifier) match {
-            case Some(existing) => accumulated.updated(identifier, child.glb(existing))
-            case None => accumulated
-          }
-        }
+      val tree = PermissionTree(children = Map(first -> subtree))
+      val updated = permissions.get(receiver) match {
+        case Some(existing) => existing.lub(tree)
+        case None => tree
       }
-      Tree(glbPermission, glbChildren)
+      copy(permissions + (receiver -> updated))
     }
-
-    /**
-      * Extracts the subtree at the specified path and returns the remainder of
-      * the tree as well as the extracted subtree.
-      *
-      * @param path the path to the subtree to be extracted
-      * @return a tuple containing the remainder of the tree and the extracted
-      *         subtree
-      */
-    def extract(path: List[Identifier]): (Tree, Tree) = {
-      if (path.isEmpty) {
-        val remainder = Tree(permission)
-        val extracted = Tree(Permission.None, children)
-        (remainder, extracted)
-      } else children.get(path.head) match {
-        case Some(child) => {
-          val (updated, extracted) = child.extract(path.tail)
-          val remainder = Tree(permission, children.updated(path.head, updated))
-          (remainder, extracted)
-        }
-        case None => (this, Tree())
-      }
-    }
-
-    /**
-      * Implants the specified tree at the specified path. If there is already a
-      * non-empty subtree at that path the least upper bound is computed.
-      *
-      * @param other the tree to be implanted
-      * @param path  the path to the place where the tree is implanted
-      * @return the tree with the other tree implanted
-      */
-    def implant(other: Tree, path: List[Identifier]): Tree = {
-      if (path.isEmpty) this.lub(other)
-      else {
-        val updated = children.get(path.head) match {
-          case Some(child) => child.implant(other, path.tail)
-          case None => path.tail.foldRight(other) {
-            // TODO: Depending on the implementation of the transformers this should not happen
-            case (identifier, accumulated) => Tree(Permission.None, Map(identifier -> accumulated))
-          }
-        }
-        Tree(permission, children.updated(path.head, updated))
-      }
-    }
-
   }
 
-  object Permission {
-    def None: Permission = Permission(0.0)
+  private def assign(left: List[Identifier], right: List[Identifier]): T = {
+    val (a :: f) = left
+    val (b :: g) = right
 
-    def Read: Permission = Permission(0.1)
+    val oldA = permissions.get(a)
+    val oldB = permissions.get(b)
 
-    def Write: Permission = Permission(1.0)
+    if (oldA.isEmpty) this
+    else {
+      // TODO: improve if a = b
+      // a.f = b.g
+      // a.f.f -> b.g.f
+      val (newA, extracted) = oldA.get.extract(f)
+      val newB = oldB.get.implant(extracted, g)
+
+      copy(permissions +(a -> newA, b -> newB)).read(left).write(right)
+    }
   }
-
-  /**
-    * Placeholder for permissions. This will be replaced by the real thing later.
-    *
-    * @param value the amount of permission
-    */
-  case class Permission(value: Double) {
-    def lub(other: Permission): Permission =
-      Permission(math.max(value, other.value))
-
-    def glb(other: Permission): Permission =
-      Permission(math.min(value, other.value))
-  }
-
 }
 
 object BackwardPermissionState {
 
-  case class Default() extends BackwardPermissionState[Default] {
+  case class Default(permissions: Map[Identifier, PermissionTree] = Map.empty)
+    extends BackwardPermissionState[Default] {
 
-    override def factory(): BackwardPermissionState.Default = { BackwardPermissionState.Default() }
+    override def copy(permissions: Map[Identifier, PermissionTree]): Default =
+      Default(permissions)
+
+    override def factory(): BackwardPermissionState.Default = {
+      BackwardPermissionState.Default()
+    }
   }
 
+}
+
+
+/**
+  * @author Jerome Dohrau
+  */
+case class PermissionTree(permission: Permission = Permission.None,
+                          children: Map[Identifier, PermissionTree] = Map.empty) {
+  /**
+    * Returns the least upper bound of this and the other permission tree.
+    */
+  def lub(other: PermissionTree): PermissionTree = {
+    val lubPermission = permission.lub(other.permission)
+    val lubChildren = children.foldLeft(other.children) {
+      case (accumulated, (identifier, child)) => {
+        accumulated.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, child.lub(existing))
+          case None => accumulated.updated(identifier, child)
+        }
+      }
+    }
+    PermissionTree(lubPermission, lubChildren)
+  }
+
+  /**
+    * Returns the least upper bound of this and the other permission tree.
+    */
+  def glb(other: PermissionTree): PermissionTree = {
+    val glbPermission = permission.glb(other.permission)
+    val glbChildren = children.foldLeft(Map.empty[Identifier, PermissionTree]) {
+      case (accumulated, (identifier, child)) => {
+        other.children.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, child.glb(existing))
+          case None => accumulated
+        }
+      }
+    }
+    PermissionTree(glbPermission, glbChildren)
+  }
+
+  def lessThan(other: PermissionTree): Boolean = {
+    if (permission.lessThan(other.permission)) {
+      children.forall {
+        case (identifier, child) => other.children.get(identifier) match {
+          case Some(existing) => child.lessThan(existing)
+          case None => false
+        }
+      }
+    } else false
+  }
+
+  /**
+    * Extracts the subtree at the specified path and returns the remainder of
+    * the tree as well as the extracted subtree.
+    *
+    * @param path the path to the subtree to be extracted
+    * @return a tuple containing the remainder of the tree and the extracted
+    *         subtree
+    */
+  def extract(path: List[Identifier]): (PermissionTree, PermissionTree) = {
+    if (path.isEmpty) {
+      val remainder = PermissionTree(permission)
+      val extracted = PermissionTree(Permission.None, children)
+      (remainder, extracted)
+    } else children.get(path.head) match {
+      case Some(child) => {
+        val (updated, extracted) = child.extract(path.tail)
+        val remainder = PermissionTree(permission, children.updated(path.head, updated))
+        (remainder, extracted)
+      }
+      case None => (this, PermissionTree())
+    }
+  }
+
+  /**
+    * Implants the specified tree at the specified path. If there is already a
+    * non-empty subtree at that path the least upper bound is computed.
+    *
+    * @param other the tree to be implanted
+    * @param path  the path to the place where the tree is implanted
+    * @return the tree with the other tree implanted
+    */
+  def implant(other: PermissionTree, path: List[Identifier]): PermissionTree = {
+    if (path.isEmpty) this.lub(other)
+    else {
+      val updated = children.get(path.head) match {
+        case Some(child) => child.implant(other, path.tail)
+        case None => path.tail.foldRight(other) {
+          case (identifier, accumulated) => PermissionTree(children = Map(identifier -> accumulated))
+        }
+      }
+      PermissionTree(permission, children.updated(path.head, updated))
+    }
+  }
+
+}
+
+object Permission {
+  def None: Permission = Permission(0.0)
+
+  def Read: Permission = Permission(0.1)
+
+  def Write: Permission = Permission(1.0)
+}
+
+/**
+  * Placeholder for permissions. This will be replaced by the real thing later.
+  *
+  * @param value the amount of permission
+  */
+case class Permission(value: Double) {
+  def lub(other: Permission): Permission =
+    Permission(math.max(value, other.value))
+
+  def glb(other: Permission): Permission =
+    Permission(math.min(value, other.value))
+
+  def lessThan(other: Permission): Boolean =
+    value <= other.value
 }
 
 /** Backward Permission Inference Runner.
@@ -497,5 +600,6 @@ object BackwardPermissionEntryStateBuilder extends EntryStateBuilder[BackwardPer
   */
 object BackwardPermissionInferenceRunner extends BackwardPermissionRunner[BackwardPermissionState.Default] {
   override val analysis = SimpleBackwardAnalysis[BackwardPermissionState.Default](BackwardPermissionEntryStateBuilder)
+
   override def toString = "Backward Permission Inference"
 }
