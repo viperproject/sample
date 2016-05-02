@@ -470,11 +470,11 @@ case class MethodCall(
     backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
-  private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S,
+  private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
                                                               programPoint: ProgramPoint): S = {
 
     // Evaluate object and parameters
-    var curState = initialState
+    var curState = preState
     curState = obj.forwardSemantics[S](curState)
     val objectExpression = curState.expr
     val parameterExpressions = for (parameter <- parameters) yield {
@@ -487,8 +487,21 @@ case class MethodCall(
 
   }
 
+  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S,
+                                                               programPoint: ProgramPoint): S = {
+    var currentState = postState
+    currentState = obj.backwardSemantics[S](currentState)
+    val objExpr = currentState.expr
+    val paramExpr = for (param: Statement <- parameters) yield {
+      currentState = param.backwardSemantics[S](currentState)
+      currentState.expr
+    }
+    applyNativeBackwardSemanticsOnObject(calledMethod, objExpr, paramExpr, currentState, programPoint)
+  }
+
   private def applyNativeForwardSemanticsOnObject[S <: State[S]](invokedMethod: String, thisExpr: ExpressionSet,
-                                                                 parametersExpr: List[ExpressionSet], state: S, programpoint: ProgramPoint): S = {
+                                                                 parametersExpr: List[ExpressionSet], state: S,
+                                                                 programpoint: ProgramPoint): S = {
     for (sem <- SystemParameters.nativeMethodsSemantics) {
       val res = sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes,
         returnedType, programpoint, state)
@@ -502,9 +515,20 @@ case class MethodCall(
     state.top()
   }
 
-  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, programpoint: ProgramPoint): S = {
-    // to be included when ExecutionHistoryState is committed
-    ???
+  private def applyNativeBackwardSemanticsOnObject[S <: State[S]](invokedMethod: String, thisExpr: ExpressionSet,
+                                                                  parametersExpr: List[ExpressionSet], state: S,
+                                                                  programPoint: ProgramPoint): S = {
+    for (sem <- SystemParameters.nativeMethodsSemantics) {
+      val res = sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes,
+        returnedType, programPoint, state)
+      res match {
+        case Some(s) =>
+          return s
+        case None => ()
+      }
+    }
+    Reporter.reportImprecision("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programPoint)
+    state.top()
   }
 
   override def toString: String =

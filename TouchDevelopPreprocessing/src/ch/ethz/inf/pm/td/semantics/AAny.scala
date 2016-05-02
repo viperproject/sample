@@ -162,7 +162,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
    */
   def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String,
                                                   parameters: List[ExpressionSet], typeparameters: List[Type],
-                                                  returnedtype: Type, pp: ProgramPoint, state: S, oldPreState: S): Option[S] = None
+                                                  returnedtype: Type, pp: ProgramPoint, state: S): Option[S] = None
 
   /**
    * Delegates forward semantics to concrete classes.
