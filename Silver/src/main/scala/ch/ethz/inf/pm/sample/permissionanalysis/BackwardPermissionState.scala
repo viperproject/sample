@@ -123,22 +123,32 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
       case variable: VariableIdentifier => {
         // check whether assigned variable is a ref
         if (variable.typ.isObject) {
-          // get path corresponding to lhs and rhs
+          // case 1: assigned variable is a ref
+          // get access paths corresponding to lhs and rhs
           val leftPath = List(variable)
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
             case AccessPathIdentifier(path) => path
             case _ => ???
           }
-          // update paths
+          // assign rhs path to lhs path
           assign(leftPath, rightPath)
         }
         else {
-          // add read permissions for all paths on the right side
+          // case 2: assigned variable is no ref
+          // add read permissions for all access paths on rhs
           right.ids.getNonTop.foldLeft(this) {
             case (result, identifier) => identifier match {
-              case id: VariableIdentifier => result // no permission needed
-              case AccessPathIdentifier(path) => this.read(path) // add read permission
+              case id: VariableIdentifier => {
+                // e.g. <lhs> := y
+                // no permission needed
+                result
+              }
+              case AccessPathIdentifier(path) => {
+                // e.g. <lhs> := a.f
+                // add read permission for rhs
+                result.read(path)
+              }
               case _ => ???
             }
           }
@@ -171,8 +181,9 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
 
     obj match {
       case AccessPathIdentifier(leftPath) => {
-        // check whether assigned variable is a ref
+        // check whether lhs is a ref
         if (obj.typ.isObject) {
+          // case 1: lhs is a ref
           // get path corresponding to lhs and rhs
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
@@ -182,12 +193,21 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           // update paths
           assign(leftPath, rightPath)
         } else {
-          // add write permission to path on lhs and then
-          // add read permissions for all paths on the right side
+          // case 2: lhs is not no ref
+          // add write permission for lhs and then
+          // add read permissions for all access paths on rhs
           right.ids.getNonTop.foldLeft(this.write(leftPath)) {
             case (result, identifier) => identifier match {
-              case id: VariableIdentifier => result // no permission needed
-              case AccessPathIdentifier(path) => this.read(path) // add read permission
+              case id: VariableIdentifier => {
+                // e.g. <lhs> := x
+                // no permission needed
+                result
+              }
+              case AccessPathIdentifier(path) => {
+                // e.g. <lhs> := b.f
+                // add read permission for rhs
+                result.read(path)
+              }
               case _ => ???
             }
           }
@@ -341,6 +361,9 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def lub(other: T): T = {
     logger.trace("lub")
+    // compute tree-wise lub. that is, compute lub for all trees that are in
+    // this.permissions and other.permissions and also include trees that are
+    // either in this.permissions or other.permissions (but not both)
     val lubPermissions = permissions.foldLeft(other.permissions) {
       case (accumulated, (identifier, tree)) => {
         accumulated.get(identifier) match {
@@ -369,6 +392,8 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def glb(other: T): T = {
     logger.trace("glb")
+    // compute tree-wise glb. that is, compute glb for all trees that are in
+    // this.permissions and other.permissions.
     val glbPermissions = permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
       case (accumulated, (identifier, tree)) => {
         other.permissions.get(identifier) match {
@@ -397,20 +422,46 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
 
   // HELPERS
 
+  /**
+    * Adds read permission for the specified access path. If the permission is
+    * already there nothing happens.
+    *
+    * @param path the path to add read permissions for
+    * @return the updated state
+    */
   private def read(path: List[Identifier]): T =
     access(path, Permission.Read)
 
+  /**
+    * Adds write permissions for the specified access path. If the permission is
+    * already there nothing happens.
+    *
+    * @param path the path to add write permissions for
+    * @return the updated state
+    */
   private def write(path: List[Identifier]) =
     access(path, Permission.Write)
 
+  /**
+    * Adds the specified permission for the specified access path. If the
+    * permission is already there nothing happens
+    *
+    * @param path       the path to add permissions for
+    * @param permission the amount of permissions to add
+    * @return
+    */
   private def access(path: List[Identifier], permission: Permission): T = {
-    if (path.length < 2) this
-    else {
+    if (path.length < 2) {
+      // no need for any permissions if we do not access at least one field
+      this
+    } else {
+      // build permission tree for specified path and permission
       val (receiver :: first :: others) = path
       val subtree = others.foldRight(PermissionTree(permission)) {
         case (field, accumulated) => PermissionTree(Permission.Read, Map(field -> accumulated))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
+      // add new permission tree to permissions
       val updated = permissions.get(receiver) match {
         case Some(existing) => existing.lub(tree)
         case None => tree
@@ -420,21 +471,24 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
   }
 
   private def assign(left: List[Identifier], right: List[Identifier]): T = {
-    val (a :: f) = left
-    val (b :: g) = right
+    // split lhs and rhs into pairs of receivers and fields
+    val (lhsReceiver :: lhsFields) = left
+    val (rhsReceiver :: rhsFields) = right
 
-    val oldA = permissions.get(a)
-    val oldB = permissions.get(b)
+    // get permission trees for lhs and rhs
+    val lhsTree = permissions.get(lhsReceiver)
+    val rhsTree = permissions.get(rhsReceiver)
 
-    if (oldA.isEmpty) this
-    else {
-      // TODO: improve if a = b
-      // a.f = b.g
-      // a.f.f -> b.g.f
-      val (newA, extracted) = oldA.get.extract(f)
-      val newB = oldB.get.implant(extracted, g)
+    if (lhsTree.isEmpty) {
+      this
+    } else {
+      // update permissions trees
+      // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
+      // TODO: improve if lhsReceiver = rhsReceiver (updates such as a.f = a)
+      val (newA, extracted) = lhsTree.get.extract(lhsFields)
+      val newB = rhsTree.get.implant(extracted, rhsFields)
 
-      copy(permissions +(a -> newA, b -> newB)).read(left).write(right)
+      copy(permissions +(lhsReceiver -> newA, rhsReceiver -> newB)).read(left).write(right)
     }
   }
 }
@@ -464,7 +518,9 @@ case class PermissionTree(permission: Permission = Permission.None,
     * Returns the least upper bound of this and the other permission tree.
     */
   def lub(other: PermissionTree): PermissionTree = {
+    // compute lub of permissions
     val lubPermission = permission.lub(other.permission)
+    // compute child-wise lub of children
     val lubChildren = children.foldLeft(other.children) {
       case (accumulated, (identifier, child)) => {
         accumulated.get(identifier) match {
@@ -480,7 +536,9 @@ case class PermissionTree(permission: Permission = Permission.None,
     * Returns the least upper bound of this and the other permission tree.
     */
   def glb(other: PermissionTree): PermissionTree = {
+    // compute glb of permissions
     val glbPermission = permission.glb(other.permission)
+    // compute child-wise glb of children
     val glbChildren = children.foldLeft(Map.empty[Identifier, PermissionTree]) {
       case (accumulated, (identifier, child)) => {
         other.children.get(identifier) match {
@@ -494,6 +552,8 @@ case class PermissionTree(permission: Permission = Permission.None,
 
   def lessThan(other: PermissionTree): Boolean = {
     if (permission.lessThan(other.permission)) {
+      // check whether for all children in this tree there is at least as much
+      // permission in the other tree
       children.forall {
         case (identifier, child) => other.children.get(identifier) match {
           case Some(existing) => child.lessThan(existing)
@@ -513,16 +573,20 @@ case class PermissionTree(permission: Permission = Permission.None,
     */
   def extract(path: List[Identifier]): (PermissionTree, PermissionTree) = {
     if (path.isEmpty) {
+      // base case: extract entire subtree
       val remainder = PermissionTree(permission)
       val extracted = PermissionTree(Permission.None, children)
       (remainder, extracted)
-    } else children.get(path.head) match {
-      case Some(child) => {
-        val (updated, extracted) = child.extract(path.tail)
-        val remainder = PermissionTree(permission, children.updated(path.head, updated))
-        (remainder, extracted)
+    } else {
+      // recursively extract tree from child corresponding to head of path
+      children.get(path.head) match {
+        case Some(child) => {
+          val (updated, extracted) = child.extract(path.tail)
+          val remainder = PermissionTree(permission, children.updated(path.head, updated))
+          (remainder, extracted)
+        }
+        case None => (this, PermissionTree())
       }
-      case None => (this, PermissionTree())
     }
   }
 
@@ -535,12 +599,18 @@ case class PermissionTree(permission: Permission = Permission.None,
     * @return the tree with the other tree implanted
     */
   def implant(other: PermissionTree, path: List[Identifier]): PermissionTree = {
-    if (path.isEmpty) this.lub(other)
-    else {
+    if (path.isEmpty) {
+      // base case: implant other at current node
+      this.lub(other)
+    } else {
+      // recursively implant other into child corresponding to head of path
       val updated = children.get(path.head) match {
         case Some(child) => child.implant(other, path.tail)
-        case None => path.tail.foldRight(other) {
-          case (identifier, accumulated) => PermissionTree(children = Map(identifier -> accumulated))
+        case None => {
+          // the path does not exist in the tree, thus we create it and implant the tree there
+          path.tail.foldRight(other) {
+            case (identifier, accumulated) => PermissionTree(children = Map(identifier -> accumulated))
+          }
         }
       }
       PermissionTree(permission, children.updated(path.head, updated))
@@ -550,10 +620,19 @@ case class PermissionTree(permission: Permission = Permission.None,
 }
 
 object Permission {
+  /**
+    * Placeholder for no permission
+    */
   def None: Permission = Permission(0.0)
 
+  /**
+    * Placeholder for read permission
+    */
   def Read: Permission = Permission(0.1)
 
+  /**
+    * Placeholder for write permission
+    */
   def Write: Permission = Permission(1.0)
 }
 
