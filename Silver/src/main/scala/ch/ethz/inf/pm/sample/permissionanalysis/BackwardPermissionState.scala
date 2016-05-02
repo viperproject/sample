@@ -123,15 +123,26 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
       case variable: VariableIdentifier => {
         // check whether assigned variable is a ref
         if (variable.typ.isObject) {
+          // get path corresponding to lhs and rhs
           val leftPath = List(variable)
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
             case AccessPathIdentifier(path) => path
             case _ => ???
           }
+          // update paths
           assign(leftPath, rightPath)
         }
-        else ???
+        else {
+          // add read permissions for all paths on the right side
+          right.ids.getNonTop.foldLeft(this) {
+            case (result, identifier) => identifier match {
+              case id: VariableIdentifier => result // no permission needed
+              case AccessPathIdentifier(path) => this.read(path) // add read permission
+              case _ => ???
+            }
+          }
+        }
       }
       case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
     }
@@ -157,7 +168,33 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def assignField(obj: Expression, field: String, right: Expression): T = {
     logger.trace("assignField")
-    this
+
+    obj match {
+      case AccessPathIdentifier(leftPath) => {
+        // check whether assigned variable is a ref
+        if (obj.typ.isObject) {
+          // get path corresponding to lhs and rhs
+          val rightPath = right match {
+            case id: VariableIdentifier => List(id)
+            case AccessPathIdentifier(path) => path
+            case _ => ???
+          }
+          // update paths
+          assign(leftPath, rightPath)
+        } else {
+          // add write permission to path on lhs and then
+          // add read permissions for all paths on the right side
+          right.ids.getNonTop.foldLeft(this.write(leftPath)) {
+            case (result, identifier) => identifier match {
+              case id: VariableIdentifier => result // no permission needed
+              case AccessPathIdentifier(path) => this.read(path) // add read permission
+              case _ => ???
+            }
+          }
+        }
+      }
+      case _ => throw new IllegalArgumentException("A field assignment must occur via a AccessPathIdentifier.")
+    }
   }
 
   /** Assigns an expression to an argument.
