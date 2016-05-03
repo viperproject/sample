@@ -17,9 +17,12 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     with LazyLogging {
   this: T =>
 
+  val expressions: ExpressionSet
+
   val permissions: Map[Identifier, PermissionTree]
 
-  def copy(permissions: Map[Identifier, PermissionTree]): T
+  def copy(expressions: ExpressionSet = expressions,
+           permissions: Map[Identifier, PermissionTree] = permissions): T
 
   /** Inhales permissions.
     *
@@ -53,7 +56,13 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument
     */
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = ???
+  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
+    logger.trace("createVariableForArgument")
+    permissions.get(x) match {
+      case Some(existing) => this
+      case None => copy(permissions = permissions + (x -> PermissionTree()))
+    }
+  }
 
   /** Removes a variable.
     *
@@ -79,7 +88,20 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
     logger.trace("getFieldValue")
-    this
+
+    obj match {
+      case id: VariableIdentifier => {
+        val fieldId = VariableIdentifier(field)(typ)
+        val newPath = AccessPathIdentifier(List(id, fieldId))
+        copy(expressions = ExpressionSet(newPath))
+      }
+      case AccessPathIdentifier(path) => {
+        val fieldId = VariableIdentifier(field)(typ)
+        val newPath = AccessPathIdentifier(path ++ List(fieldId))
+        copy(expressions = ExpressionSet(newPath))
+      }
+      case _ => throw new IllegalArgumentException("A field access must occur via an Identifier.")
+    }
   }
 
   /** Assumes that a boolean expression holds.
@@ -165,7 +187,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable
     */
-  override def setVariableToTop(varExpr: Expression): T = ???
+  override def setVariableToTop(varExpr: Expression): T = ??? // TODO:
 
   /** Assigns an expression to a field of an object.
     *
@@ -188,6 +210,10 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
             case AccessPathIdentifier(path) => path
+            case _: Constant => {
+              // TODO: if the constant is null, e.g., a.f := null, make sure we do not access a.f.f
+              Nil
+            }
             case _ => ???
           }
           // update paths
@@ -231,7 +257,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def removeExpression(): T = {
     logger.trace("removeExpression")
-    this
+    copy(expressions = ExpressionSet())
   }
 
   /** Throws an exception.
@@ -254,7 +280,9 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     logger.trace("evalConstant")
-    this
+    val const = new Constant(value, typ, pp)
+    // return the current state with updated expressions
+    copy(expressions = ExpressionSet(const))
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -275,7 +303,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
   /** Returns the current expression. */
   override def expr: ExpressionSet = {
     logger.trace("expr")
-    ExpressionSet()
+    expressions
   }
 
   /** Creates an object
@@ -296,7 +324,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def setExpression(expr: ExpressionSet): T = {
     logger.trace("setExpression")
-    this
+    copy(expressions = expr)
   }
 
   /** Gets the value of a variable.
@@ -307,7 +335,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def getVariableValue(id: Identifier): T = {
     logger.trace("getVariableValue")
-    this
+    copy(expressions = ExpressionSet(id))
   }
 
   /** Returns the bottom value of the lattice.
@@ -316,7 +344,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def bottom(): T = {
     logger.trace("bottom")
-    this
+    copy(expressions = expressions.bottom(), permissions = Map.empty)
   }
 
   /** Computes the widening of two elements.
@@ -466,40 +494,49 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
         case Some(existing) => existing.lub(tree)
         case None => tree
       }
-      copy(permissions + (receiver -> updated))
+      copy(permissions = permissions + (receiver -> updated))
     }
   }
 
   private def assign(left: List[Identifier], right: List[Identifier]): T = {
-    // split lhs and rhs into pairs of receivers and fields
-    val (lhsReceiver :: lhsFields) = left
-    val (rhsReceiver :: rhsFields) = right
-
-    // get permission trees for lhs and rhs
-    val lhsTree = permissions.get(lhsReceiver)
-    val rhsTree = permissions.get(rhsReceiver)
-
-    if (lhsTree.isEmpty) {
-      this
+    if (left.isEmpty || right.isEmpty) {
+      // add write permission for lhs and read permission for rhs
+      this.write(left).read(right)
     } else {
-      // update permissions trees
-      // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
-      // TODO: improve if lhsReceiver = rhsReceiver (updates such as a.f = a)
-      val (newA, extracted) = lhsTree.get.extract(lhsFields)
-      val newB = rhsTree.get.implant(extracted, rhsFields)
+      // split lhs and rhs into pairs of receivers and fields
+      val (lhsReceiver :: lhsFields) = left
+      val (rhsReceiver :: rhsFields) = right
 
-      copy(permissions +(lhsReceiver -> newA, rhsReceiver -> newB)).read(left).write(right)
+      // get permission trees for lhs and rhs
+      val lhsTree = permissions.get(lhsReceiver)
+      val rhsTree = permissions.get(rhsReceiver)
+
+      if (lhsTree.isEmpty) {
+        this
+      } else {
+        // update permissions trees
+        // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
+        // TODO: improve if lhsReceiver = rhsReceiver (updates such as a.f := a)
+        val (newA, extracted) = lhsTree.get.extract(lhsFields)
+        val newB = rhsTree.get.implant(extracted, rhsFields)
+
+        // update and also add write permission for lhs as well as read permission for rhs
+        copy(permissions = permissions +(lhsReceiver -> newA, rhsReceiver -> newB))
+          .write(left).read(right)
+      }
     }
   }
 }
 
 object BackwardPermissionState {
 
-  case class Default(permissions: Map[Identifier, PermissionTree] = Map.empty)
+  case class Default(expressions: ExpressionSet = ExpressionSet(),
+                     permissions: Map[Identifier, PermissionTree] = Map.empty)
     extends BackwardPermissionState[Default] {
 
-    override def copy(permissions: Map[Identifier, PermissionTree]): Default =
-      Default(permissions)
+    override def copy(expressions: ExpressionSet,
+                      permissions: Map[Identifier, PermissionTree]): Default =
+      Default(expressions, permissions)
 
     override def factory(): BackwardPermissionState.Default = {
       BackwardPermissionState.Default()
@@ -507,7 +544,6 @@ object BackwardPermissionState {
   }
 
 }
-
 
 /**
   * @author Jerome Dohrau

@@ -164,11 +164,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     * @return the state obtained before the execution of the statement
     */
   override def backwardSemantics[S <: State[S]](state: S): S = {
-    val lhs = left match {
-      case f: FieldAccess => f.obj
-      case _ => left
-    } // figure out whether we have a field or variable assignment
-    var leftState = lhs.backwardSemantics(state) // evaluate the left
+    var leftState = left.backwardSemantics(state) // evaluate the left
     val leftExpr = leftState.expr
     leftState = leftState.removeExpression()
     var rightState = right.backwardSemantics(leftState) // evaluate the right
