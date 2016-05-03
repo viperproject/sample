@@ -541,6 +541,14 @@ object BackwardPermissionState {
     override def factory(): BackwardPermissionState.Default = {
       BackwardPermissionState.Default()
     }
+
+    override def toString: String = {
+      val paths = permissions.toList.flatMap {
+        case (identifier, child) => child.toStringHelper().map(identifier + _)
+      }
+      if (paths.isEmpty) "Default(no permissions)"
+      else "Default(" + paths.reduce(_ + ", " + _) + ")"
+    }
   }
 
 }
@@ -653,6 +661,23 @@ case class PermissionTree(permission: Permission = Permission.None,
     }
   }
 
+  def toStringHelper(): List[String] = {
+    children.toList.flatMap {
+      case (identifier, child) => child.toStringHelper2().map("." + identifier + _)
+    }
+  }
+
+  def toStringHelper2(): List[String] = {
+    val head = permission.value match {
+      case 0.0 => Nil
+      case 1.0 => List(" write")
+      case _ => List(" read")
+    }
+    val tail = children.toList.flatMap {
+      case (identifier, child) => child.toStringHelper2().map("." + identifier + _)
+    }
+    head ++ tail
+  }
 }
 
 object Permission {
