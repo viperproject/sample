@@ -127,7 +127,10 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
-    this
+    permissions.get(x) match {
+      case Some(existing) => this
+      case None => copy(permissions = permissions + (x -> PermissionTree()))
+    }
   }
 
   /** Assigns an expression to a variable.
@@ -512,13 +515,13 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
       val rhsTree = permissions.get(rhsReceiver)
 
       if (lhsTree.isEmpty) {
-        this
+        this.write(left).read(right)
       } else {
         // update permissions trees
         // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
         // TODO: improve if lhsReceiver = rhsReceiver (updates such as a.f := a)
         val (newA, extracted) = lhsTree.get.extract(lhsFields)
-        val newB = rhsTree.get.implant(extracted, rhsFields)
+        val newB = rhsTree.getOrElse(PermissionTree()).implant(extracted, rhsFields)
 
         // update and also add write permission for lhs as well as read permission for rhs
         copy(permissions = permissions +(lhsReceiver -> newA, rhsReceiver -> newB))
