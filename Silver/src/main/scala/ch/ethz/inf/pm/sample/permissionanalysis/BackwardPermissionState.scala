@@ -5,7 +5,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleBackwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Statement, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -153,6 +153,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           val leftPath = List(variable)
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
+            case obj: NewObject => List(obj)
             case AccessPathIdentifier(path) => path
             case _ => ???
           }
@@ -212,6 +213,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           // get path corresponding to lhs and rhs
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
+            case obj: NewObject => List(obj)
             case AccessPathIdentifier(path) => path
             case _: Constant => {
               // TODO: if the constant is null, e.g., a.f := null, make sure we do not access a.f.f
@@ -317,7 +319,8 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def createObject(typ: Type, pp: ProgramPoint): T = {
     logger.trace("createObject")
-    this
+    val obj = NewObject(typ, pp)
+    copy(expressions = ExpressionSet(obj))
   }
 
   /** Sets the current expression.
@@ -516,6 +519,11 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
 
       if (lhsTree.isEmpty) {
         this.write(left).read(right)
+      } else if (rhsReceiver.isInstanceOf[NewObject]) {
+        val (newA, _) = lhsTree.get.extract(lhsFields)
+        // update permission tree and add write permission for lhs
+        copy(permissions = permissions + (lhsReceiver -> newA))
+          .write(left)
       } else {
         // update permissions trees
         // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
@@ -527,6 +535,8 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
         copy(permissions = permissions +(lhsReceiver -> newA, rhsReceiver -> newB))
           .write(left).read(right)
       }
+
+
     }
   }
 }
@@ -714,6 +724,31 @@ case class Permission(value: Double) {
 
   def lessThan(other: Permission): Boolean =
     value <= other.value
+}
+
+case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
+  /**
+    * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+    * if they are the same identifier
+    *
+    * @return The name of the identifier
+    */
+  override def getName: String = ???
+
+  /**
+    * Returns the name of the field that is represented by this identifier if it is a heap identifier.
+    *
+    * @return The name of the field pointed by this identifier
+    */
+  override def getField: Option[String] = ???
+
+  /**
+    * Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+    * identifier. This function tells if a node is a summary node.
+    *
+    * @return true iff this identifier represents exactly one variable
+    */
+  override def representsSingleVariable: Boolean = ???
 }
 
 /** Backward Permission Inference Runner.
