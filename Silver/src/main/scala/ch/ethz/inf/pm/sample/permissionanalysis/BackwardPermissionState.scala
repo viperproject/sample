@@ -17,12 +17,26 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     with LazyLogging {
   this: T =>
 
+  val timestamp: Int
+
   val expressions: ExpressionSet
 
-  val permissions: Map[Identifier, PermissionTree]
+  /**
+    * The permissions that we need. Permissions are needed whenever a field is
+    * accessed or when mentioned in an exhale statement.
+    */
+  val need: Map[Identifier, PermissionTree]
 
-  def copy(expressions: ExpressionSet = expressions,
-           permissions: Map[Identifier, PermissionTree] = permissions): T
+  /**
+    * The permissions that we have. Permissions are obtained by inhale
+    * statements.
+    */
+  val have: Map[Identifier, PermissionTree]
+
+  def copy(timestamp: Int = timestamp,
+           expressions: ExpressionSet = expressions,
+           need: Map[Identifier, PermissionTree] = need,
+           have: Map[Identifier, PermissionTree] = have): T
 
   /** Inhales permissions.
     *
@@ -33,6 +47,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def inhale(acc: Expression): T = {
     logger.trace("inhale")
+    // TODO:
     this
   }
 
@@ -45,6 +60,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def exhale(acc: Expression): T = {
     logger.trace("exhale")
+    // TODO:
     this
   }
 
@@ -58,9 +74,9 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
     logger.trace("createVariableForArgument")
-    permissions.get(x) match {
+    need.get(x) match {
       case Some(existing) => this
-      case None => copy(permissions = permissions + (x -> PermissionTree()))
+      case None => copy(need = need + (x -> PermissionTree()))
     }
   }
 
@@ -127,9 +143,9 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
-    permissions.get(x) match {
+    need.get(x) match {
       case Some(existing) => this
-      case None => copy(permissions = permissions + (x -> PermissionTree()))
+      case None => copy(need = need + (x -> PermissionTree()))
     }
   }
 
@@ -350,7 +366,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def bottom(): T = {
     logger.trace("bottom")
-    copy(expressions = expressions.bottom(), permissions = Map.empty)
+    copy(expressions = expressions.bottom(), need = Map.empty)
   }
 
   /** Computes the widening of two elements.
@@ -370,12 +386,21 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def lessEqual(other: T): Boolean = {
     logger.trace("lessEqual")
-    permissions.forall {
-      case (identifier, tree) => other.permissions.get(identifier) match {
+    // compute whether this needs less permissions than other
+    val needLess = need.forall {
+      case (identifier, tree) => other.need.get(identifier) match {
         case Some(existing) => tree.lessThan(existing)
         case None => false
       }
     }
+    // compute whether this has more permissions than other
+    val hasMore = other.have.forall {
+      case (identifier, tree) => have.get(identifier) match {
+        case Some(existing) => tree.lessThan(existing)
+        case None => false
+      }
+    }
+    needLess && hasMore
   }
 
   /** Returns the top value of the lattice.
@@ -384,6 +409,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def top(): T = {
     logger.trace("top")
+    // TODO:
     this
   }
 
@@ -395,10 +421,13 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def lub(other: T): T = {
     logger.trace("lub")
-    // compute tree-wise lub. that is, compute lub for all trees that are in
-    // this.permissions and other.permissions and also include trees that are
-    // either in this.permissions or other.permissions (but not both)
-    val lubPermissions = permissions.foldLeft(other.permissions) {
+    // compute timestamp that is larger than this.timestamp and other.timestamp
+    val lubTimestamp = math.max(timestamp, other.timestamp) + 1
+
+    // compute tree-wise lub for need. that is, compute lub for all trees that
+    // are in this.need and other.need and also include trees that are either in
+    // this.need or other.need (but not both)
+    val lubNeed = need.foldLeft(other.need) {
       case (accumulated, (identifier, tree)) => {
         accumulated.get(identifier) match {
           case Some(existing) => accumulated.updated(identifier, tree.lub(existing))
@@ -406,7 +435,19 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
         }
       }
     }
-    copy(permissions = lubPermissions)
+
+    // compute tree-wise glb(!) for have. that is, compute glb for all trees
+    // that are in this.have and other.have.
+    val lubHave = have.foldLeft(Map.empty[Identifier, PermissionTree]) {
+      case (accumulated, (identifier, tree)) => {
+        other.have.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, tree.glb(existing))
+          case None => accumulated
+        }
+      }
+    }
+
+    copy(timestamp = lubTimestamp, need = lubNeed, have = lubHave)
   }
 
   /** Returns a new instance of the lattice.
@@ -426,17 +467,33 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def glb(other: T): T = {
     logger.trace("glb")
-    // compute tree-wise glb. that is, compute glb for all trees that are in
+    // compute timestamp that is large than this.timestamp and other.timestamp
+    val glbTimestamp = math.max(timestamp, other.timestamp) + 1
+
+    // compute tree-wise glb for need. that is, compute glb for all trees that are in
     // this.permissions and other.permissions.
-    val glbPermissions = permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
+    val glbNeed = need.foldLeft(Map.empty[Identifier, PermissionTree]) {
       case (accumulated, (identifier, tree)) => {
-        other.permissions.get(identifier) match {
+        other.need.get(identifier) match {
           case Some(existing) => accumulated.updated(identifier, tree.glb(existing))
           case None => accumulated
         }
       }
     }
-    copy(permissions = glbPermissions)
+
+    // compute tree-wise lub(!) for have. that is, compute lub for all trees
+    // that are in this.need and other.need and also include trees that are
+    // either in this.need or other.need (but not both)
+    val glbHave = have.foldLeft(other.have) {
+      case (accumulated, (identifier, tree)) => {
+        accumulated.get(identifier) match {
+          case Some(existing) => accumulated.updated(identifier, tree.lub(existing))
+          case None => accumulated.updated(identifier, tree)
+        }
+      }
+    }
+
+    copy(timestamp = glbTimestamp, need = glbNeed, have = glbHave)
   }
 
   /** Checks whether the given domain element is equivalent to bottom.
@@ -464,7 +521,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @return the updated state
     */
   private def read(path: List[Identifier]): T =
-    access(path, Permission.Read)
+    access(path, Permission.read(timestamp))
 
   /**
     * Adds write permissions for the specified access path. If the permission is
@@ -474,7 +531,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     * @return the updated state
     */
   private def write(path: List[Identifier]) =
-    access(path, Permission.Write)
+    access(path, Permission.write(timestamp))
 
   /**
     * Adds the specified permission for the specified access path. If the
@@ -489,40 +546,40 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
       // no need for any permissions if we do not access at least one field
       this
     } else {
-      // build permission tree for specified path and permission
+      // build permission tree for specified path and permissio
       val (receiver :: first :: others) = path
       val subtree = others.foldRight(PermissionTree(permission)) {
-        case (field, accumulated) => PermissionTree(Permission.Read, Map(field -> accumulated))
+        case (field, accumulated) => PermissionTree(Permission.read(timestamp), Map(field -> accumulated))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
       // add new permission tree to permissions
-      val updated = permissions.get(receiver) match {
+      val updated = need.get(receiver) match {
         case Some(existing) => existing.lub(tree)
         case None => tree
       }
-      copy(permissions = permissions + (receiver -> updated))
+      copy(need = need + (receiver -> updated))
     }
   }
 
   private def assign(left: List[Identifier], right: List[Identifier]): T = {
     if (left.isEmpty || right.isEmpty) {
       // add write permission for lhs and read permission for rhs
-      this.write(left).read(right)
+      copy(timestamp = timestamp + 1).write(left).read(right)
     } else {
       // split lhs and rhs into pairs of receivers and fields
       val (lhsReceiver :: lhsFields) = left
       val (rhsReceiver :: rhsFields) = right
 
       // get permission trees for lhs and rhs
-      val lhsTree = permissions.get(lhsReceiver)
-      val rhsTree = permissions.get(rhsReceiver)
+      val lhsTree = need.get(lhsReceiver)
+      val rhsTree = need.get(rhsReceiver)
 
       if (lhsTree.isEmpty) {
-        this.write(left).read(right)
+        copy(timestamp = timestamp + 1).write(left).read(right)
       } else if (rhsReceiver.isInstanceOf[NewObject]) {
         val (newA, _) = lhsTree.get.extract(lhsFields)
         // update permission tree and add write permission for lhs
-        copy(permissions = permissions + (lhsReceiver -> newA))
+        copy(need = need + (lhsReceiver -> newA))
           .write(left)
       } else {
         // update permissions trees
@@ -532,7 +589,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
         val newB = rhsTree.getOrElse(PermissionTree()).implant(extracted, rhsFields)
 
         // update and also add write permission for lhs as well as read permission for rhs
-        copy(permissions = permissions +(lhsReceiver -> newA, rhsReceiver -> newB))
+        copy(timestamp = timestamp + 1, need = need +(lhsReceiver -> newA, rhsReceiver -> newB))
           .write(left).read(right)
       }
 
@@ -543,20 +600,24 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
 
 object BackwardPermissionState {
 
-  case class Default(expressions: ExpressionSet = ExpressionSet(),
-                     permissions: Map[Identifier, PermissionTree] = Map.empty)
+  case class Default(timestamp: Int = 0,
+                     expressions: ExpressionSet = ExpressionSet(),
+                     need: Map[Identifier, PermissionTree] = Map.empty,
+                     have: Map[Identifier, PermissionTree] = Map.empty)
     extends BackwardPermissionState[Default] {
 
-    override def copy(expressions: ExpressionSet,
-                      permissions: Map[Identifier, PermissionTree]): Default =
-      Default(expressions, permissions)
+    override def copy(timestamp: Int,
+                      expressions: ExpressionSet,
+                      need: Map[Identifier, PermissionTree],
+                      have: Map[Identifier, PermissionTree]): Default =
+      Default(timestamp, expressions, need, have)
 
     override def factory(): BackwardPermissionState.Default = {
       BackwardPermissionState.Default()
     }
 
     override def toString: String = {
-      val paths = permissions.toList.flatMap {
+      val paths = need.toList.flatMap {
         case (identifier, child) => child.toStringHelper().map(identifier + _)
       }
       if (paths.isEmpty) "Default(no permissions)"
@@ -569,7 +630,7 @@ object BackwardPermissionState {
 /**
   * @author Jerome Dohrau
   */
-case class PermissionTree(permission: Permission = Permission.None,
+case class PermissionTree(permission: Permission = Permission.none(),
                           children: Map[Identifier, PermissionTree] = Map.empty) {
   /**
     * Returns the least upper bound of this and the other permission tree.
@@ -632,7 +693,7 @@ case class PermissionTree(permission: Permission = Permission.None,
     if (path.isEmpty) {
       // base case: extract entire subtree
       val remainder = PermissionTree(permission)
-      val extracted = PermissionTree(Permission.None, children)
+      val extracted = PermissionTree(Permission.none(), children)
       (remainder, extracted)
     } else {
       // recursively extract tree from child corresponding to head of path
@@ -681,10 +742,9 @@ case class PermissionTree(permission: Permission = Permission.None,
   }
 
   def toStringHelper2(): List[String] = {
-    val head = permission.value match {
+    val head = permission.amount match {
       case 0.0 => Nil
-      case 1.0 => List(" write")
-      case _ => List(" read")
+      case _ => List(" " + permission)
     }
     val tail = children.toList.flatMap {
       case (identifier, child) => child.toStringHelper2().map("." + identifier + _)
@@ -697,33 +757,47 @@ object Permission {
   /**
     * Placeholder for no permission
     */
-  def None: Permission = Permission(0.0)
+  def none(): Permission = Permission(0.0, 0)
 
   /**
     * Placeholder for read permission
     */
-  def Read: Permission = Permission(0.1)
+  def read(timestamp: Int): Permission = Permission(0.1, timestamp)
 
   /**
     * Placeholder for write permission
     */
-  def Write: Permission = Permission(1.0)
+  def write(timestamp: Int): Permission = Permission(1.0, timestamp)
 }
 
 /**
   * Placeholder for permissions. This will be replaced by the real thing later.
   *
-  * @param value the amount of permission
+  * @param amount the amount of permission
   */
-case class Permission(value: Double) {
+case class Permission(amount: Double, timestamp: Int) {
   def lub(other: Permission): Permission =
-    Permission(math.max(value, other.value))
+    Permission(math.max(amount, other.amount), math.max(timestamp, other.timestamp))
 
   def glb(other: Permission): Permission =
-    Permission(math.min(value, other.value))
+    Permission(math.min(amount, other.amount), math.min(timestamp, other.timestamp))
 
+  /**
+    * A permission is smaller than another permission if the amount is smaller
+    * and if it is needed later (timestamp is smaller). As an exception to this
+    * rule no permission is always smaller than another permission regardless of
+    * the timestamp.
+    *
+    * @param other the other permission to compare against
+    * @return true if and only if this permission is smaller than the other
+    *         permission
+    */
   def lessThan(other: Permission): Boolean =
-    value <= other.value
+    amount == 0.0 || amount <= other.amount && timestamp <= other.timestamp
+
+  override def toString: String =
+    if (amount == 0.0) "none"
+    else s"$amount@$timestamp"
 }
 
 case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
