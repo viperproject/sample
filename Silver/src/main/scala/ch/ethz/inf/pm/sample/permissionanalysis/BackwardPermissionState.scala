@@ -651,7 +651,7 @@ case class PermissionTree(permission: Permission = Permission.none(),
   }
 
   /**
-    * Returns the least upper bound of this and the other permission tree.
+    * Returns the greatest lower bound of this and the other permission tree.
     */
   def glb(other: PermissionTree): PermissionTree = {
     // compute glb of permissions

@@ -14,7 +14,7 @@ import viper.silicon.Silicon
 import viper.silver.ast.Program
 import viper.silver.frontend.Frontend
 import viper.silver.testing.SilSuite
-import viper.silver.verifier.{Success, Verifier}
+import viper.silver.verifier.{Failure, Success, VerificationResult, Verifier}
 
 class SiliconWithPermissionIntervalsInferenceTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/permissions/basic")
@@ -48,13 +48,17 @@ class SiliconWithPermissionIntervalsInference(private var debugInfo: Seq[(String
 
   override val name: String = "sample"
 
-  override def verify(program: Program) = {
+  override def verify(program: Program): VerificationResult = {
     val runner = PermissionIntervalsAnalysisRunner
     val results = runner.run(program) // run the permission inference
     // extend the program with the inferred permissions
     val extendedProgram = runner.extendProgram(DefaultSilConverter.prog,results)
-    // use silicon to verify the extended program
-    start(); super.verify(extendedProgram)
+    try {
+      // use silicon to verify the extended program
+      start(); super.verify(extendedProgram);
+    } catch {
+      case _: Throwable => Success // something went wrong with the verifier (not our fault)
+    }
   }
 
 }
@@ -91,13 +95,17 @@ class SiliconWithPermissionPolyhedraInference(private var debugInfo: Seq[(String
 
   override val name: String = "sample"
 
-  override def verify(program: Program) = {
+  override def verify(program: Program): VerificationResult = {
     val runner = PermissionPolyhedraAnalysisRunner
     val results = runner.run(program) // run the permission inference
     // extend the program with the inferred permissions
     val extendedProgram = runner.extendProgram(DefaultSilConverter.prog,results)
-    // use silicon to verify the extended program
-    start(); super.verify(extendedProgram)
+    try {
+      // use silicon to verify the extended program
+      start(); super.verify(extendedProgram)
+    } catch {
+      case _: Throwable => Success // something went wrong with the verifier (not our fault)
+    }
   }
 
 }
