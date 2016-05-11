@@ -59,12 +59,13 @@ object ExpressionFactory {
   }
 
   /** @author Caterina Urban */
-  def createPermissionExpression(ids: ExpressionSet, perms: ExpressionSet, ty: Type) : ExpressionSet = {
-    if (!ids.isTop && !perms.isTop) {
+  def createPermissionExpression(ids: ExpressionSet, nums: ExpressionSet, dens: ExpressionSet, ty: Type) : ExpressionSet = {
+    if (!ids.isTop && !nums.isTop && !dens.isTop) {
       var result = new ExpressionSet(ty)
       for (id <- ids.getNonTop)
-        for (perm <- perms.getNonTop)
-          result = result.add(new PermissionExpression(id, perm))
+        for (num <- nums.getNonTop)
+          for (den <- dens.getNonTop)
+            result = result.add(new PermissionExpression(id, num, den))
       result
     } else ids.top()
   }

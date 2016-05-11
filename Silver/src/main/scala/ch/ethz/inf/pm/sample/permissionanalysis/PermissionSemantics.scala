@@ -50,7 +50,10 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
       val nativeMethod = PermissionMethods.values.find(_.toString == operator)
       nativeMethod match {
         case Some(PermissionMethods.permission) =>
-          val thenExpr = createPermissionExpression(thisExpr, parameters(0), returnType)
+          val thenExpr = if (parameters.length <= 1)
+            createPermissionExpression(thisExpr, parameters(0), parameters(0), returnType)
+          else
+            createPermissionExpression(thisExpr, parameters(0), parameters(1), returnType)
           Some(state.setExpression(thenExpr))
         case Some(PermissionMethods.inhale) => Some(state.inhale(thisExpr))
         case Some(PermissionMethods.exhale) => Some(state.exhale(thisExpr))

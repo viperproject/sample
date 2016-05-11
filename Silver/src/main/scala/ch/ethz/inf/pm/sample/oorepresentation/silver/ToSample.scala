@@ -254,18 +254,20 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
     // Access predicates
     // @author Caterina Urban
 
-    case sil.AccessPredicate(loc, perm) =>
-      makeNativeMethodCall(
+    case sil.AccessPredicate(loc, perm) => perm match {
+      case e: sil.FullPerm => makeNativeMethodCall(
         pos = e.pos,
         name = PermissionMethods.permission.toString,
         args = loc :: perm :: Nil,
         returnType = go(loc.typ))
-    case p: sil.PermExp =>
-      p match {
-        case x: sil.FullPerm => sample.ConstantStatement(go(p.pos), "1", sample.IntType)
-        case x: sil.FractionalPerm => throw new NotImplementedError("A sil.FractionalPerm conversion is missing!")
-        case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
-      }
+      case e: sil.FractionalPerm => makeNativeMethodCall(
+        pos = e.pos,
+        name = PermissionMethods.permission.toString,
+        args = loc :: e.left :: e.right :: Nil,
+        returnType = go(loc.typ))
+      case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
+    }
+    case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.IntType)
 
     // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
     // their length (e.g., |data|) is treated as another unbounded variable

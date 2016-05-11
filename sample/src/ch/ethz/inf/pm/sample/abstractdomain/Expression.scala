@@ -627,14 +627,15 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
 /** Inhale/Exhale expression.
   *
   * @param id the identifier for which we inhale/exhale permissions
-  * @param p the value of the inhaled/exhaled permission
+  * @param n the numerator of the inhaled/exhaled permission
+  * @param d the denumerator of the inhaled/exhaled permission
   * @author Caterina Urban
   */
-case class PermissionExpression(id: Expression, p: Expression) extends Expression {
+case class PermissionExpression(id: Expression, n: Expression, d: Expression) extends Expression {
   /** The type of this expression. */
   override def typ: Type = id.typ
   /** Runs f on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = PermissionExpression(id.transform(f),p)
+  override def transform(f: (Expression) => Expression): Expression = PermissionExpression(id.transform(f),n,d)
   /** All identifiers that are part of this expression. */
   override def ids: IdentifierSet = id.ids
   /** Point in the program where this expression is located. */
