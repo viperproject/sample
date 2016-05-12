@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleBackwardAnalysi
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.{ast => sil}
 
 /**
   * @author Jerome Dohrau, Caterina Urban
@@ -14,6 +15,7 @@ import com.typesafe.scalalogging.LazyLogging
 trait BackwardPermissionState[T <: BackwardPermissionState[T]]
   extends SimplePermissionState[T]
     with StateWithRefiningAnalysisStubs[T]
+    with SilverSpecification
     with LazyLogging {
   this: T =>
 
@@ -37,6 +39,12 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
            expressions: ExpressionSet = expressions,
            need: Map[Identifier, PermissionTree] = need,
            have: Map[Identifier, PermissionTree] = have): T
+
+  /** Generates a Silver specification from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def specification() = Seq[sil.Exp]() // TODO:
 
   /** Inhales permissions.
     *
@@ -624,6 +632,15 @@ object BackwardPermissionState {
       else "Default(" + paths.reduce(_ + ", " + _) + ")"
     }
   }
+
+}
+
+/**
+  * @author Caterina Urban
+  */
+trait SilverSpecification {
+
+  def specification(): Seq[sil.Exp]
 
 }
 
