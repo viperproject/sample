@@ -558,6 +558,9 @@ object Octagons {
       arr(lower(i, i ^ 1)) = -2 * low
       arr(lower(i ^ 1, i)) = 2 * high
 
+      close(i, i)
+      close(i ^ 1, i ^ 1)
+
       this
     }
 
