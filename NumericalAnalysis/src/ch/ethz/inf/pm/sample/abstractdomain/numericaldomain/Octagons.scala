@@ -126,19 +126,24 @@ object Octagons {
     override def lessEqualSameEnvInner(that: Inner): Boolean =
       getClosed.lessThan(that.getClosed)
 
-    override def assumeSimplified(expression: Expression): Octagons = expression match {
-      case BinaryArithmeticExpression(lhs, rhs, op, typ) =>
-        val left = normalize(lhs)
-        val right = normalize(rhs)
-        op match {
-          case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
-          case ArithmeticOperator.!= => assumeNormalized(left - right + Interval.One) lub assumeNormalized(right - left + Interval.One)
-          case ArithmeticOperator.<= => assumeNormalized(left - right)
-          case ArithmeticOperator.< => assumeNormalized(left - right + Interval.One)
-          case ArithmeticOperator.>= => assumeNormalized(right - left)
-          case ArithmeticOperator.> => assumeNormalized(right - left + Interval.One)
-        }
-      case _ => throw new IllegalArgumentException("The argument is expected to be a comparision")
+    override def assumeSimplified(expression: Expression): Octagons = {
+      val nonExisting = expression.ids.getNonTop.filterNot(exists)
+      if (nonExisting.nonEmpty)
+        createVariables(nonExisting).assume(expression)
+      else expression match {
+        case BinaryArithmeticExpression(lhs, rhs, op, typ) =>
+          val left = normalize(lhs)
+          val right = normalize(rhs)
+          op match {
+            case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
+            case ArithmeticOperator.!= => assumeNormalized(left - right + Interval.One) lub assumeNormalized(right - left + Interval.One)
+            case ArithmeticOperator.<= => assumeNormalized(left - right)
+            case ArithmeticOperator.< => assumeNormalized(left - right + Interval.One)
+            case ArithmeticOperator.>= => assumeNormalized(right - left)
+            case ArithmeticOperator.> => assumeNormalized(right - left + Interval.One)
+          }
+        case _ => throw new IllegalArgumentException("The argument is expected to be a comparision")
+      }
     }
 
     def assumeNormalized(normalized: Normalized): Octagons = {
