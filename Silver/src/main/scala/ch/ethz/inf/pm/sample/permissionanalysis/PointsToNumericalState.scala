@@ -1169,7 +1169,7 @@ object PointsToPolyhedraEntryStateBuilder
   * @tparam T the state
   * @author Caterina Urban
   */
-trait PointsToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T]] extends SilAnalysisRunner[T] {
+trait PointsToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T]] extends SilverAnalysisRunner[T] {
 
   override def main(args: Array[String]) {
     val results = run(new File(args(0)).toPath)

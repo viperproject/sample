@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRela
 import breeze.optimize.linear._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.execution.{ForwardAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, SilAnalysisRunner, sample}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, SilverAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -1011,7 +1011,7 @@ object AccessPolyhedraInference
   * @author Caterina Urban
   */
 trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T], S <: AccessPermissionState[N,T,S]]
-  extends SilAnalysisRunner[S] {
+  extends SilverAnalysisRunner[S] {
 
   /** The analysis to be run. */
   val analysis : AccessPermissionInference[N,T,S]

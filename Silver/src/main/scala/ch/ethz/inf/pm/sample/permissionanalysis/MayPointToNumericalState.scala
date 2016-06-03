@@ -16,6 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.{ast => sil}
 
 /** Heap node.
   *
@@ -80,7 +81,7 @@ case class HeapAccess(rcv: HeapNode, field: String, typ: Type) extends Identifie
   * @author Caterina Urban
   */
 trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumericalState[T,S]]
-  extends SimpleState[S] with StateWithRefiningAnalysisStubs[S] with LazyLogging
+  extends SimpleState[S] with StateWithRefiningAnalysisStubs[S] with SilverSpecification with LazyLogging
 {
   this: S =>
 
@@ -96,6 +97,12 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   // map from heap objects to a map from Ref fields to heap objects
   def objToObj: Map[HeapNode,Map[String,Set[HeapNode]]]
   def numDom: T // numerical abstract domain
+
+  /** Generates a Silver invariant from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def invariant(): Seq[sil.Exp] = Seq[sil.Exp]() //TODO:
 
   /** Assigns an expression to a field of an object.
     *
@@ -1207,7 +1214,7 @@ object MayPointToPolyhedraEntryStateBuilder
   * @tparam T the maypointto+numerical state
   * @author Caterina Urban
   */
-trait MayPointToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T]] extends SilAnalysisRunner[T] {
+trait MayPointToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T]] extends SilverAnalysisRunner[T] {
 
   override def main(args: Array[String]) {
     val results = run(new File(args(0)).toPath)

@@ -4,7 +4,7 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleBackwardAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -40,11 +40,23 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
            need: Map[Identifier, PermissionTree] = need,
            have: Map[Identifier, PermissionTree] = have): T
 
-  /** Generates a Silver specification from the current state
+  /** Generates a Silver precondition from the current state
     *
     * @return a sequence of sil.Exp
     */
-  override def specification() = Seq[sil.Exp]() // TODO:
+  override def precondition() = Seq[sil.Exp]() // TODO:
+
+  /** Generates a Silver invariant from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def invariant() = Seq[sil.Exp]() // TODO:
+
+  /** Generates a Silver postcondition from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def postcondition() = Seq[sil.Exp]() // TODO:
 
   /** Inhales permissions.
     *
@@ -635,14 +647,6 @@ object BackwardPermissionState {
 
 }
 
-/**
-  * @author Caterina Urban
-  */
-trait SilverSpecification {
-
-  def specification(): Seq[sil.Exp]
-
-}
 
 /**
   * @author Jerome Dohrau
@@ -847,7 +851,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @tparam S the backward permission state
   * @author Caterina Urban
   */
-trait BackwardPermissionRunner[S <: BackwardPermissionState[S]] extends SilAnalysisRunner[S] {
+trait BackwardPermissionRunner[S <: BackwardPermissionState[S]] extends SilverAnalysisRunner[S] {
 
   override def main(args: Array[String]) {
     val results = run(new File(args(0)).toPath)
@@ -904,8 +908,16 @@ object BackwardPermissionEntryStateBuilder extends EntryStateBuilder[BackwardPer
   *
   * @author Caterina Urban
   */
-object BackwardPermissionInferenceRunner extends BackwardPermissionRunner[BackwardPermissionState.Default] {
+object BackwardPermissionAnalysisRunner extends BackwardPermissionRunner[BackwardPermissionState.Default] {
   override val analysis = SimpleBackwardAnalysis[BackwardPermissionState.Default](BackwardPermissionEntryStateBuilder)
+  override def toString = "Backward Permission Inference"
+}
 
+/** Backward Permission Inference Runner.
+  *
+  * @author Caterina Urban
+  */
+object BackwardPermissionInferenceRunner extends SilverInferenceRunner[BackwardPermissionState.Default] {
+  override val analysis = SimpleBackwardAnalysis[BackwardPermissionState.Default](BackwardPermissionEntryStateBuilder)
   override def toString = "Backward Permission Inference"
 }

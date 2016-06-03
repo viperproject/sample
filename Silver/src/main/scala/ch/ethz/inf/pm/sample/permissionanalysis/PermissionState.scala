@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, RefType, SilAnalysisRunner, sample}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, RefType, SilverAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition
@@ -1030,7 +1030,7 @@ object PermissionPolyhedraForwardAnalysis$
   * @author Caterina Urban
   */
 trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]]
-  extends SilAnalysisRunner[S] {
+  extends SilverAnalysisRunner[S] {
 
   /** The analysis to be run. */
   val analysis : PermissionInference[N,T,S]

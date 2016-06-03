@@ -32,16 +32,11 @@ object Main {
     //PermissionPolyhedraAnalysisRunner.main(args)
 
     //MayPointToPolyhedraAnalysisRunner.main(args)
-    AccessPolyhedraAnalysisRunner.main(args)
+    //AccessPolyhedraAnalysisRunner.main(args)
 
-    //println()
-    //for (w <- Reporter.seenInfos) {
-    //  println(w)
-    //}
-    //if (Reporter.seenErrors.isEmpty) println("No errors")
-    //for (e <- Reporter.seenErrors) {
-    //  println(e)
-    //}
+    BackwardPermissionInferenceRunner.main(args)
+    //val out = BackwardPermissionInferenceRunner.extend(args)
+    //println(out)
 
   }
 
