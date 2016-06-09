@@ -959,7 +959,7 @@ object PermissionIntervalsEntryStateBuilder
   * @author Caterina Urban
   */
 object PermissionPolyhedraEntryStateBuilder
-  extends PermissionEntryStateBuilder[NumDom.P,PointsToPolyhedraState,PermissionPolyhedraState] {
+  extends PermissionEntryStateBuilder[NumDom.AP,PointsToPolyhedraState,PermissionPolyhedraState] {
   override def topState: PermissionPolyhedraState = PermissionPolyhedraState(
     PointsToPolyhedraEntryStateBuilder.topState, // top points-to+polyhedra state
     // map from an identifier to its symbolic permission`
@@ -1018,7 +1018,7 @@ object PermissionIntervalsForwardAnalysis$
   * @author Caterina Urban
   */
 object PermissionPolyhedraForwardAnalysis$
-  extends PermissionInference[NumDom.P, PointsToPolyhedraState, PermissionPolyhedraState] {
+  extends PermissionInference[NumDom.AP, PointsToPolyhedraState, PermissionPolyhedraState] {
   override def entryStateBuilder = PermissionPolyhedraEntryStateBuilder
 }
 

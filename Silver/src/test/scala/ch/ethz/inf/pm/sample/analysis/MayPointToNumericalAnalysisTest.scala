@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.analysis
 import java.nio.file.Path
 
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.permissionanalysis.{MayPointToIntervalsAnalysisRunner, MayPointToPolyhedraAnalysisRunner, PointsToIntervalsAnalysisRunner}
+import ch.ethz.inf.pm.sample.permissionanalysis.{MayPointToIntervalsAnalysisRunner, MayPointToAPolyhedraAnalysisRunner, PointsToIntervalsAnalysisRunner}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silver.ast.{Position, Program}
 import viper.silver.frontend.{Frontend, SilFrontend}
@@ -78,7 +78,7 @@ class MayPointToPolyhedraAnalyzer() extends Verifier {
   def name: String = "Sample[MayPointTo+Polyhedra]"
 
   def verify(program: Program): VerificationResult = {
-    MayPointToPolyhedraAnalysisRunner.run(program)
+    MayPointToAPolyhedraAnalysisRunner.run(program)
     if (Reporter.seenErrors.isEmpty)
       Success
     else

@@ -1129,6 +1129,69 @@ case class MayPointToIntervalsState(fieldSet: Set[(Type, String)],
     MayPointToIntervalsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
+/** MayPointTo+Octagons Analysis State.
+  *
+  * @param fieldSet fields declared within the program
+  * @param currentPP current program point
+  * @param nonce freshly generated heap node
+  * @param exprSet result of previous statement
+  * @param refToObj map from Ref variables to heap objects
+  * @param objToObj map from heap objects to a map from Ref fields to heap objects
+  * @param numDom octagons abstract domain
+  * @author Caterina Urban
+  */
+case class MayPointToOctagonsState(fieldSet: Set[(Type, String)],
+                                    currentPP: ProgramPoint,
+                                    flag: Boolean,
+                                    nonce: Int,
+                                    exprSet: ExpressionSet,
+                                    refToObj: Map[VariableIdentifier, Set[HeapNode]],
+                                    objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
+                                    numDom: NumDom.O)
+  extends MayPointToNumericalState[NumDom.O,MayPointToOctagonsState] {
+  override def copy(fieldSet: Set[(Type, String)],
+                    currentPP: ProgramPoint,
+                    flag: Boolean,
+                    nonce: Int,
+                    exprSet: ExpressionSet,
+                    refToObj: Map[VariableIdentifier, Set[HeapNode]],
+                    objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
+                    numDom: NumDom.O): MayPointToOctagonsState =
+    MayPointToOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
+}
+
+
+/** MayPointTo+Octagons Analysis State.
+  *
+  * @param fieldSet fields declared within the program
+  * @param currentPP current program point
+  * @param nonce freshly generated heap node
+  * @param exprSet result of previous statement
+  * @param refToObj map from Ref variables to heap objects
+  * @param objToObj map from heap objects to a map from Ref fields to heap objects
+  * @param numDom (apron) octagons abstract domain
+  * @author Caterina Urban
+  */
+case class MayPointToAOctagonsState(fieldSet: Set[(Type, String)],
+                                    currentPP: ProgramPoint,
+                                    flag: Boolean,
+                                    nonce: Int,
+                                    exprSet: ExpressionSet,
+                                    refToObj: Map[VariableIdentifier, Set[HeapNode]],
+                                    objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
+                                    numDom: NumDom.AO)
+  extends MayPointToNumericalState[NumDom.AO,MayPointToAOctagonsState] {
+  override def copy(fieldSet: Set[(Type, String)],
+                    currentPP: ProgramPoint,
+                    flag: Boolean,
+                    nonce: Int,
+                    exprSet: ExpressionSet,
+                    refToObj: Map[VariableIdentifier, Set[HeapNode]],
+                    objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
+                    numDom: NumDom.AO): MayPointToAOctagonsState =
+    MayPointToAOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
+}
+
 /** MayPointTo+Polyhedra Analysis State.
   *
   * @param fieldSet fields declared within the program
@@ -1137,18 +1200,18 @@ case class MayPointToIntervalsState(fieldSet: Set[(Type, String)],
   * @param exprSet result of previous statement
   * @param refToObj map from Ref variables to heap objects
   * @param objToObj map from heap objects to a map from Ref fields to heap objects
-  * @param numDom polyhedra abstract domain
+  * @param numDom (apron) polyhedra abstract domain
   * @author Caterina Urban
   */
-case class MayPointToPolyhedraState(fieldSet: Set[(Type, String)],
-                                    currentPP: ProgramPoint,
-                                    flag: Boolean,
-                                    nonce: Int,
-                                    exprSet: ExpressionSet,
-                                    refToObj: Map[VariableIdentifier, Set[HeapNode]],
-                                    objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                                    numDom: NumDom.P)
-  extends MayPointToNumericalState[NumDom.P,MayPointToPolyhedraState] {
+case class MayPointToAPolyhedraState(fieldSet: Set[(Type, String)],
+                                     currentPP: ProgramPoint,
+                                     flag: Boolean,
+                                     nonce: Int,
+                                     exprSet: ExpressionSet,
+                                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
+                                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
+                                     numDom: NumDom.AP)
+  extends MayPointToNumericalState[NumDom.AP,MayPointToAPolyhedraState] {
   override def copy(fieldSet: Set[(Type, String)],
                     currentPP: ProgramPoint,
                     flag: Boolean,
@@ -1156,8 +1219,8 @@ case class MayPointToPolyhedraState(fieldSet: Set[(Type, String)],
                     exprSet: ExpressionSet,
                     refToObj: Map[VariableIdentifier, Set[HeapNode]],
                     objToObj: Map[HeapNode, Map[String, Set[HeapNode]]],
-                    numDom: NumDom.P): MayPointToPolyhedraState =
-    MayPointToPolyhedraState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
+                    numDom: NumDom.AP): MayPointToAPolyhedraState =
+    MayPointToAPolyhedraState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
 /** MayPointTo+Numerical Analysis Entry State.
@@ -1194,14 +1257,42 @@ object MayPointToIntervalsEntryStateBuilder
     new BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top))
 }
 
+/** MayPointTo+Octagons Analysis Entry States.
+  *
+  * @author Caterina Urban
+  */
+object MayPointToOctagonsEntryStateBuilder
+  extends MayPointToNumericalEntryStateBuilder[NumDom.O, MayPointToOctagonsState] {
+
+  override def topState = MayPointToOctagonsState(fields, DummyProgramPoint, true, 1,
+    ExpressionSet(),
+    Map[VariableIdentifier,Set[HeapNode]](),
+    Map[HeapNode,Map[String,Set[HeapNode]]](),
+    Octagons.Bottom.factory)
+}
+
+/** MayPointTo+Octagons Analysis Entry States.
+  *
+  * @author Caterina Urban
+  */
+object MayPointToAOctagonsEntryStateBuilder
+  extends MayPointToNumericalEntryStateBuilder[NumDom.AO, MayPointToAOctagonsState] {
+
+  override def topState = MayPointToAOctagonsState(fields, DummyProgramPoint, true, 1,
+    ExpressionSet(),
+    Map[VariableIdentifier,Set[HeapNode]](),
+    Map[HeapNode,Map[String,Set[HeapNode]]](),
+    Apron.Octagons.Bottom.factory)
+}
+
 /** MayPointTo+Polyhedra Analysis Entry States.
   *
   * @author Caterina Urban
   */
-object MayPointToPolyhedraEntryStateBuilder
-  extends MayPointToNumericalEntryStateBuilder[NumDom.P, MayPointToPolyhedraState] {
+object MayPointToAPolyhedraEntryStateBuilder
+  extends MayPointToNumericalEntryStateBuilder[NumDom.AP, MayPointToAPolyhedraState] {
 
-  override def topState = MayPointToPolyhedraState(fields, DummyProgramPoint, true, 1,
+  override def topState = MayPointToAPolyhedraState(fields, DummyProgramPoint, true, 1,
     ExpressionSet(),
     Map[VariableIdentifier,Set[HeapNode]](),
     Map[HeapNode,Map[String,Set[HeapNode]]](),
@@ -1269,12 +1360,33 @@ object MayPointToIntervalsAnalysisRunner
   override def toString = "PointsTo+Intervals Analysis"
 }
 
+/** MayPointTo+Octagons Analysis Runner.
+  *
+  * @author Caterina Urban
+  */
+object MayPointToOctagonsAnalysisRunner
+  extends MayPointToNumericalAnalysisRunner[Octagons, MayPointToOctagonsState] {
+  override val analysis = SimpleForwardAnalysis[MayPointToOctagonsState](MayPointToOctagonsEntryStateBuilder)
+  override def toString = "PointsTo+Octagons Analysis"
+}
+
+/** MayPointTo+Octagons Analysis Runner.
+  *
+  * @author Caterina Urban
+  */
+object MayPointToAOctagonsAnalysisRunner
+  extends MayPointToNumericalAnalysisRunner[Apron.Octagons, MayPointToAOctagonsState] {
+  override val analysis = SimpleForwardAnalysis[MayPointToAOctagonsState](MayPointToAOctagonsEntryStateBuilder)
+  override def toString = "PointsTo+Octagons Analysis"
+}
+
+
 /** MayPointTo+Polyhedra Analysis Runner.
   *
   * @author Caterina Urban
   */
-object MayPointToPolyhedraAnalysisRunner
-  extends MayPointToNumericalAnalysisRunner[Apron.Polyhedra, MayPointToPolyhedraState] {
-  override val analysis = SimpleForwardAnalysis[MayPointToPolyhedraState](MayPointToPolyhedraEntryStateBuilder)
+object MayPointToAPolyhedraAnalysisRunner
+  extends MayPointToNumericalAnalysisRunner[Apron.Polyhedra, MayPointToAPolyhedraState] {
+  override val analysis = SimpleForwardAnalysis[MayPointToAPolyhedraState](MayPointToAPolyhedraEntryStateBuilder)
   override def toString = "MayPointTo+Polyhedra Analysis"
 }

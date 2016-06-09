@@ -906,9 +906,9 @@ case class AccessIntervalsState(heapNum: MayPointToIntervalsState, nodeToSym: Ma
   * @param nodeToSym map from heap nodes to symbolic permissions
   * @author Caterina Urban
   */
-case class AccessPolyhedraState(heapNum: MayPointToPolyhedraState, nodeToSym: Map[HeapNode,Set[SymbolicPermission]])
-  extends AccessPermissionState[NumDom.P,MayPointToPolyhedraState,AccessPolyhedraState] {
-  override def copy(heapNum: MayPointToPolyhedraState,
+case class AccessPolyhedraState(heapNum: MayPointToAPolyhedraState, nodeToSym: Map[HeapNode,Set[SymbolicPermission]])
+  extends AccessPermissionState[NumDom.AP,MayPointToAPolyhedraState,AccessPolyhedraState] {
+  override def copy(heapNum: MayPointToAPolyhedraState,
                     nodeToSym: Map[HeapNode, Set[SymbolicPermission]]): AccessPolyhedraState =
     AccessPolyhedraState(heapNum, nodeToSym)
 }
@@ -951,9 +951,9 @@ object AccessIntervalsEntryStateBuilder
   * @author Caterina Urban
   */
 object AccessPolyhedraEntryStateBuilder
-  extends AccessPermissionEntryStateBuilder[NumDom.P,MayPointToPolyhedraState,AccessPolyhedraState] {
+  extends AccessPermissionEntryStateBuilder[NumDom.AP,MayPointToAPolyhedraState,AccessPolyhedraState] {
   override def topState: AccessPolyhedraState = AccessPolyhedraState(
-    MayPointToPolyhedraEntryStateBuilder.topState,
+    MayPointToAPolyhedraEntryStateBuilder.topState,
     Map[HeapNode,Set[SymbolicPermission]]())
 }
 
@@ -999,7 +999,7 @@ object AccessIntervalsInference
   * @author Caterina Urban
   */
 object AccessPolyhedraInference
-  extends AccessPermissionInference[NumDom.P, MayPointToPolyhedraState, AccessPolyhedraState] {
+  extends AccessPermissionInference[NumDom.AP, MayPointToAPolyhedraState, AccessPolyhedraState] {
   override def entryStateBuilder = AccessPolyhedraEntryStateBuilder
 }
 
@@ -1316,7 +1316,7 @@ object AccessIntervalsAnalysisRunner
   * @author Caterina Urban
   */
 object AccessPolyhedraAnalysisRunner
-  extends AccessPermissionInferenceRunner[NumDom.P, MayPointToPolyhedraState, AccessPolyhedraState] {
+  extends AccessPermissionInferenceRunner[NumDom.AP, MayPointToAPolyhedraState, AccessPolyhedraState] {
   override val analysis = AccessPolyhedraInference
   override def toString = "Access Permission Inference using Polyhedra"
 }

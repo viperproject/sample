@@ -249,7 +249,7 @@ object Octagons {
       } else this
     }
 
-    override def getStringOfId(id: Identifier): String = ???
+    override def getStringOfId(id: Identifier): String = "" //TODO: print constraints
 
     override def setToTop(variable: Identifier): Octagons = {
       if (numerical(variable)) {
@@ -788,6 +788,15 @@ object Octagons {
           .foldRight("")((a, b) => (if (a == Infinity) " . " else f"${a.toInt}%2d ") + b))
       println()
     }
+
+    override def toString: String = {
+      var str = "\n"
+      for (i <- 0 until 2 * dim)
+          str += ((0 until 2 * dim)
+          .map(j => arr(index(i, j)))
+          .foldRight("")((a, b) => (if (a == Infinity) " . " else f"${a.toInt}%3d ") + b)) + "\n"
+      str
+    }
   }
 
   /**
@@ -940,7 +949,7 @@ trait Octagons
     with SimplifiedSemanticDomain[Octagons]
     with SimplifiedMergeDomain[Octagons] {
 
-  override def factory(): Octagons = factory(Environment(IdentifierSet.Bottom))
+  override def factory(): Octagons = factory(Environment(IdentifierSet.Top))
 
   def factory(ids: Set[Identifier]): Octagons =
     factory(Environment(IdentifierSet.Inner(ids)))
@@ -963,5 +972,11 @@ trait Octagons
     case Octagons.Top => println("Top\n")
     case Octagons.Bottom => println("Bottom\n")
     case a: Octagons.Inner => a.getMatrix.printFull()
+  }
+
+  override def toString: String = this match {
+    case Octagons.Top => "Top\n"
+    case Octagons.Bottom => "Bottom\n"
+    case a: Octagons.Inner => a.getMatrix.toString
   }
 }

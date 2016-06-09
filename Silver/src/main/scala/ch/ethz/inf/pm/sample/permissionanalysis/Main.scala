@@ -6,13 +6,15 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, Octagons}
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 object NumDom {
   type I = BoxedNonRelationalNumericalDomain[DoubleInterval]
-  type P = Apron.Polyhedra
+  type AO = Apron.Octagons
+  type O = Octagons
+  type AP = Apron.Polyhedra
 }
 
 /** Main for the permission inference.
@@ -31,12 +33,22 @@ object Main {
     //PermissionIntervalsAnalysisRunner.main(args)
     //PermissionPolyhedraAnalysisRunner.main(args)
 
+    //MayPointToOctagonsAnalysisRunner.main(args)
+    MayPointToAOctagonsAnalysisRunner.main(args)
+
     //MayPointToPolyhedraAnalysisRunner.main(args)
     //AccessPolyhedraAnalysisRunner.main(args)
 
-    BackwardPermissionInferenceRunner.main(args)
+    //BackwardPermissionInferenceRunner.main(args)
     //val out = BackwardPermissionInferenceRunner.extend(args)
     //println(out)
+
+    println("\n******************\n* AnalysisResult *\n******************\n")
+    if (Reporter.seenErrors.isEmpty) println("No errors")
+    for (e <- Reporter.seenErrors) { println(e) } // error report
+    println()
+    if (Reporter.seenInfos.isEmpty) println("No warnings")
+    for (w <- Reporter.seenInfos) { println(w) } // warning report
 
   }
 
