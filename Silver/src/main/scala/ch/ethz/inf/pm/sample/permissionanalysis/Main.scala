@@ -34,21 +34,21 @@ object Main {
     //PermissionPolyhedraAnalysisRunner.main(args)
 
     //MayPointToOctagonsAnalysisRunner.main(args)
-    MayPointToAOctagonsAnalysisRunner.main(args)
+    //MayPointToAOctagonsAnalysisRunner.main(args)
 
-    //MayPointToPolyhedraAnalysisRunner.main(args)
-    //AccessPolyhedraAnalysisRunner.main(args)
+    //MayPointToAPolyhedraAnalysisRunner.main(args)
+    AccessPolyhedraAnalysisRunner.main(args)
 
     //BackwardPermissionInferenceRunner.main(args)
     //val out = BackwardPermissionInferenceRunner.extend(args)
     //println(out)
 
-    println("\n******************\n* AnalysisResult *\n******************\n")
-    if (Reporter.seenErrors.isEmpty) println("No errors")
-    for (e <- Reporter.seenErrors) { println(e) } // error report
-    println()
-    if (Reporter.seenInfos.isEmpty) println("No warnings")
-    for (w <- Reporter.seenInfos) { println(w) } // warning report
+    //println("\n******************\n* AnalysisResult *\n******************\n")
+    //if (Reporter.seenErrors.isEmpty) println("No errors")
+    //for (e <- Reporter.seenErrors) { println(e) } // error report
+    //println()
+    //if (Reporter.seenInfos.isEmpty) println("No warnings")
+    //for (w <- Reporter.seenInfos) { println(w) } // warning report
 
   }
 

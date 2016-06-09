@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.analysis
 
 import java.nio.file.Path
 
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
 import ch.ethz.inf.pm.sample.permissionanalysis.{PermissionIntervalsAnalysisRunner, PermissionPolyhedraAnalysisRunner}
 import viper.silicon.Silicon
 import viper.silver.ast.Program
@@ -52,7 +52,7 @@ class SiliconWithPermissionIntervalsInference(private var debugInfo: Seq[(String
     val runner = PermissionIntervalsAnalysisRunner
     val results = runner.run(program) // run the permission inference
     // extend the program with the inferred permissions
-    val extendedProgram = runner.extendProgram(DefaultSilConverter.prog,results)
+    val extendedProgram = runner.extendProgram(DefaultSilverConverter.prog,results)
     try {
       // use silicon to verify the extended program
       start(); super.verify(extendedProgram);
@@ -99,7 +99,7 @@ class SiliconWithPermissionPolyhedraInference(private var debugInfo: Seq[(String
     val runner = PermissionPolyhedraAnalysisRunner
     val results = runner.run(program) // run the permission inference
     // extend the program with the inferred permissions
-    val extendedProgram = runner.extendProgram(DefaultSilConverter.prog,results)
+    val extendedProgram = runner.extendProgram(DefaultSilverConverter.prog,results)
     try {
       // use silicon to verify the extended program
       start(); super.verify(extendedProgram)

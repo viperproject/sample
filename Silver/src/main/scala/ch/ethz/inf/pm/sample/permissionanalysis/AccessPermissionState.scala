@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRela
 import breeze.optimize.linear._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.execution.{ForwardAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, SilverAnalysisRunner, sample}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -1282,7 +1282,7 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
       println(e)
     }
     // extend program with inferred permission
-    val out = extendProgram(DefaultSilConverter.prog,results)
+    val out = extendProgram(DefaultSilverConverter.prog,results)
     println("\n********************\n* Extended Program *\n********************\n\n" + out)
     // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"

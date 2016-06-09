@@ -15,7 +15,7 @@ package object silver {
    * Makes it possible to access many different Sample types and values
    * under a single namespace.
    *
-   * In code where Sample, SIL and Silicon types are mixed, a consistent
+   * In code where Sample, Silver and Silicon types are mixed, a consistent
    * prefix is useful.
    */
   object sample {

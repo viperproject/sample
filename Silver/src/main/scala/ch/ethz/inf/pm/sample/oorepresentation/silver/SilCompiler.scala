@@ -7,8 +7,10 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import java.io.{FileReader, BufferedReader}
+import java.io.{BufferedReader, FileReader}
 import java.nio.file.{Files, Paths}
+import java.text.ParseException
+
 import scala.io.Source
 import viper.silver.parser.Parser
 import viper.silver.{ast => sil}
@@ -36,14 +38,11 @@ class SilCompiler extends Compiler {
     val input = Source.fromInputStream(Files.newInputStream(file)).mkString
     val parseResult = Parser.parse(input, file)
     parseResult match {
-      case Parser.Success(e, _) =>
-        ()
+      case Parser.Success(e, _) => ()
       case Parser.Failure(msg, next) =>
-        println(s"Failure: $msg $file, ${next.pos.line}, ${next.pos.column}")
-        return Nil // FIXME
+        throw new ParseException(s"$msg in $file at ${next.pos.line}:${next.pos.column}", 0)
       case Parser.Error(msg, next) =>
-        println(s"Error: $msg $file, ${next.pos.line}, ${next.pos.column}")
-        return Nil // FIXME
+        throw new ParseException(s"$msg in $file at ${next.pos.line}:${next.pos.column}", 0)
     }
     Resolver(parseResult.get).run
 
@@ -54,7 +53,7 @@ class SilCompiler extends Compiler {
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
     SystemParameters.typ = TopType
     program = p
-    classes = Some(DefaultSilConverter.convert(p))
+    classes = Some(DefaultSilverConverter.convert(p))
     classes.get
   }
 

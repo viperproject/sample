@@ -18,8 +18,7 @@ trait AnalysisRunner[S <: State[S]] {
   val analysis: Analysis[S]
 
   /** Which methods to analyze (by default: all of them). */
-  def methodsToAnalyze: List[MethodDeclaration] =
-    compiler.allMethods
+  def methodsToAnalyze: List[MethodDeclaration] = compiler.allMethods
 
   def run(path: Path): List[AnalysisResult[S]] = {
     compiler.compileFile(path.toAbsolutePath.toString)

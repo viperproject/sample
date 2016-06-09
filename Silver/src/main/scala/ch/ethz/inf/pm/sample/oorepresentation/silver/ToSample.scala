@@ -14,8 +14,8 @@ import scala.language.reflectiveCalls
 
 import scala.collection.mutable
 
-trait SilConverter {
-  /** Converts a whole SIL program to a list of Sample class definition. */
+trait SilverConverter {
+  /** Converts a whole Silver program to a list of Sample class definition. */
   def convert(program: sil.Program): List[sample.ClassDefinition]
 
   /** Converts a SIL function to a Sample method declaration. */
@@ -52,7 +52,7 @@ trait SilConverter {
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
-object DefaultSilConverter extends SilConverter with LazyLogging {
+object DefaultSilverConverter extends SilverConverter with LazyLogging {
   var refType: sample.RefType = sample.RefType()
   var classDef: sample.ClassDefinition = null
   var prog: sil.Program = null

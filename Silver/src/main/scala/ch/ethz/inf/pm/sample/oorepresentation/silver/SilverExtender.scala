@@ -97,7 +97,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
 
     case stmt: sil.While =>
       // retrieve the position of the loop head
-      val pos = DefaultSilConverter.convert(stmt.cond.pos)
+      val pos = DefaultSilverConverter.convert(stmt.cond.pos)
       // retrieve the block index and the statement index within the block of the loop head
       val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
         case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({

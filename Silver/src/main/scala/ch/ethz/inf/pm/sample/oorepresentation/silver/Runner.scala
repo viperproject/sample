@@ -48,7 +48,7 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
   def extend(args: Array[String]): sil.Program = {
     val results: List[AnalysisResult[S]] = run(new File(args(0)).toPath) // run the analysis
     // extend the Silver program with inferred permission
-    extendProgram(DefaultSilConverter.prog,results)
+    extendProgram(DefaultSilverConverter.prog,results)
   }
 
   /** Exports a Silver program extended with inferred specifications. */
@@ -84,7 +84,7 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     for (w <- Reporter.seenInfos) { println(w) } // warning report
 
     // extend program with inferred permission
-    val extended = extendProgram(DefaultSilConverter.prog,results)
+    val extended = extendProgram(DefaultSilverConverter.prog,results)
     println("\n********************\n* Extended Program *\n********************\n\n" + extended)
     // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"

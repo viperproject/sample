@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilConverter, RefType, SilverAnalysisRunner, sample}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, RefType, SilverAnalysisRunner, sample}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.SourcePosition
@@ -1147,7 +1147,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
       case stmt: sil.If => stmt
 
       case stmt: sil.NewStmt =>
-        val pos = DefaultSilConverter.convert(stmt.pos)
+        val pos = DefaultSilverConverter.convert(stmt.pos)
         println("POS: " + pos)
         val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
           case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
@@ -1170,7 +1170,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
 
       case stmt: sil.While =>
         // retrieve the position of the loop head
-        val pos = DefaultSilConverter.convert(stmt.cond.pos)
+        val pos = DefaultSilverConverter.convert(stmt.cond.pos)
         // retrieve the block index and the statement index within the block of the loop head
         val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
           case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
@@ -1310,7 +1310,7 @@ trait PermissionInferenceRunner[N <: NumericalDomain[N], T <: PointsToNumericalS
       println(e)
     }
     // extend program with inferred permission
-    val out = extendProgram(DefaultSilConverter.prog,results)
+    val out = extendProgram(DefaultSilverConverter.prog,results)
     println("\n********************\n* Extended Program *\n********************\n\n" + out)
     // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"
