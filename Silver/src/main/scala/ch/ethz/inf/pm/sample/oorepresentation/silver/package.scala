@@ -64,10 +64,11 @@ package object silver {
     // Simplon-specific types and values
     type RefType = rep.silver.RefType
 
-    val BoolType = rep.silver.BoolType
     val BottomType = rep.silver.BottomType
+    val BoolType = rep.silver.BoolType
     val IntType = rep.silver.IntType
     val RefType = rep.silver.RefType
+    val DomType = rep.silver.DomType
     val TopType = rep.silver.TopType
 
     val WrappedProgramPoint = rep.silver.WrappedProgramPoint

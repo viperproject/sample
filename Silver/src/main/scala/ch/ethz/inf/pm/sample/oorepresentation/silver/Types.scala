@@ -66,10 +66,6 @@ abstract class AbstractType(val name: String) extends Type {
   def isTop = this == TopType
 }
 
-case object TopType extends AbstractType("Top") {
-  def isNumericalType = false
-}
-
 case object BottomType extends AbstractType("Bottom") {
   def isNumericalType = false
 }
@@ -82,13 +78,21 @@ case object IntType extends AbstractType("Int") {
   def isNumericalType = true
 }
 
+case class RefType(var fields: Set[Identifier] = Set.empty) extends AbstractType("Ref") {
+  override def possibleFields = fields
+
+  def isNumericalType = false
+}
+
+case class DomType(override val name: String) extends AbstractType(name) {
+  def isNumericalType = false
+}
+
 case object PredType extends AbstractType("Pred") {
   // Do not create vertices and edges in abstract heap graphs
   def isNumericalType = true
 }
 
-case class RefType(var fields: Set[Identifier] = Set.empty) extends AbstractType("Ref") {
-  override def possibleFields = fields
-
+case object TopType extends AbstractType("Top") {
   def isNumericalType = false
 }

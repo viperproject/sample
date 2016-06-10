@@ -95,12 +95,14 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       parametricType = Nil,
       arguments = f.formalArgs.map(go).toList :: List(resultVarDecl) :: Nil,
       returnType = go(f.result.typ),
-      body = {
-        val cfg = new sample.ControlFlowGraph(go(f.pos))
-        // FIXME: may not allow functions without bodies
-        val resultAssign = sample.Assignment(go(f.pos), resultVar, right = go(f.body.get))
-        cfg.addNode(resultAssign :: resultVar :: Nil)
-        cfg
+      body = f.body match {
+        case None => // the function has no body
+          val cfg = new sample.ControlFlowGraph(go(f.pos))
+          cfg.addNode(resultVar :: Nil); cfg
+        case Some(_) => // the function has a body
+          val cfg = new sample.ControlFlowGraph(go(f.pos))
+          val resultAssign = sample.Assignment(go(f.pos), resultVar, right = go(f.body.get))
+          cfg.addNode(resultAssign :: resultVar :: Nil); cfg
       },
       precond = makeConjunction(f.pres),
       postcond = makeConjunction(f.posts),
@@ -154,10 +156,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case sil.Bool => sample.BoolType
     case sil.Int => sample.IntType
     case sil.Ref => refType
+    case sil.DomainType(name,_) => sample.DomType(name)
 
     // Stubs
     case sil.Perm |
-         sil.DomainType(_, _) |
          sil.TypeVar(_) |
          sil.SeqType(_) |
          sil.SetType(_) |
@@ -217,6 +219,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(e: sil.Exp): sample.Statement = e match {
+
     case e: sil.DomainOpExp =>
       makeNativeMethodCall(e.pos, e.func(prog).op, e.args, go(e.typ))
     case e: sil.EqualityCmp =>
@@ -225,8 +228,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case l: sil.Literal =>
       sample.ConstantStatement(go(e.pos), l match {
         case sil.IntLit(i) => i.toString()
-        case sil.BoolLit(value) =>
-          value.toString // Use the strings "true" and "false"
+        case sil.BoolLit(value) => value.toString // use the strings "true" and "false"
         case sil.NullLit() => "null"
       }, go(l.typ))
     case v: sil.LocalVar => makeVariable(v)
@@ -254,7 +256,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     // Access predicates
     // @author Caterina Urban
 
-    case sil.AccessPredicate(loc, perm) => perm match {
+    case sil.FieldAccessPredicate(loc, perm) => perm match {
       case e: sil.FullPerm => makeNativeMethodCall(
         pos = e.pos,
         name = PermissionMethods.permission.toString,
