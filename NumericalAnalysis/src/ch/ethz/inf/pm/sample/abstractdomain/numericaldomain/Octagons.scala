@@ -31,9 +31,9 @@ object OctagonTest {
     val o2 = o1.assign(b, three).assign(a, b)
     val o3 = o2.assume(e1);
 
-    o1.print()
-    o2.print()
-    o3.print()
+    println(o1)
+    println(o2)
+    println(o3)
   }
 }
 
@@ -763,40 +763,14 @@ object Octagons {
 
     override def clone(): OctagonMatrix = OctagonMatrix(dim, arr.clone())
 
-    /**
-      * Prints the lower left half of the matrix.
-      */
-    def printLower(): Unit = {
-      var offset = 0
-      for (i <- 0 until 2 * dim) {
-        val length = (i / 2) * 2 + 2
-        println(arr
-          .slice(offset, offset + length)
-          .foldRight("")((a, b) => (if (a == Infinity) " . " else f"${a.toInt}%2d ") + b))
-        offset += length
-      }
-      println()
-    }
-
-    /**
-      * Prints the entire matrix.
-      */
-    def printFull(): Unit = {
-      for (i <- 0 until 2 * dim)
-        println((0 until 2 * dim)
-          .map(j => arr(index(i, j)))
-          .foldRight("")((a, b) => (if (a == Infinity) " . " else f"${a.toInt}%2d ") + b))
-      println()
-    }
-
-    override def toString: String = {
-      var str = "\n"
-      for (i <- 0 until 2 * dim)
-          str += ((0 until 2 * dim)
-          .map(j => arr(index(i, j)))
-          .foldRight("")((a, b) => (if (a == Infinity) " . " else f"${a.toInt}%3d ") + b)) + "\n"
-      str
-    }
+    override def toString: String =
+      (0 until 2 * dim)
+        .map(row => (0 until 2 * dim)
+          .map(col => index(row, col))
+          .map(idx => arr(idx))
+          .map(num => if (num == Infinity) "  ." else f"${num.toInt}%3d")
+          .reduce(_ + " " + _))
+        .reduce(_ + "\n" +_)
   }
 
   /**
@@ -808,7 +782,7 @@ object Octagons {
     */
   case class Environment(set: IdentifierSet) {
     /**
-      * The sorted list of identifers.
+      * The sorted list of identifiers.
       */
     lazy val ids: List[Identifier] = set.getNonTop.toList.sortBy(_.getName)
 
@@ -857,7 +831,7 @@ object Octagons {
   }
 
   /**
-    * A normalized expression of the form id + [a,b] or -id + [a,b].
+    * A normalized expression of the form l_1 + ... + l_k + [a, b], where l_i are literals.
     */
   case class Normalized(literals: List[Literal], interval: Interval) {
     def unary_-(): Normalized = Normalized(literals.map(x => -x), -interval);
@@ -872,7 +846,7 @@ object Octagons {
   }
 
   /**
-    * A positive or a negative occurence of an identifier
+    * A positive or a negative occurrence of an identifier
     */
   sealed trait Literal {
     def id: Identifier
@@ -959,20 +933,16 @@ trait Octagons
     else if (env.isBottom) Bottom
     else Inner(env)
 
-  def factory(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): Octagons =
+  def factory(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): Octagons = {
+    val matrix = closed.orElse(open).get
     if (env.isTop) Top
-    else if (env.isBottom) Bottom
+    else if (env.isBottom || matrix.isBottom) Bottom
     else Inner(env, closed, open)
+  }
 
   override def top(): Octagons = Octagons.Top
 
   override def bottom(): Octagons = Octagons.Bottom
-
-  def print() = this match {
-    case Octagons.Top => println("Top\n")
-    case Octagons.Bottom => println("Bottom\n")
-    case a: Octagons.Inner => a.getMatrix.printFull()
-  }
 
   override def toString: String = this match {
     case Octagons.Top => "Top\n"
