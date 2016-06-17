@@ -9,15 +9,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
-
 /** Heap node.
   *
-  * @param number the unique identifier of the heap node
+  * @param id the unique identifier of the heap node
   * @author Caterina Urban
   */
-case class HeapNode(number: Int) extends Identifier
+case class HeapNode(id: List[Identifier]) extends Identifier
 {
-  override def getName: String = "0" + number
+  override def getName: String = "0" + id.map(_.getName).mkString(".")
   override def equals(o: Any) = o match {
     case that: HeapNode => this.getName equals that.getName
     case _ => false
@@ -27,14 +26,14 @@ case class HeapNode(number: Int) extends Identifier
   override def representsSingleVariable: Boolean = true
   override def pp: ProgramPoint = DummyProgramPoint
   override def typ: Type = DummyRefType
-  override def toString: String = "O" + number
+  override def toString: String = "O" + id.map(_.getName).mkString(".")
 }
 
 /** Unique heap summary node.
   *
   * @author Caterina Urban
   */
-object SummaryHeapNode extends HeapNode(0) {
+object SummaryHeapNode extends HeapNode(List.empty) {
   override def representsSingleVariable: Boolean = false
   override def toString: String = "Σ"
 }
@@ -43,7 +42,7 @@ object SummaryHeapNode extends HeapNode(0) {
   *
   * @author Caterina Urban
   */
-object NullHeapNode extends HeapNode(-1) {
+object NullHeapNode extends HeapNode(List.empty) {
   override def getName: String = "null"
   override def representsSingleVariable: Boolean = false
   override def toString: String = "null"
@@ -57,16 +56,16 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
-  
-  // result of the previous statement (sort of)
-  def result: ExpressionSet
 
   // set of fields declared in the program
   def fields: Set[(Type, String)]
-  
+
+  def currentPP: ProgramPoint // current program point
+  def materialization: Boolean // true = materialization allowed; false = materialization not allowed
+
+  def result: ExpressionSet // result of the previous statement (sort of)
   // map from Ref variables to heap objects
   def store: Map[VariableIdentifier,Set[HeapNode]]
-  
   // map from heap objects to a map from Ref fields to heap objects
   def heap: Map[HeapNode,Map[String, Set[HeapNode]]]
   
@@ -77,7 +76,27 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission
     */
-  override def exhale(acc: Expression): T = ???
+  override def exhale(acc: Expression): T = {
+    logger.trace("*** exhale(" + acc.toString + ")")
+
+    acc match {
+      case acc: PermissionExpression => {
+        acc.id match {
+          case AccessPathIdentifier(path) =>
+            val obj = evaluatePath(path) // set of (path) receivers
+            val heapMap = obj.foldLeft(heap) {
+              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> heap.keySet)))
+            } // havoc the heap pointed to by the path
+            copy(heap = heapMap).pruneUnreachableHeap()
+          case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
+        }
+      }
+      case _ => // assert
+        val asserted: T = this.setExpression(ExpressionSet(acc))
+        assert(asserted.testFalse() lessEqual this.bottom())
+        this.assume(acc)
+    }
+  }
 
   /** Inhales permissions.
     *
@@ -86,7 +105,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission
     */
-  override def inhale(acc: Expression): T = ???
+  override def inhale(acc: Expression): T = {
+    logger.trace("*** inahle(" + acc.toString + ")")
+
+    acc match {
+      case acc: PermissionExpression => this // nothing to be done
+      case _ => this.assume(acc) // assume
+    }
+  }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -102,9 +128,9 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     if (typ.isObject) { // the variable to be created is a Ref
       if (heap.contains(SummaryHeapNode)) { // the summary heap node exists already
       // add key to store map
-      val refMap = store + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+      val storeMap = store + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
         // return the current state with updated store and heap
-        this.copy(result = ExpressionSet(x), store = refMap)
+        this.copy(result = ExpressionSet(x), store = storeMap)
       } else { // the summary heap node was never created before
       // prepare fields to add to heap map and add variables to numDom
       var fieldMap = Map[String,Set[HeapNode]]()
@@ -115,11 +141,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           }
         }
         // add key to store map
-        val refMap = store + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+        val storeMap = store + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
         // add key to heap map
-        val objMap = heap + (SummaryHeapNode -> fieldMap)
+        val heapMap = heap + (SummaryHeapNode -> fieldMap)
         // return the current state with updated exprSet, store, heap and numDom
-        this.copy(result = ExpressionSet(x), store = refMap, heap = objMap)
+        this.copy(result = ExpressionSet(x), store = storeMap, heap = heapMap)
       }
     } else this // the variable to be created is not a Ref
   }
@@ -199,10 +225,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
             if (r.contains((NullHeapNode))) {
-              val objMap = objR.foldLeft(heap){
+              val heapMap = objR.foldLeft(heap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
               } // update the heap pointed to by the right path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             } else this.bottom() // there is no common heap node
           case (left: VariableIdentifier, Constant("null",_,_)) => // e.g., x == null
             val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
@@ -226,10 +252,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             val intersection = l intersect r
             if (intersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-              val objMap = objR.foldLeft(heap){
+              val heapMap = objR.foldLeft(heap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
               } // update the heap pointed to by the right path
-              copy(store = store + (left -> intersection), heap = objMap).pruneUnreachableHeap()
+              copy(store = store + (left -> intersection), heap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -237,10 +263,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
             if (l.contains((NullHeapNode))) {
-              val objMap = objL.foldLeft(heap){
+              val heapMap = objL.foldLeft(heap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
               } // update the heap pointed to by the left path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             } else this.bottom() // there is no common heap node
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -251,10 +277,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             val intersection = l intersect r
             if (intersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-              val objMap = objL.foldLeft(heap){
+              val heapMap = objL.foldLeft(heap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
               } // update the heap pointed to by the left path
-              copy(store = store + (right -> intersection), heap = objMap).pruneUnreachableHeap()
+              copy(store = store + (right -> intersection), heap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -268,13 +294,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             val intersection = l intersect r
             if (intersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-              var objMap = objL.foldLeft(heap){
+              var heapMap = objL.foldLeft(heap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
               } // update the heap pointed to by the left path
-              objMap = objR.foldLeft(objMap){
+              heapMap = objR.foldLeft(heapMap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
               } // update the heap pointed to by the right path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             }
         }
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
@@ -298,10 +324,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
             else {
               // there is at least one different heap node
-              val objMap = objR.foldLeft(heap) {
+              val heapMap = objR.foldLeft(heap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> difference)))
               } // update the heap pointed to by the right path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, Constant("null", _, _)) => // e.g., x != null
             val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
@@ -335,10 +361,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
             else {
               // there is at least one different heap node
-              val objMap = objR.foldLeft(heap) {
+              val heapMap = objR.foldLeft(heap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
               } // update the heap pointed to by the right path
-              copy(store = store + (left -> ldifference), heap = objMap).pruneUnreachableHeap()
+              copy(store = store + (left -> ldifference), heap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null", _, _)) => // e.g., x.f == null
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -350,10 +376,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
             else {
               // there is at least one different heap node
-              val objMap = objL.foldLeft(heap) {
+              val heapMap = objL.foldLeft(heap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> difference)))
               } // update the heap pointed to by the right path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f != y
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -367,10 +393,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
             else {
               // there is at least one different heap node
-              val objMap = objL.foldLeft(heap) {
+              val heapMap = objL.foldLeft(heap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
               } // update the heap pointed to by the left path
-              copy(store = store + (right -> rdifference), heap = objMap).pruneUnreachableHeap()
+              copy(store = store + (right -> rdifference), heap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f != y.f
             val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
@@ -387,13 +413,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
             else {
               // there is at least one different heap node
-              var objMap = objL.foldLeft(heap) {
+              var heapMap = objL.foldLeft(heap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
               } // update the heap pointed to by the left path
-              objMap = objR.foldLeft(objMap) {
+              heapMap = objR.foldLeft(heapMap) {
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
               } // update the heap pointed to by the right path
-              copy(heap = objMap).pruneUnreachableHeap()
+              copy(heap = heapMap).pruneUnreachableHeap()
             }
         }
       case _ => throw new NotImplementedError("An assume implementation is missing.")
@@ -409,7 +435,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param pp  The program point that creates the variable
     * @return The abstract state after the creation of the variable
     */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = ???
+  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
+    logger.trace("*** ----------------createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
+
+    if (typ.isObject) { // the variable to be created is a Ref
+      copy(result = ExpressionSet(x), store = store + (x -> Set(NullHeapNode)))
+    } else this // the variable to be created is not a Ref
+  }
 
   /** Assigns an expression to a variable.
     *
@@ -419,7 +451,33 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param right The assigned expression
     * @return The abstract state after the assignment
     */
-  override def assignVariable(x: Expression, right: Expression): T = ???
+  override def assignVariable(x: Expression, right: Expression): T = {
+    logger.trace("*** ----------------assignVariable(" + x.toString + "; " + right.toString + ")")
+
+    x match {
+      case x: VariableIdentifier =>
+        if (x.typ.isObject) { // the assigned variable is a Ref
+          right match {
+            case right: AccessPathIdentifier => ??? // e.g., `x := y.g`
+
+            case right: HeapNode => // e.g., `x = new()`
+              // add x -> right to store map
+              val storeMap = this.store + (x -> Set[HeapNode](right))
+              // return the current state with updated store
+              this.copy(store = storeMap).pruneUnreachableHeap()
+
+            case right: VariableIdentifier => // e.g., `x := y`
+              // add x -> store[right] to store map
+              val storeMap = this.store + (x -> this.store.getOrElse(right, Set[HeapNode](NullHeapNode)))
+              // return the current state with updated store
+              this.copy(store = storeMap).pruneUnreachableHeap()
+
+            case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
+          }
+        } else this // the assigned variable is not a Ref
+      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
+    }
+  }
 
   /** Forgets the value of a variable.
     *
@@ -453,7 +511,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     *
     * @return The abstract state after removing the current expression
     */
-  override def removeExpression(): T = ???
+  override def removeExpression(): T = this.copy(result = ExpressionSet())
 
   /** Throws an exception.
     *
@@ -485,7 +543,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param pp The point of the program that is going to be analyzed
     * @return The abstract state eventually modified
     */
-  override def before(pp: ProgramPoint): T = ???
+  override def before(pp: ProgramPoint): T = {
+    logger.trace("\n*** ----------------before(" + pp.toString + "): " + this.repr)
+    this.copy(currentPP = pp) // return the current state with updated currentPP
+  }
 
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): T = this // TODO: Implement me, please :)
@@ -506,7 +567,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one
     */
-  override def setExpression(expr: ExpressionSet): T = ???
+  override def setExpression(expr: ExpressionSet): T = this.copy(result = expr)
 
   /** Gets the value of a variable.
     *
@@ -514,13 +575,26 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable
     */
-  override def getVariableValue(id: Identifier): T = ???
+  override def getVariableValue(id: Identifier): T = {
+    logger.trace("*** ----------------getVariableValue(" + id.toString + ")")
+
+    val x = id.asInstanceOf[VariableIdentifier]
+    var rcvSet = store.getOrElse(x,Set.empty) // set of (path) receivers
+    if (rcvSet.contains(SummaryHeapNode) && materialization) { // materialization
+      val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
+      rcvSet = rcvSet - SummaryHeapNode + fresh // update receiver set
+      val storeMap = store + (x -> rcvSet) // add key to store map to replace the summary node with the fresh node
+      val heapMap = heap + (fresh -> heap(SummaryHeapNode)) // update heap map with the fresh node
+      // return the current state with updated result, store, heap
+      this.copy(result = ExpressionSet(id), store = storeMap, heap = heapMap)
+    } else { this.copy(result = ExpressionSet(id)) } // return the current state with updated result
+  }
 
   /** Returns the bottom value of the lattice.
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): T = ???
+  override def bottom(): T = this.copy(isBottom = true)
 
   /** Computes the widening of two elements.
     *
@@ -534,13 +608,36 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other`
     */
-  override def lessEqual(other: T): Boolean = ???
+  override def lessEqual(other: T): Boolean = {
+    logger.trace("*** lessEqual(" + this.repr + ", " + other.repr + ")")
+
+    if (isBottom || other.isTop) return true
+    if (other.isBottom || isTop) return false
+
+    val storeMap = this.store.forall {
+      case (k: VariableIdentifier,s: Set[HeapNode]) => {
+        val oo = other.store.getOrElse(k,Set.empty)
+        (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
+          ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
+      }
+    } // compare the stores
+    val heapMap = this.heap.forall {
+      case (o: HeapNode, m: Map[String,Set[HeapNode]]) => m.forall {
+        case (f: String, s: Set[HeapNode]) => {
+          val oo = other.heap.getOrElse(o,Map.empty).getOrElse(f,Set.empty)
+          (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
+            ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
+        }
+      }
+    } // compare the heaps
+    storeMap && heapMap
+  }
 
   /** Returns the top value of the lattice.
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): T = ???
+  override def top(): T = this.copy(isTop = true)
 
   /** Computes the least upper bound of two elements.
     *
@@ -548,7 +645,41 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments
     */
-  override def lub(other: T): T = ???
+  override def lub(other: T): T = {
+    logger.trace("*** lub(" + this.repr + ", " + other.repr + ")")
+
+    def zipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
+      var keyMap = Map[K,Set[HeapNode]]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,None) =>
+          case (None,Some(o2)) => keyMap = keyMap + (key -> o2)
+          case (Some(o1),None) => keyMap = keyMap + (key -> o1)
+          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
+            val o = (o1 - SummaryHeapNode) ++ (o2 - SummaryHeapNode) ++ (o1 & o2)
+            keyMap = keyMap + (key -> o)
+        }
+      }; keyMap
+    }
+    val fieldSet = this.fields ++ other.fields  // join the fieldSets
+    val allowed = this.materialization || other.materialization // join the materialization flags
+    val expr = this.result lub other.result // join the exprSets
+    val storeMap = zipper[VariableIdentifier](this.store,other.store)  // merge the stores
+    // merge the heaps
+    var heapMap = Map[HeapNode,Map[String,Set[HeapNode]]]()
+    for (key <- this.heap.keySet ++ other.heap.keySet) { // for all keys present in either map...
+      (this.heap.get(key),other.heap.get(key)) match {
+        case (None,None) =>
+        case (None,Some(m2)) => heapMap = heapMap + (key -> m2)
+        case (Some(m1),None) => heapMap = heapMap + (key -> m1)
+        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
+          heapMap = heapMap + (key -> zipper[String](m1,m2))
+      }
+    }
+    // return the current state with updated result, store, heap
+    copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = allowed, result = expr, store = storeMap,
+      heap = heapMap, isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
+  }
 
   /** Returns a new instance of the lattice.
     *
@@ -580,43 +711,52 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             (s,obj) => s ++ heap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
           )
       )
-    // TODO: fix program point
-    if (ids.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", DummyProgramPoint)
+    if (ids.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
     ids // return the objects referenced by the path (except the last field)
   }
 
-  override def toString: String = {
-    "AliasAnalysisState(\n" +
-      "\tresult: " + result.toString + "\n" +
-      "\tstore: " + store.toString + "\n" +
-      "\theap: " + heap.toString + "\n" +
-      ")"
-  }
+  /** The default state string representation.
+    *
+    * @return the default string representation of the current state
+    */
+  def repr: String = s"AliasAnalysisState( $result, $store, $heap )"
+
+  /** The state string representation.
+    *
+    * @return the string representation of the current state
+    */
+  override def toString: String = s"AliasAnalysisState(\n\tresult: $result\n\tstore: $store\n\theap: $heap\n)"
 
   def copy(fields: Set[(Type, String)] = fields,
+           currentPP: ProgramPoint = DummyProgramPoint,
+           materialization: Boolean = true,
            result: ExpressionSet = result,
            store: Map[VariableIdentifier,Set[HeapNode]] = store,
            heap: Map[HeapNode,Map[String, Set[HeapNode]]] = heap,
-           isTop: Boolean = isTop,
-           isBottom: Boolean = isBottom): T
+           isBottom: Boolean = isBottom,
+           isTop: Boolean = isTop): T
 }
 
 object AliasAnalysisState {
   case class Inner(fields: Set[(Type, String)] = Set.empty,
+                   currentPP: ProgramPoint = DummyProgramPoint,
+                   materialization: Boolean = true,
                    result: ExpressionSet = ExpressionSet(),
                    store: Map[VariableIdentifier, Set[HeapNode]] = Map.empty,
                    heap: Map[HeapNode, Map[String, Set[HeapNode]]] = Map.empty,
-                   isTop: Boolean = false,
-                   isBottom: Boolean = false)
+                   isBottom: Boolean = false,
+                   isTop: Boolean = false)
     extends AliasAnalysisState[Inner] {
 
     override def copy(fields: Set[(Type, String)],
+                      currentPP: ProgramPoint = DummyProgramPoint,
+                      materialization: Boolean = true,
                       result: ExpressionSet,
                       store: Map[VariableIdentifier, Set[HeapNode]],
                       heap: Map[HeapNode, Map[String, Set[HeapNode]]],
-                      isTop: Boolean = isTop,
-                      isBottom: Boolean = isBottom): Inner
-    = Inner(fields, result, store, heap, isTop, isBottom)
+                      isBottom: Boolean = isBottom,
+                      isTop: Boolean = isTop): Inner =
+      Inner(fields, currentPP, materialization, result, store, heap, isBottom, isTop)
   }
 }
 
