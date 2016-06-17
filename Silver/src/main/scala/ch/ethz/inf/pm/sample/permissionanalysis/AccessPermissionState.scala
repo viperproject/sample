@@ -158,7 +158,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
 
   def heapNum: T // may pointto+numerical state
   // map from heap nodes to their associated set of symbolic permissions
-  def nodeToSym: Map[HeapNode, Set[SymbolicPermission]]
+  def nodeToSym: Map[OldHeapNode, Set[SymbolicPermission]]
 
   /** Assigns an expression to a field of an object.
     *
@@ -185,7 +185,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
               val fId: Identifier = VariableIdentifier(id.field)(id.typ)
               PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
               // add key to nodeMap to represent the access
-              val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+              val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[OldHeapNode]]()).getOrElse(id.field,Set[OldHeapNode]())
               for (o <- rgtSet) {
                 if (!nodeMap.contains(o)) {
                   nodeMap = nodeMap + (o -> nodeMap(id.rcv).map(_.extend(fId)))
@@ -241,7 +241,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
           val fId: Identifier = VariableIdentifier(id.field)(id.typ)
           PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
           // add key to nodeMap to represent the access
-          val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+          val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[OldHeapNode]]()).getOrElse(id.field,Set[OldHeapNode]())
           for (o <- rgtSet) {
             if (!nodeMap.contains(o)) {
               nodeMap = nodeMap + (o -> nodeMap(id.rcv).map(_.extend(fId)))
@@ -273,7 +273,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
           val fId: Identifier = VariableIdentifier(id.field)(id.typ)
           PermissionSolver.ensureRead(nodeToSym(id.rcv),fId) // ensure read access permission
         // add key to nodeMap to represent the access
-        val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[HeapNode]]()).getOrElse(id.field,Set[HeapNode]())
+        val rgtSet = heapNum.objToObj.getOrElse(id.rcv,Map[String,Set[OldHeapNode]]()).getOrElse(id.field,Set[OldHeapNode]())
           for (o <- rgtSet) {
             if (!nodeMap.contains(o)) {
               nodeMap = nodeMap + (o -> nodeMap(id.rcv).map(_.extend(fId)))
@@ -303,9 +303,9 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): S = this.copy(heapNum.bottom(), Map[HeapNode, Set[SymbolicPermission]]())
+  override def bottom(): S = this.copy(heapNum.bottom(), Map[OldHeapNode, Set[SymbolicPermission]]())
 
-  def copy(heapNum: T = heapNum, nodeToSym: Map[HeapNode,Set[SymbolicPermission]] = nodeToSym): S
+  def copy(heapNum: T = heapNum, nodeToSym: Map[OldHeapNode,Set[SymbolicPermission]] = nodeToSym): S
 
   /** Creates an object at allocation site.
     *
@@ -431,7 +431,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @return A new instance of the current object
     */
-  override def factory(): S = this.copy(heapNum.factory(), Map[HeapNode, Set[SymbolicPermission]]())
+  override def factory(): S = this.copy(heapNum.factory(), Map[OldHeapNode, Set[SymbolicPermission]]())
 
   /** Accesses a field of an object.
     *
@@ -454,13 +454,13 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
         // path head evaluation
         val partial = List[Identifier](path.head) // initial partial path
         var nodeMap = nodeToSym // initial nodeMap
-        val rcvSet = heap.refToObj(path.head.asInstanceOf[VariableIdentifier]) - NullHeapNode // initial receiver set
-        val initSet: Set[(HeapNode,List[Identifier])] = rcvSet.map(h => (h,partial)) // initial receiver+paths set
+        val rcvSet = heap.refToObj(path.head.asInstanceOf[VariableIdentifier]) - NullOldHeapNode$ // initial receiver set
+        val initSet: Set[(OldHeapNode,List[Identifier])] = rcvSet.map(h => (h,partial)) // initial receiver+paths set
         // path tail evaluation
         val eval = path.tail.dropRight(1).foldLeft(nodeMap,initSet)(
           (curr,next) => {
-            var nM: Map[HeapNode, Set[SymbolicPermission]] = curr._1
-            var iS = Set[(HeapNode,List[Identifier])]() // initially empty next receiver set
+            var nM: Map[OldHeapNode, Set[SymbolicPermission]] = curr._1
+            var iS = Set[(OldHeapNode,List[Identifier])]() // initially empty next receiver set
             for ((o,pP) <- curr._2) { // for all current receivers...
               // add key to nM to represent the access
               if (!nM.contains(o)) {
@@ -468,7 +468,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
                 nM = nM + (o -> Set[SymbolicPermission](sym))
               }
               PermissionSolver.ensureRead(nM(o),next) // ensure read access permission
-              val rS = heap.objToObj.getOrElse(o,Map[String,Set[HeapNode]]()).getOrElse(next.getName,Set[HeapNode]()) - NullHeapNode
+              val rS = heap.objToObj.getOrElse(o,Map[String,Set[OldHeapNode]]()).getOrElse(next.getName,Set[OldHeapNode]()) - NullOldHeapNode$
               // update the next receiver+path set
               iS = iS ++ rS.map(h => (h, next::pP)) // extend the partial path
             }
@@ -502,8 +502,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     val heap = heapNum.getVariableValue(id)
     val pP = List[Identifier](id) // initial partial path
     var nodeMap = nodeToSym // initial nodeMap
-    val rcvSet = heap.refToObj.getOrElse(id.asInstanceOf[VariableIdentifier],Set[HeapNode]()) // receiver set
-    for (o <- rcvSet - NullHeapNode) { // for all receivers...
+    val rcvSet = heap.refToObj.getOrElse(id.asInstanceOf[VariableIdentifier],Set[OldHeapNode]()) // receiver set
+    for (o <- rcvSet - NullOldHeapNode$) { // for all receivers...
       // add key to nM to represent the access
       if (!nodeMap.contains(o)) {
         val sym = new SymbolicPermission(CountedAccess(1,SymbolicAccess(pP)))
@@ -523,8 +523,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def glb(other: S): S = {
     logger.debug("*** glb(" + other.repr + "): implement me!")
 
-    def zipper[K](map1: Map[HeapNode,Set[SymbolicPermission]], map2: Map[HeapNode,Set[SymbolicPermission]]) = {
-      var nodeMap = Map[HeapNode,Set[SymbolicPermission]]()
+    def zipper[K](map1: Map[OldHeapNode,Set[SymbolicPermission]], map2: Map[OldHeapNode,Set[SymbolicPermission]]) = {
+      var nodeMap = Map[OldHeapNode,Set[SymbolicPermission]]()
       for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
         (map1.get(key),map2.get(key)) match {
           case (None,_) =>
@@ -622,8 +622,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def lub(other: S): S = {
     logger.debug("*** lub(" + other.repr + ")")
 
-    def zipper[K](map1: Map[HeapNode,Set[SymbolicPermission]], map2: Map[HeapNode,Set[SymbolicPermission]]) = {
-      var nodeMap = Map[HeapNode,Set[SymbolicPermission]]()
+    def zipper[K](map1: Map[OldHeapNode,Set[SymbolicPermission]], map2: Map[OldHeapNode,Set[SymbolicPermission]]) = {
+      var nodeMap = Map[OldHeapNode,Set[SymbolicPermission]]()
       for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
         (map1.get(key),map2.get(key)) match {
           case (None,None) =>
@@ -734,7 +734,7 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): S = this.copy(heapNum.top(), Map[HeapNode, Set[SymbolicPermission]]())
+  override def top(): S = this.copy(heapNum.top(), Map[OldHeapNode, Set[SymbolicPermission]]())
 
   /** The state string representation.
     *
@@ -754,8 +754,8 @@ trait AccessPermissionState[N <: NumericalDomain[N], T <: MayPointToNumericalSta
   override def widening(other: S): S = {
     logger.debug("*** widening(" + other.repr + ")")
 
-    def zipper[K](map1: Map[HeapNode,Set[SymbolicPermission]], map2: Map[HeapNode,Set[SymbolicPermission]]) = {
-      var nodeMap = Map[HeapNode,Set[SymbolicPermission]]()
+    def zipper[K](map1: Map[OldHeapNode,Set[SymbolicPermission]], map2: Map[OldHeapNode,Set[SymbolicPermission]]) = {
+      var nodeMap = Map[OldHeapNode,Set[SymbolicPermission]]()
       for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
         (map1.get(key),map2.get(key)) match {
           case (None,None) =>
@@ -893,10 +893,10 @@ object PermissionSolver {
   * @param nodeToSym map from heap nodes to symbolic permissions
   * @author Caterina Urban
   */
-case class AccessIntervalsState(heapNum: MayPointToIntervalsState, nodeToSym: Map[HeapNode,Set[SymbolicPermission]])
+case class AccessIntervalsState(heapNum: MayPointToIntervalsState, nodeToSym: Map[OldHeapNode,Set[SymbolicPermission]])
   extends AccessPermissionState[NumDom.I,MayPointToIntervalsState,AccessIntervalsState] {
   override def copy(heapNum: MayPointToIntervalsState,
-                    nodeToSym: Map[HeapNode, Set[SymbolicPermission]]): AccessIntervalsState =
+                    nodeToSym: Map[OldHeapNode, Set[SymbolicPermission]]): AccessIntervalsState =
     AccessIntervalsState(heapNum, nodeToSym)
 }
 
@@ -906,10 +906,10 @@ case class AccessIntervalsState(heapNum: MayPointToIntervalsState, nodeToSym: Ma
   * @param nodeToSym map from heap nodes to symbolic permissions
   * @author Caterina Urban
   */
-case class AccessPolyhedraState(heapNum: MayPointToAPolyhedraState, nodeToSym: Map[HeapNode,Set[SymbolicPermission]])
+case class AccessPolyhedraState(heapNum: MayPointToAPolyhedraState, nodeToSym: Map[OldHeapNode,Set[SymbolicPermission]])
   extends AccessPermissionState[NumDom.AP,MayPointToAPolyhedraState,AccessPolyhedraState] {
   override def copy(heapNum: MayPointToAPolyhedraState,
-                    nodeToSym: Map[HeapNode, Set[SymbolicPermission]]): AccessPolyhedraState =
+                    nodeToSym: Map[OldHeapNode, Set[SymbolicPermission]]): AccessPolyhedraState =
     AccessPolyhedraState(heapNum, nodeToSym)
 }
 
@@ -943,7 +943,7 @@ object AccessIntervalsEntryStateBuilder
   extends AccessPermissionEntryStateBuilder[NumDom.I,MayPointToIntervalsState,AccessIntervalsState] {
   override def topState: AccessIntervalsState = AccessIntervalsState(
     MayPointToIntervalsEntryStateBuilder.topState,
-    Map[HeapNode,Set[SymbolicPermission]]())
+    Map[OldHeapNode,Set[SymbolicPermission]]())
 }
 
 /** Access Permission Inference Entry State using Polyhedra.
@@ -954,7 +954,7 @@ object AccessPolyhedraEntryStateBuilder
   extends AccessPermissionEntryStateBuilder[NumDom.AP,MayPointToAPolyhedraState,AccessPolyhedraState] {
   override def topState: AccessPolyhedraState = AccessPolyhedraState(
     MayPointToAPolyhedraEntryStateBuilder.topState,
-    Map[HeapNode,Set[SymbolicPermission]]())
+    Map[OldHeapNode,Set[SymbolicPermission]]())
 }
 
 /** Access Permission Inference.
@@ -1070,7 +1070,7 @@ trait AccessPermissionInferenceRunner[N <: NumericalDomain[N], T <: MayPointToNu
     // update the method postcondition
     var postcondition: Seq[sil.Exp] = method.posts
     // add access permissions
-    for ((id: HeapNode,sym: Set[SymbolicPermission]) <- post.nodeToSym) {
+    for ((id: OldHeapNode,sym: Set[SymbolicPermission]) <- post.nodeToSym) {
       // for each pair of identifier and set of symbolic permissions...
     //  val paths = post.heapNum.pathFromObj(id.obj) // retrieve the paths leading to the receiver of the field identifier
     //  //println("PATHS: " + paths)
