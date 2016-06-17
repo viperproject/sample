@@ -155,7 +155,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def assume(cond: Expression): T = {
     logger.trace("*** ----------------assume(" + cond.toString + ")")
 
-    /* TODO: finish
     cond match {
       case cond:Constant => this // Constant
       case cond: Identifier => this // Identifier
@@ -164,7 +163,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         this.assume(left).assume(right)
       case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) => // BinaryBooleanExpression
         this.assume(left) lub this.assume(right)
-      case cond: NegatedBooleanExpression => { // NegatedBooleanExpression
+      case cond: NegatedBooleanExpression => // NegatedBooleanExpression
         cond.exp match {
           case c: Constant => this // Constant
           case id: Identifier => this // Identifier
@@ -187,193 +186,275 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
             + cond.exp.getClass.getSimpleName + " is missing.")
         }
-      }
-
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
         (left, right) match {
-          case (left: VariableIdentifier, right: VariableIdentifier) =>
-            val l = store.getOrElse(left, Set.empty)
-            val r = store.getOrElse(right, Set.empty)
-            val intersection = l intersect r
-            if (intersection.isEmpty) this.bottom() // there is no common heap node
-            else {
-              // there is at least one common heap node
-              copy(store = store +(left -> intersection, right -> intersection)).pruneUnreachableHeap()
-            }
-
-          case (AccessPathIdentifier(left), AccessPathIdentifier(right)) =>
-            val objL = evaluatePath(left) - NullHeapNode
-            val objR = evaluatePath(right) - NullHeapNode
-            val l = objL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            )
+          case (Constant("null",_,_), right: VariableIdentifier) => // e.g., null == y
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the left identifier
+            if (r.contains(NullHeapNode)) {
+              copy(store = store + (right -> Set(NullHeapNode)))
+            } else this.bottom() // there is no common heap node
+          case (Constant("null",_,_), AccessPathIdentifier(right)) => // e.g., null == y.f
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
             val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            )
+            ) // set of heap nodes pointed to by the right path
+            if (r.contains((NullHeapNode))) {
+              val objMap = objR.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
+              } // update the heap pointed to by the right path
+              copy(heap = objMap).pruneUnreachableHeap()
+            } else this.bottom() // there is no common heap node
+          case (left: VariableIdentifier, Constant("null",_,_)) => // e.g., x == null
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            if (l.contains(NullHeapNode)) {
+              copy(store = store + (left -> Set[HeapNode](NullHeapNode)))
+            } else this.bottom() // there is no common heap node
+          case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x == y
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
             val intersection = l intersect r
             if (intersection.isEmpty) this.bottom() // there is no common heap node
-            else {
-              // there is at least one common node
-              var objMap = objL.foldLeft(heap)(
-                (map, id) => map + (id -> map)
-              )
-              copy().pruneUnreachableHeap()
+            else { // there is at least one common heap node
+              copy(store = store + (left -> intersection, right -> intersection)).pruneUnreachableHeap()
             }
-
-
-          case (left: Identifier, right: Identifier) =>
-            val l = left match {
-              case left: VariableIdentifier => store.getOrElse(left, Set.empty)
-              case left: AccessPathIdentifier => heap.getOrElse(left.rcv, Map.empty).
-                getOrElse(left.field, Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            val r = right match {
-              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
-              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(right.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
+          case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x == y.f
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
+            val r = objR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the right path
             val intersection = l intersect r
-            if (intersection.isEmpty) { // there is no common heap node
-              this.bottom() // return the bottom state
-            } else { // there is at least one common heap node
-            var refMap = store
-              refMap = left match {
-                case left: VariableIdentifier => refMap + (left -> intersection)
-                case _ => refMap
-              }
-              refMap = right match {
-                case right: VariableIdentifier => refMap + (right -> intersection)
-                case _ => refMap
-              }
-              var objMap = heap
-              objMap = left match {
-                case left: HeapAccess => objMap + (left.rcv -> Map[String,Set[HeapNode]](left.field -> intersection))
-                case _ => objMap
-              }
-              objMap = right match {
-                case right: HeapAccess => objMap + (right.rcv -> Map[String,Set[HeapNode]](right.field -> intersection))
-                case _ => objMap
-              }
-              // return the current state with updated store and heap
-              this.copy(store = refMap, heap = objMap).pruneUnreachableHeap()
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              val objMap = objR.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(store = store + (left -> intersection), heap = objMap).pruneUnreachableHeap()
             }
-          case (left: Identifier, Constant("null",_,_)) =>
-            val l = left match {
-              case left: VariableIdentifier => store.getOrElse(left,Set[HeapNode]())
-              case left: HeapAccess => heap.getOrElse(left.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(left.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            if (l.contains(NullHeapNode$)) {
-              val refMap = left match {
-                case left: VariableIdentifier => store + (left -> Set[HeapNode](NullHeapNode$))
-                case _ => store
-              }
-              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
-            } else this.bottom() // return the bottom state
-          case (Constant("null",_,_), right: Identifier) =>
-            val r = right match {
-              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
-              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(right.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            if (r.contains(NullHeapNode$)) {
-              val refMap = right match {
-                case right: VariableIdentifier => store + (right -> Set[HeapNode](NullHeapNode$))
-                case _ => store
-              }
-              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
-            } else this.bottom() // return the bottom state
-        }
-
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
-        (left, right) match {
-          case (left: Identifier, right: Identifier) =>
-            val l = left match {
-              case left: VariableIdentifier => store.getOrElse(left,Set[HeapNode]())
-              case left: HeapAccess => heap.getOrElse(left.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(left.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            val r = right match {
-              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
-              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(right.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
+          case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val r = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the left path
+            if (r.contains((NullHeapNode))) {
+              val objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
+              } // update the heap pointed to by the left path
+              copy(heap = objMap).pruneUnreachableHeap()
+            } else this.bottom() // there is no common heap node
+          case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val l = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the left path
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
             val intersection = l intersect r
-            val lr = l diff intersection
-            val rl = r diff intersection
-            if (lr.isEmpty && rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
-              this.bottom() // return the bottom state
-            else { // there is at least one different heap node
-            var refMap = store
-              refMap = left match {
-                case left: VariableIdentifier => refMap + (left -> lr)
-                case _ => refMap
-              }
-              refMap = right match {
-                case right: VariableIdentifier => refMap + (right -> rl)
-                case _ => refMap
-              }
-              var objMap = heap
-              objMap = left match {
-                case left: HeapAccess => objMap + (left.rcv -> Map[String,Set[HeapNode]](left.field -> lr))
-                case _ => objMap
-              }
-              objMap = right match {
-                case right: HeapAccess => objMap + (right.rcv -> Map[String,Set[HeapNode]](right.field -> rl))
-                case _ => objMap
-              }
-              // return the current state with updated store and heap
-              this.copy(store = refMap, heap = objMap).pruneUnreachableHeap()
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              val objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(store = store + (right -> intersection), heap = objMap).pruneUnreachableHeap()
             }
-          case (left: Identifier, Constant("null",_,_)) =>
-            val l = left match {
-              case left: VariableIdentifier => store.getOrElse(left,Set[HeapNode]())
-              case left: HeapAccess => heap.getOrElse(left.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(left.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            val r = Set[HeapNode](NullHeapNode$)
+          case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
+            val l = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set heap nodes pointed to by the left path
+            val r = objR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the right path
             val intersection = l intersect r
-            val lr = l diff intersection
-            if (lr.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
-              this.bottom()
-            else {
-              val refMap = left match {
-                case left: VariableIdentifier => store + (left -> lr)
-                case _ => store
-              }
-              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
-            }
-          case (Constant("null",_,_), right: Identifier) =>
-            val l = Set[HeapNode](NullHeapNode$)
-            val r = right match {
-              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
-              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
-                getOrElse(right.field,Set[HeapNode]())
-              case _ => Set[HeapNode]()
-            }
-            val intersection = l intersect r
-            val rl = r diff intersection
-            if (rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
-              this.bottom()
-            else {
-              val refMap = right match {
-                case right: VariableIdentifier => store + (right -> rl)
-                case _ => store
-              }
-              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              var objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
+              } // update the heap pointed to by the left path
+              objMap = objR.foldLeft(objMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(heap = objMap).pruneUnreachableHeap()
             }
         }
+      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) => ???
+        /*
+         (left, right) match {
+          case (Constant("null",_,_), right: VariableIdentifier) => // e.g., null == y
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the left identifier
+            if (r.contains(NullHeapNode)) {
+              copy(store = store + (right -> Set(NullHeapNode)))
+            } else this.bottom() // there is no common heap node
+          case (Constant("null",_,_), AccessPathIdentifier(right)) => // e.g., null == y.f
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
+            val r = objR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the right path
+            if (r.contains((NullHeapNode))) {
+              val objMap = objR.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
+              } // update the heap pointed to by the right path
+              copy(heap = objMap).pruneUnreachableHeap()
+            } else this.bottom() // there is no common heap node
+          case (left: VariableIdentifier, Constant("null",_,_)) => // e.g., x == null
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            if (l.contains(NullHeapNode)) {
+              copy(store = store + (left -> Set[HeapNode](NullHeapNode)))
+            } else this.bottom() // there is no common heap node
+          case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x == y
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
+            val intersection = l intersect r
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common heap node
+              copy(store = store + (left -> intersection, right -> intersection)).pruneUnreachableHeap()
+            }
+          case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x == y.f
+            val l = store.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
+            val r = objR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the right path
+            val intersection = l intersect r
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              val objMap = objR.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(store = store + (left -> intersection), heap = objMap).pruneUnreachableHeap()
+            }
+          case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val r = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the left path
+            if (r.contains((NullHeapNode))) {
+              val objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
+              } // update the heap pointed to by the left path
+              copy(heap = objMap).pruneUnreachableHeap()
+            } else this.bottom() // there is no common heap node
+          case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val l = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the left path
+            val r = store.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
+            val intersection = l intersect r
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              val objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(store = store + (right -> intersection), heap = objMap).pruneUnreachableHeap()
+            }
+          case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
+            val objL = evaluatePath(left) - NullHeapNode // set of (left) receivers
+            val objR = evaluatePath(right) - NullHeapNode // set of (right) receivers
+            val l = objL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set heap nodes pointed to by the left path
+            val r = objR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ heap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes pointed to by the right path
+            val intersection = l intersect r
+            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            else { // there is at least one common node
+              var objMap = objL.foldLeft(heap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
+              } // update the heap pointed to by the left path
+              objMap = objR.foldLeft(objMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
+              } // update the heap pointed to by the right path
+              copy(heap = objMap).pruneUnreachableHeap()
+            }
+        }
+         */
+
+//      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
+//        (left, right) match {
+//          case (left: Identifier, right: Identifier) =>
+//            val l = left match {
+//              case left: VariableIdentifier => store.getOrElse(left,Set[HeapNode]())
+//              case left: HeapAccess => heap.getOrElse(left.rcv,Map[String,Set[HeapNode]]()).
+//                getOrElse(left.field,Set[HeapNode]())
+//              case _ => Set[HeapNode]()
+//            }
+//            val r = right match {
+//              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
+//              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
+//                getOrElse(right.field,Set[HeapNode]())
+//              case _ => Set[HeapNode]()
+//            }
+//            val intersection = l intersect r
+//            val lr = l diff intersection
+//            val rl = r diff intersection
+//            if (lr.isEmpty && rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
+//              this.bottom() // return the bottom state
+//            else { // there is at least one different heap node
+//            var refMap = store
+//              refMap = left match {
+//                case left: VariableIdentifier => refMap + (left -> lr)
+//                case _ => refMap
+//              }
+//              refMap = right match {
+//                case right: VariableIdentifier => refMap + (right -> rl)
+//                case _ => refMap
+//              }
+//              var objMap = heap
+//              objMap = left match {
+//                case left: HeapAccess => objMap + (left.rcv -> Map[String,Set[HeapNode]](left.field -> lr))
+//                case _ => objMap
+//              }
+//              objMap = right match {
+//                case right: HeapAccess => objMap + (right.rcv -> Map[String,Set[HeapNode]](right.field -> rl))
+//                case _ => objMap
+//              }
+//              // return the current state with updated store and heap
+//              this.copy(store = refMap, heap = objMap).pruneUnreachableHeap()
+//            }
+//          case (left: Identifier, Constant("null",_,_)) =>
+//            val l = left match {
+//              case left: VariableIdentifier => store.getOrElse(left,Set[HeapNode]())
+//              case left: HeapAccess => heap.getOrElse(left.rcv,Map[String,Set[HeapNode]]()).
+//                getOrElse(left.field,Set[HeapNode]())
+//              case _ => Set[HeapNode]()
+//            }
+//            val r = Set[HeapNode](NullHeapNode$)
+//            val intersection = l intersect r
+//            val lr = l diff intersection
+//            if (lr.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
+//              this.bottom()
+//            else {
+//              val refMap = left match {
+//                case left: VariableIdentifier => store + (left -> lr)
+//                case _ => store
+//              }
+//              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
+//            }
+//          case (Constant("null",_,_), right: Identifier) =>
+//            val l = Set[HeapNode](NullHeapNode$)
+//            val r = right match {
+//              case right: VariableIdentifier => store.getOrElse(right,Set[HeapNode]())
+//              case right: HeapAccess => heap.getOrElse(right.rcv,Map[String,Set[HeapNode]]()).
+//                getOrElse(right.field,Set[HeapNode]())
+//              case _ => Set[HeapNode]()
+//            }
+//            val intersection = l intersect r
+//            val rl = r diff intersection
+//            if (rl.isEmpty && intersection.size == 1 && intersection.head.representsSingleVariable)
+//              this.bottom()
+//            else {
+//              val refMap = right match {
+//                case right: VariableIdentifier => store + (right -> rl)
+//                case _ => store
+//              }
+//              this.copy(store = refMap).pruneUnreachableHeap() // return the current state with updated store
+//            }
+//        }
 
       case _ => throw new NotImplementedError("An assume implementation is missing.")
-    }*/
-    ???
+    }
   }
 
   /** Creates a variable given a `VariableIdentifier`.
