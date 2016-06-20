@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 case class Permission(amount: Double) {
   /**
     * Returns the least upper bound of this permission and the other permission.
- *
+    *
     * @param other the other permission
     */
   def lub(other: Permission): Permission =
@@ -22,7 +22,7 @@ case class Permission(amount: Double) {
 
   /**
     * Returns the greatest lower bound of this permission and the other permission.
- *
+    *
     * @param other the other permission
     */
   def glb(other: Permission): Permission =
@@ -30,7 +30,7 @@ case class Permission(amount: Double) {
 
   /**
     * Returns whether this permission is smaller or equal than the other permission.
- *
+    *
     * @param other the other permission
     */
   def lessThan(other: Permission): Boolean =
@@ -66,7 +66,7 @@ case class PermissionTree(permission: Permission = Permission.none,
                           children: Map[Identifier, PermissionTree] = Map.empty) {
   /**
     * Returns the least upper bound of this permission tree and the other permission tree.
- *
+    *
     * @param other the other permission tree
     */
   def lub(other: PermissionTree): PermissionTree = {
@@ -84,7 +84,7 @@ case class PermissionTree(permission: Permission = Permission.none,
 
   /**
     * Returns the greatest lower bound of this permission tree and the other permission tree.
- *
+    *
     * @param other the other permission tree
     */
   def glb(other: PermissionTree): PermissionTree = {
@@ -179,7 +179,6 @@ case class PermissionTree(permission: Permission = Permission.none,
 }
 
 /**
-  *
   * @tparam T type of the permission analysis state
   * @tparam A type of the alias analysis state
   *
