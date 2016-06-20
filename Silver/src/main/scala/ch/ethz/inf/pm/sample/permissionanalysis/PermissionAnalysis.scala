@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
   * Placeholder for permissions.
   *
   * @param amount the amount of permission
+  *
   * @author Jerome Dohrau
   */
 case class Permission(amount: Double) {
@@ -181,6 +182,7 @@ case class PermissionTree(permission: Permission = Permission.none,
   *
   * @tparam T type of the permission analysis state
   * @tparam A type of the alias analysis state
+  *
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
