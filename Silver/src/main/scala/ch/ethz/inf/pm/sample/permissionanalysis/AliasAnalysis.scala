@@ -59,12 +59,18 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   // set of fields declared in the program
   def fields: Set[(Type, String)]
 
-  def currentPP: ProgramPoint // current program point
-  def materialization: Boolean // true = materialization allowed; false = materialization not allowed
+  // current program point
+  def currentPP: ProgramPoint
 
-  def result: ExpressionSet // result of the previous statement (sort of)
+  // true = materialization allowed; false = materialization not allowed
+  def materialization: Boolean
+
+  // result of the previous statement
+  def result: ExpressionSet
+
   // map from Ref variables to heap objects
   def store: Map[VariableIdentifier,Set[HeapNode]]
+
   // map from heap objects to a map from Ref fields to heap objects
   def heap: Map[HeapNode,Map[String, Set[HeapNode]]]
 
