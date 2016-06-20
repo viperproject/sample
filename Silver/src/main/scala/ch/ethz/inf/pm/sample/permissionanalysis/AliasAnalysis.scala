@@ -899,15 +899,15 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 }
 
 object AliasAnalysisState {
-  case class Inner(fields: Set[(Type, String)] = Set.empty,
-                   currentPP: ProgramPoint = DummyProgramPoint,
-                   materialization: Boolean = true,
-                   result: ExpressionSet = ExpressionSet(),
-                   store: Map[VariableIdentifier, Set[HeapNode]] = Map.empty,
-                   heap: Map[HeapNode, Map[String, Set[HeapNode]]] = Map.empty,
-                   isBottom: Boolean = false,
-                   isTop: Boolean = false)
-    extends AliasAnalysisState[Inner] {
+  case class Default(fields: Set[(Type, String)] = Set.empty,
+                     currentPP: ProgramPoint = DummyProgramPoint,
+                     materialization: Boolean = true,
+                     result: ExpressionSet = ExpressionSet(),
+                     store: Map[VariableIdentifier, Set[HeapNode]] = Map.empty,
+                     heap: Map[HeapNode, Map[String, Set[HeapNode]]] = Map.empty,
+                     isBottom: Boolean = false,
+                     isTop: Boolean = false)
+    extends AliasAnalysisState[Default] {
 
     override def copy(fields: Set[(Type, String)],
                       currentPP: ProgramPoint,
@@ -916,8 +916,8 @@ object AliasAnalysisState {
                       store: Map[VariableIdentifier, Set[HeapNode]],
                       heap: Map[HeapNode, Map[String, Set[HeapNode]]],
                       isBottom: Boolean,
-                      isTop: Boolean): Inner =
-      Inner(fields, currentPP, materialization, result, store, heap, isBottom, isTop)
+                      isTop: Boolean): Default =
+      Default(fields, currentPP, materialization, result, store, heap, isBottom, isTop)
   }
 }
 
@@ -953,8 +953,8 @@ trait AliasAnalysisEntryStateBuilder[T <: AliasAnalysisState[T]] extends EntrySt
   *
   * @author Jerome Dohrau, Caterina Urban
   */
-object AliasAnalysisEntryState extends AliasAnalysisEntryStateBuilder[AliasAnalysisState.Inner] {
-  override def topState: AliasAnalysisState.Inner = AliasAnalysisState.Inner()
+object AliasAnalysisEntryState extends AliasAnalysisEntryStateBuilder[AliasAnalysisState.Default] {
+  override def topState: AliasAnalysisState.Default = AliasAnalysisState.Default()
 }
 
 /** Alias Analysis Runner.
@@ -1011,7 +1011,7 @@ trait AliasAnalysisRunner[S <: AliasAnalysisState[S]] extends SilverAnalysisRunn
   *
   * @author Jerome Dohrau, Caterina Urban
   */
-object AliasAnalysis extends AliasAnalysisRunner[AliasAnalysisState.Inner] {
-  override val analysis = SimpleForwardAnalysis[AliasAnalysisState.Inner](AliasAnalysisEntryState)
+object AliasAnalysis extends AliasAnalysisRunner[AliasAnalysisState.Default] {
+  override val analysis = SimpleForwardAnalysis[AliasAnalysisState.Default](AliasAnalysisEntryState)
   override def toString = "Alias Analysis"
 }
