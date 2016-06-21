@@ -189,7 +189,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           val leftPath = List(variable)
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
-            case obj: NewObject => List(obj)
+            case obj: OldNewObject => List(obj)
             case AccessPathIdentifier(path) => path
             case _ => ???
           }
@@ -249,7 +249,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
           // get path corresponding to lhs and rhs
           val rightPath = right match {
             case id: VariableIdentifier => List(id)
-            case obj: NewObject => List(obj)
+            case obj: OldNewObject => List(obj)
             case AccessPathIdentifier(path) => path
             case _: Constant => {
               // TODO: if the constant is null, e.g., a.f := null, make sure we do not access a.f.f
@@ -355,7 +355,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
     */
   override def createObject(typ: Type, pp: ProgramPoint): T = {
     logger.trace("createObject")
-    val obj = NewObject(typ, pp)
+    val obj = OldNewObject(typ, pp)
     copy(expressions = ExpressionSet(obj))
   }
 
@@ -596,7 +596,7 @@ trait BackwardPermissionState[T <: BackwardPermissionState[T]]
 
       if (lhsTree.isEmpty) {
         copy(timestamp = timestamp + 1).write(left).read(right)
-      } else if (rhsReceiver.isInstanceOf[NewObject]) {
+      } else if (rhsReceiver.isInstanceOf[OldNewObject]) {
         val (newA, _) = lhsTree.get.extract(lhsFields)
         // update permission tree and add write permission for lhs
         copy(need = need + (lhsReceiver -> newA))
@@ -821,7 +821,7 @@ case class OldPermission(amount: Double, timestamp: Int) {
     else s"$amount@$timestamp"
 }
 
-case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
+case class OldNewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
   /**
     * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
     * if they are the same identifier

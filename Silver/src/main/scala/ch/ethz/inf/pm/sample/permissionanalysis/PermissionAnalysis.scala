@@ -1,14 +1,13 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Placeholder for permissions.
   *
   * @param amount the amount of permission
-  *
   * @author Jerome Dohrau
   */
 case class Permission(amount: Double) {
@@ -60,7 +59,7 @@ object Permission {
 
 /**
   * @param permission amount of permission for the root of the tree
-  * @param children maps fields (identifiers) to subtrees
+  * @param children   maps fields (identifiers) to subtrees
   */
 case class PermissionTree(permission: Permission = Permission.none,
                           children: Map[Identifier, PermissionTree] = Map.empty) {
@@ -152,7 +151,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * already a non-empty subtree at that path the least upper bound is
     * computed.
     *
-    * @param path the tree to be implanted
+    * @param path  the tree to be implanted
     * @param other the path to the place where the permission tree is to be implanted
     * @return this permission tree with the other permission tree implanted
     */
@@ -179,9 +178,39 @@ case class PermissionTree(permission: Permission = Permission.none,
 }
 
 /**
+  * Used to represent new objects in access paths.
+  *
+  * @param typ the type of the object
+  * @param pp  the program point associated with the object
+  */
+case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
+  /**
+    * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+    * if they are the same identifier
+    *
+    * @return The name of the identifier
+    */
+  override def getName: String = ???
+
+  /**
+    * Returns the name of the field that is represented by this identifier if it is a heap identifier.
+    *
+    * @return The name of the field pointed by this identifier
+    */
+  override def getField: Option[String] = ???
+
+  /**
+    * Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+    * identifier. This function tells if a node is a summary node.
+    *
+    * @return true iff this identifier represents exactly one variable
+    */
+  override def representsSingleVariable: Boolean = ???
+}
+
+/**
   * @tparam T type of the permission analysis state
   * @tparam A type of the alias analysis state
-  *
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
@@ -528,6 +557,91 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   }
 
   def setAliases(aliases: A): T = copy(aliases = Some(aliases))
+
+  /* ------------------------------------------------------------------------- *
+   * HELPER FUNCTIONS
+   */
+
+  /**
+    * Adds read permissino for the specified path. If the permission is already
+    * there nothing happens.
+    *
+    * @param path the path to add the permission for
+    */
+  private def read(path: List[Identifier]): T =
+    access(path, Permission.read)
+
+  /**
+    * Adds write permission for the specified path. If the permission is already
+    * there nothing happens.
+    *
+    * @param path the path to add the permission for
+    */
+  private def write(path: List[Identifier]): T =
+    access(path, Permission.write)
+
+  /**
+    * Adds the specified permission for the specified access path. If the
+    * permission is already there nothing happens.
+    *
+    * @param path       the path to add the permission for
+    * @param permission the amount of permissions to add
+    */
+  private def access(path: List[Identifier], permission: Permission): T = {
+    if (path.length < 2) {
+      this // no permission needed
+    } else {
+      // build permission tree for the specified path and permission
+      val (receiver :: first :: rest) = path
+      val subtree = rest.foldRight(PermissionTree(permission)) {
+        case (field, subtree) => PermissionTree(Permission.read, Map(field -> subtree))
+      }
+      val tree = PermissionTree(children = Map(first -> subtree))
+      // add new permission tree to permissions
+      val updated = permissions.get(receiver) match {
+        case Some(existing) => tree lub existing
+        case None => tree
+      }
+      copy(permissions = permissions + (receiver -> updated))
+    }
+  }
+
+  private def assign(left: List[Identifier], right: List[Identifier]): T = {
+    if (left.isEmpty || right.isEmpty) {
+      // add write permission for lhs and read permission for rhs
+      write(left).read(right)
+    } else {
+      // split lhs and rhs into pairs of receivers and fields
+      val (rcvL :: fldL) = left
+      val (rcvR :: fldR) = right
+
+      // get permission trees for lhs and rhs
+      val treeL = permissions.get(rcvL)
+      val treeR = permissions.get(rcvR)
+
+      if (treeL.isEmpty) {
+        // there are no access paths to modify
+        write(left).read(right)
+      } else if (rcvR.isInstanceOf[NewObject]) {
+        // extract permission that are "transferred" to new object
+        // TODO: report that we need these permissions for the new object?
+        val (newL, _) = treeL.get.extract(fldL)
+        // update permissions and add write permission for lhs
+        copy(permissions = permissions + (rcvL -> newL)).write(left)
+      } else {
+        // update permission trees
+        // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
+        // TODO: handle updates that introduce cycles (such as a.f := a)
+        val (newL, extracted) = treeL.get.extract(fldL)
+        val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
+
+        // update and also add write permission for lhs and read permission for rhs
+        // TODO: what if rcvL == rcvR?
+        copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
+          .write(left).read(right)
+      }
+    }
+  }
 
   def copy(result: ExpressionSet = result,
            permissions: Map[Identifier, PermissionTree] = permissions,
