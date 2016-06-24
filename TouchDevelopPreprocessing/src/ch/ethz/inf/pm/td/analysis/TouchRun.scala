@@ -12,7 +12,7 @@ import java.io.{PrintWriter, StringWriter}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
-import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
+import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
@@ -39,7 +39,7 @@ object TouchEntryStateBuilder {
 }
 
 case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
-  extends EntryStateBuilder[TouchEntryStateBuilder.State] {
+  extends ForwardEntryStateBuilder[TouchEntryStateBuilder.State] {
 
   override def topState = {
 

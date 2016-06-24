@@ -926,7 +926,7 @@ case class PermissionPolyhedraState(heapNum: PointsToPolyhedraState,
   * @author Caterina Urban
   */
 trait PermissionEntryStateBuilder[N <: NumericalDomain[N],
-  T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]] extends EntryStateBuilder[S] {
+  T <: PointsToNumericalState[N,T], S <: PermissionState[N,T,S]] extends ForwardEntryStateBuilder[S] {
 
   protected var fields: Set[(Type,String)] = Set[(Type,String)]()
 

@@ -11,7 +11,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -1229,7 +1229,7 @@ case class MayPointToAPolyhedraState(fieldSet: Set[(Type, String)],
   * @tparam S the maypointto+numerical state
   * @author Caterina Urban
   */
-trait MayPointToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: MayPointToNumericalState[T,S]] extends EntryStateBuilder[S] {
+trait MayPointToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: MayPointToNumericalState[T,S]] extends ForwardEntryStateBuilder[S] {
 
   protected var fields: Set[(Type,String)] = Set[(Type,String)]()
 

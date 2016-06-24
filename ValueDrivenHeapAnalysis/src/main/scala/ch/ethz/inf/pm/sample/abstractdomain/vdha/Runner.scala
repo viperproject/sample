@@ -8,12 +8,12 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, SemanticDomain}
-import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
+import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 
 trait ValueDrivenHeapEntryStateBuilder[
 E <: SemanticDomain[E], // Edge state domain
 T <: ValueDrivenHeapState[E, T]]
-  extends EntryStateBuilder[T] {
+  extends ForwardEntryStateBuilder[T] {
 
   protected def emptyApronState: Apron.Polyhedra =
     Apron.Polyhedra.Bottom.factory()

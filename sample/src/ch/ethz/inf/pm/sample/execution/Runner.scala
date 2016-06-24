@@ -51,14 +51,29 @@ trait AnalysisRunner[S <: State[S]] {
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
 
-/** EntryState Builder. Builds analysis entry states for given method declarations.
+/** Entry State Builder. Builds analysis entry states for given method declarations.
   *
   * @tparam S the abstract state
   */
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S
+  def build(method: MethodDeclaration): S
+}
 
-  def build(method: MethodDeclaration): S = method.initializeArgument[S](topState)
+/** Forward Entry State Builder. Builds forward analysis entry states for given method declarations.
+  *
+  * @tparam S the abstract state
+  */
+trait ForwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
+  override def build(method: MethodDeclaration): S = method.initializeArgument[S](topState)
+}
+
+/** Forward Entry State Builder. Builds forward analysis entry states for given method declarations.
+  *
+  * @tparam S the abstract state
+  */
+trait BackwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
+  override def build(method: MethodDeclaration): S = ???
 }
 
 /** Analysis.
@@ -68,6 +83,14 @@ trait EntryStateBuilder[S <: State[S]] {
   */
 trait Analysis[S <: State[S]] {
   def analyze(method: MethodDeclaration): AnalysisResult[S]
+
+  def time[A](a: => A) = {
+    val now = System.nanoTime
+    val result = a
+    val micros = (System.nanoTime - now) / 1000
+    println("%d microseconds".format(micros))
+    result
+  }
 }
 
 /** Forward Analysis.
@@ -86,14 +109,6 @@ trait ForwardAnalysis[S <: State[S]] extends Analysis[S] {
       AnalysisResult(method, cfgState)
     }
   }
-
-  def time[A](a: => A) = {
-    val now = System.nanoTime
-    val result = a
-    val micros = (System.nanoTime - now) / 1000
-    println("%d microseconds".format(micros))
-    result
-  }
 }
 
 /** Backward Analysis.
@@ -110,22 +125,58 @@ trait BackwardAnalysis[S <: State[S]] extends Analysis[S] {
       AnalysisResult(method, cfgState)
     }
   }
+}
 
-  def time[A](a: => A) = {
-    val now = System.nanoTime
-    val result = a
-    val micros = (System.nanoTime - now) / 1000
-    println("%d microseconds".format(micros))
-    result
+/** Adds a previous analysis result to a state.
+  *
+  * @tparam S the state used for the previous analysis
+  * @tparam T the current state
+  */
+trait PreviousResult[S <: State[S], T <: State[T]] {
+
+  def addPreviousResult(result: TrackingCFGState[S]): T
+
+}
+
+/** Forward + Backward Analysis.
+  *
+  * @tparam S the abstract forward state
+  * @tparam T the abstract backward state
+  */
+trait ForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S, T]] extends Analysis[T] {
+
+  protected def analyze(method: MethodDeclaration, entryState: S, exitState: T): AnalysisResult[T] = {
+
+    // run the forward analysis and retrieve its result
+    val result = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+      val interpreter = TrackingForwardInterpreter[S](entryState)
+      val cfgState = interpreter.forwardExecute(method.body, entryState)
+      AnalysisResult(method, cfgState)
+    }
+    // store the result of the forward analysis in the entry state of the backward analysis
+    val exit = exitState.addPreviousResult(result.cfgState)
+    // run the backward analysis
+    SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+      val interpreter = TrackingBackwardInterpreter[T](exit)
+      val cfgState = interpreter.backwardExecute(method.body, exitState)
+      AnalysisResult(method, cfgState)
+    }
   }
+
 }
 
 /** Forward Analysis Runner with EntryStateBuilder. */
-case class SimpleForwardAnalysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) extends ForwardAnalysis[S] {
+case class SimpleForwardAnalysis[S <: State[S]](entryStateBuilder: ForwardEntryStateBuilder[S]) extends ForwardAnalysis[S] {
   def analyze(method: MethodDeclaration): AnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
 }
 
 /** Backward Analysis Runner with EntryStateBuilder. */
-case class SimpleBackwardAnalysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) extends BackwardAnalysis[S] {
+case class SimpleBackwardAnalysis[S <: State[S]](entryStateBuilder: ForwardEntryStateBuilder[S]) extends BackwardAnalysis[S] {
   def analyze(method: MethodDeclaration): AnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
+}
+
+/** Forward Backward Analysis Runner with EntryStateBuilder */
+case class SimpleForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S, T]](fwdBuilder: ForwardEntryStateBuilder[S], bwdBuilder: BackwardEntryStateBuilder[T])
+  extends ForwardBackwardAnalysis[S, T] {
+  def analyze(method: MethodDeclaration): AnalysisResult[T] = analyze(method, fwdBuilder.build(method), bwdBuilder.build(method))
 }

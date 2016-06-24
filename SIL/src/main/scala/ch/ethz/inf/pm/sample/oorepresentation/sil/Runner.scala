@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleForwardAnalysis, AnalysisRunner, ForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, AnalysisResult, SimpleForwardAnalysis, AnalysisRunner, ForwardAnalysis}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -126,7 +126,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
   * Restarts whenever predicated that specify parameters are merged.
   */
 case class PredicateAnalysis[S <: SemanticDomain[S]](
-    entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
+    entryStateBuilder: ForwardEntryStateBuilder[PredicateDrivenHeapState[S]])
   extends ForwardAnalysis[PredicateDrivenHeapState[S]] with LazyLogging {
 
   type T = PredicateDrivenHeapState[S]

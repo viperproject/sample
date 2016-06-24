@@ -11,7 +11,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -1121,7 +1121,7 @@ case class PointsToPolyhedraState(exprSet: ExpressionSet,
   * @tparam S the pointsto+numerical state
   * @author Caterina Urban
   */
-trait PointsToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: PointsToNumericalState[T,S]] extends EntryStateBuilder[S] {
+trait PointsToNumericalEntryStateBuilder[T <: NumericalDomain[T], S <: PointsToNumericalState[T,S]] extends ForwardEntryStateBuilder[S] {
 
   protected var fields: Set[(Type,String)] = Set[(Type,String)]()
 

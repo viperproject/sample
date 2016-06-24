@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, AnalysisResult}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.ProgramPoint
 import viper.silver.{ast => sil}
 
 /** Silver Specification
@@ -97,9 +98,9 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
 
     case stmt: sil.While =>
       // retrieve the position of the loop head
-      val pos = DefaultSilverConverter.convert(stmt.cond.pos)
+      val pos: ProgramPoint = DefaultSilverConverter.convert(stmt.cond.pos)
       // retrieve the block index and the statement index within the block of the loop head
-      val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
+      val cfgPositions: List[CFGPosition] = cfgState.cfg.nodes.zipWithIndex.flatMap({
         case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
           case (stmt, stmtIdx) =>
             if (stmt.getPC() == pos) Some(CFGPosition(blockIdx, stmtIdx)) else None

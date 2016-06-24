@@ -921,7 +921,7 @@ case class AccessPolyhedraState(heapNum: MayPointToAPolyhedraState, nodeToSym: M
   * @author Caterina Urban
   */
 trait AccessPermissionEntryStateBuilder[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T],
-  S <: AccessPermissionState[N,T,S]] extends EntryStateBuilder[S] {
+  S <: AccessPermissionState[N,T,S]] extends ForwardEntryStateBuilder[S] {
 
   protected var fields: Set[(Type,String)] = Set[(Type,String)]()
 

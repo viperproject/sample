@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, SimpleBackwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleBackwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import com.typesafe.scalalogging.LazyLogging
@@ -900,7 +900,7 @@ trait BackwardPermissionRunner[S <: BackwardPermissionState[S]] extends SilverAn
   *
   * @author Caterina Urban
   */
-object BackwardPermissionEntryStateBuilder extends EntryStateBuilder[BackwardPermissionState.Default] {
+object BackwardPermissionEntryStateBuilder extends ForwardEntryStateBuilder[BackwardPermissionState.Default] {
   override def topState: BackwardPermissionState.Default = BackwardPermissionState.Default()
 }
 
