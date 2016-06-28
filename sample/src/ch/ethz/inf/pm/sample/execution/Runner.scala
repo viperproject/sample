@@ -7,8 +7,9 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, Compiler}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import java.nio.file.Path
+
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StringCollector, SystemParameters}
 import java.io.File
 
@@ -135,6 +136,42 @@ trait BackwardAnalysis[S <: State[S]] extends Analysis[S] {
 trait PreviousResult[S <: State[S], T <: State[T]] {
 
   def addPreviousResult(result: TrackingCFGState[S]): T
+
+  private def positionFromPP(cfg: ControlFlowGraph, pp: ProgramPoint): Option[CFGPosition] = {
+    var blockIdx = 0
+    for (block: List[Statement]  <- cfg.nodes) {
+      var stmtIdx = 0
+      for (stmt: Statement <- block) {
+        if (stmt.getPC() == pp)
+          return Some(CFGPosition(blockIdx, stmtIdx))
+        stmtIdx = stmtIdx + 1
+      }
+      blockIdx = blockIdx + 1
+    }; None
+  }
+
+  def preStateAtPP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
+    // retrieve the position in the control flow graph corresponding to the program point
+    val position: CFGPosition = positionFromPP(result.cfg, pp).get
+    // retrieve the result of the analysis before the program point
+    result.preStateAt(position)
+  }
+
+  def postStateAtPP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
+    // retrieve the position in the control flow graph corresponding to the program point
+    val position: CFGPosition = positionFromPP(result.cfg, pp).get
+    // retrieve the result of the analysis after the program point
+    result.postStateAt(position)
+  }
+
+  def preStateBeforePP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
+    // retrieve the position in the control flow graph corresponding to the program point
+    val position: CFGPosition = positionFromPP(result.cfg, pp).get
+    // retrieve the position in the control flow graph corresponding to the previous program point
+    val previous: CFGPosition = CFGPosition(position.blockIdx, position.stmtIdx - 1)
+    // retrieve the result of the analysis before the previous program point
+    result.postStateAt(previous)
+  }
 
 }
 
