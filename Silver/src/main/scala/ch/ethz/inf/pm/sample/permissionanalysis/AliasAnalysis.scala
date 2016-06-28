@@ -57,6 +57,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     with LazyLogging {
   this: T =>
 
+  type AccessPath = List[Identifier]
+
   // set of fields declared in the program
   def fields: Set[(Type, String)]
 
@@ -549,7 +551,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param path the object fields path to evaluate
     * @return the set of objects referenced by the path (except the last field)
     */
-  def evaluatePath(path: List[Identifier]) : Set[HeapNode] = {
+  def evaluatePath(path: AccessPath) : Set[HeapNode] = {
     val first = store(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
     val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
@@ -902,6 +904,16 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     // return the current state with updated result, store, heap
     copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = false, result = expr, store = storeMap,
       heap = heapMap, isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
+  }
+
+  /**
+    * Returns whether the specified access paths may alias.
+    * @param first the first access path
+    * @param second the second access path
+    */
+  def mayAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val intersection = evaluatePath(first) intersect evaluatePath(second)
+    intersection.nonEmpty
   }
 }
 
