@@ -8,7 +8,12 @@ package ch.ethz.inf.pm.sample.oorepresentation
 
 object ProgramPointUtils {
   implicit val programPointOrdering = new Ordering[ProgramPoint] {
-    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.toString.compare(p2.toString)
+    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = (p1,p2) match {
+      case (p1: LineColumnProgramPoint, p2:LineColumnProgramPoint) =>
+        assert ((p1.getLine compare p2.getLine) == 0)
+        p1.getColumn compare p2.getColumn
+      case _ => p1.toString.compare(p2.toString)
+    }
   }
 
   /**
