@@ -1148,7 +1148,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     *
     * @return The abstract state after removing the current expression
     */
-  override def removeExpression(): T = this
+  override def removeExpression(): T = ???
 
   /** Throws an exception.
     *
@@ -1168,7 +1168,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant
     */
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = this
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = ???
 
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
@@ -1183,7 +1183,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
   override def pruneUnreachableHeap(): T = ???
 
   /** Returns the current expression. */
-  override def expr: ExpressionSet = ExpressionSet()
+  override def expr: ExpressionSet = ???
 
   /** Creates an object
     *
@@ -1198,7 +1198,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one
     */
-  override def setExpression(expr: ExpressionSet): T = this
+  override def setExpression(expr: ExpressionSet): T = ???
 
   /** Gets the value of a variable.
     *
@@ -1206,13 +1206,13 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable
     */
-  override def getVariableValue(id: Identifier): T = this
+  override def getVariableValue(id: Identifier): T = ???
 
   /** Returns the bottom value of the lattice.
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): T = this
+  override def bottom(): T = ???
 
   /** Computes the widening of two elements.
     *
@@ -1226,7 +1226,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other`
     */
-  override def lessEqual(other: T): Boolean = false
+  override def lessEqual(other: T): Boolean = ???
 
   /** Returns the top value of the lattice.
     *
@@ -1240,7 +1240,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments
     */
-  override def lub(other: T): T = other
+  override def lub(other: T): T = ???
 
   /** Returns a new instance of the lattice.
     *
@@ -1260,7 +1260,7 @@ trait AttemptState[A <: AliasAnalysisState[A], T <: AttemptState[A,T]]
     *
     * @return bottom
     */
-  override def isBottom: Boolean = false
+  override def isBottom: Boolean = ???
 
   /** Checks whether the given domain element is equivalent to top.
     *

@@ -73,7 +73,7 @@ trait ForwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
   * @tparam S the abstract state
   */
 trait BackwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
-  override def build(method: MethodDeclaration): S = ???
+  override def build(method: MethodDeclaration): S = topState
 }
 
 /** Analysis.
