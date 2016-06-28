@@ -135,6 +135,11 @@ trait BackwardAnalysis[S <: State[S]] extends Analysis[S] {
   */
 trait PreviousResult[S <: State[S], T <: State[T]] {
 
+  /** Adds to the current state the result of a previous analysis
+    *
+    * @param result control flow graph storing the analysis result
+    * @return the current state updated with the previous analysis result
+    */
   def addPreviousResult(result: TrackingCFGState[S]): T
 
   private def positionFromPP(cfg: ControlFlowGraph, pp: ProgramPoint): Option[CFGPosition] = {
@@ -150,6 +155,15 @@ trait PreviousResult[S <: State[S], T <: State[T]] {
     }; None
   }
 
+  /** Retrieves the result of an analysis before a given program point.
+    *
+    * @param result control flow graph storing the analysis result
+    * @param pp given program point
+    * @return the state before the given program point
+    *   state <-- returned state
+    * pp: <-- given program point
+    *   state
+    */
   def preStateAtPP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
     // retrieve the position in the control flow graph corresponding to the program point
     val position: CFGPosition = positionFromPP(result.cfg, pp).get
@@ -157,6 +171,15 @@ trait PreviousResult[S <: State[S], T <: State[T]] {
     result.preStateAt(position)
   }
 
+  /** Retrieves the result of an analysis after a given program point.
+    *
+    * @param result control flow graph storing the analysis result
+    * @param pp given program point
+    * @return the state after the given program point
+    *   state
+    * pp: <-- given program point
+    *   state <-- returned state
+    */
   def postStateAtPP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
     // retrieve the position in the control flow graph corresponding to the program point
     val position: CFGPosition = positionFromPP(result.cfg, pp).get
@@ -164,6 +187,17 @@ trait PreviousResult[S <: State[S], T <: State[T]] {
     result.postStateAt(position)
   }
 
+  /** Retrieves the result of an analysis after a given program point.
+    *
+    * @param result control flow graph storing the analysis result
+    * @param pp given program point
+    * @return the state after the given program point
+    *   state <-- returned state
+    * pp:
+    *   state
+    * pp: <-- given program point
+    *   state
+    */
   def preStateBeforePP(result: TrackingCFGState[S], pp: ProgramPoint): S = {
     // retrieve the position in the control flow graph corresponding to the program point
     val position: CFGPosition = positionFromPP(result.cfg, pp).get
