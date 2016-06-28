@@ -1,9 +1,11 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
 import com.typesafe.scalalogging.LazyLogging
 
@@ -51,7 +53,7 @@ case class Permission(amount: Double) {
     *
     * @param other the other permission
     */
-  def lessThan(other: Permission): Boolean =
+  def lessEqual(other: Permission): Boolean =
     amount < other.amount
 
   override def toString: String =
@@ -127,12 +129,12 @@ case class PermissionTree(permission: Permission = Permission.none,
     *
     * @param other the other permission
     */
-  def lessThan(other: PermissionTree): Boolean = {
-    if (permission lessThan other.permission) {
+  def lessEqual(other: PermissionTree): Boolean = {
+    if (permission lessEqual other.permission) {
       // check for all subtrees whether other has a corresponding subtree that has at least as much permission
       children.forall {
         case (id, subtree) => other.children.get(id) match {
-          case Some(existing) => subtree lessThan existing
+          case Some(existing) => subtree lessEqual existing
           case None => false
         }
 
@@ -260,7 +262,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   type AccessPath = List[Identifier]
 
-  val context: Option[TrackingCFGState[A]]
+  // current program point
+  def currentPP: ProgramPoint
+
+  // result of the alias analysis
+  def context: Option[TrackingCFGState[A]]
 
   // result of the previous statement
   def result: ExpressionSet
@@ -268,8 +274,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // permission trees for all variables
   def permissions: Map[Identifier, PermissionTree]
 
-  override def addPreviousResult(result: TrackingCFGState[A]): T =
+  override def addPreviousResult(result: TrackingCFGState[A]): T = {
     copy(context = Some(result))
+  }
 
   /** Exhales permissions.
     *
@@ -278,28 +285,21 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission
     */
-  override def exhale(acc: Expression): T =    acc match {
-    case PermissionExpression(id, n, d) =>
-
-      val aliases: AliasAnalysisState[A] = ???
-
+  override def exhale(acc: Expression): T = acc match {
+    case PermissionExpression(identifier, numerator, denominator) =>
+      // get access path
+      val access = path(identifier)
       // get the amount of permission that is exhaled
-      val exhaled: Permission = (n, d) match {
-        case (Constant(nValue, _, _), Constant(dValue, _ , _)) =>
-          val amount = nValue.toDouble / dValue.toDouble
-          Permission(amount)
-        case _ => ???
-      }
+      val exhaled = permission(numerator, denominator)
+      // get alias analysis state
+      val aliases = preStateBeforePP(context.get, currentPP)
 
-      // TODO
-      val isAffected: AccessPath => Boolean = ???
-
-      // subtract permission form all paths that alias
+      // subtract permission form all paths that may alias
       map { (path, permission) =>
-        if (isAffected(path)) permission minus exhaled
+        if (aliases.mayAlias(path, access)) permission minus exhaled
         else permission
       }
-    case _ => throw new IllegalArgumentException("An exhale must occur via a PermissionExpression.")
+    case _ => throw new IllegalArgumentException("An exhale must occur via a permission expression.")
   }
 
   /** Inhales permissions.
@@ -309,7 +309,22 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission
     */
-  override def inhale(acc: Expression): T = ???
+  override def inhale(acc: Expression): T = acc match {
+    case PermissionExpression(identifier, numerator, denominator) => {
+      // get access path
+      val access = path(identifier)
+      // get the amount of permission that is inhaled
+      val inhaled = permission(numerator, denominator)
+
+      // add permission to all paths that must alias
+      // TODO: incorporate must alias analysis
+      map { (path, permission) =>
+        if (path == access) permission plus inhaled
+        else permission
+      }
+    }
+    case _ => throw new IllegalArgumentException("An inhale must occur via a permission expression.")
+  }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -472,7 +487,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def before(pp: ProgramPoint): T = {
     logger.trace("before")
-    this
+    copy(currentPP = pp)
   }
 
   /** Performs abstract garbage collection. */
@@ -523,7 +538,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def bottom(): T = {
     logger.trace("bottom")
-    copy(result = result.bottom(), permissions = Map.empty)
+    copy(result = result.bottom(), permissions = Map.empty, isBottom = true)
   }
 
   /** Computes the widening of two elements.
@@ -544,10 +559,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def lessEqual(other: T): Boolean = {
     logger.trace("lessEqual")
     // compute whether this needs less permissions than other
-    permissions.forall {
+    if (isBottom || other.isTop) true
+    else if (other.isBottom || isTop) false
+    else permissions.forall {
       case (id, tree) => other.permissions.get(id) match {
-        case Some(existing) => tree lessThan existing
-        case None => tree lessThan PermissionTree()
+        case Some(existing) => tree lessEqual existing
+        case None => tree lessEqual PermissionTree()
       }
     }
   }
@@ -607,30 +624,37 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     copy(permissions = newPermissions)
   }
 
-  /** Checks whether the given domain element is equivalent to bottom.
-    *
-    * @return bottom
-    */
-  override def isBottom: Boolean = {
-    logger.trace("isBottom")
-    false
-  }
-
-  /** Checks whether the given domain element is equivalent to top.
-    *
-    * @return bottom
-    */
-  override def isTop: Boolean = {
-    logger.trace("isTop")
-    false
-  }
-
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS
    */
 
   /**
-    * Adds read permissino for the specified path. If the permission is already
+    * Extracts the path from an expression.
+    *
+    * @param expression the expression to extract the path from
+    */
+  private def path(expression: Expression): AccessPath = expression match {
+    case AccessPathIdentifier(path) => path
+    case _ => throw new IllegalArgumentException("Expected an access path identifier")
+  }
+
+  /**
+    * Returns a permission where the amount corresponds to the fraction
+    * represented by the specified numerator and denominator.
+ *
+    * @param numerator the numerator of the fraction
+    * @param denominator the denominator of the fraction
+    */
+  private def permission(numerator: Expression, denominator: Expression): Permission =
+    (numerator, denominator) match {
+      case (Constant(nValue, _, _), Constant(dValue, _, _)) =>
+        val amount = nValue.toDouble / dValue.toDouble
+        Permission(amount)
+      case _ => ??? // TODO: support more cases
+    }
+
+  /**
+    * Adds read permission for the specified path. If the permission is already
     * there nothing happens.
     *
     * @param path the path to add the permission for
@@ -722,21 +746,30 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     copy(permissions = newPermissions)
   }
 
-  def copy(context: Option[TrackingCFGState[A]] = context,
+  def copy(currentPP: ProgramPoint = currentPP,
+           context: Option[TrackingCFGState[A]] = context,
            result: ExpressionSet = result,
-           permissions: Map[Identifier, PermissionTree] = permissions): T
+           permissions: Map[Identifier, PermissionTree] = permissions,
+           isBottom: Boolean = isBottom,
+           isTop: Boolean = isTop): T
 }
 
 object PermissionAnalysisState {
-  case class Default(context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
+  case class Default(currentPP: ProgramPoint = DummyProgramPoint,
+                     context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
                      result: ExpressionSet = ExpressionSet(),
-                     permissions: Map[Identifier, PermissionTree] = Map.empty)
+                     permissions: Map[Identifier, PermissionTree] = Map.empty,
+                     isBottom: Boolean = false,
+                     isTop: Boolean = false)
     extends PermissionAnalysisState[Default, AliasAnalysisState.Default] {
 
-    override def copy(context: Option[TrackingCFGState[AliasAnalysisState.Default]],
+    override def copy(currentPP: ProgramPoint,
+                      context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
-                      permissions: Map[Identifier,PermissionTree] ): Default =
-      Default(context, result, permissions)
+                      permissions: Map[Identifier,PermissionTree],
+                      isBottom: Boolean,
+                      isTop: Boolean): Default =
+      Default(currentPP, context, result, permissions, isBottom, isTop)
   }
 }
 
@@ -745,7 +778,45 @@ object PermissionAnalysisEntryState extends BackwardEntryStateBuilder[Permission
 }
 
 trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverAnalysisRunner[T] {
+  override def main(args: Array[String]) {
+    val results = run(new File(args(0)).toPath)
 
+    println("\n*******************\n* Analysis Result *\n*******************\n")
+    // map of method names to control flow graphs
+    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
+    for ((m, g) <- methodNameToCfgState) {
+      println("******************* " + m + "\n")
+
+      println(g.entryState()) // printing the entry state of the control-flow graph
+
+      val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
+      // withing each block...
+      var i = 0
+      for (stmts: List[Statement] <- blocks) {
+        if (stmts.isEmpty) {
+          val states: List[T] = g.blockStates(i).last // post-states of each statement
+          for (s <- states) {
+            println("\n******************* \n")
+            println(s)
+          }
+        } else {
+          // printing the block pre-state
+          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
+          println(g.blockStates(i).last.head)
+          val states: List[T] = g.blockStates(i).last.drop(1) // post-states of each statement
+          // print statements and corresponding post-states
+          for ((c: Statement, s) <- stmts zip states) {
+            println("\n******************* " + c + "\n")
+            println(s)
+          }
+        }
+        i = i + 1
+      }
+
+      println("\n******************* \n")
+      println(g.exitState()) // printing the exit state of the control-flow graph
+    }
+  }
 }
 
 object PermissionAnalysis extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {

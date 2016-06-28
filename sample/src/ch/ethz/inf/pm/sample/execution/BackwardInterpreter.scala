@@ -66,7 +66,8 @@ trait BackwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging
     var nextState: S = exitState // initial next state
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) { // for each statement (in reverse order)...
       newStates = nextState +: newStates // prepend the next state to the list of new states
-      val prevState: S = stmt.backwardSemantics(nextState) // compute the previous state
+      val tempState = nextState.before(ProgramPointUtils.identifyingPP(stmt))
+      val prevState: S = stmt.backwardSemantics(tempState) // compute the previous state
       logger.trace(nextState.toString)
       logger.trace(stmt.toString)
       logger.trace(prevState.toString)

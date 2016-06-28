@@ -628,7 +628,7 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
   *
   * @param id the identifier for which we inhale/exhale permissions
   * @param n the numerator of the inhaled/exhaled permission
-  * @param d the denumerator of the inhaled/exhaled permission
+  * @param d the denominator of the inhaled/exhaled permission
   * @author Caterina Urban
   */
 case class PermissionExpression(id: Expression, n: Expression, d: Expression) extends Expression {

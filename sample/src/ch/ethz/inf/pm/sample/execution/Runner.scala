@@ -229,7 +229,7 @@ trait ForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S
     // run the backward analysis
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingBackwardInterpreter[T](exit)
-      val cfgState = interpreter.backwardExecute(method.body, exitState)
+      val cfgState = interpreter.backwardExecute(method.body, exit)
       AnalysisResult(method, cfgState)
     }
   }
