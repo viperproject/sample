@@ -4,10 +4,11 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.{ast => sil}
 
 /**
   * Placeholder for permissions.
@@ -255,7 +256,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
-  extends SimplePermissionState[T] with PreviousResult[A, T]
+  extends SimplePermissionState[T] with PreviousResult[A, T] with SilverSpecification
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
@@ -277,6 +278,24 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def addPreviousResult(result: TrackingCFGState[A]): T = {
     copy(context = Some(result))
   }
+
+  /** Generates a Silver precondition from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def precondition(): Seq[sil.Exp] = Seq[sil.Exp]()
+
+  /** Generates a Silver invariant from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def invariant(): Seq[sil.Exp] = Seq[sil.Exp]()
+
+  /** Generates a Silver postcondition from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
 
   /** Exhales permissions.
     *
@@ -777,7 +796,7 @@ object PermissionAnalysisEntryState extends BackwardEntryStateBuilder[Permission
   override def topState: PermissionAnalysisState.Default = PermissionAnalysisState.Default()
 }
 
-trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverAnalysisRunner[T] {
+trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverAnalysisRunner[T] {
   override def main(args: Array[String]) {
     val results = run(new File(args(0)).toPath)
 
@@ -818,6 +837,14 @@ trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalys
     }
   }
 }
+
+object DebugPermissionAnalysis extends DebugPermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
+  override val analysis =
+    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default,PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  override def toString = "Permission Analysis"
+}
+
+trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverInferenceRunner[T]
 
 object PermissionAnalysis extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
   override val analysis =
