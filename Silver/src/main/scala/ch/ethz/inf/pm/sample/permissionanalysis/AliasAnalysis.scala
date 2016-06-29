@@ -577,8 +577,17 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         acc.id match {
           case AccessPathIdentifier(path) =>
             val obj = evaluatePath(path) // set of (path) receivers
-          val heapMap = obj.foldLeft(heap) {
-              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> heap.keySet)))
+            var heapMap = if (!heap.contains(SummaryHeapNode)) {
+              var fieldMap = Map.empty[String,Set[HeapNode]]
+              for (f <- fields) { // for all fields declared within the program...
+                f._1 match {
+                  case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
+                }
+              }
+              heap + (SummaryHeapNode -> fieldMap) // add summary node to heap map
+            } else { heap }
+            heapMap = obj.foldLeft(heapMap) {
+              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> heapMap.keySet)))
             } // havoc the heap pointed to by the path
             copy(heap = heapMap).pruneUnreachableHeap()
           case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
