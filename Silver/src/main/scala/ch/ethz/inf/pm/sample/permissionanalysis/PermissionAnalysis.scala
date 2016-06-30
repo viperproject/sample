@@ -58,6 +58,8 @@ case class Permission(amount: Double) {
 
   override def toString: String =
     if (amount == 0.0) "none"
+    else if (amount == 0.1) "read"
+    else if (amount == 1.0) "write"
     else s"$amount"
 }
 
@@ -207,7 +209,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * the variable the tree corresponds to
     *
     * @param path the current access path
-    * @param f the function to apply to all permissions in the tree
+    * @param f    the function to apply to all permissions in the tree
     */
   def map(path: AccessPath, f: (AccessPath, Permission) => Permission): PermissionTree = {
     val newPermission = f(path, permission)
@@ -216,6 +218,16 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
     PermissionTree(newPermission, newChildren)
   }
+
+  /**
+    * Returns a list of all permissions stored in the tree.
+    */
+  def tuples: List[(AccessPath, Permission)] =
+    List((Nil, permission)) ++ children.flatMap {
+      case (identifier, child) => child.tuples.map {
+        case (path, permission) => (identifier :: path, permission)
+      }
+    }
 }
 
 /**
@@ -843,7 +855,21 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
-  override def toString: String = "PermissionAnalysisState"
+  override def toString: String = s"PermissionAnalysisState(" +
+    s"\n\tresult: $result" +
+    s"\n\tpermissions: ${
+      val strings = permissions.flatMap { case(id, tree) =>
+        tree.tuples.filter { case (_, permission) =>
+          permission.amount > 0
+        }.map { case (fields, permission) =>
+          val path = id :: fields
+          path.map(_.toString).reduce(_ + "." + _) + " " + permission
+        }
+      }
+      if (strings.isEmpty) "none"
+      else strings.reduce(_ + " " + _)
+    }" +
+    s"\n)"
 }
 
 object PermissionAnalysisState {
