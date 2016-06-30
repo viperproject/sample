@@ -963,11 +963,9 @@ trait AliasAnalysisEntryStateBuilder[T <: AliasAnalysisState[T]] extends Forward
       fields = fields + ((f.typ, f.variable.toString))
     }
     // prepare the initial heap map
-    var fieldMap = Map.empty[String,Set[HeapNode]]
-    for (f <- fields) { // for all fields declared within the program...
-      f._1 match {
-        case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
-      }
+    val fieldMap = fields.foldLeft(Map.empty[String,Set[HeapNode]]) {
+      case (map, (_: RefType, field)) => map + (field -> Set(SummaryHeapNode, NullHeapNode))
+      case (map, _) => map
     }
     val heapMap = Map[HeapNode, Map[String, Set[HeapNode]]](SummaryHeapNode -> fieldMap) // add key to heap map
     // initialize the entry state
