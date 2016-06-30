@@ -6,7 +6,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -318,7 +317,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         if (aliases.mayAlias(path, access)) permission minus exhaled
         else permission
       }
-    case _ => throw new IllegalArgumentException("An exhale must occur via a permission expression.")
+    case _ =>
+      // assert
+      val asserted = setExpression(ExpressionSet(acc))
+      assert(asserted.testFalse() lessEqual bottom())
+      assume(acc)
   }
 
   /** Inhales permissions.
@@ -336,13 +339,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       val inhaled = permission(numerator, denominator)
 
       // add permission to all paths that must alias
-      // TODO: incorporate must alias analysis
+      // TODO: incorporate must alias analysis (current implementation is sound but not precise)
       map { (path, permission) =>
         if (path == access) permission plus inhaled
         else permission
       }
     }
-    case _ => throw new IllegalArgumentException("An inhale must occur via a permission expression.")
+    case _ => assume(acc)
   }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
@@ -404,10 +407,14 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param cond The assumed expression
+    * @param condition The assumed expression
     * @return The abstract state after assuming that the expression holds
     */
-  override def assume(cond: Expression): T = ???
+  override def assume(condition: Expression): T = {
+    logger.trace("assume")
+    // add read permissions for all access paths appearing in the condition
+    read(condition)
+  }
 
   /** Creates a variable given a `VariableIdentifier`.
     *
@@ -434,7 +441,26 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param right The assigned expression
     * @return The abstract state after the assignment
     */
-  override def assignVariable(left: Expression, right: Expression): T = ???
+  override def assignVariable(left: Expression, right: Expression): T = {
+    logger.trace("assignVariable")
+    left match {
+      case variable: VariableIdentifier =>
+        // check whether assigned variable is a reference
+        if (variable.typ.isObject) {
+          // case 1: the assigned variable is a reference
+          // get access paths corresponding to lhs and rhs
+          val leftPath = path(left)
+          val rightPath = path(right)
+          // assign rhs path to lhs path
+          assign(leftPath, rightPath)
+        } else {
+          // case 2: assigned variable is not a reference
+          // add read permission for all access paths appearing in rhs
+          read(right)
+        }
+      case _ => throw new IllegalArgumentException("A variable assignment must occur via a variable identifier.")
+    }
+  }
 
   /** Forgets the value of a variable.
     *
@@ -454,7 +480,25 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param right the assigned expression
     * @return the abstract state after the assignment
     */
-  override def assignField(obj: Expression, field: String, right: Expression): T = ???
+  override def assignField(obj: Expression, field: String, right: Expression): T = {
+    logger.trace("assignField")
+    obj match {
+      case AccessPathIdentifier(leftPath) =>
+        // check whether lhs is a reference
+        if (obj.typ.isObject) {
+          // case 1: the assigned field is a reference
+          // get access paths corresponding to rhs
+          val rightPath = path(right)
+          // TODO: incorporate may alias analysis (current implementation is unsound)
+          assign(leftPath, rightPath)
+        } else {
+          // case 2: the assigned field is not a reference
+          // add write permission for lhs and write permission for all access paths on rhs
+          write(leftPath).read(right)
+        }
+      case _ => throw new IllegalArgumentException("A field assignment must occur via an access path identifier.")
+    }
+  }
 
   /** Assigns an expression to an argument.
     *
@@ -462,7 +506,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param right The expression to be assigned
     * @return The abstract state after the assignment
     */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ??? // ignore
 
   /** Removes the current expression.
     *
@@ -478,10 +522,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param t The thrown exception
     * @return The abstract state after the thrown
     */
-  override def throws(t: ExpressionSet): T = ???
+  override def throws(t: ExpressionSet): T = ??? // ignore
 
   /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ??? // ignore
 
   /** Evaluates a numerical constant.
     *
@@ -510,7 +554,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   }
 
   /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): T = ???
+  override def pruneUnreachableHeap(): T = ??? // ignore
 
   /** Returns the current expression. */
   override def expr: ExpressionSet = {
@@ -557,7 +601,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def bottom(): T = {
     logger.trace("bottom")
-    copy(result = result.bottom(), permissions = Map.empty, isBottom = true)
+    copy(result = result.bottom(),
+      permissions = Map.empty,
+      isBottom = true,
+      isTop = false)
   }
 
   /** Computes the widening of two elements.
@@ -577,9 +624,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def lessEqual(other: T): Boolean = {
     logger.trace("lessEqual")
-    // compute whether this needs less permissions than other
+    // handle cases involving bottom and top
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
+    // compute whether this needs less permissions than other
     else permissions.forall {
       case (id, tree) => other.permissions.get(id) match {
         case Some(existing) => tree lessEqual existing
@@ -592,7 +640,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): T = ???
+  override def top(): T ={
+    logger.trace("top")
+    copy(result = result.top(),
+      permissions = Map.empty,
+      isBottom = false,
+      isTop = true)
+  }
 
   /** Computes the least upper bound of two elements.
     *
@@ -653,6 +707,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param expression the expression to extract the path from
     */
   private def path(expression: Expression): AccessPath = expression match {
+    case _: Constant => Nil
+    case id: VariableIdentifier => List(id)
+    case obj: NewObject => List(obj)
     case AccessPathIdentifier(path) => path
     case _ => throw new IllegalArgumentException("Expected an access path identifier")
   }
@@ -670,6 +727,20 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val amount = nValue.toDouble / dValue.toDouble
         Permission(amount)
       case _ => ??? // TODO: support more cases
+    }
+
+  /**
+    * Adds read permission for all access paths appearing in the specified
+    * expression.
+    *
+    * @param expression the expression to add read permission for
+    */
+  private def read(expression: Expression): T =
+    expression.ids.getNonTop.foldLeft(this) {
+      case (result, identifier) => identifier match {
+        case AccessPathIdentifier(path) => result.read(path) // read permission for path
+        case _: VariableIdentifier => result // no permission needed
+      }
     }
 
   /**
@@ -771,6 +842,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
            permissions: Map[Identifier, PermissionTree] = permissions,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
+
+  override def toString: String = "PermissionAnalysisState"
 }
 
 object PermissionAnalysisState {
