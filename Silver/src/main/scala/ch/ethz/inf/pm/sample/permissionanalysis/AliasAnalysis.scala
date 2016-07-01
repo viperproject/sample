@@ -920,7 +920,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param second the second access path
     */
   def mayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val intersection = evaluatePath(first) intersect evaluatePath(second)
+    val intersection = (evaluatePath(first) intersect evaluatePath(second)) diff Set(NullHeapNode)
     intersection.nonEmpty
   }
 }

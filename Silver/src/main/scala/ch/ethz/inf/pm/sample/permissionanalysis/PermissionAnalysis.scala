@@ -220,7 +220,35 @@ case class PermissionTree(permission: Permission = Permission.none,
   }
 
   /**
-    * Returns a list of all permissions stored in the tree.
+    * Returns a list of all access paths stored in the tree. The access paths
+    * are extended with the specified identifier as the receiver.
+    * @param identifier the identifier representing the receiver
+    */
+  def paths(identifier: Identifier): List[AccessPath] =
+    paths.map(identifier :: _)
+
+  /**
+    * Returns a list of all access paths stored in the tree. The access paths do
+    * not include the receiver.
+    */
+  def paths: List[AccessPath] =
+    List(Nil) ++ children.flatMap {
+      case (identifier, child) => child.paths.map(identifier :: _)
+    }
+
+  /**
+    * Returns a list of all permissions stored in the tree. The permissions are
+    * represented as tuples of access paths and an amount of permission. The
+    * access paths are extended with the specified identifier as the receiver.
+    * @param identifier the identifier representing the receiver
+    */
+  def tuples(identifier: Identifier): List[(AccessPath, Permission)] =
+    tuples.map { case (fields, permission) => (identifier :: fields, permission) }
+
+  /**
+    * Returns a list of all permissions stored in the tree. The permissions are
+    * represented as tuples of access paths and an amount of permission. The
+    * access paths do not include the receiver.
     */
   def tuples: List[(AccessPath, Permission)] =
     List((Nil, permission)) ++ children.flatMap {
@@ -464,7 +492,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           val leftPath = path(left)
           val rightPath = path(right)
           // assign rhs path to lhs path
-          assign(leftPath, rightPath)
+          assign(leftPath, rightPath).write(leftPath).read(rightPath)
         } else {
           // case 2: assigned variable is not a reference
           // add read permission for all access paths appearing in rhs
@@ -501,8 +529,24 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           // case 1: the assigned field is a reference
           // get access paths corresponding to rhs
           val rightPath = path(right)
-          // TODO: incorporate may alias analysis (current implementation is unsound)
-          assign(leftPath, rightPath)
+
+          // get alias analysis state
+          val aliases = preStateBeforePP(context.get, currentPP)
+
+          // TODO: handle assignments introducing cycles (e.g. a.f := a)
+          val accessPaths = paths
+          val assigned = accessPaths.foldLeft(assign(leftPath, rightPath)) {
+            case (res, path) =>
+              if (path == leftPath)
+                // this case was taken care of earlier
+                res
+              else if (path.last == leftPath.last && aliases.mayAlias(path, leftPath))
+                // TODO: lub is not necessary if paths must alias
+                res lub res.assign(path, rightPath)
+              else
+                res
+          }
+          return assigned.write(leftPath).read(rightPath)
         } else {
           // case 2: the assigned field is not a reference
           // add write permission for lhs and write permission for all access paths on rhs
@@ -800,10 +844,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   }
 
   private def assign(left: List[Identifier], right: List[Identifier]): T = {
-    if (left.isEmpty || right.isEmpty) {
-      // add write permission for lhs and read permission for rhs
-      write(left).read(right)
-    } else {
+    if (left.isEmpty || right.isEmpty) this
+    else {
       // split lhs and rhs into pairs of receivers and fields
       val (rcvL :: fldL) = left
       val (rcvR :: fldR) = right
@@ -812,15 +854,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       val treeL = permissions.get(rcvL)
       val treeR = permissions.get(rcvR)
 
-      if (treeL.isEmpty) {
-        // there are no access paths to modify
-        write(left).read(right)
-      } else if (rcvR.isInstanceOf[NewObject]) {
+      if (treeL.isEmpty) this // there are no access paths to modify
+      else if (rcvR.isInstanceOf[NewObject]) {
         // extract permission that are "transferred" to new object
         // TODO: report that we need these permissions for the new object?
         val (newL, _) = treeL.get.extract(fldL)
-        // update permissions and add write permission for lhs
-        copy(permissions = permissions + (rcvL -> newL)).write(left)
+        // update permissions
+        copy(permissions = permissions + (rcvL -> newL))
       } else {
         // update permission trees
         // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
@@ -828,10 +868,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val (newL, extracted) = treeL.get.extract(fldL)
         val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
 
-        // update and also add write permission for lhs and read permission for rhs
         // TODO: what if rcvL == rcvR?
         copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
-          .write(left).read(right)
       }
     }
   }
@@ -848,6 +886,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     copy(permissions = newPermissions)
   }
 
+  def paths: List[AccessPath] =
+    permissions.flatMap { case (identifier, tree) => tree.paths(identifier) }.toList
+
+  def tuples: List[(AccessPath, Permission)] =
+    permissions.flatMap { case (identifier, tree) => tree.tuples(identifier) }.toList
+
   def copy(currentPP: ProgramPoint = currentPP,
            context: Option[TrackingCFGState[A]] = context,
            result: ExpressionSet = result,
@@ -858,16 +902,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def toString: String = s"PermissionAnalysisState(" +
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
-      val strings = permissions.flatMap { case(id, tree) =>
-        tree.tuples.filter { case (_, permission) =>
-          permission.amount > 0
-        }.map { case (fields, permission) =>
-          val path = id :: fields
-          path.map(_.toString).reduce(_ + "." + _) + " " + permission
-        }
+      val strings = tuples.filter { case (_, permission) =>
+        permission.amount > 0
+      }.map { case (path, permission) =>
+        path.map(_.toString).reduce(_ + "." + _) + " " + permission
       }
       if (strings.isEmpty) "none"
-      else strings.reduce(_ + " " + _)
+      else strings.reduce(_ + ", " + _)
     }" +
     s"\n)"
 }
