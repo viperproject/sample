@@ -1101,8 +1101,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param second the second access path
     */
   def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val evalFirst = mustEvaluateReceiver(first) - NullHeapNode
-    val evalSecond = mustEvaluateReceiver(second) - NullHeapNode
+    val evalFirst = mayEvaluateReceiver(first) - NullHeapNode //TODO: mustEvaluateReceiver
+    val evalSecond = mayEvaluateReceiver(second) - NullHeapNode //TODO: mustEvaluateReceiver
     evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 
