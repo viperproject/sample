@@ -170,8 +170,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         if (x.typ.isObject) { // the assigned variable is a Ref
           right match {
             case AccessPathIdentifier(right) => // e.g., `x := y.g`
-              val mayObjR = mayEvaluateReceiver(right) // set of may (right) receivers
-              val mustObjR = mustEvaluateReceiver(right) // set of must (right) receivers
+              val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+              val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
               val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
                 (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
               ) // set of heap nodes that may be pointed to by the right path
@@ -253,211 +253,383 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
         (left, right) match {
           case (Constant("null",_,_), right: VariableIdentifier) => // e.g., null == y
-            val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-            if (r.contains(NullHeapNode)) {
-              copy(mayStore = mayStore + (right -> Set(NullHeapNode)))
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            if (mayR.contains(NullHeapNode) && mustR.contains(NullHeapNode)) {
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (right -> Set[HeapNode](NullHeapNode))
+              val mustStoreMap = mustStore + (right -> Set[HeapNode](NullHeapNode))
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap)
             } else this.bottom() // there is no common heap node
           case (Constant("null",_,_), AccessPathIdentifier(right)) => // e.g., null == y.f
-            val objR = mayEvaluateReceiver(right) // set of (right) receivers
-            val r = objR.foldLeft(Set.empty[HeapNode])(
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-            if (r.contains((NullHeapNode))) {
-              val heapMap = objR.foldLeft(mayHeap){
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            if (mayR.contains(NullHeapNode) && mustR.contains(NullHeapNode)) {
+              // return the current state with updated heap
+              val mayHeapMap = mayObjR.foldLeft(mayHeap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
-              } // update the heap pointed to by the right path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              }
+              val mustHeapMap = mustObjR.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             } else this.bottom() // there is no common heap node
           case (left: VariableIdentifier, Constant("null",_,_)) => // e.g., x == null
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-            if (l.contains(NullHeapNode)) {
-              copy(mayStore = mayStore + (left -> Set[HeapNode](NullHeapNode)))
+            // set of heap nodes that may/must be pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            if (mayL.contains(NullHeapNode) && mustL.contains(NullHeapNode)) {
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (left -> Set[HeapNode](NullHeapNode))
+              val mustStoreMap = mustStore + (left -> Set[HeapNode](NullHeapNode))
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap)
             } else this.bottom() // there is no common heap node
           case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x == y
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-            val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-            val intersection = l intersect r
-            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            // set of heap nodes that may/must be pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common heap node
-              copy(mayStore = mayStore + (left -> intersection, right -> intersection)).pruneUnreachableHeap()
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (left -> mayIntersection, right -> mayIntersection)
+              val mustStoreMap = mustStore + (left -> mustIntersection, right -> mustIntersection)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x == y.f
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-            val objR = mayEvaluateReceiver(right) // set of (right) receivers
-            val r = objR.foldLeft(Set.empty[HeapNode])(
+            // set heap nodes pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-            val intersection = l intersect r
-            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-            val heapMap = objR.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
-              } // update the heap pointed to by the right path
-              copy(mayStore = mayStore + (left -> intersection), mayHeap = heapMap).pruneUnreachableHeap()
+              // return the current state with updated store and heap
+              val mayStoreMap = mayStore + (left -> mayIntersection)
+              val mustStoreMap = mustStore + (left -> mustIntersection)
+              val mayHeapMap = mayObjR.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayIntersection)))
+              }
+              val mustHeapMap = mustObjR.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustIntersection)))
+              }
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-            val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the left path
-            if (l.contains((NullHeapNode))) {
-              val heapMap = objL.foldLeft(mayHeap){
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            if (mayL.contains(NullHeapNode) && mustL.contains(NullHeapNode)) {
+              // return the current state with updated heap
+              val mayHeapMap = mayObjL.foldLeft(mayHeap){
                 case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
-              } // update the heap pointed to by the left path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              }
+              val mustHeapMap = mustObjL.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             } else this.bottom() // there is no common heap node
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-            val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the left path
-            val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-            val intersection = l intersect r
-            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-            val heapMap = objL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
-              } // update the heap pointed to by the left path
-              copy(mayStore = mayStore + (right -> intersection), mayHeap = heapMap).pruneUnreachableHeap()
+              // return the current state with updated store and heap
+              val mayHeapMap = mayObjL.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayIntersection)))
+              }
+              val mustHeapMap = mustObjL.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustIntersection)))
+              }
+              val mayStoreMap = mayStore + (right -> mayIntersection)
+              val mustStoreMap = mustStore + (right -> mustIntersection)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-            val objR = mayEvaluateReceiver(right) // set of (right) receivers
-            val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set heap nodes pointed to by the left path
-            val r = objR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-            val intersection = l intersect r
-            if (intersection.isEmpty) this.bottom() // there is no common heap node
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
             else { // there is at least one common node
-            var heapMap = objL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
-              } // update the heap pointed to by the left path
-              heapMap = objR.foldLeft(heapMap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
-              } // update the heap pointed to by the right path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              // return the current state with updated heap
+              var mayHeapMap = mayObjL.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayIntersection)))
+              }
+              mayHeapMap = mayObjR.foldLeft(mayHeapMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayIntersection)))
+              }
+              var mustHeapMap = mustObjL.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustIntersection)))
+              }
+              mustHeapMap = mustObjR.foldLeft(mustHeapMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustIntersection)))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
         }
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
         (left, right) match {
           case (Constant("null", _, _), right: VariableIdentifier) => // e.g., null != y
-            val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-          val intersection = Set[HeapNode](NullHeapNode) intersect r
-            val difference = r diff intersection
-            if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
-            else {
-              // there is at least one different heap node
-              copy(mayStore = mayStore + (right -> difference)).pruneUnreachableHeap()
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            val mayIntersection = Set[HeapNode](NullHeapNode) intersect mayR
+            val mustIntersection = Set[HeapNode](NullHeapNode) intersect mustR
+            val mayDifference = mayR diff mayIntersection
+            val mustDifference = mustR diff mustIntersection
+            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (right -> mayDifference)
+              val mustStoreMap = mustStore + (right -> mustDifference)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
             }
           case (Constant("null", _, _), AccessPathIdentifier(right)) => // e.g., null != y.f
-            val objR = mayEvaluateReceiver(right) // set of (right) receivers
-          val r = objR.foldLeft(Set.empty[HeapNode])(
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-          val intersection = Set[HeapNode](NullHeapNode) intersect r
-            val difference = r diff intersection
-            if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
-            else {
-              // there is at least one different heap node
-              val heapMap = objR.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> difference)))
-              } // update the heap pointed to by the right path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            val mayIntersection = Set[HeapNode](NullHeapNode) intersect mayR
+            val mustIntersection = Set[HeapNode](NullHeapNode) intersect mustR
+            val mayDifference = mayR diff mayIntersection
+            val mustDifference = mustR diff mustIntersection
+            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated heap
+              val mayHeapMap = mayObjR.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifference)))
+              }
+              val mustHeapMap = mustObjR.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifference)))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, Constant("null", _, _)) => // e.g., x != null
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-          val intersection = l intersect Set[HeapNode](NullHeapNode)
-            val difference = l diff intersection
-            if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
-            else {
-              // there is at least one different heap node
-              copy(mayStore = mayStore + (left -> difference)).pruneUnreachableHeap()
+            // set of heap nodes that may/must be pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            val mayIntersection = mayL intersect Set[HeapNode](NullHeapNode)
+            val mustIntersection = mustL intersect Set[HeapNode](NullHeapNode)
+            val mayDifference = mayL diff mayIntersection
+            val mustDifference = mustL diff mustIntersection
+            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (left -> mayDifference)
+              val mustStoreMap = mustStore + (left -> mustDifference)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x != y
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-          val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-          val intersection = l intersect r
-            val ldifference = l diff intersection
-            val rdifference = r diff intersection
-            if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
-            else {
-              // there is at least one different heap node
-              copy(mayStore = mayStore +(left -> ldifference, right -> rdifference)).pruneUnreachableHeap()
+            // set of heap nodes that may/must be pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            val mayDifferenceL = mayL diff mayIntersection
+            val mustDifferenceL = mustL diff mustIntersection
+            val mayDifferenceR = mayR diff mayIntersection
+            val mustDifferenceR = mustR diff mustIntersection
+            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
+              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated store
+              val mayStoreMap = mayStore + (left -> mayDifferenceL, right -> mayDifferenceR)
+              val mustStoreMap = mustStore + (left -> mustDifferenceL, right -> mustDifferenceR)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
             }
           case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x != y.f
-            val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-          val objR = mayEvaluateReceiver(right) // set of (right) receivers
-          val r = objR.foldLeft(Set.empty[HeapNode])(
+            // set heap nodes pointed to by the left identifier
+            val mayL = mayStore.getOrElse(left, Set.empty)
+            val mustL = mustStore.getOrElse(left, Set.empty)
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-          val intersection = l intersect r
-            val ldifference = l diff intersection
-            val rdifference = r diff intersection
-            if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
-            else {
-              // there is at least one different heap node
-              val heapMap = objR.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
-              } // update the heap pointed to by the right path
-              copy(mayStore = mayStore + (left -> ldifference), mayHeap = heapMap).pruneUnreachableHeap()
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            val mayDifferenceL = mayL diff mayIntersection
+            val mustDifferenceL = mustL diff mustIntersection
+            val mayDifferenceR = mayR diff mayIntersection
+            val mustDifferenceR = mustR diff mustIntersection
+            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
+              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated store and heap
+              val mayStoreMap = mayStore + (left -> mayDifferenceL)
+              val mustStoreMap = mustStore + (left -> mustDifferenceL)
+              val mayHeapMap = mayObjR.foldLeft(mayHeap) {
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifferenceR)))
+              }
+              val mustHeapMap = mustObjR.foldLeft(mustHeap) {
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifferenceR)))
+              }
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null", _, _)) => // e.g., x.f == null
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-          val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the left path
-          val intersection = l intersect Set[HeapNode](NullHeapNode)
-            val difference = l diff intersection
-            if (difference.isEmpty && intersection.size == 1) this.bottom() // there is no different heap node
-            else {
-              // there is at least one different heap node
-              val heapMap = objL.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> difference)))
-              } // update the heap pointed to by the right path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            val mayIntersection = mayL intersect Set[HeapNode](NullHeapNode)
+            val mustIntersection = mustL intersect Set[HeapNode](NullHeapNode)
+            val mayDifference = mayL diff mayIntersection
+            val mustDifference = mustL diff mustIntersection
+            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated heap
+              val mayHeapMap = mayObjL.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifference)))
+              }
+              val mustHeapMap = mustObjL.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifference)))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f != y
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-          val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the left path
-          val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-          val intersection = l intersect r
-            val ldifference = l diff intersection
-            val rdifference = r diff intersection
-            if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
-            else {
-              // there is at least one different heap node
-              val heapMap = objL.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
-              } // update the heap pointed to by the left path
-              copy(mayStore = mayStore + (right -> rdifference), mayHeap = heapMap).pruneUnreachableHeap()
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            // set of heap nodes that may/must be pointed to by the right identifier
+            val mayR = mayStore.getOrElse(right, Set.empty)
+            val mustR = mustStore.getOrElse(right, Set.empty)
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            val mayDifferenceL = mayL diff mayIntersection
+            val mustDifferenceL = mustL diff mustIntersection
+            val mayDifferenceR = mayR diff mayIntersection
+            val mustDifferenceR = mustR diff mustIntersection
+            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
+              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated store and heap
+              val mayHeapMap = mayObjL.foldLeft(mayHeap) {
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifferenceL)))
+              }
+              val mustHeapMap = mustObjL.foldLeft(mustHeap) {
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifferenceL)))
+              }
+              val mayStoreMap = mayStore + (right -> mayDifferenceR)
+              val mustStoreMap = mustStore + (right -> mustDifferenceR)
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f != y.f
-            val objL = mayEvaluateReceiver(left) // set of (left) receivers
-          val l = objL.foldLeft(Set.empty[HeapNode])(
+            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
+            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
+            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
+            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
+            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the left path
-          val objR = mayEvaluateReceiver(right) // set of (right) receivers
-          val r = objR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes pointed to by the right path
-          val intersection = l intersect r
-            val ldifference = l diff intersection
-            val rdifference = r diff intersection
-            if (ldifference.isEmpty && rdifference.isEmpty && intersection.size == 1) this.bottom()
-            else {
-              // there is at least one different heap node
-              var heapMap = objL.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> intersection)))
-              } // update the heap pointed to by the left path
-              heapMap = objR.foldLeft(heapMap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> intersection)))
-              } // update the heap pointed to by the right path
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+            ) // set of heap nodes that may be pointed to by the left path
+            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the left path
+            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that may be pointed to by the right path
+            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
+            ) // set of heap nodes that must be pointed to by the right path
+            val mayIntersection = mayL intersect mayR
+            val mustIntersection = mustL intersect mustR
+            val mayDifferenceL = mayL diff mayIntersection
+            val mustDifferenceL = mustL diff mustIntersection
+            val mayDifferenceR = mayR diff mayIntersection
+            val mustDifferenceR = mustR diff mustIntersection
+            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
+              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
+              this.bottom() // there is no different heap node
+            else { // there is at least one different heap node
+              // return the current state with updated heap
+              var mayHeapMap = mayObjL.foldLeft(mayHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifferenceL)))
+              }
+              mayHeapMap = mayObjR.foldLeft(mayHeapMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifferenceR)))
+              }
+              var mustHeapMap = mustObjL.foldLeft(mustHeap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifferenceL)))
+              }
+              mustHeapMap = mustObjR.foldLeft(mustHeapMap){
+                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifferenceR)))
+              }
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
             }
         }
       case _ => throw new NotImplementedError("An assume implementation is missing.")
