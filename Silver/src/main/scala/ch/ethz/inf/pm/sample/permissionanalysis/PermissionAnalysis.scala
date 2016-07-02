@@ -261,7 +261,7 @@ case class PermissionTree(permission: Permission = Permission.none,
 
   override def toString: String =
     tuples.map { case (path, permission) => path.map(_.toString).reduce(_ + "." + _) + " " + permission }
-    .reduce(_ + ", " + _)
+      .reduce(_ + ", " + _)
 }
 
 /**
@@ -384,10 +384,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       // get the amount of permission that is inhaled
       val inhaled = permission(numerator, denominator)
 
+      // get alias analysis state
+      val aliases = preStateBeforePP(context.get, currentPP)
+
       // add permission to all paths that must alias
-      // TODO: incorporate must alias analysis (current implementation is sound but not precise)
       map { (path, permission) =>
-        if (path == access) permission plus inhaled
+        if (path == access || aliases.receiversMustAlias(path, access)) permission plus inhaled
         else permission
       }
     }
@@ -541,15 +543,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
           val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
           val assigned = accessPaths.foldLeft(this) {
-            case (res, path) =>
-              if (path == leftPath)
-                res.assign(leftPath, rightPath)
-              else if (path.last == leftPath.last && aliases.receiversMayAlias(path, leftPath))
-                // TODO: lub is not necessary if paths must alias
-                res lub res.assign(path, rightPath)
-              else
-                res
-          }
+              case (res, path) =>
+                if (path == leftPath)
+                  res.assign(leftPath, rightPath)
+                else if (path.last == leftPath.last && aliases.receiversMayAlias(path, leftPath))
+                  if (aliases.receiversMustAlias(path, leftPath)) res.assign(path, rightPath)
+                  else res lub res.assign(path, rightPath)
+                else
+                  res
+            }
           return assigned.write(leftPath).read(rightPath)
         } else {
           // case 2: the assigned field is not a reference
@@ -700,7 +702,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): T ={
+  override def top(): T = {
     logger.trace("top")
     copy(result = result.top(),
       permissions = Map.empty,
@@ -777,8 +779,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   /**
     * Returns a permission where the amount corresponds to the fraction
     * represented by the specified numerator and denominator.
- *
-    * @param numerator the numerator of the fraction
+    *
+    * @param numerator   the numerator of the fraction
     * @param denominator the denominator of the fraction
     */
   private def permission(numerator: Expression, denominator: Expression): Permission =
@@ -864,7 +866,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val (newL, _) = treeL.get.extract(fldL)
         // update permissions
         copy(permissions = permissions + (rcvL -> newL))
-      } else if (rcvL == rcvR){
+      } else if (rcvL == rcvR) {
         // handle case where rcvL == rcvR
         val (temp, extracted) = treeL.get.extract(fldL)
         val newL = temp.implant(fldR, extracted)
@@ -875,7 +877,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val treeR = permissions.get(rcvR)
         val (newL, extracted) = treeL.get.extract(fldL)
         val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
-        copy(permissions = permissions + (rcvL -> newL, rcvR -> newR))
+        copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
       }
     }
   }
@@ -922,6 +924,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 }
 
 object PermissionAnalysisState {
+
   case class Default(currentPP: ProgramPoint = DummyProgramPoint,
                      context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
                      result: ExpressionSet = ExpressionSet(),
@@ -933,11 +936,12 @@ object PermissionAnalysisState {
     override def copy(currentPP: ProgramPoint,
                       context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
-                      permissions: Map[Identifier,PermissionTree],
+                      permissions: Map[Identifier, PermissionTree],
                       isBottom: Boolean,
                       isTop: Boolean): Default =
       Default(currentPP, context, result, permissions, isBottom, isTop)
   }
+
 }
 
 object PermissionAnalysisEntryState extends BackwardEntryStateBuilder[PermissionAnalysisState.Default] {
@@ -988,7 +992,8 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
 
 object DebugPermissionAnalysis extends DebugPermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
   override val analysis =
-    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default,PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
+    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
+
   override def toString = "Permission Analysis"
 }
 
@@ -996,6 +1001,7 @@ trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalys
 
 object PermissionAnalysis extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
   override val analysis =
-    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default,PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
+    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
+
   override def toString = "Permission Analysis"
 }

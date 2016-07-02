@@ -924,6 +924,23 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     val intersection = (evaluateReceiver(first) intersect evaluateReceiver(second)) diff Set(NullHeapNode)
     intersection.nonEmpty
   }
+
+  /**
+    * Temporary implementation of the must alias test.
+    * TODO: Replace with a more precise implementation.
+    * NOTE: I think it is sound to assume that the receivers are not null since
+    * the analysis ensures that we have permissions to access a field on them.
+    *
+    * Returns whether the receivers of the specified access paths must alias.
+    *
+    * @param first  the first access path
+    * @param second the second access path
+    */
+  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val evalFirst = evaluateReceiver(first) diff Set(NullHeapNode)
+    val evalSecond = evaluateReceiver(second) diff Set(NullHeapNode)
+    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
+  }
 }
 
 object AliasAnalysisState {
