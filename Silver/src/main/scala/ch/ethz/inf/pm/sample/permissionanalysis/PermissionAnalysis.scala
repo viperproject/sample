@@ -222,6 +222,7 @@ case class PermissionTree(permission: Permission = Permission.none,
   /**
     * Returns a list of all access paths stored in the tree. The access paths
     * are extended with the specified identifier as the receiver.
+    *
     * @param identifier the identifier representing the receiver
     */
   def paths(identifier: Identifier): List[AccessPath] =
@@ -240,6 +241,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * Returns a list of all permissions stored in the tree. The permissions are
     * represented as tuples of access paths and an amount of permission. The
     * access paths are extended with the specified identifier as the receiver.
+    *
     * @param identifier the identifier representing the receiver
     */
   def tuples(identifier: Identifier): List[(AccessPath, Permission)] =
@@ -256,6 +258,10 @@ case class PermissionTree(permission: Permission = Permission.none,
         case (path, permission) => (identifier :: path, permission)
       }
     }
+
+  override def toString: String =
+    tuples.map { case (path, permission) => path.map(_.toString).reduce(_ + "." + _) + " " + permission }
+    .reduce(_ + ", " + _)
 }
 
 /**
@@ -354,7 +360,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
       // subtract permission form all paths that may alias
       map { (path, permission) =>
-        if (aliases.mayAlias(path, access)) permission minus exhaled
+        if (aliases.receiversMayAlias(path, access)) permission minus exhaled
         else permission
       }
     case _ =>
@@ -533,14 +539,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           // get alias analysis state
           val aliases = preStateBeforePP(context.get, currentPP)
 
-          // TODO: handle assignments introducing cycles (e.g. a.f := a)
-          val accessPaths = paths
-          val assigned = accessPaths.foldLeft(assign(leftPath, rightPath)) {
+          val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
+          val assigned = accessPaths.foldLeft(this) {
             case (res, path) =>
               if (path == leftPath)
-                // this case was taken care of earlier
-                res
-              else if (path.last == leftPath.last && aliases.mayAlias(path, leftPath))
+                res.assign(leftPath, rightPath)
+              else if (path.last == leftPath.last && aliases.receiversMayAlias(path, leftPath))
                 // TODO: lub is not necessary if paths must alias
                 res lub res.assign(path, rightPath)
               else
@@ -850,9 +854,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       val (rcvL :: fldL) = left
       val (rcvR :: fldR) = right
 
-      // get permission trees for lhs and rhs
+      // get permission trees for lhs
       val treeL = permissions.get(rcvL)
-      val treeR = permissions.get(rcvR)
 
       if (treeL.isEmpty) this // there are no access paths to modify
       else if (rcvR.isInstanceOf[NewObject]) {
@@ -861,22 +864,25 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val (newL, _) = treeL.get.extract(fldL)
         // update permissions
         copy(permissions = permissions + (rcvL -> newL))
+      } else if (rcvL == rcvR){
+        // handle case where rcvL == rcvR
+        val (temp, extracted) = treeL.get.extract(fldL)
+        val newL = temp.implant(fldR, extracted)
+        copy(permissions = permissions + (rcvL -> newL))
       } else {
-        // update permission trees
+        // handle case where rcvL != rcvR
         // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
-        // TODO: handle updates that introduce cycles (such as a.f := a)
+        val treeR = permissions.get(rcvR)
         val (newL, extracted) = treeL.get.extract(fldL)
         val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
-
-        // TODO: what if rcvL == rcvR?
-        copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
+        copy(permissions = permissions + (rcvL -> newL, rcvR -> newR))
       }
     }
   }
 
   /**
     * Applies the specified function to all permissions.
- *
+    *
     * @param f the function to be applied to all permissions
     */
   def map(f: (AccessPath, Permission) => Permission): T = {
@@ -910,6 +916,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       if (strings.isEmpty) "none"
       else strings.reduce(_ + ", " + _)
     }" +
+    s"\n\tisBottom: $isBottom" +
+    s"\n\tisTop: $isTop" +
     s"\n)"
 }
 
@@ -946,7 +954,7 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
     for ((m, g) <- methodNameToCfgState) {
       println("******************* " + m + "\n")
 
-      println(g.entryState()) // printing the entry state of the control-flow graph
+      println(g.exitState()) // printing the entry state of the control-flow graph
 
       val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
       // withing each block...
@@ -973,7 +981,7 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
       }
 
       println("\n******************* \n")
-      println(g.exitState()) // printing the exit state of the control-flow graph
+      println(g.entryState()) // printing the exit state of the control-flow graph
     }
   }
 }
