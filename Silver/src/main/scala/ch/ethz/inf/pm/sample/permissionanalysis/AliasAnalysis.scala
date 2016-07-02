@@ -99,6 +99,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def assignField(obj: Expression, field: String, right: Expression): T = {
     logger.trace("*** ----------------assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
+    //TODO: update must-alias information
     obj match {
       case AccessPathIdentifier(path) =>
         if (obj.typ.isObject) { // the assigned field is a Ref
@@ -803,6 +804,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
     logger.trace("*** ----------------getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
+    //TODO: update must-alias information
     obj match {
       case AccessPathIdentifier(path) =>
         var storeMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
