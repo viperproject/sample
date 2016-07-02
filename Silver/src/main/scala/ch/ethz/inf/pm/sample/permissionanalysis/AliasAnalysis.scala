@@ -104,11 +104,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         if (obj.typ.isObject) { // the assigned field is a Ref
           right match {
             case AccessPathIdentifier(right) => // e.g., `x.f := y.g`
-              val objR = evaluateReceiver(right) // set of (right) receivers
+              val objR = mayEvaluateReceiver(right) // set of (right) receivers
               val r = objR.foldLeft(Set.empty[HeapNode])(
                 (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
               ) // set of heap nodes pointed to by the right path
-              val rcvSet = evaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
               val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field -> r)))
@@ -121,7 +121,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayHeap = heapMap).pruneUnreachableHeap()
 
             case right: Constant => // e.g., `x.f := null`
-              val rcvSet = evaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
               val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field -> Set[HeapNode](NullHeapNode))))
@@ -135,7 +135,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
             case right: VariableIdentifier => // e.g., `x.f := y`
               val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-              val rcvSet = evaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
               val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field -> r)))
@@ -170,31 +170,37 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         if (x.typ.isObject) { // the assigned variable is a Ref
           right match {
             case AccessPathIdentifier(right) => // e.g., `x := y.g`
-              val objR = evaluateReceiver(right) // set of (right) receivers
-            val r = objR.foldLeft(Set.empty[HeapNode])(
+              val mayObjR = mayEvaluateReceiver(right) // set of may (right) receivers
+              val mustObjR = mustEvaluateReceiver(right) // set of must (right) receivers
+              val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
                 (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-              ) // set of heap nodes pointed to by the right path
+              ) // set of heap nodes that may be pointed to by the right path
+              val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+                (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+              ) // set of heap nodes that must be pointed to by the right path
               // return the current state with updated store
-              copy(mayStore = mayStore + (x -> r)).pruneUnreachableHeap()
+              copy(mayStore = mayStore + (x -> mayR), mustStore = mustStore + (x -> mustR)).pruneUnreachableHeap()
 
             case right: HeapNode => // e.g., `x = new()`
               // create fresh heap node to update the path associated with right
               val fresh = HeapNode(List[Identifier](x),right.pp)
               // add x -> right to store map
-              val storeMap = mayStore + (x -> Set[HeapNode](fresh))
+              val mayStoreMap = mayStore + (x -> Set[HeapNode](fresh))
+              val mustStoreMap = mustStore + (x -> Set[HeapNode](fresh))
               // update the heap to update the path associated with right
-              val fieldMap = mayHeap.getOrElse(right, Map.empty)
-              var heapMap = mayHeap - right
-              heapMap = heapMap + (fresh -> fieldMap)
-              //val heapMap = heap - right + (fresh -> fieldMap)
+              var mayHeapMap = mayHeap - right
+              mayHeapMap = mayHeapMap + (fresh -> (mayHeap.getOrElse(right, Map.empty)))
+              var mustHeapMap = mustHeap - right
+              mustHeapMap = mustHeapMap + (fresh -> (mustHeap.getOrElse(right, Map.empty)))
               // return the current state with updated store and heap
-              copy(mayStore = storeMap, mayHeap = heapMap).pruneUnreachableHeap()
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
 
             case right: VariableIdentifier => // e.g., `x := y`
               // add x -> store[right] to store map
-              val storeMap = mayStore + (x -> this.mayStore.getOrElse(right, Set[HeapNode](NullHeapNode)))
+              val mayStoreMap = mayStore + (x -> this.mayStore.getOrElse(right, Set[HeapNode](NullHeapNode)))
+              val mustStoreMap = mustStore + (x -> this.mustStore.getOrElse(right, Set[HeapNode]()))
               // return the current state with updated store
-              copy(mayStore = storeMap).pruneUnreachableHeap()
+              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
 
             case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
           }
@@ -252,7 +258,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (right -> Set(NullHeapNode)))
             } else this.bottom() // there is no common heap node
           case (Constant("null",_,_), AccessPathIdentifier(right)) => // e.g., null == y.f
-            val objR = evaluateReceiver(right) // set of (right) receivers
+            val objR = mayEvaluateReceiver(right) // set of (right) receivers
             val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
@@ -277,7 +283,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             }
           case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x == y.f
             val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-            val objR = evaluateReceiver(right) // set of (right) receivers
+            val objR = mayEvaluateReceiver(right) // set of (right) receivers
             val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
@@ -290,7 +296,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (left -> intersection), mayHeap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
-            val objL = evaluateReceiver(left) // set of (left) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
             val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
@@ -301,7 +307,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayHeap = heapMap).pruneUnreachableHeap()
             } else this.bottom() // there is no common heap node
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
-            val objL = evaluateReceiver(left) // set of (left) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
             val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
@@ -315,8 +321,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (right -> intersection), mayHeap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
-            val objL = evaluateReceiver(left) // set of (left) receivers
-            val objR = evaluateReceiver(right) // set of (right) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
+            val objR = mayEvaluateReceiver(right) // set of (right) receivers
             val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set heap nodes pointed to by the left path
@@ -347,7 +353,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (right -> difference)).pruneUnreachableHeap()
             }
           case (Constant("null", _, _), AccessPathIdentifier(right)) => // e.g., null != y.f
-            val objR = evaluateReceiver(right) // set of (right) receivers
+            val objR = mayEvaluateReceiver(right) // set of (right) receivers
           val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
@@ -383,7 +389,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             }
           case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x != y.f
             val l = mayStore.getOrElse(left, Set.empty) // set heap nodes pointed to by the left identifier
-          val objR = evaluateReceiver(right) // set of (right) receivers
+          val objR = mayEvaluateReceiver(right) // set of (right) receivers
           val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
@@ -399,7 +405,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (left -> ldifference), mayHeap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), Constant("null", _, _)) => // e.g., x.f == null
-            val objL = evaluateReceiver(left) // set of (left) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
           val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
@@ -414,7 +420,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayHeap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f != y
-            val objL = evaluateReceiver(left) // set of (left) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
           val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
@@ -431,11 +437,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               copy(mayStore = mayStore + (right -> rdifference), mayHeap = heapMap).pruneUnreachableHeap()
             }
           case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f != y.f
-            val objL = evaluateReceiver(left) // set of (left) receivers
+            val objL = mayEvaluateReceiver(left) // set of (left) receivers
           val l = objL.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the left path
-          val objR = evaluateReceiver(right) // set of (right) receivers
+          val objR = mayEvaluateReceiver(right) // set of (right) receivers
           val r = objR.foldLeft(Set.empty[HeapNode])(
               (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
             ) // set of heap nodes pointed to by the right path
@@ -565,23 +571,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     copy(result = ExpressionSet(new Constant(value, typ, pp)))
   }
 
-  /** Evaluates a path of object fields
-    *
-    * @param path the object fields path to evaluate
-    * @return the set of objects referenced by the path (except the last field)
-    */
-  def evaluateReceiver(path: AccessPath) : Set[HeapNode] = {
-    val first = mayStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
-    val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
-        (set,next) => { // next path segment
-          if (set.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
-          set.foldLeft(Set.empty[HeapNode])(
-            (s,obj) => s ++ mayHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
-          )}
-      ) // return the objects referenced by the path (except the last field)
-    if (eval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP); eval
-  }
-
   /** Exhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -596,7 +585,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       case acc: PermissionExpression => {
         acc.id match {
           case AccessPathIdentifier(path) =>
-            val obj = evaluateReceiver(path) // set of (path) receivers
+            val obj = mayEvaluateReceiver(path) // set of (path) receivers
             var heapMap = if (!mayHeap.contains(SummaryHeapNode)) {
               var fieldMap = Map.empty[String,Set[HeapNode]]
               for (f <- fields) { // for all fields declared within the program...
@@ -866,6 +855,40 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
   }
 
+  /** Evaluates a path of object fields
+    *
+    * @param path the object fields path to evaluate
+    * @return the set of objects that may be referenced by the path (except the last field)
+    */
+  def mayEvaluateReceiver(path: AccessPath) : Set[HeapNode] = {
+    val first = mayStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
+    val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
+        (set,next) => { // next path segment
+          if (set.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+          set.foldLeft(Set.empty[HeapNode])(
+            (s,obj) => s ++ mayHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
+          )}
+      ) // return the objects referenced by the path (except the last field)
+    if (eval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP); eval
+  }
+
+  /** Evaluates a path of object fields
+    *
+    * @param path the object fields path to evaluate
+    * @return the set of objects that must be referenced by the path (except the last field)
+    */
+  def mustEvaluateReceiver(path: AccessPath) : Set[HeapNode] = {
+    val first = mustStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
+    val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
+        (set,next) => { // next path segment
+          if (set.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+          set.foldLeft(Set.empty[HeapNode])(
+            (s,obj) => s ++ mustHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
+          )}
+      ) // return the objects referenced by the path (except the last field)
+    if (eval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP); eval
+  }
+
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): T = {
     // retrieve all heap nodes reachable from variables
@@ -887,6 +910,29 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
   /** Removes all variables satisfying filter. */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
+
+  /**
+    * Returns whether the receivers of the given access paths may alias.
+    *
+    * @param first the first access path
+    * @param second the second access path
+    */
+  def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val intersection = mayEvaluateReceiver(first) intersect mayEvaluateReceiver(second)
+    (intersection - NullHeapNode).nonEmpty
+  }
+
+  /**
+    * Returns whether the receivers of the specified access paths must alias.
+    *
+    * @param first  the first access path
+    * @param second the second access path
+    */
+  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val evalFirst = mustEvaluateReceiver(first) - NullHeapNode
+    val evalSecond = mustEvaluateReceiver(second) - NullHeapNode
+    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
+  }
 
   /** Removes the current expression.
     *
@@ -1013,34 +1059,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = false, result = expr,
       mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap,
       isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
-  }
-
-  /**
-    * Returns whether the receivers specified access paths may alias.
-    *
-    * @param first the first access path
-    * @param second the second access path
-    */
-  def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val intersection = (evaluateReceiver(first) intersect evaluateReceiver(second)) diff Set(NullHeapNode)
-    intersection.nonEmpty
-  }
-
-  /**
-    * Temporary implementation of the must alias test.
-    * TODO: Replace with a more precise implementation.
-    * NOTE: I think it is sound to assume that the receivers are not null since
-    * the analysis ensures that we have permissions to access a field on them.
-    *
-    * Returns whether the receivers of the specified access paths must alias.
-    *
-    * @param first  the first access path
-    * @param second the second access path
-    */
-  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val evalFirst = evaluateReceiver(first) diff Set(NullHeapNode)
-    val evalSecond = evaluateReceiver(second) diff Set(NullHeapNode)
-    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 }
 
