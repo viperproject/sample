@@ -728,7 +728,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         case None => map + (id -> tree)
       }
     }
-    copy(permissions = newPermissions)
+    val newBottom = isBottom && other.isBottom
+    val newTop = isTop || other.isTop
+    copy(permissions = newPermissions, isBottom = newBottom, isTop = newTop)
   }
 
   /** Returns a new instance of the lattice.
@@ -756,7 +758,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         case None => map
       }
     }
-    copy(permissions = newPermissions)
+    val newBottom = isBottom || other.isBottom
+    val newTop = isTop && other.isTop
+    copy(permissions = newPermissions, isBottom = newBottom, isTop = newTop)
   }
 
   /* ------------------------------------------------------------------------- *
