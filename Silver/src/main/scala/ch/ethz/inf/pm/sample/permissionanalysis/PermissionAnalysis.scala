@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
@@ -328,13 +329,26 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return a sequence of sil.Exp
     */
-  override def precondition(): Seq[sil.Exp] = Seq[sil.Exp]()
+  override def precondition(): Seq[sil.Exp] =
+    tuples
+      .filter { case (path, permission) =>
+        path.length > 1 && permission.amount > 0
+      }
+      .map { case (path, permission) =>
+        val obj = LocalVar(path.head.getName)(Ref)
+        val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
+          FieldAccess(rcv, Field(id.getName, Ref)())()
+        }.asInstanceOf[FieldAccess]
+        // TODO: require less than full permission in cases where not necessary
+        val perm = FullPerm()()
+        FieldAccessPredicate(loc, perm)()
+      }
 
   /** Generates a Silver invariant from the current state
     *
     * @return a sequence of sil.Exp
     */
-  override def invariant(): Seq[sil.Exp] = Seq[sil.Exp]()
+  override def invariant(): Seq[sil.Exp] = precondition()
 
   /** Generates a Silver postcondition from the current state
     *
