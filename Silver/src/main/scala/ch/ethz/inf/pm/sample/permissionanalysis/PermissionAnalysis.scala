@@ -407,15 +407,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param x   The name of the argument
-    * @param typ The static type of the argument
+    * @param variable The name of the argument
+    * @param typ      The static type of the argument
     * @return The abstract state after the creation of the argument
     */
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
     logger.trace("createVariableForArgument")
-    permissions.get(x) match {
+    permissions.get(variable) match {
       case Some(_) => this
-      case None => copy(permissions = permissions + (x -> PermissionTree()))
+      case None => copy(permissions = permissions + (variable -> PermissionTree()))
     }
   }
 
