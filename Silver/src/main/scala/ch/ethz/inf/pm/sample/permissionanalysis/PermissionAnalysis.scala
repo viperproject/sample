@@ -349,25 +349,28 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission
     */
-  override def exhale(acc: Expression): T = acc match {
-    case PermissionExpression(identifier, numerator, denominator) =>
-      // get access path
-      val access = path(identifier)
-      // get the amount of permission that is exhaled
-      val exhaled = permission(numerator, denominator)
-      // get alias analysis state
-      val aliases = preStateBeforePP(context.get, currentPP)
+  override def exhale(acc: Expression): T = {
+    logger.trace("exhale")
+    acc match {
+      case PermissionExpression(identifier, numerator, denominator) =>
+        // get access path
+        val access = path(identifier)
+        // get the amount of permission that is exhaled
+        val exhaled = permission(numerator, denominator)
+        // get alias analysis state
+        val aliases = preStateBeforePP(context.get, currentPP)
 
-      // subtract permission form all paths that may alias
-      map { (path, permission) =>
-        if (aliases.receiversMayAlias(path, access)) permission minus exhaled
-        else permission
-      }
-    case _ =>
-      // assert
-      val asserted = setExpression(ExpressionSet(acc))
-      assert(asserted.testFalse() lessEqual bottom())
-      assume(acc)
+        // subtract permission form all paths that may alias
+        map { (path, permission) =>
+          if (aliases.receiversMayAlias(path, access)) permission plus exhaled
+          else permission
+        }
+      case _ =>
+        // assert
+        val asserted = setExpression(ExpressionSet(acc))
+        assert(asserted.testFalse() lessEqual bottom())
+        assume(acc)
+    }
   }
 
   /** Inhales permissions.
@@ -377,23 +380,27 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission
     */
-  override def inhale(acc: Expression): T = acc match {
-    case PermissionExpression(identifier, numerator, denominator) => {
-      // get access path
-      val access = path(identifier)
-      // get the amount of permission that is inhaled
-      val inhaled = permission(numerator, denominator)
+  override def inhale(acc: Expression): T = {
+    logger.trace("inhale")
+    acc match {
 
-      // get alias analysis state
-      val aliases = preStateBeforePP(context.get, currentPP)
+      case PermissionExpression(identifier, numerator, denominator) => {
+        // get access path
+        val access = path(identifier)
+        // get the amount of permission that is inhaled
+        val inhaled = permission(numerator, denominator)
 
-      // add permission to all paths that must alias
-      map { (path, permission) =>
-        if (path == access || aliases.receiversMustAlias(path, access)) permission plus inhaled
-        else permission
+        // get alias analysis state
+        val aliases = preStateBeforePP(context.get, currentPP)
+
+        // add permission to all paths that must alias
+        map { (path, permission) =>
+          if (path == access || aliases.receiversMustAlias(path, access)) permission minus inhaled
+          else permission
+        }
       }
+      case _ => assume(acc)
     }
-    case _ => assume(acc)
   }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.

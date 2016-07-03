@@ -1092,7 +1092,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param second the second access path
     */
   def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val intersection = mayEvaluateReceiver(first) intersect mayEvaluateReceiver(second)
+    val intersection = mayEvaluateReceiver(first) ++ mayEvaluateReceiver(second)
     (intersection - NullHeapNode).nonEmpty
   }
 
@@ -1103,8 +1103,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param second the second access path
     */
   def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val evalFirst = mayEvaluateReceiver(first) - NullHeapNode //TODO: mustEvaluateReceiver
-    val evalSecond = mayEvaluateReceiver(second) - NullHeapNode //TODO: mustEvaluateReceiver
+    val evalFirst = mayEvaluateReceiver(first) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
+    val evalSecond = mayEvaluateReceiver(second) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
     evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 
