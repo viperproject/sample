@@ -329,7 +329,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return a sequence of sil.Exp
     */
-  override def precondition(): Seq[sil.Exp] =
+  override def precondition(): Seq[sil.Exp] = {
+    val fields = context.get.entryState().fields
     tuples
       .filter { case (path, permission) =>
         path.length > 1 && permission.amount > 0
@@ -337,12 +338,20 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       .map { case (path, permission) =>
         val obj = LocalVar(path.head.getName)(Ref)
         val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
-          FieldAccess(rcv, Field(id.getName, Ref)())()
+          val name = id.getName
+          val field = fields.find(_._2 == name).get
+          val typ = field match {
+            case (t, _) if t.isObject => Ref
+            case (t, _) if t.isNumericalType => Int
+            case (t, _) if t.isBooleanType => Bool
+          }
+          FieldAccess(rcv, Field(name, typ)())()
         }.asInstanceOf[FieldAccess]
         // TODO: require less than full permission in cases where not necessary
         val perm = FullPerm()()
         FieldAccessPredicate(loc, perm)()
       }
+  }
 
   /** Generates a Silver invariant from the current state
     *
