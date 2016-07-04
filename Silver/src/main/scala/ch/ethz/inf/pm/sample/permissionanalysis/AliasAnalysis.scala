@@ -99,54 +99,73 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def assignField(obj: Expression, field: String, right: Expression): T = {
     logger.trace("*** ----------------assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
 
-    //TODO: update must-alias information
     obj match {
       case AccessPathIdentifier(path) =>
         if (obj.typ.isObject) { // the assigned field is a Ref
           right match {
             case AccessPathIdentifier(right) => // e.g., `x.f := y.g`
-              val objR = mayEvaluateReceiver(right) // set of (right) receivers
-              val r = objR.foldLeft(Set.empty[HeapNode])(
+              val mayObjR = mayEvaluateReceiver(right) // set of (right) receivers
+              val mustObjR = mustEvaluateReceiver(right)
+              val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
                 (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
               ) // set of heap nodes pointed to by the right path
-              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
+              val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
+                (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
+              )
+              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
+              // update the heap
+              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> r)))
+                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
                 } else { // weak update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field ->
-                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ r))))
+                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ mayR))))
                 }
-              }) // update the heap
+              })
+              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
+                map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
+              })
               // return the current state with updated heap
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
 
             case right: Constant => // e.g., `x.f := null`
-              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
+              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
+              // update the heap
+              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field -> Set[HeapNode](NullHeapNode))))
                 } else { // weak update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field ->
                     (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ Set[HeapNode](NullHeapNode)))))
                 }
-              }) // update the heap
+              })
+              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
+                map + (node -> (map.getOrElse(node,Map.empty) + (field -> Set[HeapNode](NullHeapNode)))) // strong update
+              })
               // return the current state with updated heap
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
 
             case right: VariableIdentifier => // e.g., `x.f := y`
-              val r = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-              val rcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val heapMap = rcvSet.foldLeft(mayHeap)((map, node) => {
+              val mayR = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
+              val mustR = mustStore.getOrElse(right, Set.empty)
+              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
+              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
+              // update the heap
+              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
                 if (node.representsSingleVariable) { // strong update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> r)))
+                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
                 } else { // weak update
                   map + (node -> (map.getOrElse(node,Map.empty) + (field ->
-                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ r))))
+                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ mayR))))
                 }
-              }) // update the heap
+              })
+              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
+                map + (node -> (map.getOrElse(node,Map.empty) + (field -> mustR))) // strong update
+              })
               // return the current state with updated heap
-              copy(mayHeap = heapMap).pruneUnreachableHeap()
+              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
 
             case _ => throw new NotImplementedError("A field assignment implementation is missing.")
           }
@@ -653,7 +672,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     *
     * @return The bottom value, that is, a value x that is less than or to any other value
     */
-  override def bottom(): T = copy(isBottom = true)
+  override def bottom(): T = copy(isBottom = true, isTop = false)
 
   def copy(fields: Set[(Type, String)] = fields,
            currentPP: ProgramPoint = currentPP,
@@ -804,57 +823,96 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
     logger.trace("*** ----------------getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
-    //TODO: update must-alias information
     obj match {
       case AccessPathIdentifier(path) =>
-        var storeMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
-        var heapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mayHeap // new heap map (initially equal to heap)
+        var mayStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
+        var mustStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mustStore
+        var mayHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mayHeap // new heap map (initially equal to heap)
+        var mustHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mustHeap
         // path head evaluation
         val head = path.head.asInstanceOf[VariableIdentifier]
-        var rcvSet: Set[HeapNode] = storeMap.getOrElse(head, Set.empty)  // initial set of (path) receivers
-        if (rcvSet.contains(SummaryHeapNode) && materialization) { // materialization
-        val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
-          rcvSet = rcvSet - SummaryHeapNode + fresh // update receiver set
-          storeMap = storeMap + (head -> rcvSet) // add key to store map to replace the summary node with the fresh node
-          heapMap = heapMap + (fresh -> heapMap(SummaryHeapNode)) // update heap map with the fresh node
+        var mayRcvSet: Set[HeapNode] = mayStoreMap.getOrElse(head, Set.empty)  // initial set of (path) receivers
+        var mustRcvSet: Set[HeapNode] = mustStoreMap.getOrElse(head, Set.empty)
+        if (mayRcvSet.contains(SummaryHeapNode) && materialization) { // materialization
+          val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
+          mayRcvSet = mayRcvSet - SummaryHeapNode + fresh // update receiver set
+          mayStoreMap = mayStoreMap + (head -> mayRcvSet) // add key to store map to replace the summary node with the fresh node
+          mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
+        }
+        if (mustRcvSet.contains(UnknownHeapNode) && materialization) { // materialization
+          val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
+          mustRcvSet = mustRcvSet - UnknownHeapNode + fresh // update receiver set
+          mustStoreMap = mustStoreMap + (head -> mustRcvSet) // add key to store map to replace the summary node with the fresh node
+          mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
         }
         // path tail evaluation
-        val eval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(rcvSet)(
+        val mayEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mayRcvSet)(
           (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
             if (rcv.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
-            rcv.foldLeft(Set.empty[HeapNode])(
+              rcv.foldLeft(Set.empty[HeapNode])(
               (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
-              var curr: Set[HeapNode] = heapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
+                var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
                 if (curr.contains(SummaryHeapNode) && materialization) { // materialization
                 val fresh = HeapNode(node.id :+ id) // create fresh heap node
                   curr = curr - SummaryHeapNode + fresh // update the current receiver set
                   // add key to heap map to replace the summary node with the fresh node
-                  heapMap = heapMap + (node -> (heapMap.getOrElse(node,Map.empty) + (id.getName -> curr)))
-                  heapMap = heapMap + (fresh -> heapMap(SummaryHeapNode)) // update heap map with the fresh node
+                  mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (id.getName -> curr)))
+                  mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
                 }
                 set ++ curr
               })
           })
-        if (eval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        val mustEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mustRcvSet)(
+          (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
+            if (rcv.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+              rcv.foldLeft(Set.empty[HeapNode])(
+              (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
+                var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
+                if (curr.contains(UnknownHeapNode) && materialization) { // materialization
+                val fresh = HeapNode(node.id :+ id) // create fresh heap node
+                  curr = curr - UnknownHeapNode + fresh // update the current receiver set
+                  // add key to heap map to replace the summary node with the fresh node
+                  mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (id.getName -> curr)))
+                  mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
+                }
+                set ++ curr
+              })
+          })
+        if (mayEval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        if (mustEval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
         // path end evaluation
         if (typ.isObject) { // the accessed field is a Ref
-        val last = eval.foldLeft(Set.empty[HeapNode])(
+          val mayLast = mayEval.foldLeft(Set.empty[HeapNode])(
             (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
-            var curr: Set[HeapNode] = heapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
+            var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
               if (curr.contains(SummaryHeapNode) && materialization) { // materialization
               val fresh = HeapNode(node.id :+ path.last) // create fresh heap node
                 curr = curr - SummaryHeapNode + fresh // update the current receiver set
                 // add key to heap map to replace the summary node with the fresh node
-                heapMap = heapMap + (node -> (heapMap.getOrElse(node,Map.empty) + (field -> curr)))
-                heapMap = heapMap + (fresh -> heapMap(SummaryHeapNode)) // update heap map with the fresh node
+                mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
+                mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
               }
               set ++ curr
             }
           )
-          if (last.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+          val mustLast = mustEval.foldLeft(Set.empty[HeapNode])(
+            (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
+            var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
+              if (curr.contains(UnknownHeapNode) && materialization) { // materialization
+              val fresh = HeapNode(node.id :+ path.last) // create fresh heap node
+                curr = curr - UnknownHeapNode + fresh // update the current receiver set
+                // add key to heap map to replace the summary node with the fresh node
+                mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
+                mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
+              }
+              set ++ curr
+            }
+          )
+          if (mayLast.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+          if (mustLast.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
         }
         // return the current state with updated result, store, heap
-        copy(result = ExpressionSet(obj), mayStore = storeMap, mayHeap = heapMap)
+        copy(result = ExpressionSet(obj), mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
       case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
   }
@@ -869,26 +927,24 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace("*** ----------------getVariableValue(" + id.toString + ")")
 
     val x = id.asInstanceOf[VariableIdentifier]
-    val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
-
     val mayRcvSet = mayStore.getOrElse(x,Set.empty) // set of may (path) receivers
+    val mustRcvSet = mustStore.getOrElse(x,Set.empty) // set of must (path) receivers
     var mayStoreMap = mayStore
+    var mustStoreMap = mustStore
     var mayHeapMap = mayHeap
+    var mustHeapMap = mustHeap
     if (mayRcvSet.contains(SummaryHeapNode) && materialization) { // materialization
+      val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
       // add key to store map to replace the summary node with the fresh node
       mayStoreMap = mayStoreMap + (x -> (mayRcvSet - SummaryHeapNode + fresh))
       mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
     }
-
-    val mustRcvSet = mustStore.getOrElse(x,Set.empty) // set of must (path) receivers
-    var mustStoreMap = mustStore
-    var mustHeapMap = mustHeap
     if (mustRcvSet.contains(UnknownHeapNode) && materialization) { // materialization
+      val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
       // add key to store map to replace the unknown node with the fresh node
       mustStoreMap = mustStoreMap + (x -> (mustRcvSet - UnknownHeapNode + fresh))
       mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
     }
-
     // return the current state with updated result, store, heap
     copy(result = ExpressionSet(id), mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap)
   }
@@ -899,7 +955,63 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments
     */
-  override def glb(other: T): T = ???
+  override def glb(other: T): T = {
+    logger.trace("*** glb(" + this.repr + ", " + other.repr + ")")
+
+    def mayZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
+      var keyMap = Map[K,Set[HeapNode]]()
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,_) => // nothing to be done
+          case (_,None) => // nothing to be done
+          case (Some(o1),Some(o2)) => keyMap = keyMap + (key -> (o1 & o2))
+        }
+      }; keyMap
+    }
+    def mustZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
+      var keyMap = Map.empty[K,Set[HeapNode]]
+      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
+        (map1.get(key),map2.get(key)) match {
+          case (None,None) => // nothing to be done
+          case (None,Some(o2)) => keyMap = keyMap + (key -> o2)
+          case (Some(o1),None) => keyMap = keyMap + (key -> o1)
+          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
+            val o = (o1 - UnknownHeapNode) ++ (o2 - UnknownHeapNode) ++ (o1 & o2)
+            keyMap = keyMap + (key -> o)
+        }
+      }; keyMap
+    }
+    val fieldSet = this.fields & other.fields  // meet the fieldSets
+    val allowed = this.materialization && other.materialization // meet the materialization flags
+    val expr = this.result glb other.result // meet the exprSets
+    // merge the stores
+    val mayStoreMap = mayZipper[VariableIdentifier](this.mayStore,other.mayStore)
+    val mustStoreMap = mustZipper[VariableIdentifier](this.mustStore,other.mustStore)
+    // merge the heaps
+    var mayHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
+    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
+      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
+        case (None,None) =>
+        case (None,Some(m2)) => mayHeapMap = mayHeapMap + (key -> m2)
+        case (Some(m1),None) => mayHeapMap = mayHeapMap + (key -> m1)
+        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
+          mayHeapMap = mayHeapMap + (key -> mayZipper[String](m1,m2))
+      }
+    }
+    var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
+    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
+      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
+        case (None,_) => // nothing to be done
+        case (_,None) => // nothing to be done
+        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
+          mustHeapMap = mustHeapMap + (key -> mustZipper[String](m1,m2))
+      }
+    }
+    // return the current state with updated result, store, heap
+    copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = allowed, result = expr,
+      mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap,
+      isBottom = this.isBottom || other.isBottom, isTop = this.isTop && other.isTop)
+  }
 
   /** Inhales permissions.
     *
@@ -925,44 +1037,42 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def lessEqual(other: T): Boolean = {
     logger.trace("*** lessEqual(" + this.repr + ", " + other.repr + ")")
 
-    if (isBottom || other.isTop) return true
-    if (other.isBottom || isTop) return false
+    if (this.isBottom || other.isTop) return true
+    else if (other.isBottom || this.isTop) return false
 
-    // compare the stores
     val mayStoreMap = this.mayStore.forall {
-      case (k: VariableIdentifier,s: Set[HeapNode]) => {
-        val oo = other.mayStore.getOrElse(k,Set.empty)
+      case (k: VariableIdentifier, s: Set[HeapNode]) => {
+        val oo = other.mayStore.getOrElse(k, Set.empty)
         (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
           ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
       }
-    }
+    } // compare the (may) stores
     val mustStoreMap = this.mustStore.forall {
-      case (k: VariableIdentifier,s: Set[HeapNode]) => {
-        val oo = other.mustStore.getOrElse(k,Set.empty)
+      case (k: VariableIdentifier, s: Set[HeapNode]) => {
+        val oo = other.mustStore.getOrElse(k, Set.empty)
         (!oo.contains(UnknownHeapNode) || s.contains(UnknownHeapNode)) &&
           ((oo - UnknownHeapNode) subsetOf (s - UnknownHeapNode))
       }
-    }
-    // compare the heaps
+    } // compare the (must) stores
     val mayHeapMap = this.mayHeap.forall {
-        case (o: HeapNode, m: Map[String,Set[HeapNode]]) => m.forall {
-          case (f: String, s: Set[HeapNode]) => {
-            val oo = other.mayHeap.getOrElse(o,Map.empty).getOrElse(f,Set.empty)
-            (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
-              ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
-          }
+      case (o: HeapNode, m: Map[String, Set[HeapNode]]) => m.forall {
+        case (f: String, s: Set[HeapNode]) => {
+          val oo = other.mayHeap.getOrElse(o, Map.empty).getOrElse(f, Set.empty)
+          (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
+            ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
         }
       }
+    } // compare the (may) heaps
     val mustHeapMap = this.mustHeap.forall {
-      case (o: HeapNode, m: Map[String,Set[HeapNode]]) => m.forall {
+      case (o: HeapNode, m: Map[String, Set[HeapNode]]) => m.forall {
         case (f: String, s: Set[HeapNode]) => {
-          val oo = other.mustHeap.getOrElse(o,Map.empty).getOrElse(f,Set.empty)
+          val oo = other.mustHeap.getOrElse(o, Map.empty).getOrElse(f, Set.empty)
           (!oo.contains(UnknownHeapNode) || s.contains(UnknownHeapNode)) &&
             ((oo - UnknownHeapNode) subsetOf (s - UnknownHeapNode))
         }
       }
-    }
-    mayStoreMap && mustStoreMap && mayHeapMap && mustHeapMap
+    } // compare the (must) heaps
+    mayStoreMap && mayHeapMap && mustStoreMap && mustHeapMap
   }
 
   /** Computes the least upper bound of two elements.
@@ -1115,6 +1225,18 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   }
 
   /**
+    * Returns whether the specified access paths must alias.
+    *
+    * @param first  the first access path
+    * @param second the second access path
+    */
+  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean =  {
+    val evalFirst = mustEvaluatePath(first) - NullHeapNode
+    val evalSecond = mustEvaluatePath(second) - NullHeapNode
+    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
+  }
+
+  /**
     * Returns whether the receivers of the given access paths may alias.
     *
     * @param first the first access path
@@ -1122,18 +1244,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     */
   def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean =
     pathsMayAlias(first.dropRight(1), second.dropRight(1))
-
-  /**
-    * Returns whether the specified access paths must alias.
-    *
-    * @param first  the first access path
-    * @param second the second access path
-    */
-  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean =  {
-    val evalFirst = mayEvaluatePath(first) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
-    val evalSecond = mayEvaluatePath(second) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
-    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
-  }
 
   /**
     * Returns whether the receivers of the specified access paths must alias.
@@ -1207,7 +1317,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value
     */
-  override def top(): T = copy(isTop = true)
+  override def top(): T = copy(isBottom = false, isTop = true)
 
   /** Computes the widening of two elements.
     *
