@@ -18,15 +18,6 @@ import viper.silver.frontend.Frontend
 import viper.silver.testing.SilSuite
 import viper.silver.verifier.{Success, VerificationResult, Verifier}
 
-/** Property-based testing of lattice elements for Permission Analysis.
-  *
-  * @author Caterina Urban
-  */
-class PermissionAnalysisLatticeTest extends LatticeTest[PermissionAnalysisState.Default] {
-  SystemParameters.typ = DummyRefType
-  override def factory: PermissionAnalysisState.Default = PermissionAnalysisEntryState.topState
-}
-
 /** Testing of Permission Analysis.
   *
   * @author Caterina Urban
@@ -67,4 +58,11 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
   }
 }
 
-
+/** Property-based testing of lattice elements for Permission Analysis.
+  *
+  * @author Caterina Urban
+  */
+class PermissionAnalysisLatticeTest extends LatticeTest[PermissionAnalysisState.Default] {
+  SystemParameters.typ = DummyRefType
+  override def factory: PermissionAnalysisState.Default = PermissionAnalysisEntryState.topState
+}

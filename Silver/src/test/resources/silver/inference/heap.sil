@@ -1,0 +1,11 @@
+
+field next: Ref
+
+method foo(y: Ref, z: Ref)
+{
+    var x: Ref
+    x := y
+    x.next := z    // note that here we modify the heap
+    var b: Ref
+    b := y.next.next
+}
