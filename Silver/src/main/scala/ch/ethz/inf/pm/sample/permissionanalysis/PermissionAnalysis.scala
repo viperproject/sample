@@ -321,6 +321,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // permission trees for all variables
   def permissions: Map[Identifier, PermissionTree]
 
+  // result of the alias analysis at the current program point
+  lazy val aliases = preStateAtPP(context.get, currentPP)
+
+  // the set of fields
+  lazy val fields = context.get.entryState().fields
+
   override def addPreviousResult(result: TrackingCFGState[A]): T = {
     copy(context = Some(result))
   }
@@ -330,7 +336,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.Exp
     */
   override def precondition(): Seq[sil.Exp] = {
-    val fields = context.get.entryState().fields
     tuples
       .filter { case (path, permission) =>
         path.length > 1 && permission.amount > 0
@@ -380,8 +385,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val access = path(identifier)
         // get the amount of permission that is exhaled
         val exhaled = permission(numerator, denominator)
-        // get alias analysis state
-        val aliases = preStateBeforePP(context.get, currentPP)
 
         // subtract permission form all paths that may alias
         map { (path, permission) =>
@@ -412,9 +415,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val access = path(identifier)
         // get the amount of permission that is inhaled
         val inhaled = permission(numerator, denominator)
-
-        // get alias analysis state
-        val aliases = preStateBeforePP(context.get, currentPP)
 
         // add permission to all paths that must alias
         map { (path, permission) =>
@@ -568,19 +568,14 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           // get access paths corresponding to rhs
           val rightPath = path(right)
 
-          // get alias analysis state
-          val aliases = preStateBeforePP(context.get, currentPP)
-
           val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
           val assigned = accessPaths.foldLeft(this) {
               case (res, path) =>
-                if (path == leftPath)
-                  res.assign(leftPath, rightPath)
-                else if (path.last == leftPath.last && aliases.receiversMayAlias(path, leftPath))
-                  if (aliases.receiversMustAlias(path, leftPath)) res.assign(path, rightPath)
+                if (path == leftPath) res.assign(path, rightPath)
+                if (aliases.pathsMayAlias(path, rightPath))
+                  if (aliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
                   else res lub res.assign(path, rightPath)
-                else
-                  res
+                else res
             }
           return assigned.write(leftPath).read(rightPath)
         } else {

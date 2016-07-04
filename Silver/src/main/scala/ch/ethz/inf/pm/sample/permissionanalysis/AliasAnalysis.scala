@@ -1029,14 +1029,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
   }
 
-  /** Evaluates a path of object fields
+  /**
+    * Evaluates an access path with respect to the may alias analysis.
     *
-    * @param path the object fields path to evaluate
-    * @return the set of objects that may be referenced by the path (except the last field)
+    * @param path the access path to evaluate
     */
-  def mayEvaluateReceiver(path: AccessPath) : Set[HeapNode] = {
+  def mayEvaluatePath(path: AccessPath): Set[HeapNode] = {
     val first = mayStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
-    val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
+    val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
           if (set.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
           set.foldLeft(Set.empty[HeapNode])(
@@ -1046,14 +1046,23 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     if (eval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP); eval
   }
 
-  /** Evaluates a path of object fields
+  /**
+    * Evaluates an access path with respect to the may alias analysis up to but
+    * not including the last field.
     *
-    * @param path the object fields path to evaluate
-    * @return the set of objects that must be referenced by the path (except the last field)
+    * @param path the access path to evaluate
     */
-  def mustEvaluateReceiver(path: AccessPath) : Set[HeapNode] = {
+  def mayEvaluateReceiver(path: AccessPath) : Set[HeapNode] =
+    mayEvaluatePath(path.dropRight(1))
+
+  /**
+    * Evalautes an access path with respect to the must alias analysis.
+    *
+    * @param path the access path to evaluate
+    */
+  def mustEvaluatePath(path: AccessPath): Set[HeapNode] = {
     val first = mustStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
-    val eval = path.drop(1).dropRight(1).foldLeft(first)( // path tail evaluation
+    val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
           if (set.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
           set.foldLeft(Set.empty[HeapNode])(
@@ -1062,6 +1071,15 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       ) // return the objects referenced by the path (except the last field)
     if (eval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP); eval
   }
+
+  /**
+    * Evaluates an access path with respect to the must alias analysis up to but
+    * not including the last field
+    *
+    * @param path the access path to evaluate
+    */
+  def mustEvaluateReceiver(path: AccessPath) : Set[HeapNode] =
+    mustEvaluatePath(path.dropRight(1))
 
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): T = {
@@ -1086,14 +1104,35 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
 
   /**
+    * Returns whether the specified access paths may alias.
+    *
+    * @param first the first access path
+    * @param second the second accesss path
+    */
+  def pathsMayAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val intersection = mayEvaluatePath(first) ++ mayEvaluatePath(second)
+    (intersection - NullHeapNode).nonEmpty
+  }
+
+  /**
     * Returns whether the receivers of the given access paths may alias.
     *
     * @param first the first access path
     * @param second the second access path
     */
-  def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val intersection = mayEvaluateReceiver(first) ++ mayEvaluateReceiver(second)
-    (intersection - NullHeapNode).nonEmpty
+  def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean =
+    pathsMayAlias(first.dropRight(1), second.dropRight(1))
+
+  /**
+    * Returns whether the specified access paths must alias.
+    *
+    * @param first  the first access path
+    * @param second the second access path
+    */
+  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean =  {
+    val evalFirst = mayEvaluatePath(first) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
+    val evalSecond = mayEvaluatePath(second) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
+    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 
   /**
@@ -1102,11 +1141,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param first  the first access path
     * @param second the second access path
     */
-  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val evalFirst = mayEvaluateReceiver(first) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
-    val evalSecond = mayEvaluateReceiver(second) -- Set(SummaryHeapNode, NullHeapNode) //TODO: mustEvaluateReceiver
-    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
-  }
+  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean =
+    pathsMustAlias(first.dropRight(1), second.dropRight(1))
 
   /** Removes the current expression.
     *
