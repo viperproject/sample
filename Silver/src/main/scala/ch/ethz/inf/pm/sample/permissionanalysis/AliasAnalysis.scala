@@ -1145,7 +1145,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param path the access path to evaluate
     */
   def mayEvaluatePath(path: AccessPath): Set[HeapNode] = {
-    val first = mayStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
+    val first = mayStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
     val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
           if (set.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
@@ -1171,7 +1171,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param path the access path to evaluate
     */
   def mustEvaluatePath(path: AccessPath): Set[HeapNode] = {
-    val first = mustStore(path.head.asInstanceOf[VariableIdentifier]) // path head evaluation
+    val first = mustStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
     val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
           if (set.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
