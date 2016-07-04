@@ -20,7 +20,7 @@ class SiliconWithPermissionIntervalsInferenceTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/permissions/basic")
 
   override def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
+    val fe = new DummySilverFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe
@@ -67,7 +67,7 @@ class SiliconWithPermissionPolyhedraInferenceTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/permissions/basic")
 
   override def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
+    val fe = new DummySilverFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe
@@ -110,12 +110,3 @@ class SiliconWithPermissionPolyhedraInference(private var debugInfo: Seq[(String
 
 }
 
-object DummyAnalyzer extends SampleAnalyzer {
-  def name = "dummy"
-
-  def verify(program: Program) = Success
-
-  override def start(): Unit = ()
-
-  override def stop(): Unit = ()
-}

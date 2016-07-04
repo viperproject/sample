@@ -48,10 +48,7 @@ class MayPointToPolyhedraAnalysisTest extends SilSuite {
   override def verifiers: Seq[Verifier] = Seq(new MayPointToPolyhedraAnalyzer())
 }
 
-final case class DummySilverFrontend() extends SilFrontend {
-  def createVerifier(fullCmd: String) = ???
-  def configureVerifier(args: Seq[String]) = ???
-}
+
 
 class MayPointToIntervalsAnalyzer() extends Verifier {
   def name: String = "Sample[MayPointTo+Intervals]"
@@ -95,9 +92,6 @@ class MayPointToPolyhedraAnalyzer() extends Verifier {
   override def version: String = ""
 }
 
-case class AssertFailure(pos: Position) extends AbstractError {
-  def fullId: String = "sample.assert.failed"
-  def readableMessage: String = "the assertion may not hold"
-}
+
 
 

@@ -87,9 +87,12 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     val extended = extendProgram(DefaultSilverConverter.prog,results)
     println("\n********************\n* Extended Program *\n********************\n\n" + extended)
     // create a file with the extended program
+    //val copyName = args(0).split('.')(0) + ".sil.orig"
+    //val cw = new PrintWriter(new File(copyName))
+    //cw.write(DefaultSilverConverter.prog.toString); cw.close
     val outName = args(0).split('.')(0) + "X.sil"
-    val pw = new PrintWriter(new File(outName))
-    pw.write(extended.toString); pw.close
+    val ow = new PrintWriter(new File(outName))
+    ow.write(extended.toString); ow.close
 
     // verify the extended program with Silicon
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))

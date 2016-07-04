@@ -20,7 +20,7 @@ class PointsToIntervalsAnalysisTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/heap/intervals")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
+    val fe = new DummySilverFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe
@@ -38,7 +38,7 @@ class PointsToPolyhedraAnalysisTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/heap")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
+    val fe = new DummySilverFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe
@@ -62,7 +62,7 @@ class PointsToIntervalsAnalysisAnalyzer() extends SampleAnalyzer {
       Success
     else {
       Failure(Reporter.seenErrors.map(error => {
-        SampleFailure(DefaultSampleConverter.convert(error.pp))
+        AssertFailure(DefaultSampleConverter.convert(error.pp))
       }).toSeq)
     }
   }
@@ -82,7 +82,7 @@ class PointsToPolyhedraAnalysisAnalyzer() extends SampleAnalyzer {
       Success
     else {
       Failure(Reporter.seenErrors.map(error => {
-        SampleFailure(DefaultSampleConverter.convert(error.pp))
+        AssertFailure(DefaultSampleConverter.convert(error.pp))
       }).toSeq)
     }
   }
@@ -90,30 +90,4 @@ class PointsToPolyhedraAnalysisAnalyzer() extends SampleAnalyzer {
   override def start(): Unit = () //???
 
   override def stop(): Unit = () //???
-}
-
-trait SampleAnalyzer extends Verifier {
-  def version: String = "0.1"
-
-  def buildVersion: String = ""
-
-  def copyright: String = ""
-
-  def debugInfo(info: Seq[(String, Any)]): Unit = {}
-
-  def dependencies: Seq[Dependency] = Nil
-
-  def parseCommandLine(args: Seq[String]): Unit = {}
-}
-
-case class SampleFailure(pos: Position) extends AbstractError {
-  def fullId: String = "sample.assert.failed"
-
-  def readableMessage: String = "the assertion may not hold"
-}
-
-final case class DummySilFrontend() extends SilFrontend {
-  def createVerifier(fullCmd: String) = ???
-
-  def configureVerifier(args: Seq[String]) = ???
 }
