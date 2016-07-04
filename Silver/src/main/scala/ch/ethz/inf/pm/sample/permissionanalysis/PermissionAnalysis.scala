@@ -701,7 +701,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def widening(other: T): T = {
     logger.trace("widening")
-    this // TODO: implement me
+    lub(other) // TODO: implement me
   }
 
   /** Returns true if and only if `this` is less than or equal to `other`.
