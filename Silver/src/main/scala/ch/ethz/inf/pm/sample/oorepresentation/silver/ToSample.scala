@@ -257,15 +257,15 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     // @author Caterina Urban
 
     case sil.FieldAccessPredicate(loc, perm) => perm match {
-      case e: sil.FullPerm => makeNativeMethodCall(
+      case perm: sil.FullPerm => makeNativeMethodCall(
         pos = e.pos,
         name = PermissionMethods.permission.toString,
         args = loc :: perm :: Nil,
         returnType = go(loc.typ))
-      case e: sil.FractionalPerm => makeNativeMethodCall(
+      case perm: sil.FractionalPerm => makeNativeMethodCall(
         pos = e.pos,
         name = PermissionMethods.permission.toString,
-        args = loc :: e.left :: e.right :: Nil,
+        args = loc :: perm.left :: perm.right :: Nil,
         returnType = go(loc.typ))
       case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
     }
