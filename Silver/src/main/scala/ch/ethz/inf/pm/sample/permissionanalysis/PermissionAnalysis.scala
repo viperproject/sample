@@ -336,26 +336,26 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.Exp
     */
   override def precondition(): Seq[sil.Exp] = {
-    tuples
-      .filter { case (path, permission) =>
-        path.length > 1 && permission.amount > 0
-      }
-      .map { case (path, permission) =>
-        val obj = LocalVar(path.head.getName)(Ref)
-        val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
-          val name = id.getName
-          val field = fields.find(_._2 == name).get
-          val typ = field match {
-            case (t, _) if t.isObject => Ref
-            case (t, _) if t.isNumericalType => Int
-            case (t, _) if t.isBooleanType => Bool
-          }
-          FieldAccess(rcv, Field(name, typ)())()
-        }.asInstanceOf[FieldAccess]
-        // TODO: require less than full permission in cases where not necessary
-        val perm = FullPerm()()
-        FieldAccessPredicate(loc, perm)()
-      }
+    tuples.filter { case (path, permission) =>
+      path.length > 1 && permission.amount > 0
+    }.sortBy { case (path, permission) =>
+      path.length
+    }.map { case (path, permission) =>
+      val obj = LocalVar(path.head.getName)(Ref)
+      val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
+        val name = id.getName
+        val field = fields.find(_._2 == name).get
+        val typ = field match {
+          case (t, _) if t.isObject => Ref
+          case (t, _) if t.isNumericalType => Int
+          case (t, _) if t.isBooleanType => Bool
+        }
+        FieldAccess(rcv, Field(name, typ)())()
+      }.asInstanceOf[FieldAccess]
+      // TODO: require less than full permission in cases where not necessary
+      val perm = FullPerm()()
+      FieldAccessPredicate(loc, perm)()
+    }
   }
 
   /** Generates a Silver invariant from the current state
