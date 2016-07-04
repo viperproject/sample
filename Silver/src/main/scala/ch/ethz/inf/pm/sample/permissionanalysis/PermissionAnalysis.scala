@@ -563,7 +563,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           val rightPath = path(right)
 
           val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
-          val assigned = accessPaths.foldLeft(this) {
+          val assigned =
+            if (rightPath.isEmpty) assign(leftPath, rightPath)
+            else accessPaths.foldLeft(this) {
               case (res, path) =>
                 if (path == leftPath) res.assign(path, rightPath)
                 if (aliases.pathsMayAlias(path, rightPath))
@@ -571,7 +573,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
                   else res lub res.assign(path, rightPath)
                 else res
             }
-          return assigned.write(leftPath).read(rightPath)
+          assigned.write(leftPath).read(rightPath)
         } else {
           // case 2: the assigned field is not a reference
           // add write permission for lhs and write permission for all access paths on rhs
@@ -709,14 +711,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
     // compute whether this needs less permissions than other
-    else {
-      val res = permissions.forall {
-        case (id, tree) => other.permissions.get(id) match {
-          case Some(existing) => tree lessEqual existing
-          case None => tree lessEqual PermissionTree()
-        }
+    else permissions.forall {
+      case (id, tree) => other.permissions.get(id) match {
+        case Some(existing) => tree lessEqual existing
+        case None => tree lessEqual PermissionTree()
       }
-      res
     }
   }
 
