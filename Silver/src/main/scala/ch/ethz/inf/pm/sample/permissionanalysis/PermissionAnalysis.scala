@@ -382,15 +382,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     acc match {
       case PermissionExpression(identifier, numerator, denominator) =>
         // get access path
-        val access = path(identifier)
+        val location = path(identifier)
         // get the amount of permission that is exhaled
         val exhaled = permission(numerator, denominator)
 
         // subtract permission form all paths that may alias
         map { (path, permission) =>
-          if (aliases.receiversMayAlias(path, access)) permission plus exhaled
+          if (aliases.pathsMayAlias(path, location)) permission plus exhaled
           else permission
-        }
+        } lub access(location, exhaled)
       case _ =>
         // assert
         val asserted = setExpression(ExpressionSet(acc))
@@ -412,13 +412,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
       case PermissionExpression(identifier, numerator, denominator) => {
         // get access path
-        val access = path(identifier)
+        val location = path(identifier)
         // get the amount of permission that is inhaled
         val inhaled = permission(numerator, denominator)
 
         // add permission to all paths that must alias
         map { (path, permission) =>
-          if (path == access || aliases.receiversMustAlias(path, access)) permission minus inhaled
+          if (path == location || aliases.pathsMustAlias(path, location)) permission minus inhaled
           else permission
         }
       }
@@ -709,11 +709,14 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
     // compute whether this needs less permissions than other
-    else permissions.forall {
-      case (id, tree) => other.permissions.get(id) match {
-        case Some(existing) => tree lessEqual existing
-        case None => tree lessEqual PermissionTree()
+    else {
+      val res = permissions.forall {
+        case (id, tree) => other.permissions.get(id) match {
+          case Some(existing) => tree lessEqual existing
+          case None => tree lessEqual PermissionTree()
+        }
       }
+      res
     }
   }
 
