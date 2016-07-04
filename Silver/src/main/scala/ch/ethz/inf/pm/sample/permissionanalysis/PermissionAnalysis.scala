@@ -55,7 +55,7 @@ case class Permission(amount: Double) {
     * @param other the other permission
     */
   def lessEqual(other: Permission): Boolean =
-    amount < other.amount
+    amount <= other.amount
 
   override def toString: String =
     if (amount == 0.0) "none"
@@ -436,10 +436,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
     logger.trace("createVariableForArgument")
-    permissions.get(variable) match {
-      case Some(_) => this
-      case None => copy(permissions = permissions + (variable -> PermissionTree()))
-    }
+    this
   }
 
   /** Removes a variable.
@@ -451,7 +448,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def removeVariable(varExpr: VariableIdentifier): T = {
     logger.trace("removeVariable")
-    copy(permissions = permissions - varExpr)
+    this
   }
 
   /** Accesses a field of an object.
@@ -498,17 +495,14 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param x   The name of the variable
-    * @param typ The static type of the variable
-    * @param pp  The program point that creates the variable
+    * @param variable The name of the variable
+    * @param typ      The static type of the variable
+    * @param pp       The program point that creates the variable
     * @return The abstract state after the creation of the variable
     */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
-    permissions.get(x) match {
-      case Some(existing) => this
-      case None => copy(permissions = permissions + (x -> PermissionTree()))
-    }
+    copy(permissions = permissions - variable)
   }
 
   /** Assigns an expression to a variable.
