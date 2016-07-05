@@ -322,7 +322,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   def permissions: Map[Identifier, PermissionTree]
 
   // result of the alias analysis at the current program point
-  lazy val aliases = preStateAtPP(context.get, currentPP)
+  lazy val aliases = postStateAtPP(context.get, currentPP)
 
   // the set of fields
   lazy val fields = context.get.entryState().fields
