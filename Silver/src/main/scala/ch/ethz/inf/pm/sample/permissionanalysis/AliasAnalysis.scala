@@ -777,8 +777,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       case acc: PermissionExpression => {
         acc.id match {
           case AccessPathIdentifier(path) =>
-            val obj = mayEvaluateReceiver(path) // set of (path) receivers
-            var heapMap = if (!mayHeap.contains(SummaryHeapNode)) {
+            val mayObj = mayEvaluateReceiver(path) // set of (path) receivers
+            val mustObj = mustEvaluateReceiver(path)
+            // havoc the heap pointed to by the path
+            var mayHeapMap = if (!mayHeap.contains(SummaryHeapNode)) {
               var fieldMap = Map.empty[String,Set[HeapNode]]
               for (f <- fields) { // for all fields declared within the program...
                 f._1 match {
@@ -787,10 +789,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
               }
               mayHeap + (SummaryHeapNode -> fieldMap) // add summary node to heap map
             } else { mayHeap }
-            heapMap = obj.foldLeft(heapMap) {
-              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> heapMap.keySet)))
-            } // havoc the heap pointed to by the path
-            copy(mayHeap = heapMap).pruneUnreachableHeap()
+            mayHeapMap = mayObj.foldLeft(mayHeapMap) {
+              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> mayHeapMap.keySet)))
+            }
+            val mustHeapMap = mustObj.foldLeft(mustHeap) {
+              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> Set.empty)))
+            }
+            copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
           case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
         }
       }
@@ -999,8 +1004,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       }
     }
     var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
+    for (key <- this.mustHeap.keySet ++ other.mustHeap.keySet) { // for all keys present in either map...
+      (this.mustHeap.get(key),other.mustHeap.get(key)) match {
         case (None,_) => // nothing to be done
         case (_,None) => // nothing to be done
         case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
@@ -1125,8 +1130,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       }
     }
     var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
+    for (key <- this.mustHeap.keySet ++ other.mustHeap.keySet) { // for all keys present in either map...
+      (this.mustHeap.get(key),other.mustHeap.get(key)) match {
         case (None,_) => // nothing to be done
         case (_,None) => // nothing to be done
         case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
