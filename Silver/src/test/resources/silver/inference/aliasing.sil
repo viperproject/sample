@@ -1,0 +1,30 @@
+
+field f: Ref
+
+method foo(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
+	//requires acc(a.f, write)
+	//requires acc(a.f.f, write)
+	//requires acc(b.f, 1/10)
+	//requires acc(b.f.f, write)
+	//requires acc(c.f, 1/10)
+	//requires acc(c.f.f, write)
+{
+	a.f.f := c.f
+	if (t) {
+		a.f := b.f
+		a.f.f := c.f
+	} else {
+		a.f.f := b.f
+	}
+	a.f.f.f := d
+}
+
+method bar(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
+	//requires acc(a.f, write)
+	//requires acc(a.f.f, write)
+	//requires acc(b.f, 1/10)
+	//requires acc(c.f, 1/10)
+{
+	a.f.f := c.f
+	a.f := b.f
+}

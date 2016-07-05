@@ -1,7 +1,7 @@
 
 field f: Ref
 
-method Foo(this: Ref, that: Ref)
+method foo(this: Ref, that: Ref)
   //requires acc(this.f, write)
   //requires acc(that.f, write)
 {
@@ -13,8 +13,7 @@ method Foo(this: Ref, that: Ref)
 
     while (i < 10)
         //invariant acc(this.f, 1/2)
-        //invariant acc(that.f, write)
-        //invariant this.f == that     
+        //invariant acc(this.f.f, write)
     {
         x := new()
         this.f.f := x

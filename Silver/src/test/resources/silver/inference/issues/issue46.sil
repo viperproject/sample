@@ -1,7 +1,7 @@
 
 field f: Ref
 
-method Foo4(this: Ref, that: Ref, other: Ref, b: Int)
+method foo(this: Ref, that: Ref, other: Ref, b: Int)
   //requires acc(this.f, write)
   //requires b > 0 ? acc(that.f, write) : acc(other.f, write)
 {

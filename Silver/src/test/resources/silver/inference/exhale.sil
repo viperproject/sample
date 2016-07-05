@@ -1,0 +1,27 @@
+
+field f: Ref
+
+method foo(b: Ref, d: Ref, p: Perm)
+	//requires acc(b.f, p) && p > 1/2
+	//requires acc(b.f.f, write)
+{
+	var a: Ref
+	a := b
+
+	exhale acc(b.f, 1/2)
+	inhale acc(b.f, 1/2)
+
+	a.f.f := d
+}
+
+method bar(b: Ref, d: Ref)
+	//requires acc(b.f, write)
+{
+	var a: Ref
+	a := b
+
+	exhale acc(b.f, write)
+	inhale acc(b.f, write)
+
+	a.f := d
+}

@@ -1,14 +1,14 @@
 
 field f: Ref
 
-method Foo1(this: Ref, that: Ref)
+method foo1(this: Ref, that: Ref)
   //requires acc(this.f, write)
   //ensures acc(this.f, write)
 {
     this.f := that
 }
 
-method Foo2(this: Ref, that: Ref)
+method foo2(this: Ref, that: Ref)
   //requires acc(this.f, 1/2)
   //requires acc(this.f.f, write)
   //ensures acc(this.f, 1/2)
@@ -17,7 +17,7 @@ method Foo2(this: Ref, that: Ref)
 	this.f.f := that
 }
 
-method Foo3(this: Ref, that: Ref)
+method foo3(this: Ref, that: Ref)
   //requires acc(this.f, write)
   //requires acc(that.f, write)
   //ensures acc(this.f, write)

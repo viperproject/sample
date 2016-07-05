@@ -1,7 +1,7 @@
 
 field data: Int
 
-method Foo(this: Ref)
+method foo(this: Ref)
     //requires acc(this.data, write)
     //ensures acc(this.data, write)
 {

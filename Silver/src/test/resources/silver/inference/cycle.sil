@@ -1,7 +1,7 @@
 
 field f: Ref
 
-method Foo(a: Ref)
+method foo(a: Ref)
 {
     a.f := a
     a.f.f.f.f.f.f.f.f.f := null

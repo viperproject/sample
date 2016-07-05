@@ -1,7 +1,7 @@
 
 field f: Ref
 
-method Foo(this: Ref)
+method foo(this: Ref)
     //requires acc(this.f, read)
     //requires acc(this.f.f, write)
 {
