@@ -1,0 +1,9 @@
+
+field f: Ref
+
+method Foo(this: Ref, that: Ref)
+{
+    inhale acc(this.f, write)
+    this.f := that
+    this.f.f := null
+}

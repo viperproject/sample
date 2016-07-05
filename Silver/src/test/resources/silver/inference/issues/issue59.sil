@@ -1,0 +1,10 @@
+
+field f: Ref
+
+method foo(a: Ref)
+	//requires acc(a.f, write)
+{
+    a.f := null
+    a.f := a
+    a.f.f.f.f.f.f.f := null
+}
