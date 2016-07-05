@@ -568,7 +568,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
             else accessPaths.foldLeft(this) {
               case (res, path) =>
                 if (path == leftPath) res.assign(path, rightPath)
-                if (aliases.pathsMayAlias(path, rightPath))
+                else if (path.length > 1 && aliases.pathsMayAlias(path, rightPath))
                   if (aliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
                   else res lub res.assign(path, rightPath)
                 else res
