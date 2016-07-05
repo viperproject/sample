@@ -33,7 +33,6 @@ case class HeapNode(id: List[Identifier] = List.empty, pp: ProgramPoint = DummyP
   * @author Caterina Urban
   */
 object SummaryHeapNode extends HeapNode(List.empty) {
-  override def getName: String = "Σ"
   override def representsSingleVariable: Boolean = false
   override def toString: String = "Σ"
 }
@@ -53,7 +52,6 @@ object NullHeapNode extends HeapNode(List.empty) {
   * @author Caterina Urban
   */
 object UnknownHeapNode extends HeapNode(List.empty) {
-  override def getName: String = "?"
   override def representsSingleVariable: Boolean = false
   override def toString: String = "?"
 }
