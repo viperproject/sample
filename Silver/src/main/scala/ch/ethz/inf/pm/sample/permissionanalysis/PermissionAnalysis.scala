@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
+import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Inner
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast._
 import viper.silver.{ast => sil}
@@ -51,6 +51,11 @@ trait Permission extends Lattice[Permission] {
   def minus(other: Permission): Permission
 
   /**
+    * Returns whether the amount of the permission is at most one.
+    */
+  def isFeasible: Boolean
+
+  /**
     * Returns whether the amount of the permission is greater or equal to one.
     */
   def isWrite: Boolean
@@ -73,9 +78,9 @@ object Permission {
   def none: Permission = fractional(0, 1)
 
   /**
-    * Placeholder for read permission.
+    * Returns a read permission.
     */
-  def read: Permission = fractional(1, 100)
+  def read: Permission = fractional(0, 1, true)
 
   /**
     * Returns a write permission.
@@ -88,15 +93,20 @@ object Permission {
     * @param numerator   the numerator of the fraction
     * @param denominator the denominator of the fraction
     */
-  def fractional(numerator: Int, denominator: Int) = {
+  def fractional(numerator: Int, denominator: Int): Permission =
+    fractional(numerator, denominator, false)
+
+  def fractional(numerator: Int, denominator: Int, read: Boolean): Permission = {
     val div = gcd(numerator, denominator)
-    Fractional(numerator / div, denominator / div)
+    Inner(numerator / div, denominator / div, read)
   }
 
   case object Top extends Permission with Lattice.Top[Permission] {
     override def plus(other: Permission): Permission = top()
 
     override def minus(other: Permission): Permission = top()
+
+    override def isFeasible: Boolean = false
 
     override def isWrite: Boolean = true
 
@@ -114,6 +124,8 @@ object Permission {
       if (other.isBottom) top()
       else bottom()
 
+    override def isFeasible: Boolean = true
+
     override def isWrite: Boolean = false
 
     override def isSome: Boolean = false
@@ -121,8 +133,7 @@ object Permission {
     override def isNone: Boolean = true
   }
 
-  case class Fractional(numerator: Int, denominator: Int)
-    extends Permission {
+  case class Inner(numerator: Int, denominator: Int, read: Boolean) extends Permission {
 
     override def isBottom: Boolean = false
 
@@ -131,29 +142,45 @@ object Permission {
     override def lessEqual(other: Permission): Boolean = other match {
       case Top => true
       case Bottom => false
-      case Fractional(a, b) => numerator * b <= denominator * a
+      case Inner(oNumerator, oDenominator, oRead) =>
+        val x = numerator * oDenominator
+        val y = denominator * oNumerator
+        x < y || (x == y && (!read || oRead))
     }
 
     override def plus(other: Permission): Permission = other match {
       case Top => top()
       case Bottom => bottom()
-      case Fractional(a, b) => fractional(numerator * b + denominator * a, denominator * b)
+      case Inner(oNumerator, oDenominator, oRead) =>
+        val newNumerator = numerator * oDenominator + denominator * oNumerator
+        val newDenominator = denominator * oDenominator
+        val newRead = read | oRead
+        fractional(newNumerator, newDenominator, newRead)
     }
 
     override def minus(other: Permission): Permission = other match {
       case Top => bottom()
       case Bottom => top()
-      case Fractional(a, b) => fractional(numerator * b - denominator * a, denominator * b)
+      case Inner(oNumerator, oDenominator, _) =>
+        val newNumerator = numerator * oDenominator - denominator * oNumerator
+        val newDenominator = denominator * oDenominator
+        fractional(newNumerator, newDenominator, read)
     }
 
-    override def isSome: Boolean =
-      numerator * denominator > 0
-
-    override def isNone: Boolean =
-      numerator == 0
+    override def isFeasible: Boolean =
+      amount < 1 || (amount == 1 && !read)
 
     override def isWrite: Boolean =
-      isSome && numerator > denominator
+      amount >= 1
+
+    override def isSome: Boolean =
+      amount > 0 || (amount == 0 && read)
+
+    override def isNone: Boolean =
+      amount <= 0
+
+    private def amount: Double =
+      numerator.toDouble
   }
 
   /**
@@ -438,13 +465,14 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         }
         FieldAccess(rcv, Field(name, typ)())()
       }.asInstanceOf[FieldAccess]
-      val perm = permission match {
-        case Fractional(a, b) =>
-          val left = IntLit(a)()
-          val right = IntLit(b)()
-          FractionalPerm(left, right)()
+      permission match {
+        case Inner(numerator, denominator, read) =>
+          val fracPerm = FieldAccessPredicate(loc, FractionalPerm(IntLit(numerator)(), IntLit(denominator)())())()
+          val readPerm = FieldAccessPredicate(loc, FractionalPerm(IntLit(1)(), IntLit(100)())())()
+          if (!read) fracPerm
+          else if (numerator == 0) readPerm
+          else And(fracPerm, readPerm)()
       }
-      FieldAccessPredicate(loc, perm)()
     }
   }
 
