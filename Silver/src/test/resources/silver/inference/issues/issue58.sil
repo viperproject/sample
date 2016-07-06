@@ -1,0 +1,11 @@
+
+field f: Int
+
+method Foo(r: Ref)
+{
+    var i: Int := 2
+    while (i < r.f)
+    {
+        i := i + 1
+    }
+}

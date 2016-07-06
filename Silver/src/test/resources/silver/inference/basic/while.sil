@@ -25,5 +25,5 @@ method t9(r: Ref) returns ()
     {
         j := j + 1
     }
-    assert j >= r.f
+    //assert j >= r.f
 }
