@@ -28,20 +28,11 @@ object Main {
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
 
-    //PointsToIntervalsAnalysisRunner.main(args)
-    //PointsToPolyhedraAnalysisRunner.main(args)
-    //PermissionIntervalsAnalysisRunner.main(args)
-    //PermissionPolyhedraAnalysisRunner.main(args)
-
     //MayPointToOctagonsAnalysisRunner.main(args)
     //MayPointToAOctagonsAnalysisRunner.main(args)
-
     //MayPointToAPolyhedraAnalysisRunner.main(args)
-    AccessPolyhedraAnalysisRunner.main(args)
 
-    //BackwardPermissionInferenceRunner.main(args)
-    //val out = BackwardPermissionInferenceRunner.extend(args)
-    //println(out)
+    PermissionAnalysis.main(args)
 
     //println("\n******************\n* AnalysisResult *\n******************\n")
     //if (Reporter.seenErrors.isEmpty) println("No errors")
