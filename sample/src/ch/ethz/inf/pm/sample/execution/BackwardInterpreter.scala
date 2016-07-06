@@ -35,10 +35,16 @@ trait BackwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging
       val currentState: S = if (leavesIds.contains(currentId)) finalState else {
         var exitState: S = cfgStateFactory.stateFactory.bottom()
         for ((_, to, weight) <- cfg.exitEdges(currentId)) { // for each exit edge...
-        val postState = cfgState.statesOfBlock(to).head // get the first state of the successor block
-        val filteredState = weight match { // filter the state if needed
-            case Some(true) => postState.testTrue()
-            case Some(false) => postState.testFalse()
+          val postState = cfgState.statesOfBlock(to).head // get the first state of the successor block
+          // filter the state if needed
+          val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(currentId)
+          var tempState: S = cfgState.stateFactory.bottom()
+          for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex) {
+            tempState = stmt.forwardSemantics(tempState)
+          }
+          val filteredState = weight match {
+            case Some(true) => postState.setExpression(tempState.expr).testTrue()
+            case Some(false) => postState.setExpression(tempState.expr).testFalse()
             case None => postState
           }
           exitState = exitState lub filteredState // join the successor states
