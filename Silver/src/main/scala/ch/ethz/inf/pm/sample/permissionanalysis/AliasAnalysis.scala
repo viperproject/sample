@@ -1224,10 +1224,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * Returns whether the specified access paths may alias.
     *
     * @param first the first access path
-    * @param second the second accesss path
+    * @param second the second access path
     */
   def pathsMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val intersection = mayEvaluatePath(first) ++ mayEvaluatePath(second)
+    val evalFirst = mayEvaluatePath(first)
+    val evalSecond = mayEvaluatePath(second)
+    val intersection = evalFirst intersect evalSecond
     (intersection - NullHeapNode).nonEmpty
   }
 
