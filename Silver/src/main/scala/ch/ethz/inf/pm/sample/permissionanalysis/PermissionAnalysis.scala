@@ -6,79 +6,161 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
+import ch.ethz.inf.pm.sample.permissionanalysis.Permission.{Bottom, Fractional, Top}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
-  * Placeholder for permissions.
-  *
-  * @param amount the amount of permission
-  * @author Jerome Dohrau
+  * Represents a permission.
   */
-case class Permission(amount: Double) {
-  /**
-    * Returns the least upper bound of this permission and the other permission.
-    *
-    * @param other the other permission
-    */
-  def lub(other: Permission): Permission =
-    Permission(math.max(amount, other.amount))
+trait Permission extends Lattice[Permission] {
+  override def factory(): Permission = top()
 
-  /**
-    * Returns the greatest lower bound of this permission and the other permission.
-    *
-    * @param other the other permission
-    */
-  def glb(other: Permission): Permission =
-    Permission(math.min(amount, other.amount))
+  override def top(): Permission = Permission.Top
+
+  override def bottom(): Permission = Permission.Bottom
+
+  override def lub(other: Permission): Permission =
+    if (this lessEqual other) other
+    else if (other lessEqual this) this
+    else top()
+
+  override def glb(other: Permission): Permission =
+    if (this lessEqual other) this
+    else if (other lessEqual this) other
+    else bottom()
+
+
+  override def widening(other: Permission): Permission = ???
 
   /**
     * Returns the sum of this permission and the other permission.
     *
-    * @param other the other permission
+    * @param other the permission to be added
     */
-  def plus(other: Permission): Permission =
-    Permission(amount + other.amount)
+  def plus(other: Permission): Permission
 
   /**
-    * Returns the difference between this permission and the other permission.
+    * Returns the difference of this permission and the other permission.
     *
-    * @param other the other permission
+    * @param other the permission to be subtracted
     */
-  def minus(other: Permission): Permission =
-    Permission(amount - other.amount)
+  def minus(other: Permission): Permission
 
   /**
-    * Returns whether this permission is smaller or equal than the other permission.
-    *
-    * @param other the other permission
+    * Returns whether the amount of the permission is greater or equal to one.
     */
-  def lessEqual(other: Permission): Boolean =
-    amount <= other.amount
+  def isWrite: Boolean
 
-  override def toString: String =
-    if (amount == 0.0) "none"
-    else if (amount == 0.1) "read"
-    else if (amount == 1.0) "write"
-    else s"$amount"
+  /**
+    * Returns whether the amount of the permission is strictly greater than zero.
+    */
+  def isSome: Boolean
+
+  /**
+    * Returns whether the amount of the permission is at most zero.
+    */
+  def isNone: Boolean
 }
 
 object Permission {
   /**
-    * Placeholder for no permission
+    * No permission.
     */
-  def none: Permission = Permission(0.0)
+  def none: Permission = Fractional(0, 1)
 
   /**
-    * Placeholder for read permission
+    * Placeholder for read permission.
     */
-  def read: Permission = Permission(0.1)
+  def read: Permission = Fractional(1, 100)
 
   /**
-    * Placeholder for write permission
+    * Write permission.
     */
-  def write: Permission = Permission(1.0)
+  def write: Permission = Fractional(1, 1)
+
+  case object Top extends Permission with Lattice.Top[Permission] {
+    override def plus(other: Permission): Permission = top()
+
+    override def minus(other: Permission): Permission = top()
+
+    override def isWrite: Boolean = true
+
+    override def isSome: Boolean = true
+
+    override def isNone: Boolean = false
+  }
+
+  case object Bottom extends Permission with Lattice.Bottom[Permission] {
+    override def plus(other: Permission): Permission =
+      if (other.isTop) top()
+      else bottom()
+
+    override def minus(other: Permission): Permission =
+      if (other.isBottom) top()
+      else bottom()
+
+    override def isWrite: Boolean = false
+
+    override def isSome: Boolean = false
+
+    override def isNone: Boolean = true
+  }
+
+  case class Fractional(numerator: Int, denominator: Int)
+    extends Permission {
+
+    override def isBottom: Boolean = false
+
+    override def isTop: Boolean = false
+
+    override def lessEqual(other: Permission): Boolean = other match {
+      case Top => true
+      case Bottom => false
+      case Fractional(a, b) => numerator * b <= denominator * a
+    }
+
+    override def plus(other: Permission): Permission = other match {
+      case Top => top()
+      case Bottom => bottom()
+      case Fractional(a, b) =>
+        val num = numerator * b + denominator * a
+        val den = denominator * b
+        val div = gcd(num, den)
+        Fractional(num / div, den / div)
+    }
+
+    override def minus(other: Permission): Permission = other match {
+      case Top => bottom()
+      case Bottom => top()
+      case Fractional(a, b) =>
+        val num = numerator * b - denominator * a
+        val den = denominator * b
+        val div = gcd(num, den)
+        Fractional(num / div, den / div)
+    }
+
+    override def isSome: Boolean =
+      numerator * denominator > 0
+
+    override def isNone: Boolean =
+      numerator == 0
+
+    override def isWrite: Boolean =
+      isSome && numerator > denominator
+
+    /**
+      * Computes the greatest common divisor of the two specified integers.
+      *
+      * @param a the first integer
+      * @param b the second integer
+      */
+    private def gcd(a: Int, b: Int): Int =
+      if (b == 0) a.abs
+      else gcd(b, a % b)
+  }
+
 }
 
 /**
@@ -337,7 +419,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def precondition(): Seq[sil.Exp] = {
     tuples.filter { case (path, permission) =>
-      path.length > 1 && permission.amount > 0
+      path.length > 1 && permission.isSome
     }.sortBy { case (path, permission) =>
       path.length
     }.map { case (path, permission) =>
@@ -352,8 +434,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         }
         FieldAccess(rcv, Field(name, typ)())()
       }.asInstanceOf[FieldAccess]
-      // TODO: require less than full permission in cases where not necessary
-      val perm = FullPerm()()
+      val perm = permission match {
+        case Fractional(a,b) =>
+          val left = IntLit(a)()
+          val right = IntLit(b)()
+          FractionalPerm(left, right)()
+      }
       FieldAccessPredicate(loc, perm)()
     }
   }
@@ -811,8 +897,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def permission(numerator: Expression, denominator: Expression): Permission =
     (numerator, denominator) match {
       case (Constant(nValue, _, _), Constant(dValue, _, _)) =>
-        val amount = nValue.toDouble / dValue.toDouble
-        Permission(amount)
+        Permission.Fractional(nValue.toInt, dValue.toInt)
       case _ => ??? // TODO: support more cases
     }
 
@@ -936,7 +1021,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
       val strings = tuples.filter { case (_, permission) =>
-        permission.amount > 0
+        permission.isSome
       }.map { case (path, permission) =>
         path.map(_.toString).reduce(_ + "." + _) + " " + permission
       }
