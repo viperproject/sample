@@ -6,13 +6,15 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.Permission.{Bottom, Fractional, Top}
+import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
   * Represents a permission.
+  *
+  * @author Jerome Dohrau
   */
 trait Permission extends Lattice[Permission] {
   override def factory(): Permission = top()
@@ -66,19 +68,30 @@ trait Permission extends Lattice[Permission] {
 
 object Permission {
   /**
-    * No permission.
+    * Returns no permission.
     */
-  def none: Permission = Fractional(0, 1)
+  def none: Permission = fractional(0, 1)
 
   /**
     * Placeholder for read permission.
     */
-  def read: Permission = Fractional(1, 100)
+  def read: Permission = fractional(1, 100)
 
   /**
-    * Write permission.
+    * Returns a write permission.
     */
-  def write: Permission = Fractional(1, 1)
+  def write: Permission = fractional(1, 1)
+
+  /**
+    * Returns a fractional permission.
+    *
+    * @param numerator   the numerator of the fraction
+    * @param denominator the denominator of the fraction
+    */
+  def fractional(numerator: Int, denominator: Int) = {
+    val div = gcd(numerator, denominator)
+    Fractional(numerator / div, denominator / div)
+  }
 
   case object Top extends Permission with Lattice.Top[Permission] {
     override def plus(other: Permission): Permission = top()
@@ -124,21 +137,13 @@ object Permission {
     override def plus(other: Permission): Permission = other match {
       case Top => top()
       case Bottom => bottom()
-      case Fractional(a, b) =>
-        val num = numerator * b + denominator * a
-        val den = denominator * b
-        val div = gcd(num, den)
-        Fractional(num / div, den / div)
+      case Fractional(a, b) => fractional(numerator * b + denominator * a, denominator * b)
     }
 
     override def minus(other: Permission): Permission = other match {
       case Top => bottom()
       case Bottom => top()
-      case Fractional(a, b) =>
-        val num = numerator * b - denominator * a
-        val den = denominator * b
-        val div = gcd(num, den)
-        Fractional(num / div, den / div)
+      case Fractional(a, b) => fractional(numerator * b - denominator * a, denominator * b)
     }
 
     override def isSome: Boolean =
@@ -149,18 +154,17 @@ object Permission {
 
     override def isWrite: Boolean =
       isSome && numerator > denominator
-
-    /**
-      * Computes the greatest common divisor of the two specified integers.
-      *
-      * @param a the first integer
-      * @param b the second integer
-      */
-    private def gcd(a: Int, b: Int): Int =
-      if (b == 0) a.abs
-      else gcd(b, a % b)
   }
 
+  /**
+    * Computes the greatest common divisor of the two specified integers.
+    *
+    * @param a the first integer
+    * @param b the second integer
+    */
+  private def gcd(a: Int, b: Int): Int =
+    if (b == 0) a.abs
+    else gcd(b, a % b)
 }
 
 /**
@@ -435,7 +439,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         FieldAccess(rcv, Field(name, typ)())()
       }.asInstanceOf[FieldAccess]
       val perm = permission match {
-        case Fractional(a,b) =>
+        case Fractional(a, b) =>
           val left = IntLit(a)()
           val right = IntLit(b)()
           FractionalPerm(left, right)()
@@ -897,7 +901,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def permission(numerator: Expression, denominator: Expression): Permission =
     (numerator, denominator) match {
       case (Constant(nValue, _, _), Constant(dValue, _, _)) =>
-        Permission.Fractional(nValue.toInt, dValue.toInt)
+        Permission.fractional(nValue.toInt, dValue.toInt)
       case _ => ??? // TODO: support more cases
     }
 
