@@ -1,0 +1,10 @@
+
+field f: Ref
+
+method Foo(this: Ref)
+{
+    while(true)
+    {
+      this.f := null
+    }
+}

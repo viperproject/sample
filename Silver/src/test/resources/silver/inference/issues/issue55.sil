@@ -1,0 +1,12 @@
+
+field f: Ref
+
+method foo(a: Ref, b: Ref) {
+    var c: Ref
+    if (true) {
+        c := b
+    } else {
+        c := a
+    }
+    c.f := null
+}
