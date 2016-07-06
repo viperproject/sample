@@ -80,7 +80,7 @@ object Permission {
   /**
     * Returns a read permission.
     */
-  def read: Permission = fractional(0, 1, true)
+  def read: Permission = inner(0, 1, true)
 
   /**
     * Returns a write permission.
@@ -94,9 +94,17 @@ object Permission {
     * @param denominator the denominator of the fraction
     */
   def fractional(numerator: Int, denominator: Int): Permission =
-    fractional(numerator, denominator, false)
+    inner(numerator, denominator, false)
 
-  def fractional(numerator: Int, denominator: Int, read: Boolean): Permission = {
+  /**
+    * Returns a permission that is the sum of a fractional permission and a read
+    * permission
+    *
+    * @param numerator   the numerator of the fractional part
+    * @param denominator the denominator of the fractional part
+    * @param read        indicates whether ther is a read part
+    */
+  def inner(numerator: Int, denominator: Int, read: Boolean): Permission = {
     val div = gcd(numerator, denominator)
     Inner(numerator / div, denominator / div, read)
   }
@@ -133,6 +141,14 @@ object Permission {
     override def isNone: Boolean = true
   }
 
+  /**
+    * A permission that is the sum of a fractional permission and a read
+    * permission
+    *
+    * @param numerator   the numerator of the fractional part
+    * @param denominator the denominator of the fractional part
+    * @param read        indicates whether ther is a read part
+    */
   case class Inner(numerator: Int, denominator: Int, read: Boolean) extends Permission {
 
     override def isBottom: Boolean = false
@@ -155,7 +171,7 @@ object Permission {
         val newNumerator = numerator * oDenominator + denominator * oNumerator
         val newDenominator = denominator * oDenominator
         val newRead = read | oRead
-        fractional(newNumerator, newDenominator, newRead)
+        inner(newNumerator, newDenominator, newRead)
     }
 
     override def minus(other: Permission): Permission = other match {
@@ -164,7 +180,7 @@ object Permission {
       case Inner(oNumerator, oDenominator, _) =>
         val newNumerator = numerator * oDenominator - denominator * oNumerator
         val newDenominator = denominator * oDenominator
-        fractional(newNumerator, newDenominator, read)
+        inner(newNumerator, newDenominator, read)
     }
 
     override def isFeasible: Boolean =
