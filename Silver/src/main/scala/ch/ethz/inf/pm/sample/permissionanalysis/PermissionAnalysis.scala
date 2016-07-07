@@ -507,9 +507,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       }.asInstanceOf[FieldAccess]
       permission match {
         case Inner(numerator, denominator, read) =>
-
+          val amount = numerator.toDouble / denominator
           if (read) {
-            val amount = numerator.toDouble / denominator
             val read = LocalVar("_read")(Perm)
             val cond = PermGtCmp(read, NoPerm()())()
             val perm = if (amount > 0) {
@@ -518,7 +517,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
             } else read
             And(FieldAccessPredicate(loc, perm)(), cond)()
           } else{
-            val perm = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
+            val perm = if (amount == 1) FullPerm()()
+            else FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
             FieldAccessPredicate(loc, perm)()
           }
       }
