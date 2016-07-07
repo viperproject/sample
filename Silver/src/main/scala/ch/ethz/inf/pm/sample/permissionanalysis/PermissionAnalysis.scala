@@ -470,6 +470,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       path.length
     }
 
+  lazy val reading = tuples.exists {
+    case (_, Inner(_, _, true)) => true
+    case _ => false
+  }
+
   override def addPreviousResult(result: TrackingCFGState[A]): T = {
     copy(context = Some(result))
   }
@@ -480,11 +485,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.LocalVarDecl
     */
   override def formalArguments(): Seq[LocalVarDecl] = {
-    val read = tuples.exists {
-      case (_, Inner(_, _, true)) => true
-      case _ => false
-    }
-    if (read) Seq(LocalVarDecl("_read", Perm)())
+    if (reading) Seq(LocalVarDecl("read", Perm)())
     else Seq.empty
   }
 
@@ -493,7 +494,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.Exp
     */
   override def precondition(): Seq[sil.Exp] = {
-    tuples.map { case (path, permission) =>
+    val condition = if (reading) {
+      val read = LocalVar("read")(Perm)
+      Seq(PermGtCmp(read, NoPerm()())())
+    } else Seq.empty
+    condition ++ tuples.map { case (path, permission) =>
       val obj = LocalVar(path.head.getName)(Ref)
       val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
         val name = id.getName
@@ -509,13 +514,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         case Inner(numerator, denominator, read) =>
           val amount = numerator.toDouble / denominator
           if (read) {
-            val read = LocalVar("_read")(Perm)
-            val cond = PermGtCmp(read, NoPerm()())()
+            val read = LocalVar("read")(Perm)
             val perm = if (amount > 0) {
               val fractional = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
               PermAdd(fractional, read)()
             } else read
-            And(FieldAccessPredicate(loc, perm)(), cond)()
+            FieldAccessPredicate(loc, perm)()
           } else{
             val perm = if (amount == 1) FullPerm()()
             else FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
