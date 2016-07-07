@@ -104,7 +104,7 @@ object Permission {
     * @param denominator the denominator of the fractional part
     * @param read        indicates whether ther is a read part
     */
-  def inner(numerator: Int, denominator: Int, read: Boolean): Permission = {
+  private def inner(numerator: Int, denominator: Int, read: Boolean): Permission = {
     val div = gcd(numerator, denominator)
     Inner(numerator / div, denominator / div, read)
   }
@@ -195,8 +195,8 @@ object Permission {
     override def isNone: Boolean =
       amount <= 0
 
-    private def amount: Double =
-      numerator.toDouble
+    def amount: Double =
+      numerator.toDouble / denominator
   }
 
   /**
@@ -456,8 +456,36 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // the set of fields
   lazy val fields = context.get.entryState().fields
 
+  // the list of access paths
+  lazy val paths: List[AccessPath] =
+    permissions.flatMap { case (identifier, tree) => tree.paths(identifier) }.toList
+
+  // the list of tuples of access paths and their corresponding permissions
+  lazy val tuples: List[(AccessPath, Permission)] =
+    permissions.flatMap { case (identifier, tree) =>
+      tree.tuples(identifier)
+    }.toList.filter { case (path, permission) =>
+      path.length > 1 && permission.isSome
+    }.sortBy { case (path, permission) =>
+      path.length
+    }
+
   override def addPreviousResult(result: TrackingCFGState[A]): T = {
     copy(context = Some(result))
+  }
+
+  /**
+    * Generates a list of additional formal arguments for the method
+    *
+    * @return a sequence of sil.LocalVarDecl
+    */
+  override def formalArguments(): Seq[LocalVarDecl] = {
+    val read = tuples.exists {
+      case (_, Inner(_, _, true)) => true
+      case _ => false
+    }
+    if (read) Seq(LocalVarDecl("_read", Perm)())
+    else Seq.empty
   }
 
   /** Generates a Silver precondition from the current state
@@ -465,11 +493,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.Exp
     */
   override def precondition(): Seq[sil.Exp] = {
-    tuples.filter { case (path, permission) =>
-      path.length > 1 && permission.isSome
-    }.sortBy { case (path, permission) =>
-      path.length
-    }.map { case (path, permission) =>
+    tuples.map { case (path, permission) =>
       val obj = LocalVar(path.head.getName)(Ref)
       val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
         val name = id.getName
@@ -483,11 +507,20 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       }.asInstanceOf[FieldAccess]
       permission match {
         case Inner(numerator, denominator, read) =>
-          val fracPerm = FieldAccessPredicate(loc, FractionalPerm(IntLit(numerator)(), IntLit(denominator)())())()
-          val readPerm = FieldAccessPredicate(loc, FractionalPerm(IntLit(1)(), IntLit(100)())())()
-          if (!read) fracPerm
-          else if (numerator == 0) readPerm
-          else And(fracPerm, readPerm)()
+
+          if (read) {
+            val amount = numerator.toDouble / denominator
+            val read = LocalVar("_read")(Perm)
+            val cond = PermGtCmp(read, NoPerm()())()
+            val perm = if (amount > 0) {
+              val fractional = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
+              PermAdd(fractional, read)()
+            } else read
+            And(FieldAccessPredicate(loc, perm)(), cond)()
+          } else{
+            val perm = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
+            FieldAccessPredicate(loc, perm)()
+          }
       }
     }
   }
@@ -1051,12 +1084,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
     copy(permissions = newPermissions)
   }
-
-  def paths: List[AccessPath] =
-    permissions.flatMap { case (identifier, tree) => tree.paths(identifier) }.toList
-
-  def tuples: List[(AccessPath, Permission)] =
-    permissions.flatMap { case (identifier, tree) => tree.tuples(identifier) }.toList
 
   def copy(currentPP: ProgramPoint = currentPP,
            context: Option[TrackingCFGState[A]] = context,

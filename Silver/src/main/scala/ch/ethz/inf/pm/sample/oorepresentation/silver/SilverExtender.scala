@@ -14,33 +14,40 @@ import viper.silver.{ast => sil}
 
 /** Silver Specification
   *
-  * @author Caterina Urban
+  * @author Caterina Urban, Jerome Dohrau
   */
 trait SilverSpecification {
+
+  /**
+    * Generates a list of additional formal arguments for the method
+ *
+    * @return a sequence of sil.LocalVarDecl
+    */
+  def formalArguments(): Seq[sil.LocalVarDecl] = Seq.empty
 
   /** Generates a Silver precondition from the current state
     *
     * @return a sequence of sil.Exp
     */
-  def precondition(): Seq[sil.Exp] = Seq[sil.Exp]()
+  def precondition(): Seq[sil.Exp] = Seq.empty
 
   /** Generates a Silver invariant from the current state
     *
     * @return a sequence of sil.Exp
     */
-  def invariant(): Seq[sil.Exp] = Seq[sil.Exp]()
+  def invariant(): Seq[sil.Exp] = Seq.empty
 
   /** Generates a Silver postcondition from the current state
     *
     * @return a sequence of sil.Exp
     */
-  def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
-  
+  def postcondition(): Seq[sil.Exp] = Seq.empty
+
 }
 
 /** Silver Program Extender
   *
-  * @author Caterina Urban
+  * @author Caterina Urban, Jerome Dohrau
   */
 trait SilverExtender[S <: State[S] with SilverSpecification] {
 
@@ -61,20 +68,18 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
 
   /** Extends a sil.Method with inferred specifications. */
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
+    // retrieve the result of the analysis at the method entry and exit
+    val entry = cfgState.entryState()
+    val exit = cfgState.exitState()
 
-    val pre: S = cfgState.entryState() // retrieve the result of the analysis at the method entry
-    // update the method precondition
-    val precondition: Seq[sil.Exp] = pre.precondition ++ method.pres
-
-    // update the method body
+    // update the formal arguments, precondition, postcondition and method body
+    val formalArguments = method.formalArgs ++ entry.formalArguments
+    val precondition = entry.precondition ++ method.pres
     val body = extendStmt(method.body, cfgState)
+    val postcondition = exit.postcondition ++ method.posts
 
-    val post: S = cfgState.exitState() // retrieve the result of the analysis of the method exit
-    // update the method postcondition
-    val postcondition: Seq[sil.Exp] = post.postcondition ++ method.posts
-
-    // return the method with updated precondition, updated body and updated postcondition
-    method.copy(_pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
+    // return updated method
+    method.copy(formalArgs = formalArguments, _pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
   }
 
   /** Extends a sil.Stmt with inferred specifications. */
