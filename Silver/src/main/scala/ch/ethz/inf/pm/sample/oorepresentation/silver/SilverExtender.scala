@@ -23,7 +23,7 @@ trait SilverSpecification {
  *
     * @return a sequence of sil.LocalVarDecl
     */
-  def formalArguments(): Seq[sil.LocalVarDecl] = Seq.empty
+  def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = args
 
   /** Generates a Silver precondition from the current state
     *
@@ -73,7 +73,8 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
     val exit = cfgState.exitState()
 
     // update the formal arguments, precondition, postcondition and method body
-    val formalArguments = method.formalArgs ++ entry.formalArguments
+    val entryArgs = entry.formalArguments(method.formalArgs)
+    val formalArguments = collectFormalArguments(method.body, entryArgs, cfgState)
     val precondition = entry.precondition ++ method.pres
     val body = extendStmt(method.body, cfgState)
     val postcondition = exit.postcondition ++ method.posts
@@ -120,5 +121,27 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
     case _ => stmt
   }
 
+  def collectFormalArguments(stmt: sil.Stmt,
+                             args: Seq[sil.LocalVarDecl],
+                             cfgState: AbstractCFGState[S]): Seq[sil.LocalVarDecl] = stmt match {
+    case stmt: sil.Seqn =>
+      stmt.ss.foldLeft(args) { case (currArgs, currStmt) =>
+        collectFormalArguments(currStmt, currArgs, cfgState)
+      }
+    case stmt: sil.While =>
+      // retrieve the position of the loop head
+      val pos: ProgramPoint = DefaultSilverConverter.convert(stmt.cond.pos)
+      // retrieve the block index and the statement index within the block of the loop head
+      val cfgPositions: List[CFGPosition] = cfgState.cfg.nodes.zipWithIndex.flatMap({
+        case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
+          case (stmt, stmtIdx) =>
+            if (stmt.getPC() == pos) Some(CFGPosition(blockIdx, stmtIdx)) else None
+        })
+      })
+      val pre = cfgState.preStateAt(cfgPositions.head)
+      val whileArgs = pre.formalArguments(args)
+      collectFormalArguments(stmt.body, whileArgs, cfgState)
+    case _ => args
+  }
 }
 

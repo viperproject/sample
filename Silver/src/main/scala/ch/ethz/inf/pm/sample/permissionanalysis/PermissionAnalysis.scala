@@ -8,7 +8,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, Silv
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Inner
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
@@ -484,9 +483,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return a sequence of sil.LocalVarDecl
     */
-  override def formalArguments(): Seq[LocalVarDecl] = {
-    if (reading) Seq(LocalVarDecl("read", Perm)())
-    else Seq.empty
+  override def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
+    val existing = args.exists { case sil.LocalVarDecl(name,_) => name == "read" }
+    if (reading && !existing) args ++ Seq(sil.LocalVarDecl("read", sil.Perm)())
+    else args
   }
 
   /** Generates a Silver precondition from the current state
@@ -495,35 +495,41 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def precondition(): Seq[sil.Exp] = {
     val condition = if (reading) {
-      val read = LocalVar("read")(Perm)
-      Seq(PermGtCmp(read, NoPerm()())())
+      val read = sil.LocalVar("read")(sil.Perm)
+      Seq(sil.PermGtCmp(read, sil.NoPerm()())())
     } else Seq.empty
     condition ++ tuples.map { case (path, permission) =>
-      val obj = LocalVar(path.head.getName)(Ref)
+      val obj = sil.LocalVar(path.head.getName)(sil.Ref)
       val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
         val name = id.getName
         val field = fields.find(_._2 == name).get
         val typ = field match {
-          case (t, _) if t.isObject => Ref
-          case (t, _) if t.isNumericalType => Int
-          case (t, _) if t.isBooleanType => Bool
+          case (t, _) if t.isObject => sil.Ref
+          case (t, _) if t.isNumericalType => sil.Int
+          case (t, _) if t.isBooleanType => sil.Bool
         }
-        FieldAccess(rcv, Field(name, typ)())()
-      }.asInstanceOf[FieldAccess]
+        sil.FieldAccess(rcv, sil.Field(name, typ)())()
+      }.asInstanceOf[sil.FieldAccess]
       permission match {
-        case Inner(numerator, denominator, read) =>
-          val amount = numerator.toDouble / denominator
+        case Inner(a, b, read) =>
+          val amount = a.toDouble / b
           if (read) {
-            val read = LocalVar("read")(Perm)
+            val read = sil.LocalVar("read")(sil.Perm)
             val perm = if (amount > 0) {
-              val fractional = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
-              PermAdd(fractional, read)()
+              val numerator = sil.IntLit(a)()
+              val denumerator = sil.IntLit(b)()
+              val fractional = sil.FractionalPerm(numerator, denumerator)()
+              sil.PermAdd(fractional, read)()
             } else read
-            FieldAccessPredicate(loc, perm)()
+            sil.FieldAccessPredicate(loc, perm)()
           } else{
-            val perm = if (amount == 1) FullPerm()()
-            else FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
-            FieldAccessPredicate(loc, perm)()
+            val perm = if (amount == 1) sil.FullPerm()()
+            else {
+              val numerator = sil.IntLit(a)()
+              val denominator = sil.IntLit(b)()
+              sil.FractionalPerm(numerator, denominator)()
+            }
+            sil.FieldAccessPredicate(loc, perm)()
           }
       }
     }
