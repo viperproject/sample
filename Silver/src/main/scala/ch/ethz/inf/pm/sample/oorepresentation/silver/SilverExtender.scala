@@ -20,7 +20,7 @@ trait SilverSpecification {
 
   /**
     * Generates a list of additional formal arguments for the method
- *
+    *
     * @return a sequence of sil.LocalVarDecl
     */
   def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = args
@@ -75,9 +75,24 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
     // update the formal arguments, precondition, postcondition and method body
     val entryArgs = entry.formalArguments(method.formalArgs)
     val formalArguments = collectFormalArguments(method.body, entryArgs, cfgState)
-    val precondition = entry.precondition ++ method.pres
+    var precondition = entry.precondition ++ method.pres
     val body = extendStmt(method.body, cfgState)
     val postcondition = exit.postcondition ++ method.posts
+
+    // TODO: get rid of this hack
+    val paramExists = formalArguments.exists {
+      case sil.LocalVarDecl(name, _) => name == "read"
+      case _ => false
+    }
+    val condExists = precondition.exists {
+      case sil.PermGtCmp(_, _) => true
+      case _ => false
+    }
+    if (paramExists && !condExists) {
+      val read = sil.LocalVar("read")(sil.Perm)
+      val cond = Seq(sil.And(sil.PermGtCmp(read, sil.NoPerm()())(),sil.PermLtCmp(read, sil.FullPerm()())())())
+      precondition = cond ++ precondition
+    }
 
     // return updated method
     method.copy(formalArgs = formalArguments, _pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
@@ -90,17 +105,17 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
       sil.Constraining(vars = stmt.vars, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info)
 
     case stmt: sil.If =>
-      val thn = extendStmt(stmt.thn,cfgState)
-      val els = extendStmt(stmt.els,cfgState)
+      val thn = extendStmt(stmt.thn, cfgState)
+      val els = extendStmt(stmt.els, cfgState)
       sil.If(cond = stmt.cond, thn = thn, els = els)(stmt.pos, stmt.info)
 
     case stmt: sil.NewStmt => stmt
 
     case stmt: sil.Seqn =>
       val seq: Seq[sil.Stmt] = stmt.ss.foldRight(Seq[sil.Stmt]())(
-        (s: sil.Stmt, ss: Seq[sil.Stmt]) => ss.+:(extendStmt(s,cfgState))
+        (s: sil.Stmt, ss: Seq[sil.Stmt]) => ss.+:(extendStmt(s, cfgState))
       )
-      sil.Seqn(seq)(stmt.pos,stmt.info)
+      sil.Seqn(seq)(stmt.pos, stmt.info)
 
     case stmt: sil.While =>
       // retrieve the position of the loop head
@@ -116,7 +131,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
       val pre: S = cfgState.preStateAt(cfgPositions.head)
       // update the method loop invariants
       val invariants: Seq[sil.Exp] = pre.invariant ++ stmt.invs
-      sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body,cfgState))(stmt.pos,stmt.info)
+      sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info)
 
     case _ => stmt
   }
