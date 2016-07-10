@@ -1,0 +1,107 @@
+field f: Ref
+field g: Ref
+
+method first_i(a: Ref, b: Ref)
+    // requires p > none
+    // requires acc(a.f, p)
+    // requires acc(a.f.g, p)
+    // requires acc(a.f.g.f, p)
+    // requires acc(a.f.g.f.f, write)
+{
+    a.f.g.f.f := null
+}
+
+method first_ii(a: Ref, b: Ref)
+    // requires p > none
+    // requires acc(b.g, p)
+    // requires acc(a.f, write)
+    // requires acc(b.g.f, p)
+    // requires acc(b.g.f.f, write)
+{
+    a.f := b
+    a.f.g.f.f := null
+}
+
+method first_iii(a: Ref, b: Ref)
+    // requires acc(a.g, write)
+    // requires acc(a.f, write)
+{
+    a.f := a
+    a.g := a
+    a.f.g.f.f := null
+}
+
+method second(a: Ref, b: Ref)
+    // requires acc(a.f, write)
+    // requires acc(b.f, write)
+{
+    var i: Int
+
+    a.f := b
+
+    while (i < 10)
+        // requires p > none
+        // acc(a.f, p)
+        // acc(a.f.f, write)
+    {
+        a.f.f := null
+        i := i + 1
+    }
+}
+
+method third(a: Ref, b: Ref, c: Ref)
+    // requires acc(a.f, write)
+    // requires acc(b.f, write)
+{
+    a.f := c
+    b.f := c
+
+    inhale acc(c.f)
+
+    a.f.f := null
+    b.f.f := null
+}
+
+method fourth(a: Ref, b: Ref, c: Ref, x: Bool)
+    // requires acc(a.f, write)
+    // requires acc(b.f, write)
+    // requires acc(c.f, write)
+{
+    if (x) {
+        a.f := b
+    } else {
+        a.f := c
+    }
+    a.f.f := null
+}
+
+method fifth (a: Ref, b: Ref)
+    // requires read > none
+    // requires acc(a.f, write)
+    // requires acc(b.f, read)
+{
+    var c: Ref
+    var d: Ref
+    c := a
+    c.f := b    // note that here we modify the heap
+    d := a.f.f
+}
+
+method sixth(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
+    // requires p > none
+    // requires acc(a.f, write)
+    // requires acc(b.f, p)
+    // requires acc(c.f, p)
+    // requires acc(b.f.f, write)
+    // requires acc(c.f.f, write)
+    // requires acc(a.f.f, write)
+{
+    a.f.f := c.f
+    if (t) {
+        a.f := b.f
+        a.f.f := c.f
+    } else {
+        a.f.f := b.f
+    }
+    a.f.f.f := d
+}

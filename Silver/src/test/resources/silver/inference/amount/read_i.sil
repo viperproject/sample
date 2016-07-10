@@ -1,0 +1,8 @@
+field f: Ref
+
+method foo(a: Ref)
+    // requires acc(a.f, p) && p > none
+{
+    var v: Ref
+    v := a.f
+}

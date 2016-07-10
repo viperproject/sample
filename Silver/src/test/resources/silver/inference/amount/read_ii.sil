@@ -1,0 +1,55 @@
+field f: Ref
+
+method f1(a: Ref)
+    // requires acc(a.f, p) && p > none
+{
+    var v: Ref
+    v := a.f
+    inhale acc(a.f, 1/2)
+    exhale acc(a.f, 1/2)
+}
+
+method f2(a: Ref)
+    // requires true
+{
+    var v: Ref
+    inhale acc(a.f, 1/2)
+    v := a.f
+    exhale acc(a.f, 1/2)
+}
+
+method f3(a: Ref)
+    // requires acc(a.f, p) && p > none
+{
+    var v: Ref
+    inhale acc(a.f, 1/2)
+    exhale acc(a.f, 1/2)
+    v := a.f
+}
+
+method f4(a: Ref)
+    // requires acc(a.f, 1/2)
+{
+    var v: Ref
+    v := a.f
+    exhale acc(a.f, 1/2)
+    inhale acc(a.f, 1/2)
+}
+
+method f5(a: Ref)
+    // requires acc(a.f, 1/2 + p) && p > none
+{
+    var v: Ref
+    exhale acc(a.f, 1/2)
+    v := a.f
+    inhale acc(a.f, 1/2)
+}
+
+method f6(a: Ref)
+    // requires acc(a.f, 1/2)
+{
+    var v: Ref
+    exhale acc(a.f, 1/2)
+    inhale acc(a.f, 1/2)
+    v := a.f
+}

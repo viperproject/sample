@@ -1,0 +1,5 @@
+field f: Ref
+
+method foo(a: Ref) {
+    a.f := null
+}
