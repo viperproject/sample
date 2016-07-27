@@ -484,7 +484,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a sequence of sil.LocalVarDecl
     */
   override def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
-    val existing = args.exists { case sil.LocalVarDecl(name,_) => name == "read" }
+    val existing = args.exists { case sil.LocalVarDecl(name, _) => name == "read" }
     if (reading && !existing) args ++ Seq(sil.LocalVarDecl("read", sil.Perm)())
     else args
   }
@@ -522,7 +522,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
               sil.PermAdd(fractional, read)()
             } else read
             sil.FieldAccessPredicate(loc, perm)()
-          } else{
+          } else {
             val perm = if (amount == 1) sil.FullPerm()()
             else {
               val numerator = sil.IntLit(a)()
@@ -664,8 +664,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def assume(condition: Expression): T = {
     logger.trace("assume")
-    // add read permissions for all access paths appearing in the condition
-    read(condition)
+    condition match {
+      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, _) =>
+        if (right.isInstanceOf[AccessPathIdentifier]) assignField(right, "", left)
+        else if (left.isInstanceOf[AccessPathIdentifier]) assignField(left, "", right)
+        else assignVariable(right, left)
+      case _ =>
+        // add read permissions for all access paths appearing in the condition
+        read(condition)
+    }
   }
 
   /** Creates a variable given a `VariableIdentifier`.
