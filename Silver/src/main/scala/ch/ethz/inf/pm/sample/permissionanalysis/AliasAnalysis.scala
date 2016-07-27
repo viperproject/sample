@@ -831,6 +831,65 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace("*** ----------------getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
 
     obj match {
+      case head: VariableIdentifier =>
+        var mayStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
+        var mustStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mustStore
+        var mayHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mayHeap // new heap map (initially equal to heap)
+        var mustHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mustHeap
+        // path head evaluation
+
+        var mayRcvSet: Set[HeapNode] = mayStoreMap.getOrElse(head, Set.empty)  // initial set of (path) receivers
+        var mustRcvSet: Set[HeapNode] = mustStoreMap.getOrElse(head, Set.empty)
+        if (mayRcvSet.contains(SummaryHeapNode) && materialization) { // materialization
+        val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
+          mayRcvSet = mayRcvSet - SummaryHeapNode + fresh // update receiver set
+          mayStoreMap = mayStoreMap + (head -> mayRcvSet) // add key to store map to replace the summary node with the fresh node
+          mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
+        }
+        if (mustRcvSet.contains(UnknownHeapNode) && materialization) { // materialization
+        val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
+          mustRcvSet = mustRcvSet - UnknownHeapNode + fresh // update receiver set
+          mustStoreMap = mustStoreMap + (head -> mustRcvSet) // add key to store map to replace the summary node with the fresh node
+          mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
+        }
+        if (mayRcvSet.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        if (mustRcvSet.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+        val last = VariableIdentifier(field)(typ)
+        // path end evaluation
+        if (typ.isObject) { // the accessed field is a Ref
+          val mayLast = mayRcvSet.foldLeft(Set.empty[HeapNode])(
+            (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
+            var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
+              if (curr.contains(SummaryHeapNode) && materialization) { // materialization
+              val fresh = HeapNode(node.id :+ last) // create fresh heap node
+                curr = curr - SummaryHeapNode + fresh // update the current receiver set
+                // add key to heap map to replace the summary node with the fresh node
+                mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
+                mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
+              }
+              set ++ curr
+            }
+          )
+          val mustLast = mustRcvSet.foldLeft(Set.empty[HeapNode])(
+            (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
+            var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
+              if (curr.contains(UnknownHeapNode) && materialization) { // materialization
+              val fresh = HeapNode(node.id :+ last) // create fresh heap node
+                curr = curr - UnknownHeapNode + fresh // update the current receiver set
+                // add key to heap map to replace the summary node with the fresh node
+                mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
+                mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
+              }
+              set ++ curr
+            }
+          )
+          if (mayLast.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+          if (mustLast.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+        }
+        // return the current state with updated result, store, heap
+        val res = AccessPathIdentifier(List(head, last))
+        copy(result = ExpressionSet(res), mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
+
       case AccessPathIdentifier(path) =>
         var mayStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
         var mustStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mustStore
@@ -853,7 +912,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
         }
         // path tail evaluation
-        val mayEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mayRcvSet)(
+        val mayEval: Set[HeapNode] = path.drop(1).foldLeft(mayRcvSet)(
           (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
             if (rcv.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
               rcv.foldLeft(Set.empty[HeapNode])(
@@ -869,7 +928,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
                 set ++ curr
               })
           })
-        val mustEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mustRcvSet)(
+        val mustEval: Set[HeapNode] = path.drop(1).foldLeft(mustRcvSet)(
           (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
             if (rcv.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
               rcv.foldLeft(Set.empty[HeapNode])(
@@ -887,13 +946,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           })
         if (mayEval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
         if (mustEval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+        val last = VariableIdentifier(field)(typ)
         // path end evaluation
         if (typ.isObject) { // the accessed field is a Ref
           val mayLast = mayEval.foldLeft(Set.empty[HeapNode])(
             (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
             var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
               if (curr.contains(SummaryHeapNode) && materialization) { // materialization
-              val fresh = HeapNode(node.id :+ path.last) // create fresh heap node
+              val fresh = HeapNode(node.id :+ last) // create fresh heap node
                 curr = curr - SummaryHeapNode + fresh // update the current receiver set
                 // add key to heap map to replace the summary node with the fresh node
                 mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
@@ -906,7 +966,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
             var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(field,Set.empty)
               if (curr.contains(UnknownHeapNode) && materialization) { // materialization
-              val fresh = HeapNode(node.id :+ path.last) // create fresh heap node
+              val fresh = HeapNode(node.id :+ last) // create fresh heap node
                 curr = curr - UnknownHeapNode + fresh // update the current receiver set
                 // add key to heap map to replace the summary node with the fresh node
                 mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (field -> curr)))
@@ -919,7 +979,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           if (mustLast.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
         }
         // return the current state with updated result, store, heap
-        copy(result = ExpressionSet(obj), mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
+        val res = AccessPathIdentifier(path, last)
+        copy(result = ExpressionSet(res), mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
       case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
   }
@@ -1173,7 +1234,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     mayEvaluatePath(path.dropRight(1))
 
   /**
-    * Evalautes an access path with respect to the must alias analysis.
+    * Evaluates an access path with respect to the must alias analysis.
     *
     * @param path the access path to evaluate
     */

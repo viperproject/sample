@@ -138,16 +138,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
    *         assigned to <code>right</code>
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
-    // The value-driven heap analysis can execute the whole LHS statement,
-    // because its `getFieldValue` method returns an `AccessPathIdentifier`
-    // that can be passed to `assignField` directly.
-    val leftToExecute =
-      if (SystemParameters.isValueDrivenHeapAnalysis) left
-      else left match {
-        case f: FieldAccess => f.obj
-        case _ => left
-      }
-    val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftToExecute)
+    val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, left)
     val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
     left match {
       case fa: FieldAccess =>
@@ -358,9 +349,8 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
       val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
     } else {
-      val (expr, objState) = UtilitiesOnStates.forwardExecuteStatement(state, obj)
-      val result = objState.getFieldValue(expr, field, typ)
-      result
+      val objState = obj.forwardSemantics(state) // evaluate the receiver
+      objState.getFieldValue(objState.expr, field, typ) // get the field value
     }
   }
 

@@ -16,6 +16,7 @@ import viper.silver.frontend.{Frontend, SilFrontend}
 import viper.silver.testing.SilSuite
 import viper.silver.verifier.{AbstractError, _}
 
+/*
 class MayPointToIntervalsAnalysisTest extends SilSuite {
   override def testDirectories = Seq("silver/heap/intervals")
 
@@ -91,7 +92,7 @@ class MayPointToPolyhedraAnalyzer() extends Verifier {
   override def stop(): Unit = ()
   override def version: String = ""
 }
-
+*/
 
 
 

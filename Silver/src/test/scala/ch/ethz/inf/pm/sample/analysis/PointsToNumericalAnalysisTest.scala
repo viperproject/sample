@@ -16,6 +16,7 @@ import viper.silver.frontend.{Frontend, SilFrontend}
 import viper.silver.testing.SilSuite
 import viper.silver.verifier._
 
+/*
 class PointsToIntervalsAnalysisTestSuite extends SilSuite {
   override def testDirectories = Seq("silver/heap/intervals")
 
@@ -91,3 +92,4 @@ class PointsToPolyhedraAnalysisAnalyzer() extends SampleAnalyzer {
 
   override def stop(): Unit = () //???
 }
+*/

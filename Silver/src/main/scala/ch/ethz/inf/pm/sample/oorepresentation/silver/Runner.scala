@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import java.io.{File, PrintWriter}
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import viper.silver.{ast => sil}
@@ -17,6 +18,11 @@ import viper.silicon.Silicon
 /** Analysis runner for Silver programs. */
 trait SilverAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
   val compiler = new SilCompiler()
+
+  override def prepareContext() = {
+    super.prepareContext()
+    SystemParameters.isValueDrivenHeapAnalysis = false
+  }
 
   /** Runs the analysis on a given Silver program. */
   def run(program: sil.Program): List[AnalysisResult[S]] = {
