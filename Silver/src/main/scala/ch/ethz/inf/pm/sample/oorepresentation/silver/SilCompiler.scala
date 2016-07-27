@@ -12,13 +12,13 @@ import java.nio.file.{Files, Paths}
 import java.text.ParseException
 
 import scala.io.Source
-import viper.silver.parser.Parser
+import viper.silver.parser.{FastParser, _}
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import viper.silver.parser.Translator
-import viper.silver.parser.Resolver
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethodSemantics
+import viper.silver.ast.SourcePosition
+import viper.silver.verifier.ParseError
 
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None
@@ -30,23 +30,29 @@ class SilCompiler extends Compiler {
   def extensions(): List[String] = "sil" :: Nil
 
   /**
-   * @todo Does not support directories (multiple filbies) as input at the moment.
-   * @todo Contains absolutely no error handling
-   */
+    * @todo Does not support directories (multiple filbies) as input at the moment.
+    * @todo Contains absolutely no error handling
+    */
   def compileFile(path: String): List[ClassDefinition] = {
     val file = Paths.get(path)
     val input = Source.fromInputStream(Files.newInputStream(file)).mkString
-    val parseResult = Parser.parse(input, file)
-    parseResult match {
-      case Parser.Success(e, _) => ()
-      case Parser.Failure(msg, next) =>
-        throw new ParseException(s"$msg in $file at ${next.pos.line}:${next.pos.column}", 0)
-      case Parser.Error(msg, next) =>
-        throw new ParseException(s"$msg in $file at ${next.pos.line}:${next.pos.column}", 0)
+    val parseResult = FastParser.parse(input, file)
+    val parsed = parseResult match {
+      case fastparse.core.Parsed.Success(e: PProgram, _) => e
+      case fastparse.core.Parsed.Failure(msg, next, extra) =>
+        throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
+      case ParseError(msg, pos) =>
+        val (line, col) = pos match {
+          case SourcePosition(_, line, col) => (line, col)
+          case FilePosition(_, line, col) => (line, col)
+          case _ => ??? // should never happen
+        }
+        throw new ParseException(s"$msg in $file at ${line}:${col}", 0)
     }
-    Resolver(parseResult.get).run
 
-    val program = Translator(parseResult.get).translate.get
+    Resolver(parsed).run
+
+    val program = Translator(parsed).translate.get
     compileProgram(program)
   }
 
