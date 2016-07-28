@@ -1301,8 +1301,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param second the second access path
     */
   def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean =  {
-    val evalFirst = mustEvaluatePath(first) - NullHeapNode
-    val evalSecond = mustEvaluatePath(second) - NullHeapNode
+    val evalFirst = mustEvaluatePath(first) -- Set(NullHeapNode, UnknownHeapNode)
+    val evalSecond = mustEvaluatePath(second) -- Set(NullHeapNode, UnknownHeapNode)
     evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 

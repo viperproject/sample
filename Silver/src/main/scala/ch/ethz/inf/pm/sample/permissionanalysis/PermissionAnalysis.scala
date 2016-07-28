@@ -192,7 +192,7 @@ object Permission {
       amount > 0 || (amount == 0 && read)
 
     override def isNone: Boolean =
-      amount <= 0
+      amount < 0 || (amount == 0 && !read)
 
     def amount: Double =
       numerator.toDouble / denominator
@@ -281,7 +281,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * @return a tuple containing the remainder of the tree and the extracted
     *         subtree
     */
-  def extract(path: List[Identifier]): (PermissionTree, PermissionTree) = {
+  def extract(path: AccessPath): (PermissionTree, PermissionTree) = {
     if (path.isEmpty) {
       // base case: extract the entire subtree
       val remainder = PermissionTree(permission)
@@ -310,7 +310,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * @param other the path to the place where the permission tree is to be implanted
     * @return this permission tree with the other permission tree implanted
     */
-  def implant(path: List[Identifier], other: PermissionTree): PermissionTree = {
+  def implant(path: AccessPath, other: PermissionTree): PermissionTree = {
     if (path.isEmpty) {
       // base case: implant other at root
       this lub other
@@ -347,6 +347,11 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
     PermissionTree(newPermission, newChildren)
   }
+
+  def fold[R](z: R)(path: AccessPath, f: (R, (AccessPath, Permission)) => R): R =
+    children.foldLeft(f(z, (path, permission))) { case (res, (id, child)) =>
+      child.fold(res)(path :+ id, f)
+    }
 
   /**
     * Returns a list of all access paths stored in the tree. The access paths
@@ -449,8 +454,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // permission trees for all variables
   def permissions: Map[Identifier, PermissionTree]
 
-  // result of the alias analysis at the current program point
-  lazy val aliases = postStateAtPP(context.get, currentPP)
+  // result of the alias analysis before the current program point
+  lazy val preAliases = preStateAtPP(context.get, currentPP)
+
+  // result of the alias analysis after the current program point
+  lazy val postAliases = postStateAtPP(context.get, currentPP)
 
   // the set of fields
   lazy val fields = context.get.entryState().fields
@@ -565,7 +573,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
         // subtract permission form all paths that may alias
         map { (path, permission) =>
-          if (aliases.pathsMayAlias(path, location)) permission plus exhaled
+          if (postAliases.pathsMayAlias(path, location)) permission plus exhaled
           else permission
         } lub access(location, exhaled)
       case _ =>
@@ -595,7 +603,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
         // add permission to all paths that must alias
         map { (path, permission) =>
-          if (path == location || aliases.pathsMustAlias(path, location)) permission minus inhaled
+          if (path == location || postAliases.pathsMustAlias(path, location)) permission minus inhaled
           else permission
         }
       }
@@ -664,15 +672,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def assume(condition: Expression): T = {
     logger.trace("assume")
-    condition match {
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, _) =>
-        if (right.isInstanceOf[AccessPathIdentifier]) assignField(right, "", left)
-        else if (left.isInstanceOf[AccessPathIdentifier]) assignField(left, "", right)
-        else assignVariable(right, left)
-      case _ =>
-        // add read permissions for all access paths appearing in the condition
-        read(condition)
-    }
+    // add read permissions for all access paths appearing in the condition
+    read(condition)
   }
 
   /** Creates a variable given a `VariableIdentifier`.
@@ -752,8 +753,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
             else accessPaths.foldLeft(this) {
               case (res, path) =>
                 if (path == leftPath) res.assign(path, rightPath)
-                else if (path.length > 1 && aliases.pathsMayAlias(path, rightPath))
-                  if (aliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
+                else if (path.length > 1 && postAliases.pathsMayAlias(path, rightPath))
+                  if (postAliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
                   else res lub res.assign(path, rightPath)
                 else res
             }
@@ -1019,7 +1020,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @param path the path to add the permission for
     */
-  private def read(path: List[Identifier]): T =
+  private def read(path: AccessPath): T =
     access(path, Permission.read)
 
   /**
@@ -1028,7 +1029,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @param path the path to add the permission for
     */
-  private def write(path: List[Identifier]): T =
+  private def write(path: AccessPath): T =
     access(path, Permission.write)
 
   /**
@@ -1038,26 +1039,44 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param path       the path to add the permission for
     * @param permission the amount of permissions to add
     */
-  private def access(path: List[Identifier], permission: Permission): T = {
-    if (path.length < 2) {
-      this // no permission needed
+  private def access(path: AccessPath, permission: Permission): T = {
+    val have = collect(path)
+    val need = permission minus have
+    if (path.length < 2 || need.isNone) {
+      // in this case no permission is needed
+      this
     } else {
-      // build permission tree for the specified path and permission
-      val (receiver :: first :: rest) = path
-      val subtree = rest.foldRight(PermissionTree(permission)) {
+      // build permission tree for the needed permission
+      val (variable :: first :: rest) = path
+      val subtree = rest.foldRight(PermissionTree(need)) {
         case (field, subtree) => PermissionTree(Permission.read, Map(field -> subtree))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
       // add new permission tree to permissions
-      val updated = permissions.get(receiver) match {
+      val updated = permissions.get(variable) match {
         case Some(existing) => tree lub existing
         case None => tree
       }
-      copy(permissions = permissions + (receiver -> updated))
+      copy(permissions = permissions + (variable -> updated))
     }
   }
 
-  private def assign(left: List[Identifier], right: List[Identifier]): T = {
+  /**
+    * Collects the permission of of all access paths that must alias with the
+    * specified access path.
+    *
+    * @param path
+    * @return a lower bound on the amount of permission held for the specified
+    *         access path
+    */
+  private def collect(path: AccessPath): Permission =
+    if (path.length < 2) Permission.none
+    else fold(Permission.none) { case (permission, (currPath, currPermission)) =>
+      if (path == currPath || preAliases.pathsMustAlias(path, currPath)) permission plus currPermission
+      else permission
+    }
+
+  private def assign(left: AccessPath, right: AccessPath): T = {
     if (left.isEmpty || right.isEmpty) this
     else {
       // split lhs and rhs into pairs of receivers and fields
@@ -1101,6 +1120,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
     copy(permissions = newPermissions)
   }
+
+  def fold[R](z: R)(f: (R, (AccessPath, Permission)) => R): R =
+    permissions.foldLeft(z) { case (res, (id, tree)) =>
+      tree.fold(res)(List(id), f)
+    }
 
   def copy(currentPP: ProgramPoint = currentPP,
            context: Option[TrackingCFGState[A]] = context,
