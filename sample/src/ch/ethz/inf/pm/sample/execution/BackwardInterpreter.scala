@@ -45,9 +45,9 @@ trait BackwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging
                 val pp = ProgramPointUtils.identifyingPP(stmt)
                 tempState = stmt.forwardSemantics(tempState.before(pp))
               }
-              //val pp = ProgramPointUtils.identifyingPP(stmts.last)
-              if (cond) { postState.setExpression(tempState.expr).testTrue() }
-              else { postState.setExpression(tempState.expr).testFalse() }
+              val pp = ProgramPointUtils.identifyingPP(stmts.last)
+              if (cond) { postState.before(pp).setExpression(tempState.expr).testTrue() }
+              else { postState.before(pp).setExpression(tempState.expr).testFalse() }
             case None => postState
           }
           exitState = exitState lub filteredState // join the successor states
