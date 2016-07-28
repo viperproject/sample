@@ -42,7 +42,8 @@ trait BackwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging
               val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(currentId)
               var tempState: S = cfgState.stateFactory.factory()
               for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex) {
-                tempState = stmt.forwardSemantics(tempState)
+                val pp = ProgramPointUtils.identifyingPP(stmt)
+                tempState = stmt.forwardSemantics(tempState.before(pp))
               }
               //val pp = ProgramPointUtils.identifyingPP(stmts.last)
               if (cond) { postState.setExpression(tempState.expr).testTrue() }
