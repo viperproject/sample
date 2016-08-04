@@ -1,0 +1,8 @@
+
+field f: Int
+
+method test(x: Ref)
+  //requires acc(x.f, write)
+{
+	exhale acc(x.f, write)
+}

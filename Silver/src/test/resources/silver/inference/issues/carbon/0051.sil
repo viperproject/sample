@@ -1,0 +1,8 @@
+
+field x: Int
+
+method f(this: Ref)
+  //requires acc(this.x)
+{
+    this.x := 1
+}

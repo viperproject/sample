@@ -1,0 +1,18 @@
+
+field integer: Int
+
+method foo(x: Ref) returns (n: Int)
+  //requires acc(x.integer)
+{
+    n := x.integer
+    x.integer := n + 1
+}
+
+field Node_n: Ref
+
+method test2(this: Ref)
+  //requires acc(this.Node_n, read)
+{
+    assume false
+    assert this != this.Node_n
+}

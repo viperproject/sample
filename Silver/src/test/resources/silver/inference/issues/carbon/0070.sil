@@ -1,0 +1,15 @@
+
+field f: Int
+
+method test(x: Ref)
+  //requires acc(x.f, write)
+{
+    var b: Bool
+    b := true
+    while (b)
+        //invariant acc(x.f, write)
+    {
+        x.f := 4
+        b := false
+    }
+}

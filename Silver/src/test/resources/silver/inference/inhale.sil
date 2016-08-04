@@ -1,0 +1,10 @@
+
+field f: Ref
+
+method foo(b: Ref)
+{
+	var a: Ref
+	a := b
+	inhale acc(b.f, write)
+	a.f := null
+}

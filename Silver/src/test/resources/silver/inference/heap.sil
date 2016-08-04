@@ -2,6 +2,8 @@
 field next: Ref
 
 method foo(y: Ref, z: Ref)
+  	//requires acc(y.next, write)
+  	//requires acc(z.next, read)
 {
     var x: Ref
     x := y
