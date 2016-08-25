@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
-import ch.ethz.inf.pm.td.transform.{Rewriter}
+import ch.ethz.inf.pm.td.transform.Rewriter
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -162,7 +162,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
           val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_, _, handlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
+          val (_, _, _, _, _, handlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
           val preCond: Statement = null
           val postCond: Statement = null
           handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
@@ -178,7 +178,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
           val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_, _, handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)
+          val (_, _, _, _, _,  handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)
           val preCond: Statement = null
           val postCond: Statement = null
           handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
@@ -221,33 +221,45 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
   }
 
   private def sty(typ: String, expr: parser.Expression): parser.Expression = {
-    expr.typeName = TypeName(typ,isSingleton = true)
+    expr.typeName = TypeName(typ, isSingleton = true)
     expr
   }
 
+  /**
+    * @return start node. end node on return, end node on break, end node on continue, defined closures
+    */
   private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
-                                 currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {
+                                 currentClassDef: ClassDefinition): (Int, Int, Set[Int], Set[Int], Set[Int], List[MethodDeclaration]) = {
 
     val firstNode = cfg.addNode(Nil)
     var newStatements: List[Statement] = Nil
     var newHandlers: List[MethodDeclaration] = Nil
     var curNode = firstNode
+    var retEnds = Set.empty[Int]
+    var breakEnds =  Set.empty[Int]
+    var contEnds =  Set.empty[Int]
 
     for (statement <- statements) statement match {
 
       case s@Break() =>
 
-        throw UnsupportedLanguageFeatureException("break not supported")
+        breakEnds = breakEnds + curNode
+        curNode = cfg.addNode(Nil)
 
       case s@Return(expr) =>
 
-        throw UnsupportedLanguageFeatureException("return not supported")
+        retEnds = retEnds + curNode
+        curNode = cfg.addNode(Nil)
 
       case s@Continue() =>
 
-        throw UnsupportedLanguageFeatureException("continue not supported")
+        contEnds = contEnds + curNode
+        curNode = cfg.addNode(Nil)
 
-      case s@Show(expr) =>
+      case s@Show(p) =>
+
+        val newExpr = tty(TypeName("Nothing"),Access(p,Identifier("post to wall"),Nil).copyPos(p))
+        newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
 
         throw UnsupportedLanguageFeatureException("show not supported")
 
@@ -260,16 +272,20 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
       case parser.If(condition, thenBody, elseBody) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart, condEnd, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
+        val (condStart, condEnd, _, _, _, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
 
-        val (thenStart, thenEnd, handlersThen) = addStatementsToCFG(thenBody, cfg, scope, currentClassDef)
-        val (elseStart, elseEnd, handlersElse) = addStatementsToCFG(elseBody, cfg, scope, currentClassDef)
+        val (thenStart, thenEnd, thenRetEnd, thenBreakEnd, thenContEnd, handlersThen) = addStatementsToCFG(thenBody, cfg, scope, currentClassDef)
+        val (elseStart, elseEnd, elseRetEnd, elseBreakEnd, elseContEnd, handlersElse) = addStatementsToCFG(elseBody, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, thenStart, Some(true))
         cfg.addEdge(condEnd, elseStart, Some(false))
         cfg.addEdge(thenEnd, nextNode, None)
         cfg.addEdge(elseEnd, nextNode, None)
+
+        retEnds = retEnds ++ thenRetEnd ++ elseRetEnd
+        breakEnds = breakEnds ++ thenBreakEnd ++ elseBreakEnd
+        contEnds = contEnds ++ thenContEnd ++ elseContEnd
 
         cfg.setNode(curNode, newStatements)
         newStatements = Nil
@@ -279,13 +295,15 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
       case parser.While(condition, body) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart, condEnd, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
-        val (bodyStart, bodyEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
+        val (condStart, condEnd, _, _, _, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
+        val (bodyStart, bodyEnd, bodyRetEnd, bodyBreakEnd, bodyContEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, bodyStart, Some(true))
-        cfg.addEdge(condEnd, nextNode, Some(false))
-        cfg.addEdge(bodyEnd, condStart, None)
+        (bodyBreakEnd + condEnd).foreach(cfg.addEdge(_, nextNode, Some(false)))
+        (bodyContEnd + bodyEnd).foreach(cfg.addEdge(_, condStart, None))
+
+        retEnds = retEnds ++ bodyRetEnd
 
         cfg.setNode(curNode, newStatements)
         newStatements = Nil
@@ -314,7 +332,11 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
         // TODO: what else?
         val nextNode = cfg.addNode(Nil)
-        val (bodyStart, bodyEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
+        val (bodyStart, bodyEnd, bodyRetEnd, bodyBreakEnd, bodyContEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
+
+        retEnds = retEnds ++ bodyRetEnd
+        breakEnds = breakEnds ++ bodyBreakEnd
+        contEnds = contEnds ++ bodyContEnd
 
         cfg.addEdge(curNode, bodyStart, None)
         cfg.addEdge(bodyEnd, nextNode, None)
@@ -343,7 +365,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             List(inParameters map (parameterToVariableDeclaration(_, scope)), outParameters map (parameterToVariableDeclaration(_, scope)))
           val returnType: Type = null
           val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_, _, subHandlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
+          val (_, _, _, _, _, subHandlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
           val preCond: Statement = null
           val postCond: Statement = null
           subHandlers ::: List(new MethodDeclaration(programPoint, currentClassDef.typ, modifiers, name, parametricType,
@@ -453,7 +475,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
     }
 
     cfg.setNode(curNode, newStatements)
-    (firstNode, curNode, newHandlers)
+    (firstNode, curNode, retEnds, breakEnds, contEnds, newHandlers)
 
   }
 

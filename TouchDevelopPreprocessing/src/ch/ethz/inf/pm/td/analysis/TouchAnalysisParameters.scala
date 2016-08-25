@@ -132,7 +132,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Experimental cloud-type tracking feature
                                      */
-                                    trackCloudTypes: Boolean = true,
+                                    trackCloudTypes: Boolean = false,
 
                                     /**
                                      * In numerical relational analysis, only relate those packs of variables that may belong together

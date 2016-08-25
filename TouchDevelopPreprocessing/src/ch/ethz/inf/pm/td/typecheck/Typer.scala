@@ -240,8 +240,9 @@ object Typer {
       case p@Placeholder(typName) =>
         is(typName)
       case l@LocalReference(ident) =>
-        // Interestingly, contract is a local variable, not a singleton.
+        // Interestingly, contract and cloud storage is a local variable, not a singleton.
         if (ident == "contract") is(TypeName("Contract",isSingleton = true))
+        else if (ident == "cloud storage") is(TypeName("Cloud Storage",isSingleton = true))
         else is(st.resolveLocal(scope, ident, l.pos))
       case SingletonReference(singleton, typX) =>
         if (CFGGenerator.isLibraryIdent(typX)) {
