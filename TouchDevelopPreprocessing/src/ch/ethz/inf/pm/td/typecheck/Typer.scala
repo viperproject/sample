@@ -117,6 +117,8 @@ object Typer {
     thing match {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
+      case a@PageDefinition(name, inParameters, outParameters, initBody, displayBody, isEvent, isPrivate) =>
+        st.addAction(name, inParameters, outParameters)
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case LibraryDefinition(libName, pub, _, _, _, _, usages, resolves) =>
