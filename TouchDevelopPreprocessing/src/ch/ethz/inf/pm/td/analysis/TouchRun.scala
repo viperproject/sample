@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.td.analysis
 
 
 import java.io.{PrintWriter, StringWriter}
+import java.lang.Thread.UncaughtExceptionHandler
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
@@ -16,7 +17,7 @@ import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
-import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchProgramPointRegistry, TouchCompiler}
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import com.typesafe.scalalogging.LazyLogging
@@ -82,30 +83,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
   override def run() {
     try {
 
-      customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
-      val touchParams = TouchAnalysisParameters.get
-      TouchProgramPointRegistry.reset()
-
-      logger.info(" Compiling " + file)
-      Exporters.setStatus("Analyzing")
-
-      SystemParameters.compiler = new TouchCompiler
-      SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
-      SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-      SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-
-      SystemParameters.compiler.reset()
-      SystemParameters.resetNativeMethodsSemantics()
-      SystemParameters.compiler.compile(file)
-      SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
-
-      val entryState = new TouchEntryStateBuilder(touchParams).topState
-      val analysis = new TouchAnalysis
-      analysis.analyze(Nil,entryState)
-
-      Exporters.setStatus("Done")
-      messages = Reporter.seenErrors.toSet
-      SystemParameters.resetOutput()
+      TouchRun.runSingleNoThread(file,customTouchParams)
 
     } catch {
 
@@ -131,13 +109,41 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
 }
 
-object TouchRun {
+object TouchRun extends LazyLogging {
 
   /**
    * We use this to communicate if something bad happened inside the analysis thread.
    * We then assert that this flag is false, if we want to crash for failed analyses (e.g. in tests)
    */
   var threadFailed:Boolean = false
+
+  def runSingleNoThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+
+    customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
+    val touchParams = TouchAnalysisParameters.get
+    TouchProgramPointRegistry.reset()
+
+    logger.info(" Compiling " + file)
+    Exporters.setStatus("Analyzing")
+
+    SystemParameters.compiler = new TouchCompiler
+    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
+    SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
+    SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
+
+    SystemParameters.compiler.reset()
+    SystemParameters.resetNativeMethodsSemantics()
+    SystemParameters.compiler.compile(file)
+    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
+
+    val entryState = new TouchEntryStateBuilder(touchParams).topState
+    val analysis = new TouchAnalysis
+    analysis.analyze(Nil,entryState)
+
+    Exporters.setStatus("Done")
+    SystemParameters.resetOutput()
+    return Reporter.seenErrors.toSeq
+  }
 
   def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
 

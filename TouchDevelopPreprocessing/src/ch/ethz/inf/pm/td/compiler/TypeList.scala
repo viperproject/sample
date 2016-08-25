@@ -77,6 +77,7 @@ object TypeList  {
           case SLibs.typeName => Some(SLibs)
           case SHelpers.typeName => Some(SHelpers)
 
+          case TUnfinished_Ref_Collection.typeName => Some(TUnfinished_Ref_Collection)
           case TUnfinished_Collection.typeName => Some(TUnfinished_Collection)
           case TUnfinished_Ref.typeName => Some(TUnfinished_Ref)
 
@@ -198,25 +199,34 @@ object TypeList  {
           case TXml_Object.typeName => Some(TXml_Object)
           case TUnknown.typeName => Some(TUnknown)
 
-          case TypeName("Converter",List(from,to),false) => Some(GConverter(TypeList.getTypeOrFail(from),TypeList.getTypeOrFail(to)))
-          case TypeName("Task",List(elt),false) => Some(GTask(TypeList.getTypeOrFail(elt)))
-          case TypeName("Action1",List(elt),false) => Some(GAction1(TypeList.getTypeOrFail(elt)))
-          case TypeName("Atomic Action1",List(elt),false) => Some(GAtomic_Action1(TypeList.getTypeOrFail(elt)))
-          case TypeName("Collection", List(elt),false) => Some(GCollection(TypeList.getTypeOrFail(elt)))
-          case TypeName("Entry", List(key,value),false) => Some(GEntry(TypeList.getTypeOrFail(key),TypeList.getTypeOrFail(value)))
-          case TypeName("Comparison", List(elt),false) => Some(GComparison(TypeList.getTypeOrFail(elt)))
-          case TypeName("Predicate",List(elt),false) => Some(GPredicate(TypeList.getTypeOrFail(elt)))
-          case TypeName("Number Converter",List(elt),false) => Some(GNumber_Converter(TypeList.getTypeOrFail(elt)))
-          case TypeName("String Converter",List(elt),false) => Some(GString_Converter(TypeList.getTypeOrFail(elt)))
-          case TypeName("Ref",List(elt),false) => Some(GRef(TypeList.getTypeOrFail(elt)))
+          case TypeName("Converter",List(from,to),false,false) => Some(GConverter(TypeList.getTypeOrFail(from),TypeList.getTypeOrFail(to)))
+          case TypeName("Task",List(elt),false,false) => Some(GTask(TypeList.getTypeOrFail(elt)))
+          case TypeName("Action1",List(elt),false,false) => Some(GAction1(TypeList.getTypeOrFail(elt)))
+          case TypeName("Atomic Action1",List(elt),false,false) => Some(GAtomic_Action1(TypeList.getTypeOrFail(elt)))
+          case TypeName("Collection", List(elt),false,false) => Some(GCollection(TypeList.getTypeOrFail(elt)))
+          case TypeName("Entry", List(key,value),false,false) => Some(GEntry(TypeList.getTypeOrFail(key),TypeList.getTypeOrFail(value)))
+          case TypeName("Comparison", List(elt),false,false) => Some(GComparison(TypeList.getTypeOrFail(elt)))
+          case TypeName("Predicate",List(elt),false,false) => Some(GPredicate(TypeList.getTypeOrFail(elt)))
+          case TypeName("Number Converter",List(elt),false,false) => Some(GNumber_Converter(TypeList.getTypeOrFail(elt)))
+          case TypeName("String Converter",List(elt),false,false) => Some(GString_Converter(TypeList.getTypeOrFail(elt)))
+          case TypeName("Ref",List(elt),false,false) => Some(GRef(TypeList.getTypeOrFail(elt)))
 
           case _ =>
-            if (CFGGenerator.isLibraryIdent(typ.ident))
-              Some(new ASingleton {
-                override def typeName: TypeName = typ
-              })
-            else
-              None
+
+            userTypes.get(typ.copy(isUserDefined = true)) match {
+
+              case Some(x) => Some(x)
+
+              case _ =>
+                if (CFGGenerator.isLibraryIdent(typ.ident))
+                  Some(new ASingleton {
+                    override def typeName: TypeName = typ
+                  })
+                else
+                  None
+
+            }
+
         }
 
     }

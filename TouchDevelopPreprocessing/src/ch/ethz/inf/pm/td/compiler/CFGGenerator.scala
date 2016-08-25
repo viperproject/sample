@@ -48,6 +48,8 @@ object CFGGenerator {
 
   def getRecordName(ident: String) = ident.substring(1)
 
+  def makeRecordTypeName(ident: String) = TypeName(getRecordName(ident),isUserDefined = true)
+
   def returnIdent(ident: String) = "__returned_" + ident
 
   def isReturnIdent(ident: String) = ident.startsWith("__returned_")
@@ -353,10 +355,10 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           case (variableName: String, actionName: String, handlerType: TypeName) =>
             expressionToStatement(
               ty("Nothing", parser.Access(
-                ty(handlerType.toString, parser.LocalReference(variableName).copyPos(w)),
+                tty(handlerType, parser.LocalReference(variableName).copyPos(w)),
                 Identifier(":=").copyPos(w),
                 List(
-                  ty(handlerType.toString, parser.Access(
+                  tty(handlerType, parser.Access(
                     sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(w)),
                     Identifier("create " + handlerType.ident.toLowerCase + " " + actionName).copyPos(w),
                     Nil

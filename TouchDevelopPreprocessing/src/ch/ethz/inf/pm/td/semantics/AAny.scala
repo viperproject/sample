@@ -106,7 +106,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     name = "async",
     paramTypes = List(ApiParam(TUnknown)),
     thisType = ApiParam(this),
-    returnType = TUnknown,
+    returnType = GTask(TUnknown),
     semantics = DefaultSemantics
   )
 

@@ -14,9 +14,14 @@ object TUnfinished_Collection extends AAny {
   override lazy val typeName: TypeName = TypeName("Unfinished Collection")
 
   override def getDeclaration(s:String) =
-    TypeList.getType(TypeName(if (CFGGenerator.isRecordIdent(s)) CFGGenerator.getRecordName(s) else s)) match {
+    TypeList.getType(if (CFGGenerator.isRecordIdent(s)) CFGGenerator.makeRecordTypeName(s) else TypeName(s)) match {
       case Some(x) => Some(ApiMember(s,Nil,ApiParam(this),GCollection(x),NewSemantics))
-      case None => super.getDeclaration(s)
+      case None =>
+        s match {
+          case "Ref of" => Some(ApiMember(s,Nil,ApiParam(this),TUnfinished_Ref_Collection,NewSemantics))
+          case _ =>
+            super.getDeclaration(s)
+        }
     }
 
 }

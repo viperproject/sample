@@ -126,7 +126,7 @@ class WeakConsistencyTest extends FunSuite {
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
   def runAnalysis(id:String) = {
-    TouchRun.runSingle(id)
+    TouchRun.runSingleNoThread(id)
   }
 
 }

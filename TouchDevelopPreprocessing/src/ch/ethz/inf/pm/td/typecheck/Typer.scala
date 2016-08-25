@@ -40,7 +40,7 @@ object Typer {
 
     thing match {
       case a@ActionType(name, in, out, isPrivate) =>
-        TypeList.addTouchType(GAction(TypeName(name),in map (_.typeName),out map (_.typeName)))
+        TypeList.addTouchType(GAction(TypeName(name,isUserDefined = true),in map (_.typeName),out map (_.typeName)))
       case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
 
         val modifiers = Set[Option[Modifier]](
