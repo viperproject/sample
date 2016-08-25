@@ -40,8 +40,17 @@ case class GRow(typeName: TypeName, keyParameters:List[Parameter], fieldParamete
     semantics = ValidPureSemantics
   )
 
+  lazy val member_is_deleted = ApiMember(
+    name = "is deleted",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = ValidPureSemantics
+  )
+
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++ Map(
       "delete row" -> member_delete_row,
+      "is deleted" -> member_is_deleted,
       "confirmed" -> member_confirmed
     ) ++ mkGetterSetters(fields + GTable(this,modifiers).field_table)
 

@@ -38,12 +38,12 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
     },modifiers)
   )
 
-  def member_is_deleted = ApiMember(
+  lazy val member_is_deleted = ApiMember(
     name = "is deleted",
     paramTypes = List(),
-    thisType = ApiParam(this,isMutated = true),
+    thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = DefaultSemantics
+    semantics = ValidPureSemantics
   )
 
   lazy val member_confirmed = ApiMember(
