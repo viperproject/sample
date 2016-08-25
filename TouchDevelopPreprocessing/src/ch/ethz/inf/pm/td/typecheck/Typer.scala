@@ -64,7 +64,7 @@ object Typer {
 
           case "table" =>
 
-            val rowTyp = GRow(TypeName(ident,isUserDefined = true),fields,modifiers)
+            val rowTyp = GRow(TypeName(ident,isUserDefined = true), keys, fields,modifiers)
             val tableType = GTable(rowTyp,modifiers)
 
             TypeList.addTouchType(rowTyp)

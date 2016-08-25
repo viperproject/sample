@@ -14,9 +14,9 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.{Parameter, TypeName}
 import RichNativeSemantics._
 
-case class GRow(typeName: TypeName, fieldParameters:List[Parameter], modifiers:Set[Modifier]) extends AAny {
+case class GRow(typeName: TypeName, keyParameters:List[Parameter], fieldParameters:List[Parameter], modifiers:Set[Modifier]) extends AAny {
 
-  lazy val fields:Set[ApiField] = TypeList.toTouchFields(fieldParameters)
+  lazy val fields:Set[ApiField] = TypeList.toTouchFields(keyParameters) ++ TypeList.toTouchFields(fieldParameters)
 
   override def possibleFields = super.possibleFields ++ (fields + GTable(this,modifiers).field_table)
 
@@ -27,7 +27,7 @@ case class GRow(typeName: TypeName, fieldParameters:List[Parameter], modifiers:S
     returnType = TBoolean,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        CallApi[S](Field[S](this0, GTable(GRow(typeName,fieldParameters,modifiers),modifiers).field_table), "remove", List(this0), TBoolean)
+        CallApi[S](Field[S](this0, GTable(GRow(typeName,keyParameters,fieldParameters,modifiers),modifiers).field_table), "remove", List(this0), TBoolean)
       }
     },modifiers)
   )

@@ -46,6 +46,14 @@ case class GTable(rowTyp: AAny,modifiers:Set[Modifier]) extends AMutableLinearCl
   /** Just another name for at index */
   lazy val member_row_at = super.member_at_index
 
+  lazy val member_invalid = ApiMember(
+    name = "invalid",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = rowTyp,
+    semantics = InvalidSemantics
+  )
+
   lazy val member_invalid_row = ApiMember(
     name = "invalid row",
     paramTypes = List(),
@@ -81,6 +89,7 @@ case class GTable(rowTyp: AAny,modifiers:Set[Modifier]) extends AMutableLinearCl
   override lazy val declarations:Map[String,ApiMember] = super.declarations ++
     Map(
       "add row" -> member_add_row,
+      "invalid" -> member_invalid,
       "invalid row" -> member_invalid_row,
       "row at" -> member_row_at,
       "create collection" -> member_create_collection,

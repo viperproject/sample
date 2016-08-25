@@ -43,7 +43,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),
     returnType = TBoolean,
-    semantics = ValidPureSemantics
+    semantics = DefaultSemantics
   )
 
   lazy val member_confirmed = ApiMember(

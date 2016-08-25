@@ -246,8 +246,8 @@ object ValidPureSemantics extends ApiMemberSemantics {
                                               (implicit pp: ProgramPoint, state: S): S = {
 
     if (SystemParameters.DEBUG) {
-      assert(!method.thisType.isMutated)
-      assert(method.paramTypes.forall(!_.isMutated))
+      assert(!method.thisType.isMutated, "valid pure method "+method+" should not mutate its receiver: "+this0)
+      assert(method.paramTypes.forall(!_.isMutated), "valid pure method "+method+" should not mutate its parameters: "+parameters)
     }
 
     Top[S](method.returnType)
