@@ -14,6 +14,8 @@
 
     </appender>
 
+    <logger name="org.mongodb.driver" level="warn" />
+
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
