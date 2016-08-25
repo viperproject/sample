@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 case class GSingletonIndex(indexMemberType:AAny,modifiers:Set[Modifier]) extends AAny {
 
-  lazy val field_singleton = new ApiField("singleton", indexMemberType)
+  lazy val field_singleton = ApiField("singleton", indexMemberType)
 
   def typeName = TypeName("Index",List(indexMemberType.typeName))
 

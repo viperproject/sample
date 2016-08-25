@@ -21,7 +21,7 @@ case class GTable(rowTyp: AAny,modifiers:Set[Modifier]) extends AMutableLinearCl
   override def valueType = rowTyp
 
   /** Backlink. Not a field of this table, but a field of all rows of the table */
-  val field_table = new ApiField("*table", this)
+  val field_table = ApiField("*table", this)
 
   lazy val member_add_row = ApiMember(
     name = "add row",

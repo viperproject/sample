@@ -120,7 +120,7 @@ class SymbolTable(script:Script) {
                     case Some(member) =>
                       List(member.returnType.typeName)
                     case None =>
-                      throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
+                      throw TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
 
                   }
 
@@ -135,7 +135,7 @@ class SymbolTable(script:Script) {
     try {
       data(symbol)
     } catch {
-      case e:NoSuchElementException => throw new TouchException("Data not found: "+symbol,pos)
+      case e:NoSuchElementException => throw TouchException("Data not found: " + symbol, pos)
     }
   }
 
@@ -153,7 +153,7 @@ class SymbolTable(script:Script) {
   def resolveLocal(scope:Scope, symbol:String, pos:Position):TypeName = {
     tryResolveLocal(scope,symbol) match {
       case Some(x) => x
-      case None => throw new TouchException("Local variable not found: "+symbol, pos)
+      case None => throw TouchException("Local variable not found: " + symbol, pos)
     }
   }
 
@@ -162,7 +162,7 @@ class SymbolTable(script:Script) {
       code(action)(types)
     } catch {
       case e:NoSuchElementException =>
-        throw new TouchException("Action/Event not found: "+action+" with arguments "+types,pos)
+        throw TouchException("Action/Event not found: " + action + " with arguments " + types, pos)
     }
   }
 
@@ -170,7 +170,7 @@ class SymbolTable(script:Script) {
     try {
       libs(lib)(action)(types)
     } catch {
-      case e:NoSuchElementException => throw new TouchException("Library Action not found: "+lib+"->"+action+" with arguments "+types,pos)
+      case e:NoSuchElementException => throw TouchException("Library Action not found: " + lib + "->" + action + " with arguments " + types, pos)
     }
   }
 

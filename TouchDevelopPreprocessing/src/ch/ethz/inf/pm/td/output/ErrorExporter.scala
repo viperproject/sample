@@ -62,7 +62,7 @@ trait FileSystemExporter {
       }
 
     } else {
-      throw new ExporterException("Failed to create output directory")
+      throw ExporterException("Failed to create output directory")
     }
   }
 
@@ -91,7 +91,7 @@ trait FileSystemExporter {
       }
 
     } else {
-      throw new ExporterException("Failed to create output directory")
+      throw ExporterException("Failed to create output directory")
     }
   }
 
@@ -126,7 +126,7 @@ trait FileSystemExporter {
       }
 
     } else {
-      throw new ExporterException("Failed to create output directory")
+      throw ExporterException("Failed to create output directory")
     }
   }
 

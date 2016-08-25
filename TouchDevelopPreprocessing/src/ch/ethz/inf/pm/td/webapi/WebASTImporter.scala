@@ -155,7 +155,7 @@ object WebASTImporter {
               case JIf(id, cond, thn, els, isElseIf) =>
                 JIf(id, cond, thn, els ::: List(JIf(id2, cond2, then2, els2, false)), isElseIf) :: xs
               case _ =>
-                throw new TouchException("not reachable")
+                throw TouchException("not reachable")
             }
           case _ => x :: y
         }
@@ -287,7 +287,7 @@ object WebASTImporter {
           case _ => ()
         }
 
-        throw new TouchException("conversion of typename failed: " + value)
+        throw TouchException("conversion of typename failed: " + value)
     }
   }
 

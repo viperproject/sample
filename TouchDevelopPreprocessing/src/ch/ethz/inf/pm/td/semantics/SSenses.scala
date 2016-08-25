@@ -25,10 +25,10 @@ import RichNativeSemantics._
 object SSenses extends Default_SSenses {
 
   /** Gets the primary camera if available */
-  lazy val field_camera = new ApiField("camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_camera = ApiField("camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
 
   /** Gets the front facing camera if available */
-  lazy val field_front_camera = new ApiField("front camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_front_camera = ApiField("front camera", TCamera, TopWithInvalidInitializer("camera may not be available"))
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
   lazy val field_has_accelerometer = ApiField("has accelerometer", TBoolean, TopInitializer)

@@ -144,7 +144,7 @@ object TouchRun {
     threadFailed = false
 
     this.synchronized {
-      val t = new AnalysisThread(file, customTouchParams)
+      val t = AnalysisThread(file, customTouchParams)
       val initialTime = System.currentTimeMillis()
       t.start()
       while (t.isAlive && (TouchAnalysisParameters.get.timeout.isEmpty || System.currentTimeMillis() - initialTime < TouchAnalysisParameters.get.timeout.get * 1000))

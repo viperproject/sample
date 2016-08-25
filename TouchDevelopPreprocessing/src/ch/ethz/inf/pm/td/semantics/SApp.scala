@@ -43,8 +43,8 @@ object SApp extends Default_SApp {
   override lazy val member_create_logger = super.member_create_logger.copy(semantics = ValidPureSemantics)
 
   /** Never used: Aborts the execution if the condition is false. */
-  override lazy val member_fail_if_not = new ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
-    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member:ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+  override lazy val member_fail_if_not = ApiMember("fail if not", List(ApiParam(TBoolean)), ApiParam(this), TNothing, new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(condition) = parameters // Boolean
       if (TouchAnalysisParameters.get.printValuesInWarnings)
         Error[S](condition.not(), "fail if not", "fail if not " + condition + " might fail")

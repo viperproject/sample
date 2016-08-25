@@ -26,7 +26,7 @@ import RichNativeSemantics._
 object SPlayer extends Default_SPlayer {
 
   /** Gets the active song if any */
-  lazy val field_active_song = new ApiField("active song", TSong, TopWithInvalidInitializer("player may not have an active song"))
+  lazy val field_active_song = ApiField("active song", TSong, TopWithInvalidInitializer("player may not have an active song"))
 
   /** Indicates if the player is muted */
   lazy val field_is_muted = ApiField("is muted", TBoolean, TopInitializer)

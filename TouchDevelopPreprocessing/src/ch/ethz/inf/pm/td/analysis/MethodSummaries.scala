@@ -113,7 +113,7 @@ object MethodSummaries {
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
             executeMethod(callPoint, enteredState, prev)
           case None =>
-            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState).allBottom(callTarget.body))
+            val prevSummary = MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState).allBottom(callTarget.body))
             executeMethod(callPoint, enteredState, prevSummary)
         }
 

@@ -29,20 +29,20 @@ object TPicture extends Default_TPicture {
   override lazy val member_clear = super.member_clear.copy(semantics = SkipSemantics)
 
   /** Gets the width in pixels */
-  lazy val field_width = new ApiField("width", TNumber,
+  lazy val field_width = ApiField("width", TNumber,
     default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   /** Gets the height in pixels */
-  lazy val field_height = new ApiField("height", TNumber,
+  lazy val field_height = ApiField("height", TNumber,
     default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  lazy val field_location = new ApiField("location", TLocation, InvalidInitializer("picture may not have a location"))
+  lazy val field_location = ApiField("location", TLocation, InvalidInitializer("picture may not have a location"))
 
   /** Gets the date time where the picture was taken; if any. */
-  lazy val field_date = new ApiField("date", TDateTime, InvalidInitializer("picture may not have a date"))
+  lazy val field_date = ApiField("date", TDateTime, InvalidInitializer("picture may not have a date"))
 
   override def possibleFields = super.possibleFields ++ List(field_width, field_height, field_location, field_date)
 

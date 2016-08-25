@@ -32,10 +32,10 @@ object TLink extends Default_TLink {
   lazy val field_kind = ApiField("kind", TString)
 
   /** Gets the location if any */
-  lazy val field_location = new ApiField("location", TLocation, InvalidInitializer("link may not have a location"))
+  lazy val field_location = ApiField("location", TLocation, InvalidInitializer("link may not have a location"))
 
   /** Gets the name if any */
-  lazy val field_name = new ApiField("name", TString, InvalidInitializer("link may not have a name"))
+  lazy val field_name = ApiField("name", TString, InvalidInitializer("link may not have a name"))
 
   override def possibleFields = super.possibleFields ++ List(field_address, field_kind, field_location, field_name)
 

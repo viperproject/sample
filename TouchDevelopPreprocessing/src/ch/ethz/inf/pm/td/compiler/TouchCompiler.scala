@@ -192,7 +192,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       matches.head
     else if (matches.isEmpty)
       None
-    else throw new TouchException("Local or library call may resolve to multiple methods.")
+    else throw TouchException("Local or library call may resolve to multiple methods.")
   }
 
   def getPublicMethods: Set[MethodDeclaration] = publicMethods

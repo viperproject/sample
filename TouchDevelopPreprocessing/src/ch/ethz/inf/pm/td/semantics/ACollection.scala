@@ -24,7 +24,7 @@ trait ACollection extends AAny {
   def valueType:AAny
 
   /** Exports a JSON representation of the contents. */
-  def member_to_json = new ApiMember(
+  def member_to_json = ApiMember(
     name = "to json",
     paramTypes = List(),
     thisType = ApiParam(this),
@@ -33,7 +33,7 @@ trait ACollection extends AAny {
   )
 
   /** Gets the number of elements */
-  def member_count = new ApiMember(
+  def member_count = ApiMember(
     name = "count",
     paramTypes = List(),
     thisType = ApiParam(this),
@@ -42,10 +42,10 @@ trait ACollection extends AAny {
   )
 
   /** Imports a JSON representation of the contents. */
-  def member_from_json = new ApiMember(
+  def member_from_json = ApiMember(
     name = "from json",
     paramTypes = List(ApiParam(TJson_Object)),
-    thisType = ApiParam(this,isMutated=true),
+    thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     DefaultSemantics
   )

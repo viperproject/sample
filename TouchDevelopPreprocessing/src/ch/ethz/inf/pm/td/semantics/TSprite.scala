@@ -41,7 +41,7 @@ object TSprite extends Default_TSprite {
   lazy val field_elasticity = ApiField("elasticity", TNumber)
   lazy val field_friction = ApiField("friction", TNumber)
   lazy val field_height = ApiField("height", TNumber)
-  lazy val field_is_deleted = new ApiField("is deleted", TBoolean, ExpressionInitializer(False(null)))
+  lazy val field_is_deleted = ApiField("is deleted", TBoolean, ExpressionInitializer(False(null)))
   lazy val field_is_visible = ApiField("is visible", TBoolean)
   lazy val field_location = ApiField("location", TLocation)
   lazy val field_mass = ApiField("mass", TNumber)

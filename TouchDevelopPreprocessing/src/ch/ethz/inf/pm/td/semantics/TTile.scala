@@ -38,7 +38,7 @@ object TTile extends Default_TTile {
   lazy val field_counter = ApiField("counter", TNumber)
 
   /** Gets the height in pixels */
-  lazy val field_height = new ApiField("height", TNumber,
+  lazy val field_height = ApiField("height", TNumber,
     default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 
@@ -52,7 +52,7 @@ object TTile extends Default_TTile {
   lazy val field_title = ApiField("title", TString)
 
   /** Gets the width in pixels */
-  lazy val field_width = new ApiField("width", TNumber,
+  lazy val field_width = ApiField("width", TNumber,
     default = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndToIncl PositiveInfinity(null)))
 

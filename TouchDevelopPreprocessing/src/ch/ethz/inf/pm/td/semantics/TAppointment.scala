@@ -27,7 +27,7 @@ object TAppointment extends Default_TAppointment {
   lazy val field_attendees = ApiField("attendees", GCollection(TContact))
 
   /** Gets the details */
-  lazy val field_details = new ApiField("details", TString, topDefault = TopWithInvalidInitializer("appointment may not have details"))
+  lazy val field_details = ApiField("details", TString, topDefault = TopWithInvalidInitializer("appointment may not have details"))
 
   /** Gets the end time */
   lazy val field_end_time = ApiField("end time", TDateTime)
@@ -39,7 +39,7 @@ object TAppointment extends Default_TAppointment {
   lazy val field_is_private = ApiField("is private", TBoolean)
 
   /** Gets the location */
-  lazy val field_location = new ApiField("location", TString, topDefault = TopWithInvalidInitializer("appointment may not have a location"))
+  lazy val field_location = ApiField("location", TString, topDefault = TopWithInvalidInitializer("appointment may not have a location"))
 
   /** Gets the organizer */
   lazy val field_organizer = ApiField("organizer", TContact)
@@ -54,7 +54,7 @@ object TAppointment extends Default_TAppointment {
   lazy val field_status = ApiField("status", TString)
 
   /** Gets the subject */
-  lazy val field_subject = new ApiField("subject", TString, topDefault = TopWithInvalidInitializer("appointment may not have a subject"))
+  lazy val field_subject = ApiField("subject", TString, topDefault = TopWithInvalidInitializer("appointment may not have a subject"))
 
   override def possibleFields = super.possibleFields ++ List(field_attendees, field_details, field_end_time,
     field_is_all_day_event, field_is_private, field_location, field_organizer, field_source, field_start_time, field_status, field_subject)

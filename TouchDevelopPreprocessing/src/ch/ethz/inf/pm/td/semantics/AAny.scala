@@ -67,7 +67,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     }
   )
 
-  def member_comma = new ApiMember(
+  def member_comma = ApiMember(
     name = ",",
     paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
     thisType = ApiParam(this),
@@ -77,14 +77,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         val List(right) = parameters // Unknown,Unknown
         var multiValExpressionSet = new ExpressionSet(TUnknown)
         for (l <- this0.getNonTop; r <- right.getNonTop) {
-          multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown))
+          multiValExpressionSet = multiValExpressionSet.add(MultiValExpression(l, r, TUnknown))
         }
         state.setExpression(multiValExpressionSet)
       }
     }
   )
 
-  def member_:= = new ApiMember(
+  def member_:= = ApiMember(
     name = ":=",
     paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
     thisType = ApiParam(this),
@@ -102,7 +102,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     }
   )
 
-  def member_async = new ApiMember(
+  def member_async = ApiMember(
     name = "async",
     paramTypes = List(ApiParam(TUnknown)),
     thisType = ApiParam(this),

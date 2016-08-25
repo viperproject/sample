@@ -25,8 +25,8 @@ import RichNativeSemantics._
 object SBazaar extends Default_SBazaar {
 
   /** Never used: Returns an identifier of either the top-level script or the current library */
-  override def member_script_id = new ApiMember("script id", List(ApiParam(TString)), ApiParam(this), TString, new ApiMemberSemantics {
-    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member:ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+  override def member_script_id = ApiMember("script id", List(ApiParam(TString)), ApiParam(this), TString, new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, member: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(which) = parameters // String
       If[S]((which equal String("top")) or (which equal String("current")), { s =>
         Top[S](TString)(s, pp)

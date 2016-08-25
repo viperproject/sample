@@ -235,19 +235,19 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
       case s@Break() =>
 
-        throw new UnsupportedLanguageFeatureException("break not supported")
+        throw UnsupportedLanguageFeatureException("break not supported")
 
       case s@Return(expr) =>
 
-        throw new UnsupportedLanguageFeatureException("return not supported")
+        throw UnsupportedLanguageFeatureException("return not supported")
 
       case s@Continue() =>
 
-        throw new UnsupportedLanguageFeatureException("continue not supported")
+        throw UnsupportedLanguageFeatureException("continue not supported")
 
       case s@Show(expr) =>
 
-        throw new UnsupportedLanguageFeatureException("show not supported")
+        throw UnsupportedLanguageFeatureException("show not supported")
 
       case parser.MetaStatement(_, _) =>
         Unit
@@ -419,7 +419,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
                 (initialization,neExpr)
 
-              case None => throw new TouchException("Optional Parameters but no placeholder")
+              case None => throw TouchException("Optional Parameters but no placeholder")
             }
 
           } else {
@@ -478,7 +478,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
       case parser.Literal(t, value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
           ConstantStatement(pc, value, typ)
-        } else throw new TouchException("Literals with type " + t.ident + " do not exist")
+        } else throw TouchException("Literals with type " + t.ident + " do not exist")
 
       case parser.SingletonReference(singleton, _) =>
         Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName), pc))
@@ -540,7 +540,7 @@ object TouchProgramPointRegistry {
   def make(scriptID: String,
            lineColumnPosition: Option[Position],
            customPositionElements: List[String]): SpaceSavingProgramPoint = {
-    val pp = new TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
+    val pp = TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
     reg += pp
     revReg += ((scriptID,lineColumnPosition,customPositionElements) -> pp)
     SpaceSavingProgramPoint(reg.length - 1)

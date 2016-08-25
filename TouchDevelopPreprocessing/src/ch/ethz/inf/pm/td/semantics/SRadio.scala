@@ -26,10 +26,10 @@ import RichNativeSemantics._
 object SRadio extends Default_SRadio {
 
   /** Gets the frequency */
-  lazy val field_frequency = new ApiField("frequency",TNumber, TopInitializer)
+  lazy val field_frequency = ApiField("frequency", TNumber, TopInitializer)
 
   /** Indicates if the radio is on */
-  lazy val field_is_playing = new ApiField("is playing",TBoolean, TopInitializer)
+  lazy val field_is_playing = ApiField("is playing", TBoolean, TopInitializer)
 
   override def possibleFields = super.possibleFields ++ List(field_frequency, field_is_playing)
 

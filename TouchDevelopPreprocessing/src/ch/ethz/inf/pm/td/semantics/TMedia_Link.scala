@@ -26,22 +26,22 @@ import RichNativeSemantics._
 object TMedia_Link extends Default_TMedia_Link {
 
   /** Gets the album if available */
-  lazy val field_album = new ApiField("album", TString, TopWithInvalidInitializer("link may not have a album"))
+  lazy val field_album = ApiField("album", TString, TopWithInvalidInitializer("link may not have a album"))
 
   /** Gets the author if available */
-  lazy val field_author = new ApiField("author", TString, TopWithInvalidInitializer("link may not have an author"))
+  lazy val field_author = ApiField("author", TString, TopWithInvalidInitializer("link may not have an author"))
 
   /** Gets the date if available */
-  lazy val field_date = new ApiField("date", TDateTime, TopWithInvalidInitializer("link may not have a date"))
+  lazy val field_date = ApiField("date", TDateTime, TopWithInvalidInitializer("link may not have a date"))
 
   /** Gets the duration in seconds (0 for pictures) */
-  lazy val field_duration = new ApiField("duration", TNumber, TopInitializer)
+  lazy val field_duration = ApiField("duration", TNumber, TopInitializer)
 
   /** Gets the kind of media (video, song, picture) */
-  lazy val field_kind = new ApiField("kind", TString, TopInitializer)
+  lazy val field_kind = ApiField("kind", TString, TopInitializer)
 
   /** Gets the title if available */
-  lazy val field_title = new ApiField("title", TString, TopWithInvalidInitializer("link may not have a title"))
+  lazy val field_title = ApiField("title", TString, TopWithInvalidInitializer("link may not have a title"))
 
   override def possibleFields = super.possibleFields ++ List(field_album, field_author, field_date, field_duration,
     field_kind, field_title)

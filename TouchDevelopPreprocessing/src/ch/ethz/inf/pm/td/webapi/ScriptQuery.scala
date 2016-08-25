@@ -56,14 +56,14 @@ object ScriptQuery {
   def pubIDfromFilename(fileName: String): String = {
     """([^/\\.]*)[.]([^/\\.]*)$""".r.findFirstMatchIn(fileName) match {
       case Some(matc) => matc.group(1)
-      case _ => throw new TouchException("Filename regular expression did not match anything")
+      case _ => throw TouchException("Filename regular expression did not match anything")
     }
   }
 
   def pubIDfromURL(url: String): String = {
     (baseURL + """([^/]*)""" + text + """\??.*""").r.findFirstMatchIn(url) match {
       case Some(matc) => matc.group(1)
-      case _ => throw new TouchException("URL regular expression did not match anything")
+      case _ => throw TouchException("URL regular expression did not match anything")
     }
   }
 

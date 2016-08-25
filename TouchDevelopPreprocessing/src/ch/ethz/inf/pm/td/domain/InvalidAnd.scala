@@ -27,7 +27,7 @@ case class InvalidAnd[T <: SemanticDomain[T]](
     _1: T,
     _2: BooleanInvalidDomainWithSource = BooleanInvalidDomainWithSource())
   extends SemanticWithInvalidDomain[T, BooleanInvalidDomainWithSource, InvalidAnd[T]] {
-  override def factory(a:T,b:BooleanInvalidDomainWithSource) = new InvalidAnd(a,b)
+  override def factory(a:T,b:BooleanInvalidDomainWithSource) = InvalidAnd(a, b)
 }
 
 case class StringsAnd[
@@ -36,5 +36,5 @@ case class StringsAnd[
     _1: T,
     _2: S)
   extends SemanticWithStringDomain[T, S, StringsAnd[T, S]] {
-  override def factory(a:T,b:S) = new StringsAnd(a,b)
+  override def factory(a:T,b:S) = StringsAnd(a, b)
 }

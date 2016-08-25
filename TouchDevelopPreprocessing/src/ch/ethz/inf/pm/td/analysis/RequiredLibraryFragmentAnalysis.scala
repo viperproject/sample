@@ -106,7 +106,7 @@ class AccessCollectingState(myType: Type)
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
 
-  def expr: ExpressionSet = ExpressionSet(new UnitExpression(myType, null))
+  def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.typ.top())
 

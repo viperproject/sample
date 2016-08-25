@@ -450,7 +450,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
+    this.setExpression(ExpressionSet(Constant(value, typ, pp)))
   }
 
   /**

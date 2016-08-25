@@ -347,7 +347,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
     val noCommentInput = removeComments(input)
     parseAll(script,noCommentInput) match {
       case Success(x,_) => x
-      case y:ParseResult[Script] => throw new TouchException("Parsing failed "+y)
+      case y:ParseResult[Script] => throw TouchException("Parsing failed " + y)
     }
   }
 

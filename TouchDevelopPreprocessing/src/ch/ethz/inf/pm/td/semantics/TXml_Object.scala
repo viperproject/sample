@@ -26,10 +26,10 @@ import RichNativeSemantics._
 object TXml_Object extends Default_TXml_Object {
 
   /** Gets the list of attribute names */
-  lazy val field_attributes = new ApiField("*attributes", TString_Map, NewInitializer)
+  lazy val field_attributes = ApiField("*attributes", TString_Map, NewInitializer)
 
   /** Indicates if this instance is an element or a filtered collection */
-  lazy val field_is_element = new ApiField("is element", TBoolean, ExpressionInitializer(True(null)))
+  lazy val field_is_element = ApiField("is element", TBoolean, ExpressionInitializer(True(null)))
 
   /** Gets the concatenated text contents of this element */
   lazy val field_value = ApiField("value", TString)
