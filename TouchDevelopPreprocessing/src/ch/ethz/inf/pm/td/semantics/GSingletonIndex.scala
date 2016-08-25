@@ -18,4 +18,6 @@ case class GSingletonIndex(indexMemberType:AAny,modifiers:Set[Modifier]) extends
 
   override def possibleFields = super.possibleFields + field_singleton
 
+  override def declarations = super.declarations ++ mkGetters(Set(field_singleton))
+
 }
