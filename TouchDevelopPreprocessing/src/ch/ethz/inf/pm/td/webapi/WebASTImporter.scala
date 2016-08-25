@@ -272,7 +272,7 @@ object WebASTImporter {
       case _ =>
 
         value \ "o" match {
-          case JString(x) => return TypeName(x, isSingleton = isSingleton)
+          case JString(x) => return TypeName(x, isSingleton = isSingleton, isUserDefined = true)
           case _ => ()
         }
 

@@ -53,7 +53,7 @@ object Typer {
         typeName match {
           case "object" =>
 
-            val objectType = GObject(TypeName(ident),fields,modifiers)
+            val objectType = GObject(TypeName(ident,isUserDefined = true),fields,modifiers)
             val objectConstructor = GObjectConstructor(objectType,modifiers)
             val objectCollection = GObjectCollection(objectType,modifiers)
 
@@ -64,7 +64,7 @@ object Typer {
 
           case "table" =>
 
-            val rowTyp = GRow(TypeName(ident),fields,modifiers)
+            val rowTyp = GRow(TypeName(ident,isUserDefined = true),fields,modifiers)
             val tableType = GTable(rowTyp,modifiers)
 
             TypeList.addTouchType(rowTyp)
@@ -73,7 +73,7 @@ object Typer {
 
           case "index" =>
 
-            val indexMember = GIndexMember(TypeName(ident), keys, fields,modifiers)
+            val indexMember = GIndexMember(TypeName(ident,isUserDefined = true), keys, fields,modifiers)
             val indexType =
               if (keys.nonEmpty) {
                 GIndex(keys.map{_.typeName},indexMember,modifiers)
@@ -89,10 +89,10 @@ object Typer {
 
             if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
 
-            val indexMember = GIndexMember(TypeName(ident),keys,fields,modifiers)
+            val indexMember = GIndexMember(TypeName(ident,isUserDefined = true),keys,fields,modifiers)
 
             val decoratedType = keys.head.typeName
-            val decoratorType = GDecorator(TypeName(decoratedType.toString + " Decorator"), decoratedType, indexMember, modifiers)
+            val decoratorType = GDecorator(TypeName(decoratedType.toString + " Decorator",isUserDefined = true), decoratedType, indexMember, modifiers)
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)

@@ -354,16 +354,16 @@ object ScriptParser extends RegexParsers with PackratParsers {
   def inParametersToActionType(params: List[Parameter]): TypeName = {
     TypeName(params match {
       case Nil => "Action"
-      case List(Parameter(_, TypeName("Boolean",_,_))) => "Boolean Action"
-      case List(Parameter(_, TypeName("Number",_,_))) => "Number Action"
-      case List(Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_))) => "Position Action"
-      case List(Parameter(_, TypeName("String",_,_))) => "Text Action"
-      case List(Parameter(_, TypeName("Sprite",_,_))) => "Sprite Action"
-      case List(Parameter(_, TypeName("Sprite Set",_,_))) => "Sprite Set Action"
-      case List(Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_)), Parameter(_, TypeName("Number",_,_))) => "Vector Action"
-      case List(Parameter(_, TypeName("Web Response",_,_))) => "Web Response Action"
-      case List(Parameter(_, TypeName("Message Collection",_,_))) => "Message Collection Action"
-      case List(Parameter(_, TypeName(s,_,_))) => s + " action"
+      case List(Parameter(_, TypeName("Boolean",_,_,_))) => "Boolean Action"
+      case List(Parameter(_, TypeName("Number",_,_,_))) => "Number Action"
+      case List(Parameter(_, TypeName("Number",_,_,_)), Parameter(_, TypeName("Number",_,_,_))) => "Position Action"
+      case List(Parameter(_, TypeName("String",_,_,_))) => "Text Action"
+      case List(Parameter(_, TypeName("Sprite",_,_,_))) => "Sprite Action"
+      case List(Parameter(_, TypeName("Sprite Set",_,_,_))) => "Sprite Set Action"
+      case List(Parameter(_, TypeName("Number",_,_,_)), Parameter(_, TypeName("Number",_,_,_)), Parameter(_, TypeName("Number",_,_,_)), Parameter(_, TypeName("Number",_,_,_))) => "Vector Action"
+      case List(Parameter(_, TypeName("Web Response",_,_,_))) => "Web Response Action"
+      case List(Parameter(_, TypeName("Message Collection",_,_,_))) => "Message Collection Action"
+      case List(Parameter(_, TypeName(s,_,_,_))) => s + " action"
       case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }

@@ -124,7 +124,7 @@ case class ActionResolution(localName:String,libName:String)
 case class Parameter(ident:String,typeName:TypeName)
   extends IdPositional
 
-case class TypeName(ident:String,arguments:List[TypeName] = Nil, isSingleton:Boolean = false)
+case class TypeName(ident:String,arguments:List[TypeName] = Nil, isSingleton:Boolean = false, isUserDefined:Boolean = false)
   extends IdPositional {
   override lazy val toString:String = (arguments:::List(ident)).mkString(" ")
   def makeCode:String = {
