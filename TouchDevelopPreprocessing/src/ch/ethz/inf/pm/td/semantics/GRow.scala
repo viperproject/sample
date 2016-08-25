@@ -24,7 +24,7 @@ case class GRow(typeName: TypeName, keyParameters:List[Parameter], fieldParamete
     name = "delete row",
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),
-    returnType = TBoolean,
+    returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         CallApi[S](Field[S](this0, GTable(GRow(typeName,keyParameters,fieldParameters,modifiers),modifiers).field_table), "remove", List(this0), TBoolean)

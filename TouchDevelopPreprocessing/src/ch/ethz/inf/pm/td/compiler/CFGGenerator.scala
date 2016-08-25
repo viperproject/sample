@@ -261,8 +261,6 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
         val newExpr = tty(TypeName("Nothing"),Access(p,Identifier("post to wall"),Nil).copyPos(p))
         newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
 
-        throw UnsupportedLanguageFeatureException("show not supported")
-
       case parser.MetaStatement(_, _) =>
         Unit
 
