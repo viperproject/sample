@@ -117,7 +117,7 @@ object PrettyPrinter {
       case Placeholder(typ) => "$__optional_argument"
       case SingletonReference(ident, typ) => apply(ident)
       case Literal(typ, value) => typ match {
-        case TypeName("String", _, _) => "\"" + value + "\""
+        case TypeName("String", _, _, _) => "\"" + value + "\""
         case _ => value
       }
     })

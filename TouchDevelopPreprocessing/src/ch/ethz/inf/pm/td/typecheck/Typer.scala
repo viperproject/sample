@@ -101,7 +101,7 @@ object Typer {
           case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
         }
-      case LibraryDefinition(libName, pub, _, _, _, _, usages, resolves) =>
+      case LibraryDefinition(libName, pub, _, _, _, _, usages, _) =>
         for (usage <- usages) {
           usage match {
             case ActionUsage(name, in, out) => st.addLibAction(libName, name, in, out)
@@ -233,7 +233,8 @@ object Typer {
             val types = for (arg <- args) yield processExpression(scope, st, arg)
             val subtype = processExpression(scope, st, subject)
             val retTypes = st.resolveAccess(subtype, property.ident, types, subject.pos)
-            if (retTypes.length > 1) throw TouchException("Multiple return values " + retTypes + " in non-assignment expression", expr.pos)
+            if (retTypes.length > 1)
+              throw TouchException("Multiple return values " + retTypes + " in non-assignment expression", expr.pos)
             else if (retTypes.length < 1) is(TypeName("Nothing"))
             else is(retTypes.head)
         }
