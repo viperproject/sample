@@ -14,6 +14,16 @@ import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, MethodSummaries, Api
 import ch.ethz.inf.pm.td.compiler._
 import RichNativeSemantics._
 
+object AAction {
+
+  /** Stores a string representing the handler in the code. When an action is defined in the code, the
+    * corresponding action is created with a unique name (e.g. program point based) and this object is
+    * returned with the handlerName field set to the name of the created action. If this field
+    * is top, and run is executed, we have to go to top, since we do not know what is executed */
+  lazy val field_handlerName = ApiField("*handlername",TString)
+
+}
+
 /**
  * General definition for Actions (closure types)
  *
@@ -49,7 +59,7 @@ trait AAction extends AAny {
           }
         }
 
-        EvalConstant[S](Field[S](this0,field_handlerName)) match {
+        EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
           case SetDomain.Default.Bottom() => state.bottom()
           case SetDomain.Default.Top() =>
             Reporter.reportImprecision("Handler name is top", pp)
@@ -79,12 +89,6 @@ trait AAction extends AAny {
   def actionArguments: List[ApiParam]
   def actionReturnValue: AAny = TNothing
 
-  /** Stores a string representing the handler in the code. When an action is defined in the code, the
-    * corresponding action is created with a unique name (e.g. program point based) and this object is
-    * returned with the handlerName field set to the name of the created action. If this field
-    * is top, and run is executed, we have to go to top, since we do not know what is executed */
-  lazy val field_handlerName = ApiField("*handlername",TString)
-
-  override def possibleFields = super.possibleFields + field_handlerName
+  override def possibleFields = super.possibleFields + AAction.field_handlerName
 
 }

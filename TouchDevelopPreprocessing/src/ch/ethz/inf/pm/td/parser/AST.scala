@@ -124,9 +124,25 @@ case class ActionResolution(localName:String,libName:String)
 case class Parameter(ident:String,typeName:TypeName)
   extends IdPositional
 
+object TypeName {
+
+  def parseCode(s:String):TypeName = {
+    val TypeNameEmpty = """^TypeName\("([^"]+)"\)$""".r
+    val TypeNameRecursive = """^TypeName\("([^"]+)",List\((.*)\)\)$""".r
+    s match {
+      case TypeNameEmpty(a) => TypeName(a)
+      case TypeNameRecursive(a,b) => TypeName(a,b.split(",").map(parseCode).toList)
+    }
+  }
+
+}
+
 case class TypeName(ident:String,arguments:List[TypeName] = Nil, isSingleton:Boolean = false, isUserDefined:Boolean = false)
-  extends IdPositional {
+  extends IdPositional with Serializable {
   override lazy val toString:String = (arguments:::List(ident)).mkString(" ")
+  def serialize:String = {
+    "TypeName(\""+ident+"\", )"
+  }
   def makeCode:String = {
     "TypeName(\""+ident+"\"" +
       (if (arguments.nonEmpty) ",List("+arguments.map(_.makeCode).mkString(",")+")" else "") +

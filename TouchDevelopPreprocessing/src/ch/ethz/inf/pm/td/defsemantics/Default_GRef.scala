@@ -43,15 +43,6 @@ trait Default_GRef extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Check if reference has been written to the storage/server */
-  def member__confirmed = ApiMember(
-    name = "◈confirmed",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
-
   /** Never used: Get the current value of the reference */
   def member__get = ApiMember(
     name = "◈get",

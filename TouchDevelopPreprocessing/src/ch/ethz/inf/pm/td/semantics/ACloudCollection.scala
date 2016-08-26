@@ -6,8 +6,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.oorepresentation.Modifier
-import ch.ethz.inf.pm.td.cloud.{CloudUpdateWrapper, CloudQueryWrapper}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint}
+import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, ApiParam}
 
 /**
  *
@@ -22,5 +24,20 @@ trait ACloudCollection extends ACollection with ACloudType {
   override def member_from_json = super.member_from_json.copy(semantics = CloudUpdateWrapper(super.member_from_json.semantics,modifiers))
   override def member_copy = super.member_copy.copy(semantics = CloudQueryWrapper(super.member_copy.semantics,modifiers))
   override def member_at_index = super.member_at_index.copy(semantics = CloudQueryWrapper(super.member_at_index.semantics,modifiers))
+
+  def member__clear = ApiMember(
+    name = "◈clear",
+    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    thisType = ApiParam(this, isMutated = true),
+    returnType = TNothing,
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Clear[S](this0)
+      }
+    },modifiers)
+  )
+
+  override def declarations: Map[String, ApiMember] = super.declarations + (member__clear.name -> member__clear)
+
 
 }

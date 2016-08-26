@@ -7,13 +7,14 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.cloud.CloudQueryWrapper
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.typecheck.Member
 
@@ -23,6 +24,14 @@ import ch.ethz.inf.pm.td.typecheck.Member
  * Time: 5:36 PM
  */
 trait AAny extends NativeMethodSemantics with RichExpressionImplicits with TouchType {
+
+  def member__confirmed = ApiMember(
+    name = "◈confirmed",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = CloudQueryWrapper(ValidPureSemantics,Set(CloudEnabledModifier))
+  )
 
   def member__ref = ApiMember(
     name = "◈ref",
@@ -137,7 +146,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       "is invalid" -> member_is_invalid,
       "post to wall" -> member_post_to_wall,
       "equals" -> member_equals,
-      "◈ref" -> member__ref
+      "◈ref" -> member__ref,
+      member__confirmed.name -> member__confirmed
     )
 
   def isSingleton = false

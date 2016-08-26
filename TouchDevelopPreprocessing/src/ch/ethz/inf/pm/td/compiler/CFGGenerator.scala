@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
+import ch.ethz.inf.pm.td.semantics.{GAction, GAction1, TUnknown}
 import ch.ethz.inf.pm.td.transform.Rewriter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -349,8 +350,12 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
         val wPP = makeTouchProgramPoint(curPubID, curLibraryStableId, w)
 
         val handlerSet =
-          for (InlineAction(handlerName, inParameters, _, _, typ) <- handlerDefs) yield {
-            (handlerName, handlerIdent(handlerName + wPP), typ)
+          for (InlineAction(handlerName, inParameters, outParameters, _, typ) <- handlerDefs) yield {
+            val typN =
+              if (typ.ident == "Unknown" && inParameters.size == 1) {
+                TypeName("Action1",List(inParameters.head.typeName))
+              } else typ
+            (handlerName, handlerIdent(handlerName + wPP), typN)
           }
 
         val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body, typ) <- handlerDefs) yield {
@@ -380,7 +385,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                 List(
                   tty(handlerType, parser.Access(
                     sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(w)),
-                    Identifier("create " + handlerType.ident.toLowerCase + " " + actionName).copyPos(w),
+                    Identifier("create " + handlerType.makeCode + " " + actionName).copyPos(w),
                     Nil
                   ).copyPos(w))
                 )
