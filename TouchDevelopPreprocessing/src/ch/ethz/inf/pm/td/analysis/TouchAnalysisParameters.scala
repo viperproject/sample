@@ -147,6 +147,10 @@ case class TouchAnalysisParameters(
                                      */
                                     defaultToUnsound: Boolean = true,
 
+                                    /**
+                                      * If the semantics of an API is not defined, fail
+                                      */
+                                    failOnMissingApi: Boolean = true,
 
                                     /**
                                      * use hand-written library contracts
