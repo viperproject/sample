@@ -277,7 +277,8 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def CallApi[S <: State[S]](obj: RichExpression, method: String, parameters: List[ExpressionSet] = Nil, returnedType: TouchType)(implicit state: S, pp: ProgramPoint): S = {
-    obj.getType().asInstanceOf[AAny].forwardSemantics(obj, method, parameters, returnedType)(pp, state)
+    if (obj.isBottom) state.bottom()
+    else obj.getType().asInstanceOf[AAny].forwardSemantics(obj, method, parameters, returnedType)(pp, state)
   }
 
   def Return[S <: State[S]](e: RichExpression*)(implicit state: S, pp: ProgramPoint): S = {
