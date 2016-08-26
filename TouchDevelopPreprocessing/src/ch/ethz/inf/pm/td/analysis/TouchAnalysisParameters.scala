@@ -153,6 +153,11 @@ case class TouchAnalysisParameters(
                                     failOnMissingApi: Boolean = true,
 
                                     /**
+                                      * If the semantics of an API is not defined, fail
+                                      */
+                                    copyForeachCollections: Boolean = false,
+
+                                    /**
                                      * use hand-written library contracts
                                      */
                                     useLibraryContracts: Boolean = true,

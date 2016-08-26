@@ -91,7 +91,7 @@ object LoopRewriter {
 
             val bodyNew = body flatMap apply
             val idxOld = pos(LocalReference(idx))
-            (for (i <- 0 to Math.round(value.toDouble).toInt - 1) yield {
+            (for (i <- 0 until Math.round(value.toDouble).toInt) yield {
               if (TouchAnalysisParameters.get.renameForLoopUnrollings) {
                 val posSuffix = "it" + i
                 val idxNew = pos(Literal(numTyp, i.toString))
@@ -143,11 +143,20 @@ object LoopRewriter {
         //     __elem_index__ = __elem_index__ + 1;
         //   }
 
+        val (storedCollection,collectionStore) =
+          if (!TouchAnalysisParameters.get.copyForeachCollections) {
+            (coll,Nil)
+          } else {
+            val a = pos(LocalReference(annotateName(elem, "collection")))
+            val b = List(pos(ExpressionStatement(pos(Access(a, Identifier(":="),
+              List(pos(Access(coll, pos(Identifier("copy")), Nil))))))))
+            (a,b)
+
+          }
+
         val idxExp = pos(LocalReference(annotateName(elem, "index")))
-        val storedCollection = pos(LocalReference(annotateName(elem, "collection")))
         val elemExp = pos(LocalReference(elem))
         val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
-        val collectionStore = pos(ExpressionStatement(pos(Access(storedCollection, Identifier(":="), List(pos(Access(coll, pos(Identifier("copy")), Nil)))))))
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         val atIndexExpr = pos(Access(storedCollection, pos(Identifier("at index")), List(idxExp)))
         val rewrittenBody = (body flatMap apply).map(replace(_, elemExp, atIndexExpr))
@@ -162,8 +171,8 @@ object LoopRewriter {
         }
         val countMinusOne = Access(pos(Access(storedCollection, pos(Identifier("count")), Nil)), pos(Identifier("-")), List(pos(Literal(pos(TypeName("Number")), "1"))))
         val condition = pos(Access(idxExp, pos(Identifier("≤")), List(countMinusOne))) // Less-Equal count -1 is tighter than Less count, since
-      val whileLoop = pos(While(condition, conditionalBody ::: bodyPostfix :: Nil))
-        indexInit :: collectionStore :: whileLoop :: Nil
+        val whileLoop = pos(While(condition, conditionalBody ::: bodyPostfix :: Nil))
+        (indexInit :: collectionStore) ::: (whileLoop :: Nil)
 
       case i@If(cond, thenBody, elseBody) =>
         List(pos(If(cond, thenBody flatMap apply, elseBody flatMap apply)))
