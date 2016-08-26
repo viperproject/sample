@@ -171,52 +171,52 @@ object Typer {
     }
   }
 
+  def handleAssignments(scope: Scope, st: SymbolTable, expr: Expression, variables: Expression, types: List[TypeName]): Int = {
+
+    if (types.isEmpty) throw TouchException("Not enough values on the right side of the assignment", expr.pos)
+    val typ = types.head
+
+    variables match {
+      case Access(left, Identifier(","), List(right)) =>
+        variables.typeName = TypeName("Unknown")
+        val noVariablesLeft = handleAssignments(scope, st, expr, left, types)
+        handleAssignments(scope, st, expr, right, types.splitAt(types.length - noVariablesLeft)._2)
+      case p@Placeholder(typName) =>
+        variables.typeName = typName
+        types.length - 1
+      case l@LocalReference(ident) =>
+        variables.typeName = typ
+        st.tryResolveLocal(scope, ident) match {
+          case Some(x) =>
+            if (x != typ)
+              throw TouchException("Assignment to wrong type. Expected: " + x + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
+          case None =>
+            st(scope) = st(scope) + (ident -> typ)
+        }
+        types.length - 1
+      case Access(subject@SingletonReference("data", _), Identifier(ident), Nil) =>
+        processExpression(scope, st, subject)
+        variables.typeName = typ
+        val expType = st.resolveData(ident, variables.pos)
+        if (expType != typ)
+          throw TouchException("Assignment to wrong type. Expected: " + expType + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
+        types.length - 1
+      // New kind of field assignment for record types?!
+      case Access(subject, _, args) =>
+        // TODO: Actually check the type
+        for (arg <- args) yield processExpression(scope, st, arg)
+        processExpression(scope, st, subject)
+        variables.typeName = typ
+        types.length - 1
+    }
+
+  }
+
   def processExpression(scope: Scope, st: SymbolTable, expr: Expression): TypeName = {
 
     def is(typ: TypeName): TypeName = {
       expr.typeName = typ
       typ
-    }
-
-    def handleAssignments(variables: Expression, types: List[TypeName]): Int = {
-
-      if (types.isEmpty) throw TouchException("Not enough values on the right side of the assignment", expr.pos)
-      val typ = types.head
-
-      variables match {
-        case Access(left, Identifier(","), List(right)) =>
-          variables.typeName = TypeName("Unknown")
-          val noVariablesLeft = handleAssignments(left, types)
-          handleAssignments(right, types.splitAt(types.length - noVariablesLeft)._2)
-        case p@Placeholder(typName) =>
-          variables.typeName = typName
-          types.length - 1
-        case l@LocalReference(ident) =>
-          variables.typeName = typ
-          st.tryResolveLocal(scope, ident) match {
-            case Some(x) =>
-              if (x != typ)
-                throw TouchException("Assignment to wrong type. Expected: " + x + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
-            case None =>
-              st(scope) = st(scope) + (ident -> typ)
-          }
-          types.length - 1
-        case Access(subject@SingletonReference("data", _), Identifier(ident), Nil) =>
-          processExpression(scope, st, subject)
-          variables.typeName = typ
-          val expType = st.resolveData(ident, variables.pos)
-          if (expType != typ)
-            throw TouchException("Assignment to wrong type. Expected: " + expType + ", Found: " + types.head + ", in Expr: " + expr, variables.pos)
-          types.length - 1
-        // New kind of field assignment for record types?!
-        case Access(subject, _, args) =>
-          // TODO: Actually check the type
-          for (arg <- args) yield processExpression(scope, st, arg)
-          processExpression(scope, st, subject)
-          variables.typeName = typ
-          types.length - 1
-      }
-
     }
 
     val typ = expr match {
@@ -225,7 +225,7 @@ object Typer {
           case Identifier(":=") =>
             if (args.length != 1) throw TouchException("Assignment needs an argument")
             val right = processMultiValExpression(scope, st, args.head)
-            val additionalRightSideValues = handleAssignments(subject, right)
+            val additionalRightSideValues = handleAssignments(scope, st, expr, subject, right)
             if (additionalRightSideValues != 0)
               throw TouchException("Not enough variables on the left side of the assignment", expr.pos)
             is(TypeName("Unknown"))
@@ -278,6 +278,19 @@ object Typer {
         processExpression(scope, st, a)
         val types = for (arg <- args) yield processExpression(scope, st, arg)
         st.resolveLib(lib.ident, action.ident, types, expr.pos)
+      case Access(subject,property,args) =>
+        property match {
+          case Identifier(":=") =>
+            if (args.length != 1) throw TouchException("Assignment needs an argument")
+            val right = processMultiValExpression(scope, st, args.head)
+            val remaining = handleAssignments(scope, st, expr, subject, right)
+            assert (remaining == 0)
+            Nil
+          case _ =>
+            val types = for (arg <- args) yield processExpression(scope, st, arg)
+            val subtype = processExpression(scope, st, subject)
+            st.resolveAccess(subtype, property.ident, types, subject.pos)
+        }
       case _ => List(processExpression(scope, st, expr))
     }
 
