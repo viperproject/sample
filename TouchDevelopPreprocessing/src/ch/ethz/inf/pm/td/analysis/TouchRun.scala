@@ -83,7 +83,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
   override def run() {
     try {
 
-      messages = TouchRun.runSingleNoThread(file,customTouchParams).toSet
+      messages = TouchRun.runSingleNoThread(file,customTouchParams)
 
     } catch {
 
@@ -117,7 +117,7 @@ object TouchRun extends LazyLogging {
    */
   var threadFailed:Boolean = false
 
-  def runSingleNoThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+  def runSingleNoThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Set[SampleMessage] = {
 
     customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
     val touchParams = TouchAnalysisParameters.get
@@ -141,8 +141,9 @@ object TouchRun extends LazyLogging {
     analysis.analyze(Nil,entryState)
 
     Exporters.setStatus("Done")
+    val messages = Reporter.seenErrors
     SystemParameters.resetOutput()
-    return Reporter.seenErrors.toSeq
+    return messages.toSet
   }
 
   def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
