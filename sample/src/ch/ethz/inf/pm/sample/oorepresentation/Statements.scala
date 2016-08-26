@@ -468,6 +468,10 @@ case class MethodCall(
       curState.expr
     }
 
+    if (objectExpression.isBottom) return curState.bottom()
+    if (parameterExpressions.exists(_.isBottom)) return curState.bottom()
+    if (curState.isBottom) return curState.bottom()
+
     // Evaluate called method
     applyNativeForwardSemanticsOnObject(calledMethod, objectExpression, parameterExpressions, curState, programPoint)
 

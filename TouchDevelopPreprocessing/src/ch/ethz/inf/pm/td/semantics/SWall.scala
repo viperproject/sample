@@ -158,8 +158,13 @@ object SWall extends Default_SWall {
     case "pick string" =>
       val List(text, caption, values) = parameters // String,String,String_Collection
       If(GCollection(TString).Count[S](values) > 0,
-        Then = { s: S => Return[S](0 ndToIncl (GCollection(TString).Count[S](values) - 1))(s, pp)},
-        Else = { s: S => Error[S](True, "pick string", "User may have to select string from empty string collection")})
+        Then = { s: S =>
+          val expr = 0 ndToIncl (GCollection(TString).Count[S](values) - 1)
+          Return[S](expr)(s, pp)},
+        Else = { s: S =>
+          Error[S](True, "pick string", "User may have to select string from empty string collection")(s, pp)
+          s.bottom()
+        })
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
     case "pick time" =>

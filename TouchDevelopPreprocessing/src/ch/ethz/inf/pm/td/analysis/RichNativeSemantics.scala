@@ -382,7 +382,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Field[S <: State[S]](obj: RichExpression, field: ApiField)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    if (state.isBottom) obj.bottom()
+    if (obj.isBottom || state.isBottom) Bottom(field.typ)
     else obj.thisExpr.getType().asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
   }
 
