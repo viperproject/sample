@@ -83,7 +83,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
   override def run() {
     try {
 
-      TouchRun.runSingleNoThread(file,customTouchParams)
+      messages = TouchRun.runSingleNoThread(file,customTouchParams).toSet
 
     } catch {
 
