@@ -22,7 +22,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
   lazy val keyFields:Set[ApiField] = TypeList.toTouchFields(keyFieldsParameters)
   lazy val valueFields:Set[ApiField] = TypeList.toTouchFields(valueFieldsParameters)
 
-  def member_clear_fields = ApiMember(
+  lazy val member_clear_fields = ApiMember(
     name = "clear fields",
     paramTypes = List(),
     thisType = ApiParam(this,isMutated = true),

@@ -78,8 +78,7 @@ object LibraryContract extends ForwardNativeMethodSemantics {
           // And we have also automatically generated setters. What the...
           SData.forwardSemantics[S](SData.reference,method,parameters,returnedType)
         } else {
-          Reporter.reportImprecision("Could not find method "+method,pp)
-          state.bottom()
+          RichNativeSemantics.Unimplemented[S](method, returnedType)
         }
 
     }

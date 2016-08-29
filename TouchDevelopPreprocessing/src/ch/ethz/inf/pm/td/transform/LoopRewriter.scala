@@ -135,7 +135,7 @@ object LoopRewriter {
         //   var __elem_index__ = 0;                  // Define a counter
         //   var __elem_collection__ = coll->copy();  // Take a snapshot of the collection
         //   while ( __elem_index__ < __elem_collection__->count ) {
-        //     // every occurence of elem inside the loop body and inside the guard expressions
+        //     // every occurance of elem inside the loop body and inside the guard expressions
         //     // is replaced with __elem_collection__->at_index(__elem_index__); (at_index is like at, but always integer indexed)
         //     if (guard1 and guard2 and ... )  {
         //       body;

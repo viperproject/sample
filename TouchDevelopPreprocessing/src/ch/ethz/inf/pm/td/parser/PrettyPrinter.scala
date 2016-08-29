@@ -46,9 +46,10 @@ object PrettyPrinter {
             " {\n" + apply(initBody) + apply(displayBody)  + "\n}" // TODO: This is not how /text does it
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
         case VariableDefinition(variable, map) => "var " + apply(variable) + " {" + map.map(x => x._1 + "=" + x._2 + ";").mkString("\n") + " }"
-        case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
+        case TableDefinition(ident, typeName, sourceName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
           "table " + apply(ident) +
             " { type = \"" + typeName + "\"; " +
+            (if (sourceName.nonEmpty) "sourceName = \"" + sourceName.get + "\"; " else "") +
             s"cloudenabled = $isCloudEnabled; cloudpartiallyenabled = $isCloudPartiallyEnabled; persistent = $isPersistent; exported = $isExported;" +
             "keys = {\n" + (keys map apply) + "\n} fields = {\n" + (fields map apply) + "\n} }"
         case LibraryDefinition(name, pub, _, _, _, _, usages, resolves) =>

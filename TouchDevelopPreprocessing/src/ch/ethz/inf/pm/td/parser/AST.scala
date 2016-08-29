@@ -76,6 +76,7 @@ case class VariableDefinition(variable:Parameter,
 
 case class TableDefinition(ident:String,
                            typName:String,
+                           sourceName:Option[String],
                            keys:List[Parameter],
                            fields:List[Parameter],
                            isCloudEnabled:Boolean,

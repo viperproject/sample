@@ -67,11 +67,12 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Tables
 
   lazy val tableDefinition: PackratParser[Declaration] = positioned (
-    "table" ~ ident ~ "{" ~ tableContent ~ "}" ^^ {case _~a~_~b~_ => TableDefinition(a,b._1,b._2,b._3,b._4,b._5,b._6,b._7)}
+    "table" ~ ident ~ "{" ~ tableContent ~ "}" ^^ {case _~a~_~b~_ => TableDefinition(a,b._1,b._2,b._3,b._4,b._5,b._6,b._7,b._8)}
   )
 
-  lazy val tableContent: PackratParser[(String,List[Parameter],List[Parameter],Boolean,Boolean,Boolean,Boolean)] = (
+  lazy val tableContent: PackratParser[(String,Option[String],List[Parameter],List[Parameter],Boolean,Boolean,Boolean,Boolean)] = (
     ( "type" ~ "=" ~ stringLiteral ~ ";" ~
+      ("sourceName" ~ "=" ~ stringLiteral ~ ";").? ~
       ("cloudenabled" ~ "=" ~ ("true" | "false") ~ ";").? ~
       ("cloudpartiallyenabled" ~ "=" ~ ("true" | "false") ~ ";").? ~
       ("persistent" ~ "=" ~ ("true" | "false") ~ ";").? ~
@@ -79,15 +80,16 @@ object ScriptParser extends RegexParsers with PackratParsers {
       ("keys" ~ "{" ~ parameter.* ~ "}").? ~
       ("fields" ~ "{" ~ parameter.* ~ "}").? )
       ^^ {
-        case _~_~a~_~cE~cPE~p~e~b~c =>
+        case _~_~a~_~sN~cE~cPE~p~e~b~c =>
           val typ = a.toLowerCase
           val keys = b match { case Some(_~_~x~_) => x ; case None => Nil }
           val fields = c match { case Some(_~_~x~_) => x ; case None => Nil }
+          val sourceName = cE match { case Some(_~_~x~_) => Some(x.toString) ; case None => None }
           val cloudEnabled = cE match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
           val cloudPartiallyEnabled = cPE match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
           val persistent = p match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
           val exported = e match { case Some(_~_~x~_) => x.toBoolean ; case None => false }
-          (typ, keys, fields, cloudEnabled, cloudPartiallyEnabled, persistent, exported)
+          (typ, sourceName, keys, fields, cloudEnabled, cloudPartiallyEnabled, persistent, exported)
     }
   )
 

@@ -16,9 +16,13 @@ import RichNativeSemantics._
 
 case class GRow(typeName: TypeName, keyParameters:List[Parameter], fieldParameters:List[Parameter], modifiers:Set[Modifier]) extends AAny {
 
-  lazy val fields:Set[ApiField] = TypeList.toTouchFields(keyParameters) ++ TypeList.toTouchFields(fieldParameters)
+  assert (keyParameters.size <= 1)
 
-  override def possibleFields = super.possibleFields ++ (fields + GTable(this,modifiers).field_table)
+  lazy val keyField = TypeList.toTouchFields(keyParameters).headOption
+
+  lazy val fields:Set[ApiField] = TypeList.toTouchFields(fieldParameters)
+
+  override def possibleFields = super.possibleFields ++ (fields + GTable(this,modifiers).field_table) ++ keyField
 
   lazy val member_delete_row = ApiMember(
     name = "delete row",
@@ -52,6 +56,6 @@ case class GRow(typeName: TypeName, keyParameters:List[Parameter], fieldParamete
       "delete row" -> member_delete_row,
       "is deleted" -> member_is_deleted,
       "confirmed" -> member_confirmed
-    ) ++ mkGetterSetters(fields + GTable(this,modifiers).field_table)
+    ) ++ mkGetterSetters(fields ++ keyField + GTable(this,modifiers).field_table)
 
 }

@@ -222,7 +222,7 @@ object FindCloud {
 
     def visitDecl(decl:Declaration) {
       decl match {
-        case TableDefinition(idx, typ, _, _, true, _, _, _) =>
+        case TableDefinition(idx, typ, _, _, _, true, _, _, _) =>
           retState = retState + (Access(SingletonReference("records", "records"), Identifier(idx + " " + typ), Nil),Record(idx + " " + typ))
         case VariableDefinition(Parameter(idx,typ),flags) if flags.contains("cloudenabled") && flags.get("cloudenabled").get == Left(true) =>
           retState = retState + (Access(SingletonReference("data", "data"), Identifier(idx), Nil),Data(idx))

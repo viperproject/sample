@@ -41,7 +41,7 @@ object Typer {
     thing match {
       case a@ActionType(name, in, out, isPrivate) =>
         TypeList.addTouchType(GAction(TypeName(name,isUserDefined = true),in map (_.typeName),out map (_.typeName)))
-      case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
+      case TableDefinition(ident, typeName, sourceName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
 
         val modifiers = Set[Option[Modifier]](
           if (isCloudEnabled) Some(CloudEnabledModifier) else None,
@@ -60,7 +60,7 @@ object Typer {
             TypeList.addTouchType(objectType)
             TypeList.addTouchType(objectCollection)
             TypeList.addTouchType(objectConstructor)
-            SRecords.addRecord(Record(ident,objectConstructor,modifiers))
+            SRecords.addRecord(Record(sourceName.getOrElse(ident),objectConstructor,modifiers))
 
           case "table" =>
 
@@ -69,7 +69,7 @@ object Typer {
 
             TypeList.addTouchType(rowTyp)
             TypeList.addTouchType(tableType)
-            SRecords.addRecord(Record(ident + " table",tableType,modifiers))
+            SRecords.addRecord(Record(sourceName.getOrElse(ident + " table"),tableType,modifiers))
 
           case "index" =>
 
@@ -83,7 +83,7 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(indexType)
-            SRecords.addRecord(Record(ident + " index",indexType,modifiers))
+            SRecords.addRecord(Record(sourceName.getOrElse(ident + " index"),indexType,modifiers))
 
           case "decorator" =>
 
@@ -96,7 +96,7 @@ object Typer {
 
             TypeList.addTouchType(indexMember)
             TypeList.addTouchType(decoratorType)
-            SRecords.addRecord(Record(decoratedType + " decorator",decoratorType,modifiers))
+            SRecords.addRecord(Record(sourceName.getOrElse(decoratedType + " decorator"),decoratorType,modifiers))
 
           case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
@@ -167,7 +167,14 @@ object Typer {
         processMultiValExpression(scope, st, expr)
       case ExpressionStatement(expr) =>
         processMultiValExpression(scope, st, expr)
-      case _ => ()
+      case Skip() => ()
+      case Break() => ()
+      case Continue() => ()
+      case Return(expr) => processMultiValExpression(scope, st, expr)
+      case Show(expr) => processMultiValExpression(scope, st, expr)
+      case MetaStatement(_,_) => ()
+      case For(_,_,_) => throw TouchException("rewrite loops before typing")
+      case Foreach(_,_,_,_) => throw TouchException("rewrite loops before typing")
     }
   }
 

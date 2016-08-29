@@ -60,7 +60,7 @@ object FindConstruct {
       case None =>
         val scr = ScriptRetriever.getLocally(id)
         val res = scr.get._1.declarations.exists {
-          case TableDefinition(ident, typeName, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
+          case TableDefinition(ident, typeName, _, keys, fields, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported) =>
             isCloudEnabled || isCloudPartiallyEnabled
           case _ => false
         }

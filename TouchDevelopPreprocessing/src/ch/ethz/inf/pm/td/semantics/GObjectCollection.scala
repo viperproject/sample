@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
-case class GObjectCollection(objectTyp:AAny,modifiers:Set[Modifier]) extends AMutableLinearCollection {
+case class GObjectCollection(objectTyp:AAny,modifiers:Set[Modifier]) extends AMutableLinearCloudCollection {
 
   def typeName = TypeName("Collection", List(objectTyp.typeName))
   def keyType = TNumber

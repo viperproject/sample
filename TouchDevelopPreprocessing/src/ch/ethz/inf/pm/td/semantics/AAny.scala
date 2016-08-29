@@ -9,14 +9,11 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.cloud.CloudQueryWrapper
-import ch.ethz.inf.pm.td.parser.TypeName
-import ch.ethz.inf.pm.td.typecheck.Member
 
 /**
  * User: Lucas Brutschy

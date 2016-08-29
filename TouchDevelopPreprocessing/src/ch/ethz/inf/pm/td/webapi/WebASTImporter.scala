@@ -119,8 +119,8 @@ object WebASTImporter {
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
       case JLibrary(id, name, libIdentifier, libIsPublished, scriptName, exportedTypes, exportedTypeDefs, exportedActions, resolveClauses) =>
         LibraryDefinition(name, libIdentifier, libIsPublished, scriptName, exportedTypes, exportedTypeDefs map convert, exportedActions map convert, resolveClauses map convert).setId(id)
-      case JRecord(id, name, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
-        TableDefinition(name, category, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
+      case JRecord(id, name, sourceName, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
+        TableDefinition(name, category, sourceName, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
       case JAction(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = false, isPrivate = isPrivate).setId(id)
       case JActionType(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _) =>
@@ -129,8 +129,8 @@ object WebASTImporter {
         ActionType(name, inParameters map convert, outParameters map convert, isPrivate = isPrivate).setId(id)
       case JLibAbstractType(id:String, name:String) =>
         LibAbstractType(name).setId(id)
-      case JLibRecordType(id, name, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
-        TableDefinition(name, category, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
+      case JLibRecordType(id, name, sourceName, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
+        TableDefinition(name, category, sourceName, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
     }
   }
 
@@ -648,6 +648,7 @@ case class JLibActionType(
 case class JLibRecordType(
                            id: String,
                            name: String,
+                           sourceName: Option[String],
                            comment: String,
                            category: String, // "object", "table", "index", or "decorator"
                            isCloudEnabled: Boolean,
@@ -737,6 +738,7 @@ case class JResolveClause(
 case class JRecord(
                     id: String,
                     name: String,
+                    sourceName: Option[String],
                     comment: String,
                     category: String, // "object", "table", "index", or "decorator"
                     isCloudEnabled: Boolean,
