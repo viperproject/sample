@@ -42,8 +42,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         val typ = GRef(this0.getType().asInstanceOf[AAny])
         curState = New[S](typ)(curState,pp)
         val ref = curState.expr
-        curState = AssignField[S](ref,typ.field__get,this0)
-        curState
+        curState = AssignField[S](ref,typ.field__get,this0)(curState,pp)
+        Return[S](ref)(curState,pp)
       }
     }
   )
