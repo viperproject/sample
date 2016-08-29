@@ -99,17 +99,17 @@ object SWall extends Default_SWall {
     /** Prompts the user with ok and cancel buttons */
     case "ask boolean" =>
       val List(text, caption) = parameters // String,String
-      Top[S](TBoolean)
+      Top[S](TBoolean) // does not return invalid
 
     /** Prompts the user to input a number */
     case "ask number" =>
       val List(text) = parameters // String
-      Top[S](TNumber)
+      TopWithInvalid[S](TNumber,"Will return invalid if no number is selected by user")
 
     /** Prompts the user to input a string */
     case "ask string" =>
       val List(text) = parameters // String
-      Top[S](TString)
+      Top[S](TString) // does not return invalid
 
     /** Clears the background color, picture and camera */
     case "clear background" =>

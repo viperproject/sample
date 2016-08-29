@@ -47,7 +47,7 @@ object SRecords extends ASingleton {
       x =>
         val initializer =
           if (firstStart) {
-            if (x._2.contains(ResourceModifier) || x._2.contains(ReadOnlyModifier))
+            if (x._2.contains(ResourceModifier) || x._2.contains(ReadOnlyModifier) || x._2(CloudEnabledModifier))
               TopInitializer
             else
               NewInitializer
