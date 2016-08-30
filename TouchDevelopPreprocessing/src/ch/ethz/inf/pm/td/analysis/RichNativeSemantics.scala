@@ -8,14 +8,11 @@ package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableIdentifier, _}
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, ForwardNativeMethodSemantics, ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{TouchStateInterface, InvalidExpression, MultiValExpression}
 import ch.ethz.inf.pm.td.semantics._
-
-import scala.Error
 
 /**
  *
@@ -377,7 +374,10 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def AssignField[S <: State[S]](obj: RichExpression, field: String, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     if (obj.getType().representedFields.exists(x => x.getField match { case None => false; case Some(y) => y == field})) {
-      state.assignField(obj, field, value)
+      val res = state.assignField(obj, field, value)
+      if (SystemParameters.DEBUG && !state.isBottom && res.isBottom)
+        throw TouchException("Became bottom due to assignment")
+      res
     } else state
   }
 

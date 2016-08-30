@@ -31,26 +31,18 @@ case class GIndex(keyTypeParameters:List[TypeName] = List.empty, valueType:AAny,
 
   override def keyType = if (keyTypes.size != 1) tupleType else keyTypes.head
 
-  /** Sometimes used: Gets the picture at position 'index'; invalid if index is out of bounds */
+  /** Sometimes used: Gets the entry at position 'index´; creates new entry if required*/
   override lazy val member_at = if (keyTypes.size != 1) super.member_at.copy(
     semantics = new CloudQuerySemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
 
         if (SystemParameters.DEBUG) assert(parameters.size == tupleType.sortedKeyFields.size)
 
-
-        // Only distinguish elements if we have a single key
-//        val key = if (parameters.size == 1) {
-//          toRichExpression(parameters.head)
-//        } else {
-//          Valid(keyType)
-//        }
-
         var curState = super.forwardSemantics[S](this0,method,parameters)
 
         curState = New[S](keyType, tupleType.sortedKeyFields.zip(parameters.map(toRichExpression)).toMap)(curState,pp)
         val key = curState.expr
-        If[S](ContainsKey[S](this0, key) equal False, Then=(state) => {
+        If[S](ContainsKey[S](this0, key)(curState,pp) equal False, Then=(state) => {
           var newState = New[S](valueType)(state,pp)
           val newIndexMember = newState.expr
           newState = Insert[S](this0, key, newIndexMember)(newState,pp)

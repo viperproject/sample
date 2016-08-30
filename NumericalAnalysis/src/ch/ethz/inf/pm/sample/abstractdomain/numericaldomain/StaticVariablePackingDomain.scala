@@ -105,11 +105,15 @@ case class StaticVariablePackingDomain
     })
 
   private def getPack(key: VariablePack): Relational = {
+    getPack(map,key)
+  }
+
+  private def getPack(mapX:Map[VariablePack, Relational], key: VariablePack): Relational = {
     val vars = key.ids glb cheap.ids // glb of existing identifiers (stored by cheap domain) and pack
     if (vars.isTop)
-      map.getOrElse(key, dom.top())
+      mapX.getOrElse(key, dom.top())
     else
-      map.getOrElse(key, vars.getNonTop.foldLeft(dom.factory())(_ createVariable _))
+      mapX.getOrElse(key, vars.getNonTop.foldLeft(dom.factory())(_ createVariable _))
   }
 
   private def applyToPacks(id: Identifier, in: Relational => Relational):Map[VariablePack,Relational] =
@@ -122,7 +126,7 @@ case class StaticVariablePackingDomain
 
   private def applyToPacksSep(mapX:Map[VariablePack,Relational], ids: Set[Identifier], in: (Relational,VariablePack) => Relational):Map[VariablePack,Relational] =
     classifier.classify(ids).foldLeft(mapX){
-      (y:Map[VariablePack,Relational],x:VariablePack) => y + (x -> in(getPack(x),x))
+      (y:Map[VariablePack,Relational],x:VariablePack) => y + (x -> in(getPack(mapX,x),x))
     }
 
   override def getConstraints(ids: Set[Identifier]) =

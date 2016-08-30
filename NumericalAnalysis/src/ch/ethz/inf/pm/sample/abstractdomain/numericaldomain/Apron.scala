@@ -137,7 +137,7 @@ object Apron {
             if (nonExisting.nonEmpty)
               bottom()
             else {
-              val translator = new ApronInterfaceTranslator()(this)
+              val translator = ApronInterfaceTranslator()(this)
               translator.toTcons1(expr, apronState.getEnvironment) match {
 
                 case x :: xs =>
@@ -166,7 +166,7 @@ object Apron {
           if (!exists(variable) || nonExisting.nonEmpty) {
             bottom()
           } else {
-            val translator = new ApronInterfaceTranslator()(this)
+            val translator = ApronInterfaceTranslator()(this)
             val exprIntern = translator.toTexpr1Intern(expr, apronState.getEnvironment)
             val assignedState =
               if (exprIntern.size > 1) {
