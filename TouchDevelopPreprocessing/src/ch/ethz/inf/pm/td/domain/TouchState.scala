@@ -6,18 +6,14 @@
 
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.IdentifierSet.Bottom
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
 import ch.ethz.inf.pm.td.analysis
-import ch.ethz.inf.pm.td.analysis.{Localization, TouchVariablePacking, TouchAnalysisParameters, ApiField}
-import ch.ethz.inf.pm.td.compiler.ApiMember
+import ch.ethz.inf.pm.td.analysis.{ApiField, TouchAnalysisParameters, TouchVariablePacking}
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.Predef
 import scala.collection.immutable.Set
 
 object HeapIdentifier {
@@ -781,7 +777,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           case h:HeapIdentifier =>
 
             // replace all, but only add one copy of the right side
-            val versions = cur.get((h.pp,h.typ)).get // must exist
+            val versions = cur((h.pp, h.typ)) // must exist
             var already = false // ugly, works.
             val newVersions = versions.foldRight(Seq.empty[HeapIdentifier])(
               (a,b) =>
@@ -844,9 +840,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def factory(): T = factory(valueState = valueState.factory())
   override def glb(other: T): T = ???
   override def setVariableToTop(varExpr: Expression): T = ???
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = ???
-  override def throws(t: ExpressionSet): T = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): T =
+    throw new NotImplementedError("TouchDevelop does not use the argument interface")
+  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T =
+    throw new NotImplementedError("TouchDevelop does not use the argument interface")
+  override def throws(t: ExpressionSet): T =
+    throw new NotImplementedError("TouchDevelop does not use exceptions")
 
   def removeObjects(nodes:Set[HeapIdentifier]): T = {
     val fields = nodes.flatMap(fieldsOf)
@@ -983,7 +982,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       versions,
       valueState.assign(left,right).lub(valueState),
       ExpressionFactory.unitExpr
-    ) // TODO: Correct?
+    )
   }
 
   def ids:IdentifierSet = {
@@ -1081,7 +1080,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     for (
       pp <- l.versions.keySet intersect r.versions.keySet;
-      (left,right) = (l.versions.get(pp).get,r.versions.get(pp).get)
+      (left,right) = (l.versions(pp),r.versions(pp))
       if left.nonEmpty && right.nonEmpty
     ) {
 
