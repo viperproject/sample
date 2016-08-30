@@ -6,6 +6,7 @@ action theOther() {
 
     $height := wall->ask_number("Give height");
 
+    //:: ExpectedOutput(assert.failed)
     if($height > 0) then {
         $pic := media->create_picture($width,$height);
         $pic->set_pixel(math->random($width), math->random($width), colors->blue); // Error: Y might be greater than height
