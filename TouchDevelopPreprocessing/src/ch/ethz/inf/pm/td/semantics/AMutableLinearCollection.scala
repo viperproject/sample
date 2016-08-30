@@ -63,7 +63,7 @@ trait AMutableLinearCollection extends ALinearCollection {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(item) = parameters
-        If[S](AllKeys[S](this0) equal item, Then={
+        If[S](AllValues[S](this0) equal item, Then={
           Return[S](True)(_,pp)
         }, Else={
           Return[S](False)(_,pp)
