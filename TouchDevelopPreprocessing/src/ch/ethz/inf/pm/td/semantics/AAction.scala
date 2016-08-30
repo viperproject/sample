@@ -41,7 +41,6 @@ trait AAction extends AAny {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
 
         val context = SystemParameters.analysisUnitContext
-        val classType = context.clazzType
         val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
         def defaultBehavior() = {
@@ -67,7 +66,7 @@ trait AAction extends AAny {
           case SetDomain.Default.Inner(xs) =>
             Lattice.bigLub(
               xs map { x =>
-                compiler.getMethodWithClassDefinition(x.constant, classType, parameters map (_.getType())) match {
+                compiler.getMethod(x.constant, parameters map (_.getType())) match {
                   case Some(mdecl) =>
                     MethodSummaries.collect(pp, mdecl, state, parameters)
                   case _ =>
