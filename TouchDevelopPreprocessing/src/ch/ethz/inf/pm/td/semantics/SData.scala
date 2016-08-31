@@ -46,7 +46,7 @@ object SData extends ASingleton {
           } else { // True for all executions
             if (gd.modifiers.contains(ResourceModifier) || gd.modifiers.contains(ReadOnlyModifier)) // Art
               TopInitializer
-            else if (gd.modifiers.contains(gd.modifiers.contains(TransientModifier))) // Non-persistent
+            else if (gd.modifiers.contains(TransientModifier)) // Non-persistent
               DefaultInitializer("Uninitialized")
             else // Persistent / Cloud-Enabled
               TopWithInvalidInitializer("Uninitialized")

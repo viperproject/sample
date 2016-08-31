@@ -7,11 +7,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, SetDomain, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiMember, ApiMemberSemantics}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, ApiParam, TouchException}
 import ch.ethz.inf.pm.td.defsemantics.Default_GRef
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
  * Customizes the abstract semantics of Ref
@@ -22,20 +23,39 @@ import ch.ethz.inf.pm.td.defsemantics.Default_GRef
  */
 case class GRef (TT:AAny) extends Default_GRef {
 
-  override def member__add = super.member__add.copy(
+  lazy val field__identifier = ApiField("*identifier",TString)
+
+  override def member__get = ApiMember(
+    name = "◈get",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TT,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        DefaultSemantics.forwardSemantics(this0,method,parameters)
+
+        EvalConstant[S](Field[S](this0,field__identifier)) match {
+          case s:SetDomain.Default.Bottom[Constant] =>
+            state.bottom()
+          case s:SetDomain.Default.Top[Constant] =>
+            Top[S](method.returnType)
+            // TODO: Fix
+          case s:SetDomain.Default.Inner[Constant] =>
+            val identifiers =
+              for (c <- s.value) yield {
+                SRecords.lookupRef(c.constant) match {
+                  case Some(x) => x
+                  case None => throw TouchException("Tried to dereference reference, but got some invalid constant")
+                }
+              }
+            Return[S](ExpressionSet(identifiers.toSeq))
+        }
+
       }
     }
   )
 
-  lazy val field__get = ApiField("◈get",TT)
-  lazy val field__confirmed = ApiField("◈confirmed",TBoolean)
-
   override lazy val possibleFields = super.possibleFields ++ Set(
-    field__get,
-    field__confirmed
+    field__identifier
   )
 
 }

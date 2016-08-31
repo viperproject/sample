@@ -7,11 +7,11 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, MultiValExpression}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.cloud.CloudQueryWrapper
 
@@ -37,12 +37,27 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     returnType = GRef(this),
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        // TODO: References should be encoded as a string in the string domain
         var curState = state
+
+        // Here is some tricky stuff going on. First of all, we have to assume that this0 contains only identifiers.
+        // If we get top for this0, we have a problem, because we don't know where the reference is pointing
+        val strings:Set[Expression] =
+          for (id <- this0.getNonTop) yield {
+            id match {
+              case i:Identifier =>
+                SRecords.insertRef(i)
+                Constant(i.getName,TString,pp)
+              case _ =>
+                // TODO: Fix
+                UnitExpression(TString,pp)
+            }
+          }
+
+        val stringExpr = ExpressionSet(TString,SetDomain.Default.Inner(strings))
         val typ = GRef(this0.getType().asInstanceOf[AAny])
         curState = New[S](typ)(curState,pp)
         val ref = curState.expr
-        curState = AssignField[S](ref,typ.field__get,this0)(curState,pp)
+        curState = AssignField[S](ref,typ.field__identifier,stringExpr)(curState,pp)
         Return[S](ref)(curState,pp)
       }
     }

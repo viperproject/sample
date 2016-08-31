@@ -24,6 +24,11 @@ object SRecords extends ASingleton {
 
   lazy val typeName = TypeName("records",isSingleton = true)
 
+  /** we use this to map strings stored in the string domain to identifiers for references */
+  private val identRevMap = scala.collection.mutable.Map[String,Identifier]()
+  def lookupRef(s:String) = identRevMap.get(s)
+  def insertRef(s:Identifier) = identRevMap += (s.getName -> s)
+
   override def possibleFields = mutableFields.map(_._1)
   override def declarations = mutableDeclaration
 
@@ -39,6 +44,7 @@ object SRecords extends ASingleton {
   override def reset() = {
     mutableFields = Set.empty[(ApiField,Set[Modifier])]
     mutableDeclaration = Map.empty[String,ApiMember]
+    identRevMap.clear
   }
 
   override def setUp(compiler:TouchCompiler,firstStart:Boolean): Unit = {
