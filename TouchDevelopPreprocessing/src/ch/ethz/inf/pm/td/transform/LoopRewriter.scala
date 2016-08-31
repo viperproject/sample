@@ -75,7 +75,9 @@ object LoopRewriter {
         pos(WhereStatement(replace(expr, from, to), handlers.map(replace(_, from, to)), optParams.map(replace(_, from, to))))
       case ExpressionStatement(expr) =>
         pos(ExpressionStatement(replace(expr, from, to)))
-      case _ => s
+      case Show(expr) => pos(Show(replace(expr,from,to)))
+      case Return(expr) => pos(Return(replace(expr,from,to)))
+      case _ => assert(!s.hasSubExpression); s
     }
   }
 
@@ -182,8 +184,7 @@ object LoopRewriter {
         List(pos(Box(body flatMap apply)))
       case w@WhereStatement(expr, handlers, optParam) =>
         List(pos(WhereStatement(expr, handlers map apply, optParam)))
-      case _ =>
-        List(s)
+      case _ => assert(!s.hasSubStatement); List(s)
     }
   }
 

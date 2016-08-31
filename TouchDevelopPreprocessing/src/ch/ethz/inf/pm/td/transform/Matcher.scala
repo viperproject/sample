@@ -46,7 +46,9 @@ object Matcher {
       case Box(body) => apply(body)
       case WhereStatement(expr,handlers,optParam) => apply(expr); handlers foreach apply; optParam foreach apply
       case ExpressionStatement(expr) => apply(expr)
-      case _ => ()
+      case Show(expr) => apply(expr)
+      case Return(expr) => apply(expr)
+      case _ => assert(!stmt.hasSubExpression)
     }
   }
 

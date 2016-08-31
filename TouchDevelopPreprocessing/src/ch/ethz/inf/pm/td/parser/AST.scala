@@ -151,43 +151,76 @@ case class TypeName(ident:String,arguments:List[TypeName] = Nil, isSingleton:Boo
   }
 }
 
-sealed trait Statement extends IdPositional with Scope
+sealed trait Statement extends IdPositional with Scope {
+  def hasSubExpression: Boolean = true
+  def hasSubStatement: Boolean = true
+}
+
+sealed trait NoSubStatement extends Statement {
+  override def hasSubStatement: Boolean = false
+}
+sealed trait NoSubExpression extends NoSubStatement {
+  override def hasSubExpression: Boolean = false
+}
 
 case class Skip()
   extends Statement
-  with IdPositional
+    with IdPositional
+    with NoSubExpression
 
-case class Box(body:List[Statement])
+case class Box(body: List[Statement])
   extends Statement
-  with IdPositional
+    with IdPositional
 
 case class For(boundLocal: String, upperBound: Expression, body: List[Statement])
   extends Statement
-  with IdPositional
+    with IdPositional
 
-case class If(condition:Expression,thenBody:List[Statement],elseBody:List[Statement])
+case class If(condition: Expression, thenBody: List[Statement], elseBody: List[Statement])
   extends Statement
-  with IdPositional
+    with IdPositional
 
 case class Foreach(boundLocal: String, collection: Expression, guards: List[Expression], body: List[Statement])
   extends Statement
-  with IdPositional
+    with IdPositional
 
 case class While(condition: Expression, body: List[Statement])
   extends Statement
-  with IdPositional
+    with IdPositional
 
 case class MetaStatement(key: String, value: Any)
   extends Statement
-  with IdPositional
+    with IdPositional
+    with NoSubExpression
 
 case class ExpressionStatement(expr: Expression)
   extends Statement
-  with IdPositional
+    with IdPositional
+    with NoSubStatement
 
-case class WhereStatement(expr:Expression,handlers:List[InlineAction], optionalParameters:List[OptionalParameter])
+case class WhereStatement(expr: Expression, handlers: List[InlineAction], optionalParameters: List[OptionalParameter])
   extends Statement
-  with IdPositional
+    with IdPositional
+
+case class Show(expr:Expression)
+  extends Statement
+    with IdPositional
+    with NoSubStatement
+
+case class Break()
+  extends Statement
+    with IdPositional
+    with NoSubExpression
+
+case class Return(expr:Expression)
+  extends Statement
+    with IdPositional
+    with NoSubStatement
+
+case class Continue()
+  extends Statement
+    with IdPositional
+    with NoSubExpression
 
 case class OptionalParameter(name:String,expr:Expression) extends IdPositional
 
@@ -199,11 +232,6 @@ case class InlineAction(handlerName:String,
   extends IdPositional
 
 sealed trait Expression extends IdPositional with Typed
-
-case class Show(expr:Expression) extends Statement with IdPositional
-case class Break() extends Statement with IdPositional
-case class Return(expr:Expression) extends Statement with IdPositional
-case class Continue() extends Statement with IdPositional
 
 case class Access(subject:Expression,property:Identifier,args:List[Expression])
   extends Expression

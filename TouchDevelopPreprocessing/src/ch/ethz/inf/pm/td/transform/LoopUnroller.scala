@@ -56,8 +56,7 @@ object LoopUnroller {
         case w@WhereStatement(expr, handlers,optParam) =>
           val transformed = WhereStatement(expr, handlers map unrollInlineAction,optParam)
           List(transformed)
-        case _ =>
-          List(s)
+        case _ => assert(!s.hasSubStatement); List(s)
       }
     }
 
@@ -100,7 +99,9 @@ object LoopUnroller {
         WhereStatement(renameE(expr), handlers map renameIA, optParam.map(renameOptParamPos(_,suffix)))
       case ExpressionStatement(expr) =>
         ExpressionStatement(renameE(expr))
-      case _ => s
+      case Show(expr) => Show(renameE(expr))
+      case Return(expr) => Return(renameE(expr))
+      case _ => assert(!s.hasSubExpression); s
     }
     transformed.copyPos(s).appendIdComponent(suffix)
   }

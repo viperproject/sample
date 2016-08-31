@@ -105,7 +105,7 @@ object PrettyPrinter {
       case Break() => "break;"
       case Continue() => "continue;"
       case Return(expr) => "return " + apply(expr) + ";"
-      case Show(expr) => "return " + apply(expr) + ";"
+      case Show(expr) => "show " + apply(expr) + ";"
     })
   }
 

@@ -167,14 +167,12 @@ object Typer {
         processMultiValExpression(scope, st, expr)
       case ExpressionStatement(expr) =>
         processMultiValExpression(scope, st, expr)
-      case Skip() => ()
-      case Break() => ()
-      case Continue() => ()
       case Return(expr) => processMultiValExpression(scope, st, expr)
       case Show(expr) => processMultiValExpression(scope, st, expr)
       case MetaStatement(_,_) => ()
       case For(_,_,_) => throw TouchException("rewrite loops before typing")
       case Foreach(_,_,_,_) => throw TouchException("rewrite loops before typing")
+      case _ => assert(!statement.hasSubExpression)
     }
   }
 
