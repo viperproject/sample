@@ -62,7 +62,7 @@ object UnknownHeapNode extends HeapNode(List.empty) {
   * @author Jerome Dohrau, Caterina Urban
   */
 trait AliasAnalysisState[T <: AliasAnalysisState[T]]
-  extends SimplePermissionState[T]
+  extends SimpleState[T]
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
@@ -772,7 +772,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission
     */
-  override def exhale(acc: Expression): T = {
+  private def exhale(acc: Expression): T = {
     logger.trace("*** exhale(" + acc.toString + ")")
 
     acc match {
@@ -946,6 +946,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       isBottom = this.isBottom || other.isBottom, isTop = this.isTop && other.isTop)
   }
 
+
+  override def command(cmd: Command): T = cmd match {
+    case Inhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
+    case Exhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case _ => super.command(cmd)
+  }
+
   /** Inhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -953,7 +960,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission
     */
-  override def inhale(acc: Expression): T = {
+  private def inhale(acc: Expression): T = {
     logger.trace("*** inahle(" + acc.toString + ")")
 
     acc match {

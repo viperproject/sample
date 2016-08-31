@@ -435,7 +435,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
-  extends SimplePermissionState[T] with PreviousResult[A, T] with SilverSpecification
+  extends SimpleState[T] with PreviousResult[A, T] with SilverSpecification
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
@@ -555,6 +555,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
 
+  override def command(cmd: Command): T = cmd match {
+    case Inhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
+    case Exhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case _ => super.command(cmd)
+  }
+
   /** Exhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -562,7 +568,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission
     */
-  override def exhale(acc: Expression): T = {
+  private def exhale(acc: Expression): T = {
     logger.trace("exhale")
     acc match {
       case PermissionExpression(identifier, numerator, denominator) =>
@@ -591,7 +597,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission
     */
-  override def inhale(acc: Expression): T = {
+  private def inhale(acc: Expression): T = {
     logger.trace("inhale")
     acc match {
 
@@ -1071,9 +1077,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   private def collect(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
-    else fold(Permission.none) { case (permission, (currPath, currPermission)) =>
-      if (path == currPath || preAliases.pathsMustAlias(path, currPath)) permission plus currPermission
-      else permission
+    else {
+      val receiver = path.init
+      val field = path.last
+      fold(Permission.none) { case (permission, (currPath, currPermission)) =>
+        val currReceiver = currPath.init
+        val currField = currPath.last
+        if (path == currPath || (currReceiver.length > 0 && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currPermission
+        else permission
+      }
     }
 
   private def assign(left: AccessPath, right: AccessPath): T = {

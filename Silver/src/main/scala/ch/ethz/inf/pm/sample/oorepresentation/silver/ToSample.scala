@@ -6,12 +6,10 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.valueheap.{PredicateBody, PredicateIdentifier}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethods
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import scala.language.reflectiveCalls
-
 import scala.collection.mutable
 
 trait SilverConverter {

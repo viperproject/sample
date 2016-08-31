@@ -312,6 +312,13 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def before(pp: ProgramPoint): S
 
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  def command(cmd: Command): S = throw new UnsupportedOperationException("Unknown command")
+
   /** Creates an object
     *
     * @param typ The dynamic type of the created object
@@ -816,38 +823,11 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 
 }
 
-/** Trait adding Inhale/Exhale methods to a SimpleState.
+/** A command that updates an abstract state.
   *
-  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S] {
-  this: S =>
-
-  /** Inhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to inhale
-    * @return The abstract state after inhaling the permission
-    */
-  def inhale(acc: Expression): S
-
-  def inhale(acc: ExpressionSet) : S = unlessBottom(acc, {
-      Lattice.bigLub(acc.getNonTop.map(inhale))
-    })
-
-  /** Exhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to exhale
-    * @return The abstract state after exhaling the permission
-    */
-  def exhale(acc: Expression): S
-
-  def exhale(acc: ExpressionSet) : S = unlessBottom(acc, {
-    Lattice.bigLub(acc.getNonTop.map(exhale))
-  })
+trait Command {
 }
 
 /** Some trivial helper functions that execute forward/backward semantics on single and list of states.

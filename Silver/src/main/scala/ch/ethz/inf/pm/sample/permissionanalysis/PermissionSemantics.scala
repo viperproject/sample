@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, PermissionExpression, SimplePermissionState, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 
@@ -20,6 +20,20 @@ object PermissionMethods extends Enumeration {
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
 }
+
+/** An inhale command.
+  *
+  * @param expression The inhaled expression.
+  * @author Jerome Dohrau
+  */
+case class Inhale(expression: ExpressionSet) extends Command
+
+/** An exhale command.
+  *
+  * @param expression The exhaled expression.
+  * @author Jerome Dohrau
+  */
+case class Exhale(expression: ExpressionSet) extends Command
 
 /** Object adding Inhale/Exhale semantics.
   *
@@ -45,21 +59,19 @@ object PermissionMethodSemantics extends NativeMethodSemantics {
                                                           typeParameters: List[Type],
                                                           returnType: Type,
                                                           programPoint: ProgramPoint,
-                                                          state: S): Option[S] = state match {
-    case state: SimplePermissionState[S] =>
-      val nativeMethod = PermissionMethods.values.find(_.toString == operator)
-      nativeMethod match {
-        case Some(PermissionMethods.permission) =>
-          val thenExpr = if (parameters.length <= 1)
-            createPermissionExpression(thisExpr, parameters(0), parameters(0), returnType)
-          else
-            createPermissionExpression(thisExpr, parameters(0), parameters(1), returnType)
-          Some(state.setExpression(thenExpr))
-        case Some(PermissionMethods.inhale) => Some(state.inhale(thisExpr))
-        case Some(PermissionMethods.exhale) => Some(state.exhale(thisExpr))
-        case None => None
-      }
-    case _ => None
+                                                          state: S): Option[S] = {
+    val nativeMethod = PermissionMethods.values.find(_.toString == operator)
+    nativeMethod match {
+      case Some(PermissionMethods.permission) =>
+        val permission = if (parameters.length <= 1)
+          createPermissionExpression(thisExpr, parameters(0), parameters(0), returnType)
+        else
+          createPermissionExpression(thisExpr, parameters(0), parameters(1), returnType)
+        Some(state.setExpression(permission))
+      case Some(PermissionMethods.inhale) => Some(state.command(Inhale(thisExpr)))
+      case Some(PermissionMethods.exhale) => Some(state.command(Exhale(thisExpr)))
+      case None => None
+    }
   }
 
   /**
