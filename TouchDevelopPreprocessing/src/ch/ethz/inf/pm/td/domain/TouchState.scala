@@ -22,17 +22,17 @@ object HeapIdentifier {
 
 }
 
-case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier {
+case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier.HeapIdentifier {
   override val getName: String = pp + (if (summary) "Σ" else "") + "[v"+unique+"]" + typ.toString
   override def getField: Option[String] = None
   override def representsSingleVariable: Boolean = !summary
 }
 
-case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifier {
-  override def pp:  ProgramPoint = o.pp
-  override val getName: String = o + "." + f
-  override def getField: Option[String] = Some(f)
-  override def representsSingleVariable: Boolean = o.representsSingleVariable
+case class FieldIdentifier(obj:HeapIdentifier, field:String, typ:Type) extends Identifier.FieldIdentifier {
+  override def pp:  ProgramPoint = obj.pp
+  override val getName: String = obj + "." + field
+  override def getField: Option[String] = Some(field)
+  override def representsSingleVariable: Boolean = obj.representsSingleVariable
 }
 
 /**
@@ -117,7 +117,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       if (!resIds.isTop) {
         for (id <- resIds.getNonTop) id match {
           case h: HeapIdentifier => assert(!(resIds.contains(h) && resIds.contains(h.copy(summary = !h.summary))))
-          case f: FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(o = f.o.copy(summary = !f.o.summary)))))
+          case f: FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(obj = f.obj.copy(summary = !f.obj.summary)))))
           case _ => ()
         }
       }
@@ -375,7 +375,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         }
       }
     case leftField:FieldIdentifier =>
-      assignField(leftField.o,leftField.f,right)
+      assignField(leftField.obj,leftField.field,right)
     case _:ValidExpression =>
       this
     case _:InvalidExpression =>
@@ -1086,10 +1086,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
       if (left.head.summary && !right.head.summary) {
         replaceRight.value(Set[Identifier](right.head)) = Set[Identifier](left.head)
-        for (f <- fieldsOf(right.head)) replaceRight.value(Set[Identifier](f)) = Set[Identifier](f.copy(o = left.head))
+        for (f <- fieldsOf(right.head)) replaceRight.value(Set[Identifier](f)) = Set[Identifier](f.copy(obj = left.head))
       } else if (!left.head.summary && right.head.summary) {
         replaceLeft.value(Set[Identifier](left.head)) = Set[Identifier](right.head)
-        for (f <- fieldsOf(left.head)) replaceLeft.value(Set[Identifier](f)) = Set[Identifier](f.copy(o = right.head))
+        for (f <- fieldsOf(left.head)) replaceLeft.value(Set[Identifier](f)) = Set[Identifier](f.copy(obj = right.head))
       }
 
     }
@@ -1132,7 +1132,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   override def updateIdentifier[I <: Identifier](id: I):I = {
     id match {
-      case f:FieldIdentifier => f.copy(o = updateIdentifier(f.o)).asInstanceOf[I]
+      case f:FieldIdentifier => f.copy(obj = updateIdentifier(f.obj)).asInstanceOf[I]
       case HeapIdentifier(pp,t,_,_) =>
         versions.get((pp,t)) match {
           case None =>
@@ -1158,7 +1158,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     forwardMust.flatMap { case (a, b) => b.map((a, "must", _)) } ++
     backwardMay.flatMap { case (a, b) => b.map((a, "back", _)) } ++
       (for (v <- vertices) yield { v match {
-        case x:FieldIdentifier => Some((x.o,"field",x))
+        case x:FieldIdentifier => Some((x.obj,"field",x))
         case _ => None
       }}).flatten).toSet
   }

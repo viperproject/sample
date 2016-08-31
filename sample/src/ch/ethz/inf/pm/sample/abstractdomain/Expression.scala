@@ -449,6 +449,19 @@ trait Identifier extends Expression with Assignable {
   def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
 
+object Identifier {
+
+  trait HeapIdentifier extends Identifier
+
+  trait FieldIdentifier extends Identifier {
+
+    def obj:Identifier.HeapIdentifier
+    def field:String
+
+  }
+
+}
+
 /**
  * An identifier for identifying a scope
  */
@@ -505,7 +518,7 @@ case class VariableIdentifier
 /**
  * The heap identifier that has to be implemented by particular heap analyses.
  */
-trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
+trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier.HeapIdentifier {}
 
 /**
  * The unit expression, that represents the absence of a concrete expression.

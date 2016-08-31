@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
   * @param id the unique identifier of the heap node
   * @author Caterina Urban
   */
-case class HeapNode(id: List[Identifier] = List.empty, pp: ProgramPoint = DummyProgramPoint) extends Identifier
+case class HeapNode(id: List[Identifier] = List.empty, pp: ProgramPoint = DummyProgramPoint) extends Identifier.HeapIdentifier
 {
   override def getName: String = "0\"" + id.map(_.getName).mkString(".") + "\""
   override def equals(o: Any) = o match {

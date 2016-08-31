@@ -24,7 +24,7 @@ import viper.silver.ast.LineColumnPosition
   * @param pp the object allocation site
   * @author Caterina Urban
   */
-case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier {
+case class HeapIdentifier(typ: Type, pp: ProgramPoint) extends Identifier.HeapIdentifier {
   /** Whether the identifier represents a summary node. */
   private var summary: Boolean = false
   def setSummary(s: Boolean): HeapIdentifier = { summary=s; this }
@@ -74,7 +74,7 @@ case object DummyRefType extends DummyType {
   * @param typ the type of the field
   * @author Caterina Urban
   */
-case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extends Identifier {
+case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extends Identifier.FieldIdentifier {
   /** The name of the object field. */
   override def getName: String = obj.getName + "." + field
   /** The name of the field represented by the identifier. */

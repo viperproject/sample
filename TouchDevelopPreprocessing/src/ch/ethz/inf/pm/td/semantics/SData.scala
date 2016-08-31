@@ -39,16 +39,18 @@ object SData extends ASingleton {
       for (gd <- compiler.globalData) yield {
         val initializer =
           if (firstStart) { // True for first execution
-            if (gd.modifiers.contains(ResourceModifier) || gd.modifiers.contains(ReadOnlyModifier)) // Art
+            // Art / Cloud-Enabled
+            if (gd.modifiers.contains(ResourceModifier) || gd.modifiers.contains(ReadOnlyModifier)|| gd.modifiers.contains(CloudEnabledModifier))
               TopInitializer
-            else // Persistent / Cloud-Enabled / Non-Persistent
+            else // Persistent/ Non-Persistent
               DefaultInitializer("Uninitialized")
           } else { // True for all executions
-            if (gd.modifiers.contains(ResourceModifier) || gd.modifiers.contains(ReadOnlyModifier)) // Art
+            // Art / Cloud-Enabled TODO: Can cloud variables be invalid? Scripts seem to assume they are always valid
+            if (gd.modifiers.contains(ResourceModifier) || gd.modifiers.contains(ReadOnlyModifier) || gd.modifiers.contains(CloudEnabledModifier))
               TopInitializer
             else if (gd.modifiers.contains(TransientModifier)) // Non-persistent
               DefaultInitializer("Uninitialized")
-            else // Persistent / Cloud-Enabled
+            else // Persistent
               TopWithInvalidInitializer("Uninitialized")
           }
         ApiField(gd.variable.getName,gd.typ.asInstanceOf[AAny],initializer,TopInitializer)

@@ -7,12 +7,11 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, TypeName, WhereStatement, _}
-import ch.ethz.inf.pm.td.semantics.{GAction, GAction1, TUnknown}
+import ch.ethz.inf.pm.td.parser.{Expression => _, Identifier => _, _}
 import ch.ethz.inf.pm.td.transform.Rewriter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -259,7 +258,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
       case s@Show(p) =>
 
-        val newExpr = tty(TypeName("Nothing"),Access(p,Identifier("post to wall"),Nil).copyPos(p))
+        val newExpr = tty(TypeName("Nothing"),Access(p,parser.Identifier("post to wall"),Nil).copyPos(p))
         newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
 
       case parser.MetaStatement(_, _) =>
@@ -316,10 +315,10 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             tty(typName,Access(
               tty(TypeName("Constructor",List(typName)),Access(
                 sty("records",SingletonReference("records", "records").copyPos(p)),
-                Identifier(typName.toString).copyPos(p),
+                parser.Identifier(typName.toString).copyPos(p),
                 Nil
               ).copyPos(p)),
-              Identifier("create").copyPos(p),
+              parser.Identifier("create").copyPos(p),
               Nil
             ).copyPos(p))
           case x:parser.Expression => x
@@ -381,11 +380,11 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             expressionToStatement(
               ty("Nothing", parser.Access(
                 tty(handlerType, parser.LocalReference(variableName).copyPos(w)),
-                Identifier(":=").copyPos(w),
+                parser.Identifier(":=").copyPos(w),
                 List(
                   tty(handlerType, parser.Access(
                     sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(w)),
-                    Identifier("create " + handlerType.makeCode + " " + actionName).copyPos(w),
+                    parser.Identifier("create " + handlerType.makeCode + " " + actionName).copyPos(w),
                     Nil
                   ).copyPos(w))
                 )
@@ -412,15 +411,15 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                   expressionToStatement(
                     ty("Nothing",Access(
                       tty(typName,LocalReference(optionalArgumentIdent)),
-                      Identifier(":="),
+                      parser.Identifier(":="),
                       List(
                         tty(typName,Access(
                           tty(TypeName("Constructor",List(typName)),Access(
                             sty("records",SingletonReference("records", "records").copyPos(p)),
-                            Identifier(typName.toString).copyPos(p),
+                            parser.Identifier(typName.toString).copyPos(p),
                             Nil
                           ).copyPos(p)),
-                          Identifier("create").copyPos(p),
+                          parser.Identifier("create").copyPos(p),
                           Nil
                         ).copyPos(p))
                       )
@@ -432,10 +431,10 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                         ty("Nothing",Access(
                           tty(x.expr.typeName,Access(
                             tty(typName,LocalReference(optionalArgumentIdent).copyPos(x.expr)),
-                            Identifier(x.name).copyPos(x.expr),
+                            parser.Identifier(x.name).copyPos(x.expr),
                             Nil
                           ).copyPos(x.expr)),
-                          Identifier(":="),
+                          parser.Identifier(":="),
                           List(
                             x.expr
                           )
@@ -456,10 +455,10 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                 tty(typName,Access(
                   tty(TypeName("Constructor",List(typName)),Access(
                     sty("records",SingletonReference("records", "records").copyPos(p)),
-                    Identifier(typName.toString).copyPos(p),
+                    parser.Identifier(typName.toString).copyPos(p),
                     Nil
                   ).copyPos(p)),
-                  Identifier("create").copyPos(p),
+                  parser.Identifier("create").copyPos(p),
                   Nil
                 ))
               case x:parser.Expression => x
@@ -551,7 +550,7 @@ object TouchProgramPointRegistry {
 
   /** inefficient, knowingly so */
   def get(scriptID: String, positional: IdPositional): Option[TouchProgramPoint] = {
-    revReg.get((scriptID,Some(positional.pos),positional.customIdComponents))
+    revReg.get((scriptID,Some(positional.pos),positional.customIdComponents)).map(_._1)
   }
 
   def matches(point: SpaceSavingProgramPoint, scriptID: String, positional: IdPositional): Boolean = {
@@ -562,15 +561,19 @@ object TouchProgramPointRegistry {
   }
 
   val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]
-  val revReg = mutable.HashMap.empty[(String,Option[Position],List[String]),TouchProgramPoint]
+  val revReg = mutable.HashMap.empty[(String,Option[Position],List[String]),(TouchProgramPoint,Int)]
 
   def make(scriptID: String,
            lineColumnPosition: Option[Position],
            customPositionElements: List[String]): SpaceSavingProgramPoint = {
     val pp = TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
-    reg += pp
-    revReg += ((scriptID,lineColumnPosition,customPositionElements) -> pp)
-    SpaceSavingProgramPoint(reg.length - 1)
+    revReg.get(scriptID,lineColumnPosition,customPositionElements) match {
+      case Some((_,x)) => SpaceSavingProgramPoint(x)
+      case None =>
+        reg += pp
+        revReg += ((scriptID, lineColumnPosition, customPositionElements) -> (pp,reg.length - 1))
+        SpaceSavingProgramPoint(reg.length - 1)
+    }
   }
 
   def reset() {

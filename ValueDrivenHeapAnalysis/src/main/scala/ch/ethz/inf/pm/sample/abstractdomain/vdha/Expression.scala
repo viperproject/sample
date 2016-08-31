@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier}
 
 case class ValueHeapIdentifier(obj: HeapVertex, field: Identifier)
-  extends Identifier {
+  extends Identifier.HeapIdentifier {
 
   def pp = field.pp
 

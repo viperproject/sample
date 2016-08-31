@@ -404,7 +404,7 @@ case class PermissionTree(permission: Permission = Permission.none,
   * @param typ the type of the object
   * @param pp  the program point associated with the object
   */
-case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier {
+case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier.HeapIdentifier {
   /**
     * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
     * if they are the same identifier
