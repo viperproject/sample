@@ -7,12 +7,9 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{IdentifierSet, VariableIdentifier, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{IdentifierSet, Identifier}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.VariablePackingClassifier
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
-import ch.ethz.inf.pm.td.compiler.TouchException
-
-import scala.collection.immutable.Stack
 
 /**
  * Implements access-based localization

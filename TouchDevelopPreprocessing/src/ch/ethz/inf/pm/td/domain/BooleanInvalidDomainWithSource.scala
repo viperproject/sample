@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.td.domain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.abstractdomain.{AbstractOperator, BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, NegatedBooleanExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.domain.ValiditySet._
 import ch.ethz.inf.pm.td.semantics.TBoolean
 
@@ -34,6 +35,12 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
 
   def get(key : Identifier) : ValiditySet = map.get(key) match {
     case None => Bottom
+    case Some(x) => x
+  }
+
+  def getMustExist(key : Identifier) : ValiditySet = map.get(key) match {
+    case None =>
+      throw TouchException("A variable was not created")
     case Some(x) => x
   }
 
@@ -71,7 +78,7 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
       case ValiditySet.Bottom => bottom()
       case res:ValiditySet =>
         if (variable.representsSingleVariable) this.add(variable, res)
-        else this.add(variable, get(variable).lub(res))
+        else this.add(variable, getMustExist(variable).lub(res))
     }
     result
   }
@@ -99,7 +106,7 @@ case class BooleanInvalidDomainWithSource (map:Map[Identifier, ValiditySet] = Ma
     case x:BinaryBooleanExpression => Valid
     case x:NegatedBooleanExpression => Valid
     case h: HeapIdentifier => Valid
-    case x: Identifier => this.get(x)
+    case x: Identifier => this.getMustExist(x)
     case x: Expression => Top
   }
 

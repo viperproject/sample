@@ -120,8 +120,8 @@ object MethodSummaries {
         summaries += ((identifyingPP, currentSummary))
 
         // Are there more possible depths?
-        while (!entriesOnStack.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
-          enteredState = entriesOnStack.get(identifyingPP).get.asInstanceOf[S]
+        while (!entriesOnStack(identifyingPP).asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
+          enteredState = entriesOnStack(identifyingPP).asInstanceOf[S]
           currentSummary = executeMethod(callPoint, enteredState, currentSummary)
           summaries += ((identifyingPP, currentSummary))
         }

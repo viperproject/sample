@@ -39,7 +39,17 @@ object TCloud_Session extends Default_TCloud_Session {
   /** Gets information about the user that owns this session */
   lazy val field_owner = ApiField("owner", TUser)
 
-  override def possibleFields = super.possibleFields ++ List(field_is_connected,field_id,field_title,field_server_info,field_owner)
+  /** Gets information about the user that owns this session */
+  lazy val field_is_owned = ApiField("is owned", TBoolean)
+
+  override def possibleFields = super.possibleFields ++ List(
+    field_is_connected,
+    field_id,
+    field_title,
+    field_server_info,
+    field_owner,
+    field_is_owned
+  )
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

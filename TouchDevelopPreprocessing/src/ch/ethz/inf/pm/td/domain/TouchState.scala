@@ -41,6 +41,8 @@ case class FieldIdentifier(obj:HeapIdentifier, field:String, typ:Type) extends I
 trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
   this:T =>
 
+  def ids: IdentifierSet
+
   def endOfFunctionCleanup(): T = this
 
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]

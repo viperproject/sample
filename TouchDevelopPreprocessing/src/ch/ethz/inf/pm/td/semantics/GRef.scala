@@ -7,12 +7,13 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, SetDomain, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, ApiParam, TouchException}
 import ch.ethz.inf.pm.td.defsemantics.Default_GRef
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
+import ch.ethz.inf.pm.td.domain.TouchStateInterface
 
 /**
  * Customizes the abstract semantics of Ref
@@ -37,8 +38,17 @@ case class GRef (TT:AAny) extends Default_GRef {
           case s:SetDomain.Default.Bottom[Constant] =>
             state.bottom()
           case s:SetDomain.Default.Top[Constant] =>
-            Top[S](method.returnType)
-            // TODO: Fix
+            val tS = state.asInstanceOf[TouchStateInterface[_]]
+            tS.ids match {
+              case IdentifierSet.Top => Top[S](method.returnType)
+              case IdentifierSet.Bottom => state.bottom()
+              case IdentifierSet.Inner(x) =>
+                val ids = for (id <- x if id.typ == method.returnType) yield id
+                if (ids.nonEmpty)
+                  Return[S](ExpressionSet(ids.toSeq))
+                else
+                  state.bottom()
+            }
           case s:SetDomain.Default.Inner[Constant] =>
             val identifiers =
               for (c <- s.value) yield {
