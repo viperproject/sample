@@ -12,32 +12,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, Type}
 
 /**
-  * Todo: make sure we do not have issues with infinity - infinity
-  * Todo: maybe avoid unnecessary copying of octagon matrices by having a flag that indicates whether they may be visible to the outside
-  * Todo: information hiding => which methods/classes can be made private?
-  * Todo: improve performance of maxCopy
-  */
-object OctagonTest {
-  def main(args: Array[String]): Unit = {
-
-    val a: Identifier = VariableIdentifier("a")(DummyNumericalType)
-    val b: Identifier = VariableIdentifier("x")(DummyNumericalType)
-
-    val three = Constant("3", DummyNumericalType)
-    val two = Constant("2", DummyNumericalType)
-    val e1 = BinaryArithmeticExpression(a, two, ArithmeticOperator.>, DummyBooleanType)
-
-    val o1 = Octagons.Top.assume(e1)
-    val o2 = o1.assign(b, three).assign(a, b)
-    val o3 = o2.assume(e1);
-
-    println(o1)
-    println(o2)
-    println(o3)
-  }
-}
-
-/**
   * @author Jerome Dohrau
   */
 object Octagons {
@@ -159,9 +133,9 @@ object Octagons {
           case i :: j :: Nil => matrix.assume(j ^ 1, i, -interval.low)
           case _ => {
             val evaluated = literals.map(evaluate)
-            val toatalSum = evaluated.fold(Interval.Zero)(_ + _)
+            val totalSum = evaluated.fold(Interval.Zero)(_ + _)
             for (i <- 0 until indices.length; j <- i + 1 until indices.length) {
-              val partialSum = toatalSum - evaluated(i) - evaluated(j)
+              val partialSum = totalSum - evaluated(i) - evaluated(j)
               matrix.assume(j ^ 1, i, -partialSum.low)
             }
           }
@@ -170,7 +144,67 @@ object Octagons {
       }
     }
 
-    override def getConstraints(ids: Set[Identifier]): Set[Expression] = ???
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
+      val matrix = getMatrix
+
+      // collect all constraints involving one variable
+      val (constraints, relational) = ids.foldLeft((Set.empty[Expression], List.empty[Identifier])) {
+        case ((currConstraints, currRelational), idA) =>
+          val i = env.getIndex(idA)
+          val bounds = matrix.getBounds(i)
+          val newConstraints = currConstraints ++ makeConstraints(idA, bounds)
+          val newRelational = if (bounds.low == bounds.high) currRelational else idA :: currRelational
+          (newConstraints, newRelational)
+      }
+
+      val pairs = for {
+        a <- relational;
+        b <- relational;
+        if env.getIndex(a) < env.getIndex(b)
+      } yield (a,b)
+
+      // collect all relational constraints that are not (trivially) implied by
+      // the constraints we already have
+      pairs.foldLeft(constraints) {
+        case (currConstraints, (idA, idB)) =>
+          val sumBounds = matrix.getBounds(env.getNegative(idB), env.getPositive(idA))
+          val diffBounds = matrix.getBounds(env.getPositive(idB), env.getPositive(idA))
+          val sum = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.+, DummyNumericalType)
+          val diff = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.-, DummyNumericalType)
+          currConstraints ++ makeConstraints(sum, sumBounds) ++ makeConstraints(diff, diffBounds)
+      }
+    }
+
+    /** A helper function that constructs a set of constraints for an expression
+      * that is bounded by the given interval.
+      */
+    private def makeConstraints(expression: Expression, bounds: Interval): Set[Expression] = {
+      if (bounds.low == bounds.high) {
+        // return an equality
+        val constant = makeConstant(bounds.low)
+        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==, DummyBooleanType))
+      } else {
+        // construct lower bound if it is not negative infinity
+        val lower = if (bounds.low.isNegInfinity) None else {
+          val constant = makeConstant(bounds.low)
+          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=, DummyBooleanType)
+          Some(inequality)
+        }
+        // construct upper bound if it is not positive infinity
+        val upper = if (bounds.high.isPosInfinity) None else {
+          val constant = makeConstant(bounds.high)
+          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=, DummyBooleanType)
+          Some(inequality)
+        }
+        // return constraints
+        lower.toSet ++ upper.toSet
+      }
+    }
+
+    /** A helper function that constructs a constant from the given value.
+      */
+    private def makeConstant(value: Double): Expression =
+      Constant(value.toInt.toString, DummyNumericalType)
 
     /**
       * Assumption: the environments of this and that are disjoint.
@@ -249,7 +283,14 @@ object Octagons {
       } else this
     }
 
-    override def getStringOfId(id: Identifier): String = "" //TODO: print constraints
+    override def getStringOfId(id: Identifier): String = {
+      val bounds = getMatrix.getBounds(env.getIndex(id))
+      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
+      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
+      else if (bounds.high.isPosInfinity) s"${bounds.low.toInt}<=$id"
+      else if (bounds.low == bounds.high) s"$id==${bounds.low.toInt}"
+      else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
+    }
 
     override def setToTop(variable: Identifier): Octagons = {
       if (numerical(variable)) {
@@ -261,7 +302,7 @@ object Octagons {
       } else this
     }
 
-    override def getPossibleConstants(id: Identifier): Default[Constant] = ???
+    override def getPossibleConstants(id: Identifier): Default[Constant] = SetDomain.Default.Top[Constant]
 
     override def assign(variable: Identifier, expr: Expression): Octagons = {
       if (numerical(variable)) {
@@ -383,7 +424,7 @@ object Octagons {
     * variables v_0, v_2, ..., v_{d-1}. For every variable v_i we introduce a
     * positive version x_{2*i} = +v_i and a negative version x_{2*i+1} = -v_i.
     * The octagon constraints are stored in a (2*d x 2*d)-Matrix. An entry
-    * m_{i,j} = c in the matrix represents the constraint x_i - x_j <= c.
+    * m_{i,j} = c in the matrix represents the constraint x_j - x_i <= c.
     *
     * Due to symmetry, it is enough to store the lower left elements of the
     * matrix. These elements are stored in a row-major order fashion. As an
@@ -535,11 +576,34 @@ object Octagons {
       this
     }
 
-    def getBound(row: Int, col: Int): Double = arr(index(row, col))
+    /**
+      *
+      * @param i
+      * @param j
+      * @return
+      */
+    def getBound(i: Int, j: Int): Double = arr(index(i, j))
 
+    /**
+      *
+      * @param i The index corresponding to the literal x_i.
+      * @return An interval [low, high] such that low <= x_i <= high.
+      */
     def getBounds(i: Int): Interval = {
       val low = -arr(lower(i, i ^ 1)) / 2
       val high = arr(lower(i ^ 1, i)) / 2
+      Interval(low, high)
+    }
+
+    /**
+      *
+      * @param i The index corresponding to the literal x_i.
+      * @param j The index corresponding to the literal x_j.
+      * @return An interval [low, high] such that low <= x_j - x_i <= high.
+      */
+    def getBounds(i: Int, j: Int): Interval = {
+      val low = -getBound(j, i)
+      val high = getBound(i, j)
       Interval(low, high)
     }
 
@@ -706,7 +770,7 @@ object Octagons {
     }
 
     /**
-      * Note: modifies theinternal matrix
+      * Note: modifies the internal matrix
       */
     def copy(other: OctagonMatrix, from: List[Int], to: List[Int]): OctagonMatrix = {
       require(from.length == to.length)
