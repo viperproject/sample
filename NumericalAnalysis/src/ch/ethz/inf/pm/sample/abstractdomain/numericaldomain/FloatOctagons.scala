@@ -315,6 +315,12 @@ object FloatOctagons {
       } else this
     }
 
+    override def remove(ids: IdentifierSet): FloatOctagons = ids match {
+      case IdentifierSet.Bottom => this
+      case IdentifierSet.Top => factory(Set.empty[Identifier])
+      case IdentifierSet.Inner(value) => remove(value)
+    }
+
     override def remove(ids: Set[Identifier]): FloatOctagons = {
       val diff = ids.filter(exists).filter(numerical)
       if (diff.nonEmpty) {
