@@ -29,23 +29,18 @@ case class PreconditionCommand(condition: ExpressionSet) extends Command
 
 case class PostconditionCommand(condition: ExpressionSet) extends Command
 
-/** A command
-  *
-  * @param condition The loop invariant.
-  * @author Jerome Dohrau
-  */
 case class InvariantCommand(condition: ExpressionSet) extends Command
 
 /** Object adding Inhale/Exhale semantics.
   *
   * @author Caterina Urban, Jerome Dohrau
   */
-object SilverMethodSemantics extends NativeMethodSemantics {
+object SilverSemantics extends NativeMethodSemantics {
 
   /**
     * It defines the forward semantics of native method calls
     *
-    * @param thisExpr the expression representing the object on whom the method is called
+    * @param expression the expression representing the object on whom the method is called
     * @param operator the string of the called method
     * @param parameters the parameters of the called method
     * @param typeParameters the list of type generics
@@ -54,28 +49,33 @@ object SilverMethodSemantics extends NativeMethodSemantics {
     * @return the abstract state obtained after the forward evaluation of the native method call,
     *         None if the semantics of the method call is not defined
     */
-  override def applyForwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
+  override def applyForwardNativeSemantics[S <: State[S]](expression: ExpressionSet,
                                                           operator: String,
                                                           parameters: List[ExpressionSet],
                                                           typeParameters: List[Type],
                                                           returnType: Type,
                                                           programPoint: ProgramPoint,
                                                           state: S): Option[S] = {
-    val nativeMethod = SilverMethods.values.find(_.toString == operator)
-    nativeMethod match {
-      case Some(SilverMethods.permission) =>
-        val permission = if (parameters.length <= 1)
-          createPermissionExpression(thisExpr, parameters(0), parameters(0), returnType)
-        else
-          createPermissionExpression(thisExpr, parameters(0), parameters(1), returnType)
-        Some(state.setExpression(permission))
-      case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(thisExpr)))
-      case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(thisExpr)))
-      case Some(SilverMethods.precondition) => Some(state.command(PreconditionCommand(thisExpr)))
-      case Some(SilverMethods.postcondition) => Some(state.command(PostconditionCommand(thisExpr)))
-      case Some(SilverMethods.invariant) => Some(state.command(InvariantCommand(thisExpr)))
-      case Some(method) => throw new UnsupportedOperationException(s"Unexpected method: $method")
-      case None => None
+    (operator, parameters) match {
+      case ("&&", right :: Nil) =>
+        // TODO: This is a bit hacky since we completely ignore the types.
+        Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&, expression.getType )))
+      case _ =>
+        SilverMethods.values.find(_.toString == operator) match {
+          case Some(SilverMethods.permission) =>
+            val permission = if (parameters.length <= 1)
+              createPermissionExpression(expression, parameters(0), parameters(0), returnType)
+            else
+              createPermissionExpression(expression, parameters(0), parameters(1), returnType)
+            Some(state.setExpression(permission))
+          case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(expression)))
+          case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(expression)))
+          case Some(SilverMethods.precondition) => Some(state.command(PreconditionCommand(expression)))
+          case Some(SilverMethods.postcondition) => Some(state.command(PostconditionCommand(expression)))
+          case Some(SilverMethods.invariant) => Some(state.command(InvariantCommand(expression)))
+          case Some(method) => throw new UnsupportedOperationException(s"Unexpected method: $method")
+          case None => None
+        }
     }
   }
 

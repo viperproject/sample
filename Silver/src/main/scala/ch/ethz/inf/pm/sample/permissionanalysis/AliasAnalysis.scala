@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
+import java.util.function.BinaryOperator
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
@@ -969,6 +970,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace("*** inahle(" + acc.toString + ")")
 
     acc match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        inhale(left).inhale(right)
       case acc: PermissionExpression => this // nothing to be done
       case _ => this.assume(acc) // assume
     }

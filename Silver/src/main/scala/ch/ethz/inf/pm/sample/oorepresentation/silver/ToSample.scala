@@ -8,7 +8,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
 
 import scala.language.reflectiveCalls

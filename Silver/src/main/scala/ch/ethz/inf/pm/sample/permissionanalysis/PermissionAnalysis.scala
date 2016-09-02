@@ -574,6 +574,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def exhale(acc: Expression): T = {
     logger.trace("exhale")
     acc match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
+        exhale(left).exhale(right)
       case PermissionExpression(identifier, numerator, denominator) =>
         // get access path
         val location = path(identifier)
@@ -602,7 +604,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def inhale(acc: Expression): T = {
     logger.trace("inhale")
     acc match {
-
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        inhale(left).inhale(right)
       case PermissionExpression(identifier, numerator, denominator) => {
         // get access path
         val location = path(identifier)

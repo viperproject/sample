@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample.{oorepresentation => rep, abstractdomain => dom}
-import ch.ethz.inf.pm.sample.abstractdomain.valueheap.PredicateDefinitionsDomain
 
 package object silver {
 
