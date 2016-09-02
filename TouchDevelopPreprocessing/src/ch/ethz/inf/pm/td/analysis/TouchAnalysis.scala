@@ -14,11 +14,12 @@ import ch.ethz.inf.pm.sample.execution.CFGState
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.sample.util.{Relation, AccumulatingTimer}
+import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, Relation}
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
-import ch.ethz.inf.pm.td.semantics.{SRecords, AAny}
+import ch.ethz.inf.pm.td.semantics.{AAny, SRecords}
 import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 
 import scala.collection.mutable
@@ -136,6 +137,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     //
     if (TouchAnalysisParameters.get.libraryFieldPruning) {
       SystemParameters.resetOutput()
+      AbstractEventGraph.reset()
       MethodSummaries.reset[TouchState.PreAnalysis]()
       Reporter.disableAllOutputs()
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.LibraryFieldAnalysis")
@@ -155,6 +157,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       TouchVariablePacking.reset()
       SystemParameters.resetOutput()
       MethodSummaries.reset[TouchState.PreAnalysis]()
+      AbstractEventGraph.reset()
       Reporter.disableAllOutputs()
       val oldNumber = TouchAnalysisParameters.get.numberOfVersions
       TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
@@ -178,6 +181,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.MainAnalysis")
     SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
+    AbstractEventGraph.reset()
     analyzeScript(compiler,methods,outMostFixpoint)(newEntryState)
     if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.MainAnalysis")
 
