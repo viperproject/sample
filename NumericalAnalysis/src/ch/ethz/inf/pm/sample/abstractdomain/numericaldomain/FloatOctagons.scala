@@ -137,18 +137,23 @@ object FloatOctagons {
           val right = normalize(rhs)
           op match {
             case ArithmeticOperator.== =>
-              assumeNormalized(left - right) glb assumeNormalized(right - left)
+              val res = assumeNormalized(left - right) glb assumeNormalized(right - left)
+              res
             case ArithmeticOperator.!= =>
-              this
+              val res = assumeNormalized(left - right + Interval.Epsilon) lub assumeNormalized(right - left + Interval.Epsilon)
+              res
             case ArithmeticOperator.<= =>
-              assumeNormalized(left - right)
+              val res = assumeNormalized(left - right)
+              res
             case ArithmeticOperator.< =>
-              assumeNormalized(left - right)
+              val res = assumeNormalized(left - right + Interval.Epsilon)
+              res
             case ArithmeticOperator.>= =>
               val res = assumeNormalized(right - left)
               res
             case ArithmeticOperator.> =>
-              assumeNormalized(right - left)
+              val res = assumeNormalized(right - left + Interval.Epsilon)
+              res
           }
         case _ => throw new IllegalArgumentException("The argument is expected to be a comparision")
       }
@@ -963,6 +968,8 @@ object FloatOctagons {
     def Zero = Interval(0.0, 0.0)
 
     def One = Interval(1.0, 1.0)
+
+    def Epsilon = Interval(NumericalAnalysisConstants.epsilon, NumericalAnalysisConstants.epsilon)
   }
 
   /**

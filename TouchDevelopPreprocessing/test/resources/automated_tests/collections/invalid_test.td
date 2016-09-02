@@ -1,3 +1,3 @@
 action main() {
-    $x := invalid;
+    $x := invalid->number;
 }

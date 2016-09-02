@@ -1132,7 +1132,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   /**
    * Overwrite this if you need updating
    */
-  override def updateIdentifier[I <: Identifier](id: I):I = {
+  override def updateIdentifier[I <: Identifier](id: I):I = { // TODO: Remove
     id match {
       case f:FieldIdentifier => f.copy(obj = updateIdentifier(f.obj)).asInstanceOf[I]
       case HeapIdentifier(pp,t,_,_) =>
