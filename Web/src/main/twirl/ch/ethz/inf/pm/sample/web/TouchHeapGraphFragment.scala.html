@@ -13,8 +13,8 @@ s"edge-${edge._1.sanitizedName}-${edge._2}-${edge._3.sanitizedName}"
 @nodeCssClassNames(vertex: Identifier) = @{
 vertex match {
 case v: VariableIdentifier => "local-var-node"
-case v: domain.FieldIdentifier if v.o.summary => "heap-node summary-heap-node"
-case v: domain.FieldIdentifier if !v.o.summary => "heap-node definite-heap-node"
+case v: domain.FieldIdentifier if v.obj.summary => "heap-node summary-heap-node"
+case v: domain.FieldIdentifier if !v.obj.summary => "heap-node definite-heap-node"
 case v: domain.HeapIdentifier if v.summary => "heap-node summary-heap-node"
 case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
 }
