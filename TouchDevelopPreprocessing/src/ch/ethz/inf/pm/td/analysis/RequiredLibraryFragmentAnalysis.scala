@@ -184,8 +184,6 @@ class AccessCollectingState(myType: Type)
 
   override def merge(r: Replacement): AccessCollectingState = this
 
-  override def updateIdentifiers(expr: ExpressionSet) = expr
-
   override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
 
   override def ids: IdentifierSet = IdentifierSet.Top

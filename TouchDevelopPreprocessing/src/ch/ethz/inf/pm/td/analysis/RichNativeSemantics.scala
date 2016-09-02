@@ -10,8 +10,8 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{TouchStateInterface, InvalidExpression, MultiValExpression}
+import ch.ethz.inf.pm.td.compiler.{DeepeningProgramPoint, _}
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression, TouchStateInterface}
 import ch.ethz.inf.pm.td.semantics._
 
 /**
@@ -115,12 +115,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
       case anyTyp:AAny =>
 
         var curState = s
+        val fields = anyTyp.representedTouchFields.toList
 
         val tempVariables =
           if (initializeFields) {
 
             // Assign fields with given arguments
-            for (f <- anyTyp.representedTouchFields) yield {
+            for (f <- fields) yield {
 
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
 
@@ -159,7 +160,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
         curState = curState.createObject(typ, pp)
         val obj = curState.expr
 
-        for ((f,v) <- anyTyp.representedTouchFields.zip(tempVariables)) {
+        for ((f,v) <- fields.zip(tempVariables)) {
           curState = AssignField[S](obj, f, v)(curState, pp)
         }
 
@@ -179,30 +180,44 @@ object RichNativeSemantics extends RichExpressionImplicits {
       case TString => s.setExpression(Valid(TString))
       case anyType:AAny =>
 
-        var curState = s.createObject(typ, pp)
+        var curState = s
+        val fields = anyType.representedTouchFields.toList
+
+        val tempVariables =
+          if (initializeFields) {
+            // Assign fields with given arguments
+            for (f <- fields) yield {
+
+              val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
+
+              val a = initials.get(f) match {
+                case None => f.topDefault match {
+                  case InvalidInitializer(r) => Invalid(f.typ, r)
+                  case TopInitializer => curState = Top[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
+                  case TopWithInvalidInitializer(r) => curState = TopWithInvalid[S](f.typ, r, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
+                  case NewInitializer => curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
+                  case ExpressionInitializer(e) => e
+                }
+                case Some(st) => st
+              }
+
+              val tempVar:VariableIdentifier = VariableIdentifier("__TMP"+pp.toString+f.getName)(f.typ,pp)
+              curState = curState.createVariable(ExpressionSet(tempVar),f.typ,pp)
+              curState = curState.assignVariable(ExpressionSet(tempVar),toExpressionSet(a))
+              tempVar
+            }
+          } else Nil
+
+        curState = curState.createObject(typ, pp)
         val obj = curState.expr
 
-        if (initializeFields) {
-          // Assign fields with given arguments
-          for (f <- anyType.representedTouchFields) {
-            val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
-            val a = initials.get(f) match {
-              case None => f.topDefault match {
-                case InvalidInitializer(r) => Invalid(f.typ, r)
-                case TopInitializer => curState = Top[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
-                case TopWithInvalidInitializer(r) => curState = TopWithInvalid[S](f.typ, r, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
-                case NewInitializer => curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
-                case ExpressionInitializer(e) => e
-              }
-              case Some(st) => st
-            }
-            val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
-            curState = AssignField[S](newObj, f, a)(curState, pp)
-          }
+        for ((f,v) <- fields.zip(tempVariables)) {
+          curState = AssignField[S](obj, f, v)(curState, pp)
         }
 
-        val newObj = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(obj)
-        curState.setExpression(newObj)
+        val tempVariablesSet = tempVariables.toSet
+        curState = curState.pruneVariables(tempVariablesSet.contains)
+        curState.setExpression(obj)
 
     }
   }
@@ -228,41 +243,47 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Clone[S <: State[S]](obj: RichExpression, initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression], recursive: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
-    val touchTyp = obj.getType().asInstanceOf[AAny]
+    var curState = s
+    val anyType = obj.getType().asInstanceOf[AAny]
 
     // Never clone immutable types where we don't change the fields. This includes all primitives
-    if (touchTyp.isImmutable && initials.isEmpty) {
+    if (anyType.isImmutable && initials.isEmpty) {
       return Return[S](obj)
     }
 
-    var curState = New[S](touchTyp, initializeFields = false)(s, pp)
-    val newObject = toRichExpression(curState.expr)
+    val fieldList = anyType.representedTouchFields.toList
 
     // Clone fields
-    for (f <- obj.getType().asInstanceOf[AAny].representedTouchFields) {
-      initials.get(f) match {
-        case None =>
-          if (recursive) {
-            val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
-            val oldField = Field[S](obj, f)(curState, newPP)
-            curState = Clone[S](oldField, recursive = !referenceLoop)(curState, newPP)
-            val clonedContent = curState.expr
-            val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
-            curState = AssignField[S](newNewObject, f, clonedContent)(curState, newPP)
-          } else {
-            val oldField = Field[S](obj, f)(curState, pp)
-            val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
-            curState = AssignField[S](newNewObject, f, oldField)(curState, pp)
+    val tempVariables =
+      for (f <- fieldList) yield {
+        val a =
+          initials.get(f) match {
+            case None =>
+              if (recursive) {
+                val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
+                val oldField = Field[S](obj, f)(curState, newPP)
+                curState = Clone[S](oldField, recursive = !referenceLoop)(curState, newPP)
+                toRichExpression(curState.expr)
+              } else Field[S](obj, f)(curState, pp)
+            case Some(st) => st
           }
-        case Some(st) =>
-          val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
-          curState = AssignField[S](newNewObject, f, st)(curState, pp)
+
+        val tempVar:VariableIdentifier = VariableIdentifier("__TMP"+pp.toString+f.getName)(f.typ,pp)
+        curState = curState.createVariable(ExpressionSet(tempVar),f.typ,pp)
+        curState = curState.assignVariable(ExpressionSet(tempVar),toExpressionSet(a))
+        tempVar
       }
+
+    curState = curState.createObject(anyType, pp)
+    val newObj = curState.expr
+
+    for ((f,v) <- fieldList.zip(tempVariables)) {
+      curState = AssignField[S](newObj, f, v)(curState, pp)
     }
 
-    val newNewObject = curState.asInstanceOf[TouchStateInterface[_]].updateIdentifiers(newObject)
-    curState.setExpression(newNewObject)
-
+    val tempVariablesSet = tempVariables.toSet
+    curState = curState.pruneVariables(tempVariablesSet.contains)
+    curState.setExpression(newObj)
   }
 
   /*-- Misc --*/

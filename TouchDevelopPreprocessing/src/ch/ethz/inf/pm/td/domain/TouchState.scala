@@ -47,29 +47,6 @@ trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
 
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
 
-  def updateIdentifiers(expr:ExpressionSet):ExpressionSet = {
-    if (!expr.isTop) {
-      ExpressionSet((for (e <- expr.getNonTop) yield updateIdentifiers(e)).toSeq)
-    } else expr
-  }
-
-  def updateIdentifiers(expr:Expression):Expression = {
-    if (!expr.ids.isTop) {
-      var curExpr = expr
-      for (id <- expr.ids.getNonTop) {
-        val matchingId = updateIdentifier(id)
-        if (id != matchingId)
-          curExpr = curExpr.replace(id,matchingId)
-      }
-      curExpr
-    } else expr
-  }
-
-  /**
-   * Overwrite this if you need updating
-   */
-  def updateIdentifier[I <: Identifier](id: I):I = id
-
 }
 
 
@@ -1126,28 +1103,6 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       ToStringUtilities.indent(valueState.toString) +
     "\nExpression: " + expr.toString
 
-  }
-
-
-  /**
-   * Overwrite this if you need updating
-   */
-  override def updateIdentifier[I <: Identifier](id: I):I = { // TODO: Remove
-    id match {
-      case f:FieldIdentifier => f.copy(obj = updateIdentifier(f.obj)).asInstanceOf[I]
-      case HeapIdentifier(pp,t,_,_) =>
-        versions.get((pp,t)) match {
-          case None =>
-            if (SystemParameters.DEBUG) assert(false)
-            logger.debug("updating non-existing identifier")
-            id
-          case Some(x) =>
-            if (x.contains(id))
-              id
-            else
-              x.head.asInstanceOf[I]
-        }
-    }
   }
 
   /**
