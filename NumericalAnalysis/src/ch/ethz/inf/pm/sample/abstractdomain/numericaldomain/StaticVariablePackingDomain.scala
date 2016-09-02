@@ -64,10 +64,10 @@ case class StaticVariablePackingDomain
     StaticVariablePackingDomain(a,classifier,dom,b)
 
   override def isBottom:Boolean =
-    cheap.isBottom || map.exists(_._2.isBottom)
+    cheap.isBottom || map.exists(x => x._2.isBottom)
 
   override def isTop:Boolean =
-    cheap.isTop && map.forall(_._2.isTop)
+    cheap.isTop && map.forall(x => x._2.isTop)
 
   override def setToTop(variable: Identifier): StaticVariablePackingDomain[Cheap,Relational] =
     factory(cheap.setToTop(variable),applyToPacks(variable, {x:Relational => x.setToTop(variable)}))

@@ -298,8 +298,9 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val context = SystemParameters.analysisUnitContext
     val classType = context.clazzType
     SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method, classType, parameters map (_.getType())) match {
-      case Some(mdecl) =>
-        val res = MethodSummaries.collect(pp, mdecl, state, parameters)
+      case Some(m) =>
+        val res = MethodSummaries.collect(pp, m, state, parameters)
+        MethodSummaries.collect(pp, m, state, parameters) // TODO:Remove
         res
       case _ =>
         Reporter.reportImprecision("Could not find method " + method, pp)

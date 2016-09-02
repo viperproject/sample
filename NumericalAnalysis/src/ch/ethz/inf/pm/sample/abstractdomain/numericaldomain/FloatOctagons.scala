@@ -324,7 +324,7 @@ object FloatOctagons {
     }
 
     override def getStringOfId(id: Identifier): String = {
-      this.getConstraints(Set(id)).toString
+      this.getConstraints(Set(id)).mkString(",").replace(id.toString,"X")
 //      val bounds = getMatrix.getBounds(env.getIndex(id))
 //      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
 //      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
@@ -1046,13 +1046,12 @@ trait FloatOctagons
 
   def factory(env: Environment): FloatOctagons =
     if (env.isTop) Top
-    else if (env.isBottom) Bottom
     else Inner(env)
 
   def factory(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): FloatOctagons = {
     val matrix = closed.orElse(open).get
     if (env.isTop) Top
-    else if (env.isBottom || matrix.isBottom) Bottom
+    else if (!env.isBottom && matrix.isBottom) Bottom
     else Inner(env, closed, open)
   }
 
