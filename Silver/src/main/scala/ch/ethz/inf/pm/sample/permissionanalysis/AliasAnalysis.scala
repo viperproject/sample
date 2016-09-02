@@ -242,16 +242,18 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace("*** ----------------assume(" + cond.toString + ")")
 
     cond match {
-      case cond:Constant => this // Constant
+      case Constant("true", _, _) => this // True
+      case Constant("false", _, _) => this.bottom() // False
       case cond: Identifier => this // Identifier
-      case cond: BinaryArithmeticExpression => this// BinaryArithmeticExpression
+      case cond: BinaryArithmeticExpression => this // BinaryArithmeticExpression
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) => // BinaryBooleanExpression
         this.assume(left).assume(right)
       case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) => // BinaryBooleanExpression
         this.assume(left) lub this.assume(right)
       case cond: NegatedBooleanExpression => // NegatedBooleanExpression
         cond.exp match {
-          case c: Constant => this // Constant
+          case Constant("true", _, _) => this.bottom() // True
+          case Constant("false", _, _) => this // False
           case id: Identifier => this // Identifier
           case BinaryArithmeticExpression(left, right, op, typ) => this // BinaryArithmeticExpression
           case BinaryBooleanExpression(left, right, op, typ) => // BinaryBooleanExpression
