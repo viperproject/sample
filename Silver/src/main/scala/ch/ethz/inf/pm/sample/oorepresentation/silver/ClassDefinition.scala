@@ -59,8 +59,6 @@ class MethodDeclWithOutParams(
       result = result.createVariable(varExpr, variable.typ, programpoint)
     }
 
-    // Assume the precondition
-    result = precond.forwardSemantics(result).testTrue()
     result
   }
 }

@@ -556,8 +556,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
 
   override def command(cmd: Command): T = cmd match {
-    case Inhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-    case Exhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
+    case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case PreconditionCommand(condition) => command(InhaleCommand(condition))
+    case PostconditionCommand(condition) => command(ExhaleCommand(condition))
+    case InvariantCommand(condition) => command(InhaleCommand(condition)).command(ExhaleCommand(condition)) // TODO: improve me
     case _ => super.command(cmd)
   }
 
@@ -583,10 +586,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           else permission
         } lub access(location, exhaled)
       case _ =>
-        // assert
-        val asserted = setExpression(ExpressionSet(acc))
-        assert(asserted.testFalse() lessEqual bottom())
-        assume(acc)
+        // we do not assert boolean conditions since the analysis would fail
+        // in all cases where we are not able to prove that something holds.
+        this
     }
   }
 

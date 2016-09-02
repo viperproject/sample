@@ -6,11 +6,27 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.permissionanalysis.PermissionMethods
+import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
+
 import scala.language.reflectiveCalls
 import scala.collection.mutable
+
+/** Object enumerating methods to handle permissions and specifications (i.e.
+  * preconditions, postconditions and invariants).
+  *
+  * @author Caterina Urban, Jerome Dohrau
+  */
+object SilverMethods extends Enumeration {
+  val permission = Value(Constants.GhostSymbolPrefix + "permission")
+  val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
+  val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
+  val precondition = Value(Constants.GhostSymbolPrefix + "precondition")
+  val postcondition = Value(Constants.GhostSymbolPrefix + "postcondition")
+  val invariant = Value(Constants.GhostSymbolPrefix + "invariant")
+}
 
 trait SilverConverter {
   /** Converts a whole Silver program to a list of Sample class definition. */
@@ -127,10 +143,35 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       // it might also make sense not to use the return type for functions either.
       returnType = null,
       body = {
+
         val cfg = new sample.ControlFlowGraph(go(m.pos))
-        // Put local variable declarations into a separate block
+
+        // put precondition into a separate block
+        val pre = makeNativeMethodCall(
+          pos = DummyProgramPoint,
+          name = SilverMethods.precondition.toString,
+          args = Seq(makeConjunction(m.pres)),
+          returnType = sample.TopType)
+        val preBlock = cfg.addNode(pre :: Nil)
+
+        // put local variable declarations into a separate block
         val varBlock = cfg.addNode(m.locals.map(go).toList)
-        cfg.addEdge(varBlock, convertCfg(m.body.toCfg)(cfg), None)
+        cfg.addEdge(preBlock, varBlock, None)
+
+        // build cfg of body
+        val bodyBlock = convertCfg(m.body.toCfg)(cfg)
+        cfg.addEdge(varBlock, bodyBlock, None)
+
+        // put postcondition into a separate block
+        var leaves = cfg.getLeavesIds
+        val post = makeNativeMethodCall(
+          pos = DummyProgramPoint,
+          name = SilverMethods.postcondition.toString,
+          args = Seq(makeConjunction(m.posts)),
+          returnType = sample.TopType)
+        val postBlock = cfg.addNode(post :: Nil)
+        leaves.foreach(cfg.addEdge(_, postBlock, None))
+
         cfg
       },
       precond = makeConjunction(m.pres),
@@ -170,9 +211,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       sample.Assignment(go(s.pos), go(lhs), go(rhs))
     case sil.Assert(exp) =>
       makeNativeMethodCall(
-        pos = s.pos,
+        pos = go(s.pos),
         name = NativeMethods.assert.toString,
-        args = exp :: Nil,
+        args = go(exp) :: Nil,
         returnType = sample.TopType)
     case sil.NewStmt(lhs, fields) =>
       // TODO: Do something with fields
@@ -192,15 +233,15 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case sil.Inhale(exp) =>
       makeNativeMethodCall(
-        pos = s.pos,
-        name = PermissionMethods.inhale.toString,
-        args = exp :: Nil,
+        pos = go(s.pos),
+        name = SilverMethods.inhale.toString,
+        args = go(exp) :: Nil,
         returnType = sample.TopType)
     case sil.Exhale(exp) =>
       makeNativeMethodCall(
-        pos = s.pos,
-        name = PermissionMethods.exhale.toString,
-        args = exp :: Nil,
+        pos = go(s.pos),
+        name = SilverMethods.exhale.toString,
+        args = go(exp) :: Nil,
         returnType = sample.TopType)
 
     // Stubs
@@ -219,10 +260,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   def convert(e: sil.Exp): sample.Statement = e match {
 
     case e: sil.DomainOpExp =>
-      makeNativeMethodCall(e.pos, e.func(prog).op, e.args, go(e.typ))
+      makeNativeMethodCall(go(e.pos), e.func(prog).op, e.args.map(go), go(e.typ))
     case e: sil.EqualityCmp =>
       // No common ancestor
-      makeNativeMethodCall(e.pos, e.op, e.args, go(e.typ))
+      makeNativeMethodCall(go(e.pos), e.op, e.args.map(go), go(e.typ))
     case l: sil.Literal =>
       sample.ConstantStatement(go(e.pos), l match {
         case sil.IntLit(i) => i.toString()
@@ -242,9 +283,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       sample.FieldAccess(go(e.pos), go(rcv), field.name, go(field.typ))
     case sil.CondExp(cond, thn, els) =>
       makeNativeMethodCall(
-        pos = e.pos,
+        pos = go(e.pos),
         name = NativeMethods.cond_exp.toString,
-        args = cond :: thn :: els :: Nil,
+        args = go(cond) :: go(thn) :: go(els) :: Nil,
         returnType = go(e.typ))
     case sil.Result() =>
       makeVariable(e.pos, e.typ, Constants.ResultVariableName)
@@ -256,14 +297,14 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case sil.FieldAccessPredicate(loc, perm) => perm match {
       case perm: sil.FullPerm => makeNativeMethodCall(
-        pos = e.pos,
-        name = PermissionMethods.permission.toString,
-        args = loc :: perm :: Nil,
+        pos = go(e.pos),
+        name = SilverMethods.permission.toString,
+        args = go(loc) :: go(perm) :: Nil,
         returnType = go(loc.typ))
       case perm: sil.FractionalPerm => makeNativeMethodCall(
-        pos = e.pos,
-        name = PermissionMethods.permission.toString,
-        args = loc :: perm.left :: perm.right :: Nil,
+        pos = go(e.pos),
+        name = SilverMethods.permission.toString,
+        args = go(loc) :: go(perm.left) :: go(perm.right) :: Nil,
         returnType = go(loc.typ))
       case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
     }
@@ -409,11 +450,13 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         case b: sil.StatementBlock =>
           b.stmt.children.map(go).toList
         case lb: sil.LoopBlock =>
-          // Generate an assertion for each loop invariant
-          val assertMethodCalls = lb.invs.toList.map(inv => {
-            go(sil.Assert(inv)(inv.pos))
-          })
-          assertMethodCalls :+ go(lb.cond)
+          // generate method call for all invariants
+          val invariants = makeNativeMethodCall(
+            pos = DummyProgramPoint,
+            name = SilverMethods.invariant.toString,
+            args = Seq(makeConjunction(lb.invs)),
+            returnType = sample.TopType)
+          invariants :: go(lb.cond) :: Nil
         case b: sil.Fresh =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
         case b: sil.Constraining =>
@@ -495,14 +538,14 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     sample.Variable(go(pos), sample.VariableIdentifier(name)(go(typ), go(pos)))
 
   private def makeNativeMethodCall(
-      pos: sil.Position,
+      pos: sample.ProgramPoint,
       name: String,
-      args: Seq[sil.Exp],
+      args: Seq[sample.Statement],
       returnType: sample.Type): sample.Statement = {
-    sample.MethodCall(go(pos),
-      method = sample.FieldAccess(go(pos), go(args.head), name, null),
+    sample.MethodCall(pos,
+      method = sample.FieldAccess(pos, args.head, name, null),
       parametricTypes = Nil,
-      parameters = args.tail.map(go).toList,
+      parameters = args.tail.toList,
       returnType)
   }
 

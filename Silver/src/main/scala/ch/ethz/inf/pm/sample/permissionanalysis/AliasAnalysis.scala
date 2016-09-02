@@ -803,10 +803,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
         }
       }
-      case _ => // assert
-        val asserted: T = this.setExpression(ExpressionSet(acc))
-        assert(asserted.testFalse() lessEqual this.bottom())
-        this.assume(acc)
+      case _ =>
+        // we do not assert boolean conditions since the analysis would fail
+        // in all cases where we are not able to prove that something holds.
+        this
     }
   }
 
@@ -950,8 +950,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
 
   override def command(cmd: Command): T = cmd match {
-    case Inhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-    case Exhale(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
+    case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case PreconditionCommand(condition) => command(InhaleCommand(condition))
+    case PostconditionCommand(condition) => command(ExhaleCommand(condition))
+    case InvariantCommand(condition) => command(ExhaleCommand(condition)).command(InhaleCommand(condition))
     case _ => super.command(cmd)
   }
 
