@@ -9,24 +9,50 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.FloatOctagons._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, Type}
+
+/**
+  * Todo: make sure we do not have issues with infinity - infinity
+  * Todo: maybe avoid unnecessary copying of octagon matrices by having a flag that indicates whether they may be visible to the outside
+  * Todo: information hiding => which methods/classes can be made private?
+  * Todo: improve performance of maxCopy
+  */
+object FloatOctagonTest {
+  def main(args: Array[String]): Unit = {
+
+    val a: Identifier = VariableIdentifier("a")(DummyNumericalType)
+    val b: Identifier = VariableIdentifier("x")(DummyNumericalType)
+
+    val three = Constant("3", DummyNumericalType)
+    val two = Constant("2", DummyNumericalType)
+    val e1 = BinaryArithmeticExpression(a, two, ArithmeticOperator.>, DummyBooleanType)
+
+    val o1 = FloatOctagons.Top.assume(e1)
+    val o2 = o1.assign(b, three).assign(a, b)
+    val o3 = o2.assume(e1)
+
+    println(o1)
+    println(o2)
+    println(o3)
+  }
+}
 
 /**
   * @author Jerome Dohrau
   */
-object Octagons {
+object FloatOctagons {
 
   object Top
-    extends Octagons
-      with NumericalDomain.Relational.Top[Octagons]
-      with SimplifiedMergeDomain.Top[Octagons]
-      with BooleanExpressionSimplifier[Octagons] {
+    extends FloatOctagons
+      with NumericalDomain.Relational.Top[FloatOctagons]
+      with SimplifiedMergeDomain.Top[FloatOctagons]
+      with BooleanExpressionSimplifier[FloatOctagons] {
 
-    override def assign(variable: Identifier, expr: Expression): Octagons =
+    override def assign(variable: Identifier, expr: Expression): FloatOctagons =
       Inner(Environment(expr.ids + variable)).assign(variable, expr)
 
-    override def assumeSimplified(expression: Expression): Octagons =
+    override def assumeSimplified(expression: Expression): FloatOctagons =
       expression.ids match {
         case IdentifierSet.Top => this
         case IdentifierSet.Bottom => Bottom
@@ -35,29 +61,29 @@ object Octagons {
   }
 
   object Bottom
-    extends Octagons
-      with NumericalDomain.Relational.Bottom[Octagons]
-      with SimplifiedMergeDomain.Bottom[Octagons] {
+    extends FloatOctagons
+      with NumericalDomain.Relational.Bottom[FloatOctagons]
+      with SimplifiedMergeDomain.Bottom[FloatOctagons] {
 
-    override def add(ids: Set[Identifier]): Octagons = factory(ids)
+    override def add(ids: Set[Identifier]): FloatOctagons = factory(ids)
 
-    override def createVariable(variable: Identifier, typ: Type): Octagons = add(Set(variable))
+    override def createVariable(variable: Identifier, typ: Type): FloatOctagons = add(Set(variable))
   }
 
   object Inner {
-    def apply(env: Environment): Octagons =
+    def apply(env: Environment): FloatOctagons =
       Inner(env, Some(OctagonMatrix.top(env.size)), None)
 
-    def apply(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): Octagons =
+    def apply(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): FloatOctagons =
       new Inner(env, closed, open)
   }
 
   class Inner(val env: Environment,
               var closed: Option[OctagonMatrix],
               open: Option[OctagonMatrix])
-    extends Octagons
-      with NumericalDomain.Relational.Inner[Octagons, Inner]
-      with BooleanExpressionSimplifier[Octagons] {
+    extends FloatOctagons
+      with NumericalDomain.Relational.Inner[FloatOctagons, Inner]
+      with BooleanExpressionSimplifier[FloatOctagons] {
 
     require(closed.isDefined || open.isDefined)
 
@@ -80,19 +106,19 @@ object Octagons {
 
     def getOpen: OctagonMatrix = open.orElse(closed).get
 
-    override def lubSameEnvInner(that: Inner): Octagons = {
+    override def lubSameEnvInner(that: Inner): FloatOctagons = {
       val newClosed = Some(getClosed.lub(that.getClosed))
       val newOpen = None
       factory(env, newClosed, newOpen)
     }
 
-    override def glbSameEnvInner(that: Inner): Octagons = {
+    override def glbSameEnvInner(that: Inner): FloatOctagons = {
       val newMat = Some(getMatrix.glb(that.getMatrix))
       val (newClosed, newOpen) = if (isClosed && that.isClosed) (newMat, None) else (None, newMat)
       factory(env, newClosed, newOpen)
     }
 
-    override def wideningSameEnvInner(that: Inner): Octagons = {
+    override def wideningSameEnvInner(that: Inner): FloatOctagons = {
       val newClosed = None
       val newOpen = Some(getOpen.widening(that.getClosed))
       factory(env, newClosed, newOpen)
@@ -101,30 +127,38 @@ object Octagons {
     override def lessEqualSameEnvInner(that: Inner): Boolean =
       getClosed.lessThan(that.getClosed)
 
-    override def assumeSimplified(expression: Expression): Octagons = {
+    override def assumeSimplified(expression: Expression): FloatOctagons = {
       val nonExisting = expression.ids.getNonTop.filterNot(exists)
-      if (nonExisting.nonEmpty)
+      val x = if (nonExisting.nonEmpty)
         createVariables(nonExisting).assume(expression)
       else expression match {
         case BinaryArithmeticExpression(lhs, rhs, op, typ) =>
           val left = normalize(lhs)
           val right = normalize(rhs)
           op match {
-            case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
-            case ArithmeticOperator.!= => assumeNormalized(left - right + Interval.One) lub assumeNormalized(right - left + Interval.One)
-            case ArithmeticOperator.<= => assumeNormalized(left - right)
-            case ArithmeticOperator.< => assumeNormalized(left - right + Interval.One)
-            case ArithmeticOperator.>= => assumeNormalized(right - left)
-            case ArithmeticOperator.> => assumeNormalized(right - left + Interval.One)
+            case ArithmeticOperator.== =>
+              assumeNormalized(left - right) glb assumeNormalized(right - left)
+            case ArithmeticOperator.!= =>
+              this
+            case ArithmeticOperator.<= =>
+              assumeNormalized(left - right)
+            case ArithmeticOperator.< =>
+              assumeNormalized(left - right)
+            case ArithmeticOperator.>= =>
+              val res = assumeNormalized(right - left)
+              res
+            case ArithmeticOperator.> =>
+              assumeNormalized(right - left)
           }
         case _ => throw new IllegalArgumentException("The argument is expected to be a comparision")
       }
+      x
     }
 
-    def assumeNormalized(normalized: Normalized): Octagons = {
+    def assumeNormalized(normalized: Normalized): FloatOctagons = {
       val Normalized(literals, interval) = normalized
       if (literals.isEmpty)
-        if (interval.high <= 0) this else Bottom
+        if (interval.high <= 0) this else Bottom // TODO: Wrong
       else {
         val indices: List[Int] = literals.map(env.getIndex)
         val matrix = getClosed.clone()
@@ -134,9 +168,9 @@ object Octagons {
           case i :: j :: Nil => matrix.assume(j ^ 1, i, -interval.low)
           case _ =>
             val evaluated = literals.map(evaluate)
-            val totalSum = evaluated.fold(Interval.Zero)(_ + _)
+            val toatalSum = evaluated.fold(Interval.Zero)(_ + _)
             for (i <- indices.indices; j <- i + 1 until indices.length) {
-              val partialSum = totalSum - evaluated(i) - evaluated(j)
+              val partialSum = toatalSum - evaluated(i) - evaluated(j)
               matrix.assume(j ^ 1, i, -partialSum.low)
             }
         }
@@ -209,7 +243,7 @@ object Octagons {
     /**
       * Assumption: the environments of this and that are disjoint.
       */
-    override def unifyInner(that: Inner): Octagons = {
+    override def unifyInner(that: Inner): FloatOctagons = {
       val newEnv = env ++ that.env
       val newClosed = Some(OctagonMatrix.top(newEnv.size)
         .copy(getMatrix, env.getIndices(env.ids), newEnv.getIndices(env.ids))
@@ -219,7 +253,7 @@ object Octagons {
       factory(newEnv, newClosed, newOpen)
     }
 
-    override def expand(idA: Identifier, idsB: Set[Identifier]): Octagons = {
+    override def expand(idA: Identifier, idsB: Set[Identifier]): FloatOctagons = {
       if (numerical(idA)) {
         val newIds = idsB.filterNot(exists).filter(numerical)
         if (exists(idA) && newIds.nonEmpty) {
@@ -236,7 +270,7 @@ object Octagons {
       } else this
     }
 
-    override def rename(idA: Identifier, idB: Identifier): Octagons = {
+    override def rename(idA: Identifier, idB: Identifier): FloatOctagons = {
       if (numerical(idA) && numerical(idB)) {
         if (exists(idA) && !exists(idB)) {
           val newEnv = env - idA + idB
@@ -248,7 +282,7 @@ object Octagons {
       } else this
     }
 
-    override def fold(idsA: Set[Identifier], idB: Identifier): Octagons = {
+    override def fold(idsA: Set[Identifier], idB: Identifier): FloatOctagons = {
       if (numerical(idB)) {
         val ids = idsA.filter(exists).filter(numerical)
         if (!exists(idB) && ids.nonEmpty) {
@@ -263,11 +297,11 @@ object Octagons {
       } else this
     }
 
-    override def removeVariable(id: Identifier): Octagons = remove(Set(id))
+    override def removeVariable(id: Identifier): FloatOctagons = remove(Set(id))
 
-    override def createVariable(variable: Identifier, typ: Type): Octagons = add(Set(variable))
+    override def createVariable(variable: Identifier, typ: Type): FloatOctagons = add(Set(variable))
 
-    override def add(ids: Set[Identifier]): Octagons = {
+    override def add(ids: Set[Identifier]): FloatOctagons = {
       val diff = ids.filterNot(exists).filter(numerical)
       if (diff.nonEmpty) {
         val newEnv = Environment(env.set ++ ids)
@@ -275,7 +309,7 @@ object Octagons {
       } else this
     }
 
-    override def remove(ids: Set[Identifier]): Octagons = {
+    override def remove(ids: Set[Identifier]): FloatOctagons = {
       val diff = ids.filter(exists).filter(numerical)
       if (diff.nonEmpty) {
         val newEnv = Environment(env.set -- diff)
@@ -284,15 +318,16 @@ object Octagons {
     }
 
     override def getStringOfId(id: Identifier): String = {
-      val bounds = getMatrix.getBounds(env.getIndex(id))
-      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
-      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
-      else if (bounds.high.isPosInfinity) s"${bounds.low.toInt}<=$id"
-      else if (bounds.low == bounds.high) s"$id==${bounds.low.toInt}"
-      else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
+      this.getConstraints(Set(id)).toString
+//      val bounds = getMatrix.getBounds(env.getIndex(id))
+//      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
+//      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
+//      else if (bounds.high.isPosInfinity) s"${bounds.low.toInt}<=$id"
+//      else if (bounds.low == bounds.high) s"$id==${bounds.low.toInt}"
+//      else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
     }
 
-    override def setToTop(variable: Identifier): Octagons = {
+    override def setToTop(variable: Identifier): FloatOctagons = {
       if (numerical(variable)) {
         if (exists(variable)) {
           val newClosed = Some(getClosed.clone().assignTop(env.getPositive(variable)))
@@ -304,7 +339,7 @@ object Octagons {
 
     override def getPossibleConstants(id: Identifier): Default[Constant] = SetDomain.Default.Top[Constant]()
 
-    override def assign(variable: Identifier, expr: Expression): Octagons = {
+    override def assign(variable: Identifier, expr: Expression): FloatOctagons = {
       if (numerical(variable)) {
         if (expr.ids.getNonTop.exists(!numerical(_))) {
           setToTop(variable)
@@ -372,7 +407,9 @@ object Octagons {
     // EVALUATE
 
     def evaluate(expr: Expression): Interval = expr match {
-      case Constant(value, _, _) => Interval(value.toInt, value.toInt)
+      case Constant("true", _, _) => Interval(1, 1)
+      case Constant("false", _, _) => Interval(0, 0)
+      case Constant(value, _, _) => Interval(value.toDouble, value.toDouble)
       case id: Identifier => evaluate(id)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => evaluate(arg)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -evaluate(arg)
@@ -405,7 +442,7 @@ object Octagons {
 
     private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
 
-    private def copy(newEnv: Environment, from: List[Int], to: List[Int]): Octagons = {
+    private def copy(newEnv: Environment, from: List[Int], to: List[Int]): FloatOctagons = {
       val newClosed = closed.map(mat => OctagonMatrix.top(newEnv.size).copy(mat, from, to))
       val newOpen = open.map(mat => OctagonMatrix.top(newEnv.size).copy(mat, from, to))
       factory(newEnv, newClosed, newOpen)
@@ -417,7 +454,7 @@ object Octagons {
     * variables v_0, v_2, ..., v_{d-1}. For every variable v_i we introduce a
     * positive version x_{2*i} = +v_i and a negative version x_{2*i+1} = -v_i.
     * The octagon constraints are stored in a (2*d x 2*d)-Matrix. An entry
-    * m_{i,j} = c in the matrix represents the constraint x_j - x_i <= c.
+    * m_{i,j} = c in the matrix represents the constraint x_i - x_j <= c.
     *
     * Due to symmetry, it is enough to store the lower left elements of the
     * matrix. These elements are stored in a row-major order fashion. As an
@@ -569,13 +606,8 @@ object Octagons {
       this
     }
 
-    def getBound(i: Int, j: Int): Double = arr(index(i, j))
+    def getBound(row: Int, col: Int): Double = arr(index(row, col))
 
-    /**
-      *
-      * @param i The index corresponding to the literal x_i.
-      * @return An interval [low, high] such that low <= x_i <= high.
-      */
     def getBounds(i: Int): Interval = {
       val low = -arr(lower(i, i ^ 1)) / 2
       val high = arr(lower(i ^ 1, i)) / 2
@@ -757,7 +789,7 @@ object Octagons {
     }
 
     /**
-      * Note: modifies the internal matrix
+      * Note: modifies theinternal matrix
       */
     def copy(other: OctagonMatrix, from: List[Int], to: List[Int]): OctagonMatrix = {
       require(from.length == to.length)
@@ -881,7 +913,6 @@ object Octagons {
     def -(id: Identifier): Environment = Environment(set - id)
   }
 
-
   /**
     * A normalized expression of the form l_1 + ... + l_k + [a, b], where l_i are literals.
     */
@@ -974,8 +1005,7 @@ object Octagons {
     private def max(a: Double, b: Double, c: Double, d: Double): Double =
       math.max(math.max(a, b), math.max(c, d))
 
-    private def truncate(a: Double): Double =
-      if (a >= 0) math.floor(a) else math.ceil(a)
+    private def truncate(a: Double): Double = a
   }
 
 }
@@ -983,35 +1013,35 @@ object Octagons {
 /**
   * @author Jerome Dohrau
   */
-trait Octagons
-  extends NumericalDomain.Relational[Octagons]
-    with SimplifiedSemanticDomain[Octagons]
-    with SimplifiedMergeDomain[Octagons] {
+trait FloatOctagons
+  extends NumericalDomain.Relational[FloatOctagons]
+    with SimplifiedSemanticDomain[FloatOctagons]
+    with SimplifiedMergeDomain[FloatOctagons] {
 
-  override def factory(): Octagons = factory(Environment(IdentifierSet.Top))
+  override def factory(): FloatOctagons = factory(Environment(IdentifierSet.Top))
 
-  def factory(ids: Set[Identifier]): Octagons =
+  def factory(ids: Set[Identifier]): FloatOctagons =
     factory(Environment(IdentifierSet.Inner(ids)))
 
-  def factory(env: Environment): Octagons =
+  def factory(env: Environment): FloatOctagons =
     if (env.isTop) Top
     else if (env.isBottom) Bottom
     else Inner(env)
 
-  def factory(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): Octagons = {
+  def factory(env: Environment, closed: Option[OctagonMatrix], open: Option[OctagonMatrix]): FloatOctagons = {
     val matrix = closed.orElse(open).get
     if (env.isTop) Top
     else if (env.isBottom || matrix.isBottom) Bottom
     else Inner(env, closed, open)
   }
 
-  override def top(): Octagons = Octagons.Top
+  override def top(): FloatOctagons = FloatOctagons.Top
 
-  override def bottom(): Octagons = Octagons.Bottom
+  override def bottom(): FloatOctagons = FloatOctagons.Bottom
 
   override def toString: String = this match {
-    case Octagons.Top => "Top\n"
-    case Octagons.Bottom => "Bottom\n"
-    case a: Octagons.Inner => a.getMatrix.toString
+    case FloatOctagons.Top => "Top\n"
+    case FloatOctagons.Bottom => "Bottom\n"
+    case a: FloatOctagons.Inner => a.getConstraints(a.ids.getNonTop).mkString("\n")
   }
 }

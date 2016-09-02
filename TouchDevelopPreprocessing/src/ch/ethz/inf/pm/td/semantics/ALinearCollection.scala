@@ -51,10 +51,10 @@ trait ALinearCollection extends ACollection {
         if (index.getType() != TNumber)
           throw new SemanticException("This is not a linear collection " + this0.toString)
 
-        val newState = If[S](IndexInRange[S](this0, index), Then = {
-          Return[S](At[S](this0, index))(_, pp)
-        }, Else = {
-          Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)
+        val newState = If[S](IndexInRange[S](this0, index), Then = { thenState =>
+          Return[S](At[S](this0, index))(thenState, pp)
+        }, Else = { elseState =>
+          Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(elseState, pp)
         })
         newState
       }
