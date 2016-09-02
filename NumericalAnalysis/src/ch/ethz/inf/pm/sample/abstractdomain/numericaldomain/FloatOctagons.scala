@@ -163,19 +163,20 @@ object FloatOctagons {
     def assumeNormalized(normalized: Normalized): FloatOctagons = {
       val Normalized(literals, interval) = normalized
       if (literals.isEmpty)
-        if (interval.high <= 0) this else Bottom // TODO: Wrong
+        if (interval.low > 0) Bottom else this
       else {
         val indices: List[Int] = literals.map(env.getIndex)
         val matrix = getClosed.clone()
 
         indices match {
           case i :: Nil => matrix.assume(i ^ 1, i, -2 * interval.low)
-          case i :: j :: Nil => matrix.assume(j ^ 1, i, -interval.low)
+          case i :: j :: Nil =>
+            matrix.assume(j ^ 1, i, -interval.low)
           case _ =>
             val evaluated = literals.map(evaluate)
-            val toatalSum = evaluated.fold(Interval.Zero)(_ + _)
+            val totalSum = evaluated.fold(Interval.Zero)(_ + _)
             for (i <- indices.indices; j <- i + 1 until indices.length) {
-              val partialSum = toatalSum - evaluated(i) - evaluated(j)
+              val partialSum = totalSum - evaluated(i) - evaluated(j)
               matrix.assume(j ^ 1, i, -partialSum.low)
             }
         }
@@ -935,15 +936,28 @@ object FloatOctagons {
 
     def -(v: Interval) = Normalized(literals, interval - v)
 
-    private def cancel(literals:List[Literal]):List[Literal] =
-      literals.foldLeft(Map.empty[Identifier,Literal])
-      {
-        (map:Map[Identifier,Literal],lit:Literal) =>
-          map.get(lit.id) match {
-            case Some(y) => map - lit.id
-            case None => map + (lit.id -> lit)
-          }
-      }.values.toList
+    private def cancel(literals:List[Literal]):List[Literal] = {
+      val counts =
+        literals.foldLeft(Map.empty[Identifier, Int]) {
+          (map: Map[Identifier, Int], lit: Literal) =>
+            val x = lit match {
+              case Negative(_) => -1;
+              case Positive(_) => +1
+            }
+            map.get(lit.id) match {
+              case Some(y) => map + (lit.id -> (y + x))
+              case None => map + (lit.id -> x)
+            }
+        }
+      counts.flatMap(x =>
+        if (x._2 >= 0)
+          List.fill(x._2)(Positive(x._1))
+        else
+          List.fill(-x._2)(Negative(x._1))
+      ).toList
+    }
+
+
   }
 
   /**
