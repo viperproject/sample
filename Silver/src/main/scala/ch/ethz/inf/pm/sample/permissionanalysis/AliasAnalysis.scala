@@ -804,10 +804,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
         }
       }
-      case _ =>
+      case bool if bool.typ.isBooleanType =>
         // we do not assert boolean conditions since the analysis would fail
         // in all cases where we are not able to prove that something holds.
         this
+      case _ =>
+        throw new IllegalArgumentException("An exhale must occur via a boolean or a permission expression.")
     }
   }
 

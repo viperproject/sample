@@ -1,5 +1,7 @@
 field f: Ref
 
-method foo(a: Ref) {
+method foo(a: Ref)
+    // requires acc(a.f, write)
+{
     a.f := null
 }

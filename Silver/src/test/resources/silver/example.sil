@@ -1,15 +1,21 @@
-
 field f: Ref
 
-method Foo()
+/*method bar(a: Ref)
+    requires false
 {
-    var i: Int
-    var j: Int
+    var b: Ref
 
-    j := 10
+    b := a
+    while (true)
+    {
+        a.f := null
+        b.f := null
+    }
+}*/
 
-    i := 10;
-    i := i + 1;
-
-    assert(i + j <= 21);
+method beer(a: Ref, b: Ref)
+{
+    exhale acc(b.f)
+    inhale acc(a.f)
+    a.f := null
 }

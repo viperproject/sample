@@ -587,10 +587,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           if (postAliases.pathsMayAlias(path, location)) permission plus exhaled
           else permission
         } lub access(location, exhaled)
-      case _ =>
+      case bool if bool.typ.isBooleanType =>
         // we do not assert boolean conditions since the analysis would fail
         // in all cases where we are not able to prove that something holds.
         this
+      case _ =>
+        throw new IllegalArgumentException("An exhale must occur via a boolean or a permission expression.")
     }
   }
 
@@ -1076,7 +1078,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * Collects the permission of of all access paths that must alias with the
     * specified access path.
     *
-    * @param path
+    * @param path ???
     * @return a lower bound on the amount of permission held for the specified
     *         access path
     */

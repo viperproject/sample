@@ -1,0 +1,20 @@
+field f: Ref
+
+method no(a: Ref, b: Ref)
+	// requires acc(a.f, write)
+	// requires acc(b.f, write)
+{
+	if (a.f == b.f) {
+		a.f := null
+		b.f := null
+	}
+}
+
+method yes(a: Ref, b: Ref)
+	// requires acc(a.f, write)
+{
+	if (a == b) {
+		a.f := null
+		b.f := null
+	}
+}
