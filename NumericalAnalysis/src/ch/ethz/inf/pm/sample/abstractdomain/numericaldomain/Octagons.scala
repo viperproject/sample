@@ -502,7 +502,7 @@ object Octagons {
     }
 
     def isBottom: Boolean = {
-      !Range(0, 2 * dim).exists(i => arr(index(i, i)) >= -0.1)
+      Range(0, 2 * dim).exists(i => arr(index(i, i)) < 0.0)
     }
 
     def lub(other: OctagonMatrix): OctagonMatrix = {
