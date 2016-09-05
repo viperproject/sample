@@ -454,6 +454,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // permission trees for all variables
   def permissions: Map[Identifier, PermissionTree]
 
+  def specification: Seq[sil.Exp]
+
+  def arguments: Seq[sil.LocalVarDecl]
+
   // result of the alias analysis before the current program point
   lazy val preAliases = preStateAtPP(context.get, currentPP)
 
@@ -482,9 +486,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     case _ => false
   }
 
-  override def addPreviousResult(result: TrackingCFGState[A]): T = {
+  override def addPreviousResult(result: TrackingCFGState[A]): T =
     copy(context = Some(result))
-  }
 
   /**
     * Generates a list of additional formal arguments for the method
@@ -493,7 +496,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
     val existing = args.exists { case sil.LocalVarDecl(name, _) => name == "read" }
-    if (reading && !existing) args ++ Seq(sil.LocalVarDecl("read", sil.Perm)())
+    if (!existing) args ++ arguments
     else args
   }
 
@@ -501,12 +504,26 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return a sequence of sil.Exp
     */
-  override def precondition(): Seq[sil.Exp] = {
-    val condition = if (reading) {
+  override def precondition(): Seq[sil.Exp] = specification
+
+  /** Generates a Silver invariant from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def invariant(): Seq[sil.Exp] = specification
+
+  /** Generates a Silver postcondition from the current state
+    *
+    * @return a sequence of sil.Exp
+    */
+  override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
+
+  def setSpecification(): T = {
+    val prefix = if (reading) {
       val read = sil.LocalVar("read")(sil.Perm)
       Seq(sil.PermGtCmp(read, sil.NoPerm()())())
     } else Seq.empty
-    condition ++ tuples.map { case (path, permission) =>
+    val specification = prefix ++ tuples.map { case (path, permission) =>
       val obj = sil.LocalVar(path.head.getName)(sil.Ref)
       val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
         val name = id.getName
@@ -525,8 +542,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
             val read = sil.LocalVar("read")(sil.Perm)
             val perm = if (amount > 0) {
               val numerator = sil.IntLit(a)()
-              val denumerator = sil.IntLit(b)()
-              val fractional = sil.FractionalPerm(numerator, denumerator)()
+              val denominator = sil.IntLit(b)()
+              val fractional = sil.FractionalPerm(numerator, denominator)()
               sil.PermAdd(fractional, read)()
             } else read
             sil.FieldAccessPredicate(loc, perm)()
@@ -541,26 +558,28 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           }
       }
     }
+    val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
+    copy(specification = specification, arguments = arguments)
   }
-
-  /** Generates a Silver invariant from the current state
-    *
-    * @return a sequence of sil.Exp
-    */
-  override def invariant(): Seq[sil.Exp] = precondition()
-
-  /** Generates a Silver postcondition from the current state
-    *
-    * @return a sequence of sil.Exp
-    */
-  override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
 
   override def command(cmd: Command): T = cmd match {
     case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
     case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
-    case PreconditionCommand(condition) => command(InhaleCommand(condition))
+    case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
     case PostconditionCommand(condition) => command(ExhaleCommand(condition))
-    case InvariantCommand(condition) => command(InhaleCommand(condition)).command(ExhaleCommand(condition)) // TODO: improve me
+    case InvariantCommand(condition) => {
+      println("-----------------------")
+      println(s"before:${tuples}")
+
+      val x = command(InhaleCommand(condition))
+        .setSpecification()
+
+      println(s"after:${x.tuples}")
+      println(s"invariant:${x.invariant()}")
+      println("-----------------------")
+
+      x.command(ExhaleCommand(condition))
+    }
     case _ => super.command(cmd)
   }
 
@@ -572,7 +591,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return The abstract state after exhaling the permission
     */
   private def exhale(acc: Expression): T = {
-    logger.trace("exhale")
+    logger.trace(s"exhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
         exhale(left).exhale(right)
@@ -830,7 +849,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return The abstract state eventually modified
     */
   override def before(pp: ProgramPoint): T = {
-    logger.trace("before")
+    logger.trace(s"before($pp)")
     copy(currentPP = pp)
   }
 
@@ -904,7 +923,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return true if and only if `this` is less than or equal to `other`
     */
   override def lessEqual(other: T): Boolean = {
-    logger.trace("lessEqual")
+    logger.trace(s"lessEqual(${this.toString}, ${other.toString})")
     // handle cases involving bottom and top
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
@@ -936,7 +955,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: T): T = {
-    logger.trace("lub")
+    logger.trace(s"lub(${this.toString}, ${other.toString})")
     // compute variable-wise lub of permission trees. that is, compute lub for
     // all trees that are in this.permissions and other.permissions and also
     // include trees that are either in this.permissions or other.permissions
@@ -949,7 +968,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
     val newBottom = isBottom && other.isBottom
     val newTop = isTop || other.isTop
-    copy(permissions = newPermissions, isBottom = newBottom, isTop = newTop)
+    val newSpecification = specification ++ other.specification
+    val newArguments = arguments ++ other.arguments
+    copy(permissions = newPermissions,
+      isBottom = newBottom,
+      isTop = newTop,
+      specification = newSpecification.distinct,
+      arguments = newArguments.distinct)
   }
 
   /** Returns a new instance of the lattice.
@@ -1149,6 +1174,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
            context: Option[TrackingCFGState[A]] = context,
            result: ExpressionSet = result,
            permissions: Map[Identifier, PermissionTree] = permissions,
+           specification: Seq[sil.Exp] = specification,
+           arguments: Seq[sil.LocalVarDecl] = arguments,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
@@ -1163,6 +1190,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       if (strings.isEmpty) "none"
       else strings.reduce(_ + ", " + _)
     }" +
+    s"\n\tspec: $specification" +
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
@@ -1174,6 +1202,8 @@ object PermissionAnalysisState {
                      context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
                      result: ExpressionSet = ExpressionSet(),
                      permissions: Map[Identifier, PermissionTree] = Map.empty,
+                     specification: Seq[sil.Exp] = Seq.empty,
+                     arguments: Seq[sil.LocalVarDecl] = Seq.empty,
                      isBottom: Boolean = false,
                      isTop: Boolean = false)
     extends PermissionAnalysisState[Default, AliasAnalysisState.Default] {
@@ -1182,9 +1212,11 @@ object PermissionAnalysisState {
                       context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
                       permissions: Map[Identifier, PermissionTree],
+                      specification: Seq[sil.Exp],
+                      arguments: Seq[sil.LocalVarDecl],
                       isBottom: Boolean,
                       isTop: Boolean): Default =
-      Default(currentPP, context, result, permissions, isBottom, isTop)
+      Default(currentPP, context, result, permissions, specification, arguments, isBottom, isTop)
   }
 
 }

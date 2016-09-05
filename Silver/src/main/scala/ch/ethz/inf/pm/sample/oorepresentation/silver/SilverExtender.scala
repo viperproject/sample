@@ -128,7 +128,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
         })
       })
       // retrieve the result of the analysis at the loop head
-      val pre: S = cfgState.preStateAt(cfgPositions.head)
+      val pre: S = cfgState.preStateAt(CFGPosition(cfgPositions.head.blockIdx, 0))
       // update the method loop invariants
       val invariants: Seq[sil.Exp] = pre.invariant ++ stmt.invs
       sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info)
