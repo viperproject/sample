@@ -11,25 +11,43 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethods
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 
-/** An inhale command.
+/** Super trait for all silver commands.
+  */
+sealed trait SilverCommand extends Command
+
+/** A command that inhales the given expression.
   *
   * @param expression The inhaled expression.
   * @author Jerome Dohrau
   */
-case class InhaleCommand(expression: ExpressionSet) extends Command
+case class InhaleCommand(expression: ExpressionSet) extends SilverCommand
 
-/** An exhale command.
+/** A command that exhales the given expression.
   *
   * @param expression The exhaled expression.
   * @author Jerome Dohrau
   */
-case class ExhaleCommand(expression: ExpressionSet) extends Command
+case class ExhaleCommand(expression: ExpressionSet) extends SilverCommand
 
-case class PreconditionCommand(condition: ExpressionSet) extends Command
+/** A command that handles a precondition.
+  *
+  * @param condition The precondition.
+  * @author Jerome Dohrau
+  */
+case class PreconditionCommand(condition: ExpressionSet) extends SilverCommand
 
-case class PostconditionCommand(condition: ExpressionSet) extends Command
+/** A command that handles the given postcondition.
+  *
+  * @param condition The postcondition.
+  * @author Jerome Dohrau
+  */
+case class PostconditionCommand(condition: ExpressionSet) extends SilverCommand
 
-case class InvariantCommand(condition: ExpressionSet) extends Command
+/** A command that handles the given invariant.
+  * @param condition The invariant.
+  * @author Jerome Dohrau
+  */
+case class InvariantCommand(condition: ExpressionSet) extends SilverCommand
 
 /** Object adding Inhale/Exhale semantics.
   *
