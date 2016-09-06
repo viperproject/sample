@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
-import java.util.function.BinaryOperator
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
@@ -1033,6 +1032,9 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     */
   override def lub(other: T): T = {
     logger.trace("*** lub(" + this.repr + ", " + other.repr + ")")
+
+    if (this.isBottom) return other
+    else if (other.isBottom) return this
 
     def mayZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
       var keyMap = Map.empty[K,Set[HeapNode]]
