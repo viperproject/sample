@@ -6,14 +6,14 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, BoxedNonRelationalNumericalDomain, DoubleInterval, Octagons}
-import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 object NumDom {
   type I = BoxedNonRelationalNumericalDomain[DoubleInterval]
   type AO = Apron.Octagons
-  type O = Octagons
+  type IO = IntegerOctagon
+  type DO = DoubleOctagon
   type AP = Apron.Polyhedra
 }
 

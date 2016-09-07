@@ -8,7 +8,6 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleForwardAnalysis}
@@ -1140,15 +1139,15 @@ case class MayPointToIntervalsState(fieldSet: Set[(Type, String)],
   * @param numDom octagons abstract domain
   * @author Caterina Urban
   */
-case class MayPointToOctagonsState(fieldSet: Set[(Type, String)],
-                                   currentPP: ProgramPoint,
-                                   flag: Boolean,
-                                   nonce: Int,
-                                   exprSet: ExpressionSet,
-                                   refToObj: Map[VariableIdentifier, Set[OldHeapNode]],
-                                   objToObj: Map[OldHeapNode, Map[String, Set[OldHeapNode]]],
-                                   numDom: NumDom.O)
-  extends MayPointToNumericalState[NumDom.O,MayPointToOctagonsState] {
+case class MayPointToIntegerOctagonsState(fieldSet: Set[(Type, String)],
+                                          currentPP: ProgramPoint,
+                                          flag: Boolean,
+                                          nonce: Int,
+                                          exprSet: ExpressionSet,
+                                          refToObj: Map[VariableIdentifier, Set[OldHeapNode]],
+                                          objToObj: Map[OldHeapNode, Map[String, Set[OldHeapNode]]],
+                                          numDom: NumDom.IO)
+  extends MayPointToNumericalState[NumDom.IO,MayPointToIntegerOctagonsState] {
   override def copy(fieldSet: Set[(Type, String)],
                     currentPP: ProgramPoint,
                     flag: Boolean,
@@ -1156,8 +1155,40 @@ case class MayPointToOctagonsState(fieldSet: Set[(Type, String)],
                     exprSet: ExpressionSet,
                     refToObj: Map[VariableIdentifier, Set[OldHeapNode]],
                     objToObj: Map[OldHeapNode, Map[String, Set[OldHeapNode]]],
-                    numDom: NumDom.O): MayPointToOctagonsState =
-    MayPointToOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
+                    numDom: NumDom.IO): MayPointToIntegerOctagonsState =
+    MayPointToIntegerOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
+}
+
+
+/** MayPointTo+Octagons Analysis State.
+  *
+  * @param fieldSet fields declared within the program
+  * @param currentPP current program point
+  * @param nonce freshly generated heap node
+  * @param exprSet result of previous statement
+  * @param refToObj map from Ref variables to heap objects
+  * @param objToObj map from heap objects to a map from Ref fields to heap objects
+  * @param numDom octagons abstract domain
+  * @author Caterina Urban
+  */
+case class MayPointToDoubleOctagonsState(fieldSet: Set[(Type, String)],
+                                          currentPP: ProgramPoint,
+                                          flag: Boolean,
+                                          nonce: Int,
+                                          exprSet: ExpressionSet,
+                                          refToObj: Map[VariableIdentifier, Set[OldHeapNode]],
+                                          objToObj: Map[OldHeapNode, Map[String, Set[OldHeapNode]]],
+                                          numDom: NumDom.DO)
+  extends MayPointToNumericalState[NumDom.DO, MayPointToDoubleOctagonsState] {
+  override def copy(fieldSet: Set[(Type, String)],
+                    currentPP: ProgramPoint,
+                    flag: Boolean,
+                    nonce: Int,
+                    exprSet: ExpressionSet,
+                    refToObj: Map[VariableIdentifier, Set[OldHeapNode]],
+                    objToObj: Map[OldHeapNode, Map[String, Set[OldHeapNode]]],
+                    numDom: NumDom.DO): MayPointToDoubleOctagonsState =
+    MayPointToDoubleOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
 
@@ -1261,15 +1292,26 @@ object MayPointToIntervalsEntryStateBuilder
   *
   * @author Caterina Urban
   */
-object MayPointToOctagonsEntryStateBuilder
-  extends MayPointToNumericalEntryStateBuilder[NumDom.O, MayPointToOctagonsState] {
+object MayPointToIntegerOctagonsEntryStateBuilder
+  extends MayPointToNumericalEntryStateBuilder[NumDom.IO, MayPointToIntegerOctagonsState] {
 
-  override def topState = MayPointToOctagonsState(fields, DummyProgramPoint, true, 1,
+  override def topState = MayPointToIntegerOctagonsState(fields, DummyProgramPoint, true, 1,
     ExpressionSet(),
     Map[VariableIdentifier,Set[OldHeapNode]](),
     Map[OldHeapNode,Map[String,Set[OldHeapNode]]](),
-    Octagons.Bottom.factory)
+    IntegerOctagon.Bottom.factory)
 }
+
+object MayPointToDoubleOctagonsEntryStateBuilder
+  extends MayPointToNumericalEntryStateBuilder[NumDom.DO, MayPointToDoubleOctagonsState] {
+
+  override def topState = MayPointToDoubleOctagonsState(fields, DummyProgramPoint, true, 1,
+    ExpressionSet(),
+    Map[VariableIdentifier,Set[OldHeapNode]](),
+    Map[OldHeapNode,Map[String,Set[OldHeapNode]]](),
+    DoubleOctagon.Bottom.factory)
+}
+
 
 /** MayPointTo+Octagons Analysis Entry States.
   *
@@ -1364,9 +1406,9 @@ object MayPointToIntervalsAnalysisRunner
   *
   * @author Caterina Urban
   */
-object MayPointToOctagonsAnalysisRunner
-  extends MayPointToNumericalAnalysisRunner[Octagons, MayPointToOctagonsState] {
-  override val analysis = SimpleForwardAnalysis[MayPointToOctagonsState](MayPointToOctagonsEntryStateBuilder)
+object MayPointToIntegerOctagonsAnalysisRunner
+  extends MayPointToNumericalAnalysisRunner[IntegerOctagon, MayPointToIntegerOctagonsState] {
+  override val analysis = SimpleForwardAnalysis[MayPointToIntegerOctagonsState](MayPointToIntegerOctagonsEntryStateBuilder)
   override def toString = "PointsTo+Octagons Analysis"
 }
 
