@@ -514,6 +514,12 @@ object Octagons
     private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
 
     protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): S
+
+    // STRING REPRESENTATION
+    override def toString: String = s"Octagon(" +
+      s"\n\tenvironment: ${env.ids}" +
+      s"\n\tconstraints: ${getConstraints(env.ids.toSet).mkString}" +
+      s"\n)"
   }
 
   object Dbm
@@ -1435,7 +1441,7 @@ object IntegerOctagons
     override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons = {
       val dbm = closed.orElse(open).get
       if (env.isTop) Top
-      else if (!env.isBottom && dbm.isBottom) Bottom
+      else if (dbm.isBottom) Bottom
       else Inner(env, closed, open)
     }
 
@@ -1551,7 +1557,7 @@ object DoubleOctagons {
     override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons = {
       val dbm = closed.orElse(open).get
       if (env.isTop) Top
-      else if (!env.isBottom && dbm.isBottom) Bottom
+      else if (dbm.isBottom) Bottom
       else Inner(env, closed, open)
     }
 
