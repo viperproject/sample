@@ -153,6 +153,8 @@ object Octagons
     override def lessEqualSameEnvInner(other: Inner[S, T]): Boolean =
       closedDbm.lessThan(other.closedDbm)
 
+    def epsilon: Interval
+
     override def assumeSimplified(expression: Expression): S = {
       val nonExisting = expression.ids.getNonTop.filterNot(exists)
       if (nonExisting.nonEmpty)
@@ -163,11 +165,11 @@ object Octagons
           val right = normalize(rhs)
           op match {
             case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
-            case ArithmeticOperator.!= => assumeNormalized(left - right + Interval.One) lub assumeNormalized(right - left + Interval.One)
+            case ArithmeticOperator.!= => assumeNormalized(left - right + epsilon) lub assumeNormalized(right - left + epsilon)
             case ArithmeticOperator.<= => assumeNormalized(left - right)
-            case ArithmeticOperator.< => assumeNormalized(left - right + Interval.One)
+            case ArithmeticOperator.< => assumeNormalized(left - right + epsilon)
             case ArithmeticOperator.>= => assumeNormalized(right - left)
-            case ArithmeticOperator.> => assumeNormalized(right - left + Interval.One)
+            case ArithmeticOperator.> => assumeNormalized(right - left + epsilon)
           }
         case _ => throw new IllegalArgumentException("The argument is expected to be a comparison.")
       }
@@ -335,6 +337,12 @@ object Octagons
       } else this
     }
 
+    override def remove(ids: IdentifierSet): S = ids match {
+      case IdentifierSet.Bottom => this
+      case IdentifierSet.Top => factory(Set.empty[Identifier])
+      case IdentifierSet.Inner(value) => remove(value)
+    }
+
     override def remove(ids: Set[Identifier]): S = {
       val diff = ids.filter(exists).filter(numerical)
       if (diff.nonEmpty) {
@@ -443,7 +451,9 @@ object Octagons
       * @return The resulting interval.
       */
     def evaluate(expr: Expression): Interval = expr match {
-      case Constant(value, _, _) => Interval(value.toInt, value.toInt)
+      case Constant("true", _, _) => Interval.One
+      case Constant("false", _, _) => Interval.Zero
+      case Constant(value, _, _) => toInterval(value)
       case id: Identifier => evaluate(id)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => evaluate(arg)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -evaluate(arg)
@@ -459,6 +469,8 @@ object Octagons
         }
       case _ => Interval.Top
     }
+
+    def toInterval(s:String):Interval
 
     /** Evaluates a normalized expression into an interval.
       *
@@ -1259,6 +1271,10 @@ object Octagons
       * @return The interval containing one.
       */
     def One = Interval(1.0, 1.0)
+
+
+    def Epsilon = Interval(NumericalAnalysisConstants.epsilon, NumericalAnalysisConstants.epsilon)
+
   }
 
   /** Represents an interval.
@@ -1372,7 +1388,6 @@ sealed trait IntegerOctagons
 
   override def factory(env: Environment): IntegerOctagons =
     if (env.isTop) top()
-    else if (env.isBottom) bottom()
     else IntegerOctagons.Inner(env, Some(IntegerDbm(env.size, topArr(env.size))), None)
 
   override def top(): IntegerOctagons = IntegerOctagons.Top
@@ -1411,13 +1426,18 @@ object IntegerOctagons
     * @param open The optional open DBM.
     * @author Jerome Dohrau
     */
-  case class Inner(val env: Environment,
+  case class Inner(env: Environment,
                    var closed: Option[IntegerDbm],
-                   val open: Option[IntegerDbm])
+                   open: Option[IntegerDbm])
     extends IntegerOctagons
       with Octagons.Inner[IntegerOctagons, IntegerDbm] {
-    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons =
-      Inner(env, closed, open);
+
+    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons = {
+      val dbm = closed.orElse(open).get
+      if (env.isTop) Top
+      else if (!env.isBottom && dbm.isBottom) Bottom
+      else Inner(env, closed, open)
+    }
 
     require(closed.isDefined || open.isDefined)
 
@@ -1468,6 +1488,10 @@ object IntegerOctagons
       */
     override protected def divide(left: Interval, right: Interval): Interval =
       (left / right).truncate()
+
+    override def epsilon = Interval.One
+
+    override def toInterval(value:String) = Interval(value.toInt, value.toInt)
   }
 }
 
@@ -1481,7 +1505,6 @@ sealed trait DoubleOctagons
 
   override def factory(env: Environment): DoubleOctagons =
     if (env.isTop) top()
-    else if (env.isBottom) bottom()
     else DoubleOctagons.Inner(env, Some(DoubleDbm(env.size, topArr(env.size))), None)
 
   override def top(): DoubleOctagons = DoubleOctagons.Top
@@ -1519,13 +1542,18 @@ object DoubleOctagons {
     * @param open The optional open DBM.
     * @author Jerome Dohrau
     */
-  case class Inner(val env: Environment,
+  case class Inner(env: Environment,
                    var closed: Option[DoubleDbm],
-                   val open: Option[DoubleDbm])
+                   open: Option[DoubleDbm])
     extends DoubleOctagons
       with Octagons.Inner[DoubleOctagons, DoubleDbm] {
-    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons =
-      Inner(env, closed, open)
+
+    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons = {
+      val dbm = closed.orElse(open).get
+      if (env.isTop) Top
+      else if (!env.isBottom && dbm.isBottom) Bottom
+      else Inner(env, closed, open)
+    }
 
     /** Returns the underlying DBM. When an open and a closed DBM are present,
       * the closed version is returned.
@@ -1574,5 +1602,9 @@ object DoubleOctagons {
       */
     override protected def divide(left: Interval, right: Interval): Interval =
       left / right
+
+    override def epsilon = Interval.Epsilon
+
+    override def toInterval(value:String) = Interval(value.toDouble, value.toDouble)
   }
 }
