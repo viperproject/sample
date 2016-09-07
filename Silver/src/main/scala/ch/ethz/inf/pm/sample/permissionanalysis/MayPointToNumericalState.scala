@@ -1299,7 +1299,7 @@ object MayPointToIntegerOctagonsEntryStateBuilder
     ExpressionSet(),
     Map[VariableIdentifier,Set[OldHeapNode]](),
     Map[OldHeapNode,Map[String,Set[OldHeapNode]]](),
-    IntegerOctagon.Bottom.factory)
+    IntegerOctagons.Bottom.factory)
 }
 
 object MayPointToDoubleOctagonsEntryStateBuilder
@@ -1309,7 +1309,7 @@ object MayPointToDoubleOctagonsEntryStateBuilder
     ExpressionSet(),
     Map[VariableIdentifier,Set[OldHeapNode]](),
     Map[OldHeapNode,Map[String,Set[OldHeapNode]]](),
-    DoubleOctagon.Bottom.factory)
+    DoubleOctagons.Bottom.factory)
 }
 
 
@@ -1407,7 +1407,7 @@ object MayPointToIntervalsAnalysisRunner
   * @author Caterina Urban
   */
 object MayPointToIntegerOctagonsAnalysisRunner
-  extends MayPointToNumericalAnalysisRunner[IntegerOctagon, MayPointToIntegerOctagonsState] {
+  extends MayPointToNumericalAnalysisRunner[IntegerOctagons, MayPointToIntegerOctagonsState] {
   override val analysis = SimpleForwardAnalysis[MayPointToIntegerOctagonsState](MayPointToIntegerOctagonsEntryStateBuilder)
   override def toString = "PointsTo+Octagons Analysis"
 }

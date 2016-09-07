@@ -9,7 +9,7 @@ trait RelationalNumericalDomainTest[T <: NumericalDomain[T]]
 }
 
 class OctagonsTest
-  extends RelationalNumericalDomainTest[IntegerOctagon] {
+  extends RelationalNumericalDomainTest[IntegerOctagons] {
 
   def constant(value: Int): Constant =
     Constant(value.toString, DummyNumericalType)
@@ -44,21 +44,21 @@ class OctagonsTest
   /**
     * Add more instances to the test suite
     */
-  override def instances: Set[IntegerOctagon] =
+  override def instances: Set[IntegerOctagons] =
     super.instances ++ Set(
-      IntegerOctagon.Top,
-      IntegerOctagon.Bottom,
-      IntegerOctagon.Top
+      IntegerOctagons.Top,
+      IntegerOctagons.Bottom,
+      IntegerOctagons.Top
         .assign(variable("a"), constant(2)),
-      IntegerOctagon.Top
+      IntegerOctagons.Top
         .assign(variable("b"), constant(3)),
-      IntegerOctagon.Top
+      IntegerOctagons.Top
         .assign(variable("a"), constant(1))
         .assume(equal(variable("a"), variable("b"))),
-      IntegerOctagon.Top
+      IntegerOctagons.Top
         .assume(inRange(variable("a"), constant(-10), constant(10)))
         .assume(inRange(variable("c"), constant(0), constant(5)))
     )
 
-  override def factory: IntegerOctagon = IntegerOctagon.Bottom
+  override def factory: IntegerOctagons = IntegerOctagons.Bottom
 }

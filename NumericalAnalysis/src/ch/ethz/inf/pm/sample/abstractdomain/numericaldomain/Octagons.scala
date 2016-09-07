@@ -9,14 +9,14 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagon.{DoubleDbm, Environment, IntegerDbm, Interval}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons.{DoubleDbm, Environment, IntegerDbm, Interval}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, Type}
 
 /** The common super trait of integer octagons and double octagons.
   *
   * @author Jerome Dohrau
   */
-sealed trait Octagon[S <: Octagon[S]]
+sealed trait Octagons[S <: Octagons[S]]
   extends NumericalDomain.Relational[S]
     with SimplifiedSemanticDomain[S]
     with SimplifiedMergeDomain[S]
@@ -27,20 +27,20 @@ sealed trait Octagon[S <: Octagon[S]]
     top()
 
   def factory(ids: Set[Identifier]): S =
-    factory(Octagon.Environment(IdentifierSet.Inner(ids)))
+    factory(Octagons.Environment(IdentifierSet.Inner(ids)))
 
-  def factory(env: Octagon.Environment): S
+  def factory(env: Octagons.Environment): S
 }
 
-object Octagon
+object Octagons
 {
   /** The super trait for integer octagons and double octagons that are the top
     * element.
     *
     * @author Jerome Dohrau
     */
-  sealed trait Top[S <: Octagon[S]]
-    extends Octagon[S]
+  sealed trait Top[S <: Octagons[S]]
+    extends Octagons[S]
       with NumericalDomain.Relational.Top[S]
       with SimplifiedMergeDomain.Top[S]
       with BooleanExpressionSimplifier[S]
@@ -63,8 +63,8 @@ object Octagon
     *
     * @author Jerome Dohrau
     */
-  sealed trait Bottom[S <: Octagon[S]]
-    extends Octagon[S]
+  sealed trait Bottom[S <: Octagons[S]]
+    extends Octagons[S]
       with NumericalDomain.Relational.Bottom[S]
       with SimplifiedMergeDomain.Bottom[S]
   {
@@ -82,8 +82,8 @@ object Octagon
     *
     * @author Jerome Dohrau
     */
-  sealed trait Inner[S <: Octagon[S], T <: Dbm[T]]
-    extends Octagon[S]
+  sealed trait Inner[S <: Octagons[S], T <: Dbm[T]]
+    extends Octagons[S]
       with NumericalDomain.Relational.Inner[S, Inner[S, T]]
       with BooleanExpressionSimplifier[S]
   {
@@ -912,7 +912,6 @@ object Octagon
     *
     * @param dim The dimension of the DBM.
     * @param arr The internal matrix of the DBM.
-    *
     * @author Jerome Dohrau
     */
   case class IntegerDbm(dim: Int, arr: Array[Double])
@@ -978,7 +977,6 @@ object Octagon
     *
     * @param dim The dimension of the DBM.
     * @param arr The internal matrix of the DBM.
-    *
     * @author Jerome Dohrau
     */
   case class DoubleDbm(dim: Int, arr: Array[Double])
@@ -1232,7 +1230,6 @@ object Octagon
   /** Represents a positive occurrence of an identifier.
     *
     * @param id The identifier.
-    *
     * @author Jerome Dohrau
     */
   case class Positive(id: Identifier) extends Literal
@@ -1240,7 +1237,6 @@ object Octagon
   /** Represents a negative occurrence of an identifier.
     *
     * @param id The identifier.
-    *
     * @author Jerome Dohrau
     */
   case class Negative(id: Identifier) extends Literal
@@ -1269,7 +1265,6 @@ object Octagon
     *
     * @param low  The lower bound of the interval.
     * @param high The upper bound of the interval.
-    *
     * @author Jerome Dohrau
     */
   case class Interval(low: Double, high: Double) {
@@ -1370,22 +1365,22 @@ object Octagon
   *
   * @author Jerome Dohrau
   */
-sealed trait IntegerOctagon
-  extends Octagon[IntegerOctagon]
+sealed trait IntegerOctagons
+  extends Octagons[IntegerOctagons]
 {
-  import Octagon.Dbm.topArr
+  import Octagons.Dbm.topArr
 
-  override def factory(env: Environment): IntegerOctagon =
+  override def factory(env: Environment): IntegerOctagons =
     if (env.isTop) top()
     else if (env.isBottom) bottom()
-    else IntegerOctagon.Inner(env, Some(IntegerDbm(env.size, topArr(env.size))), None)
+    else IntegerOctagons.Inner(env, Some(IntegerDbm(env.size, topArr(env.size))), None)
 
-  override def top(): IntegerOctagon = IntegerOctagon.Top
+  override def top(): IntegerOctagons = IntegerOctagons.Top
 
-  override def bottom(): IntegerOctagon = IntegerOctagon.Bottom
+  override def bottom(): IntegerOctagons = IntegerOctagons.Bottom
 }
 
-object IntegerOctagon
+object IntegerOctagons
 {
 
   /** The top element of the integer octagon domain.
@@ -1393,16 +1388,16 @@ object IntegerOctagon
     * @author Jerome Dohrau
     */
   object Top
-    extends IntegerOctagon
-      with Octagon.Top[IntegerOctagon]
+    extends IntegerOctagons
+      with Octagons.Top[IntegerOctagons]
 
   /** The bottom element of the integer octagon domain.
     *
     * @author Jerome Dohrau
     */
   object Bottom
-    extends IntegerOctagon
-      with Octagon.Bottom[IntegerOctagon]
+    extends IntegerOctagons
+      with Octagons.Bottom[IntegerOctagons]
 
   /** An element of the integer octagon domain that is neither the top element
     * nor the bottom element.
@@ -1414,16 +1409,14 @@ object IntegerOctagon
     * @param env The environment containing the identifiers.
     * @param closed The optional closed DBM.
     * @param open The optional open DBM.
-    *
     * @author Jerome Dohrau
     */
   case class Inner(val env: Environment,
                    var closed: Option[IntegerDbm],
                    val open: Option[IntegerDbm])
-    extends IntegerOctagon
-      with Octagon.Inner[IntegerOctagon, IntegerDbm]
-  {
-    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagon =
+    extends IntegerOctagons
+      with Octagons.Inner[IntegerOctagons, IntegerDbm] {
+    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons =
       Inner(env, closed, open);
 
     require(closed.isDefined || open.isDefined)
@@ -1461,7 +1454,7 @@ object IntegerOctagon
     override def isClosed: Boolean =
       closed.isDefined
 
-    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagon = {
+    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
       val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
       factory(newEnv, newClosed, newOpen)
@@ -1482,38 +1475,37 @@ object IntegerOctagon
   *
   * @author Jerome Dohrau
   */
-sealed trait DoubleOctagon
-  extends Octagon[DoubleOctagon]
-{
-  import Octagon.Dbm.topArr
+sealed trait DoubleOctagons
+  extends Octagons[DoubleOctagons] {
+  import Octagons.Dbm.topArr
 
-  override def factory(env: Environment): DoubleOctagon =
+  override def factory(env: Environment): DoubleOctagons =
     if (env.isTop) top()
     else if (env.isBottom) bottom()
-    else DoubleOctagon.Inner(env, Some(DoubleDbm(env.size, topArr(env.size))), None)
+    else DoubleOctagons.Inner(env, Some(DoubleDbm(env.size, topArr(env.size))), None)
 
-  override def top(): DoubleOctagon = DoubleOctagon.Top
+  override def top(): DoubleOctagons = DoubleOctagons.Top
 
-  override def bottom(): DoubleOctagon = DoubleOctagon.Bottom
+  override def bottom(): DoubleOctagons = DoubleOctagons.Bottom
 }
 
-object DoubleOctagon
-{
+object DoubleOctagons {
+
   /** The top element of the double octagon domain.
     *
     * @author Jerome Dohrau
     */
   object Top
-    extends DoubleOctagon
-      with Octagon.Top[DoubleOctagon]
+    extends DoubleOctagons
+      with Octagons.Top[DoubleOctagons]
 
   /** The bottom element of the double octagon domain.
     *
     * @author Jerome Dohrau
     */
   object Bottom
-    extends DoubleOctagon
-      with Octagon.Bottom[DoubleOctagon]
+    extends DoubleOctagons
+      with Octagons.Bottom[DoubleOctagons]
 
   /** An element of the double octagon domain that is neither the top element
     * nor the bottom element.
@@ -1525,16 +1517,14 @@ object DoubleOctagon
     * @param env The environment containing the identifiers.
     * @param closed The optional closed DBM.
     * @param open The optional open DBM.
-    *
     * @author Jerome Dohrau
     */
   case class Inner(val env: Environment,
                    var closed: Option[DoubleDbm],
                    val open: Option[DoubleDbm])
-    extends DoubleOctagon
-      with Octagon.Inner[DoubleOctagon, DoubleDbm]
-  {
-    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagon =
+    extends DoubleOctagons
+      with Octagons.Inner[DoubleOctagons, DoubleDbm] {
+    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons =
       Inner(env, closed, open)
 
     /** Returns the underlying DBM. When an open and a closed DBM are present,
@@ -1570,7 +1560,7 @@ object DoubleOctagon
     override def isClosed: Boolean =
       closed.isDefined
 
-    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagon = {
+    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
       val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
       factory(newEnv, newClosed, newOpen)
