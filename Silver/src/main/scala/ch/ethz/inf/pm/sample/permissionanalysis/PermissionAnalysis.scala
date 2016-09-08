@@ -567,19 +567,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
     case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
     case PostconditionCommand(condition) => command(ExhaleCommand(condition))
-    case InvariantCommand(condition) => {
-      println("-----------------------")
-      println(s"before:${tuples}")
-
-      val x = command(InhaleCommand(condition))
-        .setSpecification()
-
-      println(s"after:${x.tuples}")
-      println(s"invariant:${x.invariant()}")
-      println("-----------------------")
-
-      x.command(ExhaleCommand(condition))
-    }
+    case InvariantCommand(condition) => command(InhaleCommand(condition)).setSpecification().command(ExhaleCommand(condition))
     case _ => super.command(cmd)
   }
 
@@ -600,6 +588,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val location = path(identifier)
         // get the amount of permission that is exhaled
         val exhaled = permission(numerator, denominator)
+
+
 
         // subtract permission form all paths that may alias
         map { (path, permission) =>
