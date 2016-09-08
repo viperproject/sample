@@ -44,8 +44,21 @@ case class TrackingCFGStateFactory[S <: State[S]](stateFactory: S)
   *
   * @todo refactor and share as much code as possible with `DefaultCFGState`
   */
-class TrackingCFGState[S <: State[S]](val cfg: ControlFlowGraph, val stateFactory: S) extends AbstractCFGState[S] {
+case class TrackingCFGState[S <: State[S]](cfg: ControlFlowGraph, stateFactory: S) extends AbstractCFGState[S] {
   var blockStates: Map[Int, List[List[S]]] = Map.empty
+
+  def lub(other:TrackingCFGState[S]):TrackingCFGState[S] = {
+    val res = this.copy()
+    res.blockStates =
+      (for (i <- this.blockStates.keys ++ other.blockStates.keys) yield {
+        val a = this.blockStates.getOrElse(i,List(List(stateFactory.bottom())))
+        val b = this.blockStates.getOrElse(i,List(List(stateFactory.bottom())))
+        val zipped = a.zipAll(b,a.last,b.last)
+        val joined = zipped.map(x => x._1.zipAll(x._2,stateFactory.bottom(),stateFactory.bottom()).map(y => y._1 lub y._2))
+        i -> joined
+      }).toMap
+    res
+  }
 
   def initializeStates(state: S) {
     for ((stmts, blockIdx) <- cfg.nodes.zipWithIndex) {
