@@ -25,7 +25,7 @@ class TSVExporter extends FileSystemExporter {
 
     var res = ""
 
-    for (SampleError(_, message, pp, causes) <- Reporter.seenErrors) {
+    for (SampleError(_, message, pp, causes) <- Reporter.assertionViolations) {
       pp match {
         case touchPP: SpaceSavingProgramPoint =>
           val tpp = TouchProgramPointRegistry.reg(touchPP.id)
@@ -35,22 +35,22 @@ class TSVExporter extends FileSystemExporter {
       }
     }
 
-    for ((message, pp) <- Reporter.seenBottom) {
-      pp match {
+    for (m <- Reporter.unreachableCode) {
+      m.pp match {
         case touchPP: SpaceSavingProgramPoint =>
           val tpp = TouchProgramPointRegistry.reg(touchPP.id)
-          if (id == tpp.scriptID) "Error\t" + message + "\t" + pp else ""
-        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Bottom\t" + message + "\t" + pp else ""
+          if (id == tpp.scriptID) "Error\t" + m.message + "\t" + m.pp else ""
+        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Bottom\t" + m.message + "\t" + m.pp else ""
         case _ => ""
       }
     }
 
-    for ((message, pp) <- Reporter.seenImprecision) {
-      pp match {
+    for (m <- Reporter.impreciseSemantics) {
+      m.pp match {
         case touchPP: SpaceSavingProgramPoint =>
           val tpp = TouchProgramPointRegistry.reg(touchPP.id)
-          if (id == tpp.scriptID) "Error\t" + message + "\t" + pp else ""
-        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Imprecision\t" + message + "\t" + pp else ""
+          if (id == tpp.scriptID) "Error\t" + m.message + "\t" + m.pp else ""
+        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Imprecision\t" + m.message + "\t" + m.pp else ""
         case _ => ""
       }
     }

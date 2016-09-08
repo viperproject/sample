@@ -121,7 +121,7 @@ class HTMLExporter extends FileSystemExporter {
             val onmouseover = "$('#" + spanId + "').addClass('hoverError');"
             val onmouseout  = "$('#" + spanId + "').removeClass('hoverError');"
             "<span id='" + spanId + "'>" +
-              (for (SampleError(errorTypeId, message, pp, causes) <- Reporter.seenErrors) yield {
+              (for (SampleError(errorTypeId, message, pp, causes) <- Reporter.assertionViolations) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
                     val onmouseover2 = onmouseover + (for (c <- causes) yield {
@@ -134,17 +134,17 @@ class HTMLExporter extends FileSystemExporter {
                   case _ => ""
                 }
               }).mkString("") +
-              (for ((message, pp) <- Reporter.seenBottom) yield {
-                pp match {
+              (for (m <- Reporter.unreachableCode) yield {
+                  m.pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <div title={message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+                      <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
                   case _ => ""
                 }
               }).mkString("") +
-              (for ((message, pp) <- Reporter.seenImprecision) yield {
-                pp match {
+              (for (m <- Reporter.impreciseSemantics) yield {
+                m.pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <div title={message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+                      <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
                   case _ => ""
                 }
               }).mkString("") +

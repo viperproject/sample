@@ -10,14 +10,15 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 trait SampleMessage {
   def id: String
+  def message: String
   def pp: ProgramPoint
 }
 
 case class SampleError(id: String, message: String, pp: ProgramPoint, causes:Set[(String,ProgramPoint)]) extends SampleMessage {
-  override def toString: String = "ERROR: " + message + " " + pp.toString
+  override def toString: String = "ERROR: " + message + " " + pp.toString +
+    (if (causes.nonEmpty) ", since " + causes.map { x => x._1}.mkString(" or ") else "")
 }
 
 case class SampleInfo(id: String, message: String, pp: ProgramPoint) extends SampleMessage {
   override def toString: String = "WARNING: " + message + " " + pp
 }
-

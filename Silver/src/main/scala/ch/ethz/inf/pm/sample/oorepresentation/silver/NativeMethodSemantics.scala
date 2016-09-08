@@ -93,7 +93,7 @@ object RichNativeMethodSemantics extends NativeMethodSemantics {
         val assertedState = state.setExpression(thisExpr)
         val assertedStateFalse = assertedState.testFalse()
         if (!assertedStateFalse.lessEqual(state.bottom())) {
-          Reporter.reportError("Possible assertion violation", programPoint)
+          Reporter.reportAssertionViolation("Possible assertion violation", programPoint)
         }
         Some(assertedState.testTrue())
       case Some(NativeMethods.assume) =>

@@ -18,7 +18,12 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
-                                        cfgState: TrackingCFGState[S])
+                                        cfgState: TrackingCFGState[S]) {
+
+  def lub(other:MethodSummary[S]) =
+    this.copy(cfgState = this.cfgState lub other.cfgState)
+
+}
 
 /**
  * Stores summaries of methods. This is not thread-safe.

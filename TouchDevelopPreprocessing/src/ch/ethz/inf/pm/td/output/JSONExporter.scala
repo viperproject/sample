@@ -54,7 +54,7 @@ class JSONExporter extends FileSystemExporter {
 
   private def makeResult(scriptID: String): JResult = {
 
-    val errors = (for (SampleError(id, string, pp, causes) <- Reporter.seenErrors) yield {
+    val errors = (for (SampleError(id, string, pp, causes) <- Reporter.assertionViolations) yield {
       pp match {
         case touchPP: SpaceSavingProgramPoint =>
           val tpp = TouchProgramPointRegistry.reg(touchPP.id)
