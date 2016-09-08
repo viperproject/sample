@@ -1262,12 +1262,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   /**
     * Returns whether the specified access paths may alias.
     *
-    * @param first the first access path
+    * @param first  the first access path
     * @param second the second access path
     */
   def pathsMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val evalFirst = mayEvaluatePath(first)
-    val evalSecond = mayEvaluatePath(second)
+    val (firstPrefix, secondPrefix) = removeCommonFields(first, second)
+    val evalFirst = mayEvaluatePath(firstPrefix)
+    val evalSecond = mayEvaluatePath(secondPrefix)
     val intersection = evalFirst intersect evalSecond
     (intersection - NullHeapNode).nonEmpty
   }
@@ -1278,9 +1279,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param first  the first access path
     * @param second the second access path
     */
-  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean =  {
-    val evalFirst = mustEvaluatePath(first) -- Set(NullHeapNode, UnknownHeapNode)
-    val evalSecond = mustEvaluatePath(second) -- Set(NullHeapNode, UnknownHeapNode)
+  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val (firstPrefix, secondPrefix) = removeCommonFields(first, second);
+    val evalFirst = mustEvaluatePath(firstPrefix) -- Set(NullHeapNode, UnknownHeapNode)
+    val evalSecond = mustEvaluatePath(secondPrefix) -- Set(NullHeapNode, UnknownHeapNode)
     evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
   }
 
@@ -1301,6 +1303,22 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     */
   def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean =
     pathsMustAlias(first.dropRight(1), second.dropRight(1))
+
+  /** Removes all common fields at the end of the given access paths.
+    *
+    * @param first The first access path.
+    * @param second The second access path.
+    * @return The given access paths with the common fields removed.
+    */
+  private def removeCommonFields(first: AccessPath, second: AccessPath): (AccessPath, AccessPath) = {
+    var a = first.tail.reverse
+    var b = second.tail.reverse
+    while (a.nonEmpty && b.nonEmpty && a.head == b.head) {
+      a = a.tail
+      b = b.tail
+    }
+    (first.head :: a.reverse, second.head :: b.reverse)
+  }
 
   /** Removes the current expression.
     *
