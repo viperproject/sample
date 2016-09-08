@@ -37,4 +37,22 @@ case class GCollection (TT:AAny) extends Default_GCollection {
     }
   })
 
+  override lazy val member_avg = super.member_avg.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      Return[S](AllValues[S](this0))
+    }
+  })
+
+  override lazy val member_min = super.member_avg.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      Return[S](AllValues[S](this0))
+    }
+  })
+
+  override lazy val member_max = super.member_avg.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      Return[S](AllValues[S](this0))
+    }
+  })
+
 }

@@ -38,7 +38,11 @@ trait AMap extends ACollection {
       Valid(TNumber),
       this.AllKeys[S](collection)(curState,pp)
     )(curState,pp)
-    Return[S](keyCollection)(curState,pp)
+    curState = keyCollectionTyp.SetCount[S](
+      keyCollection, Field[S](collection,field_count)(curState,pp)
+    )(curState,pp)
+    val res = Return[S](keyCollection)(curState,pp)
+    res
   }
 
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
