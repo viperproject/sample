@@ -147,7 +147,9 @@ object LoopRewriter {
 
         val (storedCollection,collectionStore) =
           if (!TouchAnalysisParameters.get.copyForeachCollections) {
-            (coll,Nil)
+            val a = pos(LocalReference(annotateName(elem, "collection")))
+            val b = List(pos(ExpressionStatement(pos(Access(a, Identifier(":="), List(coll))))))
+            (a,b)
           } else {
             val a = pos(LocalReference(annotateName(elem, "collection")))
             val b = List(pos(ExpressionStatement(pos(Access(a, Identifier(":="),
