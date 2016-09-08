@@ -581,7 +581,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
     acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         exhale(left).exhale(right)
       case PermissionExpression(identifier, numerator, denominator) =>
         // get access path
@@ -1080,6 +1080,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         case (field, subtree) => PermissionTree(Permission.read, Map(field -> subtree))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
+
       // add new permission tree to permissions
       val updated = permissions.get(variable) match {
         case Some(existing) => tree lub existing

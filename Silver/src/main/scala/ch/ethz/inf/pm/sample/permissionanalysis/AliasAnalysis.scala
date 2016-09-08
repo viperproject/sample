@@ -778,6 +778,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace("*** exhale(" + acc.toString + ")")
 
     acc match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        exhale(left).exhale(right)
       case acc: PermissionExpression => {
         acc.id match {
           case AccessPathIdentifier(path) =>
