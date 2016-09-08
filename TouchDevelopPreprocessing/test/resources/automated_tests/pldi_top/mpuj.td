@@ -71,6 +71,7 @@ action getDialString(PhoneNumber: String, ConferenceID: String, Organizer: Strin
     }
   }
   else {
+    //:: ExpectedOutput(unreachable)
     $DialString := $p ∥ $w ∥ $c ∥ $h;
   }
   meta private;

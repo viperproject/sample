@@ -10,12 +10,14 @@ import java.net.{URI, URL}
 import java.nio.file._
 import java.util.regex.Pattern
 
+import ch.ethz.inf.pm.sample.reporting
+import ch.ethz.inf.pm.sample.reporting.Reporter.{MessageClass, ReportingLevel}
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchRun}
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, SpaceSavingProgramPoint}
+import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchProgramPointRegistry}
 import org.scalatest._
-import scala.collection.JavaConversions._
 
+import scala.collection.JavaConversions._
 import scala.io.Source
 
 class FileBasedTestSuite extends TouchGuruTestSuite {

@@ -7,6 +7,7 @@ action main() {
   $string3 := $string1 ∥ $string2;
 
   if not $string3->equals("ab") then {
+    //:: ExpectedOutput(unreachable)
     contract->assert(false,"");
   }
 

@@ -18,7 +18,9 @@ action theOther() {
 
     $c := 1 / 0;
 
+    //:: ExpectedOutput(unreachable)
     data→board := media→create_full_board;
+    //:: ExpectedOutput(unreachable)
     data→board→post_to_wall;
 }
 
