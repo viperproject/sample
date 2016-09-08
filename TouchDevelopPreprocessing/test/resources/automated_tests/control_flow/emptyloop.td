@@ -5,6 +5,7 @@ meta name "For each picture";
 meta platform "media";
 
 action main() {
+    //:: ExpectedOutput(unreachable)
   foreach pic in collections->create_location_collection() where true do {
     //:: ExpectedOutput(unreachable)
     $pic->post_to_wall();
