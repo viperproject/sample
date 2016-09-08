@@ -40,8 +40,6 @@ class HTMLExporter extends FileSystemExporter {
         |  <meta http-equiv="Content-Style-Type" content="text/css" />
         |  <meta http-equiv="Content-Script-Type" content="text/javascript" />
         |  <meta name="description" content="" />
-        |  <link rel="stylesheet" href="screen.css" type="text/css" media="screen,projection,tv" />
-        |  <link rel="stylesheet" href="print.css" type="text/css" media="print" />
         |  <style> body { font-family:sans-serif; } span:target { color:red; background-color:yellow; } </style>
         |  <!--[if lt IE 7]>
         |    <link rel="stylesheet" href="ie6.css" type="text/css" media="screen,projection,tv" />
@@ -106,6 +104,10 @@ class HTMLExporter extends FileSystemExporter {
       case _ => ""
     }
 
+    val violationMap = Reporter.assertionViolations.groupBy(_.pp)
+    val unreachableMap = Reporter.unreachableCode.groupBy(_.pp)
+    val impreciseMap = Reporter.impreciseSemantics.groupBy(_.pp)
+
     for ((id, script) <- targets) {
       res += <h2>
         {id}
@@ -113,42 +115,26 @@ class HTMLExporter extends FileSystemExporter {
       res += "<pre>" +
         PrettyPrinter.applyWithPPPrinter(script)({
           (curPositional: IdPositional, pretty: String) =>
-
-            val spanId = TouchProgramPointRegistry.get(id, curPositional) match {
-              case Some(x) => x.fullPosString;
-              case None => ""
-            }
+            val pp = TouchProgramPointRegistry.make(id,curPositional)
+            val spanId = pp.fullPosString
             val onmouseover = "$('#" + spanId + "').addClass('hoverError');"
             val onmouseout  = "$('#" + spanId + "').removeClass('hoverError');"
             "<span id='" + spanId + "'>" +
-              (for (SampleError(errorTypeId, message, pp, causes) <- Reporter.assertionViolations) yield {
-                pp match {
-                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                    val onmouseover2 = onmouseover + (for (c <- causes) yield {
-                      "$('#" + toStr(c._2) + "').addClass('hoverCause');"
-                    }).mkString(";")
-                    val onmouseout2 = onmouseout + (for (c <- causes) yield {
-                      "$('#" + toStr(c._2) + "').removeClass('hoverCause');"
-                    }).mkString(";")
-                    <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
-                  case _ => ""
-                }
-              }).mkString("") +
-              (for (m <- Reporter.unreachableCode) yield {
-                  m.pp match {
-                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
-                  case _ => ""
-                }
-              }).mkString("") +
-              (for (m <- Reporter.impreciseSemantics) yield {
-                m.pp match {
-                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
-                  case _ => ""
-                }
-              }).mkString("") +
-              pretty + "</span>"
+               (for (SampleError(errorTypeId, message, pp, causes) <- violationMap.getOrElse(pp,Set.empty)) yield {
+                  val onmouseover2 = onmouseover + (for (c <- causes) yield {
+                    "$('#" + toStr(c._2) + "').addClass('hoverCause');"
+                  }).mkString(";")
+                  val onmouseout2 = onmouseout + (for (c <- causes) yield {
+                    "$('#" + toStr(c._2) + "').removeClass('hoverCause');"
+                  }).mkString(";")
+                  <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
+                }).mkString("") +
+               (for (m <- unreachableMap.getOrElse(pp,Set.empty)) yield {
+                 <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+               }).mkString("") +
+               (for (m <- impreciseMap.getOrElse(pp,Set.empty)) yield {
+                 <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+               }).mkString("") + pretty + "</span>"
         }) + "</pre>"
     }
 

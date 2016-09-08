@@ -69,15 +69,10 @@ object CFGGenerator {
    * @return The program point
    */
   def makeTouchProgramPoint(pubID: String, libraryStableID:String, element: IdPositional) = {
-    val pos = element.pos match {
-      case NoPosition => None
-      case p => Some(p)
-    }
-
     if (TouchAnalysisParameters.get.includeLibraryStableComponent) {
-      TouchProgramPointRegistry.make(pubID, pos, libraryStableID :: element.customIdComponents)
+      TouchProgramPointRegistry.make(pubID, element.pos, libraryStableID :: element.customIdComponents)
     } else {
-      TouchProgramPointRegistry.make(pubID, pos, element.customIdComponents)
+      TouchProgramPointRegistry.make(pubID, element.pos, element.customIdComponents)
     }
   }
 }
@@ -411,7 +406,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                   expressionToStatement(
                     ty("Nothing",Access(
                       tty(typName,LocalReference(optionalArgumentIdent)),
-                      parser.Identifier(":="),
+                      parser.Identifier(":=").copyPos(p),
                       List(
                         tty(typName,Access(
                           tty(TypeName("Constructor",List(typName)),Access(
@@ -434,7 +429,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                             parser.Identifier(x.name).copyPos(x.expr),
                             Nil
                           ).copyPos(x.expr)),
-                          parser.Identifier(":="),
+                          parser.Identifier(":=").copyPos(p),
                           List(
                             x.expr
                           )
@@ -548,28 +543,21 @@ case class TouchClassIdentifier(name: String, typ: Type) extends Named with Clas
 /** Used to speed up the analysis */
 object TouchProgramPointRegistry {
 
-  /** inefficient, knowingly so */
-  def get(scriptID: String, positional: IdPositional): Option[TouchProgramPoint] = {
-    revReg.get((scriptID,Some(positional.pos),positional.customIdComponents)).map(_._1)
-  }
-
-  def matches(point: SpaceSavingProgramPoint, scriptID: String, positional: IdPositional): Boolean = {
-    val pp = reg(point.id)
-    pp.scriptID == scriptID &&
-      ((positional.pos == NoPosition && pp.lineColumnPosition.isEmpty) || pp.lineColumnPosition.contains(positional.pos)) &&
-      (positional.customIdComponents == pp.customPositionElements)
-  }
-
   val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]
-  val revReg = mutable.HashMap.empty[(String,Option[Position],List[String]),(TouchProgramPoint,Int)]
+  val revReg = mutable.HashMap.empty[(String,Position,List[String]),(TouchProgramPoint,Int)]
+
+  def make(scriptID: String, positional: IdPositional): SpaceSavingProgramPoint = {
+    make(scriptID,positional.pos,positional.customIdComponents)
+  }
 
   def make(scriptID: String,
-           lineColumnPosition: Option[Position],
+           lineColumnPosition: Position,
            customPositionElements: List[String]): SpaceSavingProgramPoint = {
-    val pp = TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
+    assert(lineColumnPosition != NoPosition || customPositionElements.nonEmpty)
     revReg.get(scriptID,lineColumnPosition,customPositionElements) match {
       case Some((_,x)) => SpaceSavingProgramPoint(x)
       case None =>
+        val pp = TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
         reg += pp
         revReg += ((scriptID, lineColumnPosition, customPositionElements) -> (pp,reg.length - 1))
         SpaceSavingProgramPoint(reg.length - 1)
@@ -599,14 +587,12 @@ case class SpaceSavingProgramPoint(id: Int) extends ProgramPoint {
 
 case class TouchProgramPoint(
                               scriptID: String,
-                              lineColumnPosition: Option[Position],
+                              lineColumnPosition: Position,
                               customPositionElements: List[String])
   extends ProgramPoint {
 
   def fullPosString: String = {
-    val parserPos = lineColumnPosition
-      .map(_.toString())
-      .getOrElse("")
+    val parserPos = if (lineColumnPosition == NoPosition) "" else lineColumnPosition.toString()
     val customPos = customPositionElements.mkString("_")
     parserPos + customPos
   }

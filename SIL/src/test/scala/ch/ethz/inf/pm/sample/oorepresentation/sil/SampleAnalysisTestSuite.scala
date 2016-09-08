@@ -63,10 +63,10 @@ class SampleVerifier() extends SimpleVerifier {
     PreciseAnalysisRunner.run(program)
 
     // TODO: Maybe check for bottom at the end
-    if (Reporter.seenErrors.isEmpty)
+    if (Reporter.assertionViolations.isEmpty)
       Success
     else {
-      Failure(Reporter.seenErrors.map(error => {
+      Failure(Reporter.assertionViolations.map(error => {
         SampleAssertFailed(DefaultSampleConverter.convert(error.pp))
       }).toSeq)
     }

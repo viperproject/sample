@@ -28,7 +28,10 @@ import ch.ethz.inf.pm.td.parser.For
 
 object LoopRewriter {
 
-  def apply(s: Script): Script = Script(s.declarations map apply, s.isLibrary)
+  def apply(s: Script): Script = {
+    implicit val defPos = s
+    copyPos(Script(s.declarations map apply, s.isLibrary))
+  }
 
   def apply(d: Declaration): Declaration = {
     d match {
@@ -128,7 +131,7 @@ object LoopRewriter {
             val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, pos(Identifier(":=")), List(bnd)))))
             val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
             val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, pos(Identifier(":=")), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
-            indexInit :: upperBoundStore :: While(condition, (body flatMap apply) ::: bodyPostfix :: Nil) :: Nil
+            indexInit :: upperBoundStore :: pos(While(condition, (body flatMap apply) ::: bodyPostfix :: Nil)) :: Nil
 
         }
 
@@ -204,14 +207,14 @@ object LoopRewriter {
 
   def pos[T <: IdPositional](posNew: T)(implicit defPos: IdPositional): T = {
     posNew.pos = defPos.pos
+    posNew.customIdComponents = defPos.customIdComponents
     posNew.appendIdComponent("[" + id + "]")
     id = id + 1
     posNew
   }
 
   def copyPos[T <: IdPositional](posNew: T)(implicit defPos: IdPositional): T = {
-    posNew.pos = defPos.pos
-    posNew
+    posNew.copyPos(defPos)
   }
 
   var id = 0

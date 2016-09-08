@@ -111,8 +111,8 @@ object PrettyPrinter {
 
   def apply(e: Expression)(implicit ppPrinter: ((IdPositional, String) => String)): String = {
     ppPrinter(e, e match {
-      case Access(subject, Identifier(property), args) =>
-        if (operators.contains(property)) "(" + apply(subject) + ") " + apply(property) + " (" + (args map apply).mkString(",") + ")"
+      case Access(subject, property, args) =>
+        if (operators.contains(property.ident)) "(" + apply(subject) + ") " + apply(property) + " (" + (args map apply).mkString(",") + ")"
         else apply(subject) + "->" + apply(property) + (if (args.isEmpty) "" else "(" + (args map apply).mkString(",") + ")")
       case LocalReference(ident) => "$" + apply(ident)
       case Placeholder(typ) => "$__optional_argument"
@@ -130,6 +130,9 @@ object PrettyPrinter {
       (a.outParameters map apply).mkString(",") + ") {\n" + apply(a.body) + "\n}")
   }
 
+  def apply(a: Identifier)(implicit ppPrinter: ((IdPositional, String) => String)): String = {
+    ppPrinter(a, a.ident)
+  }
 
   def apply(a: OptionalParameter)(implicit ppPrinter: ((IdPositional, String) => String)): String = {
     ppPrinter(a, " where " + apply(a.name) + " = " + apply(a.expr))

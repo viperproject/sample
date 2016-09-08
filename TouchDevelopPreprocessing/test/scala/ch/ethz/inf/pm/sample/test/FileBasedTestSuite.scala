@@ -41,11 +41,7 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
       val messageLine =
         message.pp match {
           case x: SpaceSavingProgramPoint =>
-            TouchProgramPointRegistry.reg(x.id).lineColumnPosition match {
-              case Some(lineColumnPos) => lineColumnPos.line
-              case None =>
-                sys.error("SampleError PP does not have expected structure")
-            }
+            TouchProgramPointRegistry.reg(x.id).lineColumnPosition.line
           case _ =>
             sys.error("SampleError PP does not have expected structure")
         }
