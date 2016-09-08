@@ -55,6 +55,9 @@ object Reporter {
   def assertionViolations:Set[SampleMessage] =
     getClass(MessageClass.AssertionViolation)
 
+  def genericWarnings:Set[SampleMessage] =
+    getClass(MessageClass.GenericWarning)
+
   def unreachableCode:Set[SampleMessage] =
     getClass(MessageClass.UnreachableCode)
 
