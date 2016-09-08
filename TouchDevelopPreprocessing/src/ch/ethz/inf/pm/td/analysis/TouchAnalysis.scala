@@ -192,10 +192,11 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // unreachable code.
     //
     // We join all summaries of the same function
+    val originalSummaries = MethodSummaries.getSummaries[S]
     val summaries =
       if (TouchAnalysisParameters.get.contextSensitiveInterproceduralAnalysis)
-        MethodSummaries.getSummaries[S].values.groupBy(_.method.programpoint).mapValues(_.reduce(_ lub _))
-      else MethodSummaries.getSummaries[S]
+        originalSummaries.values.groupBy(_.method.programpoint).mapValues(_.reduce(_ lub _))
+      else originalSummaries
 
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)

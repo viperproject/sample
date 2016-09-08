@@ -52,7 +52,7 @@ case class TrackingCFGState[S <: State[S]](cfg: ControlFlowGraph, stateFactory: 
     res.blockStates =
       (for (i <- this.blockStates.keys ++ other.blockStates.keys) yield {
         val a = this.blockStates.getOrElse(i,List(List(stateFactory.bottom())))
-        val b = this.blockStates.getOrElse(i,List(List(stateFactory.bottom())))
+        val b = other.blockStates.getOrElse(i,List(List(stateFactory.bottom())))
         val zipped = a.zipAll(b,a.last,b.last)
         val joined = zipped.map(x => x._1.zipAll(x._2,stateFactory.bottom(),stateFactory.bottom()).map(y => y._1 lub y._2))
         i -> joined
