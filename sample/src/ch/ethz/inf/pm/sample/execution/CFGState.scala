@@ -55,6 +55,7 @@ trait CFGStateFactory[S <: State[S], C <: CFGState[S]] {
   * @tparam S the underlying state type
   */
 abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
+
   def preStateAt(pos: CFGPosition): S = {
     val states = statesOfBlock(pos.blockIdx)
     states(pos.stmtIdx)

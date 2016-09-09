@@ -501,7 +501,7 @@ case class MethodCall(
         case None => ()
       }
     }
-    Reporter.reportImprecision("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programpoint)
+    Reporter.reportImpreciseSemantics("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programpoint)
     state.top()
   }
 
@@ -517,7 +517,7 @@ case class MethodCall(
         case None => ()
       }
     }
-    Reporter.reportImprecision("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programPoint)
+    Reporter.reportImpreciseSemantics("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programPoint)
     state.top()
   }
 

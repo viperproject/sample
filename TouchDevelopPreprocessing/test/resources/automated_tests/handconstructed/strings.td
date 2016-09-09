@@ -11,10 +11,12 @@ action main() {
   $string2 := "b";
 
   if $string1->equals("b") then {
+    //:: ExpectedOutput(unreachable)
     contract->assert(false,"");
   }
 
   if $string2->equals("a") then {
+    //:: ExpectedOutput(unreachable)
     contract->assert(false,"");
   }
 

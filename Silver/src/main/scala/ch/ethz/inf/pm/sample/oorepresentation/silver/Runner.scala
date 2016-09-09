@@ -35,11 +35,11 @@ trait SilverAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
     run(new File(args(0)).toPath) // run the analysis
 
     println("\n******************\n* AnalysisResult *\n******************\n")
-    if (Reporter.seenErrors.isEmpty) println("No errors")
-    for (e <- Reporter.seenErrors) { println(e) } // error report
+    if (Reporter.assertionViolations.isEmpty) println("No errors")
+    for (e <- Reporter.assertionViolations) { println(e) } // error report
     println()
-    if (Reporter.seenInfos.isEmpty) println("No warnings")
-    for (w <- Reporter.seenInfos) { println(w) } // warning report
+    if (Reporter.genericWarnings.isEmpty) println("No warnings")
+    for (w <- Reporter.genericWarnings) { println(w) } // warning report
   }
 }
 
@@ -83,11 +83,11 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     // run the analysis and report errors and warnings
     val results: List[AnalysisResult[S]] = run(new File(args(0)).toPath)
     println("\n******************\n* AnalysisResult *\n******************\n")
-    if (Reporter.seenErrors.isEmpty) println("No errors")
-    for (e <- Reporter.seenErrors) { println(e) } // error report
+    if (Reporter.assertionViolations.isEmpty) println("No errors")
+    for (e <- Reporter.assertionViolations) { println(e) } // error report
     println()
-    if (Reporter.seenInfos.isEmpty) println("No warnings")
-    for (w <- Reporter.seenInfos) { println(w) } // warning report
+    if (Reporter.genericWarnings.isEmpty) println("No warnings")
+    for (w <- Reporter.genericWarnings) { println(w) } // warning report
 
     // extend program with inferred permission
     val extended = extendProgram(DefaultSilverConverter.prog,results)

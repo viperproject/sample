@@ -61,7 +61,7 @@ trait AAction extends AAny {
         EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
           case SetDomain.Default.Bottom() => state.bottom()
           case SetDomain.Default.Top() =>
-            Reporter.reportImprecision("Handler name is top", pp)
+            Reporter.reportImpreciseSemantics("Handler name is top", pp)
             defaultBehavior()
           case SetDomain.Default.Inner(xs) =>
             Lattice.bigLub(
@@ -70,7 +70,7 @@ trait AAction extends AAny {
                   case Some(mdecl) =>
                     MethodSummaries.collect(pp, mdecl, state, parameters)
                   case _ =>
-                    Reporter.reportImprecision("Invalid handler name " + x.constant, pp)
+                    Reporter.reportImpreciseSemantics("Invalid handler name " + x.constant, pp)
                     defaultBehavior()
                 }
               }

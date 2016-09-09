@@ -141,9 +141,9 @@ object TouchRun extends LazyLogging {
     analysis.analyze(Nil,entryState)
 
     Exporters.setStatus("Done")
-    val messages = Reporter.seenErrors
+    val messages = Reporter.messages
     SystemParameters.resetOutput()
-    return messages.toSet
+    messages
   }
 
   def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {

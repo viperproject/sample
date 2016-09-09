@@ -55,7 +55,7 @@ class MongoExporter extends ErrorExporter {
         case _ => ""
       }
 
-      val result = for (SampleError(id, message, pp, causes) <- Reporter.seenErrors) yield {
+      val result = for (SampleError(id, message, pp, causes) <- Reporter.assertionViolations) yield {
         MongoDBObject(
           "id" -> id,
           "message" -> message,
@@ -64,17 +64,17 @@ class MongoExporter extends ErrorExporter {
         )
       }
 
-      val dummies = for ((message,pp) <- Reporter.seenImprecision) yield {
+      val dummies = for (m <- Reporter.impreciseSemantics) yield {
         MongoDBObject(
-          "message" -> message,
-          "pp" -> getPP(pp)
+          "message" -> m.message,
+          "pp" -> getPP(m.pp)
         )
       }
 
-      val bottoms = for ((message,pp) <- Reporter.seenBottom) yield {
+      val bottoms = for (m <- Reporter.unreachableCode) yield {
         MongoDBObject(
-          "message" -> message,
-          "pp" -> getPP(pp)
+          "message" -> m.message,
+          "pp" -> getPP(m.pp)
         )
       }
 

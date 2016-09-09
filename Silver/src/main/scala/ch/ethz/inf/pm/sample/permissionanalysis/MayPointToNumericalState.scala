@@ -744,7 +744,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
         }
 
         // null pointer dereference warning report
-        if (eval._4.contains(NullOldHeapNode$)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        if (eval._4.contains(NullOldHeapNode$)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
         rcvSet = eval._4 - NullOldHeapNode$
         val expr = rcvSet.foldLeft(ExpressionSet())(
           (exp,rcv) =>  exp add ExpressionSet(HeapAccess(rcv,field,typ))  // create new HeapAccess

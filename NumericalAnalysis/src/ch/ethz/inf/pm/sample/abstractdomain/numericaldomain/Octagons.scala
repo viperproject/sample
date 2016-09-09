@@ -204,6 +204,10 @@ object Octagons
       }
     }
 
+    /** A helper function that constructs a constant from the given value.
+      */
+    def makeConstant(value: Double): Expression
+
     override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
       val dbm = getDbm
 
@@ -260,11 +264,6 @@ object Octagons
         lower.toSet ++ upper.toSet
       }
     }
-
-    /** A helper function that constructs a constant from the given value.
-      */
-    private def makeConstant(value: Double): Expression =
-      Constant(value.toInt.toString, DummyNumericalType)
 
     /**
       * Assumption: the environments of this and that are disjoint.
@@ -351,15 +350,6 @@ object Octagons
       } else this
     }
 
-    override def getStringOfId(id: Identifier): String = {
-      val bounds = getDbm.getBounds(env.getIndex(id))
-      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
-      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
-      else if (bounds.high.isPosInfinity) s"${bounds.low.toInt}<=$id"
-      else if (bounds.low == bounds.high) s"$id==${bounds.low.toInt}"
-      else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
-    }
-
     override def setToTop(variable: Identifier): S = {
       if (numerical(variable)) {
         if (exists(variable)) {
@@ -385,7 +375,7 @@ object Octagons
             val index = env.getPositive(variable)
             val Normalized(literals, interval) = normalize(expr)
 
-            literals match {
+            val res = literals match {
               case Nil =>
                 val dbm = closedDbm.clone().assignConstant(index, interval)
                 factory(env, Some(dbm), None)
@@ -413,6 +403,8 @@ object Octagons
                 case _ => _
               }*/
             }
+            if (SystemParameters.DEBUG) assert(!res.isBottom)
+            res
           }
         }
       } else this
@@ -431,15 +423,9 @@ object Octagons
       case const: Constant => Normalized(Nil, evaluate(const))
       case id: Identifier => Normalized(List(Positive(id)), Interval.Zero)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => normalize(arg)
-      case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => normalize(arg).unary_-()
-      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.+, _) =>
-        val Normalized(xs, left) = normalize(lhs)
-        val Normalized(ys, right) = normalize(rhs)
-        Normalized(xs ++ ys, left + right)
-      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.-, _) =>
-        val Normalized(xs, left) = normalize(lhs)
-        val Normalized(ys, right) = -normalize(rhs)
-        Normalized(xs ++ ys, left + right)
+      case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -normalize(arg)
+      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.+, _) => normalize(lhs) + normalize(rhs)
+      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.-, _) => normalize(lhs) - normalize(rhs)
       case _ => Normalized(Nil, evaluate(expr))
     }
 
@@ -643,7 +629,9 @@ object Octagons
     }
 
     def isBottom: Boolean = {
-      Range(0, 2 * dim).exists(i => arr(index(i, i)) < 0.0)
+      // Due to rounding errors, we may get something slightly less than 0.
+      // This is not nice but it works (restored from Jeromes previous version)
+      Range(0, 2 * dim).exists(i => arr(index(i, i)) < -NumericalAnalysisConstants.epsilon)
     }
 
     def lub(other: S): S = {
@@ -989,6 +977,7 @@ object Octagons
 
       this
     }
+
   }
 
   /** A DBM for non-integer constraints.
@@ -1054,6 +1043,11 @@ object Octagons
 
       this
     }
+
+    /** A helper function that constructs a constant from the given value.
+      */
+    def makeConstant(value: Double): Expression =
+      Constant(value.toString, DummyNumericalType)
   }
 
   /**
@@ -1498,6 +1492,18 @@ object IntegerOctagons
     override def epsilon = Interval.One
 
     override def toInterval(value:String) = Interval(value.toInt, value.toInt)
+
+    override def getStringOfId(id: Identifier): String = {
+      val bounds = getDbm.getBounds(env.getIndex(id))
+      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
+      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high.toInt}"
+      else if (bounds.high.isPosInfinity) s"${bounds.low.toInt}<=$id"
+      else if (bounds.low == bounds.high) s"$id==${bounds.low.toInt}"
+      else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
+    }
+
+    override def makeConstant(value: Double): Expression =
+      Constant(value.toInt.toString, DummyNumericalType)
   }
 }
 
@@ -1612,5 +1618,17 @@ object DoubleOctagons {
     override def epsilon = Interval.Epsilon
 
     override def toInterval(value:String) = Interval(value.toDouble, value.toDouble)
+
+    override def getStringOfId(id: Identifier): String = {
+      val bounds = getDbm.getBounds(env.getIndex(id))
+      if (bounds.low.isNegInfinity && bounds.high.isPosInfinity) "Top"
+      else if (bounds.low.isNegInfinity) s"$id<=${bounds.high}"
+      else if (bounds.high.isPosInfinity) s"${bounds.low}<=$id"
+      else if (bounds.low == bounds.high) s"$id==${bounds.low}"
+      else s"${bounds.low}<=$id<=${bounds.high}"
+    }
+
+     override def makeConstant(value: Double): Expression =
+      Constant(value.toString, DummyNumericalType)
   }
 }

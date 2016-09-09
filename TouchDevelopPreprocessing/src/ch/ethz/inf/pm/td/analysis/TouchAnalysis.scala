@@ -191,13 +191,19 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     // Most importantly, we are reporting on bottom values in the CFG here, for debugging and reporting of
     // unreachable code.
     //
-    val summaries = MethodSummaries.getSummaries[S]
+    // We join all summaries of the same function
+    val originalSummaries = MethodSummaries.getSummaries[S]
+    val summaries =
+      if (TouchAnalysisParameters.get.contextSensitiveInterproceduralAnalysis)
+        originalSummaries.values.groupBy(_.method.programpoint).mapValues(_.reduce(_ lub _))
+      else originalSummaries
+
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unAnalyzed) {
-        logger.debug(" Did not analyze "+un.name+" (may be unreachable)")
+        logger.info(" Did not analyze "+un.name+" (may be unreachable)")
       }
     }
     if (SystemParameters.property != null) {
@@ -363,9 +369,9 @@ class ImprecisionVisitor extends Visitor {
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
   def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector) {
-    val errors = Reporter.getImprecision(statement.getPC())
+    val errors = Reporter.lookupImpreciseSemantics(statement.getPC())
     if (errors.nonEmpty) {
-      for (mess <- Reporter.getImprecision(statement.getPC())) {
+      for (mess <- Reporter.lookupImpreciseSemantics(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(), mess))
       }
     }
@@ -393,9 +399,9 @@ class AlarmVisitor extends Visitor {
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
   def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector) {
-    val errors = Reporter.getErrors(statement.getPC())
+    val errors = Reporter.lookupAssertionViolations(statement.getPC())
     if (errors.nonEmpty) {
-      for (mess <- Reporter.getErrors(statement.getPC())) {
+      for (mess <- Reporter.lookupAssertionViolations(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(), mess))
       }
     }
@@ -427,7 +433,7 @@ class BottomVisitor extends Visitor {
       // if all children of the statement are bottom, do not report any of them
       def transitive(x: Statement): Set[Statement] = x.getChildren.foldLeft(Set.empty[Statement])(_ ++ transitive(_)) + x
       childrenNotToReport = childrenNotToReport ++ transitive(statement)
-      Reporter.reportBottom("Unreachable code at statement "+statement.toString, statement.getPC())
+      Reporter.reportUnreachableCode("Unreachable code at statement "+statement.toString, statement.getPC())
       printer.add(WarningProgramPoint(statement.getPC(), "Unreachable code"))
     }
   }

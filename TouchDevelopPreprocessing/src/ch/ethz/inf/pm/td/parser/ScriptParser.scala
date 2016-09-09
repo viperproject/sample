@@ -252,7 +252,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val negationExpression: PackratParser[Expression] = positioned (
     negationSymbol ~ negationExpression
-      ^^ {case op ~ expr => Access(Literal(TypeName("Number"),"0"),op,List(expr)) }
+      ^^ {case op ~ expr => Access(Literal(TypeName("Number"),"0").copyPos(op),op,List(expr)) }
     ||| propertyAccess
   )
 

@@ -1120,7 +1120,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     // path tail evaluation
     val mayEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mayRcvSet)(
       (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
-        if (rcv.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+        if (rcv.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
         rcv.foldLeft(Set.empty[HeapNode])(
           (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
           var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
@@ -1136,7 +1136,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     })
     val mustEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mustRcvSet)(
       (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
-        if (rcv.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+        if (rcv.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
         rcv.foldLeft(Set.empty[HeapNode])(
           (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
           var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
@@ -1150,8 +1150,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
             set ++ curr
         })
     })
-    if (mayEval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
-    if (mustEval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+    if (mayEval.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
+    if (mustEval.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
     // path end evaluation
     val last = path.last.asInstanceOf[VariableIdentifier]
     if (last.typ.isObject) { // the accessed field is a Ref
@@ -1181,8 +1181,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
           set ++ curr
         }
       )
-      if (mayLast.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
-      if (mustLast.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+      if (mayLast.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
+      if (mustLast.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
     }
     copy(mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
   }
@@ -1196,12 +1196,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     val first = mayStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
     val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
-          if (set.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+          if (set.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
           set.foldLeft(Set.empty[HeapNode])(
             (s,obj) => s ++ mayHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
           )}
       ) // return the objects referenced by the path (except the last field)
-    if (eval.contains(NullHeapNode)) Reporter.reportInfo("Possible null pointer dereference", currentPP); eval
+    if (eval.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP); eval
   }
 
   /**
@@ -1222,12 +1222,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     val first = mustStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
     val eval = path.drop(1).foldLeft(first)( // path tail evaluation
         (set,next) => { // next path segment
-          if (set.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP)
+          if (set.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
           set.foldLeft(Set.empty[HeapNode])(
             (s,obj) => s ++ mustHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
           )}
       ) // return the objects referenced by the path (except the last field)
-    if (eval.contains(NullHeapNode)) Reporter.reportError("Null pointer dereference", currentPP); eval
+    if (eval.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP); eval
   }
 
   /**

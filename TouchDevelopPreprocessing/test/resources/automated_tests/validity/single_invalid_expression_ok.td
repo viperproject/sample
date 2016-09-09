@@ -4,6 +4,6 @@ action main() {
     //:: ExpectedOutput(assert.failed)
     invalid->sprite->move(10,10);
 
-    // Curiously, this no alarm is triggered here, because we get bottom after the error above
+    //:: ExpectedOutput(unreachable)
     contract->assert(false, "");
 }

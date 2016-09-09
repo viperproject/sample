@@ -10,12 +10,14 @@ import java.net.{URI, URL}
 import java.nio.file._
 import java.util.regex.Pattern
 
+import ch.ethz.inf.pm.sample.reporting
+import ch.ethz.inf.pm.sample.reporting.Reporter.{MessageClass, ReportingLevel}
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchRun}
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, SpaceSavingProgramPoint}
+import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchProgramPointRegistry}
 import org.scalatest._
-import scala.collection.JavaConversions._
 
+import scala.collection.JavaConversions._
 import scala.io.Source
 
 class FileBasedTestSuite extends TouchGuruTestSuite {
@@ -39,11 +41,9 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
       val messageLine =
         message.pp match {
           case x: SpaceSavingProgramPoint =>
-            TouchProgramPointRegistry.reg(x.id).lineColumnPosition match {
-              case Some(lineColumnPos) => lineColumnPos.line
-              case None => sys.error("SampleError PP does not have expected structure")
-            }
-          case _ => sys.error("SampleError PP does not have expected structure")
+            TouchProgramPointRegistry.reg(x.id).lineColumnPosition.line
+          case _ =>
+            sys.error("SampleError PP does not have expected structure")
         }
       messageLine == lineNr
     }

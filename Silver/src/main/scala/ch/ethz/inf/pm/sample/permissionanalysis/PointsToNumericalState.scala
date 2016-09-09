@@ -715,7 +715,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
             getOrElse(next,Set[HeapIdentifier]())
         )
     )
-    if (ids.contains(NullHeapIdentifier)) Reporter.reportInfo("Possible null pointer dereference", currentPP)
+    if (ids.contains(NullHeapIdentifier)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
     ids - NullHeapIdentifier // return the objects referenced by the path (except the last field)
   }
 

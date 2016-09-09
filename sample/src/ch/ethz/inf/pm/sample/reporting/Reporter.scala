@@ -8,87 +8,108 @@ package ch.ethz.inf.pm.sample.reporting
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.reporting.Reporter.MessageClass.MessageClass
+import ch.ethz.inf.pm.sample.reporting.Reporter.ReportingLevel.ReportingLevel
 
 object Reporter {
 
-  var seenErrors = Set.empty[SampleError]
-  var seenInfos = Set.empty[SampleInfo]
-  var seenImprecision = Set[(String,ProgramPoint)]()
-  var seenBottom = Set[(String,ProgramPoint)]()
+  object ReportingLevel extends Enumeration {
+    type ReportingLevel = Value
+    val Info, Error, Off = Value
+  }
 
-  var enableOutputOfAlarms: Boolean = true
-  var enableOutputOfInfos: Boolean = true
-  var enableOutputOfPrecisionWarnings: Boolean = true
-  var enableOutputOfDummyWarnings: Boolean = true
-  var enableOutputOfBottomWarnings: Boolean = true
+  object MessageClass extends Enumeration {
+    type MessageClass = Value
+    val UnreachableCode = Value("unreachable")
+    val AssertionViolation = Value("assert.failed")
+    val ImpreciseSemantics = Value("imprecision")
+    val DummyImplementation = Value("dummy")
+    val GenericWarning = Value("warning")
+  }
+
+  var messages = Set.empty[SampleMessage]
+  var reportingLevels = Map.empty[MessageClass, ReportingLevel]
+
+  enableAllOutputs()
 
   def enableAllOutputs(): Unit = {
-    enableOutputOfAlarms = true
-    enableOutputOfInfos = true
-    enableOutputOfPrecisionWarnings = true
-    enableOutputOfBottomWarnings = true
-    enableOutputOfDummyWarnings = true
+    reportingLevels = Map(
+      MessageClass.UnreachableCode -> ReportingLevel.Info,
+      MessageClass.AssertionViolation -> ReportingLevel.Error,
+      MessageClass.DummyImplementation -> ReportingLevel.Info,
+      MessageClass.ImpreciseSemantics -> ReportingLevel.Info,
+      MessageClass.GenericWarning -> ReportingLevel.Info
+    )
   }
 
   def disableAllOutputs(): Unit = {
-    enableOutputOfAlarms = false
-    enableOutputOfInfos = false
-    enableOutputOfPrecisionWarnings = false
-    enableOutputOfBottomWarnings = false
-    enableOutputOfDummyWarnings = false
+    reportingLevels = Map(
+      MessageClass.UnreachableCode -> ReportingLevel.Off,
+      MessageClass.AssertionViolation -> ReportingLevel.Off,
+      MessageClass.DummyImplementation -> ReportingLevel.Off,
+      MessageClass.ImpreciseSemantics -> ReportingLevel.Off,
+      MessageClass.GenericWarning -> ReportingLevel.Off
+    )
   }
 
-  def hasError(err: SampleError):Boolean = seenErrors.contains(err)
-  def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
-  def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
+  def assertionViolations:Set[SampleMessage] =
+    getClass(MessageClass.AssertionViolation)
 
-  def getErrors(pp:ProgramPoint):Set[String] = seenErrors filter (_.pp == pp) map (_.message)
-  def getImprecision(pp:ProgramPoint):Set[String] = seenImprecision.filter(_._2 == pp).map(_._1)
-  def getBottom(pp:ProgramPoint):Set[String] = seenBottom.filter(_._2 == pp).map(_._1)
+  def genericWarnings:Set[SampleMessage] =
+    getClass(MessageClass.GenericWarning)
 
-  def reportError(err: SampleError) {
-    if (!hasError(err) && enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("ALARM: " + err.message + " at " + err.pp.toString +
-        (if (err.causes.nonEmpty) ", since " + err.causes.map { x => x._1}.mkString(" or ") else ""))
-      seenErrors += err
-    }
-  }
+  def unreachableCode:Set[SampleMessage] =
+    getClass(MessageClass.UnreachableCode)
 
-  def reportError(message:String,pp:ProgramPoint, causes: Set[(String,ProgramPoint)] = Set.empty, id: String = "assert.failed") {
-    val err = SampleError(id, message, pp, causes)
-    reportError(err)
-  }
+  def impreciseSemantics:Set[SampleMessage] =
+    getClass(MessageClass.ImpreciseSemantics)
 
-  def reportInfo(message: String, pp: ProgramPoint, id: String = "warning"): Unit = {
-    val info = SampleInfo(id, message, pp)
-    seenInfos += info
-  }
+  def lookupAssertionViolations(pp: ProgramPoint): Set[String] =
+    lookup(MessageClass.AssertionViolation,pp)
 
-  def reportImprecision(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && enableOutputOfPrecisionWarnings) {
-      SystemParameters.progressOutput.put("PRECISION: "+message+" at "+pp.toString)
-      seenImprecision += ((message,pp))
-    }
-  }
+  def lookupImpreciseSemantics(pp: ProgramPoint): Set[String] =
+    lookup(MessageClass.ImpreciseSemantics,pp)
 
-  def reportDummy(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && enableOutputOfDummyWarnings) {
-      SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
-      seenImprecision += ((message,pp))
-    }
-  }
+  def reportAssertionViolation(message: String, pp: ProgramPoint, causes: Set[(String, ProgramPoint)] = Set.empty) =
+    report(MessageClass.AssertionViolation, message, pp)
 
-  def reportBottom(message:String,pp:ProgramPoint) {
-    if (!hasBottom(message,pp) && enableOutputOfBottomWarnings) {
-      SystemParameters.progressOutput.put("BOTTOM: "+message+" at "+pp.toString)
-      seenBottom += ((message,pp))
-    }
-  }
+  def reportImpreciseSemantics(message: String, pp: ProgramPoint) =
+    report(MessageClass.ImpreciseSemantics, message, pp)
+
+  def reportDummyImplementation(message: String, pp: ProgramPoint) =
+    report(MessageClass.DummyImplementation, message, pp)
+
+  def reportUnreachableCode(message: String, pp: ProgramPoint) =
+    report(MessageClass.UnreachableCode, message, pp)
+
+  def reportGenericWarning(message: String, pp: ProgramPoint) =
+    report(MessageClass.GenericWarning, message, pp)
 
   def reset(): Unit = {
-    seenErrors = Set.empty[SampleError]
-    seenBottom = Set.empty[(String,ProgramPoint)]
-    seenImprecision = Set.empty[(String,ProgramPoint)]
+    messages = Set.empty[SampleMessage]
+  }
+
+  private def getClass(m: MessageClass) = {
+    messages.filter(x => x.id == m.toString)
+  }
+
+  private def lookup(m: MessageClass, pp: ProgramPoint) = {
+    messages.filter(x => x.pp == pp && x.id == m.toString).map(_.message)
+  }
+
+  private def report(m: MessageClass, msg: String, pp: ProgramPoint, causes: Set[(String, ProgramPoint)] = Set.empty) = {
+    val res =
+      reportingLevels(m) match {
+        case ReportingLevel.Info => Some(SampleInfo(m.toString, msg, pp))
+        case ReportingLevel.Error => Some(SampleError(m.toString, msg, pp, causes))
+        case _ => None
+      }
+    res match {
+      case Some(x) if !messages.contains(x) =>
+        SystemParameters.progressOutput.put(x.toString)
+        messages += x
+      case _ => ()
+    }
   }
 
 }

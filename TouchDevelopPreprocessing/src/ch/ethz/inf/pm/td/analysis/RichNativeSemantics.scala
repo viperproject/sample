@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.reporting.Reporter.{MessageClass, ReportingLevel}
 import ch.ethz.inf.pm.td.compiler.{DeepeningProgramPoint, _}
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, MultiValExpression, TouchStateInterface}
 import ch.ethz.inf.pm.td.semantics._
@@ -38,16 +39,16 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Dummy[S <: State[S]](obj: RichExpression, method: String)(implicit state: S, pp: ProgramPoint) {
     if (TouchAnalysisParameters.get.reportDummyImplementations)
-      Reporter.reportDummy(obj.getType().toString + "->" + method, pp)
+      Reporter.reportDummyImplementation(obj.getType().toString + "->" + method, pp)
   }
 
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
     val errorState = state.assume(expr).setExpression(ExpressionSet(UnitExpression(SystemParameters.typ.top(), pp)))
-    if (!errorState.isBottom && Reporter.enableOutputOfAlarms) {
+    if (!errorState.isBottom && Reporter.reportingLevels(MessageClass.AssertionViolation) != ReportingLevel.Off) {
       if (isInReportableSection) {
-        Reporter.reportError(message, pp, state.explainError(expr))
+        Reporter.reportAssertionViolation(message, pp, state.explainError(expr))
       } else if (TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.ReportAtBoundary) {
-        Reporter.reportError("Something may go wrong inside a library call: "+message, SystemParameters.libraryBoundaryContext, state.explainError(expr))
+        Reporter.reportAssertionViolation("Something may go wrong inside a library call: "+message, SystemParameters.libraryBoundaryContext, state.explainError(expr))
       }
       val ret = state.assume(expr.not())
       if (ret.isBottom) return ret.bottom()
@@ -302,7 +303,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
         val res = MethodSummaries.collect(pp, m, state, parameters)
         res
       case _ =>
-        Reporter.reportImprecision("Could not find method " + method, pp)
+        Reporter.reportImpreciseSemantics("Could not find method " + method, pp)
         state.top()
     }
   }
@@ -357,7 +358,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val rightExprs = getMultiValAsList(value)
 
     if (leftExprs.length != rightExprs.length) {
-      Reporter.reportImprecision("An assignment has an unmatching number of values - setting result to top", pp)
+      Reporter.reportImpreciseSemantics("An assignment has an unmatching number of values - setting result to top", pp)
       var curState = state
       if (TouchAnalysisParameters.get.defaultToUnsound) {
         for (l <- leftExprs) {
@@ -428,7 +429,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def Unimplemented[S <: State[S]](method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
     if (!TouchAnalysisParameters.get.failOnMissingApi) {
-      Reporter.reportImprecision(method + " not implemented, going to top", pp)
+      Reporter.reportImpreciseSemantics(method + " not implemented, going to top", pp)
       if (TouchAnalysisParameters.get.defaultToUnsound) {
         Top[S](returnedType)
       } else {

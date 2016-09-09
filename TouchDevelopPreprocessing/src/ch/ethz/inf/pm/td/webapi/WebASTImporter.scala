@@ -82,7 +82,7 @@ object WebASTImporter {
   }
 
   def convert(jAST: JApp): Script = {
-    Script(jAST.decls map convert, jAST.isLibrary).setId("")
+    Script(jAST.decls map convert, jAST.isLibrary).setId(jAST.rootId)
   }
 
   def convert(jDecl: JDecl): Declaration = {

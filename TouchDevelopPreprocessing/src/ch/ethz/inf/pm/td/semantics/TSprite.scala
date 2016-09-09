@@ -142,12 +142,6 @@ object TSprite extends Default_TSprite {
     case "delete" =>
       AssignField[S](this0, TSprite.field_is_deleted, True)
 
-    /** Are these the same sprite */
-    case "equals" =>
-      val List(other) = parameters // Sprite
-      Dummy[S](this0, method)
-      Top[S](TBoolean)
-
     /** Hide sprite. */
     case "hide" =>
       AssignField[S](this0, TSprite.field_is_visible, toRichExpression(0))

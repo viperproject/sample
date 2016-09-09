@@ -10,9 +10,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TopSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TDateTime
-import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -45,6 +44,9 @@ object TDateTime extends Default_TDateTime {
 
   /** Gets the year */
   lazy val field_year = ApiField("year", TNumber)
+
+  override lazy val member_greater_or_equal = super.member_greater_or_equal.copy(semantics = TopSemantics)
+  override lazy val member_subtract = super.member_subtract.copy(semantics = TopSemantics)
 
   override def possibleFields = super.possibleFields ++ List(
     field_day,
@@ -139,62 +141,12 @@ object TDateTime extends Default_TDateTime {
           (Field[S](this0,TDateTime.field_year) equal Field[S](other,TDateTime.field_year))
       )
 
-    /** Compares dates for greater */
-    case "greater" =>
-      val List(other) = parameters // DateTime
-      Dummy[S](this0,method)
-      Top[S](TBoolean)
-
-    /** Compares dates for greater or equal */
-    case "greater or equal" =>
-      val List(other) = parameters // DateTime
-      Dummy[S](this0,method)
-      Top[S](TBoolean)
-
-    /** Compares dates for less */
-    case "less" =>
-      val List(other) = parameters // DateTime
-      Dummy[S](this0,method)
-      Top[S](TBoolean)
-
-    /** Compares dates for less or equal */
-    case "less or equals" =>
-      val List(other) = parameters // DateTime
-      Dummy[S](this0,method)
-      Top[S](TBoolean)
-
-    /** Compares dates for disequality */
-    case "not equals" =>
-      val List(other) = parameters // DateTime
-      Dummy[S](this0,method)
-       Top[S](TBoolean)
-
-    /** Computes the difference between date-times in seconds */
-    case "subtract" =>
-      val List(value) = parameters // DateTime
-      Top[S](TNumber)
-
-    /** Converts to the local time */
-    case "to local time" =>
-      Top[S](TDateTime)
-
-    /** Converts coordinated universal time */
-    case "to universal time" =>
-      Top[S](TDateTime)
-
     /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     case "week day" =>
       Return[S](0 ndToIncl 6)
     // DECLARATION AS FIELD:
     //   /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     //   lazy val field_week_day = new TouchField("week day",TNumber.typeName)
-
-    /** Gets the day of the year between 1 and 366 */
-    case "year day" =>
-      Top[S](TNumber)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the day of the year between 1 and 366 */
-    //   lazy val field_year_day = new TouchField("year day",TNumber.typeName)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
