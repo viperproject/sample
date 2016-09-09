@@ -101,6 +101,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
 {
   this: S =>
 
+  def ids = IdentifierSet.Top
   def exprSet: ExpressionSet // `ExpressionSet` used to store the result of each statement
   def fieldSet: Set[(Type,String)] // fields declared within the program
   // map from `Ref` variables to heap objects

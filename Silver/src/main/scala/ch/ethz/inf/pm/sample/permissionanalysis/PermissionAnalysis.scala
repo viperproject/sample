@@ -1340,6 +1340,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
+
+  override def ids = IdentifierSet.Top
+
 }
 
 object PermissionAnalysisState

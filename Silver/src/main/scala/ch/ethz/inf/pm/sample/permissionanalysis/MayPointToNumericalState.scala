@@ -85,6 +85,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   this: S =>
 
   def fieldSet: Set[(Type,String)] // fields declared within the program
+  def ids = IdentifierSet.Top
 
   def currentPP: ProgramPoint // current program point
   def flag: Boolean // true = materialization allowed; false = materialization not allowed

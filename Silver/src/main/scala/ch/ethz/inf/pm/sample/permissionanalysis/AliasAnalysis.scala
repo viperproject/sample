@@ -169,6 +169,8 @@ trait AliasGraph[T <: AliasGraph[T]]
     */
   def fields: Set[String]
 
+  def ids = IdentifierSet.Top
+
   /** Returns the current program point.
     *
     * @return The current program point.

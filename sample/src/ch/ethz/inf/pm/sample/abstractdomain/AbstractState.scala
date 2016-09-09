@@ -575,4 +575,6 @@ I <: HeapIdentifier[I]](
 
   override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
+  override def ids = domain.ids lub expr.ids
+
 }

@@ -501,6 +501,8 @@ trait State[S <: State[S]] extends Lattice[S] {
     * @return state with pruned variables created again
     */
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
+
+  def ids:IdentifierSet
 }
 
 trait StateWithRefiningAnalysisStubs[S <: StateWithRefiningAnalysisStubs[S]] extends SimpleState[S] {

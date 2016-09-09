@@ -637,6 +637,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
 
   def undoPruneUnreachableHeap(preState: PartitionedState[D]): PartitionedState[D] = ???
 
+  override def ids = partitioning.states.map(_.ids).reduce(_ lub _)
+
 }
 
 
