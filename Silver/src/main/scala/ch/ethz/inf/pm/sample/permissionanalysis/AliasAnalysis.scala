@@ -1247,16 +1247,31 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
   /** Performs abstract garbage collection. */
   override def pruneUnreachableHeap(): T = {
-    // retrieve all heap nodes reachable from variables
+    // retrieve nodes reachable from variables
     var mayReach = mayStore.foldLeft(Set[HeapNode]())((r, s) => r ++ s._2)
     var mustReach = mustStore.foldLeft(Set[HeapNode]())((r, s) => r ++ s._2)
-    // add all heap nodes reachable from fields of heap nodes reachable from variables
-    mayReach = mayReach ++ mayReach.foldLeft(Set.empty[HeapNode])(
-      (set, node) => set ++ mayHeap.getOrElse(node,Map.empty).foldLeft(Set.empty[HeapNode])((r, s) => r ++ s._2)
-    )
-    mustReach = mustReach ++ mustReach.foldLeft(Set.empty[HeapNode])(
-      (set, node) => set ++ mustHeap.getOrElse(node,Map.empty).foldLeft(Set.empty[HeapNode])((r, s) => r ++ s._2)
-    )
+    // recursively retrieve nodes reachable via field accesses (may version)
+    var oldMaySize = 0
+    while (mayReach.size > oldMaySize) {
+      oldMaySize = mayReach.size
+      mayReach = mayReach ++ mayReach.foldLeft(Set.empty[HeapNode]) {
+        case (set, keyNode) =>
+          set ++ mayHeap.getOrElse(keyNode, Map.empty).foldLeft(Set.empty[HeapNode]) {
+            case (set, (_, valueNode)) => set ++ valueNode
+          }
+      }
+    }
+    // recursively retrieve nodes reachable via field accesses (must version)
+    var oldMustSize = 0
+    while (mustReach.size > oldMustSize) {
+      oldMustSize = mustReach.size
+      mustReach = mustReach ++ mustReach.foldLeft(Set.empty[HeapNode]) {
+        case (set, keyNode) =>
+          set ++ mustHeap.getOrElse(keyNode, Map.empty).foldLeft(Set.empty[HeapNode]) {
+            case (set, (_, valueNode)) => set ++ valueNode
+          }
+      }
+    }
     // remove all unreachable heap nodes
     var mayHeapMap = mayHeap; for (key <- mayHeap.keySet diff mayReach) { mayHeapMap = mayHeapMap - key }
     var mustHeapMap = mustHeap; for (key <- mustHeap.keySet diff mustReach) { mustHeapMap = mustHeapMap - key }
