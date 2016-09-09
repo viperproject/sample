@@ -273,6 +273,19 @@ case class PermissionTree(permission: Permission = Permission.none,
     } else false // permission is larger
   }
 
+  /** Returns the amount of permission for the given access path.
+    *
+    * @param path THe access path.
+    * @return The amount of permission for the given access path.
+    */
+  def get(path: AccessPath): Permission = {
+    if (path.isEmpty) permission
+    else children.get(path.head) match {
+      case Some(child) => child.get(path.tail)
+      case None => Permission.none
+    }
+  }
+
   /**
     * Extracts the subtree at the specified path and returns the remainder of
     * the tree as well as the extracted subtree.
@@ -582,15 +595,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     logger.trace(s"exhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        // inhale both sides of the conjunction
         exhale(left).exhale(right)
       case PermissionExpression(identifier, numerator, denominator) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is exhaled
         val exhaled = permission(numerator, denominator)
-
-
-
         // subtract permission form all paths that may alias
         map { (path, permission) =>
           if (postAliases.pathsMayAlias(path, location)) permission plus exhaled
@@ -1074,21 +1085,33 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       // in this case no permission is needed
       this
     } else {
-      // build permission tree for the needed permission
+      // build permission tree for the wanted permission
       val (variable :: first :: rest) = path
-      val subtree = rest.foldRight(PermissionTree(need)) {
+
+      val existing = get(path)
+      val want = need plus existing
+
+      val subtree = rest.foldRight(PermissionTree(want)) {
+        // TODO: Only add read permission if we do not already have some?
         case (field, subtree) => PermissionTree(Permission.read, Map(field -> subtree))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
 
       // add new permission tree to permissions
       val updated = permissions.get(variable) match {
-        case Some(existing) => tree lub existing
+        case Some(existing) => existing lub tree
         case None => tree
       }
       copy(permissions = permissions + (variable -> updated))
     }
   }
+
+  private def get(path: AccessPath): Permission =
+    if (path.length < 2) Permission.none
+    else permissions.get(path.head) match {
+      case Some(tree) => tree.get(path.tail)
+      case None => Permission.none
+    }
 
   /**
     * Collects the permission of of all access paths that must alias with the
