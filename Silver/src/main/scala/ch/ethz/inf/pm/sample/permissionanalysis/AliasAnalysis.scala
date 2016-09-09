@@ -1063,7 +1063,16 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         (map1.get(key),map2.get(key)) match {
           case (None,_) => // nothing to be done
           case (_,None) => // nothing to be done
-          case (Some(o1),Some(o2)) => keyMap = keyMap + (key -> (o1 & o2))
+          case (Some(o1),Some(o2)) =>
+            if (o1.isEmpty || o2.isEmpty) // if either map is empty...
+              keyMap = keyMap + (key -> Set.empty) //...keep it empty
+            else { // if both maps are not empty...
+              (o1.head, o2.head) match { // take into account materialization
+                case (UnknownHeapNode, _) => keyMap = keyMap + (key -> o2)
+                case (_, UnknownHeapNode) => keyMap = keyMap + (key -> o1)
+                case _ => keyMap = keyMap + (key -> (o1 & o2))
+              }
+            }
         }
       }; keyMap
     }
@@ -1435,7 +1444,16 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         (map1.get(key),map2.get(key)) match {
           case (None,_) => // nothing to be done
           case (_,None) => // nothing to be done
-          case (Some(o1),Some(o2)) => keyMap = keyMap + (key -> (o1 & o2))
+          case (Some(o1),Some(o2)) =>
+            if (o1.isEmpty || o2.isEmpty) // if either map is empty...
+              keyMap = keyMap + (key -> Set.empty) //...keep it empty
+            else { // if both maps are not empty...
+              (o1.head, o2.head) match { // take into account materialization
+                case (UnknownHeapNode, _) => keyMap = keyMap + (key -> o2)
+                case (_, UnknownHeapNode) => keyMap = keyMap + (key -> o1)
+                case _ => keyMap = keyMap + (key -> (o1 & o2))
+              }
+            }
         }
       }; keyMap
     }
