@@ -109,11 +109,8 @@ object RichNativeSemantics extends RichExpressionImplicits {
                          initials: Map[ApiField, RichExpression] = Map.empty[ApiField, RichExpression],
                          initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
-    if (SystemParameters.DEBUG) {
-
+    if (SystemParameters.DEBUG && initials.nonEmpty)
       assert (initials.values.map(_.ids).reduce(_ lub _) lessEqual s.ids)
-
-    }
 
     typ match {
       case TNumber => s.setExpression(ExpressionSet(Constant("0", TNumber, pp)))

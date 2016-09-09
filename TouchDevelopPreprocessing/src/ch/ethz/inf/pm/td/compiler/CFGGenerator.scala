@@ -253,7 +253,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
       case s@Show(p) =>
 
-        val newExpr = tty(TypeName("Nothing"),Access(p,parser.Identifier("post to wall"),Nil).copyPos(p))
+        val newExpr = tty(TypeName("Nothing"),Access(p,parser.Identifier("post to wall").copyPos(p),Nil).copyPos(p))
         newStatements = newStatements ::: expressionToStatement(newExpr, scope) :: Nil
 
       case parser.MetaStatement(_, _) =>
