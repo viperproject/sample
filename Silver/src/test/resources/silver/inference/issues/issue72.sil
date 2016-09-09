@@ -1,0 +1,9 @@
+field f: Ref
+
+method Foo(a: Ref, b: Ref)
+    //requires acc(b.f, write)
+{
+    exhale acc(b.f)
+    inhale acc(a.f)
+    a.f := null
+}

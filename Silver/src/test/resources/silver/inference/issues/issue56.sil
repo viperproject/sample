@@ -2,8 +2,10 @@
 field f: Ref
 
 method Foo(this: Ref)
+  //requires acc(this.f, write)
 {
     while(true)
+      //invariant acc(this.f, write)
     {
       this.f := null
     }

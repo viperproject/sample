@@ -1,10 +1,14 @@
 field f: Ref
 
 method Foo(a: Ref, c: Bool)
+    //requires acc(a.f, read)
+    //requires acc(a.f.f, write)
 {
     var b: Ref
     b := a
     while (c)
+        //invariant acc(b.f, read)
+        //invariant acc(b.f.f, write) 
     {
         a.f.f := null
         b.f.f := null

@@ -2,6 +2,7 @@
 field f: Ref
 
 method foo(this: Ref, that: Ref)
+    //requires acc(that.f, write)
 {
     inhale acc(this.f, write)
     this.f := that

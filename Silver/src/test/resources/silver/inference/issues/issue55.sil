@@ -1,7 +1,10 @@
 
 field f: Ref
 
-method foo(a: Ref, b: Ref) {
+method foo(a: Ref, b: Ref)
+  //requires acc(b.f, write)
+  //requires acc(a.f, write) 
+{
     var c: Ref
     if (true) {
         c := b

@@ -2,9 +2,11 @@
 field f: Int
 
 method Foo(r: Ref)
+    //requires acc(r.f, read)
 {
     var i: Int := 2
     while (i < r.f)
+        //invariant acc(r.f, read)
     {
         i := i + 1
     }
