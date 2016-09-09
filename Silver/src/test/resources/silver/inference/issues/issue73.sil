@@ -1,0 +1,12 @@
+field f: Ref
+
+method Foo(a: Ref, c: Bool)
+{
+    var b: Ref
+    b := a
+    while (c)
+    {
+        a.f.f := null
+        b.f.f := null
+    }
+}
