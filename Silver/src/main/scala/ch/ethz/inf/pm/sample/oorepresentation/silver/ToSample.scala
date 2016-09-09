@@ -146,8 +146,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         val cfg = new sample.ControlFlowGraph(go(m.pos))
 
         // put precondition into a separate block
+        val prePp = if (m.pres.isEmpty) VirtualProgramPoint("precondition", m.pos) else go(m.pres.head.pos)
         val pre = makeNativeMethodCall(
-          pos = DummyProgramPoint,
+          pos = prePp,
           name = SilverMethods.precondition.toString,
           args = Seq(makeConjunction(m.pres)),
           returnType = sample.TopType)
@@ -162,9 +163,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         cfg.addEdge(varBlock, bodyBlock, None)
 
         // put postcondition into a separate block
-        var leaves = cfg.getLeavesIds
+        val leaves = cfg.getLeavesIds
+        val postPp = if(m.posts.isEmpty) VirtualProgramPoint("postcondition", m.pos) else go(m.posts.head.pos)
         val post = makeNativeMethodCall(
-          pos = DummyProgramPoint,
+          pos = postPp,
           name = SilverMethods.postcondition.toString,
           args = Seq(makeConjunction(m.posts)),
           returnType = sample.TopType)
@@ -450,8 +452,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
           b.stmt.children.map(go).toList
         case lb: sil.LoopBlock =>
           // generate method call for all invariants
+          val pp = if (lb.invs.isEmpty) VirtualProgramPoint("invariant", lb.pos) else go(lb.invs.head.pos)
           val invariants = makeNativeMethodCall(
-            pos = DummyProgramPoint,
+            pos = pp,
             name = SilverMethods.invariant.toString,
             args = Seq(makeConjunction(lb.invs)),
             returnType = sample.TopType)

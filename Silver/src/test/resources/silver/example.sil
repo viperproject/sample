@@ -1,21 +1,11 @@
 field f: Ref
 
-/*method bar(a: Ref)
-    requires false
+method foo(a: Ref, b: Ref)
+    ensures acc(a.f) && acc(b.f)
 {
-    var b: Ref
+}
 
-    b := a
-    while (true)
-    {
-        a.f := null
-        b.f := null
-    }
-}*/
-
-method beer(a: Ref, b: Ref)
+method bar(c: Ref, d: Ref)
 {
-    exhale acc(b.f)
-    inhale acc(a.f)
-    a.f := null
+    exhale acc(c.f) && acc(d.f)
 }
