@@ -153,7 +153,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
             if (stmt.getPC() == pos) Some(CFGPosition(blockIdx, stmtIdx)) else None
         })
       })
-      val pre = cfgState.preStateAt(cfgPositions.head)
+      val pre: S = cfgState.preStateAt(CFGPosition(cfgPositions.head.blockIdx, 0))
       val whileArgs = pre.formalArguments(args)
       collectFormalArguments(stmt.body, whileArgs, cfgState)
     case _ => args
