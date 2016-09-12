@@ -515,8 +515,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
     val existing = args.exists { case sil.LocalVarDecl(name, _) => name == "read" }
-    if (!existing) args ++ arguments
-    else args
+    if (!existing)
+      args ++ arguments
+    else
+      args
   }
 
   /** Generates a Silver precondition from the current state
@@ -1085,8 +1087,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param permission the amount of permissions to add
     */
   private def access(path: AccessPath, permission: Permission): T = {
-    val have = collect(path)
-    val need = permission minus have
+    val haveExclusive = collect(path)
+    val haveInclusive = haveExclusive plus get(path)
+    val need = permission minus haveInclusive
     if (path.length < 2 || need.isNone) {
       // in this case no permission is needed
       this
@@ -1094,8 +1097,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       // build permission tree for the wanted permission
       val (variable :: first :: rest) = path
 
-      val existing = get(path)
-      val want = need plus existing
+      val want = need minus haveExclusive
 
       val subtree = rest.foldRight(PermissionTree(want)) {
         // TODO: Only add read permission if we do not already have some?
@@ -1120,8 +1122,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
 
   /**
-    * Collects the permission of of all access paths that must alias with the
-    * specified access path.
+    * Collects the permission of of all access paths that must alias with but
+    * are not equal to the specified access path.
     *
     * @param path ???
     * @return a lower bound on the amount of permission held for the specified
@@ -1135,7 +1137,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       fold(Permission.none) { case (permission, (currPath, currPermission)) =>
         val currReceiver = currPath.init
         val currField = currPath.last
-        if (path == currPath || (currReceiver.length > 0 && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currPermission
+        if (path != currPath && (currReceiver.length > 0 && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currPermission
         else permission
       }
     }
@@ -1211,6 +1213,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       else strings.reduce(_ + ", " + _)
     }" +
     s"\n\tspec: $specification" +
+    s"\n\targs: $arguments" +
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
