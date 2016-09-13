@@ -614,7 +614,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         map { (path, permission) =>
           if (postAliases.pathsMayAlias(path, location)) permission plus exhaled
           else permission
-        } lub access(location, exhaled)
+        }.access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
         // we do not assert boolean conditions since the analysis would fail
         // in all cases where we are not able to prove that something holds.
@@ -1090,10 +1090,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     val haveExclusive = collect(path)
     val haveInclusive = haveExclusive plus get(path)
     val need = permission minus haveInclusive
-    if (path.length < 2 || need.isNone) {
+    if (path.length < 2)
       // in this case no permission is needed
       this
-    } else {
+    else {
       // build permission tree for the wanted permission
       val (variable :: first :: rest) = path
 
