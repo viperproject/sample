@@ -646,7 +646,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         map { (path, permission) =>
           if (path == location || postAliases.pathsMustAlias(path, location)) permission minus inhaled
           else permission
-        }
+        } lub read(location.dropRight(1))
       }
       case _ => assume(acc)
     }

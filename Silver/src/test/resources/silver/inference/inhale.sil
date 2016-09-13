@@ -3,8 +3,14 @@ field f: Ref
 
 method foo(b: Ref)
 {
-	var a: Ref
-	a := b
-	inhale acc(b.f, write)
-	a.f := null
+    var a: Ref
+    a := b
+    inhale acc(b.f, write)
+    a.f := null
+}
+
+method bar(a: Ref)
+    // requires acc(a.f, read) && read > none
+{
+    inhale acc(a.f.f)
 }
