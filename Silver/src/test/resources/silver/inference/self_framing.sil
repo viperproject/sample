@@ -1,0 +1,30 @@
+field f: Ref
+
+method foo(a: Ref)
+{
+    // self-framing
+    inhale acc(a.f) && acc(a.f.f)
+}
+
+method bar(a: Ref)
+    // requires acc(a.f, read) && read > none
+{
+    // not self-framing
+    inhale acc(a.f.f) && acc(a.f)
+}
+
+method baz(a: Ref)
+    // requires acc(a.f, 1 / 2)
+    // requires acc(a.f.f, 1 / 2)
+{
+    // self-framing
+    exhale acc(a.f, 1 / 2) && acc(a.f.f, 1 / 2)
+}
+
+method qux(a: Ref)
+    // requires acc(a.f, 1 / 2 + read) && read > none
+    // requires acc(a.f.f, 1 / 2)
+{
+    // not self-framing
+    exhale acc(a.f.f, 1 / 2) && acc(a.f, 1 / 2)
+}

@@ -635,7 +635,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     logger.trace("inhale")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
-        inhale(left).inhale(right)
+        inhale(right).inhale(left)
       case PermissionExpression(identifier, numerator, denominator) => {
         // get access path
         val location = path(identifier)
