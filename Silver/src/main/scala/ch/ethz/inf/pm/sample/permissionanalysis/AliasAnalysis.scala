@@ -1408,8 +1408,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     *
     * @return the string representation of the current state
     */
-  override def toString: String = s"AliasAnalysisState(\n\tresult: $result\n\t" +
-    s"mayStore: $mayStore\n\tmustStore: $mustStore\n\tmayHeap: $mayHeap\nmustHeap: $mustHeap\n)"
+  override def toString: String =
+    s"AliasAnalysisState(" +
+      s"\n\tisTop: $isTop" +
+      s"\n\tisBottom: $isBottom" +
+      s"\n\tresult: $result" +
+      s"\n\tmayStore: $mayStore" +
+      s"\n\tmustStore: $mustStore" +
+      s"\n\tmayHeap: $mayHeap\nmustHeap: $mustHeap\n)"
 
   /** Returns the top value of the lattice.
     *

@@ -152,10 +152,11 @@ object Permission {
     *
     * @param numerator   the numerator of the fractional part
     * @param denominator the denominator of the fractional part
-    * @param read        indicates whether ther is a read part
+    * @param read        indicates whether there is a read part
     */
-  case class Inner(numerator: Int, denominator: Int, read: Boolean) extends Permission {
-
+  case class Inner(numerator: Int, denominator: Int, read: Boolean)
+    extends Permission
+  {
     override def isBottom: Boolean = false
 
     override def isTop: Boolean = false
@@ -612,7 +613,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         map { (path, permission) =>
-          if (postAliases.pathsMayAlias(path, location)) permission plus exhaled
+          if (postAliases.pathsMayAlias(path, location) && path.length > 1) permission plus exhaled
           else permission
         }.access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
