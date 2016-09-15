@@ -617,7 +617,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         map { (path, permission) =>
-          if (postAliases.pathsMayAlias(path, location) && path.length > 1) permission plus exhaled
+          if ((path == location || postAliases.pathsMayAlias(path, location)) && path.length > 1) permission plus exhaled
           else permission
         }.access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
