@@ -39,7 +39,9 @@ trait Permission extends Lattice[Permission] {
     else bottom()
 
 
-  override def widening(other: Permission): Permission = ???
+  override def widening(other: Permission): Permission =
+    if (other lessEqual this) this
+    else top()
 
   /**
     * Returns the sum of this permission and the other permission.
@@ -204,7 +206,6 @@ case class PermissionTree(permission: Permission = Permission.none,
   lazy val nonEmpty: Boolean =
     !isEmpty
 
-
   /**
     * Returns the least upper bound of this permission tree and the other permission tree.
     *
@@ -236,6 +237,25 @@ case class PermissionTree(permission: Permission = Permission.none,
       case (map, (id, subtree)) => other.children.get(id) match {
         case Some(existing) => map + (id -> (subtree glb existing))
         case None => map
+      }
+    }
+    PermissionTree(newPermission, newChildren)
+  }
+
+  /** Returns the widening of this and the other permission tree.
+    *
+    * @param other The other permission tree.
+    * @return The widening of this and the other permission tree.
+    */
+  def widening(other: PermissionTree): PermissionTree = {
+    // TODO: Implement me properly. Currently this is only a point-wise widening
+    // compute widening of permissions
+    val newPermission = permission widening other.permission
+    // compute child-wise widening of subtrees
+    val newChildren = children.foldLeft(other.children) {
+      case (map, (id, subtree)) => map.get(id) match {
+        case Some(existing) => map + (id -> (subtree widening existing))
+        case None => map + (id -> subtree)
       }
     }
     PermissionTree(newPermission, newChildren)
@@ -540,6 +560,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         sil.FieldAccess(rcv, sil.Field(name, typ)())()
       }.asInstanceOf[sil.FieldAccess]
       permission match {
+        case Permission.Top =>
+          sil.FalseLit()()
         case Fractional(a, b, read) =>
           val amount = a.toDouble / b
           if (read) {
@@ -905,8 +927,34 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return The widening of `this` and `other`
     */
   override def widening(other: T): T = {
-    logger.trace("widening")
-    lub(other) // TODO: implement me
+    logger.trace(s"widening(${this.toString}, ${other.toString})")
+    // check whether new state is top or bottom
+    val newBottom = isBottom && other.isBottom
+    val newTop = isTop || other.isTop
+    // compute variable-wise widening of permission trees. that is, compute
+    // widening for all trees that are in this.permissions and other.permissions
+    // and also include trees that are either in this.permissions or
+    // other.permissions (but not both)
+    val newPermissions =
+      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+      else if (isBottom) other.permissions
+      else if (other.isBottom) permissions
+      else permissions.foldLeft(other.permissions) {
+        case (map, (id, tree)) => map.get(id) match {
+          case Some(existing) => map + (id -> (tree widening existing))
+          case None => map + (id -> tree)
+        }
+      }
+    // propagate specifications and arguments
+    val newSpecification = if (specification.nonEmpty) specification else other.specification
+    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+    // create new state
+    copy(
+      isBottom = newBottom,
+      isTop = newTop,
+      permissions = newPermissions,
+      specification = newSpecification.distinct,
+      arguments = newArguments.distinct)
   }
 
   /** Returns true if and only if `this` is less than or equal to `other`.
