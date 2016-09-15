@@ -540,7 +540,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @return a sequence of sil.Exp
     */
-  override def postcondition(): Seq[sil.Exp] = Seq[sil.Exp]()
+  override def postcondition(): Seq[sil.Exp] = specification
 
   def setSpecification(): T = {
     val prefix = if (reading) {
@@ -594,7 +594,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
       case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
       case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
-      case PostconditionCommand(condition) => command(ExhaleCommand(condition))
+      case PostconditionCommand(condition) => command(ExhaleCommand(condition)).setSpecification()
       case InvariantCommand(condition) => command(InhaleCommand(condition)).setSpecification().command(ExhaleCommand(condition))
       case _ => super.command(cmd)
     }
@@ -1143,8 +1143,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param permission the amount of permissions to add
     */
   private def access(path: AccessPath, permission: Permission): T = {
-    val haveExclusive = collect(path)
-    val haveInclusive = haveExclusive plus get(path)
+    val haveExclusive = getExclusive(path)
+    val haveInclusive = haveExclusive plus getExactly(path)
     val need = permission minus haveInclusive
     if (path.length < 2)
       // in this case no permission is needed
@@ -1169,7 +1169,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
   }
 
-  private def get(path: AccessPath): Permission =
+  private def getExactly(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
     else permissions.get(path.head) match {
       case Some(tree) => tree.get(path.tail)
@@ -1184,7 +1184,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return a lower bound on the amount of permission held for the specified
     *         access path
     */
-  private def collect(path: AccessPath): Permission =
+  private def getExclusive(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
     else {
       val receiver = path.init

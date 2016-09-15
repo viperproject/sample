@@ -8,7 +8,7 @@ method foo(a: Ref, b: Ref, c: Ref)
     c.f := null
 }
 
-// method bar(a: Ref)
-//     ensures acc(a.f.f)
-// {
-// }
+method bar(a: Ref)
+    ensures acc(a.f.f)
+{
+}

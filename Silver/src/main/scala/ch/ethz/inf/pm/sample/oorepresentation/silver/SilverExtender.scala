@@ -70,14 +70,16 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[S]): sil.Method = {
     // retrieve the result of the analysis at the method entry and exit
     val entry = cfgState.entryState()
-    val exit = cfgState.exitState()
+    val exitIds = cfgState.cfg.getLeavesIds
+    val exits = exitIds.map(blockId => cfgState.preStateAt(CFGPosition(blockId, 0)))
 
     // update the formal arguments, precondition, postcondition and method body
     val entryArgs = entry.formalArguments(method.formalArgs)
-    val formalArguments = collectFormalArguments(method.body, entryArgs, cfgState)
+    val exitArgs = exits.foldLeft(entryArgs) { case (args, exit) => exit.formalArguments(args) }
+    val formalArguments = collectFormalArguments(method.body, exitArgs, cfgState)
     var precondition = entry.precondition ++ method.pres
     val body = extendStmt(method.body, cfgState)
-    val postcondition = exit.postcondition ++ method.posts
+    val postcondition = exits.foldLeft(Seq.empty[sil.Exp]) { case (post, exit) => exit.postcondition() ++ post }
 
     // TODO: get rid of this hack
     val paramExists = formalArguments.exists {
