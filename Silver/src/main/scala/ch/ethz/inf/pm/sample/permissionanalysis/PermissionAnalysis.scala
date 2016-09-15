@@ -56,16 +56,6 @@ trait Permission extends Lattice[Permission] {
   def minus(other: Permission): Permission
 
   /**
-    * Returns whether the amount of the permission is at most one.
-    */
-  def isFeasible: Boolean
-
-  /**
-    * Returns whether the amount of the permission is greater or equal to one.
-    */
-  def isWrite: Boolean
-
-  /**
     * Returns whether the amount of the permission is strictly greater than zero.
     */
   def isSome: Boolean
@@ -110,10 +100,6 @@ object Permission {
 
     override def minus(other: Permission): Permission = top()
 
-    override def isFeasible: Boolean = false
-
-    override def isWrite: Boolean = true
-
     override def isSome: Boolean = true
 
     override def isNone: Boolean = false
@@ -127,10 +113,6 @@ object Permission {
     override def minus(other: Permission): Permission =
       if (other.isBottom) top()
       else bottom()
-
-    override def isFeasible: Boolean = true
-
-    override def isWrite: Boolean = false
 
     override def isSome: Boolean = false
 
@@ -179,12 +161,6 @@ object Permission {
         val newDenominator = denominator * oDenominator
         fractional(newNumerator, newDenominator, read)
     }
-
-    override def isFeasible: Boolean =
-      amount < 1 || (amount == 1 && !read)
-
-    override def isWrite: Boolean =
-      amount >= 1
 
     override def isSome: Boolean =
       amount > 0 || (amount == 0 && read)
@@ -972,23 +948,31 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def lub(other: T): T = {
     logger.trace(s"lub(${this.toString}, ${other.toString})")
+    // check whether new state is top or bottom
+    val newBottom = isBottom && other.isBottom
+    val newTop = isTop || other.isTop
     // compute variable-wise lub of permission trees. that is, compute lub for
     // all trees that are in this.permissions and other.permissions and also
     // include trees that are either in this.permissions or other.permissions
     // (but not both)
-    val newPermissions = permissions.foldLeft(other.permissions) {
-      case (map, (id, tree)) => map.get(id) match {
-        case Some(existing) => map + (id -> (tree lub existing))
-        case None => map + (id -> tree)
+    val newPermissions =
+      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+      else if (isBottom) other.permissions
+      else if (other.isBottom) permissions
+      else permissions.foldLeft(other.permissions) {
+        case (map, (id, tree)) => map.get(id) match {
+          case Some(existing) => map + (id -> (tree lub existing))
+          case None => map + (id -> tree)
+        }
       }
-    }
-    val newBottom = isBottom && other.isBottom
-    val newTop = isTop || other.isTop
-    val newSpecification = specification ++ other.specification
-    val newArguments = arguments ++ other.arguments
-    copy(permissions = newPermissions,
+    // propagate specifications and arguments
+    val newSpecification = if (specification.nonEmpty) specification else other.specification
+    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+    // create new state
+    copy(
       isBottom = newBottom,
       isTop = newTop,
+      permissions = newPermissions,
       specification = newSpecification.distinct,
       arguments = newArguments.distinct)
   }
@@ -1010,17 +994,31 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def glb(other: T): T = {
     logger.trace("glb")
-    // compute variable-vise glb of permission trees. that is, compute glb for
-    // all trees that are in this.permissions and other.permissions
-    val newPermissions = permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
-      case (map, (id, tree)) => other.permissions.get(id) match {
-        case Some(existing) => map + (id -> (tree glb existing))
-        case None => map
-      }
-    }
+    // check whether new state is bottom or top
     val newBottom = isBottom || other.isBottom
     val newTop = isTop && other.isTop
-    copy(permissions = newPermissions, isBottom = newBottom, isTop = newTop)
+    // compute variable-vise glb of permission trees. that is, compute glb for
+    // all trees that are in this.permissions and other.permissions
+    val newPermissions =
+      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+      else if (isTop) other.permissions
+      else if (other.isTop) permissions
+      else permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
+        case (map, (id, tree)) => other.permissions.get(id) match {
+          case Some(existing) => map + (id -> (tree glb existing))
+          case None => map
+        }
+      }
+    // propagate specifications and arguments
+    val newSpecification = if (specification.nonEmpty) specification else other.specification
+    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+    // create new state
+    copy(
+      isBottom = newBottom,
+      isTop = newTop,
+      permissions = newPermissions,
+      specification = newSpecification,
+      arguments = newArguments)
   }
 
   /* ------------------------------------------------------------------------- *
