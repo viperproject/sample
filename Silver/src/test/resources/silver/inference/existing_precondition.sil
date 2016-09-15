@@ -1,0 +1,30 @@
+field f: Ref
+
+method foo(a: Ref, b: Ref)
+    requires acc(a.f)
+    // requires acc(b.f)
+{
+    a.f := null
+    b.f := null
+}
+
+// method bar(a: Ref)
+//     requires acc(a.f)
+//     // requires acc(a.f.f)
+// {
+//     a.f.f := null
+//     a.f := null
+// }
+
+method baz(a: Ref)
+    // requires acc(a.f)
+    requires acc(a.f.f)
+{
+    a.f.f := null
+    a.f := null
+}
+
+method qux(a: Ref)
+    requires acc(a.f.f)
+{
+}

@@ -1,0 +1,14 @@
+field f: Ref
+
+method foo(a: Ref, b: Ref, c: Ref)
+    ensures acc(a.f)
+    ensures acc(b.f)
+{
+    b.f := null
+    c.f := null
+}
+
+// method bar(a: Ref)
+//     ensures acc(a.f.f)
+// {
+// }

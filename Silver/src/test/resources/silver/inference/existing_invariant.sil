@@ -1,0 +1,20 @@
+field f: Ref
+
+method foo(a: Ref, b: Ref)
+{
+    while (true)
+        invariant acc(a.f)
+    {
+        a.f := null
+        b.f := null
+    }
+}
+
+// method bar(a: Ref)
+// {
+//     while (true)
+//         invariant acc(a.f.f)
+//     {
+//         a.f.f := null
+//     }
+// }
