@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Inner
+import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -85,7 +85,7 @@ object Permission {
   /**
     * Returns a read permission.
     */
-  def read: Permission = inner(0, 1, true)
+  def read: Permission = fractional(0, 1, true)
 
   /**
     * Returns a write permission.
@@ -93,25 +93,16 @@ object Permission {
   def write: Permission = fractional(1, 1)
 
   /**
-    * Returns a fractional permission.
-    *
-    * @param numerator   the numerator of the fraction
-    * @param denominator the denominator of the fraction
-    */
-  def fractional(numerator: Int, denominator: Int): Permission =
-    inner(numerator, denominator, false)
-
-  /**
     * Returns a permission that is the sum of a fractional permission and a read
     * permission
     *
     * @param numerator   the numerator of the fractional part
     * @param denominator the denominator of the fractional part
-    * @param read        indicates whether ther is a read part
+    * @param read        indicates whether there is a read part
     */
-  private def inner(numerator: Int, denominator: Int, read: Boolean): Permission = {
+  def fractional(numerator: Int, denominator: Int, read: Boolean = false): Permission = {
     val div = gcd(numerator, denominator)
-    Inner(numerator / div, denominator / div, read)
+    Fractional(numerator / div, denominator / div, read)
   }
 
   case object Top extends Permission with Lattice.Top[Permission] {
@@ -154,7 +145,7 @@ object Permission {
     * @param denominator the denominator of the fractional part
     * @param read        indicates whether there is a read part
     */
-  case class Inner(numerator: Int, denominator: Int, read: Boolean)
+  case class Fractional(numerator: Int, denominator: Int, read: Boolean)
     extends Permission
   {
     override def isBottom: Boolean = false
@@ -164,7 +155,7 @@ object Permission {
     override def lessEqual(other: Permission): Boolean = other match {
       case Top => true
       case Bottom => false
-      case Inner(oNumerator, oDenominator, oRead) =>
+      case Fractional(oNumerator, oDenominator, oRead) =>
         val x = numerator * oDenominator
         val y = denominator * oNumerator
         x < y || (x == y && (!read || oRead))
@@ -173,20 +164,20 @@ object Permission {
     override def plus(other: Permission): Permission = other match {
       case Top => top()
       case Bottom => bottom()
-      case Inner(oNumerator, oDenominator, oRead) =>
+      case Fractional(oNumerator, oDenominator, oRead) =>
         val newNumerator = numerator * oDenominator + denominator * oNumerator
         val newDenominator = denominator * oDenominator
         val newRead = read | oRead
-        inner(newNumerator, newDenominator, newRead)
+        fractional(newNumerator, newDenominator, newRead)
     }
 
     override def minus(other: Permission): Permission = other match {
       case Top => bottom()
       case Bottom => top()
-      case Inner(oNumerator, oDenominator, _) =>
+      case Fractional(oNumerator, oDenominator, _) =>
         val newNumerator = numerator * oDenominator - denominator * oNumerator
         val newDenominator = denominator * oDenominator
-        inner(newNumerator, newDenominator, read)
+        fractional(newNumerator, newDenominator, read)
     }
 
     override def isFeasible: Boolean =
@@ -517,7 +508,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
 
   lazy val reading = tuples.exists {
-    case (_, Inner(_, _, true)) => true
+    case (_, Fractional(_, _, true)) => true
     case _ => false
   }
 
@@ -573,7 +564,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         sil.FieldAccess(rcv, sil.Field(name, typ)())()
       }.asInstanceOf[sil.FieldAccess]
       permission match {
-        case Inner(a, b, read) =>
+        case Fractional(a, b, read) =>
           val amount = a.toDouble / b
           if (read) {
             val read = sil.LocalVar("read")(sil.Perm)
