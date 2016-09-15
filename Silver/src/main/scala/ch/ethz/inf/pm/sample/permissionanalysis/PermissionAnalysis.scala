@@ -588,13 +588,16 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     copy(specification = specification, arguments = arguments)
   }
 
-  override def command(cmd: Command): T = cmd match {
-    case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-    case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
-    case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
-    case PostconditionCommand(condition) => command(ExhaleCommand(condition))
-    case InvariantCommand(condition) => command(InhaleCommand(condition)).setSpecification().command(ExhaleCommand(condition))
-    case _ => super.command(cmd)
+  override def command(cmd: Command): T = {
+    logger.trace(s"command($cmd)")
+    cmd match {
+      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
+      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+      case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
+      case PostconditionCommand(condition) => command(ExhaleCommand(condition))
+      case InvariantCommand(condition) => command(InhaleCommand(condition)).setSpecification().command(ExhaleCommand(condition))
+      case _ => super.command(cmd)
+    }
   }
 
   /** Exhales permissions.
@@ -946,8 +949,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         }
       }
     // propagate specifications and arguments
-    val newSpecification = if (specification.nonEmpty) specification else other.specification
-    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+    val newSpecification = if (other.specification.nonEmpty) other.specification else specification
+    val newArguments = if (other.arguments.nonEmpty) other.arguments else arguments
     // create new state
     copy(
       isBottom = newBottom,
