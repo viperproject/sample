@@ -1,0 +1,13 @@
+field f: Ref
+
+method foo(a: Ref)
+{
+    inhale acc(a.f, write)
+    a.f.f := null
+}
+
+method bar(a: Ref)
+    requires acc(a.f.f)
+{
+    a.f.f.f := null
+}

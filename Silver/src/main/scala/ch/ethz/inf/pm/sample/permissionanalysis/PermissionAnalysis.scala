@@ -221,9 +221,22 @@ object Permission {
   * @param children   maps fields (identifiers) to subtrees
   */
 case class PermissionTree(permission: Permission = Permission.none,
-                          children: Map[Identifier, PermissionTree] = Map.empty) {
-
+                          children: Map[Identifier, PermissionTree] = Map.empty)
+{
   type AccessPath = List[Identifier]
+
+  /**
+    * Is true if this tree contains no permission.
+    */
+  lazy val isEmpty: Boolean =
+    permission.isNone && children.forall { case (_, child) => child.isEmpty }
+
+  /**
+    * Is true if this tree contains some permission.
+    */
+  lazy val nonEmpty: Boolean =
+    !isEmpty
+
 
   /**
     * Returns the least upper bound of this permission tree and the other permission tree.
@@ -406,12 +419,14 @@ case class PermissionTree(permission: Permission = Permission.none,
     * represented as tuples of access paths and an amount of permission. The
     * access paths do not include the receiver.
     */
-  def tuples: List[(AccessPath, Permission)] =
-    List((Nil, permission)) ++ children.flatMap {
+  def tuples: List[(AccessPath, Permission)] = {
+    val p = if (permission.isNone && nonEmpty) Permission.read else permission
+    List((Nil, p)) ++ children.flatMap {
       case (identifier, child) => child.tuples.map {
         case (path, permission) => (identifier :: path, permission)
       }
     }
+  }
 
   override def toString: String =
     tuples.map { case (path, permission) => path.map(_.toString).reduce(_ + "." + _) + " " + permission }
@@ -1101,8 +1116,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       val want = need minus haveExclusive
 
       val subtree = rest.foldRight(PermissionTree(want)) {
-        // TODO: Only add read permission if we do not already have some?
-        case (field, subtree) => PermissionTree(Permission.read, Map(field -> subtree))
+        case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
       }
       val tree = PermissionTree(children = Map(first -> subtree))
 
