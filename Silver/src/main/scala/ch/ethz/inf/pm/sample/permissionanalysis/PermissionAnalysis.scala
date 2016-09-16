@@ -511,36 +511,43 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def addPreviousResult(result: TrackingCFGState[A]): T =
     copy(context = Some(result))
 
-  /**
-    * Generates a list of additional formal arguments for the method
+  /** Modifies the list of formal arguments using information stored in the
+    * current state.
     *
-    * @return a sequence of sil.LocalVarDecl
+    * @param existing The list of existing formal arguments.
+    * @return The modified list of formal arguments
     */
-  override def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
-    val existing = args.exists { case sil.LocalVarDecl(name, _) => name == "read" }
-    if (!existing)
-      args ++ arguments
+  override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
+    val readExists = existing.exists { case sil.LocalVarDecl(name, _) => name == "read" }
+    if (!readExists)
+      existing ++ arguments
     else
-      args
+      existing
   }
 
-  /** Generates a Silver precondition from the current state
+  /** Modifies the list of preconditions using information stored in the current
+    * state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing preconditions.
+    * @return The modified list of preconditions.
     */
-  override def precondition(): Seq[sil.Exp] = specification
+  override def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
 
-  /** Generates a Silver invariant from the current state
+  /** Modifies the list of invariants using information stored in the current
+    * state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing invariants.
+    * @return The modified list of invariants.
     */
-  override def invariant(): Seq[sil.Exp] = specification
+  override def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
 
-  /** Generates a Silver postcondition from the current state
+  /** Modifies the list of postconditions using information stored in the
+    * current state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing postconditions.
+    * @return The modified list of postconditions.
     */
-  override def postcondition(): Seq[sil.Exp] = specification
+  override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
 
   def setSpecification(): T = {
     val prefix = if (reading) {

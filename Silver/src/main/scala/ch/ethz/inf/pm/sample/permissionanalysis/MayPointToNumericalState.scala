@@ -97,11 +97,13 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   def objToObj: Map[OldHeapNode,Map[String,Set[OldHeapNode]]]
   def numDom: T // numerical abstract domain
 
-  /** Generates a Silver invariant from the current state
+  /** Modifies the list of invariants using information stored in the current
+    * state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing invariants.
+    * @return The modified list of invariants.
     */
-  override def invariant(): Seq[sil.Exp] = Seq[sil.Exp]() //TODO:
+  override def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq[sil.Exp]() //TODO:
 
   /** Assigns an expression to a field of an object.
     *

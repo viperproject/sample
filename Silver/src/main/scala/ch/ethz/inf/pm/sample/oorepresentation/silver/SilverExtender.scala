@@ -16,41 +16,47 @@ import viper.silver.{ast => sil}
   *
   * @author Caterina Urban, Jerome Dohrau
   */
-trait SilverSpecification {
-
-  /**
-    * Generates a list of additional formal arguments for the method
+trait SilverSpecification
+{
+  /** Modifies the list of formal arguments using information stored in the
+    * current state.
     *
-    * @return a sequence of sil.LocalVarDecl
+    * @param existing The list of existing formal arguments.
+    * @return The modified list of formal arguments
     */
-  def formalArguments(args: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = args
+  def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = existing
 
-  /** Generates a Silver precondition from the current state
+  /** Modifies the list of preconditions using information stored in the current
+    * state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing preconditions.
+    * @return The modified list of preconditions.
     */
-  def precondition(): Seq[sil.Exp] = Seq.empty
+  def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
 
-  /** Generates a Silver invariant from the current state
+  /** Modifies the list of invariants using information stored in the current
+    * state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing invariants.
+    * @return The modified list of invariants.
     */
-  def invariant(): Seq[sil.Exp] = Seq.empty
+  def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
 
-  /** Generates a Silver postcondition from the current state
+  /** Modifies the list of postconditions using information stored in the
+    * current state.
     *
-    * @return a sequence of sil.Exp
+    * @param existing The list of existing postconditions.
+    * @return The modified list of postconditions.
     */
-  def postcondition(): Seq[sil.Exp] = Seq.empty
-
+  def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
 }
 
 /** Silver Program Extender
   *
   * @author Caterina Urban, Jerome Dohrau
   */
-trait SilverExtender[S <: State[S] with SilverSpecification] {
-
+trait SilverExtender[S <: State[S] with SilverSpecification]
+{
   /** Extends a sil.Program with inferred specifications. */
   def extendProgram(prog: sil.Program, results: List[AnalysisResult[S]]): sil.Program = {
     // map of method names to control flow graphs
@@ -77,9 +83,9 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
     val entryArgs = entry.formalArguments(method.formalArgs)
     val exitArgs = exits.foldLeft(entryArgs) { case (args, exit) => exit.formalArguments(args) }
     val formalArguments = collectFormalArguments(method.body, exitArgs, cfgState)
-    var precondition = entry.precondition ++ method.pres
+    var precondition = entry.precondition(method.pres)
     val body = extendStmt(method.body, cfgState)
-    val postcondition = exits.foldLeft(Seq.empty[sil.Exp]) { case (post, exit) => exit.postcondition() ++ post }
+    val postcondition = exits.foldLeft(Seq.empty[sil.Exp]) { case (post, exit) => exit.postcondition(post) }
 
     // TODO: get rid of this hack
     val paramExists = formalArguments.exists {
@@ -132,7 +138,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
       // retrieve the result of the analysis at the loop head
       val pre: S = cfgState.preStateAt(CFGPosition(cfgPositions.head.blockIdx, 0))
       // update the method loop invariants
-      val invariants: Seq[sil.Exp] = pre.invariant ++ stmt.invs
+      val invariants: Seq[sil.Exp] = pre.invariant(stmt.invs)
       sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info)
 
     case _ => stmt
