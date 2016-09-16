@@ -282,7 +282,7 @@ case class PermissionTree(permission: Permission = Permission.none,
 
   /** Returns the amount of permission for the given access path.
     *
-    * @param path THe access path.
+    * @param path The access path.
     * @return The amount of permission for the given access path.
     */
   def get(path: AccessPath): Permission = {
@@ -368,56 +368,10 @@ case class PermissionTree(permission: Permission = Permission.none,
     PermissionTree(newPermission, newChildren)
   }
 
-  def fold[R](z: R)(path: AccessPath, f: (R, (AccessPath, Permission)) => R): R =
-    children.foldLeft(f(z, (path, permission))) { case (res, (id, child)) =>
+  def fold[R](z: R)(path: AccessPath, f: (R, (AccessPath, PermissionTree)) => R): R =
+    children.foldLeft(f(z, (path, this))) { case (res, (id, child)) =>
       child.fold(res)(path :+ id, f)
     }
-
-  /**
-    * Returns a list of all access paths stored in the tree. The access paths
-    * are extended with the specified identifier as the receiver.
-    *
-    * @param identifier the identifier representing the receiver
-    */
-  def paths(identifier: Identifier): List[AccessPath] =
-    paths.map(identifier :: _)
-
-  /**
-    * Returns a list of all access paths stored in the tree. The access paths do
-    * not include the receiver.
-    */
-  def paths: List[AccessPath] =
-    List(Nil) ++ children.flatMap {
-      case (identifier, child) => child.paths.map(identifier :: _)
-    }
-
-  /**
-    * Returns a list of all permissions stored in the tree. The permissions are
-    * represented as tuples of access paths and an amount of permission. The
-    * access paths are extended with the specified identifier as the receiver.
-    *
-    * @param identifier the identifier representing the receiver
-    */
-  def tuples(identifier: Identifier): List[(AccessPath, Permission)] =
-    tuples.map { case (fields, permission) => (identifier :: fields, permission) }
-
-  /**
-    * Returns a list of all permissions stored in the tree. The permissions are
-    * represented as tuples of access paths and an amount of permission. The
-    * access paths do not include the receiver.
-    */
-  def tuples: List[(AccessPath, Permission)] = {
-    val p = if (permission.isNone && nonEmpty) Permission.read else permission
-    List((Nil, p)) ++ children.flatMap {
-      case (identifier, child) => child.tuples.map {
-        case (path, permission) => (identifier :: path, permission)
-      }
-    }
-  }
-
-  override def toString: String =
-    tuples.map { case (path, permission) => path.map(_.toString).reduce(_ + "." + _) + " " + permission }
-      .reduce(_ + ", " + _)
 }
 
 /**
@@ -491,16 +445,17 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   // the list of access paths
   lazy val paths: List[AccessPath] =
-    permissions.flatMap { case (identifier, tree) => tree.paths(identifier) }.toList
+    fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
   // the list of tuples of access paths and their corresponding permissions
   lazy val tuples: List[(AccessPath, Permission)] =
-    permissions.flatMap { case (identifier, tree) =>
-      tree.tuples(identifier)
-    }.toList.filter { case (path, permission) =>
-      path.length > 1 && permission.isSome
-    }.sortBy { case (path, permission) =>
-      path.length
+    fold(List.empty[(AccessPath, Permission)]){
+      case (list, (path, tree)) =>
+        val permission = if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission
+        (path, permission) :: list
+    }.filter{
+      case (path, permission) =>
+        path.length > 1 && permission.isSome
     }
 
   lazy val reading = tuples.exists {
@@ -1243,10 +1198,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     else {
       val receiver = path.init
       val field = path.last
-      fold(Permission.none) { case (permission, (currPath, currPermission)) =>
+      fold(Permission.none) { case (permission, (currPath, currTree)) =>
         val currReceiver = currPath.init
         val currField = currPath.last
-        if (path != currPath && (currReceiver.length > 0 && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currPermission
+        if (path != currPath && (currReceiver.nonEmpty && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currTree.permission
         else permission
       }
     }
@@ -1296,7 +1251,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     copy(permissions = newPermissions)
   }
 
-  def fold[R](z: R)(f: (R, (AccessPath, Permission)) => R): R =
+  def fold[R](z: R)(f: (R, (AccessPath, PermissionTree)) => R): R =
     permissions.foldLeft(z) { case (res, (id, tree)) =>
       tree.fold(res)(List(id), f)
     }
