@@ -14,6 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, Silv
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.{And, Exp, FieldAccessPredicate}
 import viper.silver.{ast => sil}
 
 /**
@@ -531,7 +532,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param existing The list of existing preconditions.
     * @return The modified list of preconditions.
     */
-  override def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
+  override def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
 
   /** Modifies the list of invariants using information stored in the current
     * state.
@@ -539,7 +540,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param existing The list of existing invariants.
     * @return The modified list of invariants.
     */
-  override def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
+  override def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
 
   /** Modifies the list of postconditions using information stored in the
     * current state.
@@ -547,7 +548,47 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param existing The list of existing postconditions.
     * @return The modified list of postconditions.
     */
-  override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = specification ++ existing
+  override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
+
+  def getSpecification(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
+    val (permissions, unknowns) = extractPermissions(existing)
+    specification ++ permissions ++ unknowns
+  }
+
+  /** Extracts all permissions (field access predicates) from the given sequence
+    * of expressions and returns two sequences, where the first one contains all
+    * permissions and the second one contains all other expressions.
+    *
+    * @param expressions The sequence of expressions to process.
+    * @return A sequence containing all permissions and a sequence containing
+    *         all other expressions.
+    */
+  def extractPermissions(expressions: Seq[Exp]): (Seq[Exp], Seq[Exp]) =
+    expressions.foldLeft((Seq.empty[Exp], Seq.empty[Exp])) {
+      case ((p, u), curr) =>
+        val (currP, currU) = extractPermissions(curr)
+        (p ++ currP, u ++ currU)
+    }
+
+  /** Extracts all permissions (field access predicates) from the given
+    * expressions and returns two sequences, where the first one contains all
+    * permissions and the second one contains all other (sub) expressions.
+    *
+    * @param expression The expression to process.
+    * @return A sequence containing all permissions and a sequence containing
+    *         all other (sub) expressions.
+    */
+  def extractPermissions(expression: sil.Exp): (Seq[Exp], Seq[Exp]) =
+    expression match {
+      case And(left, right) => {
+        val (leftP, leftU) = extractPermissions(left)
+        val (rightP, rightU) = extractPermissions(right)
+        (leftP ++ rightP, leftU ++ rightU)
+      }
+      case p: FieldAccessPredicate => (Seq(p), Seq.empty)
+      case u => (Seq.empty, Seq(u))
+
+    }
 
   def setSpecification(): T = {
     val prefix = if (reading) {
