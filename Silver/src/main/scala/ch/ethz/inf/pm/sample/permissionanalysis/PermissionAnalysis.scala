@@ -8,13 +8,12 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast.{And, Exp, FieldAccessPredicate}
 import viper.silver.{ast => sil}
 
 /**
@@ -550,9 +549,16 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
 
+  def length(expression: sil.Exp): Int = expression match {
+    case sil.FieldAccessPredicate(location, _) => length(location)
+    case sil.FieldAccess(receiver, _) => length(receiver) + 1
+    case _ => 1
+  }
+
   def getSpecification(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     val (permissions, unknowns) = extractPermissions(existing)
-    specification ++ permissions ++ unknowns
+    val newPermissions = (specification ++ permissions).sortBy(length)
+    newPermissions ++ unknowns
   }
 
   /** Extracts all permissions (field access predicates) from the given sequence
@@ -563,8 +569,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return A sequence containing all permissions and a sequence containing
     *         all other expressions.
     */
-  def extractPermissions(expressions: Seq[Exp]): (Seq[Exp], Seq[Exp]) =
-    expressions.foldLeft((Seq.empty[Exp], Seq.empty[Exp])) {
+  def extractPermissions(expressions: Seq[sil.Exp]): (Seq[sil.Exp], Seq[sil.Exp]) =
+    expressions.foldLeft((Seq.empty[sil.Exp], Seq.empty[sil.Exp])) {
       case ((p, u), curr) =>
         val (currP, currU) = extractPermissions(curr)
         (p ++ currP, u ++ currU)
@@ -578,15 +584,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return A sequence containing all permissions and a sequence containing
     *         all other (sub) expressions.
     */
-  def extractPermissions(expression: sil.Exp): (Seq[Exp], Seq[Exp]) =
+  def extractPermissions(expression: sil.Exp): (Seq[sil.Exp], Seq[sil.Exp]) =
     expression match {
-      case And(left, right) => {
+      case sil.And(left, right) => {
         val (leftP, leftU) = extractPermissions(left)
         val (rightP, rightU) = extractPermissions(right)
         (leftP ++ rightP, leftU ++ rightU)
       }
-      case p: FieldAccessPredicate => (Seq(p), Seq.empty)
-      case u => (Seq.empty, Seq(u))
+      case permission: sil.FieldAccessPredicate => (Seq(permission), Seq.empty)
+      case unknown => (Seq.empty, Seq(unknown))
 
     }
 
