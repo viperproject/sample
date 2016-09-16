@@ -32,7 +32,7 @@ trait SilverSpecification
     * @param existing The list of existing preconditions.
     * @return The modified list of preconditions.
     */
-  def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
+  def precondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
   /** Modifies the list of invariants using information stored in the current
     * state.
@@ -40,7 +40,7 @@ trait SilverSpecification
     * @param existing The list of existing invariants.
     * @return The modified list of invariants.
     */
-  def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
+  def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
   /** Modifies the list of postconditions using information stored in the
     * current state.
@@ -48,7 +48,7 @@ trait SilverSpecification
     * @param existing The list of existing postconditions.
     * @return The modified list of postconditions.
     */
-  def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = Seq.empty
+  def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 }
 
 /** Silver Program Extender
