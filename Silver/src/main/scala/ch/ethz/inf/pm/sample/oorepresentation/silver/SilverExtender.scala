@@ -85,7 +85,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
     val formalArguments = collectFormalArguments(method.body, exitArgs, cfgState)
     var precondition = entry.precondition(method.pres)
     val body = extendStmt(method.body, cfgState)
-    val postcondition = exits.foldLeft(Seq.empty[sil.Exp]) { case (post, exit) => exit.postcondition(post) }
+    val postcondition = exits.foldLeft(method.posts) { case (post, exit) => exit.postcondition(post) }
 
     // TODO: get rid of this hack
     val paramExists = formalArguments.exists {

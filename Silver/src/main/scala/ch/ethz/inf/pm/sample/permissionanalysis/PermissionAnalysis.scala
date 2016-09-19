@@ -447,21 +447,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   lazy val paths: List[AccessPath] =
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
-  // the list of tuples of access paths and their corresponding permissions
-  lazy val tuples: List[(AccessPath, Permission)] =
+  private def tuples(f: PermissionTree => Permission): List[(AccessPath, Permission)] =
     fold(List.empty[(AccessPath, Permission)]){
-      case (list, (path, tree)) =>
-        val permission = if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission
-        (path, permission) :: list
+      case (list, (path, tree)) => (path, f(tree)) :: list
     }.filter{
-      case (path, permission) =>
-        path.length > 1 && permission.isSome
+      case (path, permission) => path.length > 1 && permission.isSome
     }
-
-  lazy val reading = tuples.exists {
-    case (_, Fractional(_, _, true)) => true
-    case _ => false
-  }
 
   override def addPreviousResult(result: TrackingCFGState[A]): T =
     copy(context = Some(result))
@@ -503,6 +494,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return The modified list of postconditions.
     */
   override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
+
+  def string(expression: sil.Exp): String = expression match {
+    case sil.FieldAccessPredicate(location, _) => string(location)
+    case sil.FieldAccess(receiver, field) => string(receiver) + "." + field.name
+    case _ => ???
+  }
 
   def length(expression: sil.Exp): Int = expression match {
     case sil.FieldAccessPredicate(location, _) => length(location)
@@ -551,48 +548,77 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
     }
 
-  def setSpecification(): T = {
+  /** Returns a silver field access corresponding to the given access path.
+    *
+    * @param path The access path.
+    * @return A silver field access.
+    */
+  private def fieldAccess(path: AccessPath): sil.FieldAccess = {
+    val receiver =
+      if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
+      else fieldAccess(path.init)
+    val name = path.last.getName
+    val typ = fields.find(_._2 == name).get match {
+      case (t, _) if t.isObject => sil.Ref
+      case (t, _) if t.isNumericalType => sil.Int
+      case (t, _) if t.isBooleanType => sil.Bool
+    }
+    sil.FieldAccess(receiver, sil.Field(name, typ)())()
+  }
+
+  /** Returns a silver field access predicate corresponding to the given access
+    * path and permission.
+    *
+    * @param path The access path.
+    * @param permission The permission.
+    * @return A silver field access predicate.
+    */
+  private def fieldAccessPredicate(path: AccessPath, permission: Permission): sil.FieldAccessPredicate = {
+    val location = fieldAccess(path)
+    val amount = permission match {
+      case Permission.Top =>
+        sil.FalseLit()()
+      case Fractional(numerator, denominator, read) =>
+        if (read) {
+          val variable = sil.LocalVar("read")(sil.Perm)
+          if (numerator == 0) variable
+          else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
+          else sil.PermAdd(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())(), variable)()
+        } else {
+          if (numerator == 0) sil.NoPerm()()
+          else if (numerator == denominator) sil.FullPerm()()
+          else sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
+        }
+    }
+    sil.FieldAccessPredicate(location, amount)()
+  }
+
+  def setPrecondition(): T = {
+    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission)
+    setSpecification(tuples)
+  }
+
+  def setInvariant(): T = {
+    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission)
+    setSpecification(tuples)
+  }
+
+  def setPostcondition(): T = {
+    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else Permission.none)
+    setSpecification(tuples)
+  }
+
+  def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
+    val reading = tuples.exists {
+      case (_, Fractional(_, _, true)) => true
+      case _ => false
+    }
+
     val prefix = if (reading) {
       val read = sil.LocalVar("read")(sil.Perm)
       Seq(sil.PermGtCmp(read, sil.NoPerm()())())
     } else Seq.empty
-    val specification = prefix ++ tuples.map { case (path, permission) =>
-      val obj = sil.LocalVar(path.head.getName)(sil.Ref)
-      val loc = path.tail.foldLeft[sil.Exp](obj) { case (rcv, id) =>
-        val name = id.getName
-        val field = fields.find(_._2 == name).get
-        val typ = field match {
-          case (t, _) if t.isObject => sil.Ref
-          case (t, _) if t.isNumericalType => sil.Int
-          case (t, _) if t.isBooleanType => sil.Bool
-        }
-        sil.FieldAccess(rcv, sil.Field(name, typ)())()
-      }.asInstanceOf[sil.FieldAccess]
-      permission match {
-        case Permission.Top =>
-          sil.FalseLit()()
-        case Fractional(a, b, read) =>
-          val amount = a.toDouble / b
-          if (read) {
-            val read = sil.LocalVar("read")(sil.Perm)
-            val perm = if (amount > 0) {
-              val numerator = sil.IntLit(a)()
-              val denominator = sil.IntLit(b)()
-              val fractional = sil.FractionalPerm(numerator, denominator)()
-              sil.PermAdd(fractional, read)()
-            } else read
-            sil.FieldAccessPredicate(loc, perm)()
-          } else {
-            val perm = if (amount == 1) sil.FullPerm()()
-            else {
-              val numerator = sil.IntLit(a)()
-              val denominator = sil.IntLit(b)()
-              sil.FractionalPerm(numerator, denominator)()
-            }
-            sil.FieldAccessPredicate(loc, perm)()
-          }
-      }
-    }
+    val specification = prefix ++ tuples.map { case (path, permission) => fieldAccessPredicate(path, permission) }
     val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
     copy(specification = specification, arguments = arguments)
   }
@@ -602,9 +628,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     cmd match {
       case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
       case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
-      case PreconditionCommand(condition) => command(InhaleCommand(condition)).setSpecification()
-      case PostconditionCommand(condition) => command(ExhaleCommand(condition)).setSpecification()
-      case InvariantCommand(condition) => command(InhaleCommand(condition)).setSpecification().command(ExhaleCommand(condition))
+      case PreconditionCommand(condition) => command(InhaleCommand(condition)).setPrecondition()
+      case PostconditionCommand(condition) => command(ExhaleCommand(condition)).setPostcondition()
+      case InvariantCommand(condition) => command(InhaleCommand(condition)).setInvariant().command(ExhaleCommand(condition))
       case _ => super.command(cmd)
     }
   }
@@ -1268,11 +1294,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def toString: String = s"PermissionAnalysisState(" +
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
-      val strings = tuples.filter { case (_, permission) =>
-        permission.isSome
-      }.map { case (path, permission) =>
-        path.map(_.toString).reduce(_ + "." + _) + " " + permission
-      }
+      val strings = tuples(tree => tree.permission)
+        .filter(_._2.isSome)
+        .map { case (path, permission) =>
+          path.map(_.toString).reduce(_ + "." + _) + " " + permission
+        }
       if (strings.isEmpty) "none"
       else strings.reduce(_ + ", " + _)
     }" +
