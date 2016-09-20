@@ -44,6 +44,7 @@ case class PreconditionCommand(condition: ExpressionSet) extends SilverCommand
 case class PostconditionCommand(condition: ExpressionSet) extends SilverCommand
 
 /** A command that handles the given invariant.
+  *
   * @param condition The invariant.
   * @author Jerome Dohrau
   */
@@ -81,10 +82,7 @@ object SilverSemantics extends NativeMethodSemantics {
       case _ =>
         SilverMethods.values.find(_.toString == operator) match {
           case Some(SilverMethods.permission) =>
-            val permission = if (parameters.length <= 1)
-              createPermissionExpression(expression, parameters(0), parameters(0), returnType)
-            else
-              createPermissionExpression(expression, parameters(0), parameters(1), returnType)
+            val permission = createPermissionExpression(expression, parameters(0), parameters(1), returnType)
             Some(state.setExpression(permission))
           case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(expression)))
           case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(expression)))

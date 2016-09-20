@@ -297,10 +297,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     // @author Caterina Urban
 
     case sil.FieldAccessPredicate(loc, perm) => perm match {
-      case perm: sil.FullPerm => makeNativeMethodCall(
+      case _: sil.FullPerm | _: sil.NoPerm => makeNativeMethodCall(
         pos = go(e.pos),
         name = SilverMethods.permission.toString,
-        args = go(loc) :: go(perm) :: Nil,
+        args = go(loc) :: go(perm) :: sample.ConstantStatement(go(perm.pos), "1", sample.IntType) :: Nil,
         returnType = go(loc.typ))
       case perm: sil.FractionalPerm => makeNativeMethodCall(
         pos = go(e.pos),
@@ -310,6 +310,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
     }
     case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.IntType)
+    case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.IntType)
 
     // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
     // their length (e.g., |data|) is treated as another unbounded variable
