@@ -447,9 +447,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   lazy val paths: List[AccessPath] =
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
-  private def tuples(f: PermissionTree => Permission): List[(AccessPath, Permission)] =
+  private def tuples(f: (AccessPath, PermissionTree) => Permission): List[(AccessPath, Permission)] =
     fold(List.empty[(AccessPath, Permission)]){
-      case (list, (path, tree)) => (path, f(tree)) :: list
+      case (list, (path, tree)) => (path, f(path, tree)) :: list
     }.filter{
       case (path, permission) => path.length > 1 && permission.isSome
     }
@@ -573,13 +573,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param permission The permission.
     * @return A silver field access predicate.
     */
-  private def fieldAccessPredicate(path: AccessPath, permission: Permission): sil.FieldAccessPredicate = {
+  private def fieldAccessPredicate(path: AccessPath, permission: Permission): sil.Exp = {
     val location = fieldAccess(path)
-    val amount = permission match {
+    permission match {
       case Permission.Top =>
         sil.FalseLit()()
       case Fractional(numerator, denominator, read) =>
-        if (read) {
+        val amount = if (read) {
           val variable = sil.LocalVar("read")(sil.Perm)
           if (numerator == 0) variable
           else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
@@ -589,24 +589,44 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
           else if (numerator == denominator) sil.FullPerm()()
           else sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
         }
+        sil.FieldAccessPredicate(location, amount)()
     }
-    sil.FieldAccessPredicate(location, amount)()
   }
 
-  def setPrecondition(): T = {
-    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission)
+  /** Returns the set of access paths (as strings) that are framed by the given
+    * expression.
+    *
+    * @param expression The expression.
+    * @return The set of access paths (as strings).
+    */
+  def framed(expression: Expression): Set[String] = expression match {
+    case PermissionExpression(id, n, _) => n match {
+      case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
+      case _ => Set.empty
+    }
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => framed(left) ++ framed(right)
+    case _ => Set.empty
+  }
+
+  def setPrecondition(existing: Expression): T = {
+    val set = framed(existing)
+    val tuples = this.tuples { case (path, tree) =>
+        if (tree.permission.isNone && tree.nonEmpty && !set.contains(path.mkString("."))) Permission.read
+        else tree.permission
+      }
     setSpecification(tuples)
   }
 
-  def setInvariant(): T = {
-    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else tree.permission)
+  def setPostcondition(existing: Expression): T = {
+    val tuples = this.tuples{ case (_, tree) =>
+      if (tree.permission.isNone && tree.nonEmpty) Permission.read
+      else Permission.none
+    }
     setSpecification(tuples)
   }
 
-  def setPostcondition(): T = {
-    val tuples = this.tuples(tree => if (tree.permission.isNone && tree.nonEmpty) Permission.read else Permission.none)
-    setSpecification(tuples)
-  }
+  def setInvariant(existing: Expression): T =
+    setPrecondition(existing)
 
   def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
     val reading = tuples.exists {
@@ -618,7 +638,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       val read = sil.LocalVar("read")(sil.Perm)
       Seq(sil.PermGtCmp(read, sil.NoPerm()())())
     } else Seq.empty
-    val specification = prefix ++ tuples.map { case (path, permission) => fieldAccessPredicate(path, permission) }
+    val specification = prefix ++ tuples
+      //.filter { case (path, permission) => permission.isSome }
+      .map { case (path, permission) => fieldAccessPredicate(path, permission) }
     val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
     copy(specification = specification, arguments = arguments)
   }
@@ -628,9 +650,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     cmd match {
       case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
       case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
-      case PreconditionCommand(condition) => command(InhaleCommand(condition)).setPrecondition()
-      case PostconditionCommand(condition) => command(ExhaleCommand(condition)).setPostcondition()
-      case InvariantCommand(condition) => command(InhaleCommand(condition)).setInvariant().command(ExhaleCommand(condition))
+      case PreconditionCommand(condition) =>
+        val expression = condition.getSingle.get
+        inhale(expression).setPrecondition(expression)
+      case PostconditionCommand(condition) =>
+        val expression = condition.getSingle.get
+        exhale(expression).setPostcondition(expression)
+      case InvariantCommand(condition) =>
+        val expression = condition.getSingle.get
+        inhale(expression).setInvariant(expression).exhale(expression)
       case _ => super.command(cmd)
     }
   }
@@ -1297,7 +1325,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def toString: String = s"PermissionAnalysisState(" +
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
-      val strings = tuples(tree => tree.permission)
+      val strings = tuples{ case (_, tree) => tree.permission }
         .filter(_._2.isSome)
         .map { case (path, permission) =>
           path.map(_.toString).reduce(_ + "." + _) + " " + permission
