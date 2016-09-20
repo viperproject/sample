@@ -360,8 +360,8 @@ case class PermissionTree(permission: Permission = Permission.none,
     * @param path the current access path
     * @param f    the function to apply to all permissions in the tree
     */
-  def map(path: AccessPath, f: (AccessPath, Permission) => Permission): PermissionTree = {
-    val newPermission = f(path, permission)
+  def map(path: AccessPath, f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
+    val newPermission = f(path, this)
     val newChildren = children.map {
       case (id, tree) => (id, tree.map(path :+ id, f))
     }
@@ -654,9 +654,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         // get the amount of permission that is exhaled
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
-        map { (path, permission) =>
-          if ((path == location || postAliases.pathsMayAlias(path, location)) && path.length > 1) permission plus exhaled
-          else permission
+        map { (path, tree) =>
+          if (path.length > 1 && (path == location || (preAliases.receiversMayAlias(path, location) && path.last == location.last))) {
+            if (tree.permission.isSome || tree.isEmpty) tree.permission plus exhaled
+            else Permission.read plus exhaled
+          }
+          else tree.permission
         }.access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
         // we do not assert boolean conditions since the analysis would fail
@@ -686,9 +689,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val inhaled = permission(numerator, denominator)
 
         // add permission to all paths that must alias
-        map { (path, permission) =>
-          if (path == location || postAliases.pathsMustAlias(path, location)) permission minus inhaled
-          else permission
+        map { (path, tree) =>
+          if (path == location || postAliases.pathsMustAlias(path, location)) tree.permission minus inhaled
+          else tree.permission
         }.read(location.dropRight(1))
       }
       case _ => assume(acc)
@@ -1270,7 +1273,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * @param f the function to be applied to all permissions
     */
-  def map(f: (AccessPath, Permission) => Permission): T = {
+  def map(f: (AccessPath, PermissionTree) => Permission): T = {
     val newPermissions = permissions.map {
       case (id, tree) => (id, tree.map(List(id), f))
     }
