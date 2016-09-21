@@ -297,7 +297,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     // @author Caterina Urban
 
     case sil.FieldAccessPredicate(loc, perm) => perm match {
-      case _: sil.FullPerm | _: sil.NoPerm => makeNativeMethodCall(
+      case _: sil.FullPerm |
+           _: sil.NoPerm |
+           _: sil.LocalVar => makeNativeMethodCall(
         pos = go(e.pos),
         name = SilverMethods.permission.toString,
         args = go(loc) :: go(perm) :: sample.ConstantStatement(go(perm.pos), "1", sample.IntType) :: Nil,
@@ -307,7 +309,13 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         name = SilverMethods.permission.toString,
         args = go(loc) :: go(perm.left) :: go(perm.right) :: Nil,
         returnType = go(loc.typ))
-      case _ => throw new NotImplementedError("A sil.PermExp conversion is missing!")
+      case add: sil.PermAdd =>
+        // acc(a.f, p + q) -> acc(a.f, p) && acc(a.f, q)
+        val left = sil.FieldAccessPredicate(loc, add.left)(e.pos)
+        val right = sil.FieldAccessPredicate(loc, add.right)(e.pos)
+        go(sil.And(left, right)(add.pos))
+      case _ =>
+        throw new NotImplementedError("A sil.PermExp conversion is missing!")
     }
     case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.IntType)
     case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.IntType)

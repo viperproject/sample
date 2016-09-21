@@ -158,10 +158,11 @@ object Permission {
     override def minus(other: Permission): Permission = other match {
       case Top => bottom()
       case Bottom => top()
-      case Fractional(oNumerator, oDenominator, _) =>
+      case Fractional(oNumerator, oDenominator, oRead) =>
         val newNumerator = numerator * oDenominator - denominator * oNumerator
         val newDenominator = denominator * oDenominator
-        fractional(newNumerator, newDenominator, read)
+        val newRead = read && !oRead
+        fractional(newNumerator, newDenominator, newRead)
     }
 
     override def isSome: Boolean =
@@ -706,7 +707,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return The abstract state after inhaling the permission
     */
   private def inhale(acc: Expression): T = {
-    logger.trace("inhale")
+    logger.trace(s"inhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         inhale(right).inhale(left)
@@ -1166,6 +1167,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     (numerator, denominator) match {
       case (Constant(nValue, _, _), Constant(dValue, _, _)) =>
         Permission.fractional(nValue.toInt, dValue.toInt)
+      case (VariableIdentifier("read", _), Constant("1", _, _)) =>
+        Permission.read
       case _ => ??? // TODO: support more cases
     }
 

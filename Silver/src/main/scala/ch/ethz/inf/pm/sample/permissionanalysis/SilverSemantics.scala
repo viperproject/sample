@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethods
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethods, sample}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 
 /** Super trait for all silver commands.
@@ -77,8 +77,9 @@ object SilverSemantics extends NativeMethodSemantics {
                                                           state: S): Option[S] = {
     (operator, parameters) match {
       case ("&&", right :: Nil) =>
-        // TODO: This is a bit hacky since we completely ignore the types.
-        Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&, expression.getType )))
+        Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&, sample.BoolType)))
+      case ("==" | "!=" | "<" | "<!" | ">" | ">=", right :: Nil) =>
+        Some(state.setExpression(createBinaryExpression(expression, right, ArithmeticOperator.withName(operator), returnType)))
       case _ =>
         SilverMethods.values.find(_.toString == operator) match {
           case Some(SilverMethods.permission) =>
