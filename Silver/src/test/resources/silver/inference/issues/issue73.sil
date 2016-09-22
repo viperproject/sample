@@ -1,6 +1,6 @@
 field f: Ref
 
-method Foo(a: Ref, c: Bool)
+/*method Foo(a: Ref, c: Bool)
     //requires acc(a.f, read)
     //requires acc(a.f.f, write)
 {
@@ -13,4 +13,4 @@ method Foo(a: Ref, c: Bool)
         a.f.f := null
         b.f.f := null
     }
-}
+}*/

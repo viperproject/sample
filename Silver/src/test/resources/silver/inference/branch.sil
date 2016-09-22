@@ -1,7 +1,7 @@
 
 field f: Ref
 
-method foo(b: Ref, c: Ref, d: Ref, t: Bool)
+/*method foo(b: Ref, c: Ref, d: Ref, t: Bool)
 	//requires acc(b.f, write)
   	//requires acc(c.f, write)
 {
@@ -13,9 +13,9 @@ method foo(b: Ref, c: Ref, d: Ref, t: Bool)
 		a.f := b
 	}
 	a.f.f := d
-}
+}*/
 
-method bar(b: Ref, c: Ref, d: Ref, t: Bool)
+/*method bar(b: Ref, c: Ref, d: Ref, t: Bool)
 	//requires acc(b.f, write)
   	//requires acc(c.f, write)
 {
@@ -28,7 +28,7 @@ method bar(b: Ref, c: Ref, d: Ref, t: Bool)
 		c.f := a.f
 	}
 	a.f := d
-}
+}*/
 
 method qux(b: Ref, c: Ref, d: Ref, t: Bool)
   	//requires acc(b.f, write)
