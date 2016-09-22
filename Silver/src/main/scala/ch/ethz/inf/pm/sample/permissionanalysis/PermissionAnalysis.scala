@@ -16,12 +16,13 @@ import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
-/**
-  * Represents a permission.
+/** Represents a permission.
   *
   * @author Jerome Dohrau
   */
-trait Permission extends Lattice[Permission] {
+trait Permission
+  extends Lattice[Permission]
+{
   override def factory(): Permission = top()
 
   override def top(): Permission = Permission.Top
@@ -38,59 +39,50 @@ trait Permission extends Lattice[Permission] {
     else if (other lessEqual this) other
     else bottom()
 
-
   override def widening(other: Permission): Permission =
     if (other lessEqual this) this
     else top()
 
-  /**
-    * Returns the sum of this permission and the other permission.
+  /** Returns the sum of this permission and the other permission.
     *
-    * @param other the permission to be added
+    * @param other The permission to be added.
     */
   def plus(other: Permission): Permission
 
-  /**
-    * Returns the difference of this permission and the other permission.
+  /** Returns the difference of this permission and the other permission.
     *
-    * @param other the permission to be subtracted
+    * @param other The permission to be subtracted.
     */
   def minus(other: Permission): Permission
 
-  /**
-    * Returns whether the amount of the permission is strictly greater than zero.
+  /** Returns whether the amount of the permission is strictly greater than zero.
     */
   def isSome: Boolean
 
-  /**
-    * Returns whether the amount of the permission is at most zero.
+  /** Returns whether the amount of the permission is at most zero.
     */
   def isNone: Boolean
 }
 
 object Permission {
-  /**
-    * Returns no permission.
+  /** Returns no permission.
     */
   def none: Permission = fractional(0, 1)
 
-  /**
-    * Returns a read permission.
+  /** Returns a read permission.
     */
-  def read: Permission = fractional(0, 1, true)
+  def read: Permission = fractional(0, 1, read = true)
 
-  /**
-    * Returns a write permission.
+  /** Returns a write permission.
     */
   def write: Permission = fractional(1, 1)
 
-  /**
-    * Returns a permission that is the sum of a fractional permission and a read
+  /** Returns a permission that is the sum of a fractional permission and a read
     * permission
     *
-    * @param numerator   the numerator of the fractional part
-    * @param denominator the denominator of the fractional part
-    * @param read        indicates whether there is a read part
+    * @param numerator   The numerator of the fractional part.
+    * @param denominator The denominator of the fractional part.
+    * @param read        Indicates whether there is a read part.
     */
   def fractional(numerator: Int, denominator: Int, read: Boolean = false): Permission = {
     val div = gcd(numerator, denominator)
@@ -121,13 +113,12 @@ object Permission {
     override def isNone: Boolean = true
   }
 
-  /**
-    * A permission that is the sum of a fractional permission and a read
+  /** A permission that is the sum of a fractional permission and a read
     * permission
     *
-    * @param numerator   the numerator of the fractional part
-    * @param denominator the denominator of the fractional part
-    * @param read        indicates whether there is a read part
+    * @param numerator   The numerator of the fractional part.
+    * @param denominator The denominator of the fractional part.
+    * @param read        Indicates whether there is a read part.
     */
   case class Fractional(numerator: Int, denominator: Int, read: Boolean)
     extends Permission
@@ -175,11 +166,10 @@ object Permission {
       numerator.toDouble / denominator
   }
 
-  /**
-    * Computes the greatest common divisor of the two specified integers.
+  /** Computes the greatest common divisor of the two specified integers.
     *
-    * @param a the first integer
-    * @param b the second integer
+    * @param a The first integer.
+    * @param b The second integer.
     */
   private def gcd(a: Int, b: Int): Int =
     if (b == 0) a.abs
@@ -195,22 +185,19 @@ case class PermissionTree(permission: Permission = Permission.none,
 {
   type AccessPath = List[Identifier]
 
-  /**
-    * Is true if this tree contains no permission.
+  /** Is true if this tree contains no permission.
     */
   lazy val isEmpty: Boolean =
     permission.isNone && children.forall { case (_, child) => child.isEmpty }
 
-  /**
-    * Is true if this tree contains some permission.
+  /** Is true if this tree contains some permission.
     */
   lazy val nonEmpty: Boolean =
     !isEmpty
 
-  /**
-    * Returns the least upper bound of this permission tree and the other permission tree.
+  /** Returns the least upper bound of this permission tree and the other permission tree.
     *
-    * @param other the other permission tree
+    * @param other The other permission tree.
     */
   def lub(other: PermissionTree): PermissionTree = {
     // compute lub of permissions
@@ -225,10 +212,9 @@ case class PermissionTree(permission: Permission = Permission.none,
     PermissionTree(newPermission, newChildren)
   }
 
-  /**
-    * Returns the greatest lower bound of this permission tree and the other permission tree.
+  /**  Returns the greatest lower bound of this permission tree and the other permission tree.
     *
-    * @param other the other permission tree
+    * @param other The other permission tree.
     */
   def glb(other: PermissionTree): PermissionTree = {
     // computer glb of permissions
@@ -262,11 +248,10 @@ case class PermissionTree(permission: Permission = Permission.none,
     PermissionTree(newPermission, newChildren)
   }
 
-  /**
-    * Returns whether the amount of permission of this permission tree is less
+  /** Returns whether the amount of permission of this permission tree is less
     * than or equal to the amount of permission  of the other tree.
     *
-    * @param other the other permission
+    * @param other The other permission.
     */
   def lessEqual(other: PermissionTree): Boolean = {
     if (permission lessEqual other.permission) {
@@ -294,13 +279,12 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
   }
 
-  /**
-    * Extracts the subtree at the specified path and returns the remainder of
+  /**  Extracts the subtree at the specified path and returns the remainder of
     * the tree as well as the extracted subtree.
     *
-    * @param path the path to the subtree to be extracted
-    * @return a tuple containing the remainder of the tree and the extracted
-    *         subtree
+    * @param path The path to the subtree to be extracted.
+    * @return A tuple containing the remainder of the tree and the extracted
+    *         subtree.
     */
   def extract(path: AccessPath): (PermissionTree, PermissionTree) = {
     if (path.isEmpty) {
@@ -322,14 +306,14 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
   }
 
-  /**
-    * Implants the specified permission tree at the specified path. If there is
+  /** Implants the specified permission tree at the specified path. If there is
     * already a non-empty subtree at that path the least upper bound is
     * computed.
     *
-    * @param path  the tree to be implanted
-    * @param other the path to the place where the permission tree is to be implanted
-    * @return this permission tree with the other permission tree implanted
+    * @param path  The tree to be implanted.
+    * @param other The path to the place where the permission tree is to be
+    *              implanted.
+    * @return This permission tree with the other permission tree implanted.
     */
   def implant(path: AccessPath, other: PermissionTree): PermissionTree = {
     if (path.isEmpty) {
@@ -352,14 +336,13 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
   }
 
-  /**
-    * Applies the specified function to all permissions stored in the tree. The
+  /** Applies the specified function to all permissions stored in the tree. The
     * function takes as arguments the current access path and the permission to
     * be modified. At the root of the tree the path is assumed to be the
-    * the variable the tree corresponds to
+    * the variable the tree corresponds to.
     *
-    * @param path the current access path
-    * @param f    the function to apply to all permissions in the tree
+    * @param path The current access path.
+    * @param f    The function to apply to all permissions in the tree.
     */
   def map(path: AccessPath, f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
     val newPermission = f(path, this)
@@ -375,11 +358,10 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
 }
 
-/**
-  * Used to represent new objects in access paths.
+/** Used to represent new objects in access paths.
   *
-  * @param typ the type of the object
-  * @param pp  the program point associated with the object
+  * @param typ The type of the object.
+  * @param pp  The program point associated with the object.
   */
 case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Identifier.HeapIdentifier {
   /**
@@ -407,14 +389,15 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
 }
 
 /**
-  * @tparam T type of the permission analysis state
-  * @tparam A type of the alias analysis state
+  * @tparam T The type of the permission analysis state.
+  * @tparam A The type of the alias analysis state.
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
   extends SimpleState[T] with PreviousResult[A, T] with SilverSpecification
     with StateWithRefiningAnalysisStubs[T]
-    with LazyLogging {
+    with LazyLogging
+{
   this: T =>
 
   type AccessPath = List[Identifier]
@@ -570,7 +553,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   /** Returns a silver field access predicate corresponding to the given access
     * path and permission.
     *
-    * @param path The access path.
+    * @param path       The access path.
     * @param permission The permission.
     * @return A silver field access predicate.
     */
@@ -668,8 +651,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param acc The permission to exhale
-    * @return The abstract state after exhaling the permission
+    * @param acc The permission to exhale.
+    * @return The abstract state after exhaling the permission.
     */
   private def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
@@ -703,8 +686,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param acc The permission to inhale
-    * @return The abstract state after inhaling the permission
+    * @param acc The permission to inhale.
+    * @return The abstract state after inhaling the permission.
     */
   private def inhale(acc: Expression): T = {
     logger.trace(s"inhale($acc)")
@@ -731,9 +714,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param variable The name of the argument
-    * @param typ      The static type of the argument
-    * @return The abstract state after the creation of the argument
+    * @param variable The name of the argument.
+    * @param typ      The static type of the argument.
+    * @return The abstract state after the creation of the argument.
     */
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
     logger.trace("createVariableForArgument")
@@ -742,10 +725,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Removes a variable.
     *
-    * Implementations can assume this state is non-bottom
+    * Implementations can assume this state is non-bottom.
     *
-    * @param varExpr The variable to be removed
-    * @return The abstract state obtained after removing the variable
+    * @param varExpr The variable to be removed.
+    * @return The abstract state obtained after removing the variable.
     */
   override def removeVariable(varExpr: VariableIdentifier): T = {
     logger.trace("removeVariable")
@@ -756,11 +739,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param obj   the object on which the field access is performed
-    * @param field the name of the field
-    * @param typ   the type of the field
+    * @param obj   The object on which the field access is performed.
+    * @param field The name of the field.
+    * @param typ   The type of the field.
     * @return The abstract state obtained after the field access, that is,
-    *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
+    *         a new state whose `ExpressionSet` holds the symbolic
+    *         representation of the value of the given field.
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
     logger.trace("getFieldValue")
@@ -783,8 +767,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param condition The assumed expression
-    * @return The abstract state after assuming that the expression holds
+    * @param condition The assumed expression.
+    * @return The abstract state after assuming that the expression holds.
     */
   override def assume(condition: Expression): T = {
     logger.trace("assume")
@@ -796,10 +780,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param variable The name of the variable
-    * @param typ      The static type of the variable
-    * @param pp       The program point that creates the variable
-    * @return The abstract state after the creation of the variable
+    * @param variable The name of the variable.
+    * @param typ      The static type of the variable.
+    * @param pp       The program point that creates the variable.
+    * @return The abstract state after the creation of the variable.
     */
   override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
@@ -810,9 +794,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param left  The assigned variable
-    * @param right The assigned expression
-    * @return The abstract state after the assignment
+    * @param left  The assigned variable.
+    * @param right The assigned expression.
+    * @return The abstract state after the assignment.
     */
   override def assignVariable(left: Expression, right: Expression): T = {
     logger.trace("assignVariable")
@@ -837,10 +821,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Forgets the value of a variable.
     *
-    * Implementations can assume this state is non-bottom
+    * Implementations can assume this state is non-bottom.
     *
-    * @param varExpr The variable to be forgotten
-    * @return The abstract state obtained after forgetting the variable
+    * @param varExpr The variable to be forgotten.
+    * @return The abstract state obtained after forgetting the variable.
     */
   override def setVariableToTop(varExpr: Expression): T = ???
 
@@ -848,10 +832,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     *
     * Implementations can already assume that this state is non-bottom.
     *
-    * @param obj   the object whose field is assigned
-    * @param field the assigned field
-    * @param right the assigned expression
-    * @return the abstract state after the assignment
+    * @param obj   The object whose field is assigned.
+    * @param field The assigned field.
+    * @param right The assigned expression.
+    * @return the abstract state after the assignment.
     */
   override def assignField(obj: Expression, field: String, right: Expression): T = {
     logger.trace("assignField")
@@ -886,9 +870,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Assigns an expression to an argument.
     *
-    * @param x     The assigned argument
-    * @param right The expression to be assigned
-    * @return The abstract state after the assignment
+    * @param x     The assigned argument.
+    * @param right The expression to be assigned.
+    * @return The abstract state after the assignment.
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ??? // ignore
 
@@ -903,8 +887,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Throws an exception.
     *
-    * @param t The thrown exception
-    * @return The abstract state after the thrown
+    * @param t The thrown exception.
+    * @return The abstract state after the thrown.
     */
   override def throws(t: ExpressionSet): T = ??? // ignore
 
@@ -913,11 +897,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Evaluates a numerical constant.
     *
-    * @param value The string representing the numerical constant
-    * @param typ   The type of the numerical constant
-    * @param pp    The program point that contains the constant
-    * @return The abstract state after the evaluation of the constant, that is, the
-    *         state that contains an expression representing this constant
+    * @param value The string representing the numerical constant.
+    * @param typ   The type of the numerical constant.
+    * @param pp    The program point that contains the constant.
+    * @return The abstract state after the evaluation of the constant, that is,
+    *         the state that contains an expression representing this constant.
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     logger.trace("evalConstant")
@@ -927,30 +911,33 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
-    * This is particularly important to eventually partition a state following the specified directives.
+    * This is particularly important to eventually partition a state following
+    * the specified directives.
     *
-    * @param pp The point of the program that is going to be analyzed
-    * @return The abstract state eventually modified
+    * @param pp The point of the program that is going to be analyzed.
+    * @return The abstract state eventually modified.
     */
   override def before(pp: ProgramPoint): T = {
     logger.trace(s"before($pp)")
     copy(currentPP = pp)
   }
 
-  /** Performs abstract garbage collection. */
+  /** Performs abstract garbage collection.
+    */
   override def pruneUnreachableHeap(): T = ??? // ignore
 
-  /** Returns the current expression. */
+  /** Returns the current expression.
+    */
   override def expr: ExpressionSet = {
     logger.trace("expr")
     result
   }
 
-  /** Creates an object
+  /** Creates an object.
     *
-    * @param typ The dynamic type of the created object
-    * @param pp  The point of the program that creates the object
-    * @return The abstract state after the creation of the object
+    * @param typ The dynamic type of the created object.
+    * @param pp  The point of the program that creates the object.
+    * @return The abstract state after the creation of the object.
     */
   override def createObject(typ: Type, pp: ProgramPoint): T = {
     logger.trace("createObject")
@@ -960,8 +947,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Sets the current expression.
     *
-    * @param expr The current expression
-    * @return The abstract state after changing the current expression with the given one
+    * @param expr The current expression.
+    * @return The abstract state after changing the current expression with the
+    *         given one.
     */
   override def setExpression(expr: ExpressionSet): T = {
     logger.trace("setExpression")
@@ -970,7 +958,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   /** Gets the value of a variable.
     *
-    * @param id The variable to access
+    * @param id The variable to access.
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable
     */
@@ -1107,8 +1095,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   /** Computes the greatest lower bound of two elements.
     *
     * @param other The other value
-    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
-    *         and greater than or equal to any other lower bound of the two arguments
+    * @return The greatest upper bound, that is, an element that is less than or
+    *         equal to the two arguments, and greater than or equal to any other
+    *         lower bound of the two arguments.
     */
   override def glb(other: T): T = {
     logger.trace("glb")
@@ -1143,10 +1132,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
    * HELPER FUNCTIONS
    */
 
-  /**
-    * Extracts the path from an expression.
+  /** Extracts the path from an expression.
     *
-    * @param expression the expression to extract the path from
+    * @param expression The expression to extract the path from.
     */
   private def path(expression: Expression): AccessPath = expression match {
     case _: Constant => Nil
@@ -1156,12 +1144,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     case _ => throw new IllegalArgumentException("Expected an access path identifier")
   }
 
-  /**
-    * Returns a permission where the amount corresponds to the fraction
+  /** Returns a permission where the amount corresponds to the fraction
     * represented by the specified numerator and denominator.
     *
-    * @param numerator   the numerator of the fraction
-    * @param denominator the denominator of the fraction
+    * @param numerator   The numerator of the fraction.
+    * @param denominator The denominator of the fraction.
     */
   private def permission(numerator: Expression, denominator: Expression): Permission =
     (numerator, denominator) match {
@@ -1172,11 +1159,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       case _ => ??? // TODO: support more cases
     }
 
-  /**
-    * Adds read permission for all access paths appearing in the specified
+  /** Adds read permission for all access paths appearing in the specified
     * expression.
     *
-    * @param expression the expression to add read permission for
+    * @param expression The expression to add read permission for.
     */
   private def read(expression: Expression): T =
     expression.ids.getNonTop.foldLeft(this) {
@@ -1186,30 +1172,27 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       }
     }
 
-  /**
-    * Adds read permission for the specified path. If the permission is already
+  /** Adds read permission for the specified path. If the permission is already
     * there nothing happens.
     *
-    * @param path the path to add the permission for
+    * @param path The path to add the permission for.
     */
   private def read(path: AccessPath): T =
     access(path, Permission.read)
 
-  /**
-    * Adds write permission for the specified path. If the permission is already
+  /** Adds write permission for the specified path. If the permission is already
     * there nothing happens.
     *
-    * @param path the path to add the permission for
+    * @param path The path to add the permission for.
     */
   private def write(path: AccessPath): T =
     access(path, Permission.write)
 
-  /**
-    * Adds the specified permission for the specified access path. If the
+  /** Adds the specified permission for the specified access path. If the
     * permission is already there nothing happens.
     *
-    * @param path       the path to add the permission for
-    * @param permission the amount of permissions to add
+    * @param path       The path to add the permission for.
+    * @param permission The amount of permissions to add.
     */
   private def access(path: AccessPath, permission: Permission): T = {
     val haveExclusive = getExclusive(path)
@@ -1245,13 +1228,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       case None => Permission.none
     }
 
-  /**
-    * Collects the permission of of all access paths that must alias with but
+  /** Collects the permission of of all access paths that must alias with but
     * are not equal to the specified access path.
     *
-    * @param path ???
-    * @return a lower bound on the amount of permission held for the specified
-    *         access path
+    * @param path The path.
+    * @return A lower bound on the amount of permission held for the specified
+    *         access path.
     */
   private def getExclusive(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
@@ -1299,10 +1281,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
   }
 
-  /**
-    * Applies the specified function to all permissions.
+  /** Applies the specified function to all permissions.
     *
-    * @param f the function to be applied to all permissions
+    * @param f The function to be applied to all permissions.
     */
   def map(f: (AccessPath, PermissionTree) => Permission): T = {
     val newPermissions = permissions.map {
@@ -1343,8 +1324,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     s"\n)"
 }
 
-object PermissionAnalysisState {
-
+object PermissionAnalysisState
+{
   case class Default(currentPP: ProgramPoint = DummyProgramPoint,
                      context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
                      result: ExpressionSet = ExpressionSet(),
@@ -1353,8 +1334,8 @@ object PermissionAnalysisState {
                      arguments: Seq[sil.LocalVarDecl] = Seq.empty,
                      isBottom: Boolean = false,
                      isTop: Boolean = false)
-    extends PermissionAnalysisState[Default, AliasAnalysisState.Default] {
-
+    extends PermissionAnalysisState[Default, AliasAnalysisState.Default]
+  {
     override def copy(currentPP: ProgramPoint,
                       context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
@@ -1365,14 +1346,17 @@ object PermissionAnalysisState {
                       isTop: Boolean): Default =
       Default(currentPP, context, result, permissions, specification, arguments, isBottom, isTop)
   }
-
 }
 
-object PermissionAnalysisEntryState extends BackwardEntryStateBuilder[PermissionAnalysisState.Default] {
+object PermissionAnalysisEntryState
+  extends BackwardEntryStateBuilder[PermissionAnalysisState.Default]
+{
   override def topState: PermissionAnalysisState.Default = PermissionAnalysisState.Default()
 }
 
-trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverAnalysisRunner[T] {
+trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+  extends SilverAnalysisRunner[T]
+{
   override def main(args: Array[String]) {
     val results = run(new File(args(0)).toPath)
 
@@ -1414,16 +1398,21 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
   }
 }
 
-object DebugPermissionAnalysis extends DebugPermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
+object DebugPermissionAnalysis
+  extends DebugPermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default]
+{
   override val analysis =
     SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
 
   override def toString = "Permission Analysis"
 }
 
-trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]] extends SilverInferenceRunner[T]
+trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+  extends SilverInferenceRunner[T]
 
-object PermissionAnalysis extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default] {
+object PermissionAnalysis
+  extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default]
+{
   override val analysis =
     SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
 

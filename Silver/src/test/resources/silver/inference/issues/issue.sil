@@ -1,0 +1,7 @@
+field f: Ref
+
+method foo(a: Ref)
+{
+    var b: Ref
+
+}

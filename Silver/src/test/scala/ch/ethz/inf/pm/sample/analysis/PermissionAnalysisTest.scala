@@ -89,7 +89,7 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
   private def feasibilityPrograms(program: Program): Seq[Program] = {
     program.methods.map { method =>
       // the feasibility check
-      val check = Assert(FalseLit()())()
+      val check = Assert(FalseLit()())(method.pos)
       // add the feasibility check to the body of the current method
       val body = method.body match {
         case sequence: Seqn => sequence.copy(check +: sequence.ss)(sequence.pos, sequence.info)
@@ -112,8 +112,6 @@ class PermissionAnalysisLatticeTest extends LatticeTest[PermissionAnalysisState.
 }
 
 case class InfeasiblePrecondition(method: String, pos: Position) extends AbstractError {
-
   override def fullId: String = "precondition.infeasible"
-
-  override def readableMessage: String = s"Inferred precondition of method $method is unfeasible"
+  override def readableMessage: String = s"Inferred precondition of method $method is infeasible."
 }
