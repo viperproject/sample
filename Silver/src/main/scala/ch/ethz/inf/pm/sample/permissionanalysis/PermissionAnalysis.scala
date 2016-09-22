@@ -1195,17 +1195,16 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @param permission The amount of permissions to add.
     */
   private def access(path: AccessPath, permission: Permission): T = {
-    val haveExclusive = getExclusive(path)
-    val haveInclusive = haveExclusive plus getExactly(path)
-    val need = permission minus haveInclusive
     if (path.length < 2)
       // in this case no permission is needed
       this
     else {
+      val haveExclusive = getExclusive(path)
+      val want = permission minus haveExclusive
+
       // build permission tree for the wanted permission
       val (variable :: first :: rest) = path
 
-      val want = need minus haveExclusive
 
       val subtree = rest.foldRight(PermissionTree(want)) {
         case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
