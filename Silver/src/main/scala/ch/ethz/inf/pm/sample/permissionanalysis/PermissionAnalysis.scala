@@ -1199,13 +1199,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       // in this case no permission is needed
       this
     else {
-      val haveExclusive = getExclusive(path)
-      val want = permission minus haveExclusive
-
       // build permission tree for the wanted permission
       val (variable :: first :: rest) = path
-
-
+      val want = permission minus collect(path)
       val subtree = rest.foldRight(PermissionTree(want)) {
         case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
       }
@@ -1220,13 +1216,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
   }
 
-  private def getExactly(path: AccessPath): Permission =
-    if (path.length < 2) Permission.none
-    else permissions.get(path.head) match {
-      case Some(tree) => tree.get(path.tail)
-      case None => Permission.none
-    }
-
   /** Collects the permission of of all access paths that must alias with but
     * are not equal to the specified access path.
     *
@@ -1234,7 +1223,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     * @return A lower bound on the amount of permission held for the specified
     *         access path.
     */
-  private def getExclusive(path: AccessPath): Permission =
+  private def collect(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
     else {
       val receiver = path.init
