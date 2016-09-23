@@ -479,156 +479,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   override def postcondition(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
 
-  def string(expression: sil.Exp): String = expression match {
-    case sil.FieldAccessPredicate(location, _) => string(location)
-    case sil.FieldAccess(receiver, field) => string(receiver) + "." + field.name
-    case _ => ???
-  }
-
-  def length(expression: sil.Exp): Int = expression match {
-    case sil.FieldAccessPredicate(location, _) => length(location)
-    case sil.FieldAccess(receiver, _) => length(receiver) + 1
-    case _ => 1
-  }
-
-  def getSpecification(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    val (permissions, unknowns) = extractPermissions(existing)
-    val newPermissions = (specification ++ permissions).sortBy(length)
-    newPermissions ++ unknowns
-  }
-
-  /** Extracts all permissions (field access predicates) from the given sequence
-    * of expressions and returns two sequences, where the first one contains all
-    * permissions and the second one contains all other expressions.
-    *
-    * @param expressions The sequence of expressions to process.
-    * @return A sequence containing all permissions and a sequence containing
-    *         all other expressions.
-    */
-  def extractPermissions(expressions: Seq[sil.Exp]): (Seq[sil.Exp], Seq[sil.Exp]) =
-    expressions.foldLeft((Seq.empty[sil.Exp], Seq.empty[sil.Exp])) {
-      case ((p, u), curr) =>
-        val (currP, currU) = extractPermissions(curr)
-        (p ++ currP, u ++ currU)
-    }
-
-  /** Extracts all permissions (field access predicates) from the given
-    * expressions and returns two sequences, where the first one contains all
-    * permissions and the second one contains all other (sub) expressions.
-    *
-    * @param expression The expression to process.
-    * @return A sequence containing all permissions and a sequence containing
-    *         all other (sub) expressions.
-    */
-  def extractPermissions(expression: sil.Exp): (Seq[sil.Exp], Seq[sil.Exp]) =
-    expression match {
-      case sil.And(left, right) => {
-        val (leftP, leftU) = extractPermissions(left)
-        val (rightP, rightU) = extractPermissions(right)
-        (leftP ++ rightP, leftU ++ rightU)
-      }
-      case permission: sil.FieldAccessPredicate => (Seq(permission), Seq.empty)
-      case unknown => (Seq.empty, Seq(unknown))
-
-    }
-
-  /** Returns a silver field access corresponding to the given access path.
-    *
-    * @param path The access path.
-    * @return A silver field access.
-    */
-  private def fieldAccess(path: AccessPath): sil.FieldAccess = {
-    val receiver =
-      if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
-      else fieldAccess(path.init)
-    val name = path.last.getName
-    val typ = fields.find(_._2 == name).get match {
-      case (t, _) if t.isObject => sil.Ref
-      case (t, _) if t.isNumericalType => sil.Int
-      case (t, _) if t.isBooleanType => sil.Bool
-    }
-    sil.FieldAccess(receiver, sil.Field(name, typ)())()
-  }
-
-  /** Returns a silver field access predicate corresponding to the given access
-    * path and permission.
-    *
-    * @param path       The access path.
-    * @param permission The permission.
-    * @return A silver field access predicate.
-    */
-  private def fieldAccessPredicate(path: AccessPath, permission: Permission): sil.Exp = {
-    val location = fieldAccess(path)
-    permission match {
-      case Permission.Top =>
-        sil.FalseLit()()
-      case Fractional(numerator, denominator, read) =>
-        val amount = if (read) {
-          val variable = sil.LocalVar("read")(sil.Perm)
-          if (numerator == 0) variable
-          else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
-          else sil.PermAdd(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())(), variable)()
-        } else {
-          if (numerator == 0) sil.NoPerm()()
-          else if (numerator == denominator) sil.FullPerm()()
-          else sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
-        }
-        sil.FieldAccessPredicate(location, amount)()
-    }
-  }
-
-  /** Returns the set of access paths (as strings) that are framed by the given
-    * expression.
-    *
-    * @param expression The expression.
-    * @return The set of access paths (as strings).
-    */
-  def framed(expression: Expression): Set[String] = expression match {
-    case PermissionExpression(id, n, _) => n match {
-      case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
-      case _ => Set.empty
-    }
-    case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => framed(left) ++ framed(right)
-    case _ => Set.empty
-  }
-
-  def setPrecondition(existing: Expression): T = {
-    val set = framed(existing)
-    val tuples = this.tuples { case (path, tree) =>
-        if (tree.permission.isNone && tree.nonEmpty && !set.contains(path.mkString("."))) Permission.read
-        else tree.permission
-      }
-    setSpecification(tuples)
-  }
-
-  def setPostcondition(existing: Expression): T = {
-    val tuples = this.tuples{ case (_, tree) =>
-      if (tree.permission.isNone && tree.nonEmpty) Permission.read
-      else Permission.none
-    }
-    setSpecification(tuples)
-  }
-
-  def setInvariant(existing: Expression): T =
-    setPrecondition(existing)
-
-  def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
-    val reading = tuples.exists {
-      case (_, Fractional(_, _, true)) => true
-      case _ => false
-    }
-
-    val prefix = if (reading) {
-      val read = sil.LocalVar("read")(sil.Perm)
-      Seq(sil.PermGtCmp(read, sil.NoPerm()())())
-    } else Seq.empty
-    val specification = prefix ++ tuples
-      //.filter { case (path, permission) => permission.isSome }
-      .map { case (path, permission) => fieldAccessPredicate(path, permission) }
-    val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
-    copy(specification = specification, arguments = arguments)
-  }
-
   override def command(cmd: Command): T = {
     logger.trace(s"command($cmd)")
     cmd match {
@@ -1129,7 +979,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   }
 
   /* ------------------------------------------------------------------------- *
-   * HELPER FUNCTIONS
+   * HELPER FUNCTIONS FOR INFERENCE
    */
 
   /** Extracts the path from an expression.
@@ -1268,6 +1118,158 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       }
     }
   }
+
+  /* ------------------------------------------------------------------------- *
+   * HELPER FUNCTIONS FOR SPECIFICATION
+   */
+
+  private def length(expression: sil.Exp): Int = expression match {
+    case sil.FieldAccessPredicate(location, _) => length(location)
+    case sil.FieldAccess(receiver, _) => length(receiver) + 1
+    case _ => 1
+  }
+
+  private def getSpecification(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
+    val (permissions, unknowns) = extractPermissions(existing)
+    val newPermissions = (specification ++ permissions).sortBy(length)
+    newPermissions ++ unknowns
+  }
+
+  /** Extracts all permissions (field access predicates) from the given sequence
+    * of expressions and returns two sequences, where the first one contains all
+    * permissions and the second one contains all other expressions.
+    *
+    * @param expressions The sequence of expressions to process.
+    * @return A sequence containing all permissions and a sequence containing
+    *         all other expressions.
+    */
+  private def extractPermissions(expressions: Seq[sil.Exp]): (Seq[sil.Exp], Seq[sil.Exp]) =
+    expressions.foldLeft((Seq.empty[sil.Exp], Seq.empty[sil.Exp])) {
+      case ((p, u), curr) =>
+        val (currP, currU) = extractPermissions(curr)
+        (p ++ currP, u ++ currU)
+    }
+
+  /** Extracts all permissions (field access predicates) from the given
+    * expressions and returns two sequences, where the first one contains all
+    * permissions and the second one contains all other (sub) expressions.
+    *
+    * @param expression The expression to process.
+    * @return A sequence containing all permissions and a sequence containing
+    *         all other (sub) expressions.
+    */
+  private def extractPermissions(expression: sil.Exp): (Seq[sil.Exp], Seq[sil.Exp]) =
+    expression match {
+      case sil.And(left, right) => {
+        val (leftP, leftU) = extractPermissions(left)
+        val (rightP, rightU) = extractPermissions(right)
+        (leftP ++ rightP, leftU ++ rightU)
+      }
+      case permission: sil.FieldAccessPredicate => (Seq(permission), Seq.empty)
+      case unknown => (Seq.empty, Seq(unknown))
+
+    }
+
+  /** Returns a silver field access corresponding to the given access path.
+    *
+    * @param path The access path.
+    * @return A silver field access.
+    */
+  private def fieldAccess(path: AccessPath): sil.FieldAccess = {
+    val receiver =
+      if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
+      else fieldAccess(path.init)
+    val name = path.last.getName
+    val typ = fields.find(_._2 == name).get match {
+      case (t, _) if t.isObject => sil.Ref
+      case (t, _) if t.isNumericalType => sil.Int
+      case (t, _) if t.isBooleanType => sil.Bool
+    }
+    sil.FieldAccess(receiver, sil.Field(name, typ)())()
+  }
+
+  /** Returns a silver field access predicate corresponding to the given access
+    * path and permission.
+    *
+    * @param path       The access path.
+    * @param permission The permission.
+    * @return A silver field access predicate.
+    */
+  private def fieldAccessPredicate(path: AccessPath, permission: Permission): sil.Exp = {
+    val location = fieldAccess(path)
+    permission match {
+      case Permission.Top =>
+        sil.FalseLit()()
+      case Fractional(numerator, denominator, read) =>
+        val amount = if (read) {
+          val variable = sil.LocalVar("read")(sil.Perm)
+          if (numerator == 0) variable
+          else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
+          else sil.PermAdd(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())(), variable)()
+        } else {
+          if (numerator == 0) sil.NoPerm()()
+          else if (numerator == denominator) sil.FullPerm()()
+          else sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
+        }
+        sil.FieldAccessPredicate(location, amount)()
+    }
+  }
+
+  /** Returns the set of access paths (as strings) that are framed by the given
+    * expression.
+    *
+    * @param expression The expression.
+    * @return The set of access paths (as strings).
+    */
+  private def framed(expression: Expression): Set[String] = expression match {
+    case PermissionExpression(id, n, _) => n match {
+      case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
+      case _ => Set.empty
+    }
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => framed(left) ++ framed(right)
+    case _ => Set.empty
+  }
+
+  private def setPrecondition(existing: Expression): T = {
+    val set = framed(existing)
+    val tuples = this.tuples { case (path, tree) =>
+      if (tree.permission.isNone && tree.nonEmpty && !set.contains(path.mkString("."))) Permission.read
+      else tree.permission
+    }
+    setSpecification(tuples)
+  }
+
+  private def setPostcondition(existing: Expression): T = {
+    val tuples = this.tuples{ case (_, tree) =>
+      if (tree.permission.isNone && tree.nonEmpty) Permission.read
+      else Permission.none
+    }
+    setSpecification(tuples)
+  }
+
+  private def setInvariant(existing: Expression): T =
+    setPrecondition(existing)
+
+  private def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
+    val reading = tuples.exists {
+      case (_, Fractional(_, _, true)) => true
+      case _ => false
+    }
+
+    val prefix = if (reading) {
+      val read = sil.LocalVar("read")(sil.Perm)
+      Seq(sil.PermGtCmp(read, sil.NoPerm()())())
+    } else Seq.empty
+    val specification = prefix ++ tuples
+      //.filter { case (path, permission) => permission.isSome }
+      .map { case (path, permission) => fieldAccessPredicate(path, permission) }
+    val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
+    copy(specification = specification, arguments = arguments)
+  }
+
+  /* ------------------------------------------------------------------------- *
+   * GENERAL HELPER FUNCTIONS
+   */
 
   /** Applies the specified function to all permissions.
     *
