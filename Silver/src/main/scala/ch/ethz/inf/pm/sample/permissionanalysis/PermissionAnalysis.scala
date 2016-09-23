@@ -517,7 +517,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         map { (path, tree) =>
-          if (path.length > 1 && (path == location || (preAliases.receiversMayAlias(path, location) && path.last == location.last))) {
+          if (mayBeSame(preAliases, path, location)) {
             if (tree.permission.isSome || tree.isEmpty) tree.permission plus exhaled
             else Permission.read plus exhaled
           }
@@ -552,7 +552,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
         // add permission to all paths that must alias
         map { (path, tree) =>
-          if (path == location || postAliases.pathsMustAlias(path, location)) tree.permission minus inhaled
+          if (mustBeSame(postAliases, path, location)) tree.permission minus inhaled
           else tree.permission
         }.read(location.dropRight(1))
       }
@@ -1118,6 +1118,38 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       }
     }
   }
+
+  /* ------------------------------------------------------------------------- *
+   * HELPER FUNCTIONS FOR ALIAS ANALYSIS
+   */
+
+  /** Returns true if the two given access paths may refer to the same field on
+    * the same receiver object.
+    *
+    * @param aliases The alias information.
+    * @param first   The first access path.
+    * @param second  The second access path.
+    * @return True if the two given access paths may refer to the same field on
+    *         the same receiver object.
+    */
+  private def mayBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
+    if (first.length < 2 || second.length < 2) false
+    else if (first == second) true
+    else aliases.receiversMayAlias(first, second) && first.last == second.last
+
+  /** Returns true if the two given access paths must refer to the same field on
+    * the same receiver object.
+    *
+    * @param aliases The alias information.
+    * @param first   The first access path.
+    * @param second  The second access apth.
+    * @return True if the two given access apths may refer to the same field on
+    *         the same receiver object.
+    */
+  private def mustBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
+    if (first.length < 2 || second.length < 2) false
+    else if (first == second) true
+    else aliases.receiversMustAlias(first, second) && first.last == second.last
 
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR SPECIFICATION
