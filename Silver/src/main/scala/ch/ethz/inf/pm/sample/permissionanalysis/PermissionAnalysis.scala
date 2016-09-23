@@ -1075,15 +1075,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     */
   private def collect(path: AccessPath): Permission =
     if (path.length < 2) Permission.none
-    else {
-      val receiver = path.init
-      val field = path.last
-      fold(Permission.none) { case (permission, (currPath, currTree)) =>
-        val currReceiver = currPath.init
-        val currField = currPath.last
-        if (path != currPath && (currReceiver.nonEmpty && preAliases.pathsMustAlias(receiver, currReceiver) && field == currField)) permission plus currTree.permission
+    else fold(Permission.none) {
+      case (permission, (currPath, currTree)) =>
+        if (path != currPath && mustBeSame(preAliases, path, currPath)) permission plus currTree.permission
         else permission
-      }
     }
 
   private def assign(left: AccessPath, right: AccessPath): T = {
