@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisState, DummyRefType}
+import ch.ethz.inf.pm.sample.permissionanalysis._
 import ch.ethz.inf.pm.sample.test.LatticeTest
 
 /**

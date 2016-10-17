@@ -6,7 +6,7 @@ method foo(a: Ref, b: Ref)
         invariant acc(a.f)
     {
         a.f := null
-        b.f := null
+//        b.f := null
     }
 }
 
