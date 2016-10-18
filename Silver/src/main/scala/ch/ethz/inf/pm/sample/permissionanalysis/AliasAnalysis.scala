@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
@@ -1090,6 +1090,9 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     */
   override def bottom(): T = copy(isTop = false, isBottom = true)
 
+  /** TODO: Jerome, check */
+  override def ids = IdentifierSet.Top
+
   /** Returns the least upper bound of this and the given other alias analysis
     * state.
     *
@@ -1725,7 +1728,7 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(path)
+    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     val cfgStates = results.map(result => result.method.name.toString -> result.cfgState).toMap
