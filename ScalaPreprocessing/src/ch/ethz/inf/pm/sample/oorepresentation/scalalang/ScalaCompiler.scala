@@ -19,53 +19,59 @@ class ScalaCompiler extends Compiler {
 
   private var parsedclasses: List[ClassDefinition] = Nil
 
-  def getLabel(): String = "Scala"
+  def label: String = "Scala"
 
   def extensions(): List[String] = "scala" :: Nil
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics)
+  def getNativeMethodsSemantics: List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics)
 
   def getSourceCode(path: String): String = getOriginalCode(new BufferedReader(new FileReader(path)))
 
-  def compileFile(path: String): List[ClassDefinition] = {
-    SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil)
-    //SystemParameters.typ is initialized inside the parser
+  def compile(comp: Compilable): List[ClassDefinition] = {
+    comp match {
 
-    val settings = new Settings
-    settings.classpath.value = System.getProperty("java.class.path")
+      case Compilable.Path(path) =>
+
+        SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil)
+        //SystemParameters.typ is initialized inside the parser
+
+        val settings = new Settings
+        settings.classpath.value = System.getProperty("java.class.path")
 
 
+        // WORK
+        val command = new CompilerCommand(List(path.toAbsolutePath.toString), settings) {
 
-    // WORK
-    val command = new CompilerCommand(List(path), settings) {
+          /** The command name that will be printed in in the usage message.
+            * This is automatically set to the value of 'plugin.commandname' in the
+            * file build.properties.
+            */
+          override val cmdName = "scala2cfg"
 
-      /** The command name that will be printed in in the usage message.
-        * This is automatically set to the value of 'plugin.commandname' in the
-        * file build.properties.
-        */
-      override val cmdName = "scala2cfg"
+        }
+
+        if (!command.ok)
+          return Nil
+
+        /** The version number of this plugin is read from the properties file
+          */
+        if (settings.version.value) {
+          println(command.cmdName + " version 1.0")
+          return Nil
+        }
+        if (settings.help.value) {
+          println(command.usageMsg)
+          return Nil
+        }
+
+        val runner = new PluginRunner(settings)
+        val run = new runner.Run
+        run.compile(command.files)
+        parsedclasses = parsedclasses ::: ScalaClasses.classes
+        ScalaClasses.classes
 
     }
 
-    if (!command.ok)
-      return Nil
-
-    /** The version number of this plugin is read from the properties file
-      */
-    if (settings.version.value) {
-      println(command.cmdName + " version 1.0")
-      return Nil
-    }
-    if (settings.help.value) {
-      println(command.usageMsg)
-      return Nil
-    }
-
-    val runner = new PluginRunner(settings)
-    val run = new runner.Run
-    run.compile(command.files)
-    parsedclasses = parsedclasses ::: ScalaClasses.classes
-    ScalaClasses.classes
   }
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
@@ -118,7 +124,7 @@ class ScalaCompiler extends Compiler {
     out.write(source)
     out.close
 
-    val classes = compileFile(file.getAbsolutePath)
+    val classes = compile(Compilable.Path(file.toPath))
 
     if (classes.length > 0) {
       SystemParameters.typ = classes.head.typ.top

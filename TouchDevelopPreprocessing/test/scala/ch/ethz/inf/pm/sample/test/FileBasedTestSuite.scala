@@ -10,8 +10,7 @@ import java.net.{URI, URL}
 import java.nio.file._
 import java.util.regex.Pattern
 
-import ch.ethz.inf.pm.sample.reporting
-import ch.ethz.inf.pm.sample.reporting.Reporter.{MessageClass, ReportingLevel}
+import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchRun}
 import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchProgramPointRegistry}
@@ -24,10 +23,10 @@ class FileBasedTestSuite extends TouchGuruTestSuite {
 
   def testDirectories: Seq[String] = Seq("automated_tests")
 
-  def runOnFile(file: String): Seq[SampleMessage] = {
-    val res = TouchRun.runSingle(file, Some(touchGuruOptions))
+  override def runOnFile(path: Path): Seq[SampleMessage] = {
+    val res = TouchRun.runInThread(Compilable.Path(path))
     assert(!TouchRun.threadFailed)
-    res
+    res.collect{ case s:SampleMessage => s }
   }
 
 }
@@ -56,16 +55,12 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
 
     def run(input: AnnotatedTestInput): Seq[AbstractOutput] = {
       val fp = input.file
-      val sampleMessages = runOnFile(fp.toString)
+      val sampleMessages = runOnFile(fp)
       sampleMessages map SampleOutput
     }
   }
 
-  def runOnFile(file: String): Seq[SampleMessage]
-
-  def touchGuruOptions: TouchAnalysisParameters = {
-    TouchAnalysisParameters(silent = true)
-  }
+  def runOnFile(path: Path): Seq[SampleMessage]
 }
 
 /**

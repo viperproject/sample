@@ -1,6 +1,6 @@
-@(result: ch.ethz.inf.pm.sample.execution.MethodAnalysisResult[_])(app: ch.ethz.inf.pm.sample.web.App)
+@(result: ch.ethz.inf.pm.sample.execution.WeightedGraphAnalysisResult[_,_])(app: ch.ethz.inf.pm.sample.web.App)
 @nodeId(index: Int) = { "node-@index" }
-@Base(title = "Control Flow Graph State")(app) {
+@Base(title = "Weighted Graph Result")(app) {
 <!--
   ~ This Source Code Form is subject to the terms of the Mozilla Public
   ~ License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,29 +10,20 @@
 <div class="row-fluid">
     <div class="col-sm-12">
         <ol class="breadcrumb">
-            <li><a href="../">All Methods</a></li>
-            <li class="active"><span class="code">@result.method.name</span></li>
+            <li><a href="../">All Results</a></li>
+            <li class="active">@result.displayName</li>
         </ol>
     </div>
 </div>
 
-@defining(result.cfgState.cfg) { cfg =>
 <div class="row-fluid">
     <div class="col-sm-12">
         <div class="well graph-well">
-            <div class="graph control-flow-graph" id="graph">
-                @cfg.nodes.zipWithIndex.map { nodeAndIndex =>
-                <a href="@nodeAndIndex._2/">
+            <div class="graph control-flow-graph-block" id="graph">
+                @result.graph.nodes.zipWithIndex.map { nodeAndIndex =>
+                <a href="@nodeAndIndex._2">
                     <div class="node" id=@nodeId(nodeAndIndex._2)>
-                        @if(nodeAndIndex._1.isEmpty) {
-                        <i>empty</i>
-                        } else {
-                        <ul class="list-unstyled">
-                            @nodeAndIndex._1.map { stmt =>
-                            <li>@stmt</li>
-                            }
-                        </ul>
-                        }
+                        @nodeAndIndex._1
                     </div>
                 </a>
                 }
@@ -46,9 +37,9 @@
             var view = new GraphView();
             view.rankDir = "TB";
 
-            @cfg.edges.map { edge =>
+            @for(edge <- result.graph.edges) {
                 view.graph.addEdge(null, @nodeId(edge._1), @nodeId(edge._2), {
-                    label: "@edge._3.getOrElse("")"
+                    label: "@edge._3"
                 });
             }
 
@@ -56,5 +47,5 @@
         });
 
 </script>
-}
+
 }

@@ -11,6 +11,6 @@ object NumericalAnalysisConstants {
   /**
    * A very small negligible value
    */
-  val epsilon = 0.00000001
+  val epsilon = 0.00000000001
 
 }

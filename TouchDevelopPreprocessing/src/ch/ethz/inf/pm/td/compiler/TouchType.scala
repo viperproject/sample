@@ -10,10 +10,10 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
 import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichNativeSemantics, ApiField}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.domain.TouchStateInterface
 import ch.ethz.inf.pm.td.parser.TypeName
-import ch.ethz.inf.pm.td.semantics.{AAny, TNothing}
+import ch.ethz.inf.pm.td.semantics.{AAction, AAny, TNothing}
 
 
 trait TouchType extends Named with Type {
@@ -156,6 +156,25 @@ trait AbstractInvalidSemantics extends ApiMemberSemantics {
 }
 
 object InvalidSemantics extends ApiMemberSemantics with AbstractInvalidSemantics
+
+object ScheduleEventHandlerSemantics extends ApiMemberSemantics {
+
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
+                                               parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+    for (p <- parameters) {
+      p.getType() match {
+        case a:AAction =>
+          //a.EnableHandler[S](p)(pp,state)
+        case _ =>
+          ()
+      }
+    }
+
+    state
+  }
+
+}
 
 /**
  * Sound semantics

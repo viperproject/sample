@@ -31,7 +31,7 @@ case class GIndexMember(typeName: TypeName, keyFieldsParameters: List[Parameter]
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         var curState = state
         for (valueField <- valueFields) {
-          curState = AssignField[S](this0, valueField, Invalid(valueField.typ, "fields may have been cleared"))(curState, pp)
+          curState = AssignField[S](this0, valueField, Default(valueField.typ, "fields may have been cleared"))(curState, pp)
         }
         curState
       }

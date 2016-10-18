@@ -11,7 +11,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.{LineColumnProgramPoint, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -1173,7 +1173,7 @@ object PointsToPolyhedraEntryStateBuilder
 trait PointsToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: PointsToNumericalState[N,T]] extends SilverAnalysisRunner[T] {
 
   override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+    val results = run(Compilable.Path(new File(args(0)).toPath)).collect{ case m:MethodAnalysisResult[T] => m }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     // map of method names to control flow graphs

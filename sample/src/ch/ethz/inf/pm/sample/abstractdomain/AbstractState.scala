@@ -14,15 +14,15 @@ object ExpressionFactory {
 
   def createVariable(variable: Variable, ty: Type, pp: ProgramPoint): ExpressionSet = {
     var result = new ExpressionSet(ty)
-    result = result.add(new VariableIdentifier(variable.getName, variable.id.scope)(ty, pp))
+    result = result.add(VariableIdentifier(variable.getName, variable.id.scope)(ty, pp))
     result
   }
 
   def createBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
     if (!left.isTop && !right.isTop) {
       var result = new ExpressionSet(ty)
-      for (expleft <- left.getNonTop)
-        for (expright <- right.getNonTop)
+      for (expleft <- left.toSetOrFail)
+        for (expright <- right.toSetOrFail)
           result = result.add(new BinaryArithmeticExpression(expleft, expright, op, ty))
       result
     } else left.top()
@@ -31,9 +31,9 @@ object ExpressionFactory {
   def createReferenceComparisonExpression(left: ExpressionSet, right: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
     if (!left.isTop && !right.isTop) {
       var result = new ExpressionSet(ty)
-      for (expleft <- left.getNonTop)
-        for (expright <- right.getNonTop)
-          result = result.add(new ReferenceComparisonExpression(expleft, expright, op, ty))
+      for (expleft <- left.toSetOrFail)
+        for (expright <- right.toSetOrFail)
+          result = result.add(ReferenceComparisonExpression(expleft, expright, op, ty))
       result
     } else left.top()
   }
@@ -41,9 +41,9 @@ object ExpressionFactory {
   def createBooleanBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: BooleanOperator.Value, ty: Type): ExpressionSet = {
     if (!left.isTop && !right.isTop) {
       var result = new ExpressionSet(ty)
-      for (expleft <- left.getNonTop)
-        for (expright <- right.getNonTop)
-          result = result.add(new BinaryBooleanExpression(expleft, expright, op, ty))
+      for (expleft <- left.toSetOrFail)
+        for (expright <- right.toSetOrFail)
+          result = result.add(BinaryBooleanExpression(expleft, expright, op, ty))
       result
     } else left.top()
   }
@@ -51,9 +51,9 @@ object ExpressionFactory {
   def createNondeterministicBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: NondeterministicOperator.Value, ty: Type): ExpressionSet = {
     if (!left.isTop && !right.isTop) {
       var result = new ExpressionSet(ty)
-      for (expleft <- left.getNonTop)
-        for (expright <- right.getNonTop)
-          result = result.add(new BinaryNondeterministicExpression(expleft, expright, op, ty))
+      for (expleft <- left.toSetOrFail)
+        for (expright <- right.toSetOrFail)
+          result = result.add(BinaryNondeterministicExpression(expleft, expright, op, ty))
       result
     } else left.top()
   }
@@ -62,10 +62,10 @@ object ExpressionFactory {
   def createPermissionExpression(ids: ExpressionSet, nums: ExpressionSet, dens: ExpressionSet, ty: Type) : ExpressionSet = {
     if (!ids.isTop && !nums.isTop && !dens.isTop) {
       var result = new ExpressionSet(ty)
-      for (id <- ids.getNonTop)
-        for (num <- nums.getNonTop)
-          for (den <- dens.getNonTop)
-            result = result.add(new PermissionExpression(id, num, den))
+      for (id <- ids.toSetOrFail)
+        for (num <- nums.toSetOrFail)
+          for (den <- dens.toSetOrFail)
+            result = result.add(PermissionExpression(id, num, den))
       result
     } else ids.top()
   }
@@ -73,8 +73,8 @@ object ExpressionFactory {
   def createUnaryExpression(v: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
     if (!v.isTop) {
       var result = new ExpressionSet(ty)
-      for (expleft <- v.getNonTop)
-        result = result.add(new UnaryArithmeticExpression(expleft, op, ty))
+      for (expleft <- v.toSetOrFail)
+        result = result.add(UnaryArithmeticExpression(expleft, op, ty))
       result
     } else v.top()
   }
@@ -82,8 +82,8 @@ object ExpressionFactory {
   def createNegatedBooleanExpression(v: ExpressionSet): ExpressionSet = {
     if (!v.isTop) {
       var result = new ExpressionSet(v.getType())
-      for (expleft <- v.getNonTop)
-        result = result.add(new NegatedBooleanExpression(expleft))
+      for (expleft <- v.toSetOrFail)
+        result = result.add(NegatedBooleanExpression(expleft))
       result
     } else v.top()
   }
@@ -92,17 +92,17 @@ object ExpressionFactory {
     if (!thisExpr.isTop && !parameters.exists(_.isTop)) {
       var result = new ExpressionSet(ty)
       val combinations = combineListValue(parameters)
-      for (thisexp <- thisExpr.getNonTop)
+      for (thisexp <- thisExpr.toSetOrFail)
         for (combination <- combinations)
-          result = result.add(new AbstractOperator(thisexp, combination, typeParameters, op, ty))
+          result = result.add(AbstractOperator(thisexp, combination, typeParameters, op, ty))
       result
     } else thisExpr.top()
   }
 
-  lazy val unitExpr = ExpressionSet(new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
+  lazy val unitExpr = ExpressionSet(UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
 
   def createUnitExpression(pp: ProgramPoint): ExpressionSet = {
-    ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp))
+    ExpressionSet(UnitExpression(SystemParameters.typ.top(), pp))
   }
 
   private def combineListValue(list: List[ExpressionSet]): Set[List[Expression]] = list match {
@@ -110,7 +110,7 @@ object ExpressionFactory {
     case x :: xs =>
       val previous: Set[List[Expression]] = combineListValue(xs)
       var result: Set[List[Expression]] = Set.empty
-      for (expr <- x.getNonTop)
+      for (expr <- x.toSetOrFail)
         for (l <- previous)
           result = result + (expr :: l)
       result
@@ -146,20 +146,12 @@ case class ExpressionSet(
     case SetDomain.Default.Inner(x) => Lattice.bigLub(x.map(_.ids))
   }
 
-  /**
-   * Check if the expressionset is top, first!
-   * @return
-   */
-  def getNonTop = this._2 match {
-    case SetDomain.Default.Bottom() => Set.empty
-    case SetDomain.Default.Top()    => throw new IllegalArgumentException("Calling getNonTop on a top expression set")
-    case SetDomain.Default.Inner(v) => v
-  }
+  def toSetOrFail = this._2.toSetOrFail
 
   private def computeType(): Type = {
     if (this._2.isTop) return SystemParameters.typ.top()
     var typ: Type = null
-    for (t <- this.getNonTop)
+    for (t <- this.toSetOrFail)
       typ = if (typ == null) t.typ else typ.lub(t.typ)
     if (typ == null) SystemParameters.typ.top()
     else typ
@@ -173,15 +165,15 @@ case class ExpressionSet(
 
   def add(expr: ExpressionSet): ExpressionSet = {
     var set = this._2
-    for (exprVal <- expr.getNonTop) set = set.+(exprVal)
+    for (exprVal <- expr.toSetOrFail) set = set.+(exprVal)
     val typ = this._1.glb(expr.getType())
     new ExpressionSet(typ, set)
   }
 
   def not(): ExpressionSet = {
     var result:SetDomain.Default[Expression] = this._2.bottom()
-    for (key <- getNonTop)
-      result = result.+(new NegatedBooleanExpression(key))
+    for (key <- toSetOrFail)
+      result = result.+(NegatedBooleanExpression(key))
     new ExpressionSet(getType(), result)
   }
 
@@ -360,15 +352,15 @@ I <: HeapIdentifier[I]](
     if (isBottom) return this
     if (right.isTop) return top()
     var result: AbstractState[N, H, I] = bottom()
-    for (el <- x.getNonTop) {
+    for (el <- x.toSetOrFail) {
 
       //For each parameter that is set, it computes its semantics and it considers the upper bound
       el match {
         case variable: Assignable =>
-          for (assigned <- right.getNonTop) {
+          for (assigned <- right.toSetOrFail) {
             val done = factory(domain.setArgument(variable, assigned), expr)
             result = result.lub(done)
-            result = result.setExpression(ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
+            result = result.setExpression(ExpressionSet(UnitExpression(variable.typ.top(), variable.pp)))
           }
 
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -386,7 +378,7 @@ I <: HeapIdentifier[I]](
 
     // for all exprs in x, do the following, then take lub
     var result: AbstractState[N, H, I] = bottom()
-    for (e <- x.getNonTop) {
+    for (e <- x.toSetOrFail) {
       e match {
         case objectIds: HeapIdSetDomain[I] =>
           // remove field variable identifiers from .domain
@@ -414,7 +406,7 @@ I <: HeapIdentifier[I]](
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
     if (isBottom) return this
-    setExpression(ExpressionSet(new Constant(value, typ, pp)))
+    setExpression(ExpressionSet(Constant(value, typ, pp)))
   }
 
   def getVariableValue(id: Identifier): AbstractState[N, H, I] = {
@@ -452,7 +444,7 @@ I <: HeapIdentifier[I]](
   def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if (isBottom) return this
     var result: AbstractState[N, H, I] = bottom()
-    for (exprVal <- obj.getNonTop) {
+    for (exprVal <- obj.toSetOrFail) {
       if (!exprVal.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
       val (heapid, newHeap, rep) = domain.heap.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, exprVal.pp)
       val result2 = domain.factory(domain.semantic.merge(rep), newHeap)

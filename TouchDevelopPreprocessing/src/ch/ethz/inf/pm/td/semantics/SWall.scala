@@ -201,7 +201,7 @@ object SWall extends Default_SWall {
       var curState = state
       curState = New[S](TPage)(curState, pp)
       val newPage = curState.expr
-      curState = GCollection(TPage).Insert[S](pages, GCollection(TPage).Count[S](pages), newPage)(curState, pp)
+      curState = GCollection(TPage).Insert[S](pages, GCollection(TPage).Count[S](pages)(curState,pp), newPage)(curState, pp)
       curState = GCollection(TPage).IncreaseLength[S](pages)(curState, pp)
       Return[S](newPage)(curState, pp)
 

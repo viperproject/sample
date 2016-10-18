@@ -6,9 +6,11 @@
 
 package ch.ethz.inf.pm.sample.reporting
 
+import ch.ethz.inf.pm.sample.execution.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
-trait SampleMessage {
+trait SampleMessage extends AnalysisResult {
+  override def displayName: String = id
   def id: String
   def message: String
   def pp: ProgramPoint

@@ -109,9 +109,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
                          initials: Map[ApiField, RichExpression] = Map.empty[ApiField, RichExpression],
                          initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
-    if (SystemParameters.DEBUG && initials.nonEmpty)
-      assert (initials.values.map(_.ids).reduce(_ lub _) lessEqual s.ids)
-
     typ match {
       case TNumber => s.setExpression(ExpressionSet(Constant("0", TNumber, pp)))
       case TBoolean => s.setExpression(new ExpressionSet(TBoolean).add(False))
@@ -143,12 +140,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
                     curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP)
                     toRichExpression(curState.expr)
                   case DefaultInitializer(why) =>
-                    f.typ match {
-                      case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber, pp)))
-                      case TBoolean =>  toRichExpression(new ExpressionSet(TBoolean).add(False))
-                      case TString =>   toRichExpression(ExpressionSet(Constant("", TString, pp)))
-                      case _ =>         toRichExpression(Invalid(typ,why))
-                    }
+                    Default(f.typ,why)
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -341,7 +333,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
     def getMultiValAsList(expr: RichExpression): List[ExpressionSet] = {
       var ret: List[ExpressionSet] = Nil
-      for (sExpr <- expr.thisExpr.getNonTop) yield {
+      for (sExpr <- expr.thisExpr.toSetOrFail) yield {
         sExpr match {
           case MultiValExpression(left, right, retVal) =>
             val multiVal = getMultiValAsList(left) ::: getMultiValAsList(right)
@@ -381,7 +373,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     for ((l, r) <- leftExprs.zip(rightExprs)) {
 
       // Create variable that might not exist yet
-      if (l.getNonTop.size == 1 && l.getNonTop.head.isInstanceOf[VariableIdentifier]) {
+      if (l.toSetOrFail.size == 1 && l.toSetOrFail.head.isInstanceOf[VariableIdentifier]) {
         curState = curState.createVariable(l, l.getType(), pp)
       }
 

@@ -33,7 +33,7 @@ case class GTable(rowTyp: GRow,modifiers:Set[Modifier]) extends AMutableLinearCl
 
         // Create row with backlink to this table for removal
         var curState = state
-        curState = New[S](rowTyp, initials = Map(field_table -> this0))(state, pp)
+        curState = New[S](rowTyp, initials = Map(field_table -> this0))(curState, pp)
         val row = curState.expr
         curState = Insert[S](this0, Count[S](this0)(curState, pp), row)(curState, pp)
         curState = IncreaseLength[S](this0)(curState, pp)

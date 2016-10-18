@@ -9,8 +9,9 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner, MethodAnalysisResult}
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silicon.Silicon
@@ -25,14 +26,14 @@ trait SilverAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
   }
 
   /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): List[AnalysisResult[S]] = {
+  def run(program: sil.Program): List[AnalysisResult] = {
     compiler.compileProgram(program)
     _run()
   }
 
   /** Runs the analysis on the Silver program whose name is passed as first argument and reports errors and warnings. */
   override def main(args: Array[String]): Unit = {
-    run(new File(args(0)).toPath) // run the analysis
+    run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
 
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
@@ -52,7 +53,7 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
 
   /** Extends a Silver program whose name is passed as first argument with specifications inferred by the analysis. */
   def extend(args: Array[String]): sil.Program = {
-    val results: List[AnalysisResult[S]] = run(new File(args(0)).toPath) // run the analysis
+    val results: List[MethodAnalysisResult[S]] = run(Compilable.Path(new File(args(0)).toPath)).collect{case x:MethodAnalysisResult[S] => x} // run the analysis
     // extend the Silver program with inferred permission
     extendProgram(DefaultSilverConverter.prog,results)
   }
@@ -81,7 +82,7 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
 
   override def main(args: Array[String]) {
     // run the analysis and report errors and warnings
-    val results: List[AnalysisResult[S]] = run(new File(args(0)).toPath)
+    val results: List[MethodAnalysisResult[S]] = run(Compilable.Path(new File(args(0)).toPath)).collect{case x:MethodAnalysisResult[S] => x}
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
     for (e <- Reporter.assertionViolations) { println(e) } // error report

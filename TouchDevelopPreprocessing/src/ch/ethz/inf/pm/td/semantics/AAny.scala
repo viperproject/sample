@@ -42,7 +42,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         // Here is some tricky stuff going on. First of all, we have to assume that this0 contains only identifiers.
         // If we get top for this0, we have a problem, because we don't know where the reference is pointing
         val strings:Set[Expression] =
-          for (id <- this0.getNonTop) yield {
+          for (id <- this0.toSetOrFail) yield {
             id match {
               case i:Identifier =>
                 SRecords.insertRef(i)
@@ -94,7 +94,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(right) = parameters // Unknown,Unknown
         var multiValExpressionSet = new ExpressionSet(TUnknown)
-        for (l <- this0.getNonTop; r <- right.getNonTop) {
+        for (l <- this0.toSetOrFail; r <- right.toSetOrFail) {
           multiValExpressionSet = multiValExpressionSet.add(MultiValExpression(l, r, TUnknown))
         }
         state.setExpression(multiValExpressionSet)

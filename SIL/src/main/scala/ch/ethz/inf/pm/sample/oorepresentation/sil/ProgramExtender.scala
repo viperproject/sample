@@ -11,7 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.{vdha}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AbstractCFGState}
+import ch.ethz.inf.pm.sample.execution.{MethodAnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 
@@ -27,7 +27,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
     * @param results the analysis results to use
     * @return the extended program
     */
-  def extend(p: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
+  def extend(p: sil.Program, results: List[MethodAnalysisResult[T]]): sil.Program = {
     vdha.withGlbPreservingIdsStrategy(CustomGlbPreservingIdsStrategy, () => {
       // Only extend methods for which there is an analysis result
       val methodNameToCfgState = results.map(result =>

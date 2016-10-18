@@ -439,6 +439,20 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     */
   def toSet(universe:Set[V]):Set[V]
 
+  /** Converts a set domain into a set. Here, we assume that the domain element is
+    * not top. If the domain element is top, this will fail.
+    *
+    * @return A representation of this domain as a set
+    */
+  def toSetOrFail:Set[V]
+
+  /** Converts a set domain into a set. Here, we assume that the domain element is
+    * not top. If the domain element is top, this will fail.
+    *
+    * @return A representation of this domain as a set
+    */
+  def map[B](f: V => B):SetDomain.Default[B]
+
   override def factory(): T = top()
 
   // Helpers
@@ -460,6 +474,8 @@ object SetDomain {
     def ++(v: T): T = this
     def contains(v: V) = true
     def toSet(universe:Set[V]) = universe
+    def toSetOrFail = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
+    def map[B](f: V => B) = SetDomain.Default.Top[B]()
 
   }
 
@@ -474,6 +490,8 @@ object SetDomain {
     def ++(v: T): T = v
     def contains(v: V) = false
     def toSet(universe:Set[V]) = Set.empty
+    def toSetOrFail = Set.empty
+    def map[B](f: V => B) = SetDomain.Default.Bottom[B]()
 
   }
 
@@ -506,6 +524,8 @@ object SetDomain {
     def wideningInner(other: I) =   lubInner(other)
     def lessEqualInner(other: I) =  value subsetOf other.value
     def toSet(universe:Set[V]) =    value
+    def toSetOrFail =               value
+    def map[B](f: V => B) =         SetDomain.Default.Inner[B]( value.map(f) )
 
     override def toString = ToStringUtilities.setToString(value)
 
