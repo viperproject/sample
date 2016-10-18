@@ -33,7 +33,7 @@ object TouchEntryStateBuilder {
       InvalidAnd[
         StaticVariablePackingDomain[
           BoxedNonRelationalNumericalDomain[DoubleInterval],
-          SummaryNodeWrapper[NonDeterminismWrapper[DoubleOctagons]]
+          SummaryNodeWrapper[NonDeterminismWrapper[Apron.FloatOptOctagons]]
         ]
       ],
       NonrelationalStringDomain[StringKSetDomain]
@@ -64,7 +64,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
         case Some(x) => x
         case None => VariablePackingClassifier.OnePacker
       }
-    val relationalDomain = SummaryNodeWrapper(NonDeterminismWrapper[DoubleOctagons](DoubleOctagons.Bottom))
+    val relationalDomain = SummaryNodeWrapper(NonDeterminismWrapper[Apron.FloatOptOctagons](Apron.FloatOptOctagons.Bottom))
     val nonRelationalDomain = BoxedNonRelationalNumericalDomain[DoubleInterval](DoubleInterval.Top)
 
     StringsAnd(
