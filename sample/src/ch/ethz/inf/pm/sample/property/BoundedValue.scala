@@ -22,7 +22,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 
 	def this(id: String) = this(id, Int.MinValue+1, Int.MaxValue-1)
 
-	override def getLabel: String = {
+	override def label: String = {
 		"Bounded variable: " + stringRepresentation(lower) + " <= " + variable + " <= " + stringRepresentation(upper)
 	}
 

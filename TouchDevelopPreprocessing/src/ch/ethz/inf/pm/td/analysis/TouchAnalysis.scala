@@ -81,9 +81,9 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
   override def getProperties: List[Property] = {
 
-    val bottom = new SingleStatementProperty(new BottomVisitor)
-    val alarm = new SingleStatementProperty(new AlarmVisitor)
-    val imprecision = new SingleStatementProperty(new ImprecisionVisitor)
+    val bottom = SingleStatementProperty.Default(new BottomVisitor)
+    val alarm = SingleStatementProperty.Default(new AlarmVisitor)
+    val imprecision = SingleStatementProperty.Default(new ImprecisionVisitor)
     val empty = new NoProperty
 
     val allChecks = new ComposedProperty("All checks", bottom, new ComposedProperty("", alarm, imprecision))
@@ -206,10 +206,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
         logger.info(" Did not analyze "+un.name+" (may be unreachable)")
       }
     }
-    if (SystemParameters.property != null) {
-      SystemParameters.property.check(results, output)
-      SystemParameters.property.finalizeChecking(output)
-    }
+    SingleStatementProperty.Default(new BottomVisitor).check(results,output)
 
     Exporters(compiler)
 
@@ -359,7 +356,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
  */
 class ImprecisionVisitor extends Visitor {
 
-  def getLabel() = "Imprecision warnings during analysis"
+  def label = "Imprecision warnings during analysis"
 
   /**
    * Check the property over a single state
@@ -389,7 +386,7 @@ class ImprecisionVisitor extends Visitor {
  */
 class AlarmVisitor extends Visitor {
 
-  def getLabel() = "Alarms during analysis"
+  def label = "Alarms during analysis"
 
   /**
    * Check the property over a single state
@@ -419,7 +416,7 @@ class BottomVisitor extends Visitor {
 
   var childrenNotToReport: Set[Statement] = Set.empty
 
-  def getLabel() = "BottomChecker"
+  def label() = "BottomChecker"
 
   /**
    * Check the property over a single state
@@ -444,7 +441,7 @@ class BottomVisitor extends Visitor {
  * Two properties at the same time
  */
 class ComposedProperty(name: String, a: Property, b: Property) extends Property {
-  def getLabel() = name
+  def label() = name
 
   def check[S <: State[S]](classT: Type, methodName: MethodDeclaration, result: CFGState[S], printer: OutputCollector) {
     a.check(classT, methodName, result, printer)
@@ -463,10 +460,6 @@ class ComposedProperty(name: String, a: Property, b: Property) extends Property 
     b.check(results, printer)
   }
 
-  def finalizeChecking(printer: OutputCollector) {
-    a.finalizeChecking(printer)
-    b.finalizeChecking(printer)
-  }
 }
 
 
@@ -474,7 +467,7 @@ class ComposedProperty(name: String, a: Property, b: Property) extends Property 
  * Check the empty property
  */
 class NoProperty extends Property {
-  def getLabel() = ""
+  def label() = ""
 
   def check[S <: State[S]](classT: Type, methodName: MethodDeclaration, result: CFGState[S], printer: OutputCollector) {}
 

@@ -22,10 +22,7 @@ trait CloudOperationSemantics extends ApiMemberSemantics {
 
   def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                      (implicit pp: ProgramPoint, state: S): S = {
-
     AbstractEventGraph.record(ProgramPointEvent(pp,method),this0,parameters,state,pp)
-
-    state
   }
 
 }

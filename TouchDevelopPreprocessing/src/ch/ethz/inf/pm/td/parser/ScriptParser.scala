@@ -310,7 +310,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   //lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r
   lazy val escapedString:Parser[String] = """(?:[^"\\]+|\\.)*""".r
   //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r
-  lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_).replace("_"," "))
+  lazy val ident: Parser[String] = """[a-zA-z@_◈](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_).replace("_"," "))
 
   /**
    * Ugly function to remove comments from the code. But works

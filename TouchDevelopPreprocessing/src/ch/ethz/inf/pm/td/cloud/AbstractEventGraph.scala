@@ -3,13 +3,38 @@ package ch.ethz.inf.pm.td.cloud
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.NodeWithState
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, WeightedGraph}
-import ch.ethz.inf.pm.td.compiler.ApiMember
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchEntryStateBuilder}
+import ch.ethz.inf.pm.td.compiler.ApiMember
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, TouchStateInterface}
 import ch.ethz.inf.pm.td.semantics.{SCloud_Data, TString}
 
 import scala.collection.mutable
+
+///**
+//  * Check if something is bottom. Might be due to unreachable code.
+//  */
+//case class AbstractEventGraphProperty() extends SingleStatementProperty with Visitor {
+//
+//  def visitor = this
+//
+//  /**
+//    * Check the property over a single state
+//    *
+//    * @param state     the abstract state
+//    * @param statement the statement that was executed after the given abstract state
+//    * @param printer   the output collector that has to be used to signal warning, validate properties, or inferred contracts
+//    */
+//  override def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector): Unit = {
+//
+//    statement match {
+//      case MethodCall(pp,method,parametricTypes,parameters,returnedType) =>
+//
+//    }
+//
+//  }
+//
+//}
 
 /**
   * @author Lucas Brutschy
@@ -56,7 +81,6 @@ object AbstractEventGraph {
     stringToEvent = Map.empty
   }
 
-
   def toWeightedGraph[S <: State[S]]: WeightedGraph[NodeWithState[S], EdgeLabel] = {
 
     localInvariants = localInvariants + (InitialEvent ->
@@ -73,7 +97,7 @@ object AbstractEventGraph {
 
     for( (a,bs) <- invProgramOrder; b <- bs.toSetOrFail ) {
       if (a != InitialEvent)
-        graph.addEdge(map(a),map(b),Some(EdgeLabel.ProgramOrder))
+        graph.addEdge(map(b),map(a),Some(EdgeLabel.ProgramOrder))
     }
 
     graph
@@ -104,12 +128,26 @@ object AbstractEventGraph {
     invProgramOrder = invProgramOrder +
       (event -> (events lub invProgramOrder.getOrElse(event,SetDomain.Default.Bottom[AbstractEvent]())))
 
-    val newState:S =
-      localInvariants.get(event) match {
-        case Some(oldState) => oldState.asInstanceOf[S].lub(state)
-        case None => state
+    // Map all actual parameters to their formal parameters
+    val assignedState:S =
+      (this0::parameters).zipWithIndex.foldLeft(state) {
+        case (s,(expr,i)) =>
+          val formalArgument = ExpressionSet(VariableIdentifier("arg"+i)(expr.getType(),pp))
+          s.createVariable(formalArgument,expr.getType(),pp).assignVariable(formalArgument,expr)
       }
 
+    // Prune everything we do not care about.
+    val prunedState:S =
+      assignedState.pruneVariables{
+        x => !x.name.startsWith("arg")
+      }
+
+    // Update the stored local invariant
+    val newState:S =
+      localInvariants.get(event) match {
+        case Some(oldState) => oldState.asInstanceOf[S].lub(prunedState)
+        case None => prunedState
+      }
     localInvariants += (event -> newState)
 
     val args = this0::parameters
@@ -129,6 +167,21 @@ object AbstractEventGraph {
       toRichExpression(Constant(pp.toString,TString,pp))
     )(state,pp)
 
+  }
+
+  override def toString:String = {
+    "==Graph==\n" +
+      (for ((aE,preds) <- invProgramOrder; pred <- preds.toSetOrFail) yield {
+        pred + "->" + aE
+      }).mkString(",") +
+      "\n==Invariants==\n" +
+      (for ((aE,inv) <- localInvariants) yield {
+        aE + ":" + inv
+      }).mkString(",") +
+      "\n==Argument==\n" +
+      (for ((aE,arg) <- arguments) yield {
+        aE + ":" + arg
+      }).mkString(",")
   }
 
 }

@@ -90,6 +90,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
   override def prepareContext() = {
     super.prepareContext()
 
+    AbstractEventGraph.reset()
     MethodSummaries.reset()
     SystemParameters.reset()
     TouchVariablePacking.reset()
@@ -102,7 +103,6 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
 
     SystemParameters.compiler = compiler
     SystemParameters.compiler.generateTopType()
-    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
     SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
 
@@ -126,9 +126,10 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
     val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    val methods:List[AnalysisResult] =
+    val methods:List[MethodAnalysisResult[S]] =
       analyzer.analyze(Nil,entryState) map { x => MethodAnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
-    val abs:WeightedGraph[NodeWithState[S],AbstractEventGraph.EdgeLabel.Value] = AbstractEventGraph.toWeightedGraph
+    val abs:WeightedGraph[NodeWithState[S],AbstractEventGraph.EdgeLabel.Value] =
+      AbstractEventGraph.toWeightedGraph
     val messages = Reporter.messages
     WeightedGraphAnalysisResult("Abstract Event Graph",abs)::methods:::messages.toList
   }

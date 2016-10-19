@@ -6,15 +6,12 @@
 
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.property.{OutputCollector, SingleStatementProperty}
-import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.domain.{TouchStateInterface, HeapIdentifier}
-import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
-import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchStateInterface}
 import com.typesafe.scalalogging.LazyLogging
 
 
@@ -64,7 +61,7 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
       }
     }
 
-    new SingleStatementProperty(new BottomVisitor()).check(results,output)
+    SingleStatementProperty.Default(new BottomVisitor()).check(results,output)
 
     compiler.relevantLibraryFields = spottedFields ++ Set("data", "art", "records", "code")
     SystemParameters.resetOutput()

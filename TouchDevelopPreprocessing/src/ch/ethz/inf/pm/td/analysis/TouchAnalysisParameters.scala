@@ -193,7 +193,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Maximum number of possible string values represented for a single variable
                                      */
-                                    stringRepresentationBound: Int = 3,
+                                    stringRepresentationBound: Int = 10,
 
                                     /**
                                      * The numerical domain to be used.
