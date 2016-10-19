@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.td.cloud
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.{AbstractEvent, ProgramPointEvent}
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.ProgramPointEvent
 import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, CloudEnabledModifier}
 import ch.ethz.inf.pm.td.domain.TouchState
 

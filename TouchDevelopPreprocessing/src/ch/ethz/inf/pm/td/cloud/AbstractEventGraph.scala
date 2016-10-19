@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.td.cloud
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.execution.NodeWithState
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, WeightedGraph}
 import ch.ethz.inf.pm.td.compiler.ApiMember
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
@@ -22,11 +23,26 @@ object AbstractEventGraph {
 
   import EdgeLabel._
 
-  class EventGraph[S <: State[S]] extends WeightedGraph[S,EdgeLabel]
+  class EventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S],EdgeLabel]
 
-  trait AbstractEvent { def id: String }
-  case object InitialEvent extends AbstractEvent { val id = "" }
-  case class ProgramPointEvent(pp:ProgramPoint, method:ApiMember) extends AbstractEvent { val id = pp.toString }
+  case class AbstractEventWithState[S <: State[S]](aE: AbstractEvent,
+                                                   state:S) extends NodeWithState[S] {
+    override def toString = aE.toString
+  }
+
+  trait AbstractEvent {
+    def id: String
+  }
+
+  case object InitialEvent extends AbstractEvent {
+    val id = ""
+    override def toString:String ="Init"
+  }
+
+  case class ProgramPointEvent[S <: State[S]](pp:ProgramPoint, method:ApiMember) extends AbstractEvent {
+    val id = pp.toString
+    override def toString:String = method.name
+  }
 
   private var invProgramOrder: Map[AbstractEvent,SetDomain.Default[AbstractEvent]] = Map.empty
   private var localInvariants: Map[AbstractEvent,_] = Map.empty
@@ -40,16 +56,18 @@ object AbstractEventGraph {
     stringToEvent = Map.empty
   }
 
-  def toWeightedGraph[S <: State[S]]: WeightedGraph[S, EdgeLabel] = {
+
+  def toWeightedGraph[S <: State[S]]: WeightedGraph[NodeWithState[S], EdgeLabel] = {
+
+    localInvariants = localInvariants + (InitialEvent ->
+      TouchEntryStateBuilder(TouchAnalysisParameters.get).topState.bottom().asInstanceOf[S]
+    )
 
     val map = mutable.Map.empty[AbstractEvent,Int]
     val graph = new EventGraph[S]
 
-    val j = graph.addNode(TouchEntryStateBuilder(TouchAnalysisParameters.get).topState.bottom().asInstanceOf[S])
-    map += (InitialEvent -> j)
-
-    for ((aE,n) <- localInvariants) {
-      val i = graph.addNode(n.asInstanceOf[S])
+    for ((aE,s) <- localInvariants) {
+      val i = graph.addNode(AbstractEventWithState(aE,s.asInstanceOf[S]))
       map += (aE -> i)
     }
 

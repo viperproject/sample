@@ -21,6 +21,7 @@ import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.AbstractEventWithState
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -127,7 +128,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
     val methods:List[AnalysisResult] =
       analyzer.analyze(Nil,entryState) map { x => MethodAnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
-    val abs:WeightedGraph[S,AbstractEventGraph.EdgeLabel.Value] = AbstractEventGraph.toWeightedGraph
+    val abs:WeightedGraph[NodeWithState[S],AbstractEventGraph.EdgeLabel.Value] = AbstractEventGraph.toWeightedGraph
     val messages = Reporter.messages
     WeightedGraphAnalysisResult("Abstract Event Graph",abs)::methods:::messages.toList
   }
