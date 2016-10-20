@@ -11,7 +11,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Statement, Type}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -405,6 +405,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // current program point
   def currentPP: ProgramPoint
 
+  // the set of fields
+  def fields: Set[(String, Type)]
+
   // result of the alias analysis
   def context: Option[TrackingCFGState[A]]
 
@@ -423,9 +426,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   // result of the alias analysis after the current program point
   lazy val postAliases = postStateAtPP(context.get, currentPP)
-
-  // the set of fields
-  lazy val fields = context.get.entryState().fields
 
   // the list of access paths
   lazy val paths: List[AccessPath] =
@@ -482,8 +482,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def command(cmd: Command): T = {
     logger.trace(s"command($cmd)")
     cmd match {
-      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(inhale)))
+      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(exhale)))
       case PreconditionCommand(condition) =>
         val expression = condition.getSingle.get
         inhale(expression).setPrecondition(expression)
@@ -1130,21 +1130,21 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   private def mayBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
     if (first.length < 2 || second.length < 2) false
     else if (first == second) true
-    else aliases.receiversMayAlias(first, second) && first.last == second.last
+    else aliases.pathsMayAlias(first.init, second.init) && first.last == second.last
 
   /** Returns true if the two given access paths must refer to the same field on
     * the same receiver object.
     *
     * @param aliases The alias information.
     * @param first   The first access path.
-    * @param second  The second access apth.
-    * @return True if the two given access apths may refer to the same field on
+    * @param second  The second access path.
+    * @return True if the two given access paths may refer to the same field on
     *         the same receiver object.
     */
   private def mustBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
     if (first.length < 2 || second.length < 2) false
     else if (first == second) true
-    else aliases.receiversMustAlias(first, second) && first.last == second.last
+    else aliases.pathsMustAlias(first.init, second.init) && first.last == second.last
 
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR SPECIFICATION
@@ -1207,10 +1207,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
       else fieldAccess(path.init)
     val name = path.last.getName
-    val typ = fields.find(_._2 == name).get match {
-      case (t, _) if t.isObject => sil.Ref
-      case (t, _) if t.isNumericalType => sil.Int
-      case (t, _) if t.isBooleanType => sil.Bool
+    val typ = fields.find(_._1 == name).get match {
+      case (_, t) if t.isObject => sil.Ref
+      case (_, t) if t.isNumericalType => sil.Int
+      case (_, t) if t.isBooleanType => sil.Bool
     }
     sil.FieldAccess(receiver, sil.Field(name, typ)())()
   }
@@ -1315,6 +1315,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }
 
   def copy(currentPP: ProgramPoint = currentPP,
+           fields: Set[(String, Type)] = fields,
            context: Option[TrackingCFGState[A]] = context,
            result: ExpressionSet = result,
            permissions: Map[Identifier, PermissionTree] = permissions,
@@ -1339,11 +1340,15 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
+
+  override def ids = IdentifierSet.Top
+
 }
 
 object PermissionAnalysisState
 {
   case class Default(currentPP: ProgramPoint = DummyProgramPoint,
+                     fields: Set[(String, Type)] = Set.empty,
                      context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
                      result: ExpressionSet = ExpressionSet(),
                      permissions: Map[Identifier, PermissionTree] = Map.empty,
@@ -1354,6 +1359,7 @@ object PermissionAnalysisState
     extends PermissionAnalysisState[Default, AliasAnalysisState.Default]
   {
     override def copy(currentPP: ProgramPoint,
+                      fields: Set[(String, Type)],
                       context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
                       permissions: Map[Identifier, PermissionTree],
@@ -1361,12 +1367,27 @@ object PermissionAnalysisState
                       arguments: Seq[sil.LocalVarDecl],
                       isBottom: Boolean,
                       isTop: Boolean): Default =
-      Default(currentPP, context, result, permissions, specification, arguments, isBottom, isTop)
+      Default(currentPP, fields, context, result, permissions, specification, arguments, isBottom, isTop)
+  }
+}
+
+trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+  extends BackwardEntryStateBuilder[T]
+{
+  override def build(method: MethodDeclaration): T = {
+    // retrieve the set of fields declared in the program
+    val fields = method.classDef.fields
+      .map(field => (field.variable.toString, field.typ))
+      .toSet
+
+    val initial = topState.copy(fields = fields)
+
+    method.initializeArgument(initial)
   }
 }
 
 object PermissionAnalysisEntryState
-  extends BackwardEntryStateBuilder[PermissionAnalysisState.Default]
+  extends PermissionAnalysisStateBuilder[AliasAnalysisState.Default, PermissionAnalysisState.Default]
 {
   override def topState: PermissionAnalysisState.Default = PermissionAnalysisState.Default()
 }
@@ -1375,7 +1396,7 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
   extends SilverAnalysisRunner[T]
 {
   override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+    val results = run(Compilable.Path(new File(args(0)).toPath)).collect{ case x: MethodAnalysisResult[T] => x }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     // map of method names to control flow graphs

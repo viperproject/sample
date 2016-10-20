@@ -13,6 +13,8 @@ import java.nio.file.Path
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StringCollector, SystemParameters}
 import java.io.File
 
+import com.sun.corba.se.impl.orbutil.graph.Graph
+
 trait AnalysisRunner[S <: State[S]] {
   val compiler: Compiler
 
@@ -21,8 +23,8 @@ trait AnalysisRunner[S <: State[S]] {
   /** Which methods to analyze (by default: all of them). */
   def methodsToAnalyze: List[MethodDeclaration] = compiler.allMethods
 
-  def run(path: Path): List[AnalysisResult[S]] = {
-    compiler.compileFile(path.toAbsolutePath.toString)
+  def run(comp: Compilable): List[AnalysisResult] = {
+    compiler.compile(comp)
     _run()
   }
 
@@ -37,20 +39,30 @@ trait AnalysisRunner[S <: State[S]] {
 
     // Set up native methods
     SystemParameters.resetNativeMethodsSemantics()
-    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
+    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
   }
 
-  protected def _run(): List[AnalysisResult[S]] = {
+  protected def _run(): List[AnalysisResult] = {
     prepareContext()
     methodsToAnalyze.map(analysis.analyze)
   }
 
   def main(args: Array[String]) {
-    run(new File(args(0)).toPath)
+    run(Compilable.Path(new File(args(0)).toPath))
   }
 }
 
-case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
+trait AnalysisResult {
+  def displayName:String
+}
+
+case class WeightedGraphAnalysisResult[S <: State[S], W](name:String, graph: WeightedGraph[S,W]) extends AnalysisResult {
+  override def displayName = name
+}
+
+case class MethodAnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) extends AnalysisResult {
+  override def displayName = "Method "+method.name
+}
 
 /** Entry State Builder. Builds analysis entry states for given method declarations.
   *
@@ -83,7 +95,7 @@ trait BackwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
   * @author Caterina Urban
   */
 trait Analysis[S <: State[S]] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S]
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[S]
 
   def time[A](a: => A) = {
     val now = System.nanoTime
@@ -103,11 +115,11 @@ trait ForwardAnalysis[S <: State[S]] extends Analysis[S] {
   /** Analyzes the given method with a `TrackingForwardInterpreter` starting
     * from the given entry state.
     */
-  protected def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
+  protected def analyze(method: MethodDeclaration, entryState: S): MethodAnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingForwardInterpreter[S](entryState)
       val cfgState = interpreter.forwardExecute(method.body, entryState)
-      AnalysisResult(method, cfgState)
+      MethodAnalysisResult(method, cfgState)
     }
   }
 }
@@ -119,11 +131,11 @@ trait ForwardAnalysis[S <: State[S]] extends Analysis[S] {
   */
 trait BackwardAnalysis[S <: State[S]] extends Analysis[S] {
 
-  protected def analyze(method: MethodDeclaration, exitState: S): AnalysisResult[S] = {
+  protected def analyze(method: MethodDeclaration, exitState: S): MethodAnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingBackwardInterpreter[S](exitState)
       val cfgState = interpreter.backwardExecute(method.body, exitState)
-      AnalysisResult(method, cfgState)
+      MethodAnalysisResult(method, cfgState)
     }
   }
 }
@@ -216,13 +228,13 @@ trait PreviousResult[S <: State[S], T <: State[T]] {
   */
 trait ForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S, T]] extends Analysis[T] {
 
-  protected def analyze(method: MethodDeclaration, entryState: S, exitState: T): AnalysisResult[T] = {
+  protected def analyze(method: MethodDeclaration, entryState: S, exitState: T): MethodAnalysisResult[T] = {
 
     // run the forward analysis and retrieve its result
     val result = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingForwardInterpreter[S](entryState)
       val cfgState = interpreter.forwardExecute(method.body, entryState)
-      AnalysisResult(method, cfgState)
+      MethodAnalysisResult(method, cfgState)
     }
     // store the result of the forward analysis in the entry state of the backward analysis
     val exit = exitState.addPreviousResult(result.cfgState)
@@ -230,7 +242,7 @@ trait ForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val interpreter = TrackingBackwardInterpreter[T](exit)
       val cfgState = interpreter.backwardExecute(method.body, exit)
-      AnalysisResult(method, cfgState)
+      MethodAnalysisResult(method, cfgState)
     }
   }
 
@@ -238,16 +250,16 @@ trait ForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S
 
 /** Forward Analysis Runner with EntryStateBuilder. */
 case class SimpleForwardAnalysis[S <: State[S]](entryStateBuilder: ForwardEntryStateBuilder[S]) extends ForwardAnalysis[S] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
 }
 
 /** Backward Analysis Runner with EntryStateBuilder. */
 case class SimpleBackwardAnalysis[S <: State[S]](entryStateBuilder: ForwardEntryStateBuilder[S]) extends BackwardAnalysis[S] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[S] = analyze(method, entryStateBuilder.build(method))
 }
 
 /** Forward Backward Analysis Runner with EntryStateBuilder */
 case class SimpleForwardBackwardAnalysis[S <: State[S], T <: State[T] with PreviousResult[S, T]](fwdBuilder: ForwardEntryStateBuilder[S], bwdBuilder: BackwardEntryStateBuilder[T])
   extends ForwardBackwardAnalysis[S, T] {
-  def analyze(method: MethodDeclaration): AnalysisResult[T] = analyze(method, fwdBuilder.build(method), bwdBuilder.build(method))
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[T] = analyze(method, fwdBuilder.build(method), bwdBuilder.build(method))
 }

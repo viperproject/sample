@@ -231,7 +231,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return       A may set and a must set of object
    */
   override def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(Identifier,T) => Boolean): (Set[Identifier],Set[Identifier]) = {
-    val (left,right) = objSet.getNonTop.map(getFieldValueWhere(_, field, typ, filter)).unzip
+    val (left,right) = objSet.toSetOrFail.map(getFieldValueWhere(_, field, typ, filter)).unzip
     val (newLeft,newRight) = (left.flatten,right.flatten)
     (newLeft,newRight)
   }

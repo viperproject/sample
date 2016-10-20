@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, AnalysisResult, SimpleForwardAnalysis, AnalysisRunner, ForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -21,7 +21,7 @@ trait SilAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
   val compiler = new SilCompiler()
 
   /** Analyze a program that has already been parsed and type-checked. */
-  def run(program: sil.Program): List[AnalysisResult[S]] = {
+  def run(program: sil.Program): List[AnalysisResult] = {
     compiler.compileProgram(program)
     _run()
   }
@@ -131,13 +131,13 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
 
   type T = PredicateDrivenHeapState[S]
 
-  def analyze(method: MethodDeclaration): AnalysisResult[T] = {
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[T] = {
     PredicateIdentifier.reset()
     PredicateInstanceIdentifier.resetVersion()
 
     vdha.withGlbPreservingIdsStrategy(CustomGlbPreservingIdsStrategy, () => {
       var initialState = entryStateBuilder.build(method)
-      var resultOption: Option[AnalysisResult[T]] = None
+      var resultOption: Option[MethodAnalysisResult[T]] = None
 
       while (resultOption.isEmpty) {
         // Set up the subscriber that triggers the restart

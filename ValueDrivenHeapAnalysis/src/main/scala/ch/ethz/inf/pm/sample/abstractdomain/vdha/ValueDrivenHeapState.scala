@@ -668,6 +668,8 @@ trait ValueDrivenHeapState[
   def testBackwardTrue(): T = ???
   def testBackwardFalse(): T = ???
   def refiningAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
+
+  override def ids = generalValState.ids lub expr.ids
 }
 
 object ValueDrivenHeapState {

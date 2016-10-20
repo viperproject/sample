@@ -56,7 +56,7 @@ object StringSemantics extends NativeMethodSemantics {
 	    	case _ => new Some(state.top())
   }
 
-  private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.getNonTop match {
+  private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.toSetOrFail match {
 	  case x if x.size==1 => Some(x.head)
 	  case _ => None;
   }

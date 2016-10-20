@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.analysis
 import java.nio.file.Path
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.execution.MethodAnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import ch.ethz.inf.pm.sample.test.LatticeTest
@@ -48,7 +49,7 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
 
   override def verify(program: Program): VerificationResult = {
     val runner = PermissionAnalysis
-    val results = runner.run(program) // run the permission inference
+    val results = runner.run(program).collect{ case x:MethodAnalysisResult[PermissionAnalysisState.Default] => x } // run the permission inference
     // extend the program with the inferred permissions
     val extendedProgram = runner.extendProgram(DefaultSilverConverter.prog, results)
 

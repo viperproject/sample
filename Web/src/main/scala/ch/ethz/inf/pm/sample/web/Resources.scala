@@ -7,8 +7,18 @@
 package ch.ethz.inf.pm.sample.web
 
 import java.nio.file._
-import java.net.{URI, URL}
+import java.net.{URI, URL, URLEncoder}
+
 import scala.collection.JavaConversions._
+
+case class IdentifierTest(name:String, id:String) extends Ordered[IdentifierTest] {
+
+  def compare(that: IdentifierTest) =
+    name.compareTo(that.name)
+
+  def urlEncoded:String = URLEncoder.encode(id)
+
+}
 
 /** Holds the path to a single test file that can be analyzed. */
 case class TestFile(path: Path, prefix: String) extends Ordered[TestFile] {
@@ -26,6 +36,11 @@ case class TestFile(path: Path, prefix: String) extends Ordered[TestFile] {
 /** Provides a sequence of test files that can be analyzed. */
 trait TestFileProvider {
   def testFiles: Seq[TestFile]
+}
+
+/** Provides a sequence of identifiers that can be analyzed. */
+trait IdentifierProvider {
+  def identifiers: Seq[IdentifierTest]
 }
 
 /** Finds all test files that are among the resources on the class path.

@@ -86,6 +86,12 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   override def getPossibleConstants(id: Identifier) = wrapped.getPossibleConstants(id)
 }
 
+/**
+  * Implements a MUST set domain, that is, a set where joins are intersections and meets are unions.
+  *
+  * @tparam V The type of the values contained in the set
+  * @tparam T The type of the current set domain
+  */
 trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWrapper[SetDomain.Default[V],T]
   with SetDomain[V,T] {
   this:T =>
@@ -95,7 +101,9 @@ trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWr
   override def +(v: V): T = wrapperFactory(wrapped.+(v))
   override def ++(v: T): T = wrapperFactory(wrapped.++(v.wrapped))
   override def contains(v: V):Boolean = wrapped.contains(v)
-  override def toSet(universe: Set[V]):Set[V] = ???
+  override def toSet(universe: Set[V]):Set[V] = wrapped.toSet(universe)
+  override def toSetOrFail:Set[V] = wrapped.toSetOrFail
+  override def map[B](f: V => B) = wrapped.map(f)
 }
 
 object InvertedSetDomain {

@@ -9,14 +9,18 @@ package ch.ethz.inf.pm.td.analysis
 
 import java.io.{PrintWriter, StringWriter}
 import java.lang.Thread.UncaughtExceptionHandler
+import java.nio.file.Paths
 
 import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
-import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, WeightedGraph}
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -75,15 +79,90 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
 }
 
-case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None) extends Thread with LazyLogging {
 
-  var messages: Set[SampleMessage] = Set.empty
+trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntryStateBuilder.State] with LazyLogging {
 
+  def touchParams:TouchAnalysisParameters
+
+  override val compiler = new TouchCompiler
+
+  override def prepareContext() = {
+    super.prepareContext()
+
+    MethodSummaries.reset()
+    SystemParameters.reset()
+    TouchVariablePacking.reset()
+    Localization.reset()
+    TouchProgramPointRegistry.reset()
+    AccumulatingTimer.reset()
+    Reporter.enableAllOutputs()
+    Reporter.reset()
+    RequiredLibraryFragmentAnalysis.spottedFields = Set.empty
+
+    SystemParameters.compiler = compiler
+    SystemParameters.compiler.generateTopType()
+    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
+    SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
+    SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
+
+    SystemParameters.compiler.reset()
+    SystemParameters.resetNativeMethodsSemantics()
+    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics)
+
+  }
+
+  override def run(comp: Compilable): List[AnalysisResult] = {
+    prepareContext()
+    logger.info(" Compiling " + comp.label)
+    compiler.compile(comp)
+    Exporters.setStatus("Analyzing")
+    val results = analyze()
+    Exporters.setStatus("Done")
+    results
+  }
+
+  private def analyze(): List[AnalysisResult] = {
+    val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
+    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
+    val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
+    val methods:List[AnalysisResult] =
+      analyzer.analyze(Nil,entryState) map { x => MethodAnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
+    val abs:WeightedGraph[S,AbstractEventGraph.EdgeLabel.Value] = AbstractEventGraph.toWeightedGraph
+    val messages = Reporter.messages
+    WeightedGraphAnalysisResult("Abstract Event Graph",abs)::methods:::messages.toList
+  }
+
+}
+
+object TouchDevelopAnalysisRunner {
+
+  case class Default(
+                      touchParams:TouchAnalysisParameters = TouchAnalysisParameters.get,
+                      analysis:Analysis[TouchEntryStateBuilder.State] = new DefaultAnalysis
+                    )
+    extends TouchDevelopAnalysisRunner[TouchEntryStateBuilder.State] {
+
+    override def toString:String = "Default TouchDevelop Analysis Runner"
+
+  }
+
+  class DefaultAnalysis
+    extends SimpleForwardAnalysis[TouchEntryStateBuilder.State](new TouchEntryStateBuilder(TouchAnalysisParameters.get)) {
+    override def toString:String = "Default TouchDevelop Analysis"
+  }
+
+}
+
+
+case class AnalysisThread(comp: Compilable, customTouchParams: Option[TouchAnalysisParameters] = None)
+  extends Thread with LazyLogging {
+
+  var results: List[AnalysisResult] = Nil
 
   override def run() {
     try {
 
-      messages = TouchRun.runSingleNoThread(file,customTouchParams)
+      results = TouchDevelopAnalysisRunner.Default().run(comp)
 
     } catch {
 
@@ -117,44 +196,16 @@ object TouchRun extends LazyLogging {
    */
   var threadFailed:Boolean = false
 
-  def runSingleNoThread(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Set[SampleMessage] = {
-
-    customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
-    val touchParams = TouchAnalysisParameters.get
-    TouchProgramPointRegistry.reset()
-
-    logger.info(" Compiling " + file)
-    Exporters.setStatus("Analyzing")
-
-    SystemParameters.compiler = new TouchCompiler
-    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
-    SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-    SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-
-    SystemParameters.compiler.reset()
-    SystemParameters.resetNativeMethodsSemantics()
-    SystemParameters.compiler.compile(file)
-    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
-
-    val entryState = new TouchEntryStateBuilder(touchParams).topState
-    val analysis = new TouchAnalysis
-    analysis.analyze(Nil,entryState)
-
-    Exporters.setStatus("Done")
-    val messages = Reporter.messages
-    SystemParameters.resetOutput()
-    messages
-  }
-
-  def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+  def runInThread(comp: Compilable): List[AnalysisResult] = {
 
     threadFailed = false
 
     this.synchronized {
-      val t = AnalysisThread(file, customTouchParams)
+      val t = AnalysisThread(comp)
       val initialTime = System.currentTimeMillis()
       t.start()
-      while (t.isAlive && (TouchAnalysisParameters.get.timeout.isEmpty || System.currentTimeMillis() - initialTime < TouchAnalysisParameters.get.timeout.get * 1000))
+      while (t.isAlive && (TouchAnalysisParameters.get.timeout.isEmpty
+        || System.currentTimeMillis() - initialTime < TouchAnalysisParameters.get.timeout.get * 1000))
         this.wait(1000)
       while (t.isAlive) {
         System.out.println("TIME IS UP! Trying to stop a thread")
@@ -162,8 +213,8 @@ object TouchRun extends LazyLogging {
         for (i <- 0 to 100) t.stop()
         this.wait(1000)
       }
-      t.messages
-    }.toSeq
+      t.results
+    }
 
   }
 
@@ -177,7 +228,13 @@ object TouchRun extends LazyLogging {
     files foreach (
       f => {
         try {
-          runSingle(f)
+          val comp =
+            if (f.startsWith("td://")) {
+              Compilable.Identifier(f)
+            } else {
+              Compilable.Path(Paths.get(f))
+            }
+          runInThread(comp)
         } catch {
           case x: Throwable =>
             val sw: StringWriter = new StringWriter()
@@ -187,19 +244,6 @@ object TouchRun extends LazyLogging {
             Exporters.setStatus("Failed")
             throw x
         }
-
-        MethodSummaries.reset()
-        SystemParameters.reset()
-        TouchVariablePacking.reset()
-        Localization.reset()
-        TouchProgramPointRegistry.reset()
-        AccumulatingTimer.reset()
-        Reporter.enableAllOutputs()
-        Reporter.reset()
-        RequiredLibraryFragmentAnalysis.spottedFields = Set.empty
-//        System.gc()
-//        System.gc()
-//        Thread.sleep(10000000)
 
       })
   }

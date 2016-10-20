@@ -8,1584 +8,1808 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{RefType, SilverAnalysisRunner}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
+import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
+import ch.ethz.inf.pm.sample.permissionanalysis.Types._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
-/** Heap node.
-  *
-  * @param id the unique identifier of the heap node
-  * @author Caterina Urban
-  */
-case class HeapNode(id: List[Identifier] = List.empty, pp: ProgramPoint = DummyProgramPoint) extends Identifier.HeapIdentifier
+object Dummy
 {
-  override def getName: String = "0\"" + id.map(_.getName).mkString(".") + "\""
-  override def equals(o: Any) = o match {
-    case that: HeapNode => (this.getName equals that.getName) && (this.pp equals that.pp)
+  def main(args: Array[String]): Unit = {
+    val m1 = Map(1 -> "a", 2 -> "b")
+    val m2 = m1 + (1 -> "c")
+    val m3 = m1.updated(1, "c")
+    println(m2(1))
+    // outputs "c"
+    println(m3(1))
+    // outputs "c"
+  }
+}
+
+/** Various type shortcuts.
+  *
+  * @author Jerome Dohrau
+  */
+object Types
+{
+  type AccessPath = List[Identifier]
+
+  type Store = Map[String, Set[HeapNode]]
+
+  type Heap = Map[HeapNode, FieldMap]
+
+  type FieldMap = Map[String, Set[HeapNode]]
+
+  def Store(): Store = Map.empty
+
+  def Heap(): Heap = Map.empty
+
+  def FieldMap(): FieldMap = Map.empty
+}
+
+/** A heap node used in the alias graph.
+  *
+  * @param name The name of the node.
+  * @author Caterina Urban
+  * @author Jerome Dohrau
+  */
+case class HeapNode(name: String,
+                    typ: Type = DummyRefType,
+                    pp: ProgramPoint = DummyProgramPoint)
+  extends Identifier
+{
+  /** Returns the name of the identifier.
+    *
+    * @return The name of the identifier.
+    */
+  override def getName: String = name
+
+  /** Returns the name of the field that is represented by the identifier.
+    *
+    * @return The name of the field that is represented by the identifier.
+    */
+  override def getField: Option[String] = None
+
+  /** Returns true if the identifier represents exactly one variable.
+    *
+    * @return True if the identifier represents exactly one variable.
+    */
+  override def representsSingleVariable: Boolean = true
+
+  override def equals(other: Any) = other match {
+    case node: HeapNode => name equals node.name
     case _ => false
   }
-  override def hashCode = getName.hashCode
-  override def getField: Option[String] = None
-  override def representsSingleVariable: Boolean = true
-  override def typ: Type = DummyRefType
-  override def toString: String = getName
+
+  override def hashCode(): Int = name.hashCode
 }
 
-/** Unique heap summary node.
-  *
-  * @author Caterina Urban
-  */
-object SummaryHeapNode extends HeapNode(List.empty) {
-  override def getName: String = "Σ"
-  override def representsSingleVariable: Boolean = false
-  override def toString: String = "Σ"
+object HeapNode
+{
+  /** The unique wildcard node.
+    */
+  object WildcardNode
+    extends HeapNode("*")
+  {
+    /** Returns true if the identifier represents exactly one variable.
+      *
+      * @return True if the identifier represents exactly one variable.
+      */
+    override def representsSingleVariable: Boolean = false
+  }
+
+  /**
+    * The unique summary node.
+    */
+  object SummaryNode
+    extends HeapNode("Σ") {
+    /** Returns true if the identifier represents exactly one variable.
+      *
+      * @return True if the identifier represents exactly one variable.
+      */
+    override def representsSingleVariable: Boolean = false
+  }
+
+  /** The unique unknown node.
+    */
+  object UnknownNode
+    extends HeapNode("?")
+  {
+    /** Returns true if the identifier represents exactly one variable.
+      *
+      * @return True if the identifier represents exactly one variable.
+      */
+    override def representsSingleVariable: Boolean = false
+  }
+
+  /** The unique null node.
+    */
+  object NullNode
+    extends HeapNode("null")
+  {
+    /** Returns true if the identifier represents exactly one variable.
+      *
+      * @return True if the identifier represents exactly one variable.
+      */
+    override def representsSingleVariable: Boolean = false
+  }
+
+  /** The unique new node used to represent a newly created heap location.
+    */
+  object NewNode
+    extends HeapNode("new")
 }
 
-/** Null heap node.
+/** A graph representing alias information.
   *
   * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-object NullHeapNode extends HeapNode(List.empty) {
-  override def getName: String = "null"
-  override def representsSingleVariable: Boolean = false
-  override def toString: String = "null"
+trait AliasGraph[T <: AliasGraph[T]]
+{
+  this: T =>
+
+  /** Returns the store that maps variables to sets of heap nodes.
+    *
+    * @return The store.
+    */
+  def store: Store
+
+  /** Returns the heap that maps heap nodes to mappings from field names to set
+    * of heap nodes.
+    *
+    * @return The heap.
+    */
+  def heap: Heap
+
+  /** Returns the set of fields declared in the program. The set only contains
+    * fields with a reference types since all other fields are irrelevant for
+    * the alias analysis.
+    *
+    * @return The set of fields.
+    */
+  def fields: Set[String]
+
+  def ids = IdentifierSet.Top
+
+  /** Returns the current program point.
+    *
+    * @return The current program point.
+    */
+  def currentPP: ProgramPoint
+
+  /** Returns true if materialization is allowed.
+    *
+    * @return True if materialization is allowed.
+    */
+  def materialization: Boolean
+
+  /** Returns true if the graph is a must alias graph.
+    *
+    * @return True if the graph is a must alias graph
+    */
+  def isMayAliasGraph: Boolean = this.isInstanceOf[MayAliasGraph]
+
+  /** Returns true if the graph is a must alias graph.
+    *
+    * @return true if the graph is a must alias graph.
+    */
+  def isMustAliasGraph: Boolean = this.isInstanceOf[MustAliasGraph]
+
+  /** Returns true if the given access paths may / must alias (depending on
+    * whether this is a may or must alias graph).
+    *
+    * @param first  The first access path.
+    * @param second The second access path.
+    * @return True if the given access paths may / must alias.
+    */
+  def pathsAlias(first: List[String], second: List[String]): Boolean
+
+  /** Initializes the alias graph.
+    *
+    * @param fields The set of fields in the program.
+    */
+  def initialize(fields: Set[String]): T = {
+    // prepare the initial heap
+    val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
+
+    val x = initialValue() - NullNode
+    val heap = x.foldLeft(Heap()) { (map, node) => map + (node -> fieldMap) }
+    // set initial heap
+    copy(heap = heap, fields = fields)
+  }
+
+  /** Returns the least upper bound of this and the other alias graph.
+    *
+    * @param other The other alias graph.
+    * @return The least upper bound of this and the other alias graph.
+    */
+  def lub(other: T): T
+
+  /** Returns the greatest lower bound of this and the other alias graph.
+    *
+    * @param other The other alias graph.
+    * @return The greatest lower bound of this and the other alias graph.
+    */
+  def glb(other: T): T
+
+  /** Returns the widening of this alias graph and the other alias graph.
+    *
+    * @param other The other alias graph.
+    * @return The widening of this alias graph and the other alias graph.
+    */
+  def widening(other: T): T = {
+    val graph = this lub other
+    graph.copy(materialization = false)
+  }
+
+  /** Returns true if this alias graph is less than or equal to the other alias
+    * graph.
+    *
+    * @param other The other alias graph.
+    * @return True if this alias graph is less than or equal to the other alias
+    *         graph.
+    */
+  def lessEqual(other: T): Boolean
+
+  /** Adds the variable with the given name to the store.
+    *
+    * @param name The name of the variable.
+    * @return The alias graph with the variable added.
+    */
+  def addVariable(name: String): T =
+    copy(store = store + (name -> initialValue()))
+
+  /** Adds a node with the given name to the heap.
+    *
+    * @param name   The name of the node.
+    * @return The alias graph with the node added
+    */
+  def addNode(name: String): T = {
+    // create node and initialize its fields
+    val node = HeapNode(name)
+    val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
+    // update heap
+    copy(heap = heap + (node -> fieldMap))
+  }
+
+  /** Removes the variable with the given name from the store.
+    *
+    * @param name The name of the variable.
+    * @return The alias graph with the variable removed.
+    */
+  def removeVariable(name: String): T =
+    copy(store = store - name)
+
+  /** Removes all variables satisfying the given predicate.
+    *
+    * @param filter The filter predicate.
+    * @return The alias graph with the variables removed.
+    */
+  def pruneVariables(filter: String => Boolean): T =
+    copy(store = store.filterKeys(filter))
+
+  /**
+    *
+    * @param left
+    * @param right
+    * @param operator
+    * @return
+    */
+  def assumeComparison(left: Expression, right: Expression, operator: ArithmeticOperator.Value): Option[T] = {
+    // the function used to evaluate an expression
+    def evaluate(expression: Expression): (Set[HeapNode], Set[HeapNode]) = expression match {
+      case Constant("null", _, _) => (Set.empty, Set(NullNode))
+      case VariableIdentifier(variable, _) => (Set.empty, evaluatePath(variable :: Nil))
+      case AccessPathIdentifier(accessPath) =>
+        val path = accessPath.map(_.getName)
+        val receivers = evaluateReceiver(path)
+        val values = evaluateLast(receivers, path)
+        (receivers, values)
+    }
+
+    def update(target: Expression,
+               receivers: Set[HeapNode],
+               values: Set[HeapNode],
+               mask: Set[HeapNode],
+               state: Option[(Store, Heap)]): Option[(Store, Heap)] = (target, state) match {
+      case (_, None) => None
+      case (VariableIdentifier(variable, _), Some((store, heap))) =>
+        val newValues = values & mask
+        if (newValues.isEmpty && isMayAliasGraph) None
+        else {
+          val newStore = store + (variable -> newValues)
+          Some(newStore, heap)
+        }
+      case (AccessPathIdentifier(path), state) =>
+        // only update if there is a unique receiver
+        if (receivers.size == 1 && receivers.head.representsSingleVariable) {
+          // get receiver and field
+          val receiver = receivers.head
+          val field = path.last.getName
+          // get field map and values
+          val fieldMap = heap.getOrElse(receiver, Map.empty)
+          val values = fieldMap.getOrElse(field, Set.empty)
+          // update
+          val newValues = values & mask
+          if (newValues.isEmpty && isMayAliasGraph) None
+          else {
+            val newFieldMap = fieldMap + (field -> newValues)
+            val newHeap = heap + (receiver -> newFieldMap)
+            Some(store, newHeap)
+          }
+        } else {
+          Some(store, heap)
+        }
+      case _ => state
+    }
+
+    // evaluate left and right expression
+    val (leftReceivers, leftValues) = evaluate(left)
+    val (rightReceivers, rightValues) = evaluate(right)
+
+    // compute masks for left and right values
+    val (leftMask, rightMask) = operator match {
+      case ArithmeticOperator.== =>
+        (rightValues, leftValues)
+      case ArithmeticOperator.!= =>
+        val left = if (rightValues.size == 1 || isMayAliasGraph) leftValues -- rightValues else leftValues
+        val right = if (leftValues.size == 1 || isMayAliasGraph) rightValues -- leftValues else rightValues
+        (left, right)
+    }
+
+    // update state
+    val state0 = Some(store, heap)
+    val state1 = update(left, leftReceivers, leftValues, leftMask, state0)
+    val s3 = update(right, rightReceivers, rightValues, rightMask, state1)
+    s3.map { case (newStore, newHeap) => copy(store = newStore, heap = newHeap) }
+  }
+
+  /** Assigns the given value to the given target.
+    *
+    * @param target The target of the assignment.
+    * @param value  The value of the assignment.
+    * @return
+    */
+  def assign(target: Expression, value: Expression): T = {
+    println(s"target: $target, value: $value")
+    if (target.typ.isObject) {
+
+      // evaluate value
+      val values = value match {
+        case Constant("null", _, _) => Set(NullNode: HeapNode)
+        case NewNode => Set(NewNode: HeapNode)
+        case VariableIdentifier(variable, _) => evaluatePath(variable :: Nil)
+        case AccessPathIdentifier(path) => evaluatePath(path.map(_.getName))
+        case _ => throw new NotImplementedError("An assign implementation is missing.")
+      }
+
+      target match {
+        case VariableIdentifier(variable, _) =>
+          if (values contains NewNode) {
+            // update store and heap
+            val node = HeapNode(variable, target.typ, target.pp)
+            val newStore = store + (variable -> Set(node))
+            val newHeap = heap + (node -> heap.getOrElse(NewNode, Map.empty))
+            // update state
+            copy(store = newStore, heap = newHeap)
+          } else {
+              val newStore = store + (variable -> values)
+              copy(store = newStore)
+          }
+        case AccessPathIdentifier(path) =>
+          val receivers = evaluateReceiver(path.map(_.getName))
+          val strong = receivers.size == 1 && receivers.head.representsSingleVariable
+          val field = path.last.getName
+          val newHeap = receivers.foldLeft(heap) {
+            case (h, receiver) =>
+              val fieldMap = h.getOrElse(receiver, Map.empty)
+              val newFieldMap = if (strong || isMustAliasGraph) {
+                // strong update
+                fieldMap + (field -> values)
+              } else {
+                // weak update
+                val fieldValues = fieldMap.getOrElse(field, Set.empty)
+                fieldMap + (field -> (fieldValues ++ values))
+              }
+              h + (receiver -> newFieldMap)
+          }
+          copy(heap = newHeap)
+        case _ => throw new NotImplementedError("An assign implementation is missing.")
+      }
+    } else {
+      target match {
+        case _: VariableIdentifier => this
+        case _: AccessPathIdentifier => this
+        case _ => throw new NotImplementedError("An assign implementation is missing.")
+      }
+    }
+  }
+
+  def havoc(path: List[String]): T = {
+    if (path.isEmpty) this
+    else if (path.length == 1) {
+      val variable = path.head
+      val newStore = store + (variable -> Set(WildcardNode: HeapNode))
+      copy(store = newStore)
+    } else {
+      val receivers = evaluateReceiver(path)
+      val field = path.last
+      val newHeap = receivers.foldLeft(heap) { (heap, receiver) =>
+        val fieldMap = heap.getOrElse(receiver, Map.empty)
+        val newFieldMap = fieldMap + (field -> Set(WildcardNode: HeapNode))
+        heap + (receiver -> newFieldMap)
+      }
+      copy(heap = newHeap)
+    }
+  }
+
+  /** Materializes the path represented by the given expression.
+    *
+    * @param expression The expression to materialize.
+    * @return The alias graph with the given expression materialized.
+    */
+  def materialize(expression: Expression): T = expression match {
+    case VariableIdentifier(variable, _) => materialize(variable :: Nil)
+    case AccessPathIdentifier(path) => materialize(path.map(_.getName))
+    case _ => this
+  }
+
+  /** Materializes the given access path.
+    *
+    * @param path The access path to materialize.
+    * @return The alias graph with the given access path materialized.
+    */
+  def materialize(path: List[String]): T = {
+    // materialize variable
+    val variable = path.head
+    val fields = path.tail
+
+    val (finalGraph, _) = fields.foldLeft(materializeVariable(variable)) {
+      case ((graph, receivers), field) =>
+      receivers.foldLeft((graph, Set.empty[HeapNode])) {
+        case ((currGraph, currValues), receiver) =>
+          val (newGraph, newValues) = currGraph.materializeField(receiver, field)
+          (newGraph, currValues ++ newValues)
+      }
+    }
+
+    finalGraph
+  }
+
+  /** Materializes the variable with the given name.
+    *
+    * @param variable The name of the variable to materialize.
+    * @return The alias graph with the variable materialized.
+    */
+  def materializeVariable(variable: String): (T, Set[HeapNode]) = {
+    // get value of the variable
+    val values = store.getOrElse(variable, Set.empty)
+
+    // it should not happen that the summary node gets materialized
+    if (values contains WildcardNode) {
+      if (materialization) {
+        // only materialize wildcard node in the may alias graph
+        if (isMayAliasGraph) {
+          // map variable to all nodes
+          val allNodes = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
+          val newStore = store + (variable -> allNodes)
+          (copy(store = newStore), allNodes)
+        } else (this, Set.empty)
+      } else (this, values)
+    } else if (values contains UnknownNode) {
+      if (materialization) {
+        // create fresh heap node
+        val fresh = HeapNode(variable)
+        // remove unknown node and add fresh node
+        val newValues = values - UnknownNode + fresh
+        val newStore = store + (variable -> newValues)
+        // update heap with the fresh node
+        val newHeap = heap + (fresh -> heap(UnknownNode))
+        (copy(store = newStore, heap = newHeap), newValues)
+      } else {
+        // replace unknown node by summary node
+        val newValues = values - UnknownNode + SummaryNode
+        val newStore = store + (variable -> newValues)
+        (copy(store = newStore), newValues)
+      }
+    } else {
+      // there is nothing to materialize
+      (this, values)
+    }
+  }
+
+  /** Materializes the field with the given receiver and name.
+    *
+    * @param receiver The receiver of the field.
+    * @param field    The name of the field.
+    * @return The alias graph with the field materialized.
+    */
+  protected def materializeField(receiver: HeapNode, field: String): (T, Set[HeapNode]) = {
+    // get value of the field
+    val values = heap.getOrElse(receiver, Map.empty).getOrElse(field, Set.empty)
+
+    // it should not happen that the summary node gets materialized
+    if (values contains WildcardNode) {
+      if (materialization) {
+        // only materialize wildcard node in the may alias graph
+        if (isMayAliasGraph) {
+          // map field to all nodes
+          val allNodes: Set[HeapNode] = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
+          val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> allNodes)
+          val newHeap = heap + (receiver -> newFieldMap)
+          (copy(heap = newHeap), allNodes)
+        } else (this, Set.empty)
+      } else (this, values)
+    } else if (values contains UnknownNode) {
+      if (materialization) {
+        // create fresh heap node
+        val fresh = HeapNode(s"${receiver.name}.$field")
+        // remove unknown node and add fresh node and update heap with fresh node
+        val newValues = values - UnknownNode + fresh
+        val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
+        val newHeap = heap + (receiver -> newFieldMap) + (fresh -> heap(UnknownNode))
+        (copy(heap = newHeap), newValues)
+      } else {
+        // replace unknown node by summary node
+        val newValues = values - UnknownNode + SummaryNode
+        val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
+        val newHeap = heap + (receiver -> newFieldMap)
+        (copy(heap = newHeap), newValues)
+      }
+    } else {
+      // there is nothing to materialize
+      (this, values)
+    }
+  }
+
+  /** Performs an abstract garbage collection by pruning all unreachable heap
+    * nodes.
+    *
+    * @return The updated alias graph.
+    */
+  def pruneUnreachableNodes(): T = {
+    // retrieve nodes reachable from variables
+    var reachable = store.foldLeft(Set.empty[HeapNode]) {
+      (set, entry) => set ++ entry._2
+    }
+    // recursively retrieve nodes reachable via field accesses
+    var oldSize = 0
+    while (reachable.size > oldSize) {
+      oldSize = reachable.size
+      reachable = reachable ++ reachable.foldLeft(Set.empty[HeapNode]) {
+        (set, node) => set ++ heap.getOrElse(node, Map.empty).foldLeft(Set.empty[HeapNode])  {
+          (set, entry) => set ++ entry._2
+        }
+      }
+    }
+    // remove all unreachable heap nodes
+    var newHeap = heap
+    val unreachable = (heap.keySet diff reachable) - UnknownNode
+    for (key <- unreachable) {
+      newHeap = newHeap - key
+    }
+    // return graph with updated heap
+    copy(heap = newHeap)
+  }
+
+  /** Sets the current program point to the given program point.
+    *
+    * @param pp The new current program point.
+    */
+  def before(pp: ProgramPoint) = copy(currentPP = pp)
+
+  /** Evaluates the receiver of the given access path. That is, all but the last
+    * field of the access path are evaluated.
+    *
+    * @param path The path.
+    * @return The set of receivers.
+    */
+  def evaluateReceiver(path: List[String]): Set[HeapNode] = {
+    if (path.isEmpty) Set.empty
+    else {
+      // evaluate variable access
+      val variable = path.head
+      val variableValues = store.getOrElse(variable, Set.empty)
+
+      val fields = path.tail
+      if (fields.isEmpty) variableValues
+      else {
+        // evaluate intermediate field accesses
+        fields.init.foldLeft(variableValues) { case (values, field) =>
+          values.foldLeft(Set.empty[HeapNode]) { case (receivers, node) =>
+            val fieldMap = heap.getOrElse(node, Map.empty)
+            val fieldValues = fieldMap.getOrElse(field, Set.empty)
+            receivers ++ fieldValues
+          }
+        }
+      }
+    }
+  }
+
+  /** Evaluates the last field of the given access path on the given set of
+    * receivers.
+    *
+    * @param receivers The set of receivers.
+    * @param path      The path.
+    * @return The set of values.
+    */
+  def evaluateLast(receivers: Set[HeapNode], path: List[String]) : Set[HeapNode] = {
+    if (path.length <= 1) receivers
+    else {
+      // evaluate last field access
+      val lastField = path.last
+      receivers.foldLeft(Set.empty[HeapNode]) {
+        case (values, node) => values ++ heap.getOrElse(node, Map.empty).getOrElse(lastField, Set.empty)
+      }
+    }
+  }
+
+  /** Evaluates the given access path.
+    *
+    * @param path The access path to evaluate
+    * @return The set of heap nodes the access path points to.
+    */
+  def evaluatePath(path: List[String]): Set[HeapNode] = {
+    val receivers = evaluateReceiver(path)
+    evaluateLast(receivers, path)
+  }
+
+  /** Assumes that the receivers of the given expression are all non null.
+    *
+    * @param expression The expression.
+    * @return The alias graph with the receivers assumed to be non null.
+    */
+  def assumeNonNullReceiver(expression: Expression): Option[T] = expression match {
+    case AccessPathIdentifier(path) =>
+      if (path.length <= 1) Some(this)
+      else {
+        // evaluate variable access
+        val variable = path.head.getName
+        val variableValues = store.getOrElse(variable, Set.empty)
+
+        // make sure variable is not null
+        val (newVariableValues, newStore) = if (variableValues contains NullNode) {
+          // report possible null pointer dereference
+          Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
+          // remove null node
+          val newValues = variableValues - NullNode
+          (newValues, store + (variable -> newValues))
+        } else (variableValues, store)
+
+        // make sure all but the last field are not null
+        val fields = path.tail.map(_.getName)
+        val (receiverValues, newHeap) = fields.init.foldLeft((newVariableValues, heap)) { case ((oldReceivers, oldHeap), field) =>
+          // only assume receiver to be non null if it is unique
+          if (oldReceivers.size == 1) {
+            oldReceivers.foldLeft(Set.empty[HeapNode], oldHeap) { case ((currentReceivers, currentHeap), node) =>
+              val fieldMap = currentHeap.getOrElse(node, Map.empty)
+              val fieldValues = fieldMap.getOrElse(field, Set.empty)
+              if (node.representsSingleVariable && (fieldValues contains NullNode)) {
+                // report possible null pointer dereference
+                Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
+                // remove null node
+                val newFieldValues = fieldValues - NullNode
+                val newFieldMap = fieldMap + (field -> newFieldValues)
+                val newHeap = currentHeap + (node -> newFieldMap)
+                (currentReceivers ++ newFieldValues, newHeap)
+              } else (currentReceivers ++ fieldValues, currentHeap)
+            }
+          } else (oldReceivers, oldHeap)
+        }
+
+        if (receiverValues.isEmpty && isMayAliasGraph) None
+        else Some(copy(store = newStore, heap = newHeap))
+      }
+    case _ => Some(this)
+  }
+
+  /** Returns the default initial value for a variable or a field.
+    *
+    * For the may alias analysis, this is the set containing the null node and
+    * the summary node. For the must alias analysis this is the set containing
+    * the unknown node.
+    *
+    * @return The default initial value.
+    */
+  def initialValue(): Set[HeapNode] = this match {
+    case _: MayAliasGraph => Set(UnknownNode, NullNode)
+    case _: MustAliasGraph => Set(UnknownNode)
+  }
+
+  def defaultValue(): Set[HeapNode] = this match {
+    case _: MayAliasGraph => Set(WildcardNode)
+    case _: MustAliasGraph => Set(UnknownNode)
+  }
+
+  override def toString: String = {
+    // edges representing the store
+    val storeEdges = store.flatMap { case (variable, values) =>
+      values.map { value => "\t\"" + variable + "\" -> \"o:" + value + "\"" }
+    }.toList.sorted.mkString("\n")
+    // edges representing the heap
+    val heapEdges = heap.flatMap { case (node, map) =>
+      map.flatMap { case (field, values) =>
+        values.map { value => "\t\"o:" + node + "\" -> \"o:" + value + "\" [label= " + field + "]" }
+      }
+    }.toList.sorted.mkString("\n")
+
+    s"materialization: $materialization\ndigraph {\n$storeEdges\n$heapEdges\n}"
+  }
+
+  /** Copies the alias graph but updates the store and the heap if the
+    * corresponding arguments are defined.
+    *
+    * @param fields          The set of fields in the program.
+    * @param currentPP       The current program point
+    * @param materialization The flag indicating whether materialization is allowed.
+    * @param store           The new store.
+    * @param heap            The new heap.
+    * @return The updated copy of the alias graph.
+    */
+  def copy(fields: Set[String] = fields,
+           currentPP: ProgramPoint = currentPP,
+           materialization: Boolean = materialization,
+           store: Store = store,
+           heap: Heap = heap): T
 }
 
-/** Unknown heap node.
-  *
-  * @author Caterina Urban
-  */
-object UnknownHeapNode extends HeapNode(List.empty) {
-  override def getName: String = "?"
-  override def representsSingleVariable: Boolean = false
-  override def toString: String = "?"
+object AliasGraph
+{
+  /** A graph representing may alias information.
+    *
+    * @param store           The store.
+    * @param heap            The heap.
+    * @param fields          The set of fields in the program.
+    * @param currentPP       The current program point.
+    * @param materialization The flag indicating whether materialization is allowed.
+    */
+  case class MayAliasGraph(store: Store = Store(),
+                           heap: Heap = Heap(),
+                           fields: Set[String] = Set.empty,
+                           currentPP: ProgramPoint = DummyProgramPoint,
+                           materialization: Boolean = true)
+    extends AliasGraph[MayAliasGraph]
+  {
+    /** Returns true if the given access paths may / must alias (depending on
+      * whether this is a may or must alias graph).
+      *
+      * @param first  The first access path.
+      * @param second The second access path.
+      * @return True if the given access paths may / must alias.
+      */
+    override def pathsAlias(first: List[String], second: List[String]): Boolean = {
+      def firstEval = evaluatePath(first) - NullNode
+      def secondEval = evaluatePath(second) - NullNode
+      def intersection = firstEval & secondEval
+      intersection.nonEmpty || (firstEval contains WildcardNode) || (secondEval contains WildcardNode)
+    }
+
+    /** Returns the least upper bound of this and the other alias graph.
+      *
+      * @param other The other alias graph.
+      * @return The least upper bound of this and the other alias graph.
+      */
+    override def lub(other: MayAliasGraph): MayAliasGraph = {
+      // the function used to combine two field maps. the function can also
+      // be used to combine two stores since they have the same type
+      def combine(map1: FieldMap, map2: FieldMap): FieldMap = {
+        val fields = map1.keySet ++ map2.keySet
+        fields.foldLeft(FieldMap()) { (map, field) =>
+          (map1.get(field), map2.get(field)) match {
+            case (None, None) => map
+            case (Some(values), None) => map + (field -> values)
+            case (None, Some(values)) => map + (field -> values)
+            case (Some(values1), Some(values2)) =>
+              // we keep the unknown node only if there is no summary node
+              val union = values1 ++ values2
+              val values = if (union contains WildcardNode) union - UnknownNode else union
+              map + (field -> values)
+          }
+        }
+      }
+
+      // combine stores
+      val newStore = combine(store, other.store)
+
+      // combine heap node-wise
+      val nodes = heap.keySet ++ other.heap.keySet
+      val newHeap = nodes.foldLeft(Heap()) { (heap, node) =>
+        (this.heap.get(node), other.heap.get(node)) match {
+          case (None, None) => heap
+          case (Some(map), None) => heap + (node -> map)
+          case (None, Some(map)) => heap + (node -> map)
+          case (Some(map1), Some(map2)) => heap + (node -> combine(map1, map2))
+        }
+      }
+
+      // update alias graph
+      copy(
+        fields = fields ++ other.fields,
+        currentPP = DummyProgramPoint,
+        materialization = materialization && other.materialization,
+        store = newStore,
+        heap = newHeap)
+    }
+
+    /** Returns the greatest lower bound of this and the other alias graph.
+      *
+      * @param other The other alias graph.
+      * @return The greatest lower bound of this and the other alias graph.
+      */
+    override def glb(other: MayAliasGraph): MayAliasGraph = {
+      // the function used to combine two field maps. the function can also
+      // be used to combine two stores since they have the same type
+      def combine(map1: FieldMap, map2: FieldMap): FieldMap = {
+        val fields = map1.keySet ++ map2.keySet
+        fields.foldLeft(FieldMap()) { (map, field) =>
+          (map1.get(field), map2.get(field)) match {
+            case (None, _) => map
+            case (_, None )=> map
+            case (Some(values1), Some(values2)) => map + (field -> (values1 & values2))
+          }
+        }
+      }
+
+      // combine stores
+      val newStore = combine(store, other.store)
+
+      // combine heap node-wise
+      val nodes = heap.keySet ++ other.heap.keySet
+      val newHeap = nodes.foldLeft(Heap()) { (heap, node) =>
+        (this.heap.get(node), other.heap.get(node)) match {
+          case (None, _) => heap
+          case (_, None) => heap
+          case (Some(map1), Some(map2)) => heap + (node -> combine(map1, map2))
+        }
+      }
+
+      // update alias graph
+      copy(
+        fields = fields & other.fields,
+        currentPP = DummyProgramPoint,
+        materialization = materialization || other.materialization,
+        store = newStore,
+        heap = newHeap)
+    }
+
+    /** Returns true if this alias graph is less than or equal to the other alias
+      * graph.
+      *
+      * @param other The other alias graph.
+      * @return True if this alias graph is less than or equal to the other alias
+      *         graph.
+      */
+    override def lessEqual(other: MayAliasGraph): Boolean = {
+      // the function to compare two field maps. This function can also
+      // be used to compare two stores since they have the same type
+      def compare(map1: FieldMap, map2: FieldMap): Boolean = {
+        map1.forall { case (field, values1) =>
+          val values2 = map2.getOrElse(field, Set.empty)
+          val otherWildcard = values2 contains WildcardNode
+          val otherUnknown = otherWildcard || ((values2 contains UnknownNode) && !(values1 contains WildcardNode))
+          val isSubset = otherUnknown || (values1 subsetOf values2)
+          otherWildcard || otherUnknown || isSubset
+        }
+      }
+
+      // compare stores
+      val storeComparison = compare(store, other.store)
+
+      // compare heaps node-wise
+      val heapComparison = heap.forall { case (node, map1) =>
+        val map2 = other.heap.getOrElse(node, FieldMap())
+        compare(map1, map2)
+      }
+
+      storeComparison && heapComparison
+    }
+
+    /** Copies the alias graph but updates the store, the heap, and current
+      * program point if the corresponding arguments are defined.
+      *
+      * @param fields          The set of fields in the program.
+      * @param currentPP       The current program point.
+      * @param materialization The flag indicating whether materialization is allowed.
+      * @param store           The new store.
+      * @param heap            The new heap.
+      * @return The updated copy of the alias graph.
+      */
+    override def copy(fields: Set[String],
+                      currentPP: ProgramPoint,
+                      materialization: Boolean,
+                      store: Store,
+                      heap: Heap): MayAliasGraph =
+      MayAliasGraph(store, heap, fields, currentPP, materialization)
+  }
+
+  /** A graph representing must alias information.
+    *
+    * @param store           The store.
+    * @param heap            The heap.
+    * @param fields          The set of fields in the program
+    * @param currentPP       The current program point.
+    * @param materialization The flag indicating whether materialization is
+    *                        allowed.
+    */
+  case class MustAliasGraph(store: Store = Store(),
+                            heap: Heap = Heap(),
+                            fields: Set[String] = Set.empty,
+                            currentPP: ProgramPoint = DummyProgramPoint,
+                            materialization: Boolean = true)
+    extends AliasGraph[MustAliasGraph]
+  {
+    /** Returns true if the given access paths may / must alias (depending on
+      * whether this is a may or must alias graph).
+      *
+      * @param first  The first access path.
+      * @param second The second access path.
+      * @return True if the given access paths may / must alias.
+      */
+    override def pathsAlias(first: List[String], second: List[String]): Boolean = {
+      val leftEval = evaluatePath(first) -- Set(UnknownNode, WildcardNode)
+      val rightEval = evaluatePath(second) -- Set(UnknownNode, WildcardNode)
+      val intersection = leftEval & rightEval
+      intersection.nonEmpty
+    }
+
+    /** Returns the least upper bound of this and the other alias graph.
+      *
+      * @param other The other alias graph.
+      * @return The least upper bound of this and the other alias graph.
+      */
+    override def lub(other: MustAliasGraph): MustAliasGraph = {
+      // the function used to combine two field maps. the function can also
+      // be used to combine two stores since they have the same type
+      def combine(map1: FieldMap, map2: FieldMap): FieldMap = {
+        val fields = map1.keySet ++ map2.keySet
+        fields.foldLeft(FieldMap()) { (map, field) =>
+          (map1.get(field), map2.get(field)) match {
+            case (None, _) => map
+            case (_, None) => map
+            case (Some(values1), Some(values2)) =>
+              val intersection = values1 & values2
+              val values = if (intersection.isEmpty) Set(UnknownNode: HeapNode) else intersection
+              map + (field -> values)
+          }
+        }
+      }
+      // combine stores
+      val newStore = combine(store, other.store)
+
+      // combine heaps node-wise
+      val nodes = heap.keySet ++ other.heap.keySet
+      val newHeap = nodes.foldLeft(Heap()) { (heap, node) =>
+        (this.heap.get(node), other.heap.get(node)) match {
+          case (None, _) => heap
+          case (_, None) => heap
+          case (Some(map1), Some(map2)) => heap + (node -> combine(map1, map2))
+        }
+      }
+
+      // update alias graph
+      copy(
+        fields = fields ++ other.fields,
+        currentPP = DummyProgramPoint,
+        materialization = materialization && other.materialization,
+        store = newStore,
+        heap = newHeap)
+    }
+
+    /** Returns the greatest lower bound of this and the other alias graph.
+      *
+      * @param other The other alias graph.
+      * @return The greatest lower bound of this and the other alias graph.
+      */
+    override def glb(other: MustAliasGraph): MustAliasGraph = {
+      // the function used to combine two field maps. the function can also
+      // be used to combine two stores since they have the same type
+      def combine(map1: FieldMap, map2: FieldMap): FieldMap = {
+        val fields = map1.keySet ++ map2.keySet
+        fields.foldLeft(FieldMap()) { (map, field) =>
+          (map1.get(field), map2.get(field)) match {
+            case (None, None) => map
+            case (Some(values), None) => map + (field -> values)
+            case (None, Some(values)) => map + (field -> values)
+            case (Some(values1), Some(values2)) =>
+              // we keep the unknown node only if it is present in both maps
+              val union = values1 ++ values2
+              val intersection = values1 & values2
+              val values = (union - UnknownNode) ++ intersection
+              map + (field -> values)
+          }
+        }
+      }
+
+      // combine stores
+      val newStore = combine(store, other.store)
+
+      // combine heaps node-wise
+      val nodes = heap.keySet ++ other.heap.keySet
+      val newHeap = nodes.foldLeft(Heap()) { (heap, node) =>
+        (this.heap.get(node), other.heap.get(node)) match {
+          case (None, None) => heap
+          case (Some(map), None) => heap + (node -> map)
+          case (None, Some(map)) => heap + (node -> map)
+          case (Some(map1), Some(map2)) => heap + (node -> combine(map1, map2))
+        }
+      }
+
+      // update alias graph
+      copy(
+        fields = fields & other.fields,
+        currentPP = DummyProgramPoint,
+        materialization = materialization || other.materialization,
+        store = newStore,
+        heap = newHeap)
+    }
+
+    /** Returns true if this alias graph is less than or equal to the other alias
+      * graph.
+      *
+      * @param other The other alias graph.
+      * @return True if this alias graph is less than or equal to the other alias
+      *         graph.
+      */
+    override def lessEqual(other: MustAliasGraph): Boolean = {
+      // the function to compare two field maps. This function can also
+      // be used to compare two stores since they have the same type
+      def compare(map1: FieldMap, map2: FieldMap): Boolean = {
+        map2.forall { case (field, values2) =>
+          val values1 = map1.getOrElse(field, Set.empty)
+          val thisUnknown = values1 contains UnknownNode
+          val isSuperset = thisUnknown || (values2 subsetOf values1)
+          thisUnknown || isSuperset
+        }
+      }
+
+      // compare stores
+      val storeComparison = compare(store, other.store)
+
+      // compare heaps node-wise
+      val heapComparison = other.heap.forall { case (node, map2) =>
+        val map1 = heap.getOrElse(node, FieldMap())
+        compare(map1, map2)
+      }
+
+      storeComparison && heapComparison
+    }
+
+    /** Copies the alias graph but updates the store, the heap, and the current
+      * program point if the corresponding arguments are defined.
+      *
+      * @param fields          The set of fields in the program.
+      * @param currentPP       The new current program point.
+      * @param materialization The flag indicating whether materialization is
+      *                        allowed.
+      * @param store           The new store.
+      * @param heap            The new heap.
+      * @return The updated copy of the alias graph.
+      */
+    override def copy(fields: Set[String],
+                      currentPP: ProgramPoint,
+                      materialization: Boolean,
+                      store: Store,
+                      heap: Heap): MustAliasGraph =
+      MustAliasGraph(store, heap, fields, currentPP, materialization)
+  }
 }
 
 /**
-  * @author Jerome Dohrau, Caterina Urban
+  *
+  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
 trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   extends SimpleState[T]
     with StateWithRefiningAnalysisStubs[T]
-    with LazyLogging {
+    with LazyLogging
+{
   this: T =>
 
-  type AccessPath = List[Identifier]
-
-  // set of fields declared in the program
-  def fields: Set[(Type, String)]
-
-  // current program point
+  /** Returns the current program point.
+    *
+    * @return The current program point.
+    */
   def currentPP: ProgramPoint
 
-  // true = materialization allowed; false = materialization not allowed
-  def materialization: Boolean
-
-  // result of the previous statement
+  /** Returns the result of the previous statement.
+    *
+    * @return The result of the previous statement.
+    */
   def result: ExpressionSet
 
-  // map from Ref variables to heap objects
-  def mayStore: Map[VariableIdentifier,Set[HeapNode]]
-  def mustStore: Map[VariableIdentifier,Set[HeapNode]]
-
-  // map from heap objects to a map from Ref fields to heap objects
-  def mayHeap: Map[HeapNode,Map[String,Set[HeapNode]]]
-  def mustHeap: Map[HeapNode,Map[String,Set[HeapNode]]]
-
-  /** Assigns an expression to a field of an object.
+  /** Returns the graph representing the may alias information.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param obj   the object whose field is assigned
-    * @param field the assigned field
-    * @param right the assigned expression
-    * @return the abstract state after the assignment
+    * @return The graph representing the may alias information.
     */
-  override def assignField(obj: Expression, field: String, right: Expression): T = {
-    logger.trace("*** ----------------assignField(" + obj.toString + "; " + field.toString + "; " + right.toString + ")")
+  def may: MayAliasGraph
 
-    obj match {
-      case AccessPathIdentifier(path) =>
-        if (obj.typ.isObject) { // the assigned field is a Ref
-          right match {
-            case AccessPathIdentifier(right) => // e.g., `x.f := y.g`
-              val mayObjR = mayEvaluateReceiver(right) // set of (right) receivers
-              val mustObjR = mustEvaluateReceiver(right)
-              val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-                (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-              ) // set of heap nodes pointed to by the right path
-              val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-                (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-              )
-              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
-              // update the heap
-              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
-                if (node.representsSingleVariable) { // strong update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
-                } else { // weak update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field ->
-                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ mayR))))
-                }
-              })
-              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
-                map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
-              })
-              // return the current state with updated heap
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
+  /** Returns the graph representing the must alias information.
+    *
+    * @return The graph representing the must alias information.
+    */
+  def must: MustAliasGraph
 
-            case right: Constant => // e.g., `x.f := null`
-              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
-              // update the heap
-              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
-                if (node.representsSingleVariable) { // strong update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> Set[HeapNode](NullHeapNode))))
-                } else { // weak update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field ->
-                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ Set[HeapNode](NullHeapNode)))))
-                }
-              })
-              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
-                map + (node -> (map.getOrElse(node,Map.empty) + (field -> Set[HeapNode](NullHeapNode)))) // strong update
-              })
-              // return the current state with updated heap
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
+  /** Returns an alias analysis state instance.
+    *
+    * @return An alias analysis state instance.
+    */
+  override def factory(): T = top()
 
-            case right: VariableIdentifier => // e.g., `x.f := y`
-              val mayR = mayStore.getOrElse(right, Set.empty) // set heap nodes pointed to by the right identifier
-              val mustR = mustStore.getOrElse(right, Set.empty)
-              val mayRcvSet = mayEvaluateReceiver(path) - NullHeapNode // set of path receivers (excluding null)
-              val mustRcvSet = mustEvaluateReceiver(path) - NullHeapNode
-              // update the heap
-              val mayHeapMap = mayRcvSet.foldLeft(mayHeap)((map, node) => {
-                if (node.representsSingleVariable) { // strong update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field -> mayR)))
-                } else { // weak update
-                  map + (node -> (map.getOrElse(node,Map.empty) + (field ->
-                    (map.getOrElse(node,Map.empty).getOrElse(field,Set.empty) ++ mayR))))
-                }
-              })
-              val mustHeapMap = mustRcvSet.foldLeft(mustHeap)((map, node) => {
-                map + (node -> (map.getOrElse(node,Map.empty) + (field -> mustR))) // strong update
-              })
-              // return the current state with updated heap
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
+  /** Returns the alias analysis state representing the top element.
+    *
+    * @return The alias analysis state representing the top element.
+    */
+  override def top(): T = copy(isTop = true, isBottom = false)
 
-            case _ => throw new NotImplementedError("A field assignment implementation is missing.")
-          }
-        } else this  // the assigned field is not a Ref
-      case _ => throw new IllegalArgumentException("A field assignment must occur via an AccessPathIdentifier.")
+  /** Returns the alias analysis state representing the bottom element.
+    *
+    * @return The alias analysis state representing the bottom element.
+    */
+  override def bottom(): T = copy(isTop = false, isBottom = true)
+
+  /** TODO: Jerome, check */
+  override def ids = IdentifierSet.Top
+
+  /** Returns the least upper bound of this and the given other alias analysis
+    * state.
+    *
+    * @param other The other alias analysis state.
+    * @return The least upper bound of this and the given other alias analysis
+    *         state.
+    */
+  override def lub(other: T): T = {
+    logger.trace(s"lub($this, $other)")
+
+    if (this.isTop || other.isBottom) this
+    else if (this.isBottom || other.isTop) other
+    else {
+      // least upper bound of may and must alias graph
+      val lubMay = may lub other.may
+      val lubMust = must lub other.must
+      // update state
+      copy(
+        currentPP = DummyProgramPoint,
+        result = result lub other.result,
+        may = lubMay,
+        must = lubMust
+      )
     }
   }
 
-  /** Assigns an expression to a variable.
+  /** Returns the greatest lower bound of this and the given other alias
+    * analysis state.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param x     The assigned variable
-    * @param right The assigned expression
-    * @return The abstract state after the assignment
+    * @param other The other alias analysis state.
+    * @return The greatest lower bound of this and the given other alias
+    *         analysis state.
     */
-  override def assignVariable(x: Expression, right: Expression): T = {
-    logger.trace("*** ----------------assignVariable(" + x.toString + "; " + right.toString + ")")
+  override def glb(other: T): T = {
+    logger.trace(s"glb($this, $other)")
 
-    x match {
-      case x: VariableIdentifier =>
-        if (x.typ.isObject) { // the assigned variable is a Ref
-          right match {
-            case AccessPathIdentifier(right) => // e.g., `x := y.g`
-              val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-              val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-              val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-                (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-              ) // set of heap nodes that may be pointed to by the right path
-              val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-                (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-              ) // set of heap nodes that must be pointed to by the right path
-              // return the current state with updated store
-              copy(mayStore = mayStore + (x -> mayR), mustStore = mustStore + (x -> mustR)).pruneUnreachableHeap()
-
-            case right: HeapNode => // e.g., `x = new()`
-              // create fresh heap node to update the path associated with right
-              val fresh = HeapNode(List[Identifier](x),right.pp)
-              // add x -> right to store map
-              val mayStoreMap = mayStore + (x -> Set[HeapNode](fresh))
-              val mustStoreMap = mustStore + (x -> Set[HeapNode](fresh))
-              // update the heap to update the path associated with right
-              var mayHeapMap = mayHeap - right
-              mayHeapMap = mayHeapMap + (fresh -> (mayHeap.getOrElse(right, Map.empty)))
-              var mustHeapMap = mustHeap - right
-              mustHeapMap = mustHeapMap + (fresh -> (mustHeap.getOrElse(right, Map.empty)))
-              // return the current state with updated store and heap
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-
-            case right: VariableIdentifier => // e.g., `x := y`
-              // add x -> store[right] to store map
-              val mayStoreMap = mayStore + (x -> this.mayStore.getOrElse(right, Set[HeapNode](NullHeapNode)))
-              val mustStoreMap = mustStore + (x -> this.mustStore.getOrElse(right, Set[HeapNode]()))
-              // return the current state with updated store
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
-
-            case _ => throw new NotImplementedError("A variable assignment implementation is missing.")
-          }
-        } else this // the assigned variable is not a Ref
-      case _ => throw new IllegalArgumentException("A variable assignment must occur via a VariableIdentifier.")
+    if (this.isBottom || other.isTop) this
+    else if (this.isTop || other.isBottom) other
+    else {
+      // greatest lower bound of may and must alias graph
+      val glbMay = may glb other.may
+      val glbMust = must glb other.must
+      // update state
+      copy(
+        currentPP = DummyProgramPoint,
+        result = result glb other.result,
+        may = glbMay,
+        must = glbMust
+      )
     }
   }
 
-  /** Assumes that a boolean expression holds.
+  /** Returns the widening of this and the given other alias analysis state.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param cond The assumed expression
-    * @return The abstract state after assuming that the expression holds
+    * @param other The other alias analysis state.
+    * @return The widening of this and the given other alias analysis state.
     */
-  override def assume(cond: Expression): T = {
-    logger.trace("*** ----------------assume(" + cond.toString + ")")
+  override def widening(other: T): T = {
+    logger.trace(s"widening($this, $other)")
 
-    cond match {
-      case Constant("true", _, _) => this // True
-      case Constant("false", _, _) => this.bottom() // False
-      case cond: Identifier => this // Identifier
-      case cond: BinaryArithmeticExpression => this // BinaryArithmeticExpression
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) => // BinaryBooleanExpression
-        this.assume(left).assume(right)
-      case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) => // BinaryBooleanExpression
-        this.assume(left) lub this.assume(right)
-      case cond: NegatedBooleanExpression => // NegatedBooleanExpression
-        cond.exp match {
-          case Constant("true", _, _) => this.bottom() // True
-          case Constant("false", _, _) => this // False
-          case id: Identifier => this // Identifier
-          case BinaryArithmeticExpression(left, right, op, typ) => this // BinaryArithmeticExpression
-          case BinaryBooleanExpression(left, right, op, typ) => // BinaryBooleanExpression
-            val nleft = NegatedBooleanExpression(left)
-            val nright = NegatedBooleanExpression(right)
-            val nop = op match {
-              case BooleanOperator.&& => BooleanOperator.||
-              case BooleanOperator.|| => BooleanOperator.&&
-            }
-            this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
-          case NegatedBooleanExpression(exp) => this.assume(exp) // NegatedBooleanExpression
-          case ReferenceComparisonExpression(left, right, op, typ) => // ReferenceComparisonExpression
-            val nop = op match {
-              case ArithmeticOperator.== => ArithmeticOperator.!=
-              case ArithmeticOperator.!= => ArithmeticOperator.==
-            }
-            this.assume(ReferenceComparisonExpression(left, right, nop, typ))
-          case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
-            + cond.exp.getClass.getSimpleName + " is missing.")
-        }
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
-        (left, right) match {
-          case (Constant("null",_,_), right: VariableIdentifier) => // e.g., null == y
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            if (mayR.contains(NullHeapNode) && mustR.contains(NullHeapNode)) {
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (right -> Set[HeapNode](NullHeapNode))
-              val mustStoreMap = mustStore + (right -> Set[HeapNode](NullHeapNode))
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap)
-            } else this.bottom() // there is no common heap node
-          case (Constant("null",_,_), AccessPathIdentifier(right)) => // e.g., null == y.f
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            if (mayR.contains(NullHeapNode) && mustR.contains(NullHeapNode)) {
-              // return the current state with updated heap
-              val mayHeapMap = mayObjR.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
-              }
-              val mustHeapMap = mustObjR.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> Set(NullHeapNode))))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            } else this.bottom() // there is no common heap node
-          case (left: VariableIdentifier, Constant("null",_,_)) => // e.g., x == null
-            // set of heap nodes that may/must be pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            if (mayL.contains(NullHeapNode) && mustL.contains(NullHeapNode)) {
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (left -> Set[HeapNode](NullHeapNode))
-              val mustStoreMap = mustStore + (left -> Set[HeapNode](NullHeapNode))
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap)
-            } else this.bottom() // there is no common heap node
-          case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x == y
-            // set of heap nodes that may/must be pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
-            else { // there is at least one common heap node
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (left -> mayIntersection, right -> mayIntersection)
-              val mustStoreMap = mustStore + (left -> mustIntersection, right -> mustIntersection)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
-            }
-          case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x == y.f
-            // set heap nodes pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
-            else { // there is at least one common node
-              // return the current state with updated store and heap
-              val mayStoreMap = mayStore + (left -> mayIntersection)
-              val mustStoreMap = mustStore + (left -> mustIntersection)
-              val mayHeapMap = mayObjR.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayIntersection)))
-              }
-              val mustHeapMap = mustObjR.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustIntersection)))
-              }
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (AccessPathIdentifier(left), Constant("null",_,_)) => // e.g., x.f == null
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            if (mayL.contains(NullHeapNode) && mustL.contains(NullHeapNode)) {
-              // return the current state with updated heap
-              val mayHeapMap = mayObjL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
-              }
-              val mustHeapMap = mustObjL.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> Set(NullHeapNode))))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            } else this.bottom() // there is no common heap node
-          case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f == y
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
-            else { // there is at least one common node
-              // return the current state with updated store and heap
-              val mayHeapMap = mayObjL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayIntersection)))
-              }
-              val mustHeapMap = mustObjL.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustIntersection)))
-              }
-              val mayStoreMap = mayStore + (right -> mayIntersection)
-              val mustStoreMap = mustStore + (right -> mustIntersection)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f == y.f
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            if (mayIntersection.isEmpty || mustIntersection.isEmpty) this.bottom() // there is no common heap node
-            else { // there is at least one common node
-              // return the current state with updated heap
-              var mayHeapMap = mayObjL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayIntersection)))
-              }
-              mayHeapMap = mayObjR.foldLeft(mayHeapMap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayIntersection)))
-              }
-              var mustHeapMap = mustObjL.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustIntersection)))
-              }
-              mustHeapMap = mustObjR.foldLeft(mustHeapMap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustIntersection)))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-        }
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
-        (left, right) match {
-          case (Constant("null", _, _), right: VariableIdentifier) => // e.g., null != y
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            val mayIntersection = Set[HeapNode](NullHeapNode) intersect mayR
-            val mustIntersection = Set[HeapNode](NullHeapNode) intersect mustR
-            val mayDifference = mayR diff mayIntersection
-            val mustDifference = mustR diff mustIntersection
-            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (right -> mayDifference)
-              val mustStoreMap = mustStore + (right -> mustDifference)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
-            }
-          case (Constant("null", _, _), AccessPathIdentifier(right)) => // e.g., null != y.f
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            val mayIntersection = Set[HeapNode](NullHeapNode) intersect mayR
-            val mustIntersection = Set[HeapNode](NullHeapNode) intersect mustR
-            val mayDifference = mayR diff mayIntersection
-            val mustDifference = mustR diff mustIntersection
-            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated heap
-              val mayHeapMap = mayObjR.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifference)))
-              }
-              val mustHeapMap = mustObjR.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifference)))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (left: VariableIdentifier, Constant("null", _, _)) => // e.g., x != null
-            // set of heap nodes that may/must be pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            val mayIntersection = mayL intersect Set[HeapNode](NullHeapNode)
-            val mustIntersection = mustL intersect Set[HeapNode](NullHeapNode)
-            val mayDifference = mayL diff mayIntersection
-            val mustDifference = mustL diff mustIntersection
-            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (left -> mayDifference)
-              val mustStoreMap = mustStore + (left -> mustDifference)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
-            }
-          case (left: VariableIdentifier, right: VariableIdentifier) => // e.g, x != y
-            // set of heap nodes that may/must be pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            val mayDifferenceL = mayL diff mayIntersection
-            val mustDifferenceL = mustL diff mustIntersection
-            val mayDifferenceR = mayR diff mayIntersection
-            val mustDifferenceR = mustR diff mustIntersection
-            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
-              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated store
-              val mayStoreMap = mayStore + (left -> mayDifferenceL, right -> mayDifferenceR)
-              val mustStoreMap = mustStore + (left -> mustDifferenceL, right -> mustDifferenceR)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap).pruneUnreachableHeap()
-            }
-          case (left: VariableIdentifier, AccessPathIdentifier(right)) => // e.g., x != y.f
-            // set heap nodes pointed to by the left identifier
-            val mayL = mayStore.getOrElse(left, Set.empty)
-            val mustL = mustStore.getOrElse(left, Set.empty)
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(right.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            val mayDifferenceL = mayL diff mayIntersection
-            val mustDifferenceL = mustL diff mustIntersection
-            val mayDifferenceR = mayR diff mayIntersection
-            val mustDifferenceR = mustR diff mustIntersection
-            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
-              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated store and heap
-              val mayStoreMap = mayStore + (left -> mayDifferenceL)
-              val mustStoreMap = mustStore + (left -> mustDifferenceL)
-              val mayHeapMap = mayObjR.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifferenceR)))
-              }
-              val mustHeapMap = mustObjR.foldLeft(mustHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifferenceR)))
-              }
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (AccessPathIdentifier(left), Constant("null", _, _)) => // e.g., x.f == null
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            val mayIntersection = mayL intersect Set[HeapNode](NullHeapNode)
-            val mustIntersection = mustL intersect Set[HeapNode](NullHeapNode)
-            val mayDifference = mayL diff mayIntersection
-            val mustDifference = mustL diff mustIntersection
-            if ((mayDifference.isEmpty && mayIntersection.size == 1) || (mustDifference.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated heap
-              val mayHeapMap = mayObjL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifference)))
-              }
-              val mustHeapMap = mustObjL.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifference)))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (AccessPathIdentifier(left), right: VariableIdentifier) => // e.g., x.f != y
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            // set of heap nodes that may/must be pointed to by the right identifier
-            val mayR = mayStore.getOrElse(right, Set.empty)
-            val mustR = mustStore.getOrElse(right, Set.empty)
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            val mayDifferenceL = mayL diff mayIntersection
-            val mustDifferenceL = mustL diff mustIntersection
-            val mayDifferenceR = mayR diff mayIntersection
-            val mustDifferenceR = mustR diff mustIntersection
-            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
-              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated store and heap
-              val mayHeapMap = mayObjL.foldLeft(mayHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifferenceL)))
-              }
-              val mustHeapMap = mustObjL.foldLeft(mustHeap) {
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifferenceL)))
-              }
-              val mayStoreMap = mayStore + (right -> mayDifferenceR)
-              val mustStoreMap = mustStore + (right -> mustDifferenceR)
-              copy(mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-          case (AccessPathIdentifier(left), AccessPathIdentifier(right)) => // e.g., x.f != y.f
-            val mayObjL = mayEvaluateReceiver(left) // set of (may left) receivers
-            val mustObjL = mustEvaluateReceiver(left) // set of (must left) receivers
-            val mayObjR = mayEvaluateReceiver(right) // set of (may right) receivers
-            val mustObjR = mustEvaluateReceiver(right) // set of (must right) receivers
-            val mayL = mayObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the left path
-            val mustL = mustObjL.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the left path
-            val mayR = mayObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mayHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that may be pointed to by the right path
-            val mustR = mustObjR.foldLeft(Set.empty[HeapNode])(
-              (set, id) => set ++ mustHeap.getOrElse(id, Map.empty).getOrElse(left.last.getName, Set.empty)
-            ) // set of heap nodes that must be pointed to by the right path
-            val mayIntersection = mayL intersect mayR
-            val mustIntersection = mustL intersect mustR
-            val mayDifferenceL = mayL diff mayIntersection
-            val mustDifferenceL = mustL diff mustIntersection
-            val mayDifferenceR = mayR diff mayIntersection
-            val mustDifferenceR = mustR diff mustIntersection
-            if ((mayDifferenceL.isEmpty && mayDifferenceR.isEmpty && mayIntersection.size == 1) ||
-              (mustDifferenceL.isEmpty && mustDifferenceR.isEmpty && mustIntersection.size == 1))
-              this.bottom() // there is no different heap node
-            else { // there is at least one different heap node
-              // return the current state with updated heap
-              var mayHeapMap = mayObjL.foldLeft(mayHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mayDifferenceL)))
-              }
-              mayHeapMap = mayObjR.foldLeft(mayHeapMap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mayDifferenceR)))
-              }
-              var mustHeapMap = mustObjL.foldLeft(mustHeap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (left.last.getName -> mustDifferenceL)))
-              }
-              mustHeapMap = mustObjR.foldLeft(mustHeapMap){
-                case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (right.last.getName -> mustDifferenceR)))
-              }
-              copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-            }
-        }
-      case _ => throw new NotImplementedError("An assume implementation is missing.")
+    if (this.isTop || other.isBottom) this
+    else if (this.isBottom || other.isTop) other
+    else {
+      // widening (or rather lub) of may and must alias graph
+      val widenMay = may widening other.may
+      val widenMust = must widening other.must
+      // update state
+      copy(
+        currentPP = DummyProgramPoint,
+        result = result widening other.result,
+        may = widenMay,
+        must = widenMust
+      )
     }
   }
 
-  /** Signals that we are going to analyze the statement at program point `pp`.
+  /** Returns true if this alias analysis state is less than or equal to the
+    * given other alias analysis state.
     *
-    * This is particularly important to eventually partition a state following the specified directives.
-    *
-    * @param pp The point of the program that is going to be analyzed
-    * @return The abstract state eventually modified
+    * @param other The alias analysis state to compare against.
+    * @return True if this alias analysis state is less than or equal to the
+    *         given other alias analysis state.
     */
-  override def before(pp: ProgramPoint): T = {
-    logger.trace("\n*** ----------------before(" + pp.toString + "): " + this.repr)
-    copy(currentPP = pp) // return the current state with updated currentPP
+  override def lessEqual(other: T): Boolean = {
+    logger.trace(s"lessEqual($this, $other)")
+
+    val x = if (this.isBottom || other.isTop) true
+    else if (this.isTop || other.isBottom) false
+    else (may lessEqual other.may) && (must lessEqual other.must)
+
+    logger.trace(s"result: $x")
+    x
   }
 
-  /** Returns the bottom value of the lattice.
+  /** Adds the given variable to the alias analysis state.
     *
-    * @return The bottom value, that is, a value x that is less than or to any other value
+    * @param variable The variable to add.
+    * @param typ      The type of the variable.
+    * @param pp       The program point where the variable is created.
+    * @return The alias analysis state with the variable added.
     */
-  override def bottom(): T = copy(isBottom = true, isTop = false)
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"createVariable($variable, $typ, $pp)")
 
-  def copy(fields: Set[(Type, String)] = fields,
-           currentPP: ProgramPoint = currentPP,
-           materialization: Boolean = materialization,
-           result: ExpressionSet = result,
-           mayStore: Map[VariableIdentifier,Set[HeapNode]] = mayStore,
-           mustStore: Map[VariableIdentifier,Set[HeapNode]] = mustStore,
-           mayHeap: Map[HeapNode,Map[String, Set[HeapNode]]] = mayHeap,
-           mustHeap: Map[HeapNode,Map[String, Set[HeapNode]]] = mustHeap,
-           isBottom: Boolean = isBottom,
-           isTop: Boolean = isTop): T
+    if (typ.isObject) {
+      // add variable to may and must alias graph
+      val name = variable.name
+      val newMay = may.addVariable(name)
+      val newMust = must.addVariable(name)
+      // new result
+      val result = ExpressionSet(variable)
+      // update result and may and must alias graphs
+      copy(result = result, may = newMay, must = newMust)
+    } else this
+  }
+
+  /** Adds the given variable for an argument to the alias analysis state.
+    *
+    * @param variable The variable to add.
+    * @param typ      The type of the variable.
+    * @return The alias analysis state with the variable added.
+    */
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T =
+    createVariable(variable, typ, DummyProgramPoint)
 
   /** Creates an object
     *
-    * @param typ The dynamic type of the created object
-    * @param pp  The point of the program that creates the object
-    * @return The abstract state after the creation of the object
+    * @param typ The type of the object to create.
+    * @param pp  The program point where the program is created.
+    * @return The alias analysis state with the object created.
     */
   override def createObject(typ: Type, pp: ProgramPoint): T = {
-    logger.trace("*** ----------------createObject(" + typ.toString + "; " + pp.toString + ")")
+    logger.trace(s"createObject($typ, $pp)")
 
-    val fresh = HeapNode(List.empty[Identifier],currentPP) // create fresh heap node
-    // update the may heap map with the fresh node
-    val mayFieldMap = fields.foldLeft(Map.empty[String,Set[HeapNode]]) {
-      case (map, (_: RefType, field)) => map + (field -> Set(SummaryHeapNode, NullHeapNode))
-      case (map, _) => map
-    }
-    val mayHeapMap = mayHeap + (fresh -> mayFieldMap)
-    // update the must heap map with the fresh node
-    val mustFieldMap = fields.foldLeft(Map.empty[String,Set[HeapNode]]) {
-      case (map, (_: RefType, field)) => map + (field -> Set(UnknownHeapNode))
-      case (map, _) => map
-    }
-    val mustHeapMap = mustHeap + (fresh -> mustFieldMap)
-    // return the current state with updated result, store, heap
-    copy(result = ExpressionSet(fresh), mayHeap = mayHeapMap, mustHeap = mustHeapMap)
+    // add node to may and must alias graphs
+    val node = NewNode
+    val newMay = may.addNode(node.name)
+    val newMust = must.addNode(node.name)
+    // new result
+    val result = ExpressionSet(node)
+    // update result and may and must alias graphs
+    copy(result = result, may = newMay, must = newMust)
   }
 
-  /** Creates a variable given a `VariableIdentifier`.
+  /** Removes the given variable from the alias analysis state.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param x   The name of the variable
-    * @param typ The static type of the variable
-    * @param pp  The program point that creates the variable
-    * @return The abstract state after the creation of the variable
+    * @param variable The variable to remove.
+    * @return The alias analysis state with the variable removed
     */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
-    logger.trace("*** ----------------createVariable(" + x.toString + "; " + typ.toString + "; " + pp.toString + ")")
+  override def removeVariable(variable: VariableIdentifier): T = {
+    logger.trace(s"removeVariable($variable)")
 
-    if (typ.isObject) { // the variable to be created is a Ref
-      val mayStoreMap = mayStore + (x -> Set[HeapNode](NullHeapNode))
-      val mustStoreMap = mustStore + (x -> Set[HeapNode](NullHeapNode))
-      copy(result = ExpressionSet(x), mayStore = mayStoreMap, mustStore = mustStoreMap)
-    } else this // the variable to be created is not a Ref
+    // remove variable from may and must alias graph
+    val newMay = may.removeVariable(variable.name)
+    val newMust = must.removeVariable(variable.name)
+    // update may and must alias graphs
+    copy(may = newMay, must = newMust)
   }
 
-  /** Creates a variable for an argument given a `VariableIdentifier`.
+  /** Removes all variables satisfying the given predicate.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param x   The name of the argument
-    * @param typ The static type of the argument
-    * @return The abstract state after the creation of the argument
+    * @param filter The filter predicate.
+    * @return The alias analysis state with the variables removed.
     */
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
-    logger.trace("*** ----------------createVariableForArgument(" + x.toString + "; " + typ.toString + ")")
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = {
+    logger.trace(s"pruneVariables($filter)")
 
-    if (typ.isObject) { // the variable to be created is a Ref
-      // add key to store map
-      val mayStoreMap = mayStore + (x -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
-      val mustStoreMap = mustStore + (x -> Set[HeapNode](UnknownHeapNode))
-      // return the current state with updated result and store
-      copy(result = ExpressionSet(x), mayStore = mayStoreMap, mustStore = mustStoreMap)
-    } else this // the variable to be created is not a Ref
+    // remove variables satisfying the predicate from may and must alias graph
+    val nameFilter: String => Boolean = name => filter(VariableIdentifier(name)(DummyRefType))
+    val newMay = may.pruneVariables(nameFilter)
+    val newMust = must.pruneVariables(nameFilter)
+    // update may and must alias graphs
+    copy(may = newMay, must = newMust)
   }
-
-  /** Evaluates a numerical constant.
-    *
-    * @param value The string representing the numerical constant
-    * @param typ   The type of the numerical constant
-    * @param pp    The program point that contains the constant
-    * @return The abstract state after the evaluation of the constant, that is, the
-    *         state that contains an expression representing this constant
-    */
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    // return the current state with updated result
-    copy(result = ExpressionSet(new Constant(value, typ, pp)))
-  }
-
-  /** Exhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to exhale
-    * @return The abstract state after exhaling the permission
-    */
-  private def exhale(acc: Expression): T = {
-    logger.trace("*** exhale(" + acc.toString + ")")
-
-    acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
-        exhale(left).exhale(right)
-      case acc: PermissionExpression => {
-        acc.id match {
-          case AccessPathIdentifier(path) =>
-            val mayObj = mayEvaluateReceiver(path) // set of (path) receivers
-            val mustObj = mustEvaluateReceiver(path)
-            // havoc the heap pointed to by the path
-            var mayHeapMap = if (!mayHeap.contains(SummaryHeapNode)) {
-              var fieldMap = Map.empty[String,Set[HeapNode]]
-              for (f <- fields) { // for all fields declared within the program...
-                f._1 match {
-                  case _:RefType => fieldMap = fieldMap + (f._2 -> Set[HeapNode](SummaryHeapNode, NullHeapNode))
-                }
-              }
-              mayHeap + (SummaryHeapNode -> fieldMap) // add summary node to heap map
-            } else { mayHeap }
-            mayHeapMap = mayObj.foldLeft(mayHeapMap) {
-              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> mayHeapMap.keySet)))
-            }
-            val mustHeapMap = mustObj.foldLeft(mustHeap) {
-              case (map, id) => map + (id -> (map.getOrElse(id, Map.empty) + (path.last.getName -> Set.empty)))
-            }
-            copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap).pruneUnreachableHeap()
-          case _ => throw new IllegalArgumentException("A permission exhale must occur via an Access Path Identifier")
-        }
-      }
-      case bool if bool.typ.isBooleanType =>
-        // we do not assert boolean conditions since the analysis would fail
-        // in all cases where we are not able to prove that something holds.
-        this
-      case _ =>
-        throw new IllegalArgumentException("An exhale must occur via a boolean or a permission expression.")
-    }
-  }
-
-  /** Returns the current result. */
-  override def expr: ExpressionSet = this.result
-
-  /** Returns a new instance of the lattice.
-    *
-    * @return A new instance of the current object
-    */
-  override def factory(): T = ???
-
-  /** Accesses a field of an object.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param obj   the object on which the field access is performed
-    * @param field the name of the field
-    * @param typ   the type of the field
-    * @return The abstract state obtained after the field access, that is,
-    *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
-    */
-  override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
-    logger.trace("*** ----------------getFieldValue(" + obj.toString + "; " + field + "; " + typ.toString + ")")
-
-    val last = VariableIdentifier(field)(typ)
-    obj match {
-      case head: VariableIdentifier =>
-        val access = List(head, last) // full access path
-        val state = materialize(access) // materialization
-        // return the current state with updated result, store, heap
-        val res = AccessPathIdentifier(access)
-        copy(result = ExpressionSet(res), mayStore = state.mayStore, mayHeap = state.mayHeap,
-          mustStore = state.mustStore, mustHeap = state.mustHeap)
-      case AccessPathIdentifier(path) =>
-        val access = path :+ last // full access path
-        val state = materialize(access) // materialization
-        // return the current state with updated result, store, heap
-        val res = AccessPathIdentifier(access)
-        copy(result = ExpressionSet(res), mayStore = state.mayStore, mayHeap = state.mayHeap,
-          mustStore = state.mustStore, mustHeap = state.mustHeap)
-      case _ => throw new IllegalArgumentException("A field access must occur via an Identifier")
-    }
-  }
-
-  /** Gets the value of a variable.
-    *
-    * @param id The variable to access
-    * @return The abstract state obtained after accessing the variable, that is, the state that contains
-    *         as expression the symbolic representation of the value of the given variable
-    */
-  override def getVariableValue(id: Identifier): T = {
-    logger.trace("*** ----------------getVariableValue(" + id.toString + ")")
-
-    val x = id.asInstanceOf[VariableIdentifier]
-    val mayRcvSet = mayStore.getOrElse(x,Set.empty) // set of may (path) receivers
-    val mustRcvSet = mustStore.getOrElse(x,Set.empty) // set of must (path) receivers
-    var mayStoreMap = mayStore
-    var mustStoreMap = mustStore
-    var mayHeapMap = mayHeap
-    var mustHeapMap = mustHeap
-    if (mayRcvSet.contains(SummaryHeapNode) && materialization) { // materialization
-      val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
-      // add key to store map to replace the summary node with the fresh node
-      mayStoreMap = mayStoreMap + (x -> (mayRcvSet - SummaryHeapNode + fresh))
-      mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
-    }
-    if (mustRcvSet.contains(UnknownHeapNode) && materialization) { // materialization
-      val fresh = HeapNode(List[Identifier](id)) // create fresh heap node
-      // add key to store map to replace the unknown node with the fresh node
-      mustStoreMap = mustStoreMap + (x -> (mustRcvSet - UnknownHeapNode + fresh))
-      mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
-    }
-    // return the current state with updated result, store, heap
-    copy(result = ExpressionSet(id), mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap)
-  }
-
-  /** Computes the greatest lower bound of two elements.
-    *
-    * @param other The other value
-    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
-    *         and greater than or equal to any other lower bound of the two arguments
-    */
-  override def glb(other: T): T = {
-    logger.trace("*** glb(" + this.repr + ", " + other.repr + ")")
-
-    def mayZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map[K,Set[HeapNode]]()
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,_) => // nothing to be done
-          case (_,None) => // nothing to be done
-          case (Some(o1),Some(o2)) => keyMap = keyMap + (key -> (o1 & o2))
-        }
-      }; keyMap
-    }
-    def mustZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map.empty[K,Set[HeapNode]]
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,None) => // nothing to be done
-          case (None,Some(o2)) => keyMap = keyMap + (key -> o2)
-          case (Some(o1),None) => keyMap = keyMap + (key -> o1)
-          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
-            val o = (o1 - UnknownHeapNode) ++ (o2 - UnknownHeapNode) ++ (o1 & o2)
-            keyMap = keyMap + (key -> o)
-        }
-      }; keyMap
-    }
-    val fieldSet = this.fields & other.fields  // meet the fieldSets
-    val allowed = this.materialization && other.materialization // meet the materialization flags
-    val expr = this.result glb other.result // meet the exprSets
-    // merge the stores
-    val mayStoreMap = mayZipper[VariableIdentifier](this.mayStore,other.mayStore)
-    val mustStoreMap = mustZipper[VariableIdentifier](this.mustStore,other.mustStore)
-    // merge the heaps
-    var mayHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
-        case (None,None) =>
-        case (None,Some(m2)) => mayHeapMap = mayHeapMap + (key -> m2)
-        case (Some(m1),None) => mayHeapMap = mayHeapMap + (key -> m1)
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mayHeapMap = mayHeapMap + (key -> mayZipper[String](m1,m2))
-      }
-    }
-    var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mustHeap.keySet ++ other.mustHeap.keySet) { // for all keys present in either map...
-      (this.mustHeap.get(key),other.mustHeap.get(key)) match {
-        case (None,_) => // nothing to be done
-        case (_,None) => // nothing to be done
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mustHeapMap = mustHeapMap + (key -> mustZipper[String](m1,m2))
-      }
-    }
-    // return the current state with updated result, store, heap
-    copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = allowed, result = expr,
-      mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap,
-      isBottom = this.isBottom || other.isBottom, isTop = this.isTop && other.isTop)
-  }
-
 
   override def command(cmd: Command): T = cmd match {
-    case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-    case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+    case InhaleCommand(expression) => inhale(expression.getSingle.get)
+    case ExhaleCommand(expression) => exhale(expression.getSingle.get)
     case PreconditionCommand(condition) => command(InhaleCommand(condition))
     case PostconditionCommand(condition) => command(ExhaleCommand(condition))
     case InvariantCommand(condition) => command(ExhaleCommand(condition)).command(InhaleCommand(condition))
     case _ => super.command(cmd)
   }
 
-  /** Inhales permissions.
+  /** Inhales the given expression.
     *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to inhale
-    * @return The abstract state after inhaling the permission
+    * @param expression The expression to inhale.
+    * @return The alias analysis state with the given expression inhaled.
     */
-  private def inhale(acc: Expression): T = {
-    logger.trace("*** inahle(" + acc.toString + ")")
+  def inhale(expression: Expression): T ={
+    logger.trace(s"inhale($expression)")
 
-    acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
-        inhale(left).inhale(right)
-      case acc: PermissionExpression => this // nothing to be done
-      case _ => this.assume(acc) // assume
+    assume(expression)
+  }
+
+  /** Exhales the given expression.
+    *
+    * @param expression The expression to exhale.
+    * @return The alias analysis state with the given expression exhaled.
+    */
+  def exhale(expression: Expression): T = {
+    logger.trace(s"exhale($expression)")
+
+    expression match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => exhale(left).exhale(right)
+      case PermissionExpression(location, _, _) => location match {
+        case AccessPathIdentifier(accessPath) =>
+          // TODO: Only assume receivers to be non null if permission is > none
+          val path = accessPath.map(_.getName)
+          val newMay = may
+            .assumeNonNullReceiver(location)
+            .map(_.havoc(path))
+            .map(_.pruneUnreachableNodes())
+          val newMust = must
+            .assumeNonNullReceiver(location)
+            .map(_.havoc(path))
+            .map(_.pruneUnreachableNodes())
+          if (newMay.isEmpty || newMust.isEmpty) bottom()
+          else copy(may = newMay.get, must = newMust.get)
+        case _ => throw new IllegalArgumentException("An exhale of a permission must occur via an access path identifier.")
+      }
+      case _ if expression.typ.isBooleanType => this
+      case _ => throw new IllegalArgumentException("An exhale must occur via a boolean expression or a permission expression")
     }
   }
 
-  /** Returns true if and only if `this` is less than or equal to `other`.
+  /** Assumes the given expression.
     *
-    * @param other The value to compare
-    * @return true if and only if `this` is less than or equal to `other`
+    * @param expression The expression to assume.
+    * @return The alias analysis with the given expression assumed.
     */
-  override def lessEqual(other: T): Boolean = {
-    logger.trace("*** lessEqual(" + this.repr + ", " + other.repr + ")")
+  override def assume(expression: Expression): T = {
+    logger.trace(s"assume($expression)")
 
-    if (this.isBottom || other.isTop) return true
-    else if (other.isBottom || this.isTop) return false
+    // TODO: What if the state is top?
 
-    val mayStoreMap = this.mayStore.forall {
-      case (k: VariableIdentifier, s: Set[HeapNode]) => {
-        val oo = other.mayStore.getOrElse(k, Set.empty)
-        (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
-          ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
+    expression match {
+      case Constant("true", _, _) => this
+      case Constant("false", _, _) => bottom()
+      case _: Identifier => this
+      case _: BinaryArithmeticExpression => this
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => assume(left).assume(right)
+      case BinaryBooleanExpression(left, right, BooleanOperator.||, _) => assume(left) lub assume(right)
+      case negation: NegatedBooleanExpression => negation.exp match {
+        case Constant("true", _, _) => bottom()
+        case Constant("false", _, _) => this
+        case _: Identifier => this
+        case _: BinaryArithmeticExpression => this
+        case BinaryBooleanExpression(left, right, operator, typ) =>
+          // negate expression by applying de morgan's law
+          val negatedLeft = NegatedBooleanExpression(left)
+          val negatedRight = NegatedBooleanExpression(right)
+          val negatedOperator = BooleanOperator.negate(operator)
+          val negated = BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator, typ)
+          assume(negated)
+        case NegatedBooleanExpression(doublyNegated) => assume(doublyNegated)
+        case ReferenceComparisonExpression(left, right, operator, typ) =>
+          // negate expression by negating operator
+          val negatedOperator = ArithmeticOperator.negate(operator)
+          val negated = ReferenceComparisonExpression(left, right, negatedOperator, typ)
+          assume(negated)
+        case _ => throw new NotImplementedError("An assume implementation is missing.")
       }
-    } // compare the (may) stores
-    val mustStoreMap = this.mustStore.forall {
-      case (k: VariableIdentifier, s: Set[HeapNode]) => {
-        val oo = other.mustStore.getOrElse(k, Set.empty)
-        (!oo.contains(UnknownHeapNode) || s.contains(UnknownHeapNode)) &&
-          ((oo - UnknownHeapNode) subsetOf (s - UnknownHeapNode))
-      }
-    } // compare the (must) stores
-    val mayHeapMap = this.mayHeap.forall {
-      case (o: HeapNode, m: Map[String, Set[HeapNode]]) => m.forall {
-        case (f: String, s: Set[HeapNode]) => {
-          val oo = other.mayHeap.getOrElse(o, Map.empty).getOrElse(f, Set.empty)
-          (!oo.contains(SummaryHeapNode) || s.contains(SummaryHeapNode)) &&
-            ((s - SummaryHeapNode) subsetOf (oo - SummaryHeapNode))
+      case comparison: ReferenceComparisonExpression =>
+        // assume comparison in may and must alias graph
+        val left = comparison.left
+        val right = comparison.right
+        val operator = comparison.op
+        val assumedMay = may
+          .materialize(left)
+          .materialize(right)
+          .assumeNonNullReceiver(left)
+          .flatMap(_.assumeNonNullReceiver(right))
+          .flatMap(_.assumeComparison(left, right, operator))
+        val assumedMust = must
+          .materialize(left)
+          .materialize(right)
+          .assumeNonNullReceiver(left)
+          .flatMap(_.assumeNonNullReceiver(right))
+          .flatMap(_.assumeComparison(left, right, operator))
+        // update state
+        if (assumedMay.isEmpty || assumedMust.isEmpty) bottom()
+        else copy(may = assumedMay.get, must = assumedMust.get).pruneUnreachableHeap()
+      case PermissionExpression(location, _, _) =>
+        // TODO: If the amount of the permission is not guaranteed to be positive, do nothing
+        // assume that receiver of the location is non null
+        val assumedMay = may.assumeNonNullReceiver(location)
+        val assumedMust = must.assumeNonNullReceiver(location)
+        // update state
+        if (assumedMay.isEmpty || assumedMust.isEmpty) bottom()
+        else copy(may = assumedMay.get, must = assumedMust.get).pruneUnreachableHeap()
+      case _ => throw new NotImplementedError("An assume implementation is missing.")
+    }
+  }
+
+  /** Evaluates the given constant.
+    *
+    * @param value The value of the constant.
+    * @param typ   The type of the constant.
+    * @param pp    The program point where the constant is created.
+    * @return The alias analysis state with the result set to the evaluated
+    *         constant.
+    */
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"evalConstant($value, $typ, $pp)")
+
+    // update result
+    val result = ExpressionSet(Constant(value, typ, pp))
+    copy(result = result)
+  }
+
+  /** Sets the current expression to the expression representing the given
+    * variable.
+    *
+    * @param identifier The variable.
+    * @return The updated alias analysis state.
+    */
+  override def getVariableValue(identifier: Identifier): T = {
+    logger.trace(s"getVariableValue($identifier)")
+
+    // access path
+    val accessPath = identifier match {
+      case variable: VariableIdentifier => variable :: Nil
+      case _ => throw new IllegalArgumentException("A variable access must occur via a variable identifier.")
+    }
+
+    // materialize path
+    val path = accessPath.map(_.getName)
+    val updatedMay = may.materialize(path)
+    val updatedMust = must.materialize(path)
+
+    // new current expression
+    val result = ExpressionSet(identifier)
+    // update state
+    copy(result = result, may = updatedMay, must = updatedMust)
+  }
+
+  /** Sets the current expression to the expression representing the value of
+    * given field.
+    *
+    * @param receiver The receiver of the field.
+    * @param field    The name of the field.
+    * @param typ      The type of the field.
+    * @return The updated alias analysis state.
+    */
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): T = {
+    logger.trace(s"getFieldValue($receiver, $field, $typ)")
+
+    // full access path
+    val accessPath = receiver match {
+      case variable: VariableIdentifier => variable :: VariableIdentifier(field)(typ) :: Nil
+      case AccessPathIdentifier(receiverPath) => receiverPath :+ VariableIdentifier(field)(typ)
+      case _ => throw new IllegalArgumentException("A field access must occur via an identifier.")
+    }
+    // materialize path
+    val path = accessPath.map(_.getName)
+    val updatedMay = may.materialize(path)
+    val updatedMust = must.materialize(path)
+
+    // new current expression
+    val result = ExpressionSet(AccessPathIdentifier(accessPath))
+    // update state
+    copy(result = result, may = updatedMay, must = updatedMust)
+  }
+
+  /** Assigns the given expression to the given variable.
+    *
+    * @param target The assigned variable.
+    * @param value  The assigned expression.
+    * @return The alias analysis state after the variable assignment.
+    */
+  override def assignVariable(target: Expression, value: Expression): T = {
+    logger.trace(s"assignVariable($target, $value)")
+
+    target match {
+      case _: VariableIdentifier =>
+        // assume value contains no null receivers
+        val accessedMay = may.assumeNonNullReceiver(value)
+        val accessedMust = must.assumeNonNullReceiver(value)
+        if (accessedMay.isEmpty || accessedMust.isEmpty) bottom()
+        else {
+          // perform assignment in may and must alias graph
+          val assignedMay = accessedMay.get.assign(target, value)
+          val assignedMust = accessedMust.get.assign(target, value)
+          // update state
+          copy(may = assignedMay, must = assignedMust).pruneUnreachableHeap()
         }
-      }
-    } // compare the (may) heaps
-    val mustHeapMap = this.mustHeap.forall {
-      case (o: HeapNode, m: Map[String, Set[HeapNode]]) => m.forall {
-        case (f: String, s: Set[HeapNode]) => {
-          val oo = other.mustHeap.getOrElse(o, Map.empty).getOrElse(f, Set.empty)
-          (!oo.contains(UnknownHeapNode) || s.contains(UnknownHeapNode)) &&
-            ((oo - UnknownHeapNode) subsetOf (s - UnknownHeapNode))
+      case _ => throw new IllegalArgumentException("A variable assignment must occur via a variable identifier.")
+    }
+  }
+
+  /** Assigns the given expression to the given field of the given receiver.
+    *
+    * @param target The target of the assignment.
+    * @param field  The assigned field.
+    * @param value  The assigned value.
+    * @return The alias analysis state after the field assignment.
+    */
+  override def assignField(target: Expression, field: String, value: Expression): T = {
+    logger.trace(s"assignField($target, $field, $value)")
+
+    target match {
+      case _: AccessPathIdentifier =>
+        // assume target and value contain no null receivers
+        val nonNullMay = may.assumeNonNullReceiver(target).flatMap(_.assumeNonNullReceiver(value))
+        val nonNullMust = must.assumeNonNullReceiver(target).flatMap(_.assumeNonNullReceiver(value))
+        if (nonNullMay.isEmpty || nonNullMust.isEmpty) bottom()
+        else {
+          // perform assignment in may and must alias graph
+          val assignedMay = nonNullMay.get.assign(target, value)
+          val assignedMust = nonNullMust.get.assign(target, value)
+          // update state
+          copy(may = assignedMay, must = assignedMust).pruneUnreachableHeap()
         }
-      }
-    } // compare the (must) heaps
-    mayStoreMap && mayHeapMap && mustStoreMap && mustHeapMap
+      case _ => throw new IllegalArgumentException("A field assignment must occur via an access path identifier.")
+    }
   }
 
-  /** Computes the least upper bound of two elements.
+  /** Forgets the value of the given variable.
     *
-    * @param other The other value
-    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
-    *         and less than or equal to any other upper bound of the two arguments
+    * @param variable The variable to forget.
+    * @return The alias analysis state after the variable was forgotten.
     */
-  override def lub(other: T): T = {
-    logger.trace("*** lub(" + this.repr + ", " + other.repr + ")")
+  override def setVariableToTop(variable: Expression): T = {
+    logger.trace(s"setVariableToTpo($variable)")
 
-    if (this.isBottom) return other
-    else if (other.isBottom) return this
-
-    def mayZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map.empty[K,Set[HeapNode]]
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,None) =>
-          case (None,Some(o2)) => keyMap = keyMap + (key -> o2)
-          case (Some(o1),None) => keyMap = keyMap + (key -> o1)
-          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
-            val o = (o1 - SummaryHeapNode) ++ (o2 - SummaryHeapNode) ++ (o1 & o2)
-            keyMap = keyMap + (key -> o)
-        }
-      }; keyMap
+    variable match {
+      case VariableIdentifier(variable, _) =>
+        val path = variable :: Nil
+        val newMay = may.havoc(path)
+        val newMust = must.havoc(path)
+        copy(may = newMay, must = newMust)
+      case _ => throw new IllegalArgumentException("Argument must be a variable identifier.")
     }
-    def mustZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map.empty[K,Set[HeapNode]]
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,_) => // nothing to be done
-          case (_,None) => // nothing to be done
-          case (Some(o1),Some(o2)) =>
-            if (o1.isEmpty || o2.isEmpty) // if either map is empty...
-              keyMap = keyMap + (key -> Set.empty) //...keep it empty
-            else { // if both maps are not empty...
-              (o1.head, o2.head) match { // take into account materialization
-                case (UnknownHeapNode, _) => keyMap = keyMap + (key -> o2)
-                case (_, UnknownHeapNode) => keyMap = keyMap + (key -> o1)
-                case _ => keyMap = keyMap + (key -> (o1 & o2))
-              }
-            }
-        }
-      }; keyMap
-    }
-    val fieldSet = this.fields ++ other.fields  // join the fieldSets
-    val allowed = this.materialization || other.materialization // join the materialization flags
-    val expr = this.result lub other.result // join the exprSets
-    // merge the stores
-    val mayStoreMap = mayZipper[VariableIdentifier](this.mayStore,other.mayStore)
-    val mustStoreMap = mustZipper[VariableIdentifier](this.mustStore,other.mustStore)
-    // merge the heaps
-    var mayHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
-        case (None,None) =>
-        case (None,Some(m2)) => mayHeapMap = mayHeapMap + (key -> m2)
-        case (Some(m1),None) => mayHeapMap = mayHeapMap + (key -> m1)
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mayHeapMap = mayHeapMap + (key -> mayZipper[String](m1,m2))
-      }
-    }
-    var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mustHeap.keySet ++ other.mustHeap.keySet) { // for all keys present in either map...
-      (this.mustHeap.get(key),other.mustHeap.get(key)) match {
-        case (None,_) => // nothing to be done
-        case (_,None) => // nothing to be done
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mustHeapMap = mustHeapMap + (key -> mustZipper[String](m1,m2))
-      }
-    }
-    // return the current state with updated result, store, heap
-    copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = allowed, result = expr,
-      mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap,
-      isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
   }
-
-  def materialize(path: AccessPath): T =
-  {
-    logger.trace("*** ----------------materialize(" + path.toString + ")")
-
-    var mayStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mayStore // new store map (initially equal to store)
-    var mustStoreMap: Map[VariableIdentifier, Set[HeapNode]] = mustStore
-    var mayHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mayHeap // new heap map (initially equal to heap)
-    var mustHeapMap: Map[HeapNode, Map[String, Set[HeapNode]]] = mustHeap
-    // path head evaluation
-    val head = path.head.asInstanceOf[VariableIdentifier]
-    var mayRcvSet: Set[HeapNode] = mayStoreMap.getOrElse(head, Set.empty)  // initial set of (path) receivers
-    var mustRcvSet: Set[HeapNode] = mustStoreMap.getOrElse(head, Set.empty)
-    if (mayRcvSet.contains(SummaryHeapNode) && materialization) { // materialization
-    val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
-      mayRcvSet = mayRcvSet - SummaryHeapNode + fresh // update receiver set
-      mayStoreMap = mayStoreMap + (head -> mayRcvSet) // add key to store map to replace the summary node with the fresh node
-      mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
-    }
-    if (mustRcvSet.contains(UnknownHeapNode) && materialization) { // materialization
-      val fresh = HeapNode(List[Identifier](head)) // create fresh heap node
-      mustRcvSet = mustRcvSet - UnknownHeapNode + fresh // update receiver set
-      mustStoreMap = mustStoreMap + (head -> mustRcvSet) // add key to store map to replace the summary node with the fresh node
-      mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
-    }
-    // path tail evaluation
-    val mayEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mayRcvSet)(
-      (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
-        if (rcv.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
-        rcv.foldLeft(Set.empty[HeapNode])(
-          (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
-          var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
-            if (curr.contains(SummaryHeapNode) && materialization) { // materialization
-            val fresh = HeapNode(node.id :+ id) // create fresh heap node
-              curr = curr - SummaryHeapNode + fresh // update the current receiver set
-              // add key to heap map to replace the summary node with the fresh node
-              mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (id.getName -> curr)))
-              mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
-            }
-            set ++ curr
-        })
-    })
-    val mustEval: Set[HeapNode] = path.drop(1).dropRight(1).foldLeft(mustRcvSet)(
-      (rcv: Set[HeapNode],id: Identifier) => {  // for all following path segments...
-        if (rcv.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
-        rcv.foldLeft(Set.empty[HeapNode])(
-          (set: Set[HeapNode],node: HeapNode) => {  // for all current receivers...
-          var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(id.getName,Set.empty)
-            if (curr.contains(UnknownHeapNode) && materialization) { // materialization
-              val fresh = HeapNode(node.id :+ id) // create fresh heap node
-              curr = curr - UnknownHeapNode + fresh // update the current receiver set
-              // add key to heap map to replace the summary node with the fresh node
-              mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (id.getName -> curr)))
-              mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
-            }
-            set ++ curr
-        })
-    })
-    if (mayEval.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
-    if (mustEval.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
-    // path end evaluation
-    val last = path.last.asInstanceOf[VariableIdentifier]
-    if (last.typ.isObject) { // the accessed field is a Ref
-    val mayLast = mayEval.foldLeft(Set.empty[HeapNode])(
-        (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
-        var curr: Set[HeapNode] = mayHeapMap.getOrElse(node,Map.empty).getOrElse(last.getName,Set.empty)
-          if (curr.contains(SummaryHeapNode) && materialization) { // materialization
-          val fresh = HeapNode(node.id :+ last) // create fresh heap node
-            curr = curr - SummaryHeapNode + fresh // update the current receiver set
-            // add key to heap map to replace the summary node with the fresh node
-            mayHeapMap = mayHeapMap + (node -> (mayHeapMap.getOrElse(node,Map.empty) + (last.getName -> curr)))
-            mayHeapMap = mayHeapMap + (fresh -> mayHeapMap(SummaryHeapNode)) // update heap map with the fresh node
-          }
-          set ++ curr
-        }
-      )
-      val mustLast = mustEval.foldLeft(Set.empty[HeapNode])(
-        (set: Set[HeapNode],node: HeapNode) => {  // for all remaining receivers...
-        var curr: Set[HeapNode] = mustHeapMap.getOrElse(node,Map.empty).getOrElse(last.getName,Set.empty)
-          if (curr.contains(UnknownHeapNode) && materialization) { // materialization
-            val fresh = HeapNode(node.id :+ last) // create fresh heap node
-            curr = curr - UnknownHeapNode + fresh // update the current receiver set
-            // add key to heap map to replace the summary node with the fresh node
-            mustHeapMap = mustHeapMap + (node -> (mustHeapMap.getOrElse(node,Map.empty) + (last.getName -> curr)))
-            mustHeapMap = mustHeapMap + (fresh -> mustHeapMap(UnknownHeapNode)) // update heap map with the fresh node
-          }
-          set ++ curr
-        }
-      )
-      if (mayLast.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
-      if (mustLast.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
-    }
-    copy(mayStore = mayStoreMap, mayHeap = mayHeapMap, mustStore = mustStoreMap, mustHeap = mustHeapMap)
-  }
-
-  /**
-    * Evaluates an access path with respect to the may alias analysis.
-    *
-    * @param path the access path to evaluate
-    */
-  def mayEvaluatePath(path: AccessPath): Set[HeapNode] = {
-    val first = mayStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
-    val eval = path.drop(1).foldLeft(first)( // path tail evaluation
-        (set,next) => { // next path segment
-          if (set.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
-          set.foldLeft(Set.empty[HeapNode])(
-            (s,obj) => s ++ mayHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
-          )}
-      ) // return the objects referenced by the path (except the last field)
-    if (eval.contains(NullHeapNode)) Reporter.reportGenericWarning("Possible null pointer dereference", currentPP); eval
-  }
-
-  /**
-    * Evaluates an access path with respect to the may alias analysis up to but
-    * not including the last field.
-    *
-    * @param path the access path to evaluate
-    */
-  def mayEvaluateReceiver(path: AccessPath) : Set[HeapNode] =
-    mayEvaluatePath(path.dropRight(1))
-
-  /**
-    * Evaluates an access path with respect to the must alias analysis.
-    *
-    * @param path the access path to evaluate
-    */
-  def mustEvaluatePath(path: AccessPath): Set[HeapNode] = {
-    val first = mustStore.getOrElse(path.head.asInstanceOf[VariableIdentifier],Set.empty) // path head evaluation
-    val eval = path.drop(1).foldLeft(first)( // path tail evaluation
-        (set,next) => { // next path segment
-          if (set.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP)
-          set.foldLeft(Set.empty[HeapNode])(
-            (s,obj) => s ++ mustHeap.getOrElse(obj,Map.empty).getOrElse(next.getName,Set.empty)
-          )}
-      ) // return the objects referenced by the path (except the last field)
-    if (eval.contains(NullHeapNode)) Reporter.reportAssertionViolation("Null pointer dereference", currentPP); eval
-  }
-
-  /**
-    * Evaluates an access path with respect to the must alias analysis up to but
-    * not including the last field
-    *
-    * @param path the access path to evaluate
-    */
-  def mustEvaluateReceiver(path: AccessPath) : Set[HeapNode] =
-    mustEvaluatePath(path.dropRight(1))
-
-  /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): T = {
-    // retrieve nodes reachable from variables
-    var mayReach = mayStore.foldLeft(Set[HeapNode]())((r, s) => r ++ s._2)
-    var mustReach = mustStore.foldLeft(Set[HeapNode]())((r, s) => r ++ s._2)
-    // recursively retrieve nodes reachable via field accesses (may version)
-    var oldMaySize = 0
-    while (mayReach.size > oldMaySize) {
-      oldMaySize = mayReach.size
-      mayReach = mayReach ++ mayReach.foldLeft(Set.empty[HeapNode]) {
-        case (set, keyNode) =>
-          set ++ mayHeap.getOrElse(keyNode, Map.empty).foldLeft(Set.empty[HeapNode]) {
-            case (set, (_, valueNode)) => set ++ valueNode
-          }
-      }
-    }
-    // recursively retrieve nodes reachable via field accesses (must version)
-    var oldMustSize = 0
-    while (mustReach.size > oldMustSize) {
-      oldMustSize = mustReach.size
-      mustReach = mustReach ++ mustReach.foldLeft(Set.empty[HeapNode]) {
-        case (set, keyNode) =>
-          set ++ mustHeap.getOrElse(keyNode, Map.empty).foldLeft(Set.empty[HeapNode]) {
-            case (set, (_, valueNode)) => set ++ valueNode
-          }
-      }
-    }
-    // remove all unreachable heap nodes
-    var mayHeapMap = mayHeap; for (key <- mayHeap.keySet diff mayReach) { mayHeapMap = mayHeapMap - key }
-    var mustHeapMap = mustHeap; for (key <- mustHeap.keySet diff mustReach) { mustHeapMap = mustHeapMap - key }
-    // return the current state with updated heap
-    copy(mayHeap = mayHeapMap, mustHeap = mustHeapMap)
-  }
-
-  /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
-
-  /**
-    * Returns whether the specified access paths may alias.
-    *
-    * @param first  the first access path
-    * @param second the second access path
-    */
-  def pathsMayAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val (firstPrefix, secondPrefix) = removeCommonFields(first, second)
-    val evalFirst = mayEvaluatePath(firstPrefix)
-    val evalSecond = mayEvaluatePath(secondPrefix)
-    val intersection = evalFirst intersect evalSecond
-    (intersection - NullHeapNode).nonEmpty
-  }
-
-  /**
-    * Returns whether the specified access paths must alias.
-    *
-    * @param first  the first access path
-    * @param second the second access path
-    */
-  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean = {
-    val (firstPrefix, secondPrefix) = removeCommonFields(first, second);
-    val evalFirst = mustEvaluatePath(firstPrefix) -- Set(NullHeapNode, UnknownHeapNode)
-    val evalSecond = mustEvaluatePath(secondPrefix) -- Set(NullHeapNode, UnknownHeapNode)
-    evalFirst.size == 1 && evalSecond.size == 1 && evalFirst == evalSecond
-  }
-
-  /**
-    * Returns whether the receivers of the given access paths may alias.
-    *
-    * @param first the first access path
-    * @param second the second access path
-    */
-  def receiversMayAlias(first: AccessPath, second: AccessPath): Boolean =
-    pathsMayAlias(first.dropRight(1), second.dropRight(1))
-
-  /**
-    * Returns whether the receivers of the specified access paths must alias.
-    *
-    * @param first  the first access path
-    * @param second the second access path
-    */
-  def receiversMustAlias(first: AccessPath, second: AccessPath): Boolean =
-    pathsMustAlias(first.dropRight(1), second.dropRight(1))
-
-  /** Removes all common fields at the end of the given access paths.
-    *
-    * @param first The first access path.
-    * @param second The second access path.
-    * @return The given access paths with the common fields removed.
-    */
-  private def removeCommonFields(first: AccessPath, second: AccessPath): (AccessPath, AccessPath) = {
-    var a = first.tail.reverse
-    var b = second.tail.reverse
-    while (a.nonEmpty && b.nonEmpty && a.head == b.head) {
-      a = a.tail
-      b = b.tail
-    }
-    (first.head :: a.reverse, second.head :: b.reverse)
-  }
-
-  /** Removes the current expression.
-    *
-    * @return The abstract state after removing the current expression
-    */
-  override def removeExpression(): T = copy(result = ExpressionSet())
-
-  /** Removes a variable.
-    *
-    * Implementations can assume this state is non-bottom
-    *
-    * @param varExpr The variable to be removed
-    * @return The abstract state obtained after removing the variable
-    */
-  override def removeVariable(varExpr: VariableIdentifier): T = ???
-
-  /** The default state string representation.
-    *
-    * @return the default string representation of the current state
-    */
-  def repr: String = s"AliasAnalysisState( $result, $mayStore, $mustStore, $mayHeap, $mustHeap )"
 
   /** Assigns an expression to an argument.
     *
-    * @param x     The assigned argument
-    * @param right The expression to be assigned
+    * @param argument     The assigned argument
+    * @param expression The expression to be assigned
     * @return The abstract state after the assignment
     */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  override def setArgument(argument: ExpressionSet, expression: ExpressionSet): T = ???
+
+  /** Performs an abstract garbage collection by pruning all unreachable nodes.
+    *
+    * @return The updated alias analysis state.
+    */
+  override def pruneUnreachableHeap(): T = {
+    logger.trace("pruneUnreachableHeap")
+
+    // prune unreachable nodes in may and must alias graph
+    val prunedMay = may.pruneUnreachableNodes()
+    val prunedMust = must.pruneUnreachableNodes()
+    // update state
+    copy(may = prunedMay, must = prunedMust)
+  }
+
+  /** Sets the current program point to the given program point.
+    *
+    * @param pp The program point to be set.
+    * @return The abstract state eventually modified
+    */
+  override def before(pp: ProgramPoint): T = {
+    logger.trace(s"before($pp)")
+
+    // set program point
+    copy(currentPP = pp, may = may.before(pp), must = must.before(pp))
+  }
 
   /** Sets the current expression.
     *
-    * @param expr The current expression
-    * @return The abstract state after changing the current expression with the given one
+    * @param expression The current expression
+    * @return The alias analysis state with the updated current expression.
     */
-  override def setExpression(expr: ExpressionSet): T = copy(result = expr)
+  override def setExpression(expression: ExpressionSet): T =  copy(result = expression)
 
-  /** Forgets the value of a variable.
+  /** Removes the current expression.
     *
-    * Implementations can assume this state is non-bottom
-    *
-    * @param varExpr The variable to be forgotten
-    * @return The abstract state obtained after forgetting the variable
+    * @return The alias analysis state with the current expression removed.
     */
-  override def setVariableToTop(varExpr: Expression): T = ???
+  override def removeExpression(): T = copy(result = ExpressionSet())
 
-  /** Throws an exception.
+  /** Returns the current expression.
     *
-    * @param t The thrown exception
-    * @return The abstract state after the thrown
+    * @return The current expression.
     */
-  override def throws(t: ExpressionSet): T = ???
+  override def expr: ExpressionSet = result
 
-  /** The state string representation.
+  override def throws(expression: ExpressionSet): T = ???
+
+  /** Returns true if the two given access paths may alias.
     *
-    * @return the string representation of the current state
+    * @param first  The first access path.
+    * @param second The second access path.
+    * @return True if the two given access paths may alias.
     */
-  override def toString: String =
-    s"AliasAnalysisState(" +
-      s"\n\tisTop: $isTop" +
-      s"\n\tisBottom: $isBottom" +
-      s"\n\tresult: $result" +
-      s"\n\tmayStore: $mayStore" +
-      s"\n\tmustStore: $mustStore" +
-      s"\n\tmayHeap: $mayHeap\nmustHeap: $mustHeap\n)"
-
-  /** Returns the top value of the lattice.
-    *
-    * @return The top value, that is, a value x that is greater than or equal to any other value
-    */
-  override def top(): T = copy(isBottom = false, isTop = true)
-
-  /** Computes the widening of two elements.
-    *
-    * @param other The new value
-    * @return The widening of `this` and `other`
-    */
-  override def widening(other: T): T = {
-    logger.trace("*** ----------------widening(" + other.repr + ")")
-
-    def mayZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map.empty[K,Set[HeapNode]]
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,None) =>
-          case (None,Some(o2)) => keyMap = keyMap + (key -> o2)
-          case (Some(o1),None) => keyMap = keyMap + (key -> o1)
-          case (Some(o1),Some(o2)) => // we keep the summary node only if present in both maps
-            val o = (o1 - SummaryHeapNode) ++ (o2 - SummaryHeapNode) ++ (o1 & o2)
-            keyMap = keyMap + (key -> o)
-        }
-      }; keyMap
-    }
-    def mustZipper[K](map1: Map[K,Set[HeapNode]], map2: Map[K,Set[HeapNode]]): Map[K,Set[HeapNode]] = {
-      var keyMap = Map.empty[K,Set[HeapNode]]
-      for (key <- map1.keySet ++ map2.keySet) { // for all keys present in either map...
-        (map1.get(key),map2.get(key)) match {
-          case (None,_) => // nothing to be done
-          case (_,None) => // nothing to be done
-          case (Some(o1),Some(o2)) =>
-            if (o1.isEmpty || o2.isEmpty) // if either map is empty...
-              keyMap = keyMap + (key -> Set.empty) //...keep it empty
-            else { // if both maps are not empty...
-              (o1.head, o2.head) match { // take into account materialization
-                case (UnknownHeapNode, _) => keyMap = keyMap + (key -> o2)
-                case (_, UnknownHeapNode) => keyMap = keyMap + (key -> o1)
-                case _ => keyMap = keyMap + (key -> (o1 & o2))
-              }
-            }
-        }
-      }; keyMap
-    }
-    val fieldSet = this.fields ++ other.fields  // join the fieldSets
-    val expr = this.result widening other.result // widen the exprSets
-    // merge the stores
-    val mayStoreMap = mayZipper[VariableIdentifier](this.mayStore,other.mayStore)
-    val mustStoreMap = mustZipper[VariableIdentifier](this.mustStore,other.mustStore)
-    // merge the heaps
-    var mayHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
-        case (None,None) =>
-        case (None,Some(m2)) => mayHeapMap = mayHeapMap + (key -> m2)
-        case (Some(m1),None) => mayHeapMap = mayHeapMap + (key -> m1)
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mayHeapMap = mayHeapMap + (key -> mayZipper[String](m1,m2))
-      }
-    }
-    var mustHeapMap = Map.empty[HeapNode,Map[String,Set[HeapNode]]]
-    for (key <- this.mayHeap.keySet ++ other.mayHeap.keySet) { // for all keys present in either map...
-      (this.mayHeap.get(key),other.mayHeap.get(key)) match {
-        case (None,_) => // nothing to be done
-        case (_,None) => // nothing to be done
-        case (Some(m1: Map[String,Set[HeapNode]]),Some(m2: Map[String,Set[HeapNode]])) =>
-          mustHeapMap = mustHeapMap + (key -> mustZipper[String](m1,m2))
-      }
-    }
-    // return the current state with updated result, store, heap
-    copy(fields = fieldSet, currentPP = DummyProgramPoint, materialization = false, result = expr,
-      mayStore = mayStoreMap, mustStore = mustStoreMap, mayHeap = mayHeapMap, mustHeap = mustHeapMap,
-      isBottom = this.isBottom && other.isBottom, isTop = this.isTop || other.isTop)
+  def pathsMayAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val firstPath = first.map(_.getName)
+    val secondPath = second.map(_.getName)
+    may.pathsAlias(firstPath, secondPath)
   }
+
+  /** Returns true if the two given access paths must alias.
+    *
+    * @param first  The first access path.
+    * @param second The second access path.
+    * @return True if the two given access paths must alias.
+    */
+  def pathsMustAlias(first: AccessPath, second: AccessPath): Boolean = {
+    val firstPath = first.map(_.getName)
+    val secondPath = second.map(_.getName)
+    must.pathsAlias(firstPath, secondPath)
+  }
+
+  override def toString =
+    if (isTop) "top"
+    else if (isBottom) "bottom"
+    else s"MAY ALIAS GRAPH:\n$may\nMUST ALIAS GRAPH:\n$must"
+
+  /** Copies the alias analysis state but updates fields, current program point,
+    * materialization flag, result, may alias graph, must alias graph, top flag,
+    * and bottom flag if the corresponding arguments are defined.
+    *
+    * @param currentPP       The new current program point.
+    * @param result          The new result.
+    * @param may             The new may alias graph.
+    * @param must            The new must alias graph.
+    * @param isTop           The new top flag.
+    * @param isBottom        The new bottom flag.
+    * @return The updated copy of the alias analysis state.
+    */
+  def copy(currentPP: ProgramPoint = currentPP,
+           result: ExpressionSet = result,
+           may: MayAliasGraph = may,
+           must: MustAliasGraph = must,
+           isTop: Boolean = isTop,
+           isBottom: Boolean = isBottom): T
 }
 
-object AliasAnalysisState {
-  case class Default(fields: Set[(Type, String)] = Set.empty,
-                     currentPP: ProgramPoint = DummyProgramPoint,
-                     materialization: Boolean = true,
+object AliasAnalysisState
+{
+  /** The default implementation of the alias analysis state.
+    *
+    * @param currentPP       The current program point.
+    * @param result          The result.
+    * @param may             The may alias graph.
+    * @param must            The must alias graph.
+    * @param isTop           The top flag.
+    * @param isBottom        The bottom flag.
+    */
+  case class Default(currentPP: ProgramPoint = DummyProgramPoint,
                      result: ExpressionSet = ExpressionSet(),
-                     mayStore: Map[VariableIdentifier, Set[HeapNode]] = Map.empty,
-                     mustStore: Map[VariableIdentifier, Set[HeapNode]] = Map.empty,
-                     mayHeap: Map[HeapNode, Map[String, Set[HeapNode]]] = Map.empty,
-                     mustHeap: Map[HeapNode, Map[String, Set[HeapNode]]] = Map.empty,
-                     isBottom: Boolean = false,
-                     isTop: Boolean = false)
-    extends AliasAnalysisState[Default] {
-
-    override def copy(fields: Set[(Type, String)],
-                      currentPP: ProgramPoint,
-                      materialization: Boolean,
+                     may: MayAliasGraph = MayAliasGraph(),
+                     must: MustAliasGraph = MustAliasGraph(),
+                     isTop: Boolean = false,
+                     isBottom: Boolean = false)
+  extends AliasAnalysisState[Default]
+  {
+    /** Copies the alias analysis state but updates fields, current program point,
+      * materialization flag, result, may alias graph, must alias graph, top flag,
+      * and bottom flag if the corresponding arguments are defined.
+      *
+      * @param currentPP       The new current program point.
+      * @param result          The new result.
+      * @param may             The new may alias graph.
+      * @param must            The new must alias graph.
+      * @param isTop           The new top flag.
+      * @param isBottom        The new bottom flag.
+      * @return The updated copy of the alias analysis state.
+      */
+    override def copy(currentPP: ProgramPoint,
                       result: ExpressionSet,
-                      mayStore: Map[VariableIdentifier, Set[HeapNode]],
-                      mustStore: Map[VariableIdentifier, Set[HeapNode]],
-                      mayHeap: Map[HeapNode, Map[String, Set[HeapNode]]],
-                      mustHeap: Map[HeapNode, Map[String, Set[HeapNode]]],
-                      isBottom: Boolean,
-                      isTop: Boolean): Default =
-      Default(fields, currentPP, materialization, result, mayStore, mustStore, mayHeap, mustHeap, isBottom, isTop)
+                      may: MayAliasGraph,
+                      must: MustAliasGraph,
+                      isTop: Boolean,
+                      isBottom: Boolean): Default =
+      Default(currentPP, result, may, must, isTop, isBottom)
   }
 }
 
-/** Alias Analysis Entry State Builder.
+/** An entry state builder of the alias analysis.
   *
   * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-trait AliasAnalysisEntryStateBuilder[T <: AliasAnalysisState[T]] extends ForwardEntryStateBuilder[T] {
-
-  protected var fields: Set[(Type,String)] = Set[(Type,String)]()
-
+trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
+  extends ForwardEntryStateBuilder[T]
+{
   override def build(method: MethodDeclaration): T = {
-    // retrieve the set of fields declared within the program
-    fields = Set[(Type,String)]()
-    for(f <- method.classDef.fields) {
-      fields = fields + ((f.typ, f.variable.toString))
-    }
-    // prepare the initial may heap map
-    val mayFieldMap = fields.foldLeft(Map.empty[String,Set[HeapNode]]) {
-      case (map, (_: RefType, field)) => map + (field -> Set(SummaryHeapNode, NullHeapNode))
-      case (map, _) => map
-    }
-    val mayHeapMap = Map[HeapNode, Map[String, Set[HeapNode]]](SummaryHeapNode -> mayFieldMap)
-    // prepare the initial must heap map
-    val mustFieldMap = fields.foldLeft(Map.empty[String,Set[HeapNode]]) {
-      case (map, (_: RefType, field)) => map + (field -> Set(UnknownHeapNode))
-      case (map, _) => map
-    }
-    val mustHeapMap = Map[HeapNode, Map[String, Set[HeapNode]]](UnknownHeapNode -> mustFieldMap)
-    // initialize the entry state
-    method.initializeArgument[T](topState.copy(fields = fields, mayHeap = mayHeapMap, mustHeap = mustHeapMap))
+    // retrieve the set of fields declared in the program
+    val fields = method.classDef.fields
+      .filter(_.typ.isObject)
+      .map(_.variable.toString)
+      .toSet
+
+    val may = MayAliasGraph().initialize(fields)
+    val must = MustAliasGraph().initialize(fields)
+    val initial = topState.copy(may = may, must = must)
+
+    method.initializeArgument(initial)
   }
-
 }
 
-/** Alias Analysis Entry State.
+/** The entry state for the alias analysis.
   *
-  * @author Jerome Dohrau, Caterina Urban
+  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-object AliasAnalysisEntryState extends AliasAnalysisEntryStateBuilder[AliasAnalysisState.Default] {
-  override def topState: AliasAnalysisState.Default = AliasAnalysisState.Default()
+object AliasAnalysisEntryState
+  extends AliasAnalysisStateBuilder[Default]
+{
+  override def topState: Default = Default()
 }
 
-/** Alias Analysis Runner.
+/** An alias analysis runner.
   *
-  * @tparam S the backward permission state
-  * @author Jerome Dohrau, Caterina Urban
+  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-trait AliasAnalysisRunner[S <: AliasAnalysisState[S]] extends SilverAnalysisRunner[S] {
+trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
+  extends SilverAnalysisRunner[T]
+{
+  /** Runs the analysis on the Silver program whose name is passed as first
+    * argument and reports errors and warnings.
+    *
+    * @param arguments The arguments to the runner.
+    */
+  override def main(arguments: Array[String]): Unit = {
+    // check whether there is a first argument (the path to the file)
+    if (arguments.isEmpty) throw new IllegalArgumentException("No file specified")
 
-  override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+    // run analysis
+    val path = new File(arguments(0)).toPath
+    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    // map of method names to control flow graphs
-    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    for ((m, g) <- methodNameToCfgState) {
-      println("******************* " + m + "\n")
+    val cfgStates = results.map(result => result.method.name.toString -> result.cfgState).toMap
+    for ((method, graph) <- cfgStates) {
+      println("******************* " + method + "\n")
+      // printing the entry state of the control-flow graph
+      println(graph.entryState())
 
-      println(g.entryState()) // printing the entry state of the control-flow graph
+      // blocks withing the control-flow graph
+      val blocks = graph.cfg.nodes
 
-      val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
       // withing each block...
       var i = 0
-      for (stmts: List[Statement] <- blocks) {
-        if (stmts.isEmpty) {
-          val states: List[S] = g.blockStates(i).last // post-states of each statement
+      for (statements <- blocks) {
+        if (statements.isEmpty) {
+          // post-states of each statement
+          val states = graph.blockStates(i).last
           for (s <- states) {
             println("\n******************* \n")
             println(s)
@@ -1593,10 +1817,11 @@ trait AliasAnalysisRunner[S <: AliasAnalysisState[S]] extends SilverAnalysisRunn
         } else {
           // printing the block pre-state
           println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
-          println(g.blockStates(i).last.head)
-          val states: List[S] = g.blockStates(i).last.drop(1) // post-states of each statement
+          println(graph.blockStates(i).last.head)
+          // post-states of each statement
+          val states = graph.blockStates(i).last.drop(1)
           // print statements and corresponding post-states
-          for ((c: Statement, s) <- stmts zip states) {
+          for ((c: Statement, s) <- statements zip states) {
             println("\n******************* " + c + "\n")
             println(s)
           }
@@ -1605,18 +1830,22 @@ trait AliasAnalysisRunner[S <: AliasAnalysisState[S]] extends SilverAnalysisRunn
       }
 
       println("\n******************* \n")
-      println(g.exitState()) // printing the exit state of the control-flow graph
+      println(graph.exitState()) // printing the exit state of the control-flow graph
     }
   }
 
-  override def toString = "Alias Analysis"
+  override def toString: String = "Alias Analysis"
 }
 
-/** Alias Analysis.
+/** The alias analysis.
   *
-  * @author Jerome Dohrau, Caterina Urban
+  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
-object AliasAnalysis extends AliasAnalysisRunner[AliasAnalysisState.Default] {
-  override val analysis = SimpleForwardAnalysis[AliasAnalysisState.Default](AliasAnalysisEntryState)
-  override def toString = "Alias Analysis"
+object AliasAnalysis
+  extends AliasAnalysisRunner[Default]
+{
+  override val analysis: Analysis[Default] = SimpleForwardAnalysis[Default](AliasAnalysisEntryState)
+
+  override def toString: String = "Alias Analysis"
 }

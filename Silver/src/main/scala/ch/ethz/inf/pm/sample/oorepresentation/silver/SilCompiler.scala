@@ -25,7 +25,7 @@ class SilCompiler extends Compiler {
 
   var program: sil.Program = null
 
-  def getLabel(): String = "SIL"
+  def label: String = "SIL"
 
   def extensions(): List[String] = "sil" :: Nil
 
@@ -33,27 +33,28 @@ class SilCompiler extends Compiler {
     * @todo Does not support directories (multiple filbies) as input at the moment.
     * @todo Contains absolutely no error handling
     */
-  def compileFile(path: String): List[ClassDefinition] = {
-    val file = Paths.get(path)
-    val input = Source.fromInputStream(Files.newInputStream(file)).mkString
-    val parseResult = FastParser.parse(input, file)
-    val parsed = parseResult match {
-      case fastparse.core.Parsed.Success(e: PProgram, _) => e
-      case fastparse.core.Parsed.Failure(msg, next, extra) =>
-        throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
-      case ParseError(msg, pos) =>
-        val (line, col) = pos match {
-          case SourcePosition(_, line, col) => (line, col)
-          case FilePosition(_, line, col) => (line, col)
-          case _ => ??? // should never happen
-        }
-        throw new ParseException(s"$msg in $file at ${line}:${col}", 0)
-    }
+  def compile(comp: Compilable): List[ClassDefinition] = comp match {
+    case Compilable.Path(file) =>
+      val input = Source.fromInputStream(Files.newInputStream(file)).mkString
+      val parseResult = FastParser.parse(input, file)
+      val parsed = parseResult match {
+        case fastparse.core.Parsed.Success(e: PProgram, _) => e
+        case fastparse.core.Parsed.Failure(msg, next, extra) =>
+          throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
+        case ParseError(msg, pos) =>
+          val (line, col) = pos match {
+            case SourcePosition(_, line, col) => (line, col)
+            case FilePosition(_, line, col) => (line, col)
+            case _ => ??? // should never happen
+          }
+          throw new ParseException(s"$msg in $file at ${line}:${col}", 0)
+      }
 
-    Resolver(parsed).run
+      Resolver(parsed).run
 
-    val program = Translator(parsed).translate.get
-    compileProgram(program)
+      val program = Translator(parsed).translate.get
+      compileProgram(program)
+    case _ => throw new UnsupportedOperationException("Compilable "+comp+" not supported by this compiler")
   }
 
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
@@ -77,7 +78,7 @@ class SilCompiler extends Compiler {
     case (clazz, method) :: methods => Some(method, classType)
   }
 
-  def getNativeMethodsSemantics() =
+  def getNativeMethodsSemantics =
     ArithmeticAndBooleanNativeMethodSemantics ::
       RichNativeMethodSemantics :: SilverSemantics :: Nil
 
@@ -95,5 +96,6 @@ class SilCompiler extends Compiler {
 
   def refType: RefType =
     classes.get.head.typ.asInstanceOf[RefType]
+
 }
 

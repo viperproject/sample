@@ -31,6 +31,30 @@ object AAction {
  */
 trait AAction extends AAny {
 
+  def EnableHandler[S <: State[S]](this0: ExpressionSet)(pp:ProgramPoint, state:S) = {
+
+//    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
+//      case SetDomain.Default.Bottom() => state.bottom()
+//      case SetDomain.Default.Top() =>
+//        Reporter.reportImpreciseSemantics("Handler name is top", pp)
+//        defaultBehavior()
+//      case SetDomain.Default.Inner(xs) =>
+//        Lattice.bigLub(
+//          xs map { x =>
+//            compiler.getMethod(x.constant, parameters map (_.getType())) match {
+//              case Some(mdecl) =>
+//                MethodSummaries.collect(pp, mdecl, state, parameters)
+//              case _ =>
+//                Reporter.reportImpreciseSemantics("Invalid handler name " + x.constant, pp)
+//                defaultBehavior()
+//            }
+//          }
+//        )
+//    }
+
+
+  }
+
   /** Never used: Run the inline action. */
   def member_run = ApiMember(
     name = "run",
@@ -40,7 +64,6 @@ trait AAction extends AAny {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
 
-        val context = SystemParameters.analysisUnitContext
         val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
         def defaultBehavior() = {

@@ -13,7 +13,9 @@ import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner, MethodAnalysisResult, WeightedGraphAnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, WeightedGraph}
+
 import scala.language.existentials
 
 /** Web application that lets users analyze programs and explore the result.
@@ -30,8 +32,12 @@ import scala.language.existentials
   * @todo add support for states other than `ValueDrivenHeapState`
   */
 abstract class App extends ScalatraServlet {
+
   /** Provides all test files that the user can choose to analyze. */
   def fileProvider: TestFileProvider
+
+  /** Provides all online test files that the user can choose to analyze. */
+  def identifierProvider: Option[IdentifierProvider]
 
   /** List of pre-defined analysis runners. */
   def availableAnalysisRunners: Seq[AnalysisRunner[_ <: State[_]]]
@@ -45,7 +51,7 @@ abstract class App extends ScalatraServlet {
   var analysisRunnerOption: Option[AnalysisRunner[_ <: State[_]]] = None
 
   /** The currently active analysis results that the user can inspect. */
-  var resultsOption: Option[List[AnalysisResult[_ <: State[_]]]] = None
+  var resultsOption: Option[List[AnalysisResult]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
@@ -55,14 +61,16 @@ abstract class App extends ScalatraServlet {
   /** Analyzes the test file passed as a parameter. */
   get("/analyze/") {
     val testFileString = params("file")
-    fileProvider.testFiles.find(_.toString == testFileString) match {
-      case Some(testFile) =>
-        val results = analysisRunner.run(testFile.path)
-        resultsOption = Some(results.asInstanceOf[List[AnalysisResult[_ <: State[_]]]])
+    val results = fileProvider.testFiles.find(_.toString == testFileString).map(x => analysisRunner.run(Compilable.Path(x.path)))
+      .orElse(identifierProvider.flatMap(_.identifiers.find(_.id == testFileString)).map(x => analysisRunner.run(Compilable.Identifier(x.id))))
+
+    results match {
+      case Some(r) =>
+        resultsOption = Some(r.asInstanceOf[List[MethodAnalysisResult[_ <: State[_]]]])
 
         // If there is only a single result, redirect to it
         // Otherwise, let the user choose
-        if (results.size == 1)
+        if (r.size == 1)
           redirect("/"+prefix+"/results/0/?")
         else
           redirect("/"+prefix+"/results/?")
@@ -91,7 +99,14 @@ abstract class App extends ScalatraServlet {
   /** Renders the CFG of the current result. */
   get("/results/:result/") {
     resultOption match {
-      case Some(result) => html.CFGState(result)(this)
+      case Some(result) =>
+        result match {
+          case m:MethodAnalysisResult[_] =>
+            html.CFGState(m)(this)
+          case w:WeightedGraphAnalysisResult[_,_] =>
+            html.WeightedGraphResult(w)(this)
+          case _ => redirect("/"+prefix+"/")
+        }
       case None => redirect("/"+prefix+"/")
     }
   }
@@ -100,8 +115,12 @@ abstract class App extends ScalatraServlet {
   get("/results/:result/:block/") {
     resultOption match {
       case Some(result) =>
-        val blockIndex = params("block").toInt
-        html.CFGBlockState(result, blockIndex, iter(blockIndex))(this)
+        result match {
+          case m:MethodAnalysisResult[_] =>
+            val blockIndex = params("block").toInt
+            html.CFGBlockState(m, blockIndex, iter(blockIndex,m))(this)
+          case _ => redirect("/"+prefix+"/")
+        }
       case None => redirect("/"+prefix+"/")
     }
   }
@@ -110,9 +129,13 @@ abstract class App extends ScalatraServlet {
   get("/results/:result/:block/:state/") {
     resultOption match {
       case Some(result) =>
-        val blockIndex = params("block").toInt
-        val stateIndex = params("state").toInt
-        html.State(result, blockIndex, stateIndex, iter(blockIndex))(this)
+        result match {
+          case m:MethodAnalysisResult[_] =>
+            val blockIndex = params("block").toInt
+            val stateIndex = params("state").toInt
+            html.State(m, blockIndex, stateIndex, iter(blockIndex,m))(this)
+          case _ => redirect("/"+prefix+"/")
+        }
       case None => redirect("/"+prefix+"/")
     }
   }
@@ -121,11 +144,11 @@ abstract class App extends ScalatraServlet {
     analysisRunnerOption.getOrElse(availableAnalysisRunners.head)
 
   /** Returns the `AnalysisResult` to display according to the URL parameter. */
-  private def resultOption[S <: State[S]]: Option[AnalysisResult[S]] = {
+  private def resultOption[S <: State[S]]: Option[AnalysisResult] = {
     resultsOption match {
       case Some(results) =>
         val resultIndex = params("result").toInt
-        Some(results(resultIndex).asInstanceOf[AnalysisResult[S]])
+        Some(results(resultIndex))
       case None =>
         None
     }
@@ -136,14 +159,15 @@ abstract class App extends ScalatraServlet {
     * When no 'iter' parameter is present, just display the fixed point state,
     * that is, the state in the last iteration.
     */
-  private def iter(blockIndex: Int): Int =
+  private def iter[S <: State[S]](blockIndex: Int, res:MethodAnalysisResult[S]): Int =
     if (params.contains("iter")) params("iter").toInt
-    else resultOption.get.cfgState.trackedStatesOfBlock(blockIndex).size - 1
+    else res.cfgState.trackedStatesOfBlock(blockIndex).size - 1
 }
 
 /** Web app that detects SIL test programs and lets the user analyze them. */
 class SilApp extends App {
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
+  val identifierProvider = None
   val availableAnalysisRunners = Seq(
     PredicateAnalysisRunner,
 // TODO: Instantiates existential type with several types
