@@ -16,17 +16,11 @@ import com.typesafe.scalalogging.LazyLogging
 
 
 /**
- *
- * @author Lucas Brutschy
- *
- */
-
-trait CollectingState
-
-/**
- * Collects all the fields that are accessed in a program. This can be used to
- * optimize the analysis
- */
+  * Collects all the fields that are accessed in a program. This can be used to
+  * optimize the analysis
+  *
+  * @author Lucas Brutschy
+  */
 object RequiredLibraryFragmentAnalysis extends LazyLogging {
 
   var spottedFields = Set.empty[String]
@@ -51,17 +45,17 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
     val summaries = MethodSummaries.getSummaries[AccessCollectingState]
     val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
-    yield (mdecl.classDef.typ, mdecl, cfgState)
+      yield (mdecl.classDef.typ, mdecl, cfgState)
 
     // now check if we see anything suspicious
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unanalyzed) {
-        logger.debug("In ReqFragAnalysis: Did not analyze "+un.name+" (may be unreachable)")
+        logger.debug("In ReqFragAnalysis: Did not analyze " + un.name + " (may be unreachable)")
       }
     }
 
-    SingleStatementProperty.Default(new BottomVisitor()).check(results,output)
+    SingleStatementProperty.Default(new BottomVisitor()).check(results, output)
 
     compiler.relevantLibraryFields = spottedFields ++ Set("data", "art", "records", "code")
     SystemParameters.resetOutput()
@@ -71,17 +65,16 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
 }
 
 /**
- * This state does nothing but tracking the type of the current expression on the evaluation stack
- * and collecting all field accesses in the form of Type->FieldName. This can be used to perform
- * a very simple pre-analysis to detect the fragment of the library that is to be used in the present
- * program.
- *
- * @param myType the current expression on the evaluation stack
- */
+  * This state does nothing but tracking the type of the current expression on the evaluation stack
+  * and collecting all field accesses in the form of Type->FieldName. This can be used to perform
+  * a very simple pre-analysis to detect the fragment of the library that is to be used in the present
+  * program.
+  *
+  * @param myType the current expression on the evaluation stack
+  */
 class AccessCollectingState(myType: Type)
   extends State[AccessCollectingState]
-  with CollectingState
-  with TouchStateInterface[AccessCollectingState] {
+    with TouchStateInterface[AccessCollectingState] {
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.typ.top())
 
@@ -175,8 +168,8 @@ class AccessCollectingState(myType: Type)
       RequiredLibraryFragmentAnalysis.spottedFields +
         (objs.typ.toString + "." + field) +
         objs.typ.toString
-    filter(HeapIdentifier.makeDummy(typ),this)
-    (Set(HeapIdentifier.makeDummy(typ)),Set(HeapIdentifier.makeDummy(typ)))
+    filter(HeapIdentifier.makeDummy(typ), this)
+    (Set(HeapIdentifier.makeDummy(typ)), Set(HeapIdentifier.makeDummy(typ)))
   }
 
   override def merge(r: Replacement): AccessCollectingState = this

@@ -132,7 +132,10 @@ trait SingleStatementProperty extends Property {
     case x: ControlFlowGraph =>
       val result = new ControlFlowGraphExecution[S](x, state).forwardSemantics(state)
       this.check(className, methodName, result, printer);
-    case _ => throw new UnsupportedOperationException("AST node not supported by visitor")
+    case x: EmptyStatement =>
+      visitor.checkSingleStatement[S](state, x, printer)
+    case _ =>
+      throw new UnsupportedOperationException("AST node not supported by visitor")
   }
 
 }

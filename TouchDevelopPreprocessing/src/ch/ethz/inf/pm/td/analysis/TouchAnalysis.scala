@@ -138,7 +138,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     if (TouchAnalysisParameters.get.libraryFieldPruning) {
       SystemParameters.resetOutput()
       AbstractEventGraph.reset()
-      MethodSummaries.reset[TouchState.PreAnalysis]()
+      MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
       Reporter.disableAllOutputs()
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.LibraryFieldAnalysis")
       RequiredLibraryFragmentAnalysis(compiler.parsedScripts,output)
@@ -156,13 +156,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       Localization.reset()
       TouchVariablePacking.reset()
       SystemParameters.resetOutput()
-      MethodSummaries.reset[TouchState.PreAnalysis]()
+      MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
       AbstractEventGraph.reset()
       Reporter.disableAllOutputs()
       val oldNumber = TouchAnalysisParameters.get.numberOfVersions
       TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
+
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
-      analyzeScript[TouchState.PreAnalysis](compiler,methods,outMostFixpoint)(TouchState.PreAnalysis())
+      analyzeScript[TouchEntryStateBuilder.PreAnalysisState](compiler,methods,outMostFixpoint)(
+        TouchEntryStateBuilder(TouchAnalysisParameters.get).preAnalysisTopState)
       //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
       TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))

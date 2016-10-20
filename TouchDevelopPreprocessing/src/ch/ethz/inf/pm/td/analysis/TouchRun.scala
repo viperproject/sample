@@ -23,11 +23,18 @@ import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
 import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.AbstractEventWithState
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
+import ch.ethz.inf.pm.td.domain.TouchState.CollectingDomain
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import com.typesafe.scalalogging.LazyLogging
 
 object TouchEntryStateBuilder {
+
+  type PreAnalysisValueState =
+    StringsAnd[
+      CollectingDomain,
+      NonrelationalStringDomain[StringKSetDomain]
+      ]
 
   type ValueState =
     StringsAnd[
@@ -42,10 +49,24 @@ object TouchEntryStateBuilder {
 
   type State = TouchState.Default[ValueState]
 
+  type PreAnalysisState = TouchState.PreAnalysis[PreAnalysisValueState]
+
 }
 
 case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
   extends ForwardEntryStateBuilder[TouchEntryStateBuilder.State] {
+
+  def preAnalysisTopState:TouchEntryStateBuilder.PreAnalysisState = {
+    TouchState.PreAnalysis(valueState =
+      StringsAnd(
+        CollectingDomain.Top,
+        NonrelationalStringDomain(
+          StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]
+        )
+      )
+    )
+  }
+
 
   override def topState = {
 

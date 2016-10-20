@@ -591,7 +591,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   def assignVariable(leftSet: ExpressionSet, rightSet: ExpressionSet): S = {
     unlessBottom(leftSet, {
       unlessBottom(rightSet, {
-        val result = if (rightSet.isTop) {
+        val result = if (rightSet.isTop || rightSet.s.isTop) {
           setVariableToTop(leftSet)
         } else {
           Lattice.bigLub(for (
