@@ -476,7 +476,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     val separate = for {
       ex <- x.toSetOrFail
       px = this.partitioning
-      pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.typ.add(ex)))
+      pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.typ.add(ex))))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -501,7 +501,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       ey <- y.toSetOrFail
       px = this.partitioning
       py = this.partitioning
-      pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.typ.add(ex), new ExpressionSet(y.typ()).add(ey)))
+      pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.typ).add(ex), new ExpressionSet(y.typ).add(ey)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
