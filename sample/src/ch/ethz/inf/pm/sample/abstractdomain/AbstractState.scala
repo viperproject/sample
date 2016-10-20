@@ -19,7 +19,7 @@ object ExpressionFactory {
   }
 
   def createBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
-    if (!left.isTop && !right.isTop) {
+    if (!left.isTop && !right.isTop && !left.s.isTop && !right.s.isTop) {
       var result = new ExpressionSet(ty)
       for (expleft <- left.toSetOrFail)
         for (expright <- right.toSetOrFail)
@@ -29,7 +29,7 @@ object ExpressionFactory {
   }
 
   def createReferenceComparisonExpression(left: ExpressionSet, right: ExpressionSet, op: ArithmeticOperator.Value, ty: Type): ExpressionSet = {
-    if (!left.isTop && !right.isTop) {
+    if (!left.isTop && !right.isTop && !left.s.isTop && !right.s.isTop) {
       var result = new ExpressionSet(ty)
       for (expleft <- left.toSetOrFail)
         for (expright <- right.toSetOrFail)
@@ -39,7 +39,7 @@ object ExpressionFactory {
   }
 
   def createBooleanBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: BooleanOperator.Value, ty: Type): ExpressionSet = {
-    if (!left.isTop && !right.isTop) {
+    if (!left.isTop && !right.isTop && !left.s.isTop && !right.s.isTop) {
       var result = new ExpressionSet(ty)
       for (expleft <- left.toSetOrFail)
         for (expright <- right.toSetOrFail)
@@ -49,7 +49,7 @@ object ExpressionFactory {
   }
 
   def createNondeterministicBinaryExpression(left: ExpressionSet, right: ExpressionSet, op: NondeterministicOperator.Value, ty: Type): ExpressionSet = {
-    if (!left.isTop && !right.isTop) {
+    if (!left.isTop && !right.isTop && !left.s.isTop && !right.s.isTop) {
       var result = new ExpressionSet(ty)
       for (expleft <- left.toSetOrFail)
         for (expright <- right.toSetOrFail)

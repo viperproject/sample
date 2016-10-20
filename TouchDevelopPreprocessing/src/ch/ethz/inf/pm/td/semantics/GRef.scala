@@ -24,7 +24,8 @@ import ch.ethz.inf.pm.td.cloud.CloudUpdateWrapper
  */
 case class GRef (TT:AAny) extends Default_GRef {
 
-  lazy val field__identifier = ApiField("*identifier",TString)
+  lazy val field__receiver = ApiField("*receiver",TNothing)
+  lazy val field__field = ApiField("*field",TString)
 
   override def member__ref:ApiMember = ApiMember(
     name = "◈ref",
@@ -41,7 +42,7 @@ case class GRef (TT:AAny) extends Default_GRef {
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        Assign[S](DeRef[S](this0),this0 + 1)
+        Assign[S](DeRef[S](this0),DeRef[S](this0) + 1)
       }
     },Set(CloudEnabledModifier))
   )
@@ -110,7 +111,8 @@ case class GRef (TT:AAny) extends Default_GRef {
   )
 
   override lazy val possibleFields = super.possibleFields ++ Set(
-    field__identifier
+    field__receiver,
+    field__field
   )
 
   /**
@@ -118,34 +120,27 @@ case class GRef (TT:AAny) extends Default_GRef {
     */
   def DeRef[S <: State[S]](this0:RichExpression)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
 
-    val exprs =
-      EvalConstant[S](Field[S](this0,field__identifier)) match {
-        case s:SetDomain.Default.Bottom[Constant] =>
-          SetDomain.Default.Bottom[Expression]()
-        case s:SetDomain.Default.Top[Constant] =>
-          state.ids match {
-            case IdentifierSet.Top =>
-              SetDomain.Default.Top[Expression]()
-            case IdentifierSet.Bottom =>
-              SetDomain.Default.Bottom[Expression]()
-            case IdentifierSet.Inner(x) =>
-              val ids = for (id <- x if id.typ == TT) yield id
-              if (ids.nonEmpty)
-                SetDomain.Default.Inner[Expression](ids.toSet)
-              else
-                SetDomain.Default.Bottom[Expression]()
-          }
-        case s:SetDomain.Default.Inner[Constant] =>
-          val identifiers =
-            for (c <- s.value) yield {
-              SRecords.lookupRef(c.constant) match {
-                case Some(x) => x
-                case None => throw TouchException("Tried to dereference reference, but got some invalid constant")
-              }
-            }
-          SetDomain.Default.Inner[Expression](identifiers.toSet)
+    val botRes = ExpressionSet(TT,SetDomain.Default.Bottom[Expression]())
+    val topRes = ExpressionSet(TT,SetDomain.Default.Top[Expression]())
+
+    val receiver = Field[S](this0,field__receiver)
+
+    val fields =
+      EvalConstant[S](Field[S](this0,field__field)) match {
+        case SetDomain.Default.Bottom() =>
+          return botRes
+        case SetDomain.Default.Top() =>
+          return topRes
+        case SetDomain.Default.Inner(xs) =>
+          xs.map(_.constant)
       }
-    new ExpressionSet(TT,exprs)
+
+    val exprs =
+      for (f <- fields) yield {
+        state.getFieldValue(receiver.thisExpr,f,TT).expr
+      }
+
+    Lattice.bigLub(exprs)
   }
 
 }
