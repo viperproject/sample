@@ -16,3 +16,13 @@ apron.sbt
 
 # Folder with temporary files created by Silicon
 tmp/
+
+*.o
+*.h
+*.a
+*.so
+
+NumericalAnalysis/apron/japron/apron.jar
+NumericalAnalysis/apron/japron/gmp.jar
+NumericalAnalysis/apron/octagons/octtestD
+NumericalAnalysis/apron/octagons/octtestMPQ

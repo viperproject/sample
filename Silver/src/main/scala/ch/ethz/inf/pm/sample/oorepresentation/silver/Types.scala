@@ -34,13 +34,7 @@ abstract class AbstractType(val name: String) extends Type {
 
   def factory() = top()
 
-  def top() = TopType
-
-  def bottom() = BottomType
-
   def widening(other: Type) = lub(other)
-
-  def lessEqual(r: Type): Boolean = r == this || bottom == this || r == top
 
   def lub(other: Type): Type = (this, other) match {
     case (null, _) => other
@@ -52,6 +46,8 @@ abstract class AbstractType(val name: String) extends Type {
     case _ => top()
   }
 
+  def lessEqual(r: Type): Boolean = r == this || bottom == this || r == top
+
   def glb(other: Type) = (this, other) match {
     case (null, _) => other
     case (_, null) => this
@@ -62,7 +58,12 @@ abstract class AbstractType(val name: String) extends Type {
     case _ => top()
   }
 
+  def top() = TopType
+
+  def bottom() = BottomType
+
   def isBottom = this == BottomType
+
   def isTop = this == TopType
 }
 
@@ -90,6 +91,10 @@ case class DomType(override val name: String) extends AbstractType(name) {
 
 case object PredType extends AbstractType("Pred") {
   // Do not create vertices and edges in abstract heap graphs
+  def isNumericalType = true
+}
+
+case object PermType extends AbstractType("Perm") {
   def isNumericalType = true
 }
 
