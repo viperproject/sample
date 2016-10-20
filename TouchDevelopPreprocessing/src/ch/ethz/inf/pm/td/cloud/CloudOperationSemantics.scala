@@ -9,7 +9,6 @@ package ch.ethz.inf.pm.td.cloud
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.ProgramPointEvent
 import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, CloudEnabledModifier}
 import ch.ethz.inf.pm.td.domain.TouchState
 
@@ -22,7 +21,8 @@ trait CloudOperationSemantics extends ApiMemberSemantics {
 
   def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                      (implicit pp: ProgramPoint, state: S): S = {
-    AbstractEventGraph.record(ProgramPointEvent(pp,method),this0,parameters,state,pp)
+    //AbstractEventGraph.record(ProgramPointEvent(pp,method.name),this0,parameters,state,pp)
+    state
   }
 
 }

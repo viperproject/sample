@@ -96,12 +96,12 @@ class AccessCollectingState(myType: Type)
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
-        (obj.getType().toString + "." + field) +
-        obj.getType().toString
+        (obj.typ.toString + "." + field) +
+        obj.typ.toString
     new AccessCollectingState(typ)
   }
 
-  def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
+  def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.typ)
 
   def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
@@ -173,8 +173,8 @@ class AccessCollectingState(myType: Type)
   override def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter: (Identifier, AccessCollectingState) => Boolean): (Set[Identifier], Set[Identifier]) = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
-        (objs.getType().toString + "." + field) +
-        objs.getType().toString
+        (objs.typ.toString + "." + field) +
+        objs.typ.toString
     filter(HeapIdentifier.makeDummy(typ),this)
     (Set(HeapIdentifier.makeDummy(typ)),Set(HeapIdentifier.makeDummy(typ)))
   }
@@ -184,4 +184,7 @@ class AccessCollectingState(myType: Type)
   override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
 
   override def ids: IdentifierSet = IdentifierSet.Top
+
+  override def readableFrom(expr: IdentifierSet): IdentifierSet = IdentifierSet.Top
+
 }

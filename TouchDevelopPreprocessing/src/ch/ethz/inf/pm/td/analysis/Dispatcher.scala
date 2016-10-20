@@ -39,7 +39,7 @@ object Dispatcher extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    val typ = thisExpr.getType().asInstanceOf[AAny]
+    val typ = thisExpr.typ.asInstanceOf[AAny]
     if (CFGGenerator.isLibraryIdent(typ.name)) {
       LibraryContract.applyForwardNativeSemantics(thisExpr,operator,parameters,typeparameters,returnedtype,pp,state)
     } else {

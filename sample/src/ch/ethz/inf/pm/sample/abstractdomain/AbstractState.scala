@@ -81,7 +81,7 @@ object ExpressionFactory {
 
   def createNegatedBooleanExpression(v: ExpressionSet): ExpressionSet = {
     if (!v.isTop) {
-      var result = new ExpressionSet(v.getType())
+      var result = new ExpressionSet(v.typ)
       for (expleft <- v.toSetOrFail)
         result = result.add(NegatedBooleanExpression(expleft))
       result
@@ -124,21 +124,13 @@ case class ExpressionSet(
   extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
   def _1 = initialTyp
-
   def _2 = s
+  def typ = _1
+  def expressions = _2
 
-  override def factory(): ExpressionSet =
-    new ExpressionSet(
-      if (getType() == null) {
-        if (SystemParameters.typ != null) SystemParameters.typ.top(); else null
-      } else getType().top(),
-      SetDomain.Default.Top()
-    )
+  override def factory(): ExpressionSet = new ExpressionSet(typ.top(),s.top())
 
   def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
-
-  // TODO: rf: this method is highly suspicious. Why should _1 ever be inconsistent with the computed type?
-  def getType(): Type = this._1.glb(this.computeType())
 
   def ids = s match {
     case SetDomain.Default.Bottom() => IdentifierSet.Bottom
@@ -147,15 +139,6 @@ case class ExpressionSet(
   }
 
   def toSetOrFail = this._2.toSetOrFail
-
-  private def computeType(): Type = {
-    if (this._2.isTop) return SystemParameters.typ.top()
-    var typ: Type = null
-    for (t <- this.toSetOrFail)
-      typ = if (typ == null) t.typ else typ.lub(t.typ)
-    if (typ == null) SystemParameters.typ.top()
-    else typ
-  }
 
   def add(exp: Expression): ExpressionSet = {
     val v2 = this._2.+(exp)
@@ -166,7 +149,7 @@ case class ExpressionSet(
   def add(expr: ExpressionSet): ExpressionSet = {
     var set = this._2
     for (exprVal <- expr.toSetOrFail) set = set.+(exprVal)
-    val typ = this._1.glb(expr.getType())
+    val typ = this._1.glb(expr.typ)
     new ExpressionSet(typ, set)
   }
 
@@ -174,7 +157,7 @@ case class ExpressionSet(
     var result:SetDomain.Default[Expression] = this._2.bottom()
     for (key <- toSetOrFail)
       result = result.+(NegatedBooleanExpression(key))
-    new ExpressionSet(getType(), result)
+    new ExpressionSet(typ, result)
   }
 
   override def toString: String = "Type " + _1.toString + ": " + _2.toString
@@ -196,7 +179,7 @@ case class ExpressionSet(
           }).flatten
       }
 
-      new ExpressionSet(getType(), SetDomain.Default.Inner(newSet))
+      new ExpressionSet(typ, SetDomain.Default.Inner(newSet))
   }
 
   def isUnitExprSet: Boolean = this == ExpressionFactory.unitExpr

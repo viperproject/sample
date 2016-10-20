@@ -9,55 +9,121 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis._
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, MultiValExpression}
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.cloud.CloudQueryWrapper
+import ch.ethz.inf.pm.td.domain.MultiValExpression
 
 /**
- * User: Lucas Brutschy
- * Date: 11/8/12
- * Time: 5:36 PM
- */
+  *
+  *
+  * @author Lucas Brutschy
+  */
 trait AAny extends NativeMethodSemantics with RichExpressionImplicits with TouchType {
 
-  def member__confirmed = ApiMember(
+  // =================
+  //
+  // Implicit conversion to reference
+  //
+  //
+  case class RefConversionSemantics() extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet,
+                                                 method: ApiMember,
+                                                 parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+      val curState = state
+
+      // Here is some tricky stuff going on. First of all, we have to assume that this0 contains only identifiers.
+      // If we get top for this0, we have a problem, because we don't know where the reference is pointing
+      val strings:Set[Expression] =
+      for (id <- this0.toSetOrFail) yield {
+        id match {
+          case i:Identifier =>
+            SRecords.insertRef(i)
+            Constant(i.getName,TString,pp)
+          case _ =>
+            UnitExpression(TString,pp)
+        }
+      }
+
+      val stringExpr = ExpressionSet(TString,SetDomain.Default.Inner(strings))
+      val typ = GRef(this0.typ.asInstanceOf[AAny])
+      New[S](typ,Map(typ.field__identifier -> stringExpr))(curState,pp)
+
+    }
+  }
+
+  case class ReferenceConversionAndThenSemantics(thenApi: ApiMember) extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet,
+                                                 method: ApiMember,
+                                                 parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      val refState = member__ref.semantics.forwardSemantics[S](this0,member__ref,Nil)(pp,state)
+      val newThis = refState.expr
+      thenApi.semantics.forwardSemantics[S](newThis,method,parameters)(pp,refState)
+    }
+  }
+
+
+  /** Never used: Add specified value to given reference */
+  def member__add:ApiMember = ApiMember(
+    name = "◈add",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__add)
+  )
+
+  /** Never used: Set reference to invalid */
+  def member__clear:ApiMember = ApiMember(
+    name = "◈clear",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__clear)
+  )
+
+  def member__confirmed:ApiMember = ApiMember(
     name = "◈confirmed",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = CloudQueryWrapper(ValidPureSemantics,Set(CloudEnabledModifier))
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__confirmed)
   )
 
-  def member__ref = ApiMember(
+  /** Never used: Get the current value of the reference */
+  def member__get:ApiMember = ApiMember(
+    name = "◈get",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = this,
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__get)
+  )
+
+  /** Never used: Set the value of the reference */
+  def member__set:ApiMember = ApiMember(
+    name = "◈set",
+    paramTypes = List(ApiParam(this)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__set)
+  )
+
+  /** Never used: Set reference to `v` if it's currently non-empty */
+  def member__test_and_set:ApiMember = ApiMember(
+    name = "◈test and set",
+    paramTypes = List(ApiParam(this)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__test_and_set)
+  )
+
+  def member__ref:ApiMember = ApiMember(
     name = "◈ref",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = GRef(this),
-    semantics = new ApiMemberSemantics {
-      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        var curState = state
-
-        // Here is some tricky stuff going on. First of all, we have to assume that this0 contains only identifiers.
-        // If we get top for this0, we have a problem, because we don't know where the reference is pointing
-        val strings:Set[Expression] =
-          for (id <- this0.toSetOrFail) yield {
-            id match {
-              case i:Identifier =>
-                SRecords.insertRef(i)
-                Constant(i.getName,TString,pp)
-              case _ =>
-                // TODO: Fix
-                UnitExpression(TString,pp)
-            }
-          }
-
-        val stringExpr = ExpressionSet(TString,SetDomain.Default.Inner(strings))
-        val typ = GRef(this0.getType().asInstanceOf[AAny])
-        New[S](typ,Map(typ.field__identifier -> stringExpr))(curState,pp)
-      }
-    }
+    semantics = RefConversionSemantics()
   )
 
   def member_∥ = ApiMember(
@@ -80,7 +146,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     returnType = TBoolean,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        Return[S](this0 equal Invalid(this0.getType(), "")(pp))(state, pp)
+        Return[S](this0 equal Invalid(this0.typ, "")(pp))(state, pp)
       }
     }
   )
@@ -155,8 +221,13 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       "is invalid" -> member_is_invalid,
       "post to wall" -> member_post_to_wall,
       "equals" -> member_equals,
-      "◈ref" -> member__ref,
-      member__confirmed.name -> member__confirmed
+      member__ref.name -> member__ref,
+      member__confirmed.name -> member__confirmed,
+      member__add.name -> member__add,
+      member__clear.name -> member__clear,
+      member__get.name -> member__get,
+      member__set.name -> member__set,
+      member__test_and_set.name -> member__test_and_set
     )
 
   def isSingleton = false
@@ -165,7 +236,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def possibleFields = Set.empty
 
   override def representedFields =
-    if (TouchAnalysisParameters.get.libraryFieldPruning && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
+    if (TouchAnalysisParameters.get.libraryFieldPruning &&
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
       val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
       val typFields = possibleFields -- mutedFields
       typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
@@ -189,11 +261,11 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
    * Checks if the object or any other
    */
   def applyForwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String,
-                                                 parameters: List[ExpressionSet], typeparameters: List[Type],
-                                                 returnedtype: Type, pp: ProgramPoint, state: S): Option[S] = {
+                                                 parameters: List[ExpressionSet], typeParameters: List[Type],
+                                                 returnedType: Type, pp: ProgramPoint, state: S): Option[S] = {
 
 
-    if (thisExpr.getType().asInstanceOf[TouchType].typeName == typeName) {
+    if (thisExpr.typ.asInstanceOf[TouchType].typeName == typeName) {
 
       if (state.isBottom) {
         return Some(state.bottom())
@@ -202,18 +274,22 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       var curState = state
 
       // Check if the object or an argument can be invalid - in this case, we must produce an error
-      if (operator != "is invalid" && operator != ":=" && operator != "," && thisExpr.getType().name != "code") {
-        if (!thisExpr.getType().isStatic) {
+      if (operator != "is invalid" && operator != ":=" && operator != "," && thisExpr.typ.name != "code") {
+        if (!thisExpr.typ.isStatic) {
           if (TouchAnalysisParameters.get.printValuesInWarnings)
-            curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object (" + thisExpr + ") whose field/method is accessed might be invalid")(curState, pp)
+            curState = Error(thisExpr equal Invalid(thisExpr.typ, "")(pp),
+              operator, "Object (" + thisExpr + ") whose field/method is accessed might be invalid")(curState, pp)
           else
-            curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object whose field/method is accessed might be invalid")(curState, pp)
+            curState = Error(thisExpr equal Invalid(thisExpr.typ, "")(pp),
+              operator, "Object whose field/method is accessed might be invalid")(curState, pp)
         }
         for (param <- parameters) {
           if (TouchAnalysisParameters.get.printValuesInWarnings)
-            curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter (" + param + ") might be invalid")(curState, pp)
+            curState = Error(param equal Invalid(param.typ, "")(pp),
+              operator, "Parameter (" + param + ") might be invalid")(curState, pp)
           else
-            curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter might be invalid")(curState, pp)
+            curState = Error(param equal Invalid(param.typ, "")(pp),
+              operator, "Parameter might be invalid") (curState, pp)
         }
       }
 
@@ -221,7 +297,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         return Some(state.bottom())
       }
 
-      Some(forwardSemantics(thisExpr, operator, parameters, returnedtype.asInstanceOf[TouchType])(pp, curState))
+      AbstractEventGraph.record(operator,thisExpr,parameters,state,pp)
+
+      Some(forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState))
 
     } else None
 
@@ -236,7 +314,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
    * @param state // state after evaluation of the parameters
    * @return // state after evaluation of the method / operator
    */
-  def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
+  def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet],
+                                      returnedType: TouchType)
                                      (implicit pp: ProgramPoint, state: S): S = method match {
 
     case _ =>
@@ -245,11 +324,10 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
-  private def matchRecordCalls[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
+  private def matchRecordCalls[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String,
+                                              returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
 
-    // Sometimes, x.bla(y) is rewritten to code->bla(x,y) for records
-    val context = SystemParameters.analysisUnitContext
-    val arguments = this0.getType() :: (parameters map (_.getType()))
+    val arguments = this0.typ :: (parameters map (_.typ))
     SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(method, arguments) match {
       case Some(mdecl) =>
         MethodSummaries.collect(pp, mdecl, state, parameters)
@@ -259,7 +337,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
-  private def matchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String, returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
+  private def matchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String,
+                                         returnedType:TouchType)(implicit state: S, pp: ProgramPoint): S = {
 
     val fieldResult =
       if (parameters.isEmpty)
@@ -340,5 +419,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def mkGetters(fields: Set[ApiField]) = fields.map { x: ApiField => (
     x.getName, ApiMember(x.getName, List(), ApiParam(this), x.typ, DefaultSemantics))
   }.toMap
+
+  def Clear[S <: State[S]](this0:RichExpression)(implicit state:S,pp:ProgramPoint) = {
+    Assign[S](this0,Default(this0.typ,"Value got cleared"))
+  }
 
 }

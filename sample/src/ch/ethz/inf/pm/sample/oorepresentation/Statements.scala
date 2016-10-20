@@ -176,7 +176,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     val exprright = stateright.expr
     stateright = stateright.removeExpression()
     var result = stateright.setVariableToTop(exprleft)
-    val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top()); //TODO type is wrong
+    val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.typ.top()); //TODO type is wrong
     result = result.setExpression(condition)
     result.testTrue().refiningAssignVariable(oldPreState, exprleft, exprright)
   }
@@ -501,7 +501,7 @@ case class MethodCall(
         case None => ()
       }
     }
-    Reporter.reportImpreciseSemantics("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programpoint)
+    Reporter.reportImpreciseSemantics("Type " + thisExpr.typ + " with method " + invokedMethod + " not implemented", programpoint)
     state.top()
   }
 
@@ -517,7 +517,7 @@ case class MethodCall(
         case None => ()
       }
     }
-    Reporter.reportImpreciseSemantics("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", programPoint)
+    Reporter.reportImpreciseSemantics("Type " + thisExpr.typ + " with method " + invokedMethod + " not implemented", programPoint)
     state.top()
   }
 

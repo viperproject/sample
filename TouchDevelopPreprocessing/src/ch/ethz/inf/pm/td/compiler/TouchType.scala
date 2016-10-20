@@ -130,6 +130,19 @@ object SkipSemantics extends ApiMemberSemantics {
 }
 
 
+object IdentitySemantics extends ApiMemberSemantics {
+
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
+                                              (implicit pp: ProgramPoint, state: S): S = {
+    if (SystemParameters.DEBUG) assert(method.returnType == this0.typ)
+    Return[S](this0)
+  }
+
+}
+
+
+
+
 object StopSemantics extends ApiMemberSemantics {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
@@ -163,7 +176,7 @@ object ScheduleEventHandlerSemantics extends ApiMemberSemantics {
                                                parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
 
     for (p <- parameters) {
-      p.getType() match {
+      p.typ match {
         case a:AAction =>
           //a.EnableHandler[S](p)(pp,state)
         case _ =>

@@ -47,6 +47,14 @@ trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
 
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
 
+  /**
+    * For a given IdentifierSet, returns all identifiers that may reach any of the given identifiers
+    *
+    * @param ids The identifiers to reached
+    * @return The reaching identifiers
+    */
+  def readableFrom(ids:IdentifierSet): IdentifierSet
+
 }
 
 
@@ -1121,6 +1129,25 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   override def getPossibleConstants(id: Identifier) = valueState.getPossibleConstants(id)
+
+  override def readableFrom(ids: IdentifierSet): IdentifierSet = {
+    Lattice.lfp[IdentifierSet](ids, {
+      case IdentifierSet.Top => IdentifierSet.Top
+      case IdentifierSet.Bottom => IdentifierSet.Bottom
+      case IdentifierSet.Inner(inner) =>
+        IdentifierSet.Inner(
+          inner.flatMap {
+            case i: HeapIdentifier =>
+              backwardMay.getOrElse(i, Set.empty) + i
+            case f@FieldIdentifier(obj, _, _) =>
+              backwardMay.getOrElse(obj, Set.empty) + f
+            case x =>
+              Set(x)
+          }
+        )
+    },99)
+  }
+
 }
 
 object TouchState {
