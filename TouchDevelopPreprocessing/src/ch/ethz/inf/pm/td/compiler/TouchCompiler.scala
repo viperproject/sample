@@ -53,9 +53,21 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   val cfgGenerator = new CFGGenerator(this)
 
-  def compileFile(path: String): List[ClassDefinition] = {
+  override def compile(compilable: Compilable): List[ClassDefinition] = {
+    compilable match {
+      case Compilable.Identifier(id) =>
+        val ((script,_), pubID) = ScriptRetriever.getPath(id)
+        compileScript(script,pubID)
+      case Compilable.Path(path) =>
+        val ((script,_), pubID) = ScriptRetriever.getPath(path.toAbsolutePath.toString)
+        compileScript(script,pubID)
+      case Compilable.Code(label,code) =>
+        val script = ScriptParser(code)
+        compileScript(script,label)
+    }
+  }
 
-    val ((script,_), pubID) = ScriptRetriever.getPath(path)
+  private def compileScript(script:Script, pubID:String): List[ClassDefinition]= {
 
     // Compile
     main = compileScriptRecursive(script, pubID)
@@ -88,7 +100,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   }
 
-  def compileScriptRecursive(script: Script, pubID: String, libDef: Option[LibraryDefinition] = None): ClassDefinition = {
+  private def compileScriptRecursive(script: Script, pubID: String, libDef: Option[LibraryDefinition] = None): ClassDefinition = {
 
     // update fields
     libDef match {
@@ -136,11 +148,11 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }).mkString("\n")
   }
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(Dispatcher)
+  def getNativeMethodsSemantics: List[NativeMethodSemantics] = List(Dispatcher)
 
   def extensions(): List[String] = List("td", "json")
 
-  def getLabel(): String = "TouchDevelop"
+  def label: String = "TouchDevelop"
 
   /**
    * Discovers all libraries required by a script

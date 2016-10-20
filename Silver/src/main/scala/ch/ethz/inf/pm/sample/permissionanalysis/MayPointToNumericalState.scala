@@ -10,7 +10,7 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -85,6 +85,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
   this: S =>
 
   def fieldSet: Set[(Type,String)] // fields declared within the program
+  def ids = IdentifierSet.Top
 
   def currentPP: ProgramPoint // current program point
   def flag: Boolean // true = materialization allowed; false = materialization not allowed
@@ -1352,7 +1353,7 @@ object MayPointToAPolyhedraEntryStateBuilder
 trait MayPointToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: MayPointToNumericalState[N,T]] extends SilverAnalysisRunner[T] {
 
   override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+    val results = run(Compilable.Path(new File(args(0)).toPath)).collect{ case m:MethodAnalysisResult[T] => m }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     // map of method names to control flow graphs

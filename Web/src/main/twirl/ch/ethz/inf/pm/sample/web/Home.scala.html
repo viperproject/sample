@@ -30,6 +30,18 @@
                 </td>
             </tr>
             }
+            @app.identifierProvider.map { arg =>
+            <tr>
+                <td>Online</td>
+                <td>
+                    @arg.identifiers.map { testFile =>
+                    <a class="btn btn-default btn-xs" href="/@app.prefix/analyze/?file=@testFile.urlEncoded">
+                        @testFile.name
+                    </a>
+                    }
+                </td>
+            </tr>
+            }
         </table>
         }
     </div>

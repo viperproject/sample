@@ -482,8 +482,8 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   override def command(cmd: Command): T = {
     logger.trace(s"command($cmd)")
     cmd match {
-      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(inhale)))
-      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.getNonTop.map(exhale)))
+      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(inhale)))
+      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(exhale)))
       case PreconditionCommand(condition) =>
         val expression = condition.getSingle.get
         inhale(expression).setPrecondition(expression)
@@ -1340,6 +1340,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
+
+  override def ids = IdentifierSet.Top
+
 }
 
 object PermissionAnalysisState
@@ -1393,7 +1396,7 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
   extends SilverAnalysisRunner[T]
 {
   override def main(args: Array[String]) {
-    val results = run(new File(args(0)).toPath)
+    val results = run(Compilable.Path(new File(args(0)).toPath)).collect{ case x: MethodAnalysisResult[T] => x }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     // map of method names to control flow graphs

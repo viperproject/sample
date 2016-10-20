@@ -17,10 +17,12 @@
 
 <div class="row-fluid">
     <div class="col-md-12">
-        @for(resultIndex <- 0 to app.resultsOption.get.size - 1) {
-        <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@resultIndex/">
-            @app.resultsOption.get(resultIndex).method.name
-        </a>
+        @for((result,resultIndex) <- app.resultsOption.get.zipWithIndex) {
+
+            <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@resultIndex/">
+                @result.displayName
+            </a>
+
         }
     </div>
 </div>

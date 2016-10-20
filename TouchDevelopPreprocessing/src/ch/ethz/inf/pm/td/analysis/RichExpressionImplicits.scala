@@ -11,8 +11,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
 import ch.ethz.inf.pm.td.semantics.{TBoolean, TNumber, TString}
-import scala.language.implicitConversions
 
+import scala.language.implicitConversions
 import scala.collection.immutable.Range.Inclusive
 
 object RichExpressionImplicits extends RichExpressionImplicits
@@ -44,6 +44,15 @@ trait RichExpressionImplicits {
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def PositiveInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(Constant("posinfty", TNumber, pp))
   def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(Constant("neginfty", TNumber, pp))
+
+  def Default(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpression = {
+    typ match {
+      case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber, pp)))
+      case TBoolean =>  toRichExpression(new ExpressionSet(TBoolean).add(False))
+      case TString =>   toRichExpression(ExpressionSet(Constant("", TString, pp)))
+      case _ =>         toRichExpression(Invalid(typ,cause))
+    }
+  }
 
   def Invalid(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpression = toRichExpression(InvalidExpression(typ, cause, pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))

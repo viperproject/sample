@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.test
 
-import ch.ethz.inf.pm.td.analysis.TouchRun
 import org.scalatest.FunSuite
 
 /**
@@ -124,8 +123,8 @@ class WeakConsistencyTest extends FunSuite {
   //   +(\w+)\t([^\n]*)
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
-  def runAnalysis(id:String) = {
-    TouchRun.runSingleNoThread(id)
-  }
+//  def runAnalysis(id:String) = {
+//    TouchRun.runSingleNoThread(id)
+//  }
 
 }

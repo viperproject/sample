@@ -6,15 +6,7 @@
 
 package ch.ethz.inf.pm.sample.web
 
-import java.nio.file.Path
-
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.{StdOutOutput, StringCollector, SystemParameters}
-import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
-import ch.ethz.inf.pm.sample.execution.{TrackingCFGState, AnalysisResult, AnalysisRunner, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
 
 /**
  * Implements web interface for TouchDevelop
@@ -24,49 +16,60 @@ class TouchDevelopApp extends App {
   /** Provides all test files that the user can choose to analyze. */
   override def fileProvider: TestFileProvider = TouchDevelopFileProvider
 
+  /** Provides additional test cases, identified only by there ID */
+  override def identifierProvider: Option[IdentifierProvider] = Some(TouchDevelopIdentifierProvider)
+
   /** List of pre-defined analysis runners. */
-  override def availableAnalysisRunners = Seq(new TouchDevelopMayMustAnalysisRunner())//,new TouchDevelopMayAnalysisRunner(),new TouchDevelopSummaryAnalysisRunner())
+  override def availableAnalysisRunners = Seq(new TouchDevelopAnalysisRunner.Default())
 
   val prefix = "td"
 }
 
-object TouchDevelopFileProvider extends ResourceTestFileProvider(namePattern = ".*\\.(td|json)") {
+object TouchDevelopIdentifierProvider extends IdentifierProvider {
 
+  override def identifiers: Seq[IdentifierTest] = Seq(
+    IdentifierTest("dekker example (Fixed) (fekcblzqer)", "td://fekcblzqer"),
+    IdentifierTest("Events (Fixed) (hqttcleqlj)", "td://hqttcleqlj"),
+    IdentifierTest("CSCE 1030 DASHBOARD (Fixed) (nekvbalhdm)", "td://nekvbalhdm"),
+    IdentifierTest("sky locale (Fixed) (pmzxrhbsrv)", "td://pmzxrhbsrv"),
+    IdentifierTest("tetris (Fixed) (xrqeregnpk)", "td://xrqeregnpk"),
+    IdentifierTest("cloud list (blqz)", "td://blqz"),
+    IdentifierTest("TouchDatabase (cavke)", "td://cavke"),
+    IdentifierTest("Super Chat (cvuz)", "td://cvuz"),
+    IdentifierTest("Save Passwords (eddm)", "td://eddm"),
+    IdentifierTest("ec2 demo chat (eijba)", "td://eijba"),
+    IdentifierTest("Contest Voting (etww)", "td://etww"),
+    IdentifierTest("Chatter box (fqaba)", "td://fqaba"),
+    IdentifierTest("Hubstar (gbtxe)", "td://gbtxe"),
+    IdentifierTest("tetris (gcane)", "td://gcane"),
+    IdentifierTest("NuvolaList 2 (kjxzcgcv)", "td://kjxzcgcv"),
+    IdentifierTest("FieldGPS (kmac)", "td://kmac"),
+    IdentifierTest("HackER (kqfnc)", "td://kqfnc"),
+    IdentifierTest("Cloud Example (kzwue)", "td://kzwue"),
+    IdentifierTest("instant poll (nggfa)", "td://nggfa"),
+    IdentifierTest("expense recorder (nvoha)", "td://nvoha"),
+    IdentifierTest("keyboard hero (ohgxa)", "td://ohgxa"),
+    IdentifierTest("CSCE 1030 DASHBOARD (ornb)", "td://ornb"),
+    IdentifierTest("dekker example (oxhs)", "td://oxhs"),
+    IdentifierTest("sky locale (padg)", "td://padg"),
+    IdentifierTest("metaverse (qnpge)", "td://qnpge"),
+    IdentifierTest("Events (qwidc)", "td://qwidc"),
+    IdentifierTest("TouchDevelop Jr. (qzeua)", "td://qzeua"),
+    IdentifierTest("cloud card (qzju)", "td://qzju"),
+    IdentifierTest("Relatd (ruef)", "td://ruef"),
+    IdentifierTest("Cloud Paper Scissors (sxjua)", "td://sxjua"),
+    IdentifierTest("pentix (uvjba)", "td://uvjba"),
+    IdentifierTest("Color Line (uvlma)", "td://uvlma"),
+    IdentifierTest("unique poll (wbuei)", "td://wbuei"),
+    IdentifierTest("Online Tic Tac Toe Multiplayer  (wccqepeb)", "td://wccqepeb"),
+    IdentifierTest("Vulcanization calculator (whpgc)", "td://whpgc"),
+    IdentifierTest("Expense Splitter (wkvhc)", "td://wkvhc"),
+    IdentifierTest("guess multi-player demo (ycxbc)", "td://ycxbc")
+  )
 
 }
 
-trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
-
-  val touchParams = TouchAnalysisParameters.get
-
-  override val compiler = new TouchCompiler
-
-  override def prepareContext() = {
-    super.prepareContext()
-
-    SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-    SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
-
-  }
-
-  override def run(path: Path): List[AnalysisResult[S]] = {
-    prepareContext()
-    compiler.generateTopType()
-    val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
-
-    SystemParameters.compiler.compile(path.toString)
-    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
-
-    val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    analyzer.analyze(Nil,entryState) map { x => AnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
-  }
-
-}
-
-class TouchDevelopMayMustAnalysisRunner extends TouchDevelopAnalysisRunner[TouchEntryStateBuilder.State] {
-  override val analysis = new TouchDevelopMayMustAnalysis
-}
-class TouchDevelopMayMustAnalysis extends SimpleForwardAnalysis[TouchEntryStateBuilder.State](new TouchEntryStateBuilder(TouchAnalysisParameters.get))
+object TouchDevelopFileProvider extends ResourceTestFileProvider(namePattern = ".*\\.(td|json)")
 
 
 

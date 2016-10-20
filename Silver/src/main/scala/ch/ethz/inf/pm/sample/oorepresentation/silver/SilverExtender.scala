@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, AnalysisResult}
+import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, MethodAnalysisResult}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.ProgramPoint
 import viper.silver.{ast => sil}
@@ -58,7 +58,7 @@ trait SilverSpecification
 trait SilverExtender[S <: State[S] with SilverSpecification]
 {
   /** Extends a sil.Program with inferred specifications. */
-  def extendProgram(prog: sil.Program, results: List[AnalysisResult[S]]): sil.Program = {
+  def extendProgram(prog: sil.Program, results: List[MethodAnalysisResult[S]]): sil.Program = {
     // map of method names to control flow graphs
     val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
     // extending program methods

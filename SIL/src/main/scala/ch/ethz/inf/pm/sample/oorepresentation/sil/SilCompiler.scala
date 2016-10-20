@@ -22,7 +22,7 @@ class SilCompiler extends Compiler {
 
   var program: sil.Program = null
 
-  def getLabel(): String = "SIL"
+  def label: String = "SIL"
 
   def extensions(): List[String] = "sil" :: Nil
 
@@ -30,24 +30,25 @@ class SilCompiler extends Compiler {
    * @todo Does not support directories (multiple filbies) as input at the moment.
    * @todo Contains absolutely no error handling
    */
-  def compileFile(path: String): List[ClassDefinition] = {
-    val file = Paths.get(path)
-    val input = Source.fromInputStream(Files.newInputStream(file)).mkString
-    val parseResult = Parser.parse(input, file)
-    parseResult match {
-      case Parser.Success(e, _) =>
-        ()
-      case Parser.Failure(msg, next) =>
-        println(s"Failure: $msg $file, ${next.pos.line}, ${next.pos.column}")
-        return Nil // FIXME
-      case Parser.Error(msg, next) =>
-        println(s"Error: $msg $file, ${next.pos.line}, ${next.pos.column}")
-        return Nil // FIXME
-    }
-    Resolver(parseResult.get).run
+  def compile(comp: Compilable): List[ClassDefinition] = comp match {
+    case Compilable.Path(file) =>
+      val input = Source.fromInputStream(Files.newInputStream(file)).mkString
+      val parseResult = Parser.parse(input, file)
+      parseResult match {
+        case Parser.Success(e, _) =>
+          ()
+        case Parser.Failure(msg, next) =>
+          println(s"Failure: $msg $file, ${next.pos.line}, ${next.pos.column}")
+          return Nil // FIXME
+        case Parser.Error(msg, next) =>
+          println(s"Error: $msg $file, ${next.pos.line}, ${next.pos.column}")
+          return Nil // FIXME
+      }
+      Resolver(parseResult.get).run
 
-    val program = Translator(parseResult.get).translate.get
-    compileProgram(program)
+      val program = Translator(parseResult.get).translate.get
+      compileProgram(program)
+    case _ => throw new UnsupportedOperationException("Compilable "+comp+" not supported by this compiler")
   }
 
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
@@ -71,7 +72,7 @@ class SilCompiler extends Compiler {
     case (clazz, method) :: methods => Some(method, classType)
   }
 
-  def getNativeMethodsSemantics() =
+  def getNativeMethodsSemantics =
     ArithmeticAndBooleanNativeMethodSemantics ::
       RichNativeMethodSemantics :: Nil
 
@@ -89,5 +90,6 @@ class SilCompiler extends Compiler {
 
   def refType: RefType =
     classes.get.head.typ.asInstanceOf[RefType]
+
 }
 

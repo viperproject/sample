@@ -1435,7 +1435,8 @@ object IntegerOctagons
     override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons = {
       val dbm = closed.orElse(open).get
       if (env.isTop) Top
-      else if (dbm.isBottom) Bottom
+      else if (dbm.isBottom)
+        Bottom
       else Inner(env, closed, open)
     }
 
@@ -1563,7 +1564,8 @@ object DoubleOctagons {
     override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons = {
       val dbm = closed.orElse(open).get
       if (env.isTop) Top
-      else if (dbm.isBottom) Bottom
+      else if (dbm.isBottom)
+        Bottom
       else Inner(env, closed, open)
     }
 
