@@ -132,6 +132,13 @@ object HeapNode
     */
   object NullNode
     extends HeapNode("null")
+  {
+    /** Returns true if the identifier represents exactly one variable.
+      *
+      * @return True if the identifier represents exactly one variable.
+      */
+    override def representsSingleVariable: Boolean = false
+  }
 
   /** The unique new node used to represent a newly created heap location.
     */
@@ -174,6 +181,12 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @return The current program point.
     */
   def currentPP: ProgramPoint
+
+  /** Returns true if materialization is allowed.
+    *
+    * @return True if materialization is allowed.
+    */
+  def materialization: Boolean
 
   /** Returns true if the graph is a must alias graph.
     *
@@ -223,6 +236,16 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @return The greatest lower bound of this and the other alias graph.
     */
   def glb(other: T): T
+
+  /** Returns the widening of this alias graph and the other alias graph.
+    *
+    * @param other The other alias graph.
+    * @return The widening of this alias graph and the other alias graph.
+    */
+  def widening(other: T): T = {
+    val graph = this lub other
+    graph.copy(materialization = false)
+  }
 
   /** Returns true if this alias graph is less than or equal to the other alias
     * graph.
@@ -307,14 +330,20 @@ trait AliasGraph[T <: AliasGraph[T]]
         receivers.foldLeft(state) {
           case (None, _) => None
           case (Some((store, heap)), receiver) =>
-            val fieldMap = heap.getOrElse(receiver, Map.empty)
-            val values = fieldMap.getOrElse(field, Set.empty)
-            val newValues = values & mask
-            if (newValues.isEmpty && isMayAliasGraph) None
-            else {
-              val newFieldMap = fieldMap + (field -> newValues)
-              val newHeap = heap + (receiver -> newFieldMap)
-              Some(store, newHeap)
+            if (receiver.representsSingleVariable) {
+              // update nodes that represent single variables
+              val fieldMap = heap.getOrElse(receiver, Map.empty)
+              val values = fieldMap.getOrElse(field, Set.empty)
+              val newValues = values & mask
+              if (newValues.isEmpty && isMayAliasGraph) None
+              else {
+                val newFieldMap = fieldMap + (field -> newValues)
+                val newHeap = heap + (receiver -> newFieldMap)
+                Some(store, newHeap)
+              }
+            } else {
+              // do not update nodes that do not represent single variables
+              Some(store, heap)
             }
         }
       case _ => state
@@ -463,22 +492,31 @@ trait AliasGraph[T <: AliasGraph[T]]
 
     // it should not happen that the summary node gets materialized
     if (values contains WildcardNode) {
-      // only materialize wildcard node in the may alias graph
-      if (isMayAliasGraph) {
-        // map variable to all nodes
-        val allNodes = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
-        val newStore = store + (variable -> allNodes)
-        (copy(store = newStore), allNodes)
-      } else (this, Set.empty)
+      if (materialization) {
+        // only materialize wildcard node in the may alias graph
+        if (isMayAliasGraph) {
+          // map variable to all nodes
+          val allNodes = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
+          val newStore = store + (variable -> allNodes)
+          (copy(store = newStore), allNodes)
+        } else (this, Set.empty)
+      } else (this, values)
     } else if (values contains UnknownNode) {
-      // create fresh heap node
-      val fresh = HeapNode(variable)
-      // remove unknown node and add fresh node
-      val newValues = values - UnknownNode + fresh
-      val newStore = store + (variable -> newValues)
-      // update heap with the fresh node
-      val newHeap = heap + (fresh -> heap(UnknownNode))
-      (copy(store = newStore, heap = newHeap), newValues)
+      if (materialization) {
+        // create fresh heap node
+        val fresh = HeapNode(variable)
+        // remove unknown node and add fresh node
+        val newValues = values - UnknownNode + fresh
+        val newStore = store + (variable -> newValues)
+        // update heap with the fresh node
+        val newHeap = heap + (fresh -> heap(UnknownNode))
+        (copy(store = newStore, heap = newHeap), newValues)
+      } else {
+        // replace unknown node by summary node
+        val newValues = values - UnknownNode + SummaryNode
+        val newStore = store + (variable -> newValues)
+        (copy(store = newStore), newValues)
+      }
     } else {
       // there is nothing to materialize
       (this, values)
@@ -497,22 +535,32 @@ trait AliasGraph[T <: AliasGraph[T]]
 
     // it should not happen that the summary node gets materialized
     if (values contains WildcardNode) {
-      // only materialize wildcard node in the may alias graph
-      if (isMayAliasGraph) {
-        // map field to all nodes
-        val allNodes: Set[HeapNode] = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
-        val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> allNodes)
+      if (materialization) {
+        // only materialize wildcard node in the may alias graph
+        if (isMayAliasGraph) {
+          // map field to all nodes
+          val allNodes: Set[HeapNode] = heap.keySet ++ heap.values.flatMap { map => map.values.flatten } - UnknownNode
+          val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> allNodes)
+          val newHeap = heap + (receiver -> newFieldMap)
+          (copy(heap = newHeap), allNodes)
+        } else (this, Set.empty)
+      } else (this, values)
+    } else if (values contains UnknownNode) {
+      if (materialization) {
+        // create fresh heap node
+        val fresh = HeapNode(s"${receiver.name}.$field")
+        // remove unknown node and add fresh node and update heap with fresh node
+        val newValues = values - UnknownNode + fresh
+        val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
+        val newHeap = heap + (receiver -> newFieldMap) + (fresh -> heap(UnknownNode))
+        (copy(heap = newHeap), newValues)
+      } else {
+        // replace unknown node by summary node
+        val newValues = values - UnknownNode + SummaryNode
+        val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
         val newHeap = heap + (receiver -> newFieldMap)
-        (copy(heap = newHeap), allNodes)
-      } else (this, Set.empty)
-    }else if (values contains UnknownNode) {
-      // create fresh heap node
-      val fresh = HeapNode(s"${receiver.name}.$field")
-      // remove unknown node and add fresh node and update heap with fresh node
-      val newValue = values - UnknownNode + fresh
-      val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValue)
-      val newHeap = heap + (receiver -> newFieldMap) + (fresh -> heap(UnknownNode))
-      (copy(heap = newHeap), newValue)
+        (copy(heap = newHeap), newValues)
+      }
     } else {
       // there is nothing to materialize
       (this, values)
@@ -693,31 +741,35 @@ trait AliasGraph[T <: AliasGraph[T]]
   /** Copies the alias graph but updates the store and the heap if the
     * corresponding arguments are defined.
     *
-    * @param store     The new store.
-    * @param heap      The new heap.
-    * @param fields    The set of fields in the program.
-    * @param currentPP The current program point
+    * @param fields          The set of fields in the program.
+    * @param currentPP       The current program point
+    * @param materialization The flag indicating whether materialization is allowed.
+    * @param store           The new store.
+    * @param heap            The new heap.
     * @return The updated copy of the alias graph.
     */
-  def copy(store: Store = store,
-           heap: Heap = heap,
-           fields: Set[String] = fields,
-           currentPP: ProgramPoint = currentPP): T
+  def copy(fields: Set[String] = fields,
+           currentPP: ProgramPoint = currentPP,
+           materialization: Boolean = materialization,
+           store: Store = store,
+           heap: Heap = heap): T
 }
 
 object AliasGraph
 {
   /** A graph representing may alias information.
     *
-    * @param store     The store.
-    * @param heap      The heap.
-    * @param fields    The set of fields in the program.
-    * @param currentPP The current program point.
+    * @param store           The store.
+    * @param heap            The heap.
+    * @param fields          The set of fields in the program.
+    * @param currentPP       The current program point.
+    * @param materialization The flag indicating whether materialization is allowed.
     */
   case class MayAliasGraph(store: Store = Store(),
                            heap: Heap = Heap(),
                            fields: Set[String] = Set.empty,
-                           currentPP: ProgramPoint = DummyProgramPoint)
+                           currentPP: ProgramPoint = DummyProgramPoint,
+                           materialization: Boolean = true)
     extends AliasGraph[MayAliasGraph]
   {
     /** Returns true if the given access paths may / must alias (depending on
@@ -773,10 +825,12 @@ object AliasGraph
       }
 
       // update alias graph
-      copy(store = newStore,
-        heap = newHeap,
+      copy(
         fields = fields ++ other.fields,
-        currentPP = DummyProgramPoint)
+        currentPP = DummyProgramPoint,
+        materialization = materialization && other.materialization,
+        store = newStore,
+        heap = newHeap)
     }
 
     /** Returns the greatest lower bound of this and the other alias graph.
@@ -812,10 +866,12 @@ object AliasGraph
       }
 
       // update alias graph
-      copy(store = newStore
-        , heap = newHeap,
+      copy(
         fields = fields & other.fields,
-        currentPP = DummyProgramPoint)
+        currentPP = DummyProgramPoint,
+        materialization = materialization || other.materialization,
+        store = newStore,
+        heap = newHeap)
     }
 
     /** Returns true if this alias graph is less than or equal to the other alias
@@ -853,30 +909,35 @@ object AliasGraph
     /** Copies the alias graph but updates the store, the heap, and current
       * program point if the corresponding arguments are defined.
       *
-      * @param store     The new store.
-      * @param heap      The new heap.
-      * @param fields    The set of fields in the program.
-      * @param currentPP The current program point.
+      * @param fields          The set of fields in the program.
+      * @param currentPP       The current program point.
+      * @param materialization The flag indicating whether materialization is allowed.
+      * @param store           The new store.
+      * @param heap            The new heap.
       * @return The updated copy of the alias graph.
       */
-    override def copy(store: Store,
-                      heap: Heap,
-                      fields: Set[String],
-                      currentPP: ProgramPoint): MayAliasGraph =
-      MayAliasGraph(store, heap, fields, currentPP)
+    override def copy(fields: Set[String],
+                      currentPP: ProgramPoint,
+                      materialization: Boolean,
+                      store: Store,
+                      heap: Heap): MayAliasGraph =
+      MayAliasGraph(store, heap, fields, currentPP, materialization)
   }
 
   /** A graph representing must alias information.
     *
-    * @param store     The store.
-    * @param heap      The heap.
-    * @param fields    The set of fields in the program
-    * @param currentPP The current program point.
+    * @param store           The store.
+    * @param heap            The heap.
+    * @param fields          The set of fields in the program
+    * @param currentPP       The current program point.
+    * @param materialization The flag indicating whether materialization is
+    *                        allowed.
     */
   case class MustAliasGraph(store: Store = Store(),
                             heap: Heap = Heap(),
                             fields: Set[String] = Set.empty,
-                            currentPP: ProgramPoint = DummyProgramPoint)
+                            currentPP: ProgramPoint = DummyProgramPoint,
+                            materialization: Boolean = true)
     extends AliasGraph[MustAliasGraph]
   {
     /** Returns true if the given access paths may / must alias (depending on
@@ -928,10 +989,12 @@ object AliasGraph
       }
 
       // update alias graph
-      copy(store = newStore,
-        heap = newHeap,
+      copy(
         fields = fields ++ other.fields,
-        currentPP = DummyProgramPoint)
+        currentPP = DummyProgramPoint,
+        materialization = materialization && other.materialization,
+        store = newStore,
+        heap = newHeap)
     }
 
     /** Returns the greatest lower bound of this and the other alias graph.
@@ -974,10 +1037,12 @@ object AliasGraph
       }
 
       // update alias graph
-      copy(store = newStore,
-        heap = newHeap,
+      copy(
         fields = fields & other.fields,
-        currentPP = DummyProgramPoint)
+        currentPP = DummyProgramPoint,
+        materialization = materialization || other.materialization,
+        store = newStore,
+        heap = newHeap)
     }
 
     /** Returns true if this alias graph is less than or equal to the other alias
@@ -1014,17 +1079,20 @@ object AliasGraph
     /** Copies the alias graph but updates the store, the heap, and the current
       * program point if the corresponding arguments are defined.
       *
-      * @param store     The new store.
-      * @param heap      The new heap.
-      * @param fields    The set of fields in the program.
-      * @param currentPP The new current program point.
+      * @param fields          The set of fields in the program.
+      * @param currentPP       The new current program point.
+      * @param materialization The flag indicating whether materialization is
+      *                        allowed.
+      * @param store           The new store.
+      * @param heap            The new heap.
       * @return The updated copy of the alias graph.
       */
-    override def copy(store: Store,
-                      heap: Heap,
-                      fields: Set[String],
-                      currentPP: ProgramPoint): MustAliasGraph =
-      MustAliasGraph(store, heap, fields, currentPP)
+    override def copy(fields: Set[String],
+                      currentPP: ProgramPoint,
+                      materialization: Boolean,
+                      store: Store,
+                      heap: Heap): MustAliasGraph =
+      MustAliasGraph(store, heap, fields, currentPP, materialization)
   }
 }
 
@@ -1045,12 +1113,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @return The current program point.
     */
   def currentPP: ProgramPoint
-
-  /** Returns true if materialization is allowed.
-    *
-    * @return True if materialization is allowed.
-    */
-  def materialization: Boolean
 
   /** Returns the result of the previous statement.
     *
@@ -1107,7 +1169,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       // update state
       copy(
         currentPP = DummyProgramPoint,
-        materialization = materialization || other.materialization,
         result = result lub other.result,
         may = lubMay,
         must = lubMust
@@ -1134,7 +1195,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       // update state
       copy(
         currentPP = DummyProgramPoint,
-        materialization = materialization && other.materialization,
         result = result glb other.result,
         may = glbMay,
         must = glbMust
@@ -1154,12 +1214,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     else if (this.isBottom || other.isTop) other
     else {
       // widening (or rather lub) of may and must alias graph
-      val widenMay = may lub other.may
-      val widenMust = must lub other.must
+      val widenMay = may widening other.may
+      val widenMust = must widening other.must
       // update state
       copy(
         currentPP = DummyProgramPoint,
-        materialization = false,
         result = result widening other.result,
         may = widenMay,
         must = widenMust
@@ -1175,11 +1234,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     *         given other alias analysis state.
     */
   override def lessEqual(other: T): Boolean = {
-    logger.trace(s"lessEqual($other)")
+    logger.trace(s"lessEqual($this, $other)")
 
-    if (this.isBottom || other.isTop) true
+    val x = if (this.isBottom || other.isTop) true
     else if (this.isTop || other.isBottom) false
     else (may lessEqual other.may) && (must lessEqual other.must)
+
+    logger.trace(s"result: $x")
+    x
   }
 
   /** Adds the given variable to the alias analysis state.
@@ -1412,8 +1474,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
     // materialize path
     val path = accessPath.map(_.getName)
-    val updatedMay = if (materialization) may.materialize(path) else may
-    val updatedMust = if (materialization) must.materialize(path) else must
+    val updatedMay = may.materialize(path)
+    val updatedMust = must.materialize(path)
 
     // new current expression
     val result = ExpressionSet(identifier)
@@ -1440,8 +1502,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     }
     // materialize path
     val path = accessPath.map(_.getName)
-    val updatedMay = if (materialization) this.may.materialize(path) else may
-    val updatedMust = if (materialization) must.materialize(path) else must
+    val updatedMay = may.materialize(path)
+    val updatedMust = must.materialize(path)
 
     // new current expression
     val result = ExpressionSet(AccessPathIdentifier(accessPath))
@@ -1600,15 +1662,15 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   }
 
   override def toString =
-    s"MAY ALIAS GRAPH:\n$may\n" +
-    s"MUST ALIAS GRAPH:\n$must"
+    if (isTop) "top"
+    else if (isBottom) "bottom"
+    else s"MAY ALIAS GRAPH:\n$may\nMUST ALIAS GRAPH:\n$must"
 
   /** Copies the alias analysis state but updates fields, current program point,
     * materialization flag, result, may alias graph, must alias graph, top flag,
     * and bottom flag if the corresponding arguments are defined.
     *
     * @param currentPP       The new current program point.
-    * @param materialization The new materialization flag.
     * @param result          The new result.
     * @param may             The new may alias graph.
     * @param must            The new must alias graph.
@@ -1617,7 +1679,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @return The updated copy of the alias analysis state.
     */
   def copy(currentPP: ProgramPoint = currentPP,
-           materialization: Boolean = materialization,
            result: ExpressionSet = result,
            may: MayAliasGraph = may,
            must: MustAliasGraph = must,
@@ -1630,7 +1691,6 @@ object AliasAnalysisState
   /** The default implementation of the alias analysis state.
     *
     * @param currentPP       The current program point.
-    * @param materialization The materialization flag.
     * @param result          The result.
     * @param may             The may alias graph.
     * @param must            The must alias graph.
@@ -1638,7 +1698,6 @@ object AliasAnalysisState
     * @param isBottom        The bottom flag.
     */
   case class Default(currentPP: ProgramPoint = DummyProgramPoint,
-                     materialization: Boolean = true,
                      result: ExpressionSet = ExpressionSet(),
                      may: MayAliasGraph = MayAliasGraph(),
                      must: MustAliasGraph = MustAliasGraph(),
@@ -1651,7 +1710,6 @@ object AliasAnalysisState
       * and bottom flag if the corresponding arguments are defined.
       *
       * @param currentPP       The new current program point.
-      * @param materialization The new materialization flag.
       * @param result          The new result.
       * @param may             The new may alias graph.
       * @param must            The new must alias graph.
@@ -1660,13 +1718,12 @@ object AliasAnalysisState
       * @return The updated copy of the alias analysis state.
       */
     override def copy(currentPP: ProgramPoint,
-                      materialization: Boolean,
                       result: ExpressionSet,
                       may: MayAliasGraph,
                       must: MustAliasGraph,
                       isTop: Boolean,
                       isBottom: Boolean): Default =
-      Default(currentPP, materialization, result, may, must, isTop, isBottom)
+      Default(currentPP, result, may, must, isTop, isBottom)
   }
 }
 
