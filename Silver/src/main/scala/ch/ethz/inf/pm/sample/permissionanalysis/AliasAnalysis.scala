@@ -328,25 +328,24 @@ trait AliasGraph[T <: AliasGraph[T]]
           Some(newStore, heap)
         }
       case (AccessPathIdentifier(path), state) =>
-        val field = path.last.getName
-        receivers.foldLeft(state) {
-          case (None, _) => None
-          case (Some((store, heap)), receiver) =>
-            if (receiver.representsSingleVariable) {
-              // update nodes that represent single variables
-              val fieldMap = heap.getOrElse(receiver, Map.empty)
-              val values = fieldMap.getOrElse(field, Set.empty)
-              val newValues = values & mask
-              if (newValues.isEmpty && isMayAliasGraph) None
-              else {
-                val newFieldMap = fieldMap + (field -> newValues)
-                val newHeap = heap + (receiver -> newFieldMap)
-                Some(store, newHeap)
-              }
-            } else {
-              // do not update nodes that do not represent single variables
-              Some(store, heap)
-            }
+        // only update if there is a unique receiver
+        if (receivers.size == 1 && receivers.head.representsSingleVariable) {
+          // get receiver and field
+          val receiver = receivers.head
+          val field = path.last.getName
+          // get field map and values
+          val fieldMap = heap.getOrElse(receiver, Map.empty)
+          val values = fieldMap.getOrElse(field, Set.empty)
+          // update
+          val newValues = values & mask
+          if (newValues.isEmpty && isMayAliasGraph) None
+          else {
+            val newFieldMap = fieldMap + (field -> newValues)
+            val newHeap = heap + (receiver -> newFieldMap)
+            Some(store, newHeap)
+          }
+        } else {
+          Some(store, heap)
         }
       case _ => state
     }
@@ -406,17 +405,18 @@ trait AliasGraph[T <: AliasGraph[T]]
           }
         case AccessPathIdentifier(path) =>
           val receivers = evaluateReceiver(path.map(_.getName))
+          val strong = receivers.size == 1 && receivers.head.representsSingleVariable
           val field = path.last.getName
           val newHeap = receivers.foldLeft(heap) {
             case (h, receiver) =>
               val fieldMap = h.getOrElse(receiver, Map.empty)
-              val newFieldMap = if (!receiver.representsSingleVariable && this.isInstanceOf[MayAliasGraph]){
+              val newFieldMap = if (strong || isMustAliasGraph) {
+                // strong update
+                fieldMap + (field -> values)
+              } else {
                 // weak update
                 val fieldValues = fieldMap.getOrElse(field, Set.empty)
                 fieldMap + (field -> (fieldValues ++ values))
-              } else {
-                // strong update
-                fieldMap + (field -> values)
               }
               h + (receiver -> newFieldMap)
           }
@@ -686,19 +686,22 @@ trait AliasGraph[T <: AliasGraph[T]]
         // make sure all but the last field are not null
         val fields = path.tail.map(_.getName)
         val (receiverValues, newHeap) = fields.init.foldLeft((newVariableValues, heap)) { case ((oldReceivers, oldHeap), field) =>
-          oldReceivers.foldLeft(Set.empty[HeapNode], oldHeap) { case ((currentReceivers, currentHeap), node) =>
-            val fieldMap = currentHeap.getOrElse(node, Map.empty)
-            val fieldValues = fieldMap.getOrElse(field, Set.empty)
-            if (node.representsSingleVariable && (fieldValues contains NullNode)) {
-              // report possible null pointer dereference
-              Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
-              // remove null node
-              val newFieldValues = fieldValues - NullNode
-              val newFieldMap = fieldMap + (field -> newFieldValues)
-              val newHeap = currentHeap + (node -> newFieldMap)
-              (currentReceivers ++ newFieldValues, newHeap)
-            } else (currentReceivers ++ fieldValues, currentHeap)
-          }
+          // only assume receiver to be non null if it is unique
+          if (oldReceivers.size == 1) {
+            oldReceivers.foldLeft(Set.empty[HeapNode], oldHeap) { case ((currentReceivers, currentHeap), node) =>
+              val fieldMap = currentHeap.getOrElse(node, Map.empty)
+              val fieldValues = fieldMap.getOrElse(field, Set.empty)
+              if (node.representsSingleVariable && (fieldValues contains NullNode)) {
+                // report possible null pointer dereference
+                Reporter.reportGenericWarning("Possible null pointer dereference", currentPP)
+                // remove null node
+                val newFieldValues = fieldValues - NullNode
+                val newFieldMap = fieldMap + (field -> newFieldValues)
+                val newHeap = currentHeap + (node -> newFieldMap)
+                (currentReceivers ++ newFieldValues, newHeap)
+              } else (currentReceivers ++ fieldValues, currentHeap)
+            }
+          } else (oldReceivers, oldHeap)
         }
 
         if (receiverValues.isEmpty && isMayAliasGraph) None
@@ -737,7 +740,7 @@ trait AliasGraph[T <: AliasGraph[T]]
       }
     }.toList.sorted.mkString("\n")
 
-    s"digraph {\n$storeEdges\n$heapEdges\n}"
+    s"materialization: $materialization\ndigraph {\n$storeEdges\n$heapEdges\n}"
   }
 
   /** Copies the alias graph but updates the store and the heap if the
@@ -1426,11 +1429,15 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         val assumedMay = may
           .materialize(left)
           .materialize(right)
-          .assumeComparison(left, right, operator)
+          .assumeNonNullReceiver(left)
+          .flatMap(_.assumeNonNullReceiver(right))
+          .flatMap(_.assumeComparison(left, right, operator))
         val assumedMust = must
           .materialize(left)
           .materialize(right)
-          .assumeComparison(left, right, operator)
+          .assumeNonNullReceiver(left)
+          .flatMap(_.assumeNonNullReceiver(right))
+          .flatMap(_.assumeComparison(left, right, operator))
         // update state
         if (assumedMay.isEmpty || assumedMust.isEmpty) bottom()
         else copy(may = assumedMay.get, must = assumedMust.get).pruneUnreachableHeap()
