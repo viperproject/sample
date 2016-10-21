@@ -378,7 +378,6 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @return
     */
   def assign(target: Expression, value: Expression): T = {
-    println(s"target: $target, value: $value")
     if (target.typ.isObject) {
 
       // evaluate value
