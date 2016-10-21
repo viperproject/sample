@@ -591,7 +591,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   def assignVariable(leftSet: ExpressionSet, rightSet: ExpressionSet): S = {
     unlessBottom(leftSet, {
       unlessBottom(rightSet, {
-        val result = if (rightSet.isTop) {
+        val result = if (rightSet.isTop || rightSet.s.isTop) {
           setVariableToTop(leftSet)
         } else {
           Lattice.bigLub(for (
@@ -619,7 +619,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     unlessBottom(objSet, {
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
-          val t = getFieldValue(objSet, field, rightSet.getType())
+          val t = getFieldValue(objSet, field, rightSet.typ)
           t.setVariableToTop(t.expr)
         } else {
           Lattice.bigLub(for (
@@ -727,7 +727,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     unlessBottom(objSet, {
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
-          val t = this.getFieldValue(objSet, field, rightSet.getType())
+          val t = this.getFieldValue(objSet, field, rightSet.typ)
           t.setVariableToTop(t.expr).setExpression(ExpressionFactory.unitExpr)
         } else {
           Lattice.bigLub(for (

@@ -21,12 +21,20 @@ import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
+import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.AbstractEventWithState
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
+import ch.ethz.inf.pm.td.domain.TouchState.CollectingDomain
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import com.typesafe.scalalogging.LazyLogging
 
 object TouchEntryStateBuilder {
+
+  type PreAnalysisValueState =
+    StringsAnd[
+      CollectingDomain,
+      NonrelationalStringDomain[StringKSetDomain]
+      ]
 
   type ValueState =
     StringsAnd[
@@ -41,10 +49,24 @@ object TouchEntryStateBuilder {
 
   type State = TouchState.Default[ValueState]
 
+  type PreAnalysisState = TouchState.PreAnalysis[PreAnalysisValueState]
+
 }
 
 case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
   extends ForwardEntryStateBuilder[TouchEntryStateBuilder.State] {
+
+  def preAnalysisTopState:TouchEntryStateBuilder.PreAnalysisState = {
+    TouchState.PreAnalysis(valueState =
+      StringsAnd(
+        CollectingDomain.Top,
+        NonrelationalStringDomain(
+          StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]
+        )
+      )
+    )
+  }
+
 
   override def topState = {
 
@@ -89,6 +111,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
   override def prepareContext() = {
     super.prepareContext()
 
+    AbstractEventGraph.reset()
     MethodSummaries.reset()
     SystemParameters.reset()
     TouchVariablePacking.reset()
@@ -101,7 +124,6 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
 
     SystemParameters.compiler = compiler
     SystemParameters.compiler.generateTopType()
-    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
     SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
 
@@ -125,9 +147,10 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
     val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    val methods:List[AnalysisResult] =
+    val methods:List[MethodAnalysisResult[S]] =
       analyzer.analyze(Nil,entryState) map { x => MethodAnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
-    val abs:WeightedGraph[S,AbstractEventGraph.EdgeLabel.Value] = AbstractEventGraph.toWeightedGraph
+    val abs:WeightedGraph[NodeWithState[S],AbstractEventGraph.EdgeLabel.Value] =
+      AbstractEventGraph.toWeightedGraph
     val messages = Reporter.messages
     WeightedGraphAnalysisResult("Abstract Event Graph",abs)::methods:::messages.toList
   }

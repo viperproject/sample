@@ -134,7 +134,7 @@ trait ACollection extends AAny {
     AssignField[S](collection, field_count, Count[S](collection) - 1)
   }
 
-  def Clear[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  override def Clear[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
     curState = SetCount[S](collection, 0)(curState, pp)
     curState = AssignField[S](collection,field_entry,

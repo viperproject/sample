@@ -63,7 +63,7 @@ object LibraryContract extends ForwardNativeMethodSemantics {
                                      (implicit pp: ProgramPoint, state: S): S = {
 
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
-    compiler.getMethodWithClassDefinition(method,this0.getType(),parameters map (_.getType())) match {
+    compiler.getMethodWithClassDefinition(method,this0.typ,parameters map (_.typ)) match {
       case Some(mdecl: MethodDeclaration) =>
 
         // We may access a library function
@@ -99,7 +99,7 @@ trait LibraryContract extends ForwardNativeMethodSemantics {
                                                  parameters: List[ExpressionSet], typeparameters: List[Type],
                                                  returnedtype: Type, pp: ProgramPoint, state: S): Option[S] = {
 
-    if (thisExpr.getType().asInstanceOf[TouchType].typeName == TypeName("♻"+name)) {
+    if (thisExpr.typ.asInstanceOf[TouchType].typeName == TypeName("♻"+name)) {
 
       Some(forwardSemantics(thisExpr, operator, parameters, returnedtype.asInstanceOf[TouchType])(pp, state))
 

@@ -57,7 +57,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
       None*/
     case x => parameters match {
       case Nil =>
-        val fields = thisExpr.getType().possibleFields
+        val fields = thisExpr.typ.possibleFields
         for(field <- fields) {
           if(field.equals(x)) {
             val fieldAccess = state.getFieldValue(thisExpr, x, returnedtype)
@@ -109,7 +109,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
      case x : String =>
        parameters match {
           case Nil =>
-            val fields = thisExpr.getType().possibleFields
+            val fields = thisExpr.typ.possibleFields
 	          for(field <- fields) {
 	            if(field.equals(x)) {
                 val fieldAccess = state.refiningGetFieldValue(thisExpr, field.getName, returnedtype.top())
@@ -126,7 +126,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
-		if(thisExpr.getType().toString.equals("Int"))
+		if(thisExpr.typ.toString.equals("Int"))
 			operator match {
 			  case ">=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
 			  case "<=" => createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);
@@ -173,7 +173,7 @@ object BooleanNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = {
-		if(thisExpr.getType().toString.equals("Boolean"))
+		if(thisExpr.typ.toString.equals("Boolean"))
 			operator match {
 			  case "&&" => createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.&&, returnedtype);
 			  case "||" => createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.||, returnedtype);

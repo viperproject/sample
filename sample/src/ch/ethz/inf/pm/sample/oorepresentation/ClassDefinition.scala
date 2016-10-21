@@ -424,8 +424,8 @@ trait NativeMethodSemantics {
    * @param thisExpr the expression representing the object on whom the method is called
    * @param operator the string of the called method
    * @param parameters the parameters of the called method
-   * @param typeparameters the list of type generics
-   * @param returnedtype the type of the returned value
+   * @param typeParameters the list of type generics
+   * @param returnedType the type of the returned value
    * @param state the abstract state in which the method call is evaluated
    * @return the abstract state obtained after the forward evaluation of the native method call,
     *         None if the semantics of the method call is not defined
@@ -433,9 +433,9 @@ trait NativeMethodSemantics {
   def applyForwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
                                                  operator: String,
                                                  parameters: List[ExpressionSet],
-                                                 typeparameters: List[Type],
-                                                 returnedtype: Type,
-                                                 programpoint: ProgramPoint,
+                                                 typeParameters: List[Type],
+                                                 returnedType: Type,
+                                                 programPoint: ProgramPoint,
                                                  state: S): Option[S]
 
   /**

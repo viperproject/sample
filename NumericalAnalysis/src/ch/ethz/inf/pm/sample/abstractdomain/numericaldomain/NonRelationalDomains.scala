@@ -910,7 +910,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
 
   override def reset(): Unit = ()
 
-  def getProperties: List[Property] = List(new SingleStatementProperty(DivisionByZero))
+  def getProperties: List[Property] = List(SingleStatementProperty.Default(DivisionByZero))
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 }

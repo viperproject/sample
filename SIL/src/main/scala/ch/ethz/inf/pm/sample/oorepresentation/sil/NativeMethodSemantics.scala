@@ -22,7 +22,7 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
                                                           returnType: Type,
                                                           programPoint: ProgramPoint,
                                                           state: S): Option[S] = {
-    val exprSet = (leftExp.getType(), op, parameters) match {
+    val exprSet = (leftExp.typ, op, parameters) match {
       case (IntType, "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "\\" | "%", _ :: Nil) |
            (BoolType, "==" | "!=", _ :: Nil) =>
         val arithmeticOp = ArithmeticOperator.withName(op.replace('\\', '/'))

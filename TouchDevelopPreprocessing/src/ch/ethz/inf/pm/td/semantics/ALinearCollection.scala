@@ -48,13 +48,13 @@ trait ALinearCollection extends ACollection {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(index) = parameters // Key_Type
 
-        if (index.getType() != TNumber)
+        if (index.typ != TNumber)
           throw new SemanticException("This is not a linear collection " + this0.toString)
 
         val newState = If[S](IndexInRange[S](this0, index), Then = { thenState =>
           Return[S](At[S](this0, index))(thenState, pp)
         }, Else = { elseState =>
-          Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(elseState, pp)
+          Return[S](Invalid(this0.typ.asInstanceOf[ACollection].valueType, "collection access may be out of range"))(elseState, pp)
         })
         newState
       }
@@ -84,7 +84,7 @@ trait ALinearCollection extends ACollection {
       If[S](Count[S](this0) > 0, Then = {
         Return[S](AllValues[S](this0))(_, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
+        Return[S](Invalid(this0.typ.asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
       })
     }
   }
