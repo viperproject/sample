@@ -517,7 +517,13 @@ trait AliasGraph[T <: AliasGraph[T]]
         // replace unknown node by summary node
         val newValues = values - UnknownNode + SummaryNode
         val newStore = store + (variable -> newValues)
-        (copy(store = newStore), newValues)
+        // add summary node to heap if it does not exist
+        val newHeap = if (heap contains SummaryNode) heap
+        else {
+          val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> Set(SummaryNode)) }
+          heap + (SummaryNode -> fieldMap)
+        }
+        (copy(store = newStore, heap = newHeap), newValues)
       }
     } else {
       // there is nothing to materialize
