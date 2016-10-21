@@ -1,12 +1,14 @@
 package ch.ethz.inf.pm.sample.test
 
+import ch.ethz.inf.pm.sample.oorepresentation.Compilable
+import ch.ethz.inf.pm.td.analysis.TouchDevelopAnalysisRunner
 import org.scalatest.FunSuite
 
 /**
   * Created by lucas on 25.08.16.
   */
-class WeakConsistencyTest extends FunSuite {
-//
+class PoplWeakConsistencyTest extends FunSuite {
+
 //  test("dekker example (Fixed) (fekcblzqer)") {
 //    runAnalysis("td://fekcblzqer")
 //  }
@@ -16,18 +18,18 @@ class WeakConsistencyTest extends FunSuite {
 //  test("CSCE 1030 DASHBOARD (Fixed) (nekvbalhdm)") {
 //    runAnalysis("td://nekvbalhdm")
 //  }
-//  test("sky locale (Fixed) (pmzxrhbsrv)") {
-//    runAnalysis("td://pmzxrhbsrv")
-//  }
-//  test("tetris (Fixed) (xrqeregnpk)") {
-//    runAnalysis("td://xrqeregnpk")
-//  }
+////  test("sky locale (Fixed) (pmzxrhbsrv)") {
+////    runAnalysis("td://pmzxrhbsrv")
+////  }
+////  test("tetris (Fixed) (xrqeregnpk)") {
+////    runAnalysis("td://xrqeregnpk")
+////  }
 //  test("cloud list (blqz)") {
 //    runAnalysis("td://blqz")
 //  }
-//  test("TouchDatabase (cavke)") {
-//    runAnalysis("td://cavke")
-//  }
+////  test("TouchDatabase (cavke)") {
+////    runAnalysis("td://cavke")
+////  }
 //  test("Super Chat (cvuz)") {
 //    runAnalysis("td://cvuz")
 //  }
@@ -43,12 +45,12 @@ class WeakConsistencyTest extends FunSuite {
 //  test("Chatter box (fqaba)") {
 //    runAnalysis("td://fqaba")
 //  }
-//  test("Hubstar (gbtxe)") {
-//    runAnalysis("td://gbtxe")
-//  }
-//  test("tetris (gcane)") {
-//    runAnalysis("td://gcane")
-//  }
+////  test("Hubstar (gbtxe)") {
+////    runAnalysis("td://gbtxe")
+////  }
+////  test("tetris (gcane)") {
+////    runAnalysis("td://gcane")
+////  }
 //  test("NuvolaList 2 (kjxzcgcv)") {
 //    runAnalysis("td://kjxzcgcv")
 //  }
@@ -79,9 +81,9 @@ class WeakConsistencyTest extends FunSuite {
 //  test("sky locale (padg)") {
 //    runAnalysis("td://padg")
 //  }
-//  test("metaverse (qnpge)") {
-//    runAnalysis("td://qnpge")
-//  }
+////  test("metaverse (qnpge)") {
+////    runAnalysis("td://qnpge")
+////  }
 //  test("Events (qwidc)") {
 //    runAnalysis("td://qwidc")
 //  }
@@ -97,9 +99,9 @@ class WeakConsistencyTest extends FunSuite {
 //  test("Cloud Paper Scissors (sxjua)") {
 //    runAnalysis("td://sxjua")
 //  }
-//  test("pentix (uvjba)") {
-//    runAnalysis("td://uvjba")
-//  }
+////  test("pentix (uvjba)") {
+////    runAnalysis("td://uvjba")
+////  }
 //  test("Color Line (uvlma)") {
 //    runAnalysis("td://uvlma")
 //  }
@@ -109,9 +111,9 @@ class WeakConsistencyTest extends FunSuite {
 //  test("Online Tic Tac Toe Multiplayer  (wccqepeb)") {
 //    runAnalysis("td://wccqepeb")
 //  }
-//  test("Vulcanization calculator (whpgc)") {
-//    runAnalysis("td://whpgc")
-//  }
+////  test("Vulcanization calculator (whpgc)") {
+////    runAnalysis("td://whpgc")
+////  }
 //  test("Expense Splitter (wkvhc)") {
 //    runAnalysis("td://wkvhc")
 //  }
@@ -123,8 +125,8 @@ class WeakConsistencyTest extends FunSuite {
   //   +(\w+)\t([^\n]*)
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
-//  def runAnalysis(id:String) = {
-//    TouchRun.runSingleNoThread(id)
-//  }
+  def runAnalysis(id:String) = {
+     TouchDevelopAnalysisRunner.Default().run(Compilable.Identifier(id))
+  }
 
 }

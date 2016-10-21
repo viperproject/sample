@@ -26,7 +26,7 @@ trait Default_GRef extends AAny {
   lazy val typeName = TypeName("Ref", List(TT.typeName))
           
   /** Never used: Add specified value to given reference */
-  def member__add = ApiMember(
+  override def member__add = ApiMember(
     name = "◈add",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
@@ -35,7 +35,7 @@ trait Default_GRef extends AAny {
   )
 
   /** Never used: Set reference to invalid */
-  def member__clear = ApiMember(
+  override def member__clear = ApiMember(
     name = "◈clear",
     paramTypes = List(),
     thisType = ApiParam(this),
@@ -43,8 +43,17 @@ trait Default_GRef extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Checks if value is confirmed */
+  override def member__confirmed = ApiMember(
+    name = "◈confirmed",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Get the current value of the reference */
-  def member__get = ApiMember(
+  override def member__get = ApiMember(
     name = "◈get",
     paramTypes = List(),
     thisType = ApiParam(this),
@@ -53,7 +62,7 @@ trait Default_GRef extends AAny {
   )
 
   /** Never used: Set the value of the reference */
-  def member__set = ApiMember(
+  override def member__set = ApiMember(
     name = "◈set",
     paramTypes = List(ApiParam(TT)),
     thisType = ApiParam(this),
@@ -62,7 +71,7 @@ trait Default_GRef extends AAny {
   )
 
   /** Never used: Set reference to `v` if it's currently non-empty */
-  def member__test_and_set = ApiMember(
+  override def member__test_and_set = ApiMember(
     name = "◈test and set",
     paramTypes = List(ApiParam(TT)),
     thisType = ApiParam(this),
@@ -78,7 +87,6 @@ trait Default_GRef extends AAny {
     returnType = GRef(TT),
     semantics = DefaultSemantics
   )
-
 
   override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "◈add" -> member__add,

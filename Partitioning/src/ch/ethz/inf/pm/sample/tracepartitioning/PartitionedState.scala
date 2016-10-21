@@ -476,7 +476,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     val separate = for {
       ex <- x.toSetOrFail
       px = this.partitioning
-      pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
+      pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.typ).add(ex)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -501,7 +501,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       ey <- y.toSetOrFail
       px = this.partitioning
       py = this.partitioning
-      pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
+      pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.typ).add(ex), new ExpressionSet(y.typ).add(ey)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -529,7 +529,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       px = this.partitioning
       py = this.partitioning
       pz = this.partitioning
-      pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey), new ExpressionSet(z.getType()).add(ez)))
+      pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.typ).add(ex), new ExpressionSet(y.typ).add(ey), new ExpressionSet(z.typ).add(ez)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -596,7 +596,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * @return The list of deterministic combinations of the argument
    */
   private[this] def combinations(xs: List[ExpressionSet]): List[List[ExpressionSet]] = xs match {
-    case x::xs => (for (ex <- x.toSetOrFail; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
+    case x::xs => (for (ex <- x.toSetOrFail; ps <- combinations(xs)) yield new ExpressionSet(x.typ).add(ex) :: ps).toList
     case Nil => Nil
   }
 

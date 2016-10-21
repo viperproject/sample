@@ -6,30 +6,21 @@
 
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.property.{OutputCollector, SingleStatementProperty}
-import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.domain.{TouchStateInterface, HeapIdentifier}
-import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
-import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchStateInterface}
 import com.typesafe.scalalogging.LazyLogging
 
 
 /**
- *
- * @author Lucas Brutschy
- *
- */
-
-trait CollectingState
-
-/**
- * Collects all the fields that are accessed in a program. This can be used to
- * optimize the analysis
- */
+  * Collects all the fields that are accessed in a program. This can be used to
+  * optimize the analysis
+  *
+  * @author Lucas Brutschy
+  */
 object RequiredLibraryFragmentAnalysis extends LazyLogging {
 
   var spottedFields = Set.empty[String]
@@ -54,17 +45,17 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
     val summaries = MethodSummaries.getSummaries[AccessCollectingState]
     val mustCheck = (s: MethodSummary[AccessCollectingState]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
-    yield (mdecl.classDef.typ, mdecl, cfgState)
+      yield (mdecl.classDef.typ, mdecl, cfgState)
 
     // now check if we see anything suspicious
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unanalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
       for (un <- unanalyzed) {
-        logger.debug("In ReqFragAnalysis: Did not analyze "+un.name+" (may be unreachable)")
+        logger.debug("In ReqFragAnalysis: Did not analyze " + un.name + " (may be unreachable)")
       }
     }
 
-    new SingleStatementProperty(new BottomVisitor()).check(results,output)
+    SingleStatementProperty.Default(new BottomVisitor()).check(results, output)
 
     compiler.relevantLibraryFields = spottedFields ++ Set("data", "art", "records", "code")
     SystemParameters.resetOutput()
@@ -74,17 +65,16 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
 }
 
 /**
- * This state does nothing but tracking the type of the current expression on the evaluation stack
- * and collecting all field accesses in the form of Type->FieldName. This can be used to perform
- * a very simple pre-analysis to detect the fragment of the library that is to be used in the present
- * program.
- *
- * @param myType the current expression on the evaluation stack
- */
+  * This state does nothing but tracking the type of the current expression on the evaluation stack
+  * and collecting all field accesses in the form of Type->FieldName. This can be used to perform
+  * a very simple pre-analysis to detect the fragment of the library that is to be used in the present
+  * program.
+  *
+  * @param myType the current expression on the evaluation stack
+  */
 class AccessCollectingState(myType: Type)
   extends State[AccessCollectingState]
-  with CollectingState
-  with TouchStateInterface[AccessCollectingState] {
+    with TouchStateInterface[AccessCollectingState] {
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.typ.top())
 
@@ -99,12 +89,12 @@ class AccessCollectingState(myType: Type)
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
-        (obj.getType().toString + "." + field) +
-        obj.getType().toString
+        (obj.typ.toString + "." + field) +
+        obj.typ.toString
     new AccessCollectingState(typ)
   }
 
-  def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
+  def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.typ)
 
   def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
@@ -176,10 +166,10 @@ class AccessCollectingState(myType: Type)
   override def getFieldValueWhere(objs: ExpressionSet, field: String, typ: Type, filter: (Identifier, AccessCollectingState) => Boolean): (Set[Identifier], Set[Identifier]) = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
-        (objs.getType().toString + "." + field) +
-        objs.getType().toString
-    filter(HeapIdentifier.makeDummy(typ),this)
-    (Set(HeapIdentifier.makeDummy(typ)),Set(HeapIdentifier.makeDummy(typ)))
+        (objs.typ.toString + "." + field) +
+        objs.typ.toString
+    filter(HeapIdentifier.makeDummy(typ), this)
+    (Set(HeapIdentifier.makeDummy(typ)), Set(HeapIdentifier.makeDummy(typ)))
   }
 
   override def merge(r: Replacement): AccessCollectingState = this
@@ -187,4 +177,7 @@ class AccessCollectingState(myType: Type)
   override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
 
   override def ids: IdentifierSet = IdentifierSet.Top
+
+  override def readableFrom(expr: IdentifierSet): IdentifierSet = IdentifierSet.Top
+
 }

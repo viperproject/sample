@@ -426,7 +426,7 @@ object MethodSummaries {
           }
           val right = curState.expr
           val expr = toExpressionSet(x.variable.id)
-          curState = curState.createVariable(expr, expr.getType(), x.programpoint)
+          curState = curState.createVariable(expr, expr.typ, x.programpoint)
           curState = curState.assignVariable(expr, right)
       })
 
@@ -436,7 +436,7 @@ object MethodSummaries {
     callTarget.arguments.apply(1).foreach({
       x: VariableDeclaration =>
         val expr = toExpressionSet(x.variable.id)
-        curState = curState.createVariable(expr, expr.getType(), callTarget.programpoint)
+        curState = curState.createVariable(expr, expr.typ, callTarget.programpoint)
         curState = curState.assignVariable(expr, Invalid(x.typ, "out-parameter may not have been initialized")(x.programpoint))
     })
 
@@ -472,7 +472,7 @@ object MethodSummaries {
       val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName),
         ProgramPointScopeIdentifier(callTarget.programpoint))(outParam.typ, callPoint)
       val tempVarExpr = ExpressionSet(tempVar)
-      curState = curState.createVariable(tempVarExpr, tempVarExpr.getType(), callTarget.programpoint)
+      curState = curState.createVariable(tempVarExpr, tempVarExpr.typ, callTarget.programpoint)
       curState = curState.assignVariable(tempVarExpr, ExpressionSet(outParam.variable.id))
       tempVar
     }

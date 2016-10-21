@@ -42,11 +42,6 @@ trait Analysis {
         }
       }
     }
-    if(SystemParameters.property!=null) {
-      SystemParameters.progressOutput.begin("Finalizing the checking the property")
-      SystemParameters.property.finalizeChecking(output)
-      SystemParameters.progressOutput.end("End of the checking of the property")
-    }
     System.out.println(output.output()+"STATISTICS [ Property validated:"+output.validated()+", Warnings:"+output.notvalidated()+", Inferred contracts:"+output.inferredcontracts()+", Time of analyisis: " + Timer.stop+" ]")
     res
   }

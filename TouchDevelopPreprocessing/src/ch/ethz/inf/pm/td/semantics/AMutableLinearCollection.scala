@@ -82,7 +82,7 @@ trait AMutableLinearCollection extends ALinearCollection {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(item,start) = parameters // Element_Type,Number
 
-        if (start.getType() != TNumber)
+        if (start.typ != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
         If[S](IndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
@@ -105,7 +105,7 @@ trait AMutableLinearCollection extends ALinearCollection {
 
         val List(index,item) = parameters // Number,Element_Type
 
-        if (index.getType() != TNumber)
+        if (index.typ != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
         If[S](IndexInRange[S](this0, index), Then=(state) => {
@@ -131,7 +131,7 @@ trait AMutableLinearCollection extends ALinearCollection {
 
         val List(index) = parameters // Number
 
-        if (index.getType() != TNumber)
+        if (index.typ != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
         If[S](IndexInRange[S](this0, index), Then=(state) => {
@@ -194,7 +194,7 @@ trait AMutableLinearCollection extends ALinearCollection {
 
         val List(index, value) = parameters // Number,Element_Type
 
-        if (index.getType() != TNumber)
+        if (index.typ != TNumber)
           throw new SemanticException("This is not a linear collection " + this0)
 
         If[S](IndexInRange[S](this0, index), Then=(state) => {

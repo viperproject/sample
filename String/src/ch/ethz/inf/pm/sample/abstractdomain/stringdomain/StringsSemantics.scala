@@ -19,7 +19,7 @@ object StringSemantics extends NativeMethodSemantics {
     programpoint : ProgramPoint,
 		state : S
 	) : Option[S] = {
-     if(! thisExpr.getType().toString.equals("String")) return None
+     if(! thisExpr.typ.toString.equals("String")) return None
       operator match {
 	  case "+" => 
 	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,

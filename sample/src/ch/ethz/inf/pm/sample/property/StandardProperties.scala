@@ -19,7 +19,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
  */
 
 object DivisionByZero extends Visitor {
-  override def getLabel = "DivisionByZero"
+  override def label = "DivisionByZero"
 
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
     case MethodCall(pp, FieldAccess(pp1, x, "/", typ), parametricTypes, y :: Nil, returnedType) =>

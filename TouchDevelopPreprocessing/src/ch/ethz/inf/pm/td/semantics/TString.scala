@@ -46,23 +46,6 @@ object TString extends Default_TString {
     semantics = DefaultSemantics
   )
 
-
-  def member__test_and_set = ApiMember(
-    name = "◈test and set",
-    paramTypes = List(ApiParam(TString,isMutated = false)),
-    thisType = ApiParam(this, isMutated = true),
-    returnType = TNothing,
-    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
-      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        If[S](this0 equal String(""), { x: S =>
-          Assign[S](this0,parameters.head)
-        }, { x: S =>
-          Skip[S]
-        })
-      }
-    },Set(CloudEnabledModifier))
-  )
-
   /** Returns the number of characters */
   //lazy val field_count = new TouchField("count",TNumber.typeName)
 
@@ -72,8 +55,7 @@ object TString extends Default_TString {
 
   override def declarations = super.declarations ++ Map (
     "copy" -> member_copy,
-    "at index" -> member_at_index,
-    member__test_and_set.name -> member__test_and_set
+    "at index" -> member_at_index
   )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)

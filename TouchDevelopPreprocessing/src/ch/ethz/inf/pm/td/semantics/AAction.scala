@@ -89,7 +89,7 @@ trait AAction extends AAny {
           case SetDomain.Default.Inner(xs) =>
             Lattice.bigLub(
               xs map { x =>
-                compiler.getMethod(x.constant, parameters map (_.getType())) match {
+                compiler.getMethod(x.constant, parameters map (_.typ)) match {
                   case Some(mdecl) =>
                     MethodSummaries.collect(pp, mdecl, state, parameters)
                   case _ =>
