@@ -23,7 +23,8 @@ trait Default_TPosition_Action extends AAction {
 
   lazy val typeName = TypeName("Position Action")
           
-  def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber))
+  override def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

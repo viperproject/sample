@@ -23,7 +23,8 @@ trait Default_TSprite_Set_Action extends AAction {
 
   lazy val typeName = TypeName("Sprite Set Action")
           
-  def actionArguments = List(ApiParam(TSprite_Set))
+  override def actionArguments = List(ApiParam(TSprite_Set))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

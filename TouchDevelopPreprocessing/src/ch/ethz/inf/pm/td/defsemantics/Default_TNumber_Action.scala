@@ -23,7 +23,8 @@ trait Default_TNumber_Action extends AAction {
 
   lazy val typeName = TypeName("Number Action")
           
-  def actionArguments = List(ApiParam(TNumber))
+  override def actionArguments = List(ApiParam(TNumber))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

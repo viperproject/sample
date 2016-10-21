@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement
 import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.parser.{Expression => _, Identifier => _, _}
+import ch.ethz.inf.pm.td.semantics.SHelpers
 import ch.ethz.inf.pm.td.transform.Rewriter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -343,34 +344,47 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
         val wPP = makeTouchProgramPoint(curPubID, curLibraryStableId, w)
 
-        val handlerSet =
-          for (InlineAction(handlerName, inParameters, outParameters, _, typ) <- handlerDefs) yield {
-            val typN =
+        val (handlerIdentities,handlerBodies) =
+          (for (i@InlineAction(handlerName, inParameters, outParameters, body, typ) <- handlerDefs) yield {
+
+            // Create an identifier to uniquely name the identifier
+            val handlerMethodName = handlerIdent(handlerName + wPP)
+            val handlerType =
               if (typ.ident == "Unknown" && inParameters.size == 1) {
                 TypeName("Action1",List(inParameters.head.typeName))
               } else typ
-            (handlerName, handlerIdent(handlerName + wPP), typN)
-          }
+            val enabledField = SHelpers.createHandler(handlerMethodName,handlerType)
 
-        val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body, typ) <- handlerDefs) yield {
-          val handlerMethodName = handlerIdent(handlerName + wPP)
-          val programPoint: ProgramPoint = wPP
-          val modifiers: List[Modifier] = List(ClosureModifier)
-          val name: MethodIdentifier = TouchMethodIdentifier(handlerMethodName, isEvent = true, isPrivate = true)
-          val parametricType: List[Type] = Nil
-          val arguments: List[List[VariableDeclaration]] =
-            List(inParameters map (parameterToVariableDeclaration(_, scope)), outParameters map (parameterToVariableDeclaration(_, scope)))
-          val returnType: Type = null
-          val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_, _, _, _, _, subHandlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
-          val preCond: Statement = null
-          val postCond: Statement = null
-          subHandlers ::: List(new MethodDeclaration(programPoint, currentClassDef.typ, modifiers, name, parametricType,
-            arguments, returnType, newBody, preCond, postCond, currentClassDef))
-        }).flatten
+            // Construct a body that checks whether the handler is enabled
+            val conditionalBody =
+              List(parser.If(
+                ty("Boolean",
+                  parser.Access(sty("Helpers", parser.SingletonReference("helpers","Helpers").copyPos(i)),
+                    parser.Identifier(enabledField).copyPos(i),Nil).copyPos(i)),
+                body,
+                List(parser.Skip().copyPos(i))
+              ).copyPos(i))
+
+            val programPoint: ProgramPoint = wPP
+            val modifiers: List[Modifier] = List(ClosureModifier)
+            val name: MethodIdentifier = TouchMethodIdentifier(handlerMethodName, isEvent = true, isPrivate = true)
+            val parametricType: List[Type] = Nil
+            val arguments: List[List[VariableDeclaration]] =
+              List(inParameters map (parameterToVariableDeclaration(_, scope)),
+                outParameters map (parameterToVariableDeclaration(_, scope)))
+            val returnType: Type = null
+            val newCFG: ControlFlowGraph = new ControlFlowGraph(programPoint)
+            val (_, _, _, _, _, subHandlers) = addStatementsToCFG(conditionalBody, newCFG, scope, currentClassDef)
+            val preCond: Statement = null
+            val postCond: Statement = null
+            val method = new MethodDeclaration(programPoint, currentClassDef.typ, modifiers, name, parametricType,
+                                               arguments, returnType, newCFG, preCond, postCond, currentClassDef)
+
+            ((handlerName, handlerMethodName, handlerType), subHandlers ::: List(method))
+          }).unzip
 
         // Create a statement that creates the handler object and assigns the handler variable
-        val handlerCreationStatements = handlerSet map {
+        val handlerCreationStatements = handlerIdentities map {
           case (variableName: String, actionName: String, handlerType: TypeName) =>
             expressionToStatement(
               ty("Nothing", parser.Access(
@@ -379,7 +393,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                 List(
                   tty(handlerType, parser.Access(
                     sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(w)),
-                    parser.Identifier("create " + handlerType.makeCode + " " + actionName).copyPos(w),
+                    parser.Identifier("create " + actionName).copyPos(w),
                     Nil
                   ).copyPos(w))
                 )
@@ -464,7 +478,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           }
 
         newStatements = newStatements ::: handlerCreationStatements ::: optionalArgumentCreationStatements ::: List(expressionToStatement(newExpr, scope))
-        newHandlers = newHandlers ::: handlers
+        newHandlers = newHandlers ::: handlerBodies.flatten
 
       case _ =>
         throw TouchException("Invalid statement", statement.pos)

@@ -31,31 +31,83 @@ object AAction {
  */
 trait AAction extends AAny {
 
-  def EnableHandler[S <: State[S]](this0: ExpressionSet)(pp:ProgramPoint, state:S) = {
+  def Enable[S <: State[S]](this0:ExpressionSet)(implicit pp: ProgramPoint, state: S) = {
 
-//    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
-//      case SetDomain.Default.Bottom() => state.bottom()
-//      case SetDomain.Default.Top() =>
-//        Reporter.reportImpreciseSemantics("Handler name is top", pp)
-//        defaultBehavior()
-//      case SetDomain.Default.Inner(xs) =>
-//        Lattice.bigLub(
-//          xs map { x =>
-//            compiler.getMethod(x.constant, parameters map (_.getType())) match {
-//              case Some(mdecl) =>
-//                MethodSummaries.collect(pp, mdecl, state, parameters)
-//              case _ =>
-//                Reporter.reportImpreciseSemantics("Invalid handler name " + x.constant, pp)
-//                defaultBehavior()
-//            }
-//          }
-//        )
-//    }
-
+    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
+      case SetDomain.Default.Bottom() =>
+        state.bottom()
+      case SetDomain.Default.Top() =>
+        Reporter.reportImpreciseSemantics("Handler name is top", pp)
+        state.top()
+      case SetDomain.Default.Inner(xs) =>
+        Lattice.bigLub(
+          xs map { x =>
+            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),True)(state,pp)
+          }
+        )
+    }
 
   }
 
-  /** Never used: Run the inline action. */
+  def Disable[S <: State[S]](this0:ExpressionSet)(implicit pp: ProgramPoint, state: S) = {
+
+    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
+      case SetDomain.Default.Bottom() =>
+        state.bottom()
+      case SetDomain.Default.Top() =>
+        Reporter.reportImpreciseSemantics("Handler name is top", pp)
+        state.top()
+      case SetDomain.Default.Inner(xs) =>
+        Lattice.bigLub(
+          xs map { x =>
+            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),False)(state,pp)
+          }
+        )
+    }
+
+  }
+
+  def Run[S <: State[S]](this0:ExpressionSet, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
+
+    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
+
+    def defaultBehavior() = {
+      if (TouchAnalysisParameters.get.defaultToUnsound) {
+        Top[S](actionReturnValue)
+      } else {
+        // call all handlers
+        Lattice.bigLub(compiler.allMethods map { x =>
+          if (CFGGenerator.isHandlerIdent(x.name.toString)) {
+            MethodSummaries.collect(pp, x, state, parameters)
+          } else {
+            state.bottom()
+          }
+        })
+      }
+    }
+
+    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
+      case SetDomain.Default.Bottom() => state.bottom()
+      case SetDomain.Default.Top() =>
+        Reporter.reportImpreciseSemantics("Handler name is top", pp)
+        defaultBehavior()
+      case SetDomain.Default.Inner(xs) =>
+        Lattice.bigLub(
+          xs map { x =>
+            compiler.getMethod(x.constant, parameters map (_.typ)) match {
+              case Some(method) =>
+                MethodSummaries.collect(pp, method, state, parameters)
+              case _ =>
+                Reporter.reportImpreciseSemantics("Invalid handler name " + x.constant, pp)
+                defaultBehavior()
+            }
+          }
+        )
+    }
+
+  }
+
+  /** Run the inline action. */
   def member_run = ApiMember(
     name = "run",
     paramTypes = actionArguments,
@@ -63,43 +115,11 @@ trait AAction extends AAny {
     returnType = actionReturnValue,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
-
-        val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
-
-        def defaultBehavior() = {
-          if (TouchAnalysisParameters.get.defaultToUnsound) {
-            Top[S](actionReturnValue)
-          } else {
-            // call all handlers
-            Lattice.bigLub(compiler.allMethods map { x =>
-              if (CFGGenerator.isHandlerIdent(x.name.toString)) {
-                MethodSummaries.collect(pp, x, state, parameters)
-              } else {
-                state.bottom()
-              }
-            })
-          }
-        }
-
-        EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
-          case SetDomain.Default.Bottom() => state.bottom()
-          case SetDomain.Default.Top() =>
-            Reporter.reportImpreciseSemantics("Handler name is top", pp)
-            defaultBehavior()
-          case SetDomain.Default.Inner(xs) =>
-            Lattice.bigLub(
-              xs map { x =>
-                compiler.getMethod(x.constant, parameters map (_.typ)) match {
-                  case Some(mdecl) =>
-                    MethodSummaries.collect(pp, mdecl, state, parameters)
-                  case _ =>
-                    Reporter.reportImpreciseSemantics("Invalid handler name " + x.constant, pp)
-                    defaultBehavior()
-                }
-              }
-            )
-        }
-
+        var curState = state
+        curState = Enable[S](this0)(pp,curState)
+        curState = Run[S](this0,parameters)(pp,curState)
+        curState = Disable[S](this0)(pp,curState)
+        curState
       }
     }
   )
@@ -109,7 +129,7 @@ trait AAction extends AAny {
   )
 
   def actionArguments: List[ApiParam]
-  def actionReturnValue: AAny = TNothing
+  def actionReturnValue: AAny
 
   override def possibleFields = super.possibleFields + AAction.field_handlerName
 

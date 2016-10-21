@@ -19,24 +19,12 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_TAtomic_Action extends AAny {
+trait Default_TAtomic_Action extends AAction {
 
   lazy val typeName = TypeName("Atomic Action")
-          
-  /** Never used: Run the inline action. */
-  def member_run = ApiMember(
-    name = "run",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = TNothing,
-    semantics = DefaultSemantics
-  )
 
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "run" -> member_run
-  )
-            
+  override def actionReturnValue: AAny = TNothing
+  override def actionArguments: List[ApiParam] = Nil
 
 }
           

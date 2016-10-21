@@ -23,7 +23,8 @@ trait Default_TAction extends AAction {
 
   lazy val typeName = TypeName("Action")
           
-  def actionArguments = List()
+  override def actionArguments = List()
+  override def actionReturnValue: AAny = TNothing
 
 
 }

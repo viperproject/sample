@@ -26,8 +26,7 @@ trait Default_GAction1 extends AAction {
 
   lazy val typeName = TypeName("Action1", List(TT.typeName))
           
-  def actionArguments = List(ApiParam(TT))
-
-
+  override def actionArguments = List(ApiParam(TT))
+  override def actionReturnValue: AAny = TNothing
 }
           

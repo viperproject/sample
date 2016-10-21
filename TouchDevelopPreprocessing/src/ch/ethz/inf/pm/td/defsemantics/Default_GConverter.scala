@@ -19,27 +19,15 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_GConverter extends AAny {
+trait Default_GConverter extends AAction {
 
   def TFrom:AAny
   def TTo:AAny
-           
-
+  
   lazy val typeName = TypeName("Converter", List(TFrom.typeName, TTo.typeName))
-          
-  /** Never used: Run the inline action. */
-  def member_run = ApiMember(
-    name = "run",
-    paramTypes = List(ApiParam(TFrom)),
-    thisType = ApiParam(this),
-    returnType = TTo,
-    semantics = DefaultSemantics
-  )
 
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "run" -> member_run
-  )
+  override def actionReturnValue: AAny = TTo
+  override def actionArguments: List[ApiParam] = List(ApiParam(TFrom))
             
 
 }

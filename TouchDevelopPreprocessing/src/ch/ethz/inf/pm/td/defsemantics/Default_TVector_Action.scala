@@ -23,7 +23,8 @@ trait Default_TVector_Action extends AAction {
 
   lazy val typeName = TypeName("Vector Action")
           
-  def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber),ApiParam(TNumber),ApiParam(TNumber))
+  override def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber),ApiParam(TNumber),ApiParam(TNumber))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

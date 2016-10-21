@@ -23,7 +23,8 @@ trait Default_TJson_Action extends AAction {
 
   lazy val typeName = TypeName("Json Action")
           
-  def actionArguments = List(ApiParam(TJson_Action))
+  override def actionArguments = List(ApiParam(TJson_Action))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

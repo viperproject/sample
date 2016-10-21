@@ -23,7 +23,8 @@ trait Default_TCollection_Message_Action extends AAction {
 
   lazy val typeName = TypeName("Collection Message Action")
           
-  def actionArguments = List(ApiParam(GCollection(TMessage)))
+  override def actionArguments = List(ApiParam(GCollection(TMessage)))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

@@ -23,7 +23,8 @@ trait Default_TText_Action extends AAction {
 
   lazy val typeName = TypeName("Text Action")
           
-  def actionArguments = List(ApiParam(TString))
+  override def actionArguments = List(ApiParam(TString))
+  override def actionReturnValue: AAny = TNothing
 
 
 }
