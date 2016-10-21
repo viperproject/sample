@@ -842,7 +842,7 @@ trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S
   def inhale(acc: Expression): S
 
   def inhale(acc: ExpressionSet): S = unlessBottom(acc, {
-    Lattice.bigLub(acc.getNonTop.map(inhale))
+    Lattice.bigLub(acc.toSetOrFail.map(inhale))
   })
 
   /** Exhales permissions.
@@ -855,7 +855,7 @@ trait SimplePermissionState[S <: SimplePermissionState[S]] extends SimpleState[S
   def exhale(acc: Expression): S
 
   def exhale(acc: ExpressionSet): S = unlessBottom(acc, {
-    Lattice.bigLub(acc.getNonTop.map(exhale))
+    Lattice.bigLub(acc.toSetOrFail.map(exhale))
   })
 }
 

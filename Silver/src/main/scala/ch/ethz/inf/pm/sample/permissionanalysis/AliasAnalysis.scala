@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import java.io.File
+import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
@@ -1797,6 +1797,14 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
     println("\n*******************\n* Analysis Result *\n*******************\n")
     val cfgStates = results.map(result => result.method.name.toString -> result.cfgState).toMap
     for ((method, graph) <- cfgStates) {
+      val graphFile = new File(new File(arguments(0)).getParentFile, method + ".dot")
+      if (graphFile.exists()) {
+        println("graph file exists!")
+      }
+      val printWriter = new PrintWriter(graphFile)
+      printWriter.write(graph.toString)
+      printWriter.flush()
+      printWriter.close()
       println("******************* " + method + "\n")
       // printing the entry state of the control-flow graph
       println(graph.entryState())

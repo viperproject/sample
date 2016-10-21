@@ -1,7 +1,10 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
+
+import scala.collection.immutable.Set
 
 /**
   * Abstract state for our analysis
@@ -13,10 +16,30 @@ object Top extends QuantifiedPermissionsState(true, false)
 
 object Bottom extends QuantifiedPermissionsState(false, true)
 
+object QuantifiedPermissionsEntryStateBuilder extends EntryStateBuilder[QuantifiedPermissionsState] {
+
+  var fields: Set[(Type, String)] = Set[(Type, String)]()
+
+  override def build(method: MethodDeclaration): QuantifiedPermissionsState = {
+    fields = Set[(Type, String)]()
+    for (f <- method.classDef.fields) {
+      fields = fields + ((f.typ, f.variable.toString))
+    }
+    method.initializeArgument[QuantifiedPermissionsState](topState.copy())
+  }
+
+  override def topState = QuantifiedPermissionsState(false, false)
+}
+
 case class QuantifiedPermissionsState(isTop: Boolean = false, isBottom: Boolean = false, top:
 QuantifiedPermissionsState = Top, bottom: QuantifiedPermissionsState = Bottom) extends
   SimplePermissionState[QuantifiedPermissionsState] {
   this: QuantifiedPermissionsState =>
+
+  def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom, expr: ExpressionSet = expr):
+  QuantifiedPermissionsState = {
+    QuantifiedPermissionsState(isTop, isBottom)
+  }
 
   /** Inhales permissions.
     *
@@ -260,13 +283,14 @@ QuantifiedPermissionsState = Top, bottom: QuantifiedPermissionsState = Bottom) e
   /** Computes the widening of two elements.
     *
     * @param other The new value
-    * @return The widening of `this` and `other` */
+    * @return The widening of `this` and `other`*/
   override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
 
   /** Returns true if and only if `this` is less than or equal to `other`.
     *
     * @param other The value to compare
-    * @return true if and only if `this` is less than or equal to `other` */
+    * @return true if and only if `this` is less than or equal to `other`*/
   override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
 
+  override def ids: IdentifierSet = ???
 }
