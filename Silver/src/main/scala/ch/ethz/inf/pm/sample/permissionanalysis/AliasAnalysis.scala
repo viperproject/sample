@@ -378,7 +378,6 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @return
     */
   def assign(target: Expression, value: Expression): T = {
-    println(s"target: $target, value: $value")
     if (target.typ.isObject) {
 
       // evaluate value
@@ -504,21 +503,14 @@ trait AliasGraph[T <: AliasGraph[T]]
         } else (this, Set.empty)
       } else (this, values)
     } else if (values contains UnknownNode) {
-      if (materialization) {
-        // create fresh heap node
-        val fresh = HeapNode(variable)
-        // remove unknown node and add fresh node
-        val newValues = values - UnknownNode + fresh
-        val newStore = store + (variable -> newValues)
-        // update heap with the fresh node
-        val newHeap = heap + (fresh -> heap(UnknownNode))
-        (copy(store = newStore, heap = newHeap), newValues)
-      } else {
-        // replace unknown node by summary node
-        val newValues = values - UnknownNode + SummaryNode
-        val newStore = store + (variable -> newValues)
-        (copy(store = newStore), newValues)
-      }
+      // create fresh heap node
+      val fresh = HeapNode(variable)
+      // remove unknown node and add fresh node
+      val newValues = values - UnknownNode + fresh
+      val newStore = store + (variable -> newValues)
+      // update heap with the fresh node
+      val newHeap = heap + (fresh -> heap(UnknownNode))
+      (copy(store = newStore, heap = newHeap), newValues)
     } else {
       // there is nothing to materialize
       (this, values)
@@ -561,7 +553,13 @@ trait AliasGraph[T <: AliasGraph[T]]
         val newValues = values - UnknownNode + SummaryNode
         val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
         val newHeap = heap + (receiver -> newFieldMap)
-        (copy(heap = newHeap), newValues)
+        // add summary node to heap if it does not exist
+        val summaryHeap = if (newHeap contains SummaryNode) newHeap
+        else {
+          val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> Set(SummaryNode)) }
+          newHeap + (SummaryNode -> fieldMap)
+        }
+        (copy(heap = summaryHeap), newValues)
       }
     } else {
       // there is nothing to materialize
