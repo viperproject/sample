@@ -26,7 +26,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
 
-  val analysis = ForwardAndBackwardAnalysis[QuantifiedPermissionsState](QuantifiedPermissionsState.QuantifiedPermissionsEntryStateBuilder[Apron.Polyhedra, QuantifiedPermissionsState], new DefaultQuantifiedPermissionsState())
+  val analysis = ForwardAndBackwardAnalysis[QuantifiedPermissionsState](QuantifiedPermissionsEntryStateBuilder[Apron.Polyhedra, QuantifiedPermissionsState], new QuantifiedPermissionsState())
 }
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
