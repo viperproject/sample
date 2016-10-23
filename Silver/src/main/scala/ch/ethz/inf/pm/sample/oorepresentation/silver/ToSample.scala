@@ -493,7 +493,11 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
             .collectBlocks(b.body).filter(_.isInstanceOf[sil.TerminalBlock])
 
           for (terminalBlock <- terminalBodyBlocks) {
-            cfg.addEdge(convertCfg(terminalBlock), index, None)
+            // Only add a back-edge if there is no back edge already. If there
+            // is a back edge then it is the terminal block of an inner loop.
+            val terminalIndex = convertCfg(terminalBlock)
+            val hasBackEdge = cfg.edges.exists { case (from, _, _) => from == terminalIndex}
+            if (!hasBackEdge) cfg.addEdge(terminalIndex, index, None)
           }
 
           cfg.addEdge(index, convertCfg(b.succ), Some(false))
