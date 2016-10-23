@@ -42,6 +42,10 @@ case class ForwardAndBackwardAnalysis[S <: State[S]](entryStateBuilder: EntrySta
       val forwardStates = interpreter.forwardExecute(method.body, entryState)
       AnalysisResult(method, forwardStates)
 
+      val backwardInterpreter = TrackingQPInterpreter[S](entryState)
+      val cfgState2 = backwardInterpreter.refiningExecute(method.body, defaultExitState, forwardStates)
+      AnalysisResult(method, cfgState2)
+
     }
   }
 }
