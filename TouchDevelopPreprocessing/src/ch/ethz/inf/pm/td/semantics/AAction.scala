@@ -22,6 +22,31 @@ object AAction {
     * is top, and run is executed, we have to go to top, since we do not know what is executed */
   lazy val field_handlerName = ApiField("*handlername",TString)
 
+
+  /**
+    * Implements a standard abstract semantics for enabling an event handler and returning the
+    * event binding
+    *
+    * @param handlerField the field that stores the event handler
+    * @param argIndex the index of the action provided to this method, defaulting to zero (first argument)
+    */
+  case class EnableSemantics(handlerField:ApiField,argIndex:Int = 0) extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
+                                                 parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+
+      assert(parameters.length > argIndex)
+      assert(parameters(argIndex).typ.isInstanceOf[AAction])
+
+      var curState = state
+      curState = AssignField[S](this0, handlerField, parameters(argIndex))(curState,pp)
+      curState = parameters(argIndex).asInstanceOf[AAction].Enable[S](parameters(argIndex))(curState,pp)
+      curState = New[S](TEvent_Binding)(curState,pp)
+      curState
+
+    }
+  }
+
+
 }
 
 /**
@@ -31,7 +56,7 @@ object AAction {
  */
 trait AAction extends AAny {
 
-  def Enable[S <: State[S]](this0:ExpressionSet)(implicit pp: ProgramPoint, state: S) = {
+  def Enable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint) = {
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
       case SetDomain.Default.Bottom() =>
@@ -49,7 +74,7 @@ trait AAction extends AAny {
 
   }
 
-  def Disable[S <: State[S]](this0:ExpressionSet)(implicit pp: ProgramPoint, state: S) = {
+  def Disable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint) = {
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
       case SetDomain.Default.Bottom() =>
@@ -67,7 +92,7 @@ trait AAction extends AAny {
 
   }
 
-  def Run[S <: State[S]](this0:ExpressionSet, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
+  def Run[S <: State[S]](this0:ExpressionSet, parameters: List[ExpressionSet])(implicit state: S, pp: ProgramPoint) = {
 
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
@@ -116,9 +141,9 @@ trait AAction extends AAny {
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
         var curState = state
-        curState = Enable[S](this0)(pp,curState)
-        curState = Run[S](this0,parameters)(pp,curState)
-        curState = Disable[S](this0)(pp,curState)
+        curState = Enable[S](this0)(curState,pp)
+        curState = Run[S](this0,parameters)(curState,pp)
+        curState = Disable[S](this0)(curState,pp)
         curState
       }
     }

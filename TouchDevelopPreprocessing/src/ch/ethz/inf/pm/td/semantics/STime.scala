@@ -27,17 +27,13 @@ object STime extends Default_STime {
   /** PRIVATE HANDLER FIELDS */
   lazy val field_every_frame_handler = ApiField("every frame handler", TAction, TopInitializer)
 
+  override def member_on_every_frame =
+    super.member_on_every_frame.copy(semantics = AAction.EnableSemantics(STime.field_every_frame_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_every_frame_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
-
-
-    /** Attaches a handler to run on every time frame, roughly every 20ms. */
-    case "on every frame" =>
-      val List(perform) = parameters // Action
-    val newState = AssignField[S](this0, STime.field_every_frame_handler, perform)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** Starts a timer to run ``perform`` after ``seconds`` seconds. */
     case "run after" =>

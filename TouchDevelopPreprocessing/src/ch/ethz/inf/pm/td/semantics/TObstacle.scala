@@ -34,6 +34,9 @@ object TObstacle extends Default_TObstacle {
   /** PRIVATE HANDLER FIELDS */
   lazy val field_collision_handler = ApiField("collision handler", TSprite_Action)
 
+  override def member_on_collision =
+    super.member_on_collision.copy(semantics = AAction.EnableSemantics(TObstacle.field_collision_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_color, field_thickness, field_collision_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
@@ -43,12 +46,6 @@ object TObstacle extends Default_TObstacle {
     case "delete" =>
       val List() = parameters // ignore
       Skip
-
-    /** Attaches a handler where a sprite bounces on the obstacle */
-    case "on collision" =>
-      val List(bounce) = parameters // Sprite_Action
-      val newState = AssignField[S](this0, TObstacle.field_collision_handler, bounce)
-      New[S](TEvent_Binding)(newState, pp)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

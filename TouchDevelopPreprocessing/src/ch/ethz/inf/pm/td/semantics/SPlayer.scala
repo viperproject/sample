@@ -59,6 +59,12 @@ object SPlayer extends Default_SPlayer {
   lazy val field_active_song_changed_handler = ApiField("active song changed", TAction, TopInitializer)
   lazy val field_player_state_changed_handler = ApiField("player state changed", TAction, TopInitializer)
 
+  override def member_on_active_song_changed =
+    super.member_on_active_song_changed.copy(semantics = AAction.EnableSemantics(SPlayer.field_active_song_changed_handler))
+
+  override def member_on_player_state_changed =
+    super.member_on_player_state_changed.copy(semantics = AAction.EnableSemantics(SPlayer.field_player_state_changed_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_active_song, field_is_muted, field_is_paused,
     field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume,
     field_volume, field_active_song_changed_handler, field_player_state_changed_handler
@@ -85,18 +91,6 @@ object SPlayer extends Default_SPlayer {
     case "play" =>
       val List(song) = parameters // Song
       AssignField[S](this0, SPlayer.field_active_song, song)
-
-    /** Attaches a handler when the active song changes */
-    case "on active song changed" =>
-      val List(changed) = parameters // Action
-    val newState = AssignField[S](this0, SPlayer.field_active_song_changed_handler, changed)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Attaches a handler when the player state changes */
-    case "on player state changed" =>
-      val List(changed) = parameters // Action
-    val newState = AssignField[S](this0, SPlayer.field_player_state_changed_handler, changed)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** Plays an audio/video file from the home network */
     // case "play home media" =>

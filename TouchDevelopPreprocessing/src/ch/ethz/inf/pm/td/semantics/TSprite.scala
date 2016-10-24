@@ -73,6 +73,24 @@ object TSprite extends Default_TSprite {
   lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
   lazy val field_every_frame_handler = ApiField("every frame handler", TAction)
 
+  override def member_on_drag =
+    super.member_on_drag.copy(semantics = AAction.EnableSemantics(TSprite.field_drag_handler))
+
+  override def member_on_every_frame =
+    super.member_on_every_frame.copy(semantics = AAction.EnableSemantics(TSprite.field_every_frame_handler))
+
+  override def member_on_swipe =
+    super.member_on_swipe.copy(semantics = AAction.EnableSemantics(TSprite.field_swipe_handler))
+
+  override def member_on_tap =
+    super.member_on_tap.copy(semantics = AAction.EnableSemantics(TSprite.field_tap_handler))
+
+  override def member_on_touch_down =
+    super.member_on_touch_down.copy(semantics = AAction.EnableSemantics(TSprite.field_touch_down_handler))
+
+  override def member_on_touch_up =
+    super.member_on_touch_up.copy(semantics = AAction.EnableSemantics(TSprite.field_touch_up_handler))
+
   override def mutedFields = super.mutedFields ++ List(
     field_speed_x,
     field_speed_y,
@@ -171,41 +189,6 @@ object TSprite extends Default_TSprite {
       curState = AssignField[S](this0, TSprite.field_x, Field[S](this0, TSprite.field_x) + delta_x)(curState, pp)
       curState = AssignField[S](this0, TSprite.field_y, Field[S](this0, TSprite.field_y) + delta_y)(curState, pp)
       curState
-
-    /** Set the handler invoked when the sprite is dragged */
-    case "on drag" =>
-      val List(dragged) = parameters // Vector_Action
-      val newState = AssignField[S](this0, TSprite.field_drag_handler, dragged)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set the handler invoked when the sprite is swiped */
-    case "on swipe" =>
-      val List(swiped) = parameters // Vector_Action
-      val newState = AssignField[S](this0, TSprite.field_swipe_handler, swiped)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set the handler invoked when the sprite is tapped */
-    case "on tap" =>
-      val List(tapped) = parameters // Position_Action
-      val newState = AssignField[S](this0, TSprite.field_tap_handler, tapped)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set the handler invoked when the sprite is touched initially */
-    case "on touch down" =>
-      val List(touch_down) = parameters // Position_Action
-      val newState = AssignField[S](this0, TSprite.field_touch_down_handler, touch_down)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set the handler invoked when the sprite touch is released */
-    case "on touch up" =>
-      val List(touch_up) = parameters // Position_Action
-      val newState = AssignField[S](this0, TSprite.field_touch_up_handler, touch_up)
-      New[S](TEvent_Binding)(newState, pp)
-
-    case "on every frame" =>
-      val List(act) = parameters // Action
-      val newState = AssignField[S](this0, TSprite.field_every_frame_handler, act)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>

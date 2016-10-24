@@ -34,6 +34,9 @@ object TTimer extends Default_TTimer {
   /** PRIVATE HANDLER FIELDS */
   lazy val field_trigger_handler = ApiField("trigger handler", TAction)
 
+  override def member_on_trigger =
+    super.member_on_trigger.copy(semantics = AAction.EnableSemantics(TTimer.field_trigger_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_is_active, field_is_interval, field_trigger_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
@@ -43,12 +46,6 @@ object TTimer extends Default_TTimer {
     /** Clears the handlers and pauses the timer */
     case "clear" =>
       Skip
-
-    /** sets the action to perform when the timer fires */
-    case "on trigger" =>
-      val List(perform) = parameters // Action
-    val newState = AssignField[S](this0, TTimer.field_trigger_handler, perform)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** deactivates the timer */
     case "pause" =>

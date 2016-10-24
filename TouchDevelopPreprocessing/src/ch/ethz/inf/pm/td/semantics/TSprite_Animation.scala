@@ -32,6 +32,12 @@ object TSprite_Animation extends Default_TSprite_Animation {
   lazy val field_start_handler = ApiField("start handler", TAction)
   lazy val field_stop_handler = ApiField("stop handler", TAction)
 
+  override def member_on_start =
+    super.member_on_start.copy(semantics = AAction.EnableSemantics(TSprite_Animation.field_start_handler))
+
+  override def member_on_stop =
+    super.member_on_stop.copy(semantics = AAction.EnableSemantics(TSprite_Animation.field_stop_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_start_handler, field_stop_handler, field_time_scale)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
@@ -81,18 +87,6 @@ object TSprite_Animation extends Default_TSprite_Animation {
     case "move to" =>
       val List(duration, easing, shape, x, y) = parameters // Number,String,String,Number,Number
       Skip
-
-    /** Raised when the animation started playing */
-    case "on start" =>
-      val List(handler) = parameters // Action
-    val newState = AssignField[S](this0, TSprite_Animation.field_start_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Raised when the animation stopped playing */
-    case "on stop" =>
-      val List(handler) = parameters // Action
-    val newState = AssignField[S](this0, TSprite_Animation.field_stop_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** Starts playing an animation from the sprite sheet, if any */
     case "play frames" =>
