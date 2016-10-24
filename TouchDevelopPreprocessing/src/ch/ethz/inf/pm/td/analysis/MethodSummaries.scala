@@ -94,7 +94,7 @@ object MethodSummaries {
       val topArguments =
         for ((arg,i) <- methodDeclaration.arguments.head.zipWithIndex) yield {
           withArgs = Top[S](arg.typ.asInstanceOf[AAny])(state,pp)
-          state.expr
+          withArgs.expr
         }
       cur = cur.lub(MethodSummaries.collect[S](pp, methodDeclaration, withArgs, topArguments))
     }

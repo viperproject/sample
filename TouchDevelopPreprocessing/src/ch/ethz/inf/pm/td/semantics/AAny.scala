@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
@@ -33,13 +34,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                                                  method: ApiMember,
                                                  parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val (objs,strs) = this0.ids.getNonTopUnsafe.collect { case f:FieldIdentifier => (f.obj,f.field)}.unzip
+      val typ = GRef(this0.typ.asInstanceOf[AAny])
       if (objs.nonEmpty && strs.nonEmpty) {
         val objExpr = ExpressionSet(TString, SetDomain.Default.Inner(objs.toSet))
         val strExpr = ExpressionSet(TString, SetDomain.Default.Inner(strs.map(Constant(_, TString))))
-        val typ = GRef(this0.typ.asInstanceOf[AAny])
         New[S](typ, Map(typ.field__receiver -> objExpr, typ.field__field -> strExpr))
       } else {
-        state.bottom()
+        Reporter.reportImpreciseSemantics("We could not determine the contents of a reference, this could be unsound" ,pp)
+        Top[S](typ)
       }
     }
   }
@@ -136,7 +138,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     returnType = TBoolean,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        Return[S](this0 equal Invalid(this0.typ, "")(pp))(state, pp)
+        val res = Return[S](this0 equal Invalid(this0.typ, "")(pp))(state, pp)
+        res
       }
     }
   )
@@ -289,7 +292,11 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
       AbstractEventGraph.record(operator,thisExpr,parameters,state,pp)
 
-      Some(forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState))
+      val res = forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState)
+
+      if (SystemParameters.DEBUG) assert(returnedType == TNothing || res.expr.typ == returnedType)
+
+      Some(res)
 
     } else None
 
