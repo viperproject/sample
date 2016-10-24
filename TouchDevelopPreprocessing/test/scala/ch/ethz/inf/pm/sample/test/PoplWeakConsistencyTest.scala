@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.test
 
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
+import ch.ethz.inf.pm.sample.reporting.{SampleError, SampleInfo, SampleMessage}
 import ch.ethz.inf.pm.td.analysis.TouchDevelopAnalysisRunner
 import org.scalatest.FunSuite
 
@@ -9,15 +10,12 @@ import org.scalatest.FunSuite
   */
 class PoplWeakConsistencyTest extends FunSuite {
 
-//  test("dekker example (Fixed) (fekcblzqer)") {
-//    runAnalysis("td://fekcblzqer")
-//  }
-//  test("Events (Fixed) (hqttcleqlj)") {
-//    runAnalysis("td://hqttcleqlj")
-//  }
-//  test("CSCE 1030 DASHBOARD (Fixed) (nekvbalhdm)") {
-//    runAnalysis("td://nekvbalhdm")
-//  }
+  test("dekker example (Fixed) (fekcblzqer)") {
+    runAnalysis("td://fekcblzqer")
+  }
+  test("Events (Fixed) (hqttcleqlj)") {
+    runAnalysis("td://hqttcleqlj")
+  }
 ////  test("sky locale (Fixed) (pmzxrhbsrv)") {
 ////    runAnalysis("td://pmzxrhbsrv")
 ////  }
@@ -72,9 +70,6 @@ class PoplWeakConsistencyTest extends FunSuite {
 //  test("keyboard hero (ohgxa)") {
 //    runAnalysis("td://ohgxa")
 //  }
-//  test("CSCE 1030 DASHBOARD (ornb)") {
-//    runAnalysis("td://ornb")
-//  }
 //  test("dekker example (oxhs)") {
 //    runAnalysis("td://oxhs")
 //  }
@@ -125,8 +120,19 @@ class PoplWeakConsistencyTest extends FunSuite {
   //   +(\w+)\t([^\n]*)
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
-  def runAnalysis(id:String) = {
-     TouchDevelopAnalysisRunner.Default().run(Compilable.Identifier(id))
+  def runAnalysis(id:String, expectedErrors:Set[(String,String)] = Set.empty) = {
+    val res = TouchDevelopAnalysisRunner.Default().run(Compilable.Identifier(id))
+    val err =
+      res.collect {
+        case SampleError(i, _, pp, _) => (i, pp.toString)
+        case SampleInfo(i, _, pp) => (i, pp.toString)
+      }.toSet
+    for (e <- expectedErrors) {
+      assert(err.contains(e),"Did not report expected error "+e)
+    }
+    for (e <- err) {
+      assert(expectedErrors.contains(e),"Did not expect reported error "+e)
+    }
   }
 
 }

@@ -88,6 +88,9 @@ object SBox extends Default_SBox {
   lazy val field_text_editing_handler = ApiField("text editing handler", TText_Action)
   lazy val field_tapped_handler = ApiField("tapped handler", TAction)
 
+  override def member_edit =
+    super.member_edit.copy(semantics = AAction.EnableSemantics(SBox.field_text_edited_handler, argIndex = 2))
+
   override def member_on_text_edited =
     super.member_on_text_edited.copy(semantics = AAction.EnableSemantics(SBox.field_text_edited_handler))
 
@@ -245,15 +248,6 @@ object SBox extends Default_SBox {
     case "edit text" =>
       val List(text, multiline) = parameters // String,Boolean
       Skip
-
-    /** Display editable text, with the given binding. */
-    case "edit" =>
-      val List(style, value, changehandler) = parameters // String,String,Text_Action
-      var curState = state
-      curState = AssignField[S](this0, SBox.field_text_editing_handler, changehandler)(curState,pp)
-      curState = TText_Action.Enable[S](changehandler)(curState,pp)
-      curState = New[S](TEvent_Binding)(curState,pp)
-      curState
 
     /** Set the color and width of the border. */
     case "set border" =>

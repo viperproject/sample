@@ -248,7 +248,9 @@ case class TouchAnalysisParameters(
                                      */
                                     mongoServer:String = "localhost",
                                     mongoPort:Int = 27017,
-                                    mongoDatabase:String = "tb"
+                                    mongoDatabase:String = "tb",
+
+                                    enableCloudAnalysis:Boolean = false
 
                                     )
 

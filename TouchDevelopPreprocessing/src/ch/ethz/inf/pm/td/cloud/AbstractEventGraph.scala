@@ -135,7 +135,7 @@ object AbstractEventGraph {
                             state: S,
                             pp:ProgramPoint):S = {
 
-    if (reachableFromCloud(state,this0)) {
+    if (TouchAnalysisParameters.get.enableCloudAnalysis && reachableFromCloud(state,this0)) {
 
       val event = ProgramPointEvent(pp, operator)
 

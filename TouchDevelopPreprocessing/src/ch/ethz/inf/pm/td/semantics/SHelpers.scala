@@ -10,7 +10,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{TouchException, TouchType, TypeList}
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException, TouchType, TypeList}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -29,7 +29,7 @@ object SHelpers extends ASingleton {
 
   lazy val typeName = TypeName("Helpers",isSingleton = true)
 
-  val CreateMethod = """create (__handler_.+)""".r
+  val CreateMethod = """create (.+)""".r
 
   def handlerEnabledFieldName(handlerName:String):String = {
      handlerName+" enabled"
@@ -38,7 +38,7 @@ object SHelpers extends ASingleton {
   def createHandler(handlerName:String, t:TypeName):String = {
     val n = handlerEnabledFieldName(handlerName)
     handlerTypes.put(handlerName, t)
-    handlerEnabledFields.put(handlerName, ApiField(n, TBoolean))
+    handlerEnabledFields.put(handlerName, ApiField(n, TString))
     n
   }
 
@@ -54,7 +54,7 @@ object SHelpers extends ASingleton {
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates an action with the given name */
-    case CreateMethod(handlerName) =>
+    case CreateMethod(handlerName) if CFGGenerator.isHandlerIdent(handlerName) =>
 
       (handlerTypes.get(handlerName), handlerEnabledFields.get(handlerName)) match {
 

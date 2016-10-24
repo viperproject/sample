@@ -29,9 +29,9 @@ import scala.util.parsing.input.{NoPosition, Position}
  */
 
 object CFGGenerator {
-  def handlerIdent(ident: String) = "__handler_" + ident
+  def handlerIdent(ident: String) = "Closure[" + ident + "]"
 
-  def isHandlerIdent(ident: String) = ident.startsWith("__handler_")
+  def isHandlerIdent(ident: String) = ident.startsWith("Closure[")
 
   def paramIdent(ident: String) = "__param_" + ident
 
@@ -348,7 +348,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
           (for (i@InlineAction(handlerName, inParameters, outParameters, body, typ) <- handlerDefs) yield {
 
             // Create an identifier to uniquely name the identifier
-            val handlerMethodName = handlerIdent(handlerName + wPP)
+            val handlerMethodName = handlerIdent(handlerName + "_" + wPP)
             val handlerType =
               if (typ.ident == "Unknown" && inParameters.size == 1) {
                 TypeName("Action1",List(inParameters.head.typeName))
@@ -358,9 +358,15 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             // Construct a body that checks whether the handler is enabled
             val conditionalBody =
               List(parser.If(
-                ty("Boolean",
-                  parser.Access(sty("Helpers", parser.SingletonReference("helpers","Helpers").copyPos(i)),
-                    parser.Identifier(enabledField).copyPos(i),Nil).copyPos(i)),
+                ty("Boolean",parser.Access(
+                  ty("String",parser.Access(
+                    sty("Helpers", parser.SingletonReference("helpers","Helpers").copyPos(i)),
+                    parser.Identifier(enabledField).copyPos(i),
+                    Nil
+                  ).copyPos(i)),
+                  parser.Identifier("equals").copyPos(i),
+                  List(ty("String",parser.Literal(TypeName("String"),"enabled").copyPos(i)))
+                ).copyPos(i)),
                 body,
                 List(parser.Skip().copyPos(i))
               ).copyPos(i))

@@ -200,21 +200,23 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
         originalSummaries.values.groupBy(_.method.programpoint).mapValues(_.reduce(_ lub _))
       else originalSummaries
 
+    // Check bottomness
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
-    val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
+    val mainClassResult = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
-      for (un <- unAnalyzed) {
+      for (un <- unAnalyzed if !un.modifiers.contains(ClosureModifier)) {
         logger.info(" Did not analyze "+un.name+" (may be unreachable)")
       }
     }
-    SingleStatementProperty.Default(new BottomVisitor).check(results,output)
+    SingleStatementProperty.Default(new BottomVisitor).check(mainClassResult,output)
 
     Exporters(compiler)
 
     // Reset singletons
     for (sem <- TypeList.getSingletons) sem.reset()
 
+    val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList) yield (mDecl.classDef.typ, mDecl, cfgState)
     results
   }
 

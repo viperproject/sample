@@ -39,7 +39,7 @@ object AAction {
 
       var curState = state
       curState = AssignField[S](this0, handlerField, parameters(argIndex))(curState,pp)
-      curState = parameters(argIndex).asInstanceOf[AAction].Enable[S](parameters(argIndex))(curState,pp)
+      curState = parameters(argIndex).typ.asInstanceOf[AAction].Enable[S](parameters(argIndex))(curState,pp)
       curState = New[S](TEvent_Binding)(curState,pp)
       curState
 
@@ -56,10 +56,11 @@ object AAction {
  */
 trait AAction extends AAny {
 
-  def Enable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint) = {
+  def Enable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint):S = {
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
       case SetDomain.Default.Bottom() =>
+        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
         state.bottom()
       case SetDomain.Default.Top() =>
         Reporter.reportImpreciseSemantics("Handler name is top", pp)
@@ -67,17 +68,18 @@ trait AAction extends AAny {
       case SetDomain.Default.Inner(xs) =>
         Lattice.bigLub(
           xs map { x =>
-            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),True)(state,pp)
+            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),String("enabled"))(state,pp)
           }
         )
     }
 
   }
 
-  def Disable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint) = {
+  def Disable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint):S = {
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
       case SetDomain.Default.Bottom() =>
+        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
         state.bottom()
       case SetDomain.Default.Top() =>
         Reporter.reportImpreciseSemantics("Handler name is top", pp)
@@ -85,14 +87,14 @@ trait AAction extends AAny {
       case SetDomain.Default.Inner(xs) =>
         Lattice.bigLub(
           xs map { x =>
-            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),False)(state,pp)
+            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),String(""))(state,pp)
           }
         )
     }
 
   }
 
-  def Run[S <: State[S]](this0:ExpressionSet, parameters: List[ExpressionSet])(implicit state: S, pp: ProgramPoint) = {
+  def Run[S <: State[S]](this0:ExpressionSet, parameters: List[ExpressionSet])(implicit state: S, pp: ProgramPoint):S = {
 
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
@@ -105,6 +107,7 @@ trait AAction extends AAny {
           if (CFGGenerator.isHandlerIdent(x.name.toString)) {
             MethodSummaries.collect(pp, x, state, parameters)
           } else {
+            if (SystemParameters.DEBUG) println("Going to bottom, invalid handler name")
             state.bottom()
           }
         })
@@ -112,7 +115,9 @@ trait AAction extends AAny {
     }
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
-      case SetDomain.Default.Bottom() => state.bottom()
+      case SetDomain.Default.Bottom() =>
+        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
+        state.bottom()
       case SetDomain.Default.Top() =>
         Reporter.reportImpreciseSemantics("Handler name is top", pp)
         defaultBehavior()
@@ -143,8 +148,9 @@ trait AAction extends AAny {
         var curState = state
         curState = Enable[S](this0)(curState,pp)
         curState = Run[S](this0,parameters)(curState,pp)
+        val expr = curState.expr
         curState = Disable[S](this0)(curState,pp)
-        curState
+        curState.setExpression(expr)
       }
     }
   )

@@ -59,7 +59,7 @@ trait TouchType extends Named with Type {
 
   def isObject = !isNumericalType && !isStringType
   def isBooleanType = name == "Boolean"
-  def isNumericalType = (name == "Number") || (name == "Boolean")
+  def isNumericalType = name == "Number" || name == "Boolean"
   def isFloatingPointType = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
   def isStringType = name == "String"
   def isStatic = isSingleton

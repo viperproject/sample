@@ -1,4 +1,6 @@
 @()(app: ch.ethz.inf.pm.sample.web.App)
+@import ch.ethz.inf.pm.sample.reporting._
+@import ch.ethz.inf.pm.sample.execution._
 
 @Base(title = "Analysis Results")(app) {
 <!--
@@ -17,12 +19,21 @@
 
 <div class="row-fluid">
     <div class="col-md-12">
-        @for((result,resultIndex) <- app.resultsOption.get.zipWithIndex) {
-
-            <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@resultIndex/">
+        <h2>Method analysis results</h2>
+        @for(result <- app.resultsOption.get.collect{case x:MethodAnalysisResult[_] => x}) {
+            <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@result.uniqueID/">
                 @result.displayName
-            </a>
-
+            </a><br />
+        }
+        <h2>Weighted graph analysis results</h2>
+        @for(result <- app.resultsOption.get.collect{case x:WeightedGraphAnalysisResult[_,_] => x}) {
+            <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@result.uniqueID/">
+                @result.displayName
+            </a><br />
+        }
+        <h2>Messages</h2>
+        @for(result <- app.resultsOption.get.collect{case x:SampleMessage => x}) {
+            @result.toString<br />
         }
     </div>
 </div>
