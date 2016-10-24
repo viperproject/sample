@@ -26,26 +26,25 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
 
-  val analysis = ForwardAndBackwardAnalysis[QuantifiedPermissionsState](QuantifiedPermissionsEntryStateBuilder[Apron.Polyhedra, QuantifiedPermissionsState], new QuantifiedPermissionsState())
+  val analysis = ForwardAndBackwardAnalysis(QuantifiedPermissionsEntryStateBuilder[Apron.Polyhedra, QuantifiedPermissionsState], new QuantifiedPermissionsState())
 }
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
 
-case class ForwardAndBackwardAnalysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S], defaultExitState: S) extends Analysis[S] {
+case class ForwardAndBackwardAnalysis(entryStateBuilder: EntryStateBuilder[QuantifiedPermissionsState], defaultExitState: QuantifiedPermissionsState) extends Analysis[QuantifiedPermissionsState] {
 
-  def analyze(method: MethodDeclaration): AnalysisResult[S] =
+  def analyze(method: MethodDeclaration): AnalysisResult[QuantifiedPermissionsState] =
     analyze(method, entryStateBuilder.build(method))
 
-  def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
+  def analyze(method: MethodDeclaration, entryState: QuantifiedPermissionsState): AnalysisResult[QuantifiedPermissionsState] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val interpreter = TrackingForwardInterpreter[S](entryState)
+      val interpreter = TrackingForwardInterpreter(entryState)
       val forwardStates = interpreter.forwardExecute(method.body, entryState)
       AnalysisResult(method, forwardStates)
 
-      val backwardInterpreter = TrackingQPInterpreter[S](entryState)
+      val backwardInterpreter = TrackingQPInterpreter(entryState)
       val cfgState2 = backwardInterpreter.refiningExecute(method.body, defaultExitState, forwardStates)
       AnalysisResult(method, cfgState2)
-
     }
   }
 }
