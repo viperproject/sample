@@ -7,9 +7,10 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{IdentifierSet, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, IdentifierSet}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.VariablePackingClassifier
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
+import ch.ethz.inf.pm.td.analysis.MethodSummaries.SummaryID
 
 /**
  * Implements access-based localization
@@ -22,11 +23,12 @@ import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint}
  */
 object Localization {
 
-  private var ppToMethod:Map[ProgramPoint,MethodDeclaration] = Map.empty
+
+  private var ppToMethod:Map[SummaryID,MethodDeclaration] = Map.empty
   private var variablePacker:Option[VariablePackingClassifier] = None
   private var enablePruning = false
-  private var currentlyCollecting:List[ProgramPoint] = List.empty
-  private var readInside:Map[ProgramPoint,IdentifierSet] = Map.empty
+  private var currentlyCollecting:List[SummaryID] = List.empty
+  private var readInside:Map[SummaryID,IdentifierSet] = Map.empty
 
 
   // Pruning functions
@@ -35,9 +37,9 @@ object Localization {
     this.variablePacker = variablePacker
   }
 
-  def matches(identifyingPP:ProgramPoint, id:Identifier): Boolean = filter(identifyingPP,Set(id)).nonEmpty
+  def matches(identifyingPP:SummaryID, id:Identifier): Boolean = filter(identifyingPP,Set(id)).nonEmpty
 
-  def filter(identifyingPP:ProgramPoint, ids:Set[Identifier]): Set[Identifier] = {
+  def filter(identifyingPP:SummaryID, ids:Set[Identifier]): Set[Identifier] = {
     if (enablePruning) {
       readInside.get(identifyingPP) match {
         case Some(x) =>
@@ -76,12 +78,12 @@ object Localization {
     }
   }
 
-  def enterCollectingFunction(pp:ProgramPoint,callTarget:MethodDeclaration):Unit = {
+  def enterCollectingFunction(pp:SummaryID,callTarget:MethodDeclaration):Unit = {
     ppToMethod = ppToMethod + (pp -> callTarget)
     currentlyCollecting = pp :: currentlyCollecting
   }
 
-  def exitCollectingFunction(pp:ProgramPoint):Unit = {
+  def exitCollectingFunction(pp:SummaryID):Unit = {
 
     // update stack
     val (callee,callStack) = (currentlyCollecting.head, currentlyCollecting.tail)

@@ -380,6 +380,11 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
 
+                if (SystemParameters.DEBUG) {
+                  if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
+                    println("Looks like library fragment analysis missed "+this0.typ+"->"+method)
+                  }
+                }
 //                // Try implicit conversion to Ref
 //                if (!this.isInstanceOf[GRef]) {
 //                  val refType = GRef(this)

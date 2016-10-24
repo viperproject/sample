@@ -297,8 +297,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     for (methodDeclaration <- compiler.events) {
       cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
+    cur
 
-    resetEnv(cur)
   }
 
 

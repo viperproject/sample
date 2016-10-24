@@ -22,27 +22,27 @@ class PoplWeakConsistencyTest extends FunSuite {
 ////  test("tetris (Fixed) (xrqeregnpk)") {
 ////    runAnalysis("td://xrqeregnpk")
 ////  }
-//  test("cloud list (blqz)") {
-//    runAnalysis("td://blqz")
-//  }
+  test("cloud list (blqz)") {
+    runAnalysis("td://blqz")
+  }
 ////  test("TouchDatabase (cavke)") {
 ////    runAnalysis("td://cavke")
 ////  }
-//  test("Super Chat (cvuz)") {
-//    runAnalysis("td://cvuz")
-//  }
-//  test("Save Passwords (eddm)") {
-//    runAnalysis("td://eddm")
-//  }
-//  test("ec2 demo chat (eijba)") {
-//    runAnalysis("td://eijba")
-//  }
-//  test("Contest Voting (etww)") {
-//    runAnalysis("td://etww")
-//  }
-//  test("Chatter box (fqaba)") {
-//    runAnalysis("td://fqaba")
-//  }
+  test("Super Chat (cvuz)") {
+    runAnalysis("td://cvuz")
+  }
+  test("Save Passwords (eddm)") {
+    runAnalysis("td://eddm")
+  }
+  test("ec2 demo chat (eijba)") {
+    runAnalysis("td://eijba")
+  }
+  test("Contest Voting (etww)") {
+    runAnalysis("td://etww")
+  }
+  test("Chatter box (fqaba)") {
+    runAnalysis("td://fqaba")
+  }
 ////  test("Hubstar (gbtxe)") {
 ////    runAnalysis("td://gbtxe")
 ////  }

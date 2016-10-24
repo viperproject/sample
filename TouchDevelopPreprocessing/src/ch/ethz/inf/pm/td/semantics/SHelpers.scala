@@ -10,7 +10,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException, TouchType, TypeList}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -24,12 +24,11 @@ import RichNativeSemantics._
 
 object SHelpers extends ASingleton {
 
+  val handlerCreatorMethods = new scala.collection.mutable.HashMap[String,ApiMember]
   val handlerEnabledFields = new scala.collection.mutable.HashMap[String,ApiField]
   val handlerTypes = new scala.collection.mutable.HashMap[String,TypeName]
 
   lazy val typeName = TypeName("Helpers",isSingleton = true)
-
-  val CreateMethod = """create (.+)""".r
 
   def handlerEnabledFieldName(handlerName:String):String = {
      handlerName+" enabled"
@@ -39,7 +38,42 @@ object SHelpers extends ASingleton {
     val n = handlerEnabledFieldName(handlerName)
     handlerTypes.put(handlerName, t)
     handlerEnabledFields.put(handlerName, ApiField(n, TString))
+    handlerCreatorMethods.put("create "+handlerName,ApiMember(
+      name = "create " + handlerName,
+      paramTypes = List(),
+      thisType = ApiParam(this),
+      returnType = TypeList.getTypeOrFail(t),
+      semantics = new ApiMemberSemantics {
+        override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
+                                                     parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+          val typ = TypeList.getTypeOrFail(t).asInstanceOf[AAction]
+          var curState = state
+          MethodSummaries.collectClosureEntry(handlerName,curState)
+          curState = New[S](typ,Map(AAction.field_handlerName -> String(handlerName)))(curState,pp)
+          curState
+        }
+      }
+    ))
     n
+  }
+
+  lazy val member_yield =
+    ApiMember(
+      name = "yield",
+      paramTypes = List(),
+      thisType = ApiParam(this),
+      returnType = TNothing,
+      semantics = new ApiMemberSemantics {
+        override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
+                                                     parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+          val res = MethodSummaries.collectEventLoop[S](state,pp)
+          res
+        }
+      }
+    )
+
+  override def declarations = {
+    super.declarations ++ handlerCreatorMethods + ("yield" -> member_yield)
   }
 
   override def possibleFields: Set[Identifier] = {
@@ -48,33 +82,9 @@ object SHelpers extends ASingleton {
 
   override def reset(): Unit = {
     handlerEnabledFields.clear()
+    handlerCreatorMethods.clear()
+    handlerTypes.clear()
   }
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                              (implicit pp:ProgramPoint,state:S):S = method match {
-
-    /** Creates an action with the given name */
-    case CreateMethod(handlerName) if CFGGenerator.isHandlerIdent(handlerName) =>
-
-      (handlerTypes.get(handlerName), handlerEnabledFields.get(handlerName)) match {
-
-        case (Some(t),Some(field)) =>
-
-          val typ = TypeList.getTypeOrFail(t).asInstanceOf[AAction]
-          var curState = state
-          MethodSummaries.collectClosureEntry(handlerName,curState)
-          curState = New[S](typ,Map(AAction.field_handlerName -> String(handlerName)))(curState,pp)
-          curState
-
-        case _ =>
-          throw TouchException("Could not recover handler")
-
-      }
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-
-  }
 }
 

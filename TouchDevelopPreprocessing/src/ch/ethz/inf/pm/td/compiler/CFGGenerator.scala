@@ -174,7 +174,17 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
             List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
           val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_, _, _, _, _,  handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)
+
+          // We compute the yield statement
+          val yieldStatement =
+            ExpressionStatement(
+              ty("Nothing",parser.Access(
+                sty("Helpers", parser.SingletonReference("helpers","Helpers").copyPos(act)),
+                parser.Identifier("yield").copyPos(act),
+                Nil
+              ).copyPos(act))).copyPos(act)
+
+          val (_, _, _, _, _,  handlers) = addStatementsToCFG(initBody ::: (yieldStatement :: displayBody), newBody, scope, currentClassDef)
           val preCond: Statement = null
           val postCond: Statement = null
           handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
