@@ -8,11 +8,11 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TopInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TopInitializer, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_STime
-import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.AAction.EnableSemantics
 
 /**
  * Specifies the abstract semantics of time
@@ -30,20 +30,30 @@ object STime extends Default_STime {
   override def member_on_every_frame =
     super.member_on_every_frame.copy(semantics = AAction.EnableSemantics(STime.field_every_frame_handler))
 
+  case object ActivateTimerSemantics extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
+                                                 parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      var curState = state
+      curState = New[S](TTimer, initials = Map(TTimer.field_is_active -> True))(curState,pp)
+      val obj = curState.expr
+      curState = EnableSemantics(TTimer.field_trigger_handler,1).forwardSemantics[S](
+        obj,method,parameters
+      )(pp,curState)
+      curState = Return[S](obj)
+      curState
+    }
+  }
+
+  override def member_run_every =
+    super.member_run_every.copy(semantics = ActivateTimerSemantics)
+
+  override def member_run_after =
+    super.member_run_after.copy(semantics = ActivateTimerSemantics)
+
   override def possibleFields = super.possibleFields ++ List(field_every_frame_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
-
-    /** Starts a timer to run ``perform`` after ``seconds`` seconds. */
-    case "run after" =>
-      val List(seconds, perform) = parameters // Number,Action
-      New[S](TTimer, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
-
-    /** Starts a timer to run ``perform`` every ``seconds`` seconds. */
-    case "run every" =>
-      val List(seconds, perform) = parameters // Number,Action
-      New[S](TTimer, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
 
     /** Creates a new date instance */
     case "create" =>

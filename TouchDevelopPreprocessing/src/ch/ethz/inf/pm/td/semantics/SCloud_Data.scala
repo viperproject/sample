@@ -9,8 +9,8 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{ValidPureSemantics, TouchType}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TopInitializer}
+import ch.ethz.inf.pm.td.compiler.{TouchType, ValidPureSemantics}
 import ch.ethz.inf.pm.td.defsemantics.Default_SCloud_Data
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -30,20 +30,20 @@ object SCloud_Data extends Default_SCloud_Data {
   lazy val field_last_operation = ApiField("*last operation", TString)
 
   /** Gets the just-me session, in which cloud data is shared between devices by the same user. */
-  lazy val field_just_me_session = ApiField("just me session", TCloud_Session)
+  lazy val field_just_me_session = ApiField("just me session", TCloud_Session, TopInitializer)
 
   /** Gets the everyone-session, in which cloud data is shared by everyone running this script. */
-  lazy val field_everyone_session = ApiField("everyone session", TCloud_Session)
+  lazy val field_everyone_session = ApiField("everyone session", TCloud_Session, TopInitializer)
 
   /** Gets the currently active session. When the script starts, this is always the just-me session. */
-  lazy val field_current_session = ApiField("current session", TCloud_Session)
+  lazy val field_current_session = ApiField("current session", TCloud_Session, TopInitializer)
 
   /* [**obsolete**] Deprecated: always equal to current session. */
-  lazy val field_last_session = ApiField("last session", TCloud_Session)
+  lazy val field_last_session = ApiField("last session", TCloud_Session, TopInitializer)
 
   /** Returns the participant number within the current session, or -1 if not known yet. Participant numbers
     * are assigned by the server on first connect, starting with 0. */
-  lazy val field_participant_number = ApiField("participant number", TNumber)
+  lazy val field_participant_number = ApiField("participant number", TNumber, TopInitializer)
 
   /** Returns a boolean indicating whether cloud synchronization is enabled for the current session */
   lazy val field_sync_enabled = ApiField("sync enabled", TBoolean)

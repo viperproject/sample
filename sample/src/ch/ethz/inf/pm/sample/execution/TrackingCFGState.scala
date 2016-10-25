@@ -17,20 +17,20 @@ case class TrackingCFGStateFactory[S <: State[S]](stateFactory: S)
   extends CFGStateFactory[S, TrackingCFGState[S]] {
 
   def allBottom(cfg: ControlFlowGraph): TrackingCFGState[S] = {
-    val result = new TrackingCFGState(cfg, stateFactory)
+    val result = TrackingCFGState(cfg, stateFactory)
     result.initializeStates(stateFactory.bottom())
     result
   }
 
   def allTop(cfg: ControlFlowGraph): TrackingCFGState[S] = {
-    val result = new TrackingCFGState(cfg, stateFactory)
+    val result = TrackingCFGState(cfg, stateFactory)
     result.initializeStates(stateFactory.top())
     result
   }
 
   def makeFrom(cfg: ControlFlowGraph, cfgState: TrackingCFGState[S]): TrackingCFGState[S] = {
     val result = new TrackingCFGState[S](cfg, stateFactory)
-    for (idx <- 0 until cfg.nodes.size) {
+    for (idx <- cfg.nodes.indices) {
       result.setTrackedStatesOfBlock(idx, cfgState.trackedStatesOfBlock(idx))
     }
     result

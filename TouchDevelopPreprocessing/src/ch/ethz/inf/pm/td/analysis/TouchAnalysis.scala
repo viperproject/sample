@@ -159,15 +159,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
       AbstractEventGraph.reset()
       Reporter.disableAllOutputs()
-      val oldNumber = TouchAnalysisParameters.get.numberOfVersions
-      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
+      //val oldNumber = TouchAnalysisParameters.get.numberOfVersions
+      //TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 2))
 
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
       analyzeScript[TouchEntryStateBuilder.PreAnalysisState](compiler,methods,outMostFixpoint)(
         TouchEntryStateBuilder(TouchAnalysisParameters.get).preAnalysisTopState)
       //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
-      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
+      //TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
       logger.debug("Variable packing: "+TouchVariablePacking)
       val classifier = TouchVariablePacking.makeClassifier
       if (TouchAnalysisParameters.get.accessBasedLocalization) {

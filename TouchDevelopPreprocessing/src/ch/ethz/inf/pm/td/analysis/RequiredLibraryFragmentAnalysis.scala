@@ -37,7 +37,7 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
       val params = for (a <- method.arguments.head) yield {
         new ExpressionSet(a.typ)
       }
-      MethodSummaries.collect(method.programpoint, method, new AccessCollectingState(SystemParameters.typ.top()), params)
+      MethodSummaries.collect(method.programpoint, method, AccessCollectingState(SystemParameters.typ.top()), params)
 
     }
 
@@ -72,17 +72,17 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
   *
   * @param myType the current expression on the evaluation stack
   */
-class AccessCollectingState(myType: Type)
+case class AccessCollectingState(myType: Type)
   extends State[AccessCollectingState]
     with TouchStateInterface[AccessCollectingState] {
 
-  def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.typ.top())
+  def factory(): AccessCollectingState = AccessCollectingState(SystemParameters.typ.top())
 
   def isTop = myType.isTop
 
   def isBottom = myType.isBottom
 
-  def setType(typ: Type): AccessCollectingState = new AccessCollectingState(typ)
+  def setType(typ: Type): AccessCollectingState = AccessCollectingState(typ)
 
   def getType: Type = myType
 
@@ -91,7 +91,7 @@ class AccessCollectingState(myType: Type)
       RequiredLibraryFragmentAnalysis.spottedFields +
         (obj.typ.toString + "." + field) +
         obj.typ.toString
-    new AccessCollectingState(typ)
+    AccessCollectingState(typ)
   }
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.typ)
@@ -140,20 +140,21 @@ class AccessCollectingState(myType: Type)
 
   def before(pp: ProgramPoint): AccessCollectingState = this
 
-  def bottom(): AccessCollectingState = new AccessCollectingState(myType.bottom())
+  def bottom(): AccessCollectingState =
+    AccessCollectingState(myType.bottom())
 
   def glb(other: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(getType.glb(other.getType))
+    AccessCollectingState(getType.glb(other.getType))
 
   def lessEqual(r: AccessCollectingState): Boolean = myType.lessEqual(r.getType)
 
   def lub(other: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(getType.lub(other.getType))
+    AccessCollectingState(getType.lub(other.getType))
 
-  def top(): AccessCollectingState = new AccessCollectingState(myType.top())
+  def top(): AccessCollectingState = AccessCollectingState(myType.top())
 
   def widening(other: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(getType.widening(other.getType))
+    AccessCollectingState(getType.widening(other.getType))
 
   def removeObject(oldPreState: AccessCollectingState, obj: ExpressionSet, fields: Option[Set[Identifier]]): AccessCollectingState = this
 

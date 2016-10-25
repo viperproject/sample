@@ -58,39 +58,43 @@ trait AAction extends AAny {
 
   def Enable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint):S = {
 
-    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
-      case SetDomain.Default.Bottom() =>
-        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
-        state.bottom()
-      case SetDomain.Default.Top() =>
-        Reporter.reportImpreciseSemantics("Handler name is top", pp)
-        state.top()
-      case SetDomain.Default.Inner(xs) =>
-        Lattice.bigLub(
-          xs map { x =>
-            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),String("enabled"))(state,pp)
-          }
-        )
-    }
+    if (TouchAnalysisParameters.get.conditionalHandlers) {
+      EvalConstant[S](Field[S](this0, AAction.field_handlerName)) match {
+        case SetDomain.Default.Bottom() =>
+          Reporter.reportImpreciseSemantics("Going to bottom, no handler name", pp)
+          state.bottom()
+        case SetDomain.Default.Top() =>
+          Reporter.reportImpreciseSemantics("Handler name is top", pp)
+          state.top()
+        case SetDomain.Default.Inner(xs) =>
+          Lattice.bigLub(
+            xs map { x =>
+              AssignField[S](Singleton(SHelpers), SHelpers.handlerEnabledFieldName(x.constant), String("enabled"))(state, pp)
+            }
+          )
+      }
+    } else state
 
   }
 
   def Disable[S <: State[S]](this0:ExpressionSet)(implicit state: S, pp: ProgramPoint):S = {
 
-    EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
-      case SetDomain.Default.Bottom() =>
-        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
-        state.bottom()
-      case SetDomain.Default.Top() =>
-        Reporter.reportImpreciseSemantics("Handler name is top", pp)
-        state.top()
-      case SetDomain.Default.Inner(xs) =>
-        Lattice.bigLub(
-          xs map { x =>
-            AssignField[S](Singleton(SHelpers),SHelpers.handlerEnabledFieldName(x.constant),String(""))(state,pp)
-          }
-        )
-    }
+    if (TouchAnalysisParameters.get.conditionalHandlers) {
+      EvalConstant[S](Field[S](this0, AAction.field_handlerName)) match {
+        case SetDomain.Default.Bottom() =>
+          Reporter.reportImpreciseSemantics("Going to bottom, no handler name", pp)
+          state.bottom()
+        case SetDomain.Default.Top() =>
+          Reporter.reportImpreciseSemantics("Handler name is top", pp)
+          state.top()
+        case SetDomain.Default.Inner(xs) =>
+          Lattice.bigLub(
+            xs map { x =>
+              AssignField[S](Singleton(SHelpers), SHelpers.handlerEnabledFieldName(x.constant), String(""))(state, pp)
+            }
+          )
+      }
+    } else state
 
   }
 
@@ -107,7 +111,7 @@ trait AAction extends AAny {
           if (CFGGenerator.isHandlerIdent(x.name.toString)) {
             MethodSummaries.collect(pp, x, state, parameters)
           } else {
-            if (SystemParameters.DEBUG) println("Going to bottom, invalid handler name")
+            Reporter.reportImpreciseSemantics("Going to bottom, invalid handler name", pp)
             state.bottom()
           }
         })
@@ -116,7 +120,7 @@ trait AAction extends AAny {
 
     EvalConstant[S](Field[S](this0,AAction.field_handlerName)) match {
       case SetDomain.Default.Bottom() =>
-        if (SystemParameters.DEBUG) println("Going to bottom, no handler name")
+        Reporter.reportImpreciseSemantics("Going to bottom, no handler name", pp)
         state.bottom()
       case SetDomain.Default.Top() =>
         Reporter.reportImpreciseSemantics("Handler name is top", pp)

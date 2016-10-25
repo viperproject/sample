@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -37,7 +37,9 @@ object SHelpers extends ASingleton {
   def createHandler(handlerName:String, t:TypeName):String = {
     val n = handlerEnabledFieldName(handlerName)
     handlerTypes.put(handlerName, t)
-    handlerEnabledFields.put(handlerName, ApiField(n, TString))
+    if (TouchAnalysisParameters.get.conditionalHandlers) {
+      handlerEnabledFields.put(handlerName, ApiField(n, TString))
+    }
     handlerCreatorMethods.put("create "+handlerName,ApiMember(
       name = "create " + handlerName,
       paramTypes = List(),

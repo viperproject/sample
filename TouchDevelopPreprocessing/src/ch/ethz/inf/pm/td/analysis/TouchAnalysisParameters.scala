@@ -57,7 +57,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Context-sensitivity in the interprocedural analysis.
                                      */
-                                    contextSensitiveInterproceduralAnalysis: Boolean = true,
+                                    contextSensitiveInterproceduralAnalysis: Boolean = false,
 
                                     /**
                                      * The default behavior of TouchGuru is to initialize the global state to invalid
@@ -242,6 +242,7 @@ case class TouchAnalysisParameters(
                                      */
                                     includeLibraryStableComponent: Boolean = false,
 
+                                    conditionalHandlers: Boolean = false,
 
                                     /**
                                      * Settings for the mongodb server
@@ -252,7 +253,8 @@ case class TouchAnalysisParameters(
 
                                     enableCloudAnalysis:Boolean = false
 
-                                    )
+                                    ) {
+}
 
 object LibraryErrorReportingMode extends Enumeration {
 

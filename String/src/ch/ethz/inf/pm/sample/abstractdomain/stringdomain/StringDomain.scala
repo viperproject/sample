@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.abstractdomain.Identifier.FieldIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyStringType, Type}

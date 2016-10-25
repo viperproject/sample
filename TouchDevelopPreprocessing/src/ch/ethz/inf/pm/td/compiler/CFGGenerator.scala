@@ -367,19 +367,23 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
 
             // Construct a body that checks whether the handler is enabled
             val conditionalBody =
-              List(parser.If(
-                ty("Boolean",parser.Access(
-                  ty("String",parser.Access(
-                    sty("Helpers", parser.SingletonReference("helpers","Helpers").copyPos(i)),
-                    parser.Identifier(enabledField).copyPos(i),
-                    Nil
+              if (TouchAnalysisParameters.get.conditionalHandlers) {
+                List(parser.If(
+                  ty("Boolean", parser.Access(
+                    ty("String", parser.Access(
+                      sty("Helpers", parser.SingletonReference("helpers", "Helpers").copyPos(i)),
+                      parser.Identifier(enabledField).copyPos(i),
+                      Nil
+                    ).copyPos(i)),
+                    parser.Identifier("equals").copyPos(i),
+                    List(ty("String", parser.Literal(TypeName("String"), "enabled").copyPos(i)))
                   ).copyPos(i)),
-                  parser.Identifier("equals").copyPos(i),
-                  List(ty("String",parser.Literal(TypeName("String"),"enabled").copyPos(i)))
-                ).copyPos(i)),
-                body,
-                List(parser.Skip().copyPos(i))
-              ).copyPos(i))
+                  body,
+                  List(parser.Skip().copyPos(i))
+                ).copyPos(i))
+              } else {
+                body
+              }
 
             val programPoint: ProgramPoint = wPP
             val modifiers: List[Modifier] = List(ClosureModifier)
@@ -435,7 +439,7 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
                 val initialization =
                   expressionToStatement(
                     ty("Nothing",Access(
-                      tty(typName,LocalReference(optionalArgumentIdent)),
+                      tty(typName,LocalReference(optionalArgumentIdent).copyPos(p)),
                       parser.Identifier(":=").copyPos(p),
                       List(
                         tty(typName,Access(
@@ -621,7 +625,7 @@ case class TouchProgramPoint(
                               customPositionElements: List[String])
   extends ProgramPoint {
 
-  def fullPosString: String = {
+  lazy val fullPosString: String = {
     val parserPos = if (lineColumnPosition == NoPosition) "" else lineColumnPosition.toString()
     val customPos = customPositionElements.mkString("_")
     parserPos + customPos

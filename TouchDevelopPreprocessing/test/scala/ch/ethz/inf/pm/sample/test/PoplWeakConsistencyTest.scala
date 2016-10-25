@@ -40,81 +40,90 @@ class PoplWeakConsistencyTest extends FunSuite {
   test("Contest Voting (etww)") {
     runAnalysis("td://etww")
   }
-  test("Chatter box (fqaba)") {
-    runAnalysis("td://fqaba")
-  }
+// ==== LANGSAM
+//  test("Chatter box (fqaba)") {
+//    runAnalysis("td://fqaba")
+//  }
 ////  test("Hubstar (gbtxe)") {
 ////    runAnalysis("td://gbtxe")
 ////  }
 ////  test("tetris (gcane)") {
 ////    runAnalysis("td://gcane")
 ////  }
-//  test("NuvolaList 2 (kjxzcgcv)") {
-//    runAnalysis("td://kjxzcgcv")
-//  }
-//  test("FieldGPS (kmac)") {
-//    runAnalysis("td://kmac")
-//  }
-//  test("HackER (kqfnc)") {
-//    runAnalysis("td://kqfnc")
-//  }
-//  test("Cloud Example (kzwue)") {
-//    runAnalysis("td://kzwue")
-//  }
-//  test("instant poll (nggfa)") {
-//    runAnalysis("td://nggfa")
-//  }
-//  test("expense recorder (nvoha)") {
-//    runAnalysis("td://nvoha")
-//  }
-//  test("keyboard hero (ohgxa)") {
-//    runAnalysis("td://ohgxa")
-//  }
-//  test("dekker example (oxhs)") {
-//    runAnalysis("td://oxhs")
-//  }
-//  test("sky locale (padg)") {
-//    runAnalysis("td://padg")
-//  }
+  test("NuvolaList 2 (kjxzcgcv)") {
+    runAnalysis("td://kjxzcgcv")
+  }
+  test("FieldGPS (kmac)") {
+    runAnalysis("td://kmac", Set(
+      ("assert.failed","xPBi9YDvwWi9x9gJ$i1"),
+      ("assert.failed","Opfcpo6ZUUsfJ20U$i0"),
+      ("assert.failed","hnSP4N2Kg8mkJOj1$i0"),
+      ("assert.failed","ZnqpY2DwXDPGjw3z$i0")
+    ))
+  }
+  test("HackER (kqfnc)") {
+    runAnalysis("td://kqfnc")
+  }
+  test("Cloud Example (kzwue)") {
+    runAnalysis("td://kzwue")
+  }
+  test("instant poll (nggfa)") {
+    runAnalysis("td://nggfa")
+  }
+  test("expense recorder (nvoha)") {
+    runAnalysis("td://nvoha")
+  }
+  test("keyboard hero (ohgxa)") {
+    runAnalysis("td://ohgxa")
+  }
+  test("dekker example (oxhs)") {
+    runAnalysis("td://oxhs")
+  }
+
+  // ==== LANGSAM
+  //test("sky locale (padg)") {
+  //  runAnalysis("td://padg")
+  //}
 ////  test("metaverse (qnpge)") {
 ////    runAnalysis("td://qnpge")
 ////  }
-//  test("Events (qwidc)") {
-//    runAnalysis("td://qwidc")
-//  }
-//  test("TouchDevelop Jr. (qzeua)") {
-//    runAnalysis("td://qzeua")
-//  }
+  test("Events (qwidc)") {
+    runAnalysis("td://qwidc")
+  }
+  test("TouchDevelop Jr. (qzeua)") {
+    runAnalysis("td://qzeua")
+  }
+// ==== WORKS, but slow!
 //  test("cloud card (qzju)") {
 //    runAnalysis("td://qzju")
 //  }
-//  test("Relatd (ruef)") {
-//    runAnalysis("td://ruef")
-//  }
-//  test("Cloud Paper Scissors (sxjua)") {
-//    runAnalysis("td://sxjua")
-//  }
+  test("Relatd (ruef)") {
+    runAnalysis("td://ruef")
+  }
+  test("Cloud Paper Scissors (sxjua)") {
+    runAnalysis("td://sxjua")
+  }
 ////  test("pentix (uvjba)") {
 ////    runAnalysis("td://uvjba")
 ////  }
-//  test("Color Line (uvlma)") {
-//    runAnalysis("td://uvlma")
-//  }
-//  test("unique poll (wbuei)") {
-//    runAnalysis("td://wbuei")
-//  }
-//  test("Online Tic Tac Toe Multiplayer  (wccqepeb)") {
-//    runAnalysis("td://wccqepeb")
-//  }
+  test("Color Line (uvlma)") {
+    runAnalysis("td://uvlma")
+  }
+  test("unique poll (wbuei)") {
+    runAnalysis("td://wbuei")
+  }
+  test("Online Tic Tac Toe Multiplayer  (wccqepeb)") {
+    runAnalysis("td://wccqepeb")
+  }
 ////  test("Vulcanization calculator (whpgc)") {
 ////    runAnalysis("td://whpgc")
 ////  }
-//  test("Expense Splitter (wkvhc)") {
-//    runAnalysis("td://wkvhc")
-//  }
-//  test("guess multi-player demo (ycxbc)") {
-//    runAnalysis("td://ycxbc")
-//  }
+  test("Expense Splitter (wkvhc)") {
+    runAnalysis("td://wkvhc")
+  }
+  test("guess multi-player demo (ycxbc)") {
+    runAnalysis("td://ycxbc")
+  }
 
   // Replace from Google Docs:
   //   +(\w+)\t([^\n]*)

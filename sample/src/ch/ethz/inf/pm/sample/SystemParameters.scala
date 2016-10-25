@@ -23,7 +23,7 @@ object SystemParameters {
   /**
    * Enables costly debugging checks
    */
-  val DEBUG = true
+  val DEBUG = false
 
   /**
    * Enables costly timing flags

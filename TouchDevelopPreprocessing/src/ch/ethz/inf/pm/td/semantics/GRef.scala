@@ -91,7 +91,7 @@ case class GRef (TT:AAny) extends Default_GRef {
 
   override def member__clear = ApiMember(
     name = "◈clear",
-    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    paramTypes = Nil,
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
