@@ -297,7 +297,10 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
       // And and Or
       case BinaryBooleanExpression(left, right, op, _) => op match {
-        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.&& =>
+          val l = assume(left)
+          if (l.isBottom) l
+          else l.assume(right)
         case BooleanOperator.|| =>
           val l = assume(left)
           val r = assume(right)

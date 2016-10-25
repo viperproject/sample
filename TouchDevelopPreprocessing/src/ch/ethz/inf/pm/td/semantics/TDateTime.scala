@@ -47,6 +47,7 @@ object TDateTime extends Default_TDateTime {
 
   override lazy val member_greater_or_equal = super.member_greater_or_equal.copy(semantics = TopSemantics)
   override lazy val member_subtract = super.member_subtract.copy(semantics = TopSemantics)
+  override lazy val member_greater = super.member_greater.copy(semantics = TopSemantics)
 
   override def possibleFields = super.possibleFields ++ List(
     field_day,

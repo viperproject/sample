@@ -89,8 +89,15 @@ case class StaticVariablePackingDomain
   override def assign(variable: Identifier, expr: Expression): StaticVariablePackingDomain[Cheap,Relational] =
     factory(cheap.assign(variable,expr),applyToPacks(variable, {x:Relational => x.assign(variable,expr)}))
 
-  override def getStringOfId(id: Identifier): String =
-    cheap.getStringOfId(id)+","+classifier.classify(id).map( getPack(_).getStringOfId(id) ).mkString(",")
+  override def getStringOfId(id: Identifier): String = {
+    val c = cheap.getStringOfId(id)
+    val e = classifier.classify(id).map(getPack(_).getStringOfId(id)).mkString("\n")
+    if (e.contains("\n")) {
+      c + "\n\t== Constraints ==\n\t" + e.replace("\n","\n\t")
+    } else {
+      c + "," + e
+    }
+  }
 
   override def merge(f: Replacement): StaticVariablePackingDomain[Cheap,Relational] =
     factory(cheap.merge(f),f.value.foldLeft(map) {
