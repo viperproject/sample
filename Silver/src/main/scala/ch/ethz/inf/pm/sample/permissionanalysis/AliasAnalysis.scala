@@ -783,8 +783,13 @@ object AliasGraph
       * @return True if the given access paths may / must alias.
       */
     override def pathsAlias(first: List[String], second: List[String]): Boolean = {
-      def firstEval = evaluatePath(first) - NullNode
-      def secondEval = evaluatePath(second) - NullNode
+      def evaluate(path: List[String]): Set[HeapNode] = {
+        val eval = evaluatePath(path)
+        if ((eval contains WildcardNode) || !(eval contains UnknownNode)) eval
+        else copy(materialization = true).materialize(path).evaluatePath(path)
+      }
+      def firstEval = evaluate(first) - NullNode
+      def secondEval = evaluate(second) - NullNode
       def intersection = firstEval & secondEval
       intersection.nonEmpty || (firstEval contains WildcardNode) || (secondEval contains WildcardNode)
     }
