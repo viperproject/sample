@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.SystemParameters
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Set
