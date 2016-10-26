@@ -1,7 +1,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
 
 import scala.collection.immutable.Set
@@ -34,7 +36,20 @@ object QuantifiedPermissionsEntryStateBuilder extends EntryStateBuilder[Quantifi
 case class QuantifiedPermissionsState(isTop: Boolean = false, isBottom: Boolean = false, top:
 QuantifiedPermissionsState = Top, bottom: QuantifiedPermissionsState = Bottom) extends
   SimplePermissionState[QuantifiedPermissionsState] {
-  this: QuantifiedPermissionsState =>
+
+
+  // intervals/polyhedra abstract domain
+  def numDom: Apron.Polyhedra
+
+  def currentPP: ProgramPoint
+
+  // fields declared within the program
+  def fieldSet: Set[(Type, String)]
+
+  def DefaultTrue = new Constant("true", BoolType, currentPP)
+
+  def DefaultFalse = new Constant("false", BoolType, currentPP)
+
 
   def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom, expr: ExpressionSet = expr):
   QuantifiedPermissionsState = {
@@ -273,6 +288,8 @@ QuantifiedPermissionsState = Top, bottom: QuantifiedPermissionsState = Bottom) e
     *         and less than or equal to any other upper bound of the two arguments */
   override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
 
+  def backwardLub(falseBranchState: QuantifiedPermissionsState, oldPreState: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+
   /** Computes the greatest lower bound of two elements.
     *
     * @param other The other value
@@ -291,6 +308,8 @@ QuantifiedPermissionsState = Top, bottom: QuantifiedPermissionsState = Bottom) e
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other`*/
   override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
+
+  def refiningWhileLoop(oldPreState: QuantifiedPermissionsState, beforeLoopState: QuantifiedPermissionsState, loopBodyFirstState: QuantifiedPermissionsState, loopBodyLastState: QuantifiedPermissionsState, afterLoopState: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
 
   override def ids: IdentifierSet = ???
 }
