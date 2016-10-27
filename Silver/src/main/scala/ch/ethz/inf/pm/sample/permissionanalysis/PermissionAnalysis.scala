@@ -6,6 +6,8 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters, execution}
 import ch.ethz.inf.pm.sample.execution.{Analysis, _}
@@ -1416,6 +1418,61 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // return result of the permission analysis
     permissionAnalysisResult
   }
+}
+
+trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+  extends SilverAnalysisRunner[T]
+{
+  override def main(arguments: Array[String]) {
+    // check whether there is a first argument (the path to the file)
+    if (arguments.isEmpty) throw new IllegalArgumentException("No file specified")
+
+    // run analysis
+    val path = new File(arguments(0)).toPath
+    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
+
+    println("\n*******************\n* Analysis Result *\n*******************\n")
+    // map of method names to control flow graphs
+    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
+    for ((m, g) <- methodNameToCfgState) {
+      println("******************* " + m + "\n")
+
+      println(g.exitState()) // printing the entry state of the control-flow graph
+
+      val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
+      // withing each block...
+      var i = 0
+      for (stmts: List[Statement] <- blocks) {
+        if (stmts.isEmpty) {
+          val states: List[T] = g.blockStates(i).last // post-states of each statement
+          for (s <- states) {
+            println("\n******************* \n")
+            println(s)
+          }
+        } else {
+          // printing the block pre-state
+          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
+          println(g.blockStates(i).last.head)
+          val states: List[T] = g.blockStates(i).last.drop(1) // post-states of each statement
+          // print statements and corresponding post-states
+          for ((c: Statement, s) <- stmts zip states) {
+            println("\n******************* " + c + "\n")
+            println(s)
+          }
+        }
+        i = i + 1
+      }
+
+      println("\n******************* \n")
+      println(g.entryState()) // printing the exit state of the control-flow graph
+    }
+  }
+}
+
+object DebugPermissionInference
+  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
+{
+  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
