@@ -64,7 +64,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
           case 0 => cfgState.statesOfBlock(currentId).last
           case 1 => //Remove the expression from the oldPreState, there might be some expressions left and backwardLub would
             // transform it into a branch cond
-            cfgState.statesOfBlock(exitEdges.head._2).head.backwardLub(finalState.bottom(), oldPreState.setExpression(ExpressionSet()))
+            cfgState.statesOfBlock(exitEdges.head._2).head.backwardLub(finalState.bottom, oldPreState.setExpression(ExpressionSet()))
           case 2 => val (trueState, falseState) = (exitEdges.head, exitEdges.last) match {
             case ((_, toTrue, Some(true)), (_, toFalse, Some(false))) =>
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)

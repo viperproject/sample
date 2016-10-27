@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
@@ -26,7 +25,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
 
-  val analysis = ForwardAndBackwardAnalysis(QuantifiedPermissionsEntryStateBuilder[Apron.Polyhedra, QuantifiedPermissionsState], new QuantifiedPermissionsState())
+  val analysis = ForwardAndBackwardAnalysis(QuantifiedPermissionsEntryStateBuilder, QuantifiedPermissionsState())
 }
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) {}
