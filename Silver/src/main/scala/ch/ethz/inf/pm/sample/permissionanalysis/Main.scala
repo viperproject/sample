@@ -32,7 +32,7 @@ object Main {
     //MayPointToAOctagonsAnalysisRunner.main(args)
     //MayPointToAPolyhedraAnalysisRunner.main(args)
 
-    PermissionAnalysis.main(args)
+    PermissionInference.main(args)
 
     //println("\n******************\n* AnalysisResult *\n******************\n")
     //if (Reporter.seenErrors.isEmpty) println("No errors")

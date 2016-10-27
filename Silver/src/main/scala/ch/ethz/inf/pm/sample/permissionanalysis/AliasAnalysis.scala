@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.Default
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
 import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
 import ch.ethz.inf.pm.sample.permissionanalysis.Types._
@@ -1712,13 +1712,13 @@ object AliasAnalysisState
     * @param isTop           The top flag.
     * @param isBottom        The bottom flag.
     */
-  case class Default(currentPP: ProgramPoint = DummyProgramPoint,
-                     result: ExpressionSet = ExpressionSet(),
-                     may: MayAliasGraph = MayAliasGraph(),
-                     must: MustAliasGraph = MustAliasGraph(),
-                     isTop: Boolean = false,
-                     isBottom: Boolean = false)
-  extends AliasAnalysisState[Default]
+  case class SimpleAliasAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
+                                      result: ExpressionSet = ExpressionSet(),
+                                      may: MayAliasGraph = MayAliasGraph(),
+                                      must: MustAliasGraph = MustAliasGraph(),
+                                      isTop: Boolean = false,
+                                      isBottom: Boolean = false)
+  extends AliasAnalysisState[SimpleAliasAnalysisState]
   {
     /** Copies the alias analysis state but updates fields, current program point,
       * materialization flag, result, may alias graph, must alias graph, top flag,
@@ -1737,8 +1737,8 @@ object AliasAnalysisState
                       may: MayAliasGraph,
                       must: MustAliasGraph,
                       isTop: Boolean,
-                      isBottom: Boolean): Default =
-      Default(currentPP, result, may, must, isTop, isBottom)
+                      isBottom: Boolean): SimpleAliasAnalysisState =
+      SimpleAliasAnalysisState(currentPP, result, may, must, isTop, isBottom)
   }
 }
 
@@ -1771,9 +1771,9 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
   * @author Jerome Dohrau
   */
 object AliasAnalysisEntryState
-  extends AliasAnalysisStateBuilder[Default]
+  extends AliasAnalysisStateBuilder[SimpleAliasAnalysisState]
 {
-  override def topState: Default = Default()
+  override def topState: SimpleAliasAnalysisState = SimpleAliasAnalysisState()
 }
 
 /** An alias analysis runner.
@@ -1846,9 +1846,9 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
   * @author Jerome Dohrau
   */
 object AliasAnalysis
-  extends AliasAnalysisRunner[Default]
+  extends AliasAnalysisRunner[SimpleAliasAnalysisState]
 {
-  override val analysis: Analysis[Default] = SimpleForwardAnalysis[Default](AliasAnalysisEntryState)
+  override val analysis: Analysis[SimpleAliasAnalysisState] = SimpleForwardAnalysis[SimpleAliasAnalysisState](AliasAnalysisEntryState)
 
   override def toString: String = "Alias Analysis"
 }
