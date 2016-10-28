@@ -117,5 +117,6 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
 }
 
 case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState) extends QPInterpreter {
+  type C = TrackingCFGState[QuantifiedPermissionsState]
   val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](stateFactory)
 }
