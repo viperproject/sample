@@ -9,10 +9,13 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters, execution}
+import ch.ethz.inf.pm.sample.execution.{Analysis, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
+import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -71,7 +74,7 @@ object Permission {
 
   /** Returns a read permission.
     */
-  def read: Permission = fractional(0, 1, read = true)
+  def read: Permission = fractional(0, 1, 1)
 
   /** Returns a write permission.
     */
@@ -82,9 +85,9 @@ object Permission {
     *
     * @param numerator   The numerator of the fractional part.
     * @param denominator The denominator of the fractional part.
-    * @param read        Indicates whether there is a read part.
+    * @param read        The counter for the read permission.
     */
-  def fractional(numerator: Int, denominator: Int, read: Boolean = false): Permission = {
+  def fractional(numerator: Int, denominator: Int, read: Int = 0): Permission = {
     val div = gcd(numerator, denominator)
     Fractional(numerator / div, denominator / div, read)
   }
@@ -118,9 +121,9 @@ object Permission {
     *
     * @param numerator   The numerator of the fractional part.
     * @param denominator The denominator of the fractional part.
-    * @param read        Indicates whether there is a read part.
+    * @param read        The counter for the read permission.
     */
-  case class Fractional(numerator: Int, denominator: Int, read: Boolean)
+  case class Fractional(numerator: Int, denominator: Int, read: Int)
     extends Permission
   {
     override def isBottom: Boolean = false
@@ -133,7 +136,7 @@ object Permission {
       case Fractional(oNumerator, oDenominator, oRead) =>
         val x = numerator * oDenominator
         val y = denominator * oNumerator
-        x < y || (x == y && (!read || oRead))
+        x < y || (x == y && read <= oRead)
     }
 
     override def plus(other: Permission): Permission = other match {
@@ -152,15 +155,15 @@ object Permission {
       case Fractional(oNumerator, oDenominator, oRead) =>
         val newNumerator = numerator * oDenominator - denominator * oNumerator
         val newDenominator = denominator * oDenominator
-        val newRead = read && !oRead
+        val newRead = read - oRead
         fractional(newNumerator, newDenominator, newRead)
     }
 
     override def isSome: Boolean =
-      amount > 0 || (amount == 0 && read)
+      amount > 0 || (amount == 0 && 0 < read)
 
     override def isNone: Boolean =
-      amount < 0 || (amount == 0 && !read)
+      amount < 0 || (amount == 0 && read <= 0)
 
     def amount: Double =
       numerator.toDouble / denominator
@@ -390,11 +393,10 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
 
 /**
   * @tparam T The type of the permission analysis state.
-  * @tparam A The type of the alias analysis state.
   * @author Jerome Dohrau
   */
-trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnalysisState[A]]
-  extends SimpleState[T] with PreviousResult[A, T] with SilverSpecification
+trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+  extends SimpleState[T] with SilverSpecification
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging
 {
@@ -408,9 +410,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   // the set of fields
   def fields: Set[(String, Type)]
 
-  // result of the alias analysis
-  def context: Option[TrackingCFGState[A]]
-
   // result of the previous statement
   def result: ExpressionSet
 
@@ -422,10 +421,10 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
   def arguments: Seq[sil.LocalVarDecl]
 
   // result of the alias analysis before the current program point
-  lazy val preAliases = preStateAtPP(context.get, currentPP)
+  lazy val preAliases = Context.preAliases[A](currentPP)
 
   // result of the alias analysis after the current program point
-  lazy val postAliases = postStateAtPP(context.get, currentPP)
+  lazy val postAliases = Context.postAliases[A](currentPP)
 
   // the list of access paths
   lazy val paths: List[AccessPath] =
@@ -437,9 +436,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
     }.filter{
       case (path, permission) => path.length > 1 && permission.isSome
     }
-
-  override def addPreviousResult(result: TrackingCFGState[A]): T =
-    copy(context = Some(result))
 
   /** Modifies the list of formal arguments using information stored in the
     * current state.
@@ -702,6 +698,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
             if (rightPath.isEmpty) assign(leftPath, rightPath)
             else accessPaths.foldLeft(this) {
               case (res, path) =>
+                postAliases
                 if (path == leftPath) res.assign(path, rightPath)
                 else if (path.length > 1 && postAliases.pathsMayAlias(path, rightPath))
                   if (postAliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
@@ -1228,8 +1225,9 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
       case Permission.Top =>
         sil.FalseLit()()
       case Fractional(numerator, denominator, read) =>
-        val amount = if (read) {
-          val variable = sil.LocalVar("read")(sil.Perm)
+        val amount = if (read > 0) {
+          val variable = if (read == 1) sil.LocalVar("read")(sil.Perm)
+          else sil.PermMul(sil.IntLit(read)(), sil.LocalVar("read")(sil.Perm))()
           if (numerator == 0) variable
           else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
           else sil.PermAdd(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())(), variable)()
@@ -1279,7 +1277,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   private def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
     val reading = tuples.exists {
-      case (_, Fractional(_, _, true)) => true
+      case (_, Fractional(_, _, read)) => read > 0
       case _ => false
     }
 
@@ -1316,7 +1314,6 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
   def copy(currentPP: ProgramPoint = currentPP,
            fields: Set[(String, Type)] = fields,
-           context: Option[TrackingCFGState[A]] = context,
            result: ExpressionSet = result,
            permissions: Map[Identifier, PermissionTree] = permissions,
            specification: Seq[sil.Exp] = specification,
@@ -1347,31 +1344,29 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A], A <: AliasAnal
 
 object PermissionAnalysisState
 {
-  case class Default(currentPP: ProgramPoint = DummyProgramPoint,
-                     fields: Set[(String, Type)] = Set.empty,
-                     context: Option[TrackingCFGState[AliasAnalysisState.Default]] = None,
-                     result: ExpressionSet = ExpressionSet(),
-                     permissions: Map[Identifier, PermissionTree] = Map.empty,
-                     specification: Seq[sil.Exp] = Seq.empty,
-                     arguments: Seq[sil.LocalVarDecl] = Seq.empty,
-                     isBottom: Boolean = false,
-                     isTop: Boolean = false)
-    extends PermissionAnalysisState[Default, AliasAnalysisState.Default]
+  case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
+                                           fields: Set[(String, Type)] = Set.empty,
+                                           result: ExpressionSet = ExpressionSet(),
+                                           permissions: Map[Identifier, PermissionTree] = Map.empty,
+                                           specification: Seq[sil.Exp] = Seq.empty,
+                                           arguments: Seq[sil.LocalVarDecl] = Seq.empty,
+                                           isBottom: Boolean = false,
+                                           isTop: Boolean = false)
+    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
   {
     override def copy(currentPP: ProgramPoint,
                       fields: Set[(String, Type)],
-                      context: Option[TrackingCFGState[AliasAnalysisState.Default]],
                       result: ExpressionSet,
                       permissions: Map[Identifier, PermissionTree],
                       specification: Seq[sil.Exp],
                       arguments: Seq[sil.LocalVarDecl],
                       isBottom: Boolean,
-                      isTop: Boolean): Default =
-      Default(currentPP, fields, context, result, permissions, specification, arguments, isBottom, isTop)
+                      isTop: Boolean): SimplePermissionAnalysisState =
+      SimplePermissionAnalysisState(currentPP, fields, result, permissions, specification, arguments, isBottom, isTop)
   }
 }
 
-trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends BackwardEntryStateBuilder[T]
 {
   override def build(method: MethodDeclaration): T = {
@@ -1387,16 +1382,54 @@ trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: Permission
 }
 
 object PermissionAnalysisEntryState
-  extends PermissionAnalysisStateBuilder[AliasAnalysisState.Default, PermissionAnalysisState.Default]
+  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
 {
-  override def topState: PermissionAnalysisState.Default = PermissionAnalysisState.Default()
+  override def topState: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
-trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+(aliasAnalysisBuilder: AliasAnalysisStateBuilder[A],
+ permissionAnalysisStateBuilder: PermissionAnalysisStateBuilder[A, T])
+  extends execution.Analysis[T]
+{
+  override def analyze(method: MethodDeclaration): MethodAnalysisResult[T] = {
+    // first phase: alias analysis
+    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+      val entryState = aliasAnalysisBuilder.build(method)
+      val interpreter = TrackingForwardInterpreter[A](entryState)
+      val cfgState = interpreter.forwardExecute(method.body, entryState)
+      MethodAnalysisResult(method, cfgState)
+    }
+
+    // add result of alias analysis to context
+    Context.setAliases(aliasAnalysisResult.cfgState)
+
+    // second phase: permission analysis
+    val permissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+      val entryState = permissionAnalysisStateBuilder.build(method)
+      val interpreter = TrackingBackwardInterpreter[T](entryState)
+      val cfgState = interpreter.backwardExecute(method.body, entryState)
+      MethodAnalysisResult(method, cfgState)
+    }
+
+    // remove result of alias analysis from the context
+    Context.clearAliases()
+
+    // return result of the permission analysis
+    permissionAnalysisResult
+  }
+}
+
+trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverAnalysisRunner[T]
 {
-  override def main(args: Array[String]) {
-    val results = run(Compilable.Path(new File(args(0)).toPath)).collect{ case x: MethodAnalysisResult[T] => x }
+  override def main(arguments: Array[String]) {
+    // check whether there is a first argument (the path to the file)
+    if (arguments.isEmpty) throw new IllegalArgumentException("No file specified")
+
+    // run analysis
+    val path = new File(arguments(0)).toPath
+    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
 
     println("\n*******************\n* Analysis Result *\n*******************\n")
     // map of method names to control flow graphs
@@ -1436,23 +1469,17 @@ trait DebugPermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionA
   }
 }
 
-object DebugPermissionAnalysis
-  extends DebugPermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default]
+object DebugPermissionInference
+  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
 {
-  override val analysis =
-    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
-
-  override def toString = "Permission Analysis"
+  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }
 
-trait PermissionAnalysisRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[T, A]]
+trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverInferenceRunner[T]
 
-object PermissionAnalysis
-  extends PermissionAnalysisRunner[AliasAnalysisState.Default, PermissionAnalysisState.Default]
+object PermissionInference
+  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
 {
-  override val analysis =
-    SimpleForwardBackwardAnalysis[AliasAnalysisState.Default, PermissionAnalysisState.Default](AliasAnalysisEntryState, PermissionAnalysisEntryState)
-
-  override def toString = "Permission Analysis"
+  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }

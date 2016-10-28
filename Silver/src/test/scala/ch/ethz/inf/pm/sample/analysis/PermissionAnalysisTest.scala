@@ -11,6 +11,7 @@ import java.nio.file.Path
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution.MethodAnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
+import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import ch.ethz.inf.pm.sample.test.LatticeTest
 import viper.silicon.Silicon
@@ -48,8 +49,8 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
   override val name: String = "sample"
 
   override def verify(program: Program): VerificationResult = {
-    val runner = PermissionAnalysis
-    val results = runner.run(program).collect{ case x:MethodAnalysisResult[PermissionAnalysisState.Default] => x } // run the permission inference
+    val runner = PermissionInference
+    val results = runner.run(program).collect{ case x:MethodAnalysisResult[SimplePermissionAnalysisState] => x } // run the permission inference
     // extend the program with the inferred permissions
     val extendedProgram = runner.extendProgram(DefaultSilverConverter.prog, results)
 
@@ -107,9 +108,9 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
   *
   * @author Caterina Urban
   */
-class PermissionAnalysisLatticeTest extends LatticeTest[PermissionAnalysisState.Default] {
+class PermissionAnalysisLatticeTest extends LatticeTest[SimplePermissionAnalysisState] {
   SystemParameters.typ = DummyRefType
-  override def factory: PermissionAnalysisState.Default = PermissionAnalysisEntryState.topState
+  override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.topState
 }
 
 case class InfeasiblePrecondition(method: String, pos: Position) extends AbstractError {
