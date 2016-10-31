@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
@@ -63,18 +62,58 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   // BASIC METHODS
 
+  def join (perms1: Map[String, Map[Expression, PermissionExpression]], perms2: Map[String, Map[Expression, PermissionExpression]]) = {
+    val result: mutable.Map[String, Map[Expression, PermissionExpression]] =  mutable.HashMap[String, Map[Expression, PermissionExpression]]()
+    for ((field, permissions1) <- perms1) {
+      if (perms2.contains(field)) {
+        val permissions2 = perms2.get(field)
+
+      }
+    }
+    result
+  }
+
   def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom,
            currentPP: ProgramPoint = currentPP):
   QuantifiedPermissionsState = {
     QuantifiedPermissionsState(isTop, isBottom, currentPP = currentPP)
   }
 
-  def getAcc(e: Expression, p: Expression): Unit = {
+  def createAccessPathIdentifier(id: Identifier, fieldId: VariableIdentifier): AccessPathIdentifier = {
+    var accPath: List[Identifier] = Nil
+    accPath = id :: accPath
+    AccessPathIdentifier(accPath :+ fieldId)
+  }
+
+  def cleanAccessPath(exp: Expression): Expression = {
+    exp match {
+      case AccessPathIdentifier(path) => {
+        val newPath =
+          path.foldLeft(List[Identifier]())((list: List[Identifier], ident: Identifier) => {
+            ident match {
+              case ident: AccessPathIdentifier => list ++ cleanAccessPath(ident).asInstanceOf[AccessPathIdentifier].path
+              case _ => list ++ List(ident)
+            }
+          })
+        AccessPathIdentifier(path = newPath)
+      }
+      case _ => exp
+    }
+  }
+
+  def getAcc(e: Expression, p: Expression, pp: ProgramPoint = currentPP): Set[(Expression, String, Expression)] = {
     if (!p.typ.name.equals("Perm")) {
-      throw new IllegalArgumentException("p in getAcc(e, p) has to be of type Perm!")
+      throw new IllegalArgumentException("p in getAcc(e, p) has to be of type Perm! Actual type is " + p.typ.name)
     }
     e match {
-      case
+      case e: BinaryArithmeticExpression => getAcc(e.left, p) ++ getAcc(e.right, p)
+      case e: BinaryBooleanExpression => getAcc(e.left, p) ++ getAcc(e.right, p)
+      case e: UnaryArithmeticExpression => getAcc(e.left, p)
+      case e: Identifier =>
+        val fieldId = VariableIdentifier(e.getField.get)(e.typ, pp)
+        val accPath = cleanAccessPath(createAccessPathIdentifier(e, fieldId))
+        Set((accPath, e.getField.get, p))
+      case _ => Set()
     }
   }
 
