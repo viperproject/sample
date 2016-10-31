@@ -1,7 +1,10 @@
 field f: Ref
 
+method foo_pre(a: Ref)
+    requires acc(a.f, write)
+{}
+
 method foo(a: Ref)
-    // requires acc(a.f, write)
 {
     a.f := null
 }

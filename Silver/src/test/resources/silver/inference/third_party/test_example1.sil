@@ -1,8 +1,11 @@
 
 field Counter__x: Int
 
+method Counter__incr_pre(diz: Ref, current_thread_id: Int)
+    requires acc(diz.Counter__x, write)
+{}
+
 method Counter__incr(diz: Ref, current_thread_id: Int)
-  //requires acc(diz.Counter__x, write)
 {
     var __flatten_5: Int
     var __flatten_11: Int

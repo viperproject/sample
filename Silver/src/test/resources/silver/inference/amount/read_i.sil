@@ -1,7 +1,9 @@
+
 field f: Ref
 
 method foo_pre(a: Ref, read: Perm)
-    requires acc(a.f, read) && read > none
+    requires none < read && read < write
+    requires acc(a.f, read)
 {}
 
 method foo_post(a: Ref, read: Perm)
@@ -9,7 +11,6 @@ method foo_post(a: Ref, read: Perm)
 {}
 
 method foo(a: Ref)
-    // requires acc(a.f, p) && p > none
 {
     var v: Ref
     v := a.f
