@@ -38,7 +38,10 @@ class SilCompiler extends Compiler {
       val input = Source.fromInputStream(Files.newInputStream(file)).mkString
       val parseResult = FastParser.parse(input, file)
       val parsed = parseResult match {
-        case fastparse.core.Parsed.Success(e: PProgram, _) => e
+        case fastparse.core.Parsed.Success(e: PProgram, _) => {
+          e.initProperties()
+          e
+        }
         case fastparse.core.Parsed.Failure(msg, next, extra) =>
           throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
         case ParseError(msg, pos) =>
