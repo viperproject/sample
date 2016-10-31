@@ -50,56 +50,49 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
 
   override def verify(program: Program): VerificationResult = {
     val runner = PermissionInference
-    val results = runner.run(program).collect{ case x:MethodAnalysisResult[SimplePermissionAnalysisState] => x } // run the permission inference
+
+    val seq = Seq.empty[Method]
+    val map = Map.empty[String, Method]
+    val (methods, preMap, postMap) = program.methods.foldLeft((seq, map, map)) {
+      case ((m, pre, posts), method) =>
+        if (method.name endsWith "_pre") {
+          val name = method.name.dropRight(4)
+          (m, pre + (name -> method), posts)
+        } else if (method.name endsWith "_post") {
+          val name = method.name.dropRight(5)
+          (m, pre, posts + (name -> method))
+        } else (m :+ method, pre, posts)
+    }
+
+    val filteredProgram = program.copy(methods = methods)(program.pos, program.info)
+
+    val results = runner.run(filteredProgram).collect{ case x:MethodAnalysisResult[SimplePermissionAnalysisState] => x } // run the permission inference
     // extend the program with the inferred permissions
     val extendedProgram = runner.extendProgram(DefaultSilverConverter.prog, results)
 
+    // methods that check against expected preconditions
+    val preMethods = extendedProgram.methods.filter(preMap contains _.name).map {
+      case method =>
+        val preMethod = preMap.get(method.name).get
+        preMethod.copy(_posts = method.pres)(preMethod.pos, preMethod.info)
+    }
+    // methods that check against expected postconditions
+    val postMethods = extendedProgram.methods.filter(postMap contains _.name).map {
+      case method =>
+        val postMethod = postMap.get(method.name).get
+        postMethod.copy(_pres = method.posts)(postMethod.pos, postMethod.info)
+    }
+
+    // program with checks against expected pre- and postconditions added
+    val allMethods = extendedProgram.methods ++ preMethods ++ postMethods
+    val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info)
+
     try {
-      // use silicon to verify the extended program
+      // use silicon to verify the extended program with the checks
       start()
-      val result = super.verify(extendedProgram)
-
-      // use silicon to verify that the inferred preconditions are feasible
-      val errors = feasibilityPrograms(extendedProgram).foldLeft(List.empty[AbstractError]) {
-        case (err, prog) => super.verify(prog) match {
-          case Success =>
-            // the precondition is infeasible since the "assert(false)" succeeded
-            val method = program.methods.head
-            InfeasiblePrecondition(method.name, method.pos) :: err
-          case Failure(_) => err
-        }
-      }
-
-      if (errors.nonEmpty) result match {
-        case Failure(verificationErrors) => Failure(verificationErrors ++ errors)
-        case Success => Failure(errors)
-      } else result
+      super.verify(extendedProgramWithChecks)
     } catch {
       case _: Throwable => Success // something went wrong with the verifier (not our fault)
-    }
-  }
-
-  /** Creates a program for every method in the given program that contains only
-    * that method with a feasibility check. The feasibility check is an
-    * "assert(false)" at the beginning of the body. If the precondition is
-    * feasible then the assertion should fail. If the assertion succeeds then
-    * the precondition is infeasible.
-    *
-    * @param program The program.
-    * @return The sequence of programs.
-    */
-  private def feasibilityPrograms(program: Program): Seq[Program] = {
-    program.methods.map { method =>
-      // the feasibility check
-      val check = Assert(FalseLit()())(method.pos)
-      // add the feasibility check to the body of the current method
-      val body = method.body match {
-        case sequence: Seqn => sequence.copy(check +: sequence.ss)(sequence.pos, sequence.info)
-        case statement => Seqn(check :: statement :: Nil)(statement.pos, statement.info)
-      }
-      // create program that only contains the current method with the check
-      val methods = Seq(method.copy(_body = body)(method.pos, method.info))
-      program.copy(methods = methods)(program.pos, program.info)
     }
   }
 }
