@@ -69,10 +69,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     QuantifiedPermissionsState(isTop, isBottom, currentPP = currentPP)
   }
 
+  def getAcc(e: Expression, p: Expression): Unit = {
+    if (!p.typ.name.equals("Perm")) {
+      throw new IllegalArgumentException("p in getAcc(e, p) has to be of type Perm!")
+    }
+    e match {
+      case
+    }
+  }
 
   override def ids: IdentifierSet = ???
-
-  // FORWARD (NUMERICAL) ANALYSIS
 
   /** Inhales permissions.
     *
@@ -106,8 +112,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param pp  The program point that creates the variable
     * @return The abstract state after the creation of the variable */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    if (!typ.isObject) copy()
-    else this
+    this
   }
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
@@ -333,7 +338,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   // BACKWARD ANALYSIS
 
-  def refiningWhileLoop(oldPreState: QuantifiedPermissionsState, beforeLoopState: QuantifiedPermissionsState,
+  def refiningWhileLoop(beforeLoopState: QuantifiedPermissionsState,
                         loopBodyFirstState: QuantifiedPermissionsState, loopBodyLastState: QuantifiedPermissionsState,
                         afterLoopState: QuantifiedPermissionsState): QuantifiedPermissionsState = {
     this

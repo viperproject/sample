@@ -92,7 +92,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.clearAliases()
     Context.clearNumericalInfo()
-    
+
     quantifiedPermissionAnalysisResult
   }
 }
