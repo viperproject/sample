@@ -1,30 +1,45 @@
+
 field f: Ref
+
+method foo_pre(a: Ref, b: Ref)
+    requires acc(a.f)
+    requires acc(b.f)
+{}
 
 method foo(a: Ref, b: Ref)
     requires acc(a.f)
-    // requires acc(b.f)
 {
     a.f := null
     b.f := null
 }
 
-// method bar(a: Ref)
-//     requires acc(a.f)
-//     // requires acc(a.f.f)
-// {
-//     a.f.f := null
-//     a.f := null
-// }
+method bar_pre(a: Ref)
+    requires acc(a.f) && acc(a.f.f)
+{}
+
+method bar(a: Ref)
+    requires acc(a.f)
+{
+    a.f.f := null
+    a.f := null
+}
+
+method baz_pre(a: Ref)
+    requires acc(a.f) && acc(a.f.f)
+{}
 
 method baz(a: Ref)
-    // requires acc(a.f)
     requires acc(a.f.f)
 {
     a.f.f := null
     a.f := null
 }
 
+method qux_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read) && acc(a.f.f, write)
+{}
+
 method qux(a: Ref)
     requires acc(a.f.f)
-{
-}
+{}
