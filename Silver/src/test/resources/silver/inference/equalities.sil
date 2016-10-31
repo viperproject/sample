@@ -1,11 +1,14 @@
 
 field f: Ref
 
+method foo_pre(this: Ref, that: Ref)
+    requires acc(this.f, write)
+    requires acc(that.f, write)
+{}
+
 method foo(this: Ref, that: Ref)
-  //requires acc(this.f, write)
-  //requires acc(that.f, write)
-  //ensures acc(this.f, write)
-  //ensures acc(that.f, write)
+    //ensures acc(this.f, write)
+    //ensures acc(that.f, write)
 {
     var x: Ref
     var i: Int
@@ -14,9 +17,9 @@ method foo(this: Ref, that: Ref)
     this.f := that
 
     while (i < 10)
-      //invariant acc(this.f, 1/2)
-      //invariant acc(that.f, write)
-      //invariant this.f == that 
+        //invariant acc(this.f, 1/2)
+        //invariant acc(that.f, write)
+        //invariant this.f == that
     {
         x := new()
         this.f.f := x

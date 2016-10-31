@@ -2,13 +2,11 @@ field f: Ref
 
 method foo_pre(a: Ref, read: Perm)
     requires acc(a.f, read) && read > none
-{
-}
+{}
 
 method foo_post(a: Ref, read: Perm)
     ensures true
-{
-}
+{}
 
 method foo(a: Ref)
     // requires acc(a.f, p) && p > none
