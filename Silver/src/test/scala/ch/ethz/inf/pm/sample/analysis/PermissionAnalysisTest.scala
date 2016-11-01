@@ -105,8 +105,3 @@ class PermissionAnalysisLatticeTest extends LatticeTest[SimplePermissionAnalysis
   SystemParameters.typ = DummyRefType
   override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.topState
 }
-
-case class InfeasiblePrecondition(method: String, pos: Position) extends AbstractError {
-  override def fullId: String = "precondition.infeasible"
-  override def readableMessage: String = s"Inferred precondition of method $method is infeasible."
-}
