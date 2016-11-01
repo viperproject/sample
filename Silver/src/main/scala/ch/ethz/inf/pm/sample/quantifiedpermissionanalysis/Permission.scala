@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Lattice
   * @author Severin Münger
   *         Added on 31/10/16.
   */
-trait Permission extends Lattice[Permission] {
+trait Permission extends Lattice[Permission] with PermissionTree {
   override def factory(): Permission = top()
 
   override def top(): Permission = Permission.Top

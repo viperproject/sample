@@ -1,19 +1,25 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
+import ch.ethz.inf.pm.sample.abstractdomain.Expression
+
 /**
   * @author Severin Münger
   *         Added on 31/10/16.
   */
 
 trait PermissionTree {
-
+  def toExpression: Expression
 }
 
-trait BinaryPermission extends PermissionTree {
+trait Node extends PermissionTree {
   def left: PermissionTree
   def right: PermissionTree
 }
 
-case class MaxPermissionTree(left: PermissionTree, right: PermissionTree) extends BinaryPermission {
+trait Leaf extends PermissionTree {
 
+}
+
+case class BinaryPermission(left: PermissionTree, right: PermissionTree) extends Node {
+  override def toExpression: Expression = ???
 }
