@@ -1,10 +1,11 @@
 
 field f: Int
 
+method t5_pre(n: Int, r: Ref) returns ()
+    requires acc(r.f, write)
+{}
+
 method t5(n: Int, r: Ref) returns ()
-    //requires n > 0
-    //requires acc(r.f, write)
-    //ensures acc(r.f, write)
 {
     var i: Int := 2
 
@@ -15,9 +16,11 @@ method t5(n: Int, r: Ref) returns ()
     }
 }
 
+method t9_pre(r: Ref) returns ()
+    requires acc(r.f, write)
+{}
+
 method t9(r: Ref) returns ()
-    //requires acc(r.f, write)
-    //ensures acc(r.f, write)
 {
     var j: Int := 2
     while (j < r.f)

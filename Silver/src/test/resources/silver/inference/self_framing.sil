@@ -1,4 +1,9 @@
+
 field f: Ref
+
+method foo_pre(a: Ref)
+    requires true
+{}
 
 method foo(a: Ref)
 {
@@ -6,24 +11,34 @@ method foo(a: Ref)
     inhale acc(a.f) && acc(a.f.f)
 }
 
+method bar_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+{}
+
 method bar(a: Ref)
-    // requires acc(a.f, read) && read > none
 {
     // not self-framing
     inhale acc(a.f.f) && acc(a.f)
 }
 
+method baz_pre(a: Ref)
+    requires acc(a.f, 1/2)
+    requires acc(a.f.f, 1/2)
+{}
+
 method baz(a: Ref)
-    // requires acc(a.f, 1 / 2)
-    // requires acc(a.f.f, 1 / 2)
 {
     // self-framing
     exhale acc(a.f, 1 / 2) && acc(a.f.f, 1 / 2)
 }
 
+method qux_pre(a: Ref, read: Perm)
+    requires none < read && read < 1/2
+    requires acc(a.f, read + 1/2)
+    requires acc(a.f.f, 1/2)
+
 method qux(a: Ref)
-    // requires acc(a.f, 1 / 2 + read) && read > none
-    // requires acc(a.f.f, 1 / 2)
 {
     // not self-framing
     exhale acc(a.f.f, 1 / 2) && acc(a.f, 1 / 2)

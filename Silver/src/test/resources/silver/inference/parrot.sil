@@ -1,10 +1,15 @@
+
 field data: Int
 field rabbit: Bool
 field parrot: Int
 
-method Foo(this: Ref)
-	//requires acc(this.rabbit, 1 / 10)
-    //requires acc(this.data, write)
+method foo_pre(this: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(this.rabbit, read)
+    requires acc(this.data, write)
+{}
+
+method foo(this: Ref)
 {
 	inhale acc(this.parrot)
 	if (this.rabbit) {

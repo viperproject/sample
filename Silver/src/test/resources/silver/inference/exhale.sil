@@ -1,7 +1,13 @@
 
 field f: Ref
 
-method foo(b: Ref, d: Ref, p: Perm)
+method foo_pre(b: Ref, d: Ref, read: Perm)
+    requires none < read && read < 1/2
+    requires acc(b.f, read + 1/2)
+    requires acc(b.f.f, write)
+{}
+
+method foo(b: Ref, d: Ref)
 	//requires acc(b.f, p) && p > 1/2
 	//requires acc(b.f.f, write)
 {
@@ -13,6 +19,10 @@ method foo(b: Ref, d: Ref, p: Perm)
 
 	a.f.f := d
 }
+
+method bar_pre(b: Ref, d: Ref)
+    requires acc(b.f, write)
+{}
 
 method bar(b: Ref, d: Ref)
 	//requires acc(b.f, write)

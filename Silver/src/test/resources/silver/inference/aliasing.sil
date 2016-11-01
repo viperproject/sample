@@ -1,13 +1,13 @@
-
 field f: Ref
 
+method foo_pre(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool, read: Perm)
+    requires none < read && read < write
+	requires acc(a.f, write) && acc(a.f.f, write)
+	requires acc(b.f, read) && acc(b.f.f, write)
+	requires acc(c.f, read) && acc(c.f.f, write)
+{}
+
 method foo(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
-	//requires acc(a.f, write)
-	//requires acc(a.f.f, write)
-	//requires acc(b.f, 1/10)
-	//requires acc(b.f.f, write)
-	//requires acc(c.f, 1/10)
-	//requires acc(c.f.f, write)
 {
 	a.f.f := c.f
 	if (t) {
@@ -19,11 +19,14 @@ method foo(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
 	a.f.f.f := d
 }
 
+method bar_pre(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool, read: Perm)
+    requires none < read && read < write
+	requires acc(a.f, write) && acc(a.f.f, write)
+	requires acc(b.f, read)
+	requires acc(c.f, read)
+{}
+
 method bar(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
-	//requires acc(a.f, write)
-	//requires acc(a.f.f, write)
-	//requires acc(b.f, 1/10)
-	//requires acc(c.f, 1/10)
 {
 	a.f.f := c.f
 	a.f := b.f

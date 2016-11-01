@@ -1,8 +1,11 @@
 
 field data: Int
 
+method foo_pre(this: Ref)
+    requires acc(this.data, write)
+{}
+
 method foo(this: Ref)
-    //requires acc(this.data, write)
     //ensures acc(this.data, write)
 {
     var i: Int

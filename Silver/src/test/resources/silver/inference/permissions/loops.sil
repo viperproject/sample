@@ -1,25 +1,32 @@
 
 field f: Int
 
+method test1_pre(x: Ref)
+    requires acc(x.f, write)
+{}
+
 method test1(x: Ref)
-  //requires acc(x.f, write)
 {
     var b: Bool
     b := true
 
     while (b)
-      //invariant acc(x.f, write) 
+        //invariant acc(x.f, write)
     {
         x.f := 4
         b := false
     }
 }
 
+method test2_pre(x: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(x.f, read)
+{}
+
 method test2(x: Ref)
-  //requires acc(x.f, read)
 {
     while (x.f < 3)
-      //invariant acc(x.f, read)
+        //invariant acc(x.f, read)
     {
 
     }

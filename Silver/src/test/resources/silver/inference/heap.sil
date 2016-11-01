@@ -1,9 +1,13 @@
 
 field next: Ref
 
+method foo_pre(y: Ref, z: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(y.next, write)
+    requires acc(z.next, read)
+{}
+
 method foo(y: Ref, z: Ref)
-  	//requires acc(y.next, write)
-  	//requires acc(z.next, read)
 {
     var x: Ref
     x := y

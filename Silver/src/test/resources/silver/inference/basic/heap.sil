@@ -1,19 +1,21 @@
 
 field f: Ref
 
+method set_f_pre(monitor: Ref, value: Ref)
+    requires acc(monitor.f, write)
+{}
+
 method set_f(monitor: Ref, value: Ref)
-  //requires acc(monitor.f, write)
-  //requires monitor != null && value != null
-  //ensures acc(monitor.f, write)
 {
-  monitor.f := value
+    monitor.f := value
 }
 
+method t3_pre(r:Ref, read: Perm) returns (res:Ref)
+    requires none < read && read < write
+    requires acc(r.f, write) && acc(r.f.f, write)
+{}
+
 method t3(r:Ref) returns (res:Ref)
-    //requires r!=null
-    //requires acc(r.f)
-    //requires r.f!=null
-    //requires acc(r.f.f)
 {
     res := r.f.f
 }

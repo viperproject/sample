@@ -1,15 +1,18 @@
 
 field Counter__x: Int
 
+method Loop__incr_pre(diz: Ref, current_thread_id: Int, c: Ref, y: Int)
+    requires acc(c.Counter__x, write)
+{}
+
 method Loop__incr(diz: Ref, current_thread_id: Int, c: Ref, y: Int)
-  //requires acc(c.Counter__x, write)
 {
     var i: Int
     var __flatten_1: Int
     var __flatten_4: Int
     i := 0
     while (i < y)
-      //invariant acc(c.Counter__x, write)
+        //invariant acc(c.Counter__x, write)
     {
         __flatten_1 := c.Counter__x + 1
         __flatten_4 := __flatten_1
@@ -18,8 +21,11 @@ method Loop__incr(diz: Ref, current_thread_id: Int, c: Ref, y: Int)
     }
 }
 
+method Counter__incr_pre(diz: Ref, current_thread_id: Int)
+    requires acc(diz.Counter__x, write)
+{}
+
 method Counter__incr(diz: Ref, current_thread_id: Int)
-  //requires acc(diz.Counter__x, write)
 {
     var __flatten_2: Int
     var __flatten_5: Int

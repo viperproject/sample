@@ -1,27 +1,31 @@
 
 field f: Ref
 
+method foo1_pre(this: Ref, that: Ref)
+    requires acc(this.f, write)
+{}
+
 method foo1(this: Ref, that: Ref)
-  //requires acc(this.f, write)
-  //ensures acc(this.f, write)
 {
     this.f := that
 }
 
+method foo2_pre(this: Ref, that: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(this.f, read) && acc(this.f.f, write)
+{}
+
 method foo2(this: Ref, that: Ref)
-  //requires acc(this.f, 1/2)
-  //requires acc(this.f.f, write)
-  //ensures acc(this.f, 1/2)
-  //ensure acc(this.f.f, write)
 {
 	this.f.f := that
 }
 
+method foo3_pre(this: Ref, that: Ref)
+    requires acc(this.f, write)
+    requires acc(that.f, write)
+{}
+
 method foo3(this: Ref, that: Ref)
-  //requires acc(this.f, write)
-  //requires acc(that.f, write)
-  //ensures acc(this.f, write)
-  //ensures acc(that.f, write)
 {
     this.f := that
 	this.f.f := that

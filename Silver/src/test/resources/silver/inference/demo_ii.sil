@@ -1,39 +1,52 @@
+
 field f: Ref
 field g: Ref
 
+method first_i_pre(a: Ref, b: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+    requires acc(a.f.g, read)
+    requires acc(a.f.g.f, read)
+    requires acc(a.f.g.f.f, write)
+{}
+
 method first_i(a: Ref, b: Ref)
-    // requires p > none
-    // requires acc(a.f, p)
-    // requires acc(a.f.g, p)
-    // requires acc(a.f.g.f, p)
-    // requires acc(a.f.g.f.f, write)
 {
     a.f.g.f.f := null
 }
 
+method first_ii_pre(a: Ref, b: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(b.g, read)
+    requires acc(a.f, write)
+    requires acc(b.g.f, read)
+    requires acc(b.g.f.f, write)
+{}
+
 method first_ii(a: Ref, b: Ref)
-    // requires p > none
-    // requires acc(b.g, p)
-    // requires acc(a.f, write)
-    // requires acc(b.g.f, p)
-    // requires acc(b.g.f.f, write)
 {
     a.f := b
     a.f.g.f.f := null
 }
 
+method first_iii_pre(a: Ref, b: Ref)
+    requires acc(a.g, write)
+    requires acc(a.f, write)
+{}
+
 method first_iii(a: Ref, b: Ref)
-    // requires acc(a.g, write)
-    // requires acc(a.f, write)
 {
     a.f := a
     a.g := a
     a.f.g.f.f := null
 }
 
+method second_pre(a: Ref, b: Ref)
+    requires acc(a.f, write)
+    requires acc(b.f, write)
+{}
+
 method second(a: Ref, b: Ref)
-    // requires acc(a.f, write)
-    // requires acc(b.f, write)
 {
     var i: Int
 
@@ -49,9 +62,12 @@ method second(a: Ref, b: Ref)
     }
 }
 
+method third_pre(a: Ref, b: Ref, c: Ref)
+    requires acc(a.f, write)
+    requires acc(b.f, write)
+{}
+
 method third(a: Ref, b: Ref, c: Ref)
-    // requires acc(a.f, write)
-    // requires acc(b.f, write)
 {
     a.f := c
     b.f := c
@@ -62,10 +78,13 @@ method third(a: Ref, b: Ref, c: Ref)
     b.f.f := null
 }
 
+method fourth_pre(a: Ref, b: Ref, c: Ref, x: Bool)
+    requires acc(a.f, write)
+    requires acc(b.f, write)
+    requires acc(c.f, write)
+{}
+
 method fourth(a: Ref, b: Ref, c: Ref, x: Bool)
-    // requires acc(a.f, write)
-    // requires acc(b.f, write)
-    // requires acc(c.f, write)
 {
     if (x) {
         a.f := b
@@ -75,10 +94,13 @@ method fourth(a: Ref, b: Ref, c: Ref, x: Bool)
     a.f.f := null
 }
 
-method fifth (a: Ref, b: Ref)
-    // requires read > none
-    // requires acc(a.f, write)
-    // requires acc(b.f, read)
+method fifth_pre(a: Ref, b: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, write)
+    requires acc(b.f, read)
+{}
+
+method fifth(a: Ref, b: Ref)
 {
     var c: Ref
     var d: Ref
@@ -87,14 +109,14 @@ method fifth (a: Ref, b: Ref)
     d := a.f.f
 }
 
+method sixth_pre(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, write) && acc(a.f.f, write)
+    requires acc(b.f, read) && acc(b.f.f, write)
+    requires acc(c.f, read) && acc(c.f.f, write)
+{}
+
 method sixth(a: Ref, b: Ref, c: Ref, d: Ref, t: Bool)
-    // requires p > none
-    // requires acc(a.f, write)
-    // requires acc(b.f, p)
-    // requires acc(c.f, p)
-    // requires acc(b.f.f, write)
-    // requires acc(c.f.f, write)
-    // requires acc(a.f.f, write)
 {
     a.f.f := c.f
     if (t) {

@@ -1,6 +1,9 @@
 
 field f: Ref
 
+method foo_pre(b: Ref)
+    requires true
+
 method foo(b: Ref)
 {
     var a: Ref
@@ -8,6 +11,11 @@ method foo(b: Ref)
     inhale acc(b.f, write)
     a.f := null
 }
+
+method bar_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+{}
 
 method bar(a: Ref)
     // requires acc(a.f, read) && read > none

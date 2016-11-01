@@ -1,8 +1,11 @@
 
 field test: Bool
 
+method t1_pre(b: Bool, d: Int, r: Ref) returns ()
+    requires acc(r.test, write)
+{}
+
 method t1(b: Bool, d: Int, r: Ref) returns ()
-    //requires b && acc(r.test, write)
 {
     r.test := b
     assert b == (r.test)

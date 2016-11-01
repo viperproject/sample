@@ -1,7 +1,16 @@
+
 field f: Ref
 
+method foo_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+{}
+
+method foo_post(a: Ref, read: Perm)
+    ensures true
+{}
+
 method foo(a: Ref)
-    // requires acc(a.f, p) && p > none
 {
     var v: Ref
     v := a.f

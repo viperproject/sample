@@ -1,9 +1,12 @@
 
 field f: Ref
 
-/*method foo(b: Ref, c: Ref, d: Ref, t: Bool)
-	//requires acc(b.f, write)
-  	//requires acc(c.f, write)
+method foo_pre(b: Ref, c: Ref, d: Ref, t: Bool)
+	requires acc(b.f, write)
+    requires acc(c.f, write)
+{}
+
+method foo(b: Ref, c: Ref, d: Ref, t: Bool)
 {
 	var a: Ref
 	a := b
@@ -13,11 +16,14 @@ field f: Ref
 		a.f := b
 	}
 	a.f.f := d
-}*/
+}
 
-/*method bar(b: Ref, c: Ref, d: Ref, t: Bool)
-	//requires acc(b.f, write)
-  	//requires acc(c.f, write)
+method bar_pre(b: Ref, c: Ref, d: Ref, t: Bool)
+    requires acc(b.f, write)
+    requires acc(c.f, write)
+{}
+
+method bar(b: Ref, c: Ref, d: Ref, t: Bool)
 {
 	var a: Ref
 	if (t) {
@@ -28,13 +34,14 @@ field f: Ref
 		c.f := a.f
 	}
 	a.f := d
-}*/
+}
+
+method qux_pre(b: Ref, c: Ref, d: Ref, t: Bool)
+  	requires acc(b.f, write) && acc(b.f.f, write)
+  	requires acc(c.f, write) && acc(c.f.f, write)
+{}
 
 method qux(b: Ref, c: Ref, d: Ref, t: Bool)
-  	//requires acc(b.f, write)
-  	//requires acc(c.f, write)
-  	//requires acc(c.f.f, write)
-  	//requires acc(b.f.f, write)
 {
 	var a: Ref
 	if (t) {
