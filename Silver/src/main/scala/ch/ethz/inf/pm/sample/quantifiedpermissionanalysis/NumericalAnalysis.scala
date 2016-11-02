@@ -178,20 +178,29 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
   /** Removes the current expression.
     *
     * @return The abstract state after removing the current expression*/
-  override def removeExpression(): T = ???
+  override def removeExpression(): T = {
+    // Nothing to do here
+    this
+  }
 
   /** Assigns an expression to an argument.
     *
     * @param x     The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment*/
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = {
+    // Nothing to do here
+    this
+  }
 
   /** Sets the current expression.
     *
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one*/
-  override def setExpression(expr: ExpressionSet): T = ???
+  override def setExpression(expr: ExpressionSet): T = {
+    // Nothing to do here
+    this
+  }
 
   /** Throws an exception.
     *
@@ -204,7 +213,9 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object*/
-  override def factory(): T = ???
+  override def factory(): T = {
+
+  }
 
   /** Returns the top value of the lattice.
     *
