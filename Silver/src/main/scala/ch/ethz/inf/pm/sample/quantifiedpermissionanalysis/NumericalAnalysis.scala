@@ -1,8 +1,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
+import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.SimpleNumericalAnalysisState
 
 /**
   * @author Severin Münger
@@ -214,52 +217,111 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @return A new instance of the current object*/
   override def factory(): T = {
-
+    copy()
   }
 
   /** Returns the top value of the lattice.
     *
     * @return The top value, that is, a value x that is greater than or equal to any other value*/
-  override def top(): T = ???
+  override def top(): T = {
+    copy(numDom = numDom.top())
+  }
 
   /** Returns the bottom value of the lattice.
     *
     * @return The bottom value, that is, a value x that is less than or to any other value*/
-  override def bottom(): T = ???
+  override def bottom(): T = {
+    copy(numDom = numDom.bottom())
+  }
 
   /** Computes the least upper bound of two elements.
     *
     * @param other The other value
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments*/
-  override def lub(other: T): T = ???
+  override def lub(other: T): T = {
+    copy(numDom = numDom.lub(other.numDom))
+  }
 
   /** Computes the greatest lower bound of two elements.
     *
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments*/
-  override def glb(other: T): T = ???
+  override def glb(other: T): T = {
+    copy(numDom = numDom.glb(other.numDom))
+  }
 
   /** Computes the widening of two elements.
     *
     * @param other The new value
     * @return The widening of `this` and `other`*/
-  override def widening(other: T): T = ???
+  override def widening(other: T): T = {
+    copy(numDom = numDom.widening(other.numDom))
+  }
 
   /** Returns true if and only if `this` is less than or equal to `other`.
     *
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other`*/
-  override def lessEqual(other: T): Boolean = ???
+  override def lessEqual(other: T): Boolean = {
+    numDom.lessEqual(other.numDom)
+  }
 
   /** Checks whether the given domain element is equivalent to bottom.
     *
     * @return bottom*/
-  override def isBottom: Boolean = ???
+  override def isBottom: Boolean = {
+    numDom.isBottom
+  }
 
   /** Checks whether the given domain element is equivalent to top.
     *
     * @return bottom */
-  override def isTop: Boolean = ???
+  override def isTop: Boolean = {
+    numDom.isTop
+  }
+}
+
+object NumericalAnalysisState
+{
+  /** The default implementation of the alias analysis state.
+    *
+    * @param numDom           The numerical domain lattice element.
+    */
+  case class SimpleNumericalAnalysisState(numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+    extends NumericalAnalysisState[Apron.Polyhedra, SimpleNumericalAnalysisState]
+  {
+    /**
+      *
+      * @param numDom           The numerical domain lattice element.
+      * @return The updated copy of the alias analysis state.
+      */
+    override def copy(numDom: Apron.Polyhedra = numDom): SimpleNumericalAnalysisState = {
+      SimpleNumericalAnalysisState(numDom)
+    }
+  }
+}
+
+trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
+  extends ForwardEntryStateBuilder[T]
+{
+  override def build(method: MethodDeclaration): T = {
+    val initial = topState.copy()
+    method.initializeArgument(initial)
+  }
+}
+
+object NumericalAnalysisEntryState
+  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, SimpleNumericalAnalysisState]
+{
+  override def topState: SimpleNumericalAnalysisState = SimpleNumericalAnalysisState()
+}
+
+case class PolyhedraState(override val numDom: Polyhedra)
+  extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraState] {
+
+  override def copy(numDom: Polyhedra = numDom): PolyhedraState = {
+    PolyhedraState(numDom)
+  }
 }

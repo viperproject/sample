@@ -8,7 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Expression
   */
 
 trait PermissionTree {
-  def toExpression: Expression
+  def toExpression: Expression = ???
 }
 
 trait Node extends PermissionTree {
