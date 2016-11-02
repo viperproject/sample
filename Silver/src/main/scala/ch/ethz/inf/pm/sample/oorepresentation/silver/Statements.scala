@@ -29,5 +29,7 @@ case class VirtualProgramPoint(name: String,
                                position: Position)
   extends ProgramPoint {
 
-  override def description: String = s"$name@$position"
+  override def description: String = s"@$position:$name"
+
+  override def toString: String = description
 }
