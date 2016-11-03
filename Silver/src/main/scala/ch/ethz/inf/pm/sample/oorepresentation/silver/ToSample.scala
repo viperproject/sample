@@ -6,7 +6,6 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -169,7 +168,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         val cfg = new sample.ControlFlowGraph(go(m.pos))
 
         // put precondition into a separate block
-        val prePp = if (m.pres.isEmpty) VirtualProgramPoint("precondition", m.pos) else go(m.pres.head.pos)
+        val prePp = if (m.pres.isEmpty) TaggedProgramPoint(go(m.pos),"precondition") else go(m.pres.head.pos)
         val pre = makeNativeMethodCall(
           pos = prePp,
           name = SilverMethods.precondition.toString,
@@ -187,7 +186,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
         // put postcondition into a separate block
         val leaves = cfg.getLeavesIds
-        val postPp = if(m.posts.isEmpty) VirtualProgramPoint("postcondition", m.pos) else go(m.posts.head.pos)
+        val postPp = if(m.posts.isEmpty) TaggedProgramPoint(go(m.pos), "postcondition") else go(m.posts.head.pos)
         val post = makeNativeMethodCall(
           pos = postPp,
           name = SilverMethods.postcondition.toString,
@@ -254,7 +253,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         val location = sil.FieldAccess(lhs, field)()
         val predicate = sil.FieldAccessPredicate(location, sil.FullPerm()())()
         val inhale = makeNativeMethodCall(
-          pos = VirtualProgramPoint(field.name, s.pos),
+          pos = TaggedProgramPoint(go(s.pos), field.name),
           name = SilverMethods.inhale.toString,
           args = go(predicate) :: Nil,
           returnType = sample.TopType)
@@ -515,7 +514,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
           b.stmt.children.flatMap(go).toList
         case lb: sil.LoopBlock =>
           // generate method call for all invariants
-          val pp = if (lb.invs.isEmpty) VirtualProgramPoint("invariant", lb.pos) else go(lb.invs.head.pos)
+          val pp = if (lb.invs.isEmpty) TaggedProgramPoint(go(lb.pos), "invariant") else go(lb.invs.head.pos)
           val invariants = makeNativeMethodCall(
             pos = pp,
             name = SilverMethods.invariant.toString,
