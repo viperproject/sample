@@ -16,7 +16,8 @@ import scala.collection.mutable
 /** Object enumerating methods to handle permissions and specifications (i.e.
   * preconditions, postconditions and invariants).
   *
-  * @author Caterina Urban, Jerome Dohrau
+  * @author Caterina Urban
+  * @author Jerome Dohrau
   */
 object SilverMethods extends Enumeration {
   val permission = Value(Constants.GhostSymbolPrefix + "permission")
@@ -28,34 +29,56 @@ object SilverMethods extends Enumeration {
 }
 
 trait SilverConverter {
-  /** Converts a whole Silver program to a list of Sample class definition. */
+  /**
+    * Converts a whole Silver program to a list of Sample class definition.
+    */
   def convert(program: sil.Program): List[sample.ClassDefinition]
 
-  /** Converts a SIL function to a Sample method declaration. */
+  /**
+    *  Converts a SIL function to a Sample method declaration.
+    */
   def convert(function: sil.Function): sample.MethodDeclaration
 
-  /** Converts a SIL method to a Sample method declaration. */
+  /**
+    * Converts a SIL method to a Sample method declaration.
+    */
   def convert(method: sil.Method): sample.MethodDeclaration
 
-  /** Converts a SIL field to a Sample field declaration. */
+  /**
+    *  Converts a SIL field to a Sample field declaration.
+    */
   def convert(field: sil.Field): sample.FieldDeclaration
 
-  /** Converts a SIL local variable to a Sample variable declaration. */
+  /**
+    *  Converts a SIL local variable to a Sample variable declaration.
+    */
   def convert(localVarDecl: sil.LocalVarDecl): sample.VariableDeclaration
 
-  /** Converts a SIL node position to a Sample ProgramPoint. */
+  /**
+    * Converts a SIL node position to a Sample ProgramPoint.
+    */
   def convert(pos: sil.Position): sample.ProgramPoint
 
-  /** Converts a SIL type to a Sample type. */
+  /**
+    * Converts a SIL type to a Sample type.
+    */
   def convert(typ: sil.Type): sample.Type
 
-  /** Converts a SIL statement to a Sample statement. */
-  def convert(stmt: sil.Stmt): sample.Statement
+  /**
+    * Converts a SIL statement to a Sample statement.
+    *
+    * The method returns a list of sequence since there are cases where one
+    * statements gets translated to several statements.
+    */
+  def convert(stmt: sil.Stmt): Seq[sample.Statement]
 
-  /** Converts a SIL expression to a Sample expression. */
+  /**
+    * Converts a SIL expression to a Sample expression.
+    */
   def convert(exp: sil.Exp): sample.Statement
 
-  /** Converts a sequence of SIL predicates to Sample predicates.
+  /**
+    * Converts a sequence of SIL predicates to Sample predicates.
     *
     * The method only converts a SIL predicate if its shape is supported
     * by Samples predicate domain and if all of its nested predicate
@@ -207,50 +230,81 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       sample.TopType
   }
 
-  def convert(s: sil.Stmt): sample.Statement = s match {
+
+
+  def convert(s: sil.Stmt): Seq[sample.Statement] = s match {
     case sil.LocalVarAssign(lhs, rhs) =>
-      sample.Assignment(go(s.pos), go(lhs), go(rhs))
+      val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
+      Seq(assignment)
+
     case sil.Assert(exp) =>
-      makeNativeMethodCall(
+      val assert = makeNativeMethodCall(
         pos = go(s.pos),
+
         name = NativeMethods.assert.toString,
         args = go(exp) :: Nil,
         returnType = sample.TopType)
+      Seq(assert)
+
     case sil.NewStmt(lhs, fields) =>
-      // TODO: Do something with fields
-      sample.Assignment(go(s.pos), go(lhs), sample.New(go(s.pos), refType))
+      val receiver = go(lhs)
+      val statement: sample.Statement = sample.Assignment(go(s.pos), receiver, sample.New(go(s.pos), refType))
+      fields.foldLeft(Seq(statement)) { (statements, field) =>
+        // create inhale for field
+        val location = sil.FieldAccess(lhs, field)()
+        val predicate = sil.FieldAccessPredicate(location, sil.FullPerm()())()
+        val inhale = makeNativeMethodCall(
+          pos = VirtualProgramPoint(field.name, s.pos),
+          name = SilverMethods.inhale.toString,
+          args = go(predicate) :: Nil,
+          returnType = sample.TopType)
+        // add inhale to list of statements
+        statements ++ Seq(inhale)
+      }
+
     case sil.FieldAssign(lhs, rhs) =>
-      sample.Assignment(go(s.pos), go(lhs), go(rhs))
+      val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
+      Seq(assignment)
+
     case sil.MethodCall(method, args, targets) =>
-      sample.MethodCall(
+      val call = sample.MethodCall(
         pp = go(s.pos),
         method = makeVariable(s.pos, sil.Ref, method),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = sample.TopType)
+      Seq(call)
 
     // Inhale and Exhale statements are converted into native method calls
     // @author Caterina Urban
-
     case sil.Inhale(exp) =>
-      makeNativeMethodCall(
+      val inhale = makeNativeMethodCall(
         pos = go(s.pos),
         name = SilverMethods.inhale.toString,
         args = go(exp) :: Nil,
         returnType = sample.TopType)
+      Seq(inhale)
+
     case sil.Exhale(exp) =>
-      makeNativeMethodCall(
+      val exhale = makeNativeMethodCall(
         pos = go(s.pos),
         name = SilverMethods.exhale.toString,
         args = go(exp) :: Nil,
         returnType = sample.TopType)
+      Seq(exhale)
 
     // Stubs
     case sil.Fold(acc) =>
-      sample.EmptyStatement(go(s.pos))
+      val empty = sample.EmptyStatement(go(s.pos))
+      Seq(empty)
+
     case sil.Unfold(acc) =>
-      sample.EmptyStatement(go(s.pos))
-    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) => ???
+      val empty = sample.EmptyStatement(go(s.pos))
+      Seq(empty)
+
+    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) =>
+      ???
+
     case sil.Goto(_) |
          sil.If(_, _, _) |
          sil.Label(_) |
@@ -456,9 +510,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     else {
       val stmts = b match {
         case b: sil.ConditionalBlock =>
-          b.stmt.children.map(go).toList ++ (go(b.cond) :: Nil)
+          b.stmt.children.flatMap(go).toList ++ (go(b.cond) :: Nil)
         case b: sil.StatementBlock =>
-          b.stmt.children.map(go).toList
+          b.stmt.children.flatMap(go).toList
         case lb: sil.LoopBlock =>
           // generate method call for all invariants
           val pp = if (lb.invs.isEmpty) VirtualProgramPoint("invariant", lb.pos) else go(lb.invs.head.pos)
