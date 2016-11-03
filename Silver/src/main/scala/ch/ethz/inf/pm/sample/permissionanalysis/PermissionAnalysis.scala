@@ -28,6 +28,10 @@ import viper.silver.{ast => sil}
 object PermissionAnalysisTypes
 {
   type AccessPath = AliasAnalysisTypes.AccessPath
+
+  type Tuple = (AccessPath, Permission)
+
+  type Tuples = List[Tuple]
 }
 
 /** Represents a permission.
@@ -437,8 +441,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   lazy val paths: List[AccessPath] =
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
-  private def tuples(f: (AccessPath, PermissionTree) => Permission): List[(AccessPath, Permission)] =
-    fold(List.empty[(AccessPath, Permission)]){
+  private def tuples(f: (AccessPath, PermissionTree) => Permission): Tuples =
+    fold(List.empty[Tuple]){
       case (list, (path, tree)) => (path, f(path, tree)) :: list
     }.filter{
       case (path, permission) => path.length > 1 && permission.isSome
@@ -1282,7 +1286,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def setInvariant(existing: Expression): T =
     setPrecondition(existing)
 
-  private def setSpecification(tuples: List[(AccessPath, Permission)]): T = {
+  private def setSpecification(tuples: Tuples): T = {
     val reading = tuples.exists {
       case (_, Fractional(_, _, read)) => read > 0
       case _ => false
