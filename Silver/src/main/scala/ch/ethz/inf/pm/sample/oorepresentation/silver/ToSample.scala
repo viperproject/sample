@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
+import ch.ethz.inf.pm.sample.oorepresentation.TaggedProgramPoint
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 

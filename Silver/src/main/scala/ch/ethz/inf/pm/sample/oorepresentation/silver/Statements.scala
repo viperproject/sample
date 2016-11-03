@@ -19,18 +19,3 @@ case class WrappedProgramPoint(pos: sil.HasLineColumn) extends LineColumnProgram
   override def toString: String = description
 }
 
-/**
-  * A program point that is based on another program point and has a tag added
-  * to it. Tagged program points can be used to create new unique program points
-  * that do not exist in the original program.
-  *
-  * @param base The base program point.
-  * @param tag  The tag of the program point.
-  */
-case class TaggedProgramPoint(base: ProgramPoint, tag: String)
-  extends ProgramPoint {
-
-  override def description: String = s"$tag$base"
-
-  override def toString: String = description
-}
