@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
 import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
-import ch.ethz.inf.pm.sample.permissionanalysis.Types._
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisTypes._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -36,9 +36,11 @@ object Dummy
   *
   * @author Jerome Dohrau
   */
-object Types
+object AliasAnalysisTypes
 {
   type AccessPath = List[Identifier]
+
+  type Path = List[String]
 
   type Store = Map[String, Set[HeapNode]]
 
@@ -209,7 +211,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param second The second access path.
     * @return True if the given access paths may / must alias.
     */
-  def pathsAlias(first: List[String], second: List[String]): Boolean
+  def pathsAlias(first: Path, second: Path): Boolean
 
   /** Initializes the alias graph.
     *
@@ -431,7 +433,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     }
   }
 
-  def havoc(path: List[String]): T = {
+  def havoc(path: Path): T = {
     if (path.isEmpty) this
     else if (path.length == 1) {
       val variable = path.head
@@ -465,7 +467,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param path The access path to materialize.
     * @return The alias graph with the given access path materialized.
     */
-  def materialize(path: List[String]): T = {
+  def materialize(path: Path): T = {
     // materialize variable
     val variable = path.head
     val fields = path.tail
@@ -609,7 +611,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param path The path.
     * @return The set of receivers.
     */
-  def evaluateReceiver(path: List[String]): Set[HeapNode] = {
+  def evaluateReceiver(path: Path): Set[HeapNode] = {
     if (path.isEmpty) Set.empty
     else {
       // evaluate variable access
@@ -638,7 +640,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param path      The path.
     * @return The set of values.
     */
-  def evaluateLast(receivers: Set[HeapNode], path: List[String]) : Set[HeapNode] = {
+  def evaluateLast(receivers: Set[HeapNode], path: Path) : Set[HeapNode] = {
     if (path.length <= 1) receivers
     else {
       // evaluate last field access
@@ -654,7 +656,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param path The access path to evaluate
     * @return The set of heap nodes the access path points to.
     */
-  def evaluatePath(path: List[String]): Set[HeapNode] = {
+  def evaluatePath(path: Path): Set[HeapNode] = {
     val receivers = evaluateReceiver(path)
     evaluateLast(receivers, path)
   }
@@ -782,8 +784,8 @@ object AliasGraph
       * @param second The second access path.
       * @return True if the given access paths may / must alias.
       */
-    override def pathsAlias(first: List[String], second: List[String]): Boolean = {
-      def evaluate(path: List[String]): Set[HeapNode] = {
+    override def pathsAlias(first: Path, second: Path): Boolean = {
+      def evaluate(path: Path): Set[HeapNode] = {
         val eval = evaluatePath(path)
         if ((eval contains WildcardNode) || !(eval contains UnknownNode)) eval
         else copy(materialization = true).materialize(path).evaluatePath(path)
@@ -955,7 +957,7 @@ object AliasGraph
       * @param second The second access path.
       * @return True if the given access paths may / must alias.
       */
-    override def pathsAlias(first: List[String], second: List[String]): Boolean = {
+    override def pathsAlias(first: Path, second: Path): Boolean = {
       val leftEval = evaluatePath(first) -- Set(UnknownNode, WildcardNode)
       val rightEval = evaluatePath(second) -- Set(UnknownNode, WildcardNode)
       val intersection = leftEval & rightEval

@@ -16,8 +16,19 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
+import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
+
+/**
+  * Various type shortcuts.
+  *
+  * @author Jerome Dohrau
+  */
+object PermissionAnalysisTypes
+{
+  type AccessPath = AliasAnalysisTypes.AccessPath
+}
 
 /** Represents a permission.
   *
@@ -186,8 +197,6 @@ object Permission {
 case class PermissionTree(permission: Permission = Permission.none,
                           children: Map[Identifier, PermissionTree] = Map.empty)
 {
-  type AccessPath = List[Identifier]
-
   /** Is true if this tree contains no permission.
     */
   lazy val isEmpty: Boolean =
@@ -401,8 +410,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     with LazyLogging
 {
   this: T =>
-
-  type AccessPath = List[Identifier]
 
   // current program point
   def currentPP: ProgramPoint
