@@ -1101,11 +1101,16 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
       if (treeL.isEmpty) this // there are no access paths to modify
       else if (rcvR.isInstanceOf[NewObject]) {
-        // extract permission that are "transferred" to new object
-        // TODO: report that we need these permissions for the new object?
-        val (newL, _) = treeL.get.extract(fldL)
+        // extract permission that are needed for the new object
+        val (newL, extracted) = treeL.get.extract(fldL)
+        val specification = extracted.fold(Seq.empty[sil.Exp])(left, {
+          case (res, (path, tree)) =>
+            val permission = tree.permission
+            if (permission.isNone) res
+            else res ++ Seq(fieldAccessPredicate(path, permission))
+        })
         // update permissions
-        copy(permissions = permissions + (rcvL -> newL))
+        copy(permissions = permissions + (rcvL -> newL), specification = specification)
       } else if (rcvL == rcvR) {
         // handle case where rcvL == rcvR
         val (temp, extracted) = treeL.get.extract(fldL)
