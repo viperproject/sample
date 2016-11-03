@@ -80,8 +80,8 @@ object Context {
     * @tparam T The type of the numerical analysis.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): N =
-  numericalInfo.get.preStateAt(position(pp)).asInstanceOf[N]
+  def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
+  numericalInfo.get.preStateAt(position(pp)).asInstanceOf[T]
 
   /**
     * Returns the state of the alias analysis after the given program point.

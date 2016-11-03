@@ -42,9 +42,8 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     (loopHeads, flowOrder)
   }
 
-  def simpleBackwardExecute(cfg: ControlFlowGraph): TrackingCFGState[QuantifiedPermissionsState] = {
-    val (cfgWithoutCycles, flowOrder) = removeCycles(cfg)
-    val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](QuantifiedPermissionsState.Bottom)
+  def simpleBackwardExecute(cfgWithoutCycles: ControlFlowGraph, flowOrder: mutable.LinkedHashSet[Int], entryState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
+    val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](entryState)
     val cfgState: TrackingCFGState[QuantifiedPermissionsState] = cfgStateFactory.allBottom(cfgWithoutCycles)
     // process the blocks of the cfg
     while (flowOrder.nonEmpty) {
@@ -55,7 +54,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       val postState: QuantifiedPermissionsState = if (cfgWithoutCycles.getLeavesIds.contains(currentBlockId)) {
         cfgState.statesOfBlock(currentBlockId).last
       } else {
-        val exitEdges = cfg.exitEdges(currentBlockId)
+        val exitEdges = cfgWithoutCycles.exitEdges(currentBlockId)
         exitEdges.size match {
           case 0 => cfgState.statesOfBlock(currentBlockId).last
           case 1 => cfgState.statesOfBlock(exitEdges.head._2).head

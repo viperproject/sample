@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import viper.silver.ast._
 
 /**
   * @author Severin Münger
@@ -8,18 +8,42 @@ import ch.ethz.inf.pm.sample.abstractdomain.Expression
   */
 
 trait PermissionTree {
-  def toExpression: Expression = ???
+  def toSilExpression: Exp
 }
 
-trait Node extends PermissionTree {
+trait BinaryNode extends PermissionTree {
   def left: PermissionTree
   def right: PermissionTree
 }
 
-trait Leaf extends PermissionTree {
-
+case class Addition(left: PermissionTree, right: PermissionTree) extends BinaryNode {
+  override def toSilExpression: Exp = Add(left.toSilExpression, right.toSilExpression)()
 }
 
-case class BinaryPermission(left: PermissionTree, right: PermissionTree) extends Node {
-  override def toExpression: Expression = ???
+case class Subtraction(left: PermissionTree, right: PermissionTree) extends BinaryNode {
+  override def toSilExpression: Exp = Sub(left.toSilExpression, right.toSilExpression)()
 }
+
+case class Maximum(left: PermissionTree, right: PermissionTree) extends BinaryNode {
+  override def toSilExpression: Exp = FuncApp(MaxFunction, Seq(left.toSilExpression, right.toSilExpression))()
+}
+
+case class Minimum(left: PermissionTree, right: PermissionTree) extends BinaryNode {
+  override def toSilExpression: Exp = FuncApp(MinFunction, Seq(left.toSilExpression, right.toSilExpression))()
+}
+
+object VarXDecl extends LocalVarDecl("x", Perm)()
+
+object VarX extends LocalVar("x")(Perm)
+
+object VarYDecl extends LocalVarDecl("y", Perm)()
+
+object VarY extends LocalVar("y")(Perm)
+
+object MaxFunction extends Function("max", Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
+  Some(CondExp(PermLeCmp(VarX, VarY)(), VarY, VarX)())
+)()
+
+object MinFunction extends Function("min", Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
+  Some(CondExp(PermGeCmp(VarX, VarY)(), VarY, VarX)())
+)()

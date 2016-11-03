@@ -1,10 +1,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.SimpleNumericalAnalysisState
 
 /**
@@ -19,7 +18,9 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
 
   def numDom: N
 
-  def copy(numDom: N = numDom): T
+  def currentPP: ProgramPoint
+
+  def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
 
   /** Creates a variable given a `VariableIdentifier`.
     *
@@ -41,7 +42,11 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument*/
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
-    copy(numDom = numDom.createVariable(x, typ))
+    if (typ.isObject) {
+      this.copy(expr = ExpressionSet(x), numDom = numDom.createVariable(x, typ))
+    } else {
+      this.copy(numDom = numDom.createVariable(x, typ))
+    }
   }
 
   /** Assigns an expression to a variable.
@@ -53,7 +58,15 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = {
     x match {
-      case x: VariableIdentifier => copy(numDom = numDom.assign(x, right))
+      case x: VariableIdentifier =>
+        var newNumDom: N = right match {
+          case right: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
+          case _ => numDom.assign(x, right)
+        }
+        if(newNumDom.isBottom){
+          newNumDom = numDom.removeVariable(x).createVariable(x)
+        }
+        this.copy(numDom = newNumDom)
       case _ => this
     }
   }
@@ -91,7 +104,13 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable*/
   override def removeVariable(varExpr: VariableIdentifier): T = {
-    copy(numDom = numDom.removeVariable(varExpr))
+    copy(expr = ExpressionSet(varExpr), numDom = numDom.removeVariable(varExpr))
+  }
+
+  def createAccessPathIdentifier(id: Identifier, fieldId: VariableIdentifier): AccessPathIdentifier = {
+    var accPath: List[Identifier] = Nil
+    accPath = id :: accPath
+    AccessPathIdentifier(accPath :+ fieldId)
   }
 
   /** Accesses a field of an object.
@@ -104,8 +123,12 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state obtained after the field access, that is,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.*/
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
-    // We don't track numerical information on the heap
-    this
+    obj match {
+      case obj: Identifier =>
+        val fieldId = VariableIdentifier(field)(typ, currentPP)
+        this.copy(expr = ExpressionSet(createAccessPathIdentifier(obj, fieldId)))
+      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
+    }
   }
 
   /** Assumes that a boolean expression holds.
@@ -147,13 +170,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant*/
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    // Nothing to do here
-    this
-  }
-
-  /** Returns the current expression. */
-  override def expr: ExpressionSet = {
-    ExpressionSet()
+    this.copy(expr = ExpressionSet(Constant(value, typ, pp)))
   }
 
   /** Gets the value of a variable.
@@ -162,8 +179,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable*/
   override def getVariableValue(id: Identifier): T = {
-    // Nothing to do here
-    this
+    this.copy(expr = ExpressionSet(id))
   }
 
   /** Performs abstract garbage collection. */
@@ -182,8 +198,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @return The abstract state after removing the current expression*/
   override def removeExpression(): T = {
-    // Nothing to do here
-    this
+    this.copy(expr = ExpressionSet())
   }
 
   /** Assigns an expression to an argument.
@@ -201,8 +216,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one*/
   override def setExpression(expr: ExpressionSet): T = {
-    // Nothing to do here
-    this
+    this.copy(expr = expr)
   }
 
   /** Throws an exception.
@@ -289,7 +303,9 @@ object NumericalAnalysisState
     *
     * @param numDom           The numerical domain lattice element.
     */
-  case class SimpleNumericalAnalysisState(numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+  case class SimpleNumericalAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
+                                          expr: ExpressionSet = ExpressionSet(),
+                                          numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
     extends NumericalAnalysisState[Apron.Polyhedra, SimpleNumericalAnalysisState]
   {
     /**
@@ -297,8 +313,8 @@ object NumericalAnalysisState
       * @param numDom           The numerical domain lattice element.
       * @return The updated copy of the alias analysis state.
       */
-    override def copy(numDom: Apron.Polyhedra = numDom): SimpleNumericalAnalysisState = {
-      SimpleNumericalAnalysisState(numDom)
+    override def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: Apron.Polyhedra = numDom): SimpleNumericalAnalysisState = {
+      SimpleNumericalAnalysisState(currentPP, expr, numDom)
     }
   }
 }
@@ -316,12 +332,4 @@ object NumericalAnalysisEntryState
   extends NumericalAnalysisStateBuilder[Apron.Polyhedra, SimpleNumericalAnalysisState]
 {
   override def topState: SimpleNumericalAnalysisState = SimpleNumericalAnalysisState()
-}
-
-case class PolyhedraState(override val numDom: Polyhedra)
-  extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraState] {
-
-  override def copy(numDom: Polyhedra = numDom): PolyhedraState = {
-    PolyhedraState(numDom)
-  }
 }

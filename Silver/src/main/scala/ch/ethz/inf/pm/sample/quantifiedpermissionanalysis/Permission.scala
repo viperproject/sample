@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.Lattice
+import viper.silver.ast.{Exp, FractionalPerm, IntLit, NoPerm}
 
 /**
   * @author Severin Münger
@@ -111,6 +112,8 @@ object Permission {
     override def isSome: Boolean = true
 
     override def isNone: Boolean = false
+
+    override def toSilExpression: Exp = FractionalPerm(IntLit(1)(), IntLit(1)())()
   }
 
   case object Bottom extends Permission with Lattice.Bottom[Permission] {
@@ -129,6 +132,8 @@ object Permission {
     override def isSome: Boolean = false
 
     override def isNone: Boolean = true
+
+    override def toSilExpression: Exp = NoPerm()()
   }
 
   /**
@@ -187,6 +192,8 @@ object Permission {
 
     def amount: Double =
       numerator.toDouble / denominator
+
+    override def toSilExpression: Exp = FractionalPerm(IntLit(numerator)(), IntLit(denominator)())()
   }
 
   /**
