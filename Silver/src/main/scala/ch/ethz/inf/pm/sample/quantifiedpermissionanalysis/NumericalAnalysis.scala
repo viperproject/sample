@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.SimpleNumericalAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
 /**
   * @author Severin Münger
@@ -303,19 +303,20 @@ object NumericalAnalysisState
     *
     * @param numDom           The numerical domain lattice element.
     */
-  case class SimpleNumericalAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
-                                          expr: ExpressionSet = ExpressionSet(),
-                                          numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
-    extends NumericalAnalysisState[Apron.Polyhedra, SimpleNumericalAnalysisState]
+  case class PolyhedraAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
+                                    expr: ExpressionSet = ExpressionSet(),
+                                    numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+    extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
   {
     /**
       *
       * @param numDom           The numerical domain lattice element.
       * @return The updated copy of the alias analysis state.
       */
-    override def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: Apron.Polyhedra = numDom): SimpleNumericalAnalysisState = {
-      SimpleNumericalAnalysisState(currentPP, expr, numDom)
-    }
+    override def copy(currentPP: ProgramPoint = currentPP,
+                      expr: ExpressionSet = expr,
+                      numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =
+      PolyhedraAnalysisState(currentPP, expr, numDom)
   }
 }
 
@@ -329,7 +330,7 @@ trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnaly
 }
 
 object NumericalAnalysisEntryState
-  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, SimpleNumericalAnalysisState]
+  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState]
 {
-  override def topState: SimpleNumericalAnalysisState = SimpleNumericalAnalysisState()
+  override def topState: PolyhedraAnalysisState = PolyhedraAnalysisState()
 }

@@ -67,7 +67,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     for ((field, permissions1) <- perms1) {
       if (perms2.contains(field)) {
         val permissions2 = perms2.get(field)
-
       }
     }
     result
