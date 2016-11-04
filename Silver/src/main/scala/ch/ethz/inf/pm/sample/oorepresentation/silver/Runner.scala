@@ -81,8 +81,11 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
   }
 
   override def main(args: Array[String]) {
-    // run the analysis and report errors and warnings
+    // run the analysis
     val results: List[MethodAnalysisResult[S]] = run(Compilable.Path(new File(args(0)).toPath)).collect{case x:MethodAnalysisResult[S] => x}
+    val extended = extendProgram(DefaultSilverConverter.prog,results)
+
+    // report errors and warnings
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
     for (e <- Reporter.assertionViolations) { println(e) } // error report
@@ -90,8 +93,7 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     if (Reporter.genericWarnings.isEmpty) println("No warnings")
     for (w <- Reporter.genericWarnings) { println(w) } // warning report
 
-    // extend program with inferred permission
-    val extended = extendProgram(DefaultSilverConverter.prog,results)
+    // report extended program
     println("\n********************\n* Extended Program *\n********************\n\n" + extended)
     // create a file with the extended program
     //val copyName = args(0).split('.')(0) + ".sil.orig"

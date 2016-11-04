@@ -19,17 +19,3 @@ case class WrappedProgramPoint(pos: sil.HasLineColumn) extends LineColumnProgram
   override def toString: String = description
 }
 
-/** A program point that does not exist in the program. For instance, this
-  * program point can be used when AST nodes are created by some translation.
-  *
-  * @param name The name of the program point.
-  * @param position The (approximate) position of the program point.
-  */
-case class VirtualProgramPoint(name: String,
-                               position: Position)
-  extends ProgramPoint {
-
-  override def description: String = s"@$position:$name"
-
-  override def toString: String = description
-}
