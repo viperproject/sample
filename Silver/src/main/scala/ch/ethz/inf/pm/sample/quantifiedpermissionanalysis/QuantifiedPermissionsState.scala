@@ -58,7 +58,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   // result of the alias analysis after the current program point
   lazy val postNumericalInfo = Context.postNumericalInfo(currentPP)
 
-  val permissionRecords: mutable.HashMap[String, Map[Expression, PermissionExpression]] = new mutable.HashMap[String, Map[Expression, PermissionExpression]]
+  // map from field names to their current permission expressions
+  val permissionRecords: mutable.HashMap[String, Expression] = new mutable.HashMap[String, Expression]
 
   // BASIC METHODS
 
@@ -97,22 +98,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         AccessPathIdentifier(path = newPath)
       }
       case _ => exp
-    }
-  }
-
-  def getAcc(e: Expression, p: Expression, pp: ProgramPoint = currentPP): Set[(Expression, String, Expression)] = {
-    if (!p.typ.name.equals("Perm")) {
-      throw new IllegalArgumentException("p in getAcc(e, p) has to be of type Perm! Actual type is " + p.typ.name)
-    }
-    e match {
-      case e: BinaryArithmeticExpression => getAcc(e.left, p) ++ getAcc(e.right, p)
-      case e: BinaryBooleanExpression => getAcc(e.left, p) ++ getAcc(e.right, p)
-      case e: UnaryArithmeticExpression => getAcc(e.left, p)
-      case e: Identifier =>
-        val fieldId = VariableIdentifier(e.getField.get)(e.typ, pp)
-        val accPath = cleanAccessPath(createAccessPathIdentifier(e, fieldId))
-        Set((accPath, e.getField.get, p))
-      case _ => Set()
     }
   }
 
