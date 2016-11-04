@@ -641,17 +641,17 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
   * @param location    The location for which we inhale or exhale the permission.
   * @param numerator   The numerator of the inhaled or exhaled permission.
   * @param denominator The denominator of the inhaled or exhaled permission.
+  * @param typ         The type of the field access predicate.
   * @author Caterina Urban
   */
-case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression) extends Expression {
-  /** The type of this expression. */
-  override def typ: Type = location.typ
-  /** Runs f on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = FieldAccessPredicate(location.transform(f),numerator,denominator)
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = location.ids
-  /** Point in the program where this expression is located. */
+case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression, typ: Type)
+  extends Expression
+{
+  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessPredicate(location.transform(f), numerator.transform(f), denominator.transform(f), typ))
+
+  override def ids: IdentifierSet = location.ids ++ numerator.ids ++ denominator.ids
+
   override def pp: ProgramPoint = location.pp
-  /** Checks if function f evaluates to true for any sub-expression. */
-  override def contains(f: (Expression) => Boolean): Boolean = location.contains(f)
+
+  override def contains(f: (Expression) => Boolean): Boolean = location.contains(f) || numerator.contains(f) || denominator.contains(f)
 }

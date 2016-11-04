@@ -554,7 +554,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         // inhale both sides of the conjunction
         exhale(left).exhale(right)
-      case FieldAccessPredicate(identifier, numerator, denominator) =>
+      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is exhaled
@@ -588,7 +588,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         inhale(right).inhale(left)
-      case FieldAccessPredicate(identifier, numerator, denominator) => {
+      case FieldAccessPredicate(identifier, numerator, denominator, _) => {
         // get access path
         val location = path(identifier)
         // get the amount of permission that is inhaled
@@ -1357,7 +1357,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @return The set of access paths (as strings).
     */
   private def framed(expression: Expression): Set[String] = expression match {
-    case FieldAccessPredicate(id, n, _) => n match {
+    case FieldAccessPredicate(id, n, _, _) => n match {
       case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
       case _ => Set.empty
     }
