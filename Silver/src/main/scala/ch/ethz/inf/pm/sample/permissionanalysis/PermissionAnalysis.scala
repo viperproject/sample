@@ -514,7 +514,13 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case Left(_) => Seq.empty[sil.Field]
       case Right(fields) => fields.toSeq
     }
-    existing ++ inferred
+
+    for (field <- (existing intersect inferred)) {
+      val message = s"There might be insufficient permission for the field ${field.name}"
+      Reporter.reportGenericWarning(message, currentPP)
+    }
+
+    (existing ++ inferred).distinct
   }
 
   override def command(cmd: Command): T = {
@@ -1159,7 +1165,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
               if (permission.isNone && tree.isEmpty) res
               else {
                 if (permission.isInfeasible) {
-                  val message = s"Inferred infeasible permission for ${path.mkString(".")}"
+                  val message = s"There might be insufficient permission for ${path.mkString(".")}"
                   Reporter.reportGenericWarning(message, currentPP)
                 }
                 res ++ Set(silverField(field))
