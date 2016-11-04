@@ -313,7 +313,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(e: sil.Exp): sample.Statement = e match {
-
     case e: sil.DomainOpExp =>
       makeNativeMethodCall(go(e.pos), e.func(prog).op, e.args.map(go), go(e.typ))
     case e: sil.EqualityCmp =>

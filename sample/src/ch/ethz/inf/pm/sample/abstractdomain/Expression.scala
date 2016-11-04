@@ -609,11 +609,9 @@ object NondeterministicOperator extends Enumeration {
 }
 
 /**
- *
- * Represents an expression with a nondeterministic operator.
+ *Represents an expression with a nondeterministic operator.
  *
  * @author Lucas Brutschy
- *
  */
 case class BinaryNondeterministicExpression(left: Expression, right: Expression, op: NondeterministicOperator.Value, returnType: Type) extends Expression {
   def pp = left.pp
@@ -637,22 +635,23 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 }
 
-/** Inhale/Exhale expression.
+/**
+  * A field access predicate used in inhale and exhale expressions.
   *
-  * @param id the identifier for which we inhale/exhale permissions
-  * @param n the numerator of the inhaled/exhaled permission
-  * @param d the denominator of the inhaled/exhaled permission
+  * @param location    The location for which we inhale or exhale the permission.
+  * @param numerator   The numerator of the inhaled or exhaled permission.
+  * @param denominator The denominator of the inhaled or exhaled permission.
   * @author Caterina Urban
   */
-case class PermissionExpression(id: Expression, n: Expression, d: Expression) extends Expression {
+case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression) extends Expression {
   /** The type of this expression. */
-  override def typ: Type = id.typ
+  override def typ: Type = location.typ
   /** Runs f on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = PermissionExpression(id.transform(f),n,d)
+  override def transform(f: (Expression) => Expression): Expression = FieldAccessPredicate(location.transform(f),numerator,denominator)
   /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = id.ids
+  override def ids: IdentifierSet = location.ids
   /** Point in the program where this expression is located. */
-  override def pp: ProgramPoint = id.pp
+  override def pp: ProgramPoint = location.pp
   /** Checks if function f evaluates to true for any sub-expression. */
-  override def contains(f: (Expression) => Boolean): Boolean = id.contains(f)
+  override def contains(f: (Expression) => Boolean): Boolean = location.contains(f)
 }

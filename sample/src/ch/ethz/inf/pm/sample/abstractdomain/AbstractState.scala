@@ -65,7 +65,7 @@ object ExpressionFactory {
       for (id <- ids.toSetOrFail)
         for (num <- nums.toSetOrFail)
           for (den <- dens.toSetOrFail)
-            result = result.add(PermissionExpression(id, num, den))
+            result = result.add(FieldAccessPredicate(id, num, den))
       result
     } else ids.top()
   }
