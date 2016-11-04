@@ -12,6 +12,8 @@ object ProgramPointUtils {
       case (p1: LineColumnProgramPoint, p2:LineColumnProgramPoint) =>
         assert ((p1.getLine compare p2.getLine) == 0)
         p1.getColumn compare p2.getColumn
+      case (DummyProgramPoint, _) => 1
+      case (_, DummyProgramPoint) => -1
       case _ => p1.toString.compare(p2.toString)
     }
   }

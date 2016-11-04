@@ -104,7 +104,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     * @param existing The list of existing invariants.
     * @return The modified list of invariants.
     */
-  override def invariant(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing //TODO:
+  override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing //TODO:
 
   /** Assigns an expression to a field of an object.
     *
