@@ -71,12 +71,12 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       }
 
       // backward execute the current block
-      refiningExecuteBlock(postState, currentBlockId, cfgState)
+      backwardExecuteBlock(postState, currentBlockId, cfgState)
     }
     cfgState
   }
 
-  private def refiningExecuteBlock(exitState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
+  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
     var newStates = ListBuffer[QuantifiedPermissionsState]() // initially empty list of new states
     val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(blockId) // get the statements within the block
     var postState = exitState // initial next state

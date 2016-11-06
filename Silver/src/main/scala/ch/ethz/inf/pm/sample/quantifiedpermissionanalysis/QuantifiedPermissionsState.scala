@@ -4,6 +4,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.Bottom
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.Top
 
 import scala.collection.immutable.Set
 import scala.collection.mutable
@@ -14,7 +16,6 @@ import scala.collection.mutable
   * @author Severin Münger
   *         Added on 19/10/16.
   */
-
 object QuantifiedPermissionsEntryStateBuilder extends EntryStateBuilder[QuantifiedPermissionsState] {
 
   var fields: Set[(Type, String)] = Set[(Type, String)]()
@@ -38,8 +39,7 @@ object QuantifiedPermissionsState {
 
 case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       isBottom: Boolean = false,
-                                      top: QuantifiedPermissionsState = QuantifiedPermissionsState.Top,
-                                      bottom: QuantifiedPermissionsState = QuantifiedPermissionsState.Bottom,
+                                      expr: ExpressionSet = ExpressionSet(),
                                       currentPP: ProgramPoint = DummyProgramPoint)
   extends SimplePermissionState[QuantifiedPermissionsState]
     with SilverSpecification {
@@ -58,48 +58,28 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   // result of the alias analysis after the current program point
   lazy val postNumericalInfo = Context.postNumericalInfo(currentPP)
 
-  // map from field names to their current permission expressions
-  val permissionRecords: mutable.HashMap[String, Expression] = new mutable.HashMap[String, Expression]
+  // map from field names to their current permission tree
+  val permissionRecords: mutable.HashMap[String, PermissionTree] = new mutable.HashMap[String, PermissionTree]
 
   // BASIC METHODS
 
-  def join (perms1: Map[String, Map[Expression, PermissionExpression]], perms2: Map[String, Map[Expression, PermissionExpression]]) = {
-    val result: mutable.Map[String, Map[Expression, PermissionExpression]] =  mutable.HashMap[String, Map[Expression, PermissionExpression]]()
-    for ((field, permissions1) <- perms1) {
-      if (perms2.contains(field)) {
-        val permissions2 = perms2.get(field)
-      }
-    }
-    result
-  }
+  /** Returns the bottom value of the lattice.
+    *
+    * @return The bottom value, that is, a value x that is less than or to any other value
+    */
+  override def bottom(): QuantifiedPermissionsState = Bottom
 
-  def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom,
+  /** Returns the top value of the lattice.
+    *
+    * @return The top value, that is, a value x that is greater than or equal to any other value
+    */
+  override def top(): QuantifiedPermissionsState = Top
+
+  def copy(isTop: Boolean = isTop,
+           isBottom: Boolean = isBottom,
+           expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP):
-  QuantifiedPermissionsState = {
-    QuantifiedPermissionsState(isTop, isBottom, currentPP = currentPP)
-  }
-
-  def createAccessPathIdentifier(id: Identifier, fieldId: VariableIdentifier): AccessPathIdentifier = {
-    var accPath: List[Identifier] = Nil
-    accPath = id :: accPath
-    AccessPathIdentifier(accPath :+ fieldId)
-  }
-
-  def cleanAccessPath(exp: Expression): Expression = {
-    exp match {
-      case AccessPathIdentifier(path) => {
-        val newPath =
-          path.foldLeft(List[Identifier]())((list: List[Identifier], ident: Identifier) => {
-            ident match {
-              case ident: AccessPathIdentifier => list ++ cleanAccessPath(ident).asInstanceOf[AccessPathIdentifier].path
-              case _ => list ++ List(ident)
-            }
-          })
-        AccessPathIdentifier(path = newPath)
-      }
-      case _ => exp
-    }
-  }
+  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP)
 
   override def ids: IdentifierSet = ???
 
@@ -110,10 +90,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission */
   override def inhale(acc: Expression): QuantifiedPermissionsState = {
-    acc match {
-      case acc: PermissionExpression => this
-      case _ => assume(acc)
-    }
+    // TODO: handle inhale
+    this
   }
 
   /** Exhales permissions.
@@ -123,6 +101,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission */
   override def exhale(acc: Expression): QuantifiedPermissionsState = {
+    // TODO: handle exhale
     this
   }
 
@@ -135,6 +114,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param pp  The program point that creates the variable
     * @return The abstract state after the creation of the variable */
   override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
+    // Nothing to do here
     this
   }
 
@@ -146,8 +126,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = {
-    if (!typ.isObject) copy()
-    else this
+    if (typ.isObject) {
+      copy(expr = ExpressionSet(x))
+    } else {
+      this
+    }
   }
 
   /** Assigns an expression to a variable.
@@ -158,13 +141,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right The assigned expression
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
-    if (!x.typ.isObject) x match {
-      case x: VariableIdentifier =>
-        copy()
-      case _ => throw new IllegalArgumentException("Not a variable identifier")
-    } else {
-      this
-    }
+    // TODO: replace occurrences of x by right
+    this
   }
 
   /** Assigns an expression to a field of an object.
@@ -176,6 +154,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right the assigned expression
     * @return the abstract state after the assignment */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
+    // TODO: add write access to obj.field, replace all occurrences of obj.field by right and for every access o.field
+    // where o != obj (syntactically), add case distinction for aliasing.
     this
   }
 
@@ -186,11 +166,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable */
   override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = {
-    varExpr match {
-      case varExpr: VariableIdentifier =>
-        copy()
-      case _ => this
-    }
+    // Nothing to do here
+    this
   }
 
   /** Removes a variable.
@@ -200,7 +177,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable */
   override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = {
-    copy()
+    copy(expr = ExpressionSet(varExpr))
   }
 
   /** Accesses a field of an object.
@@ -213,7 +190,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state obtained after the field access, that is,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field. */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
-    this
+    // TODO: handle field access
+    copy(expr = ExpressionSet(createa))
   }
 
   /** Assumes that a boolean expression holds.
@@ -257,12 +235,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     this
   }
 
-  /** Returns the current expression. */
-  override def expr: ExpressionSet = {
-    // TODO: implement
-    null
-  }
-
   /** Gets the value of a variable.
     *
     * @param id The variable to access
@@ -297,7 +269,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one */
   override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = {
-    this
+    copy(expr = expr)
   }
 
   /** Throws an exception.
@@ -328,7 +300,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @return A new instance of the current object */
   def factory(): QuantifiedPermissionsState = {
-    copy(isTop, isBottom, DummyProgramPoint)
+    copy(isTop, isBottom, expr, DummyProgramPoint)
   }
 
   /** Computes the least upper bound of two elements.

@@ -17,6 +17,7 @@ import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.permissionanalysis.SilverSemantics
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionMethodSemantics
 import viper.silver.ast.SourcePosition
 import viper.silver.verifier.ParseError
 
@@ -83,7 +84,7 @@ class SilCompiler extends Compiler {
 
   def getNativeMethodsSemantics =
     ArithmeticAndBooleanNativeMethodSemantics ::
-      RichNativeMethodSemantics :: SilverSemantics :: Nil
+      RichNativeMethodSemantics :: SilverSemantics :: QuantifiedPermissionMethodSemantics :: Nil
 
   def reset(): Unit = {
     classes = None
