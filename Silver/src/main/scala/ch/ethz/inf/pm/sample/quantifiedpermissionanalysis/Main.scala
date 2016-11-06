@@ -86,7 +86,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     val quantifiedPermissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder.build(method)
-      val interpreter = TrackingQPInterpreter(entryState)
+      val interpreter = TrackingQPInterpreter(loopHeads, entryState)
       val (cfgWithoutCycles, flowOrder) = preprocessGraph(method.body)
       val cfgState = interpreter.simpleBackwardExecute(cfgWithoutCycles, flowOrder, entryState)
       MethodAnalysisResult(method, cfgState)

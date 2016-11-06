@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
   *         Added on 23/10/16.
   */
 trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLogging {
-  var loopHeads = Set[Int]()
+  def loopHeads: Set[Int]
 
   def simpleBackwardExecute(cfgWithoutCycles: ControlFlowGraph, flowOrder: mutable.LinkedHashSet[Int], entryState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
     val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](entryState)
@@ -80,7 +80,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
 
 }
 
-case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState) extends QPInterpreter {
+case class TrackingQPInterpreter(loopHeads: Set[Int], stateFactory: QuantifiedPermissionsState) extends QPInterpreter {
   type C = TrackingCFGState[QuantifiedPermissionsState]
   val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](stateFactory)
 }
