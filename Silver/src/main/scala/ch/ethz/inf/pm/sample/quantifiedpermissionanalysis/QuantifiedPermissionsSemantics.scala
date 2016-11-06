@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
@@ -61,10 +60,9 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics {
             val implies = thisExpr.getSingle.get.asInstanceOf[BinaryBooleanExpression]
             val left = implies.left.asInstanceOf[NegatedBooleanExpression].exp
             val right = implies.right
-            val forallExpr = ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier])
-            Some(state.setExpression(ExpressionSet(forallExpr)))
+            Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))))
           case None => if (thisExpr.getSingle.isDefined) {
-            Some(state.array_acc(thisExpr.getSingle.get, parameters(0).getSingle.get, returnedtype).asInstanceOf[S])
+            Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))))
           } else {
             None
           }

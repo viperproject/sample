@@ -91,7 +91,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after inhaling the permission */
   override def inhale(acc: Expression): QuantifiedPermissionsState = {
     // TODO: handle inhale
-    this
+    // this
+
+    copy()
   }
 
   /** Exhales permissions.
@@ -191,7 +193,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field. */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     // TODO: handle field access
-    copy(expr = ExpressionSet(createa))
+    copy(expr = ExpressionSet())
   }
 
   /** Assumes that a boolean expression holds.
