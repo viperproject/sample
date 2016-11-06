@@ -4,10 +4,10 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.Bottom
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.Top
+import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
+import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.immutable.Set
 import scala.collection.mutable
 
 /**
@@ -18,17 +18,11 @@ import scala.collection.mutable
   */
 object QuantifiedPermissionsEntryStateBuilder extends EntryStateBuilder[QuantifiedPermissionsState] {
 
-  var fields: Set[(Type, String)] = Set[(Type, String)]()
-
   override def build(method: MethodDeclaration): QuantifiedPermissionsState = {
-    fields = Set[(Type, String)]()
-    for (f <- method.classDef.fields) {
-      fields = fields + ((f.typ, f.variable.toString))
-    }
-    method.initializeArgument[QuantifiedPermissionsState](topState.copy())
+    QuantifiedPermissionsState()
   }
 
-  override def topState = QuantifiedPermissionsState(false, false)
+  override def topState = QuantifiedPermissionsState()
 }
 
 object QuantifiedPermissionsState {
@@ -42,7 +36,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
                                       currentPP: ProgramPoint = DummyProgramPoint)
   extends SimplePermissionState[QuantifiedPermissionsState]
-    with SilverSpecification {
+    with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
+    with SilverSpecification
+    with LazyLogging {
 
   // FIELDS
 
@@ -83,6 +79,22 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   override def ids: IdentifierSet = ???
 
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.*/
+  override def command(cmd: Command): QuantifiedPermissionsState = {
+    logger.info("Command: " + cmd.getClass.toString)
+    cmd match {
+      case InhaleCommand(e) => {
+        logger.info("isbottom: " + isBottom)
+        this.inhale(e)
+      }
+      case ExhaleCommand(e) => exhale(e)
+      case _ => this
+    }
+  }
+
   /** Inhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -91,9 +103,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after inhaling the permission */
   override def inhale(acc: Expression): QuantifiedPermissionsState = {
     // TODO: handle inhale
-    // this
-
-    copy()
+    this
   }
 
   /** Exhales permissions.
@@ -144,7 +154,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
     // TODO: replace occurrences of x by right
-    this
+    copy(expr = ExpressionSet())
   }
 
   /** Assigns an expression to a field of an object.
@@ -158,7 +168,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
     // TODO: add write access to obj.field, replace all occurrences of obj.field by right and for every access o.field
     // where o != obj (syntactically), add case distinction for aliasing.
-    this
+    copy(expr = ExpressionSet(FieldExpression(right.typ, field, obj)))
   }
 
   /** Forgets the value of a variable.
@@ -193,7 +203,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field. */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     // TODO: handle field access
-    copy(expr = ExpressionSet())
+    copy(expr = ExpressionSet(FieldExpression(typ, field, obj)))
   }
 
   /** Assumes that a boolean expression holds.
@@ -203,7 +213,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds */
   override def assume(cond: Expression): QuantifiedPermissionsState = {
-    copy()
+    this
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -234,7 +244,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    this
+    copy(expr = ExpressionSet(Constant(value, typ, pp)))
   }
 
   /** Gets the value of a variable.
@@ -243,7 +253,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable */
   override def getVariableValue(id: Identifier): QuantifiedPermissionsState = {
-    this
+    copy(expr = ExpressionSet(id))
   }
 
   /** Performs abstract garbage collection. */
@@ -256,7 +266,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @return The abstract state after removing the current expression */
   override def removeExpression(): QuantifiedPermissionsState = {
-    this
+    copy(expr = ExpressionSet())
   }
 
   /** Assigns an expression to an argument.
@@ -280,30 +290,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the thrown */
   override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
 
-  /** Undoes the effect of pruning the unreachable heap ids. That is,
-    * all heap ids present in `preState` but not in this state are created
-    * and set to top. Everything else stays the same as in the post state (this state).
-    *
-    * @param preState old pre state before heap pruning was applied
-    * @return unpruned heap */
-  override def undoPruneUnreachableHeap(preState: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
-
-  /** Undoes the effect of `pruneVariables`.
-    *
-    * All the variables that existed in `unprunedPreState` and that match the given filter are created and set to top.
-    *
-    * @param unprunedPreState state before pruning
-    * @param filter           the filter that was used to prune variables
-    * @return state with pruned variables created again */
-  override def undoPruneVariables(unprunedPreState: QuantifiedPermissionsState, filter: (VariableIdentifier) =>
-    Boolean): QuantifiedPermissionsState = ???
-
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object */
-  def factory(): QuantifiedPermissionsState = {
-    copy(isTop, isBottom, expr, DummyProgramPoint)
-  }
+  def factory(): QuantifiedPermissionsState = ???
 
   /** Computes the least upper bound of two elements.
     *
@@ -311,7 +301,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments */
   override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom)
+    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr)
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -333,74 +323,4 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return true if and only if `this` is less than or equal to `other` */
   override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
 
-  // BACKWARD ANALYSIS
-
-  def refiningWhileLoop(beforeLoopState: QuantifiedPermissionsState,
-                        loopBodyFirstState: QuantifiedPermissionsState, loopBodyLastState: QuantifiedPermissionsState,
-                        afterLoopState: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    this
-  }
-
-  /** Performs refining backward assignment of variables.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param oldPreState the pre state to be refined
-    * @param x           The assigned variable
-    * @param right       The assigned expression
-    * @return The abstract state before the assignment */
-  override def refiningAssignVariable(oldPreState: QuantifiedPermissionsState, x: Expression, right: Expression):
-  QuantifiedPermissionsState = {
-    // TODO: implement
-    this
-  }
-
-  /** Refining backward transformer for field assignments.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param oldPreState state before this operation
-    * @param obj         field target object
-    * @param field       field to be assigned
-    * @param right       assigned expression
-    * @return refined pre state before the field assignment */
-  override def refiningAssignField(oldPreState: QuantifiedPermissionsState, obj: Expression, field: String, right:
-  Expression): QuantifiedPermissionsState = {
-    // TODO: implement
-    this
-  }
-
-  /** Performs the backward semantics of a variable access.
-    *
-    * @param id The accessed variable
-    * @return The abstract state obtained BEFORE accessing the variable */
-  override def refiningGetVariableValue(id: Identifier): QuantifiedPermissionsState = {
-    // TODO: implement
-    this
-  }
-
-  /** Performs the backward semantics of a field access.
-    *
-    * @param obj   the object on which the field access is performed
-    * @param field the name of the field
-    * @param typ   the type of the field
-    * @return the abstract state obtained before the field access */
-  override def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): QuantifiedPermissionsState = {
-    // TODO: implement
-    this
-  }
-
-  /** Undoes the effect of object creation.
-    *
-    * Intended to be the backward version of createObject
-    * and should only be used on a post state immediately after object creation.
-    *
-    * @param oldPreState
-    * @param obj    the heap id of the object to be removed
-    * @param fields the fields that were created
-    * @return state without the object */
-  override def removeObject(oldPreState: QuantifiedPermissionsState, obj: ExpressionSet, fields:
-  Option[Set[Identifier]]): QuantifiedPermissionsState = {
-    copy()
-  }
 }

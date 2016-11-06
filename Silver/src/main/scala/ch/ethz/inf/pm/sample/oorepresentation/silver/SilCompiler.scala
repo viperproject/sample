@@ -6,20 +6,20 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.{BufferedReader, FileReader}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.text.ParseException
 
-import scala.io.Source
-import viper.silver.parser.{FastParser, _}
-import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, _}
 import ch.ethz.inf.pm.sample.permissionanalysis.SilverSemantics
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionMethodSemantics
 import viper.silver.ast.SourcePosition
+import viper.silver.parser.{FastParser, _}
 import viper.silver.verifier.ParseError
+import viper.silver.{ast => sil}
+
+import scala.io.Source
 
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None
@@ -84,7 +84,7 @@ class SilCompiler extends Compiler {
 
   def getNativeMethodsSemantics =
     ArithmeticAndBooleanNativeMethodSemantics ::
-      RichNativeMethodSemantics :: SilverSemantics :: QuantifiedPermissionMethodSemantics :: Nil
+      RichNativeMethodSemantics :: QuantifiedPermissionMethodSemantics :: SilverSemantics :: Nil
 
   def reset(): Unit = {
     classes = None

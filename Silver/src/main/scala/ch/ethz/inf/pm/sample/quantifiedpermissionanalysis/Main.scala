@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 
@@ -36,7 +37,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
                                       numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
                                       entryStateBuilder: EntryStateBuilder[QuantifiedPermissionsState])
-  extends Analysis[QuantifiedPermissionsState] {
+  extends Analysis[QuantifiedPermissionsState] with LazyLogging {
 
   var loopHeads = Set[Int]()
 

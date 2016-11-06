@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.execution.{ForwardInterpreter, Interpreter, TrackingCFGState, TrackingCFGStateFactory}
+import ch.ethz.inf.pm.sample.execution.{Interpreter, TrackingCFGState, TrackingCFGStateFactory}
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, Statement}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -14,34 +14,6 @@ import scala.collection.mutable.ListBuffer
 trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLogging {
   var loopHeads = Set[Int]()
 
-  /**
-    * Transforms the CFG in such a way that we do not iterate through loops anymore. For this analysis it is enough
-    * to iterate through the loop body only once. This pre-processing will remove the edge from the last block
-    * inside the loop back to the head.
-    */
-  def removeCycles(cfg: ControlFlowGraph): (ControlFlowGraph, mutable.LinkedHashSet[Int]) = {
-    val (loopHeads, flowOrder) = findLoops(ForwardInterpreter.startBlockId, cfg, Set())
-    this.loopHeads = loopHeads
-    (cfg, flowOrder)
-  }
-
-  def findLoops(currentNode: Int, cfg: ControlFlowGraph, visited: Set[Int]): (Set[Int], mutable
-  .LinkedHashSet[Int]) = {
-    if (visited.contains(currentNode)) {
-      return (Set[Int](currentNode), mutable.LinkedHashSet[Int]())
-    }
-    val successors: Set[Int] = cfg.getDirectSuccessors(currentNode)
-    var loopHeads = Set[Int]()
-    var flowOrder = mutable.LinkedHashSet[Int]()
-    for (nextNode <- successors) {
-      val (lNodes, fOrder) = findLoops(nextNode, cfg, visited + currentNode)
-      loopHeads = loopHeads ++ lNodes
-      flowOrder = flowOrder ++ fOrder
-    }
-    flowOrder += currentNode
-    (loopHeads, flowOrder)
-  }
-
   def simpleBackwardExecute(cfgWithoutCycles: ControlFlowGraph, flowOrder: mutable.LinkedHashSet[Int], entryState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
     val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](entryState)
     val cfgState: TrackingCFGState[QuantifiedPermissionsState] = cfgStateFactory.allBottom(cfgWithoutCycles)
@@ -52,7 +24,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       flowOrder.remove(currentBlockId) // extract the current block
       // figure out the current exit state
       val postState: QuantifiedPermissionsState = if (cfgWithoutCycles.getLeavesIds.contains(currentBlockId)) {
-        cfgState.statesOfBlock(currentBlockId).last
+        entryState
       } else {
         val exitEdges = cfgWithoutCycles.exitEdges(currentBlockId)
         exitEdges.size match {
@@ -83,6 +55,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) {
       // for each statement (in reverse order)...
       newStates = postState +: newStates // prepend the next state to the list of new states
+      logger.info("Execute " + stmt)
       var preState = stmt.backwardSemantics(postState) // compute the previous state
       //if we are at the top of a while loop condition apply the whileLoopRules
       if (loopHeads.contains(blockId) && idx == 0) {
@@ -93,7 +66,8 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
         val (loopBodyFirstState, loopBodyLastState, afterLoopState) = (cfgState.statesOfBlock(loopBodyIdx).head,
           cfgState.statesOfBlock(loopBodyIdx).last, cfgState.statesOfBlock(afterLoopIdx).head)
         //strengthen the numerical domain by taking the numDomain before the loop and widen it with the exit state of the loop
-        preState = preState.refiningWhileLoop(exitState, loopBodyFirstState, loopBodyLastState, afterLoopState)
+        // TODO: implement loop handling
+        // preState = preState.refiningWhileLoop(exitState, loopBodyFirstState, loopBodyLastState, afterLoopState)
       }
       logger.trace(postState.toString)
       logger.trace(stmt.toString)

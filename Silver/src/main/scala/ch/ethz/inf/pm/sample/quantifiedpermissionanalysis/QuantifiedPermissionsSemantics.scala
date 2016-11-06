@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.Constants
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Native method semantics for quantified permissions.
@@ -12,6 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
   *         Added on 05/11/16.
   */
 object QuantifiedPermissionMethods extends Enumeration {
+  val acc = Value(Constants.GhostSymbolPrefix + "permission")
   val forall = Value(Constants.GhostSymbolPrefix + "forall")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
@@ -21,7 +24,7 @@ object QuantifiedPermissionMethods extends Enumeration {
   *
   * @author Caterina Urban
   */
-object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics {
+object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with LazyLogging {
 
   /**
     * It defines the forward semantics of native method calls
@@ -49,20 +52,24 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics {
                                                            typeparameters: List[Type],
                                                            returnedtype: Type,
                                                            programpoint: ProgramPoint,
-                                                           state: S): Option[QuantifiedPermissionsState] = {
+                                                           state: S): Option[S] = {
     state match {
       case state: QuantifiedPermissionsState =>
         val nativeMethod = QuantifiedPermissionMethods.values.find(_.toString == operator)
         nativeMethod match {
-          case Some(QuantifiedPermissionMethods.inhale) => Some(state.inhale(thisExpr))
-          case Some(QuantifiedPermissionMethods.exhale) => Some(state.exhale(thisExpr))
+          case Some(QuantifiedPermissionMethods.acc) =>
+            val permission = createPermissionExpression(thisExpr, parameters.head, parameters(1), returnedtype)
+            Some(state.setExpression(permission).asInstanceOf[S])
+          case Some(QuantifiedPermissionMethods.inhale) =>
+            Some(state.inhale(thisExpr).asInstanceOf[S])
+          case Some(QuantifiedPermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])
           case Some(QuantifiedPermissionMethods.forall) =>
             val implies = thisExpr.getSingle.get.asInstanceOf[BinaryBooleanExpression]
             val left = implies.left.asInstanceOf[NegatedBooleanExpression].exp
             val right = implies.right
-            Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))))
+            Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))).asInstanceOf[S])
           case None => if (thisExpr.getSingle.isDefined) {
-            Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))))
+            Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))).asInstanceOf[S])
           } else {
             None
           }
@@ -71,4 +78,6 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics {
       case _ => None
     }
   }
+
+
 }

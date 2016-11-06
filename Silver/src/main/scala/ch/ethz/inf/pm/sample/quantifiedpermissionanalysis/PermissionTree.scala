@@ -10,8 +10,11 @@ import viper.silver.ast._
 trait PermissionTree {
   def toSilExpression: Exp
   def add(other: PermissionTree) = Addition(other, this)
-  def subtract(other: PermissionTree) = Subtraction(other, this)
-  def
+  def subtract(other: PermissionTree) = Subtraction(this, other)
+  def subtractFrom(other: PermissionTree) = Subtraction(other, this)
+  def max(other: PermissionTree) = Maximum(other, this)
+  def min(other: PermissionTree) = Minimum(other, this)
+  def negate(other: PermissionTree) = Negation(this)
 }
 
 trait UnaryNode extends PermissionTree {
@@ -40,7 +43,7 @@ case class Minimum(left: PermissionTree, right: PermissionTree) extends BinaryNo
 }
 
 case class Negation(arg: PermissionTree) extends UnaryNode {
-  override def toSilExpression: Exp = viper.silver.ast.Un
+  override def toSilExpression: Exp = Sub(IntLit(0)(), arg.toSilExpression)()
 }
 
 object VarXDecl extends LocalVarDecl("x", Perm)()
