@@ -21,7 +21,6 @@ object Main {
 
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
-
     QuantifiedPermissionsAnalysisRunner.main(args)
   }
 }

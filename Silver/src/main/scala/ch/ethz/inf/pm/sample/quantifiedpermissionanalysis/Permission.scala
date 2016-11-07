@@ -7,7 +7,10 @@ import viper.silver.ast.{Exp, FractionalPerm, IntLit, NoPerm}
   * @author Severin Münger
   *         Added on 31/10/16.
   */
-trait Permission extends Lattice[Permission] with PermissionTree {
+trait Permission extends Lattice[Permission] {
+
+  def toSilExpression: Exp
+
   override def factory(): Permission = top()
 
   override def top(): Permission = Permission.Top

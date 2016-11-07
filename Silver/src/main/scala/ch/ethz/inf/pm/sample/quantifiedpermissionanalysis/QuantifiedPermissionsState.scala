@@ -2,9 +2,8 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, RefType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -34,13 +33,14 @@ object QuantifiedPermissionsState {
 case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       isBottom: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
-                                      currentPP: ProgramPoint = DummyProgramPoint)
+                                      currentPP: ProgramPoint = DummyProgramPoint,
+                                      permissionRecords: PermissionRecords = PermissionRecords())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification
     with LazyLogging {
 
-  // FIELDS
+  val quantifiedVariablePlaceholder: VariableIdentifier = VariableIdentifier("r")(RefType())
 
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases(currentPP)
@@ -53,9 +53,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   // result of the alias analysis after the current program point
   lazy val postNumericalInfo = Context.postNumericalInfo(currentPP)
-
-  // map from field names to their current permission tree
-  val permissionRecords: mutable.HashMap[String, PermissionTree] = new mutable.HashMap[String, PermissionTree]
 
   // BASIC METHODS
 
@@ -74,7 +71,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            expr: ExpressionSet = expr,
-           currentPP: ProgramPoint = currentPP):
+           currentPP: ProgramPoint = currentPP,
+           permissionRecords: PermissionRecords = permissionRecords):
   QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP)
 
   override def ids: IdentifierSet = ???
@@ -86,12 +84,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def command(cmd: Command): QuantifiedPermissionsState = {
     logger.info("Command: " + cmd.getClass.toString)
     cmd match {
-      case InhaleCommand(e) => {
-        logger.info("isbottom: " + isBottom)
-        this.inhale(e)
-      }
-      case ExhaleCommand(e) => exhale(e)
-      case _ => this
+      case _ => throw new UnsupportedOperationException
     }
   }
 
@@ -114,7 +107,17 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after exhaling the permission */
   override def exhale(acc: Expression): QuantifiedPermissionsState = {
     // TODO: handle exhale
-    this
+    acc match {
+      case PermissionExpression(id, d, n) =>
+        val newPermissionRecords= permissionRecords
+        id match {
+          case FieldExpression(typ, field, receiver) =>
+            newPermissionRecords(field).add(Condition(ReferenceComparisonExpression(quantifiedVariablePlaceholder, receiver, ArithmeticOperator.==, BoolType), FractionalPermission(d, n), ZeroPermission))
+          case _ => throw new UnsupportedOperationException
+        }
+        copy(permissionRecords = newPermissionRecords)
+      case _ => throw new UnsupportedOperationException
+    }
   }
 
   /** Creates a variable given a `VariableIdentifier`.

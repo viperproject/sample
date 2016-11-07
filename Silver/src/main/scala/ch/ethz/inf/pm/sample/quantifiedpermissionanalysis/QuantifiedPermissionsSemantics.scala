@@ -60,19 +60,14 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
           case Some(QuantifiedPermissionMethods.acc) =>
             val permission = createPermissionExpression(thisExpr, parameters.head, parameters(1), returnedtype)
             Some(state.setExpression(permission).asInstanceOf[S])
-          case Some(QuantifiedPermissionMethods.inhale) =>
-            Some(state.inhale(thisExpr).asInstanceOf[S])
+          case Some(QuantifiedPermissionMethods.inhale) => Some(state.inhale(thisExpr).asInstanceOf[S])
           case Some(QuantifiedPermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])
           case Some(QuantifiedPermissionMethods.forall) =>
             val implies = thisExpr.getSingle.get.asInstanceOf[BinaryBooleanExpression]
             val left = implies.left.asInstanceOf[NegatedBooleanExpression].exp
             val right = implies.right
             Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))).asInstanceOf[S])
-          case None => if (thisExpr.getSingle.isDefined) {
-            Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))).asInstanceOf[S])
-          } else {
-            None
-          }
+          case None => Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))).asInstanceOf[S])
           case _ => None
         }
       case _ => None
