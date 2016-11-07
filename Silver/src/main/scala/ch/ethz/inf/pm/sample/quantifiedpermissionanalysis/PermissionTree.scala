@@ -11,12 +11,12 @@ import viper.silver.ast._
 
 trait PermissionTree {
   def toSilExpression(quantifiedVariable: VariableIdentifier): Exp
-  def add(other: PermissionTree) = other match {
+  def add(other: PermissionTree): PermissionTree = other match {
     case other: PermissionLeaf => PermissionList(Seq(other, this))
     case PermissionList(list) => PermissionList(list :+ this)
     case _ => PermissionList(Seq(other, this))
   }
-  def max(other: PermissionTree) = Maximum(this, other)
+  def max(other: PermissionTree): PermissionTree = Maximum(this, other)
 }
 
 case class PermissionLeaf(expression: Expression, permission: Permission) extends PermissionTree {
@@ -49,7 +49,10 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
   }
 }
 
-object EmptyPermissionTree extends PermissionList(Seq())
+object EmptyPermissionTree extends PermissionList(Seq()) {
+  override def add(other: PermissionTree): PermissionTree = other
+  override def max(other: PermissionTree): PermissionTree = other
+}
 
 trait Permission {
   def toSilExpression: Exp
@@ -74,8 +77,6 @@ case class ReadPermission() extends Permission {
 object WritePermission extends FractionalPermission(Constant("1"), Constant("1"))
 
 object ZeroPermission extends FractionalPermission(Constant("0"), Constant("1"))
-
-
 
 object VarXDecl extends LocalVarDecl("x", Perm)()
 
