@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, Expression}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import viper.silver.ast._
 
@@ -10,61 +10,72 @@ import viper.silver.ast._
   */
 
 trait PermissionTree {
+  def toSilExpression(quantifiedVariable: VariableIdentifier): Exp
+  def add(other: PermissionTree) = other match {
+    case other: PermissionLeaf => PermissionList(Seq(other, this))
+    case PermissionList(list) => PermissionList(list :+ this)
+    case _ => PermissionList(Seq(other, this))
+  }
+  def max(other: PermissionTree) = Maximum(this, other)
+}
+
+case class PermissionLeaf(expression: Expression, permission: Permission) extends PermissionTree {
+  def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
+    CondExp(EqCmp(DefaultSampleConverter.convert(quantifiedVariable), DefaultSampleConverter.convert(expression))(), permission.toSilExpression, NoPerm()())()
+}
+
+case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
+  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
+    permissions.foldLeft[Option[Exp]](None)((rest, permTree) => rest match {
+      case None => Some(permTree.toSilExpression(quantifiedVariable))
+      case Some(silExpression) => Some(PermAdd(silExpression, permTree.toSilExpression(quantifiedVariable))())
+    }).get
+  override def add(other: PermissionTree) =
+    other match {
+      case PermissionList(otherPermissions) => PermissionList(otherPermissions ++ permissions)
+      case other: PermissionLeaf => PermissionList(other +: permissions)
+    }
+}
+
+case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
+  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
+    CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable))()
+}
+
+case class Maximum(left: PermissionTree, right: PermissionTree)
+  extends PermissionTree {
+  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp = {
+    FuncApp(MaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
+  }
+}
+
+object EmptyPermissionTree extends PermissionList(Seq())
+
+trait Permission {
   def toSilExpression: Exp
-  def add(other: PermissionTree) = Addition(other, this)
-  def subtract(other: PermissionTree) = Subtraction(this, other)
-  def subtractFrom(other: PermissionTree) = other.subtract(this)
-  def max(other: PermissionTree) = Maximum(other, this)
-  def min(other: PermissionTree) = Minimum(other, this)
-  def negate(other: PermissionTree) = Negation(this)
-  def copy: PermissionTree
 }
 
-trait UnaryNode extends PermissionTree {
-  def arg: PermissionTree
+case class NegatedPermission(arg: Permission) extends Permission {
+  override def toSilExpression: Exp = Sub(IntLit(0)(), arg.toSilExpression)()
 }
 
-trait BinaryNode extends PermissionTree {
-  def left: PermissionTree
-  def right: PermissionTree
+case class PermissionExpression(expr: Expression) extends Permission {
+  override def toSilExpression: Exp = DefaultSampleConverter.convert(expr)
 }
+
+case class FractionalPermission(numerator: Expression, denominator: Expression) extends Permission {
+  override def toSilExpression: Exp = PermDiv(DefaultSampleConverter.convert(numerator), DefaultSampleConverter.convert(denominator))()
+}
+
+case class ReadPermission() extends Permission {
+  override def toSilExpression: Exp = VarRd
+}
+
+object WritePermission extends FractionalPermission(Constant("1"), Constant("1"))
 
 object ZeroPermission extends FractionalPermission(Constant("0"), Constant("1"))
 
-case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends BinaryNode {
-  override def toSilExpression: Exp = CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression, right.toSilExpression)()
-  override def copy: PermissionTree = Condition(cond, left.copy, right.copy)
-}
 
-case class FractionalPermission(numerator: Expression, denominator: Expression) extends PermissionTree {
-  override def toSilExpression: Exp = PermDiv(DefaultSampleConverter.convert(numerator), DefaultSampleConverter.convert(denominator))()
-  override def copy: PermissionTree = FractionalPermission(numerator, denominator)
-}
-
-case class Addition(left: PermissionTree, right: PermissionTree) extends BinaryNode {
-  override def toSilExpression: Exp = Add(left.toSilExpression, right.toSilExpression)()
-  override def copy: PermissionTree = Addition(left.copy, right.copy)
-}
-
-case class Subtraction(left: PermissionTree, right: PermissionTree) extends BinaryNode {
-  override def toSilExpression: Exp = Sub(left.toSilExpression, right.toSilExpression)()
-  override def copy: PermissionTree = Subtraction(left.copy, right.copy)
-}
-
-case class Maximum(left: PermissionTree, right: PermissionTree) extends BinaryNode {
-  override def toSilExpression: Exp = FuncApp(MaxFunction, Seq(left.toSilExpression, right.toSilExpression))()
-  override def copy: PermissionTree = Maximum(left.copy, right.copy)
-}
-
-case class Minimum(left: PermissionTree, right: PermissionTree) extends BinaryNode {
-  override def toSilExpression: Exp = FuncApp(MinFunction, Seq(left.toSilExpression, right.toSilExpression))()
-  override def copy: PermissionTree = Minimum(left.copy, right.copy)
-}
-
-case class Negation(arg: PermissionTree) extends UnaryNode {
-  override def toSilExpression: Exp = Sub(IntLit(0)(), arg.toSilExpression)()
-  override def copy: PermissionTree = Negation(arg.copy)
-}
 
 object VarXDecl extends LocalVarDecl("x", Perm)()
 
@@ -73,6 +84,8 @@ object VarX extends LocalVar("x")(Perm)
 object VarYDecl extends LocalVarDecl("y", Perm)()
 
 object VarY extends LocalVar("y")(Perm)
+
+object VarRd extends LocalVar("rdAmount")(Perm)
 
 object MaxFunction extends Function("max", Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
   Some(CondExp(PermLeCmp(VarX, VarY)(), VarY, VarX)())

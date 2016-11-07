@@ -7,8 +7,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, RefType, SilverS
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable
-
 /**
   * Abstract state for our analysis
   *
@@ -40,7 +38,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     with SilverSpecification
     with LazyLogging {
 
-  val quantifiedVariablePlaceholder: VariableIdentifier = VariableIdentifier("r")(RefType())
+//  val quantifiedVariablePlaceholder: VariableIdentifier = VariableIdentifier("r")(RefType())
+
+  // RESULTS FROM ALIAS AND NUMERICAL ANALYSIS
 
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases(currentPP)
@@ -68,6 +68,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def top(): QuantifiedPermissionsState = Top
 
+  /** Returns a new instance of the lattice.
+    *
+    * @return A new instance of the current object */
+  def factory(): QuantifiedPermissionsState = QuantifiedPermissionsState()
+
   def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            expr: ExpressionSet = expr,
@@ -75,7 +80,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            permissionRecords: PermissionRecords = permissionRecords):
   QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP)
 
-  override def ids: IdentifierSet = ???
+  /** Computes the least upper bound of two elements.
+    *
+    * @param other The other value
+    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
+    *         and less than or equal to any other upper bound of the two arguments */
+  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
+    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr)
+  }
+
+  // ABSTRACT TRANSFORMERS
 
   /** Executes the given command.
     *
@@ -84,7 +98,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def command(cmd: Command): QuantifiedPermissionsState = {
     logger.info("Command: " + cmd.getClass.toString)
     cmd match {
-      case _ => throw new UnsupportedOperationException
+      case _ => throw new UnsupportedOperationException("Unsupported command encountered: " + cmd)
     }
   }
 
@@ -109,13 +123,19 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     // TODO: handle exhale
     acc match {
       case PermissionExpression(id, d, n) =>
-        val newPermissionRecords= permissionRecords
+        val newPermissionRecords = permissionRecords.copy
         id match {
           case FieldExpression(typ, field, receiver) =>
             newPermissionRecords(field).add(Condition(ReferenceComparisonExpression(quantifiedVariablePlaceholder, receiver, ArithmeticOperator.==, BoolType), FractionalPermission(d, n), ZeroPermission))
           case _ => throw new UnsupportedOperationException
         }
         copy(permissionRecords = newPermissionRecords)
+      case ForallExpression(leftCond, right, quantifiedVariable) =>
+        // TODO: handle forall
+        ???
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        // TODO: handle conjunctions, maybe split to multiple exhales?
+        ???
       case _ => throw new UnsupportedOperationException
     }
   }
@@ -259,25 +279,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     copy(expr = ExpressionSet(id))
   }
 
-  /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
-
-  /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
-
   /** Removes the current expression.
     *
     * @return The abstract state after removing the current expression */
   override def removeExpression(): QuantifiedPermissionsState = {
     copy(expr = ExpressionSet())
   }
-
-  /** Assigns an expression to an argument.
-    *
-    * @param x     The assigned argument
-    * @param right The expression to be assigned
-    * @return The abstract state after the assignment */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = ???
 
   /** Sets the current expression.
     *
@@ -287,25 +294,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     copy(expr = expr)
   }
 
-  /** Throws an exception.
-    *
-    * @param t The thrown exception
-    * @return The abstract state after the thrown */
-  override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
+  // STUBS
 
-  /** Returns a new instance of the lattice.
-    *
-    * @return A new instance of the current object */
-  def factory(): QuantifiedPermissionsState = ???
-
-  /** Computes the least upper bound of two elements.
-    *
-    * @param other The other value
-    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
-    *         and less than or equal to any other upper bound of the two arguments */
-  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr)
-  }
+  override def ids: IdentifierSet = ???
 
   /** Computes the greatest lower bound of two elements.
     *
@@ -326,4 +317,22 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return true if and only if `this` is less than or equal to `other` */
   override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
 
+  /** Throws an exception.
+    *
+    * @param t The thrown exception
+    * @return The abstract state after the thrown */
+  override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
+
+  /** Assigns an expression to an argument.
+    *
+    * @param x     The assigned argument
+    * @param right The expression to be assigned
+    * @return The abstract state after the assignment */
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = ???
+
+  /** Performs abstract garbage collection. */
+  override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
+
+  /** Removes all variables satisfying filter. */
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
 }

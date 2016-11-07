@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, IdentifierSet, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 
 /**
@@ -11,7 +11,7 @@ class CustomExpressions {
 
 }
 
-case class ForallExpression(leftCond: Expression, right: Expression, varId: VariableIdentifier) extends Expression {
+case class ForallExpression(leftCond: Expression, right: Expression, quantifiedVariable: VariableIdentifier) extends Expression {
   /** The type of this expression. */
   override def typ: Type = leftCond.typ
 
@@ -28,7 +28,7 @@ case class ForallExpression(leftCond: Expression, right: Expression, varId: Vari
     * @param f the transformer
     * @return the transformed expression
     */
-  override def transform(f: (Expression) => Expression): Expression = f(ForallExpression(leftCond.transform(f), right.transform(f), varId))
+  override def transform(f: (Expression) => Expression): Expression = f(ForallExpression(leftCond.transform(f), right.transform(f), quantifiedVariable))
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || leftCond.contains(f) || right.contains(f)
