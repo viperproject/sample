@@ -78,7 +78,7 @@ case class FractionalPermission(numerator: Expression, denominator: Expression) 
   }
 }
 
-case class ReadPermission() extends Permission {
+object ReadPermission extends Permission {
   override def toSilExpression: Exp = VarRd
 }
 

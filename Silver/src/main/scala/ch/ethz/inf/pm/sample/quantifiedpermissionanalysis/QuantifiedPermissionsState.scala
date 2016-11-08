@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, RefType, SilverSpecification}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.{Type => _, _}
@@ -227,7 +227,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field. */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     // TODO: handle field access
-    copy(expr = ExpressionSet(FieldExpression(typ, field, obj)))
+    val newPermissionRecords = permissionRecords.max(field, obj, ReadPermission)
+    copy(expr = ExpressionSet(FieldExpression(typ, field, obj)), permissionRecords = newPermissionRecords)
   }
 
   /** Assumes that a boolean expression holds.
