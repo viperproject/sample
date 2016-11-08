@@ -127,7 +127,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
-            permissionRecords.max(field, receiver, FractionalPermission(n, d))
+            permissionRecords.add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }
         copy(permissionRecords = newPermissionRecords)
