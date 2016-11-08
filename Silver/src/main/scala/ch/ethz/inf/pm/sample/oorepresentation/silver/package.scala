@@ -34,6 +34,7 @@ package object silver {
     val BooleanOperator = dom.BooleanOperator
     val ArithmeticOperator = dom.ArithmeticOperator
     val AccessPathIdentifier = dom.AccessPathIdentifier
+    val FieldExpression = dom.FieldExpression
 
     // Object-oriented representation
     type ProgramPoint = rep.ProgramPoint

@@ -311,7 +311,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val quantifiedVariable = LocalVar("x")(Ref)
       val field = Field(fieldName, Ref)()
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, field)()
-      newPreconditions = newPreconditions :+ Forall(Seq(quantifiedVariableDecl), Seq(), Implies(TrueLit()(), viper.silver.ast.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(quantifiedVariable))())())()
+      val implies = Implies(TrueLit()(), FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(quantifiedVariable))())()
+      val forall = Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+      newPreconditions = newPreconditions :+ forall
     }
     newPreconditions
   }

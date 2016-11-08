@@ -6,7 +6,8 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.{BooleanOperator, ArithmeticOperator}
+import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator}
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 import viper.silver.{ast => sil}
 import viper.silver.ast.SourcePosition
 
@@ -24,6 +25,7 @@ trait SampleConverter {
 object DefaultSampleConverter extends SampleConverter {
 
   def convert(e: sample.Expression): sil.Exp = e match {
+    case sample.FieldExpression(typ, field, receiver) => sil.FieldAccess(go(receiver), sil.Field(field, go(typ))())()
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
       case BooleanOperator.`&&` => sil.And(go(left), go(right))()
