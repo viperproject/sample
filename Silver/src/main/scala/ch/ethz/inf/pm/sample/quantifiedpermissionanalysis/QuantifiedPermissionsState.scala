@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, RefType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.{Type => _, _}
 
 /**
   * Abstract state for our analysis
@@ -78,7 +79,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP,
            permissionRecords: PermissionRecords = permissionRecords):
-  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP)
+  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP, permissionRecords)
 
   /** Computes the least upper bound of two elements.
     *
@@ -86,7 +87,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments */
   override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr)
+    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr, permissionRecords = permissionRecords lub other.permissionRecords)
   }
 
   // ABSTRACT TRANSFORMERS
@@ -122,11 +123,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def exhale(acc: Expression): QuantifiedPermissionsState = {
     // TODO: handle exhale
     acc match {
-      case PermissionExpression(id, d, n) =>
-        val newPermissionRecords = permissionRecords.copy
+      case PermissionExpression(id, n, d) =>
+        val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
-            newPermissionRecords(field).add(Condition(ReferenceComparisonExpression(quantifiedVariablePlaceholder, receiver, ArithmeticOperator.==, BoolType), FractionalPermission(d, n), ZeroPermission))
+            permissionRecords.max(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }
         copy(permissionRecords = newPermissionRecords)
@@ -292,6 +293,27 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after changing the current expression with the given one */
   override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = {
     copy(expr = expr)
+  }
+
+  // SPECIFICATIONS
+
+  /**
+    * Modifies the list of preconditions using information stored in the current
+    * state.
+    *
+    * @param existing The list of existing preconditions.
+    * @return The modified list of preconditions.
+    */
+  override def preconditions(existing: Seq[Exp]): Seq[Exp] = {
+    var newPreconditions = existing
+    permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
+      val quantifiedVariableDecl = LocalVarDecl("x", Ref)()
+      val quantifiedVariable = LocalVar("x")(Ref)
+      val field = Field(fieldName, Ref)()
+      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, field)()
+      newPreconditions = newPreconditions :+ Forall(Seq(quantifiedVariableDecl), Seq(), Implies(TrueLit()(), viper.silver.ast.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(quantifiedVariable))())())()
+    }
+    newPreconditions
   }
 
   // STUBS

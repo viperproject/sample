@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import viper.silver.ast._
 
 /**
@@ -10,22 +10,23 @@ import viper.silver.ast._
   */
 
 trait PermissionTree {
-  def toSilExpression(quantifiedVariable: VariableIdentifier): Exp
+  def toSilExpression(quantifiedVariable: LocalVar): Exp
   def add(other: PermissionTree): PermissionTree = other match {
     case other: PermissionLeaf => PermissionList(Seq(other, this))
     case PermissionList(list) => PermissionList(list :+ this)
     case _ => PermissionList(Seq(other, this))
   }
+  def sub(other: PermissionTree): PermissionTree = add(NegativePermissionTree(other))
   def max(other: PermissionTree): PermissionTree = Maximum(this, other)
 }
 
-case class PermissionLeaf(expression: Expression, permission: Permission) extends PermissionTree {
-  def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
-    CondExp(EqCmp(DefaultSampleConverter.convert(quantifiedVariable), DefaultSampleConverter.convert(expression))(), permission.toSilExpression, NoPerm()())()
+case class PermissionLeaf(receiver: Expression, permission: Permission) extends PermissionTree {
+  def toSilExpression(quantifiedVariable: LocalVar): Exp =
+    CondExp(EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
-  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp =
     permissions.foldLeft[Option[Exp]](None)((rest, permTree) => rest match {
       case None => Some(permTree.toSilExpression(quantifiedVariable))
       case Some(silExpression) => Some(PermAdd(silExpression, permTree.toSilExpression(quantifiedVariable))())
@@ -37,14 +38,19 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
     }
 }
 
+case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp =
+    IntPermMul(IntLit(-1)(), arg.toSilExpression(quantifiedVariable))()
+}
+
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
-  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp =
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp =
     CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable))()
 }
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
   extends PermissionTree {
-  override def toSilExpression(quantifiedVariable: VariableIdentifier): Exp = {
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp = {
     FuncApp(MaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
   }
 }
@@ -59,24 +65,26 @@ trait Permission {
 }
 
 case class NegatedPermission(arg: Permission) extends Permission {
-  override def toSilExpression: Exp = Sub(IntLit(0)(), arg.toSilExpression)()
+  override def toSilExpression: Exp = IntPermMul(IntLit(-1)(), arg.toSilExpression)()
 }
 
-case class PermissionExpression(expr: Expression) extends Permission {
+case class ExpressionPermission(expr: Expression) extends Permission {
   override def toSilExpression: Exp = DefaultSampleConverter.convert(expr)
 }
 
 case class FractionalPermission(numerator: Expression, denominator: Expression) extends Permission {
-  override def toSilExpression: Exp = PermDiv(DefaultSampleConverter.convert(numerator), DefaultSampleConverter.convert(denominator))()
+  override def toSilExpression: Exp = {
+    DefaultSampleConverter.convert(BinaryArithmeticExpression(numerator, denominator, ArithmeticOperator./, PermType))
+  }
 }
 
 case class ReadPermission() extends Permission {
   override def toSilExpression: Exp = VarRd
 }
 
-object WritePermission extends FractionalPermission(Constant("1"), Constant("1"))
+object WritePermission extends FractionalPermission(Constant("1", PermType), Constant("1", PermType))
 
-object ZeroPermission extends FractionalPermission(Constant("0"), Constant("1"))
+object ZeroPermission extends FractionalPermission(Constant("0", PermType), Constant("1", PermType))
 
 object VarXDecl extends LocalVarDecl("x", Perm)()
 
