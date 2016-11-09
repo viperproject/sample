@@ -2,13 +2,83 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ProgramPoint}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
+import viper.silver.ast.{CondExp, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
+
+import scala.collection._
 
 /**
   * Created by severin on 29.10.16.
   */
 object Context {
+
+  lazy val prog: Program = DefaultSilverConverter.prog
+
+  val identifiers: mutable.Set[String] = mutable.Set()
+
+  val auxiliaryFunctions: mutable.Set[Function] = mutable.Set()
+
+  var maxFunction: Option[Function] = None
+
+  var boundaryFunction: Option[Function] = None
+
+  def initContext = {
+    // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
+    identifiers ++= prog.fields.map(field => field.name)
+    identifiers ++= prog.methods.flatMap(method => (method.formalArgs ++ method.formalReturns).toSet).map(varDecl => varDecl.name)
+    identifiers ++= prog.methods.map(method => method.name)
+    identifiers ++= prog.domains.map(domain => domain.name)
+    identifiers ++= prog.functions.map(function => function.name)
+    identifiers ++= prog.predicates.map(predicates => predicates.name)
+    identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
+  }
+
+  def createNewUniqueVarIdentifier = {
+    val prefix = "_var"
+    var count = 0
+    while (identifiers.contains(prefix + count)) {
+      count += 1
+    }
+    val identifier = prefix + count
+    identifiers += identifier
+    identifier
+  }
+
+  def createNewUniqueFunctionIdentifier = {
+    val prefix = "_func"
+    var count = 0
+    while (identifiers.contains(prefix + count)) {
+      count += 1
+    }
+    val identifier = prefix + count
+    identifiers += identifier
+    identifier
+  }
+
+  def getMaxFunction = maxFunction match {
+    case Some(existingMaxFunction) => existingMaxFunction
+    case None =>
+      val fun = Function(createNewUniqueFunctionIdentifier, Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
+        Some(CondExp(PermGtCmp(VarX, VarY)(), VarX, VarY)())
+      )()
+      maxFunction = Some(fun)
+      auxiliaryFunctions += fun
+      fun
+  }
+
+  def getBoundaryFunction = boundaryFunction match {
+    case Some(existingMaxFunction) => existingMaxFunction
+    case None =>
+      val fun = Function(createNewUniqueFunctionIdentifier, Seq(VarXDecl), Perm, Seq(), Seq(),
+        Some(CondExp(PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
+      )()
+      boundaryFunction= Some(fun)
+      auxiliaryFunctions += fun
+      fun
+  }
+
   /**
     * Stores the result of the alias analysis.
     */
@@ -109,3 +179,13 @@ object Context {
     positions.head
   }
 }
+
+object VarXDecl extends LocalVarDecl("x", Perm)()
+
+object VarX extends LocalVar("x")(Perm)
+
+object VarYDecl extends LocalVarDecl("y", Perm)()
+
+object VarY extends LocalVar("y")(Perm)
+
+object ZeroPerm extends NoPerm()()

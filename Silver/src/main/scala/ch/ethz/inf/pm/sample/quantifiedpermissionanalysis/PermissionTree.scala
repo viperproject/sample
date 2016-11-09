@@ -51,7 +51,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
 case class Maximum(left: PermissionTree, right: PermissionTree)
   extends PermissionTree {
   override def toSilExpression(quantifiedVariable: LocalVar): Exp = {
-    FuncApp(MaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
+    FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
   }
 }
 
@@ -86,20 +86,5 @@ object WritePermission extends FractionalPermission(Constant("1", PermType), Con
 
 object ZeroPermission extends FractionalPermission(Constant("0", PermType), Constant("1", PermType))
 
-object VarXDecl extends LocalVarDecl("x", Perm)()
-
-object VarX extends LocalVar("x")(Perm)
-
-object VarYDecl extends LocalVarDecl("y", Perm)()
-
-object VarY extends LocalVar("y")(Perm)
 
 object VarRd extends LocalVar("rdAmount")(Perm)
-
-object MaxFunction extends Function("max", Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
-  Some(CondExp(PermLeCmp(VarX, VarY)(), VarY, VarX)())
-)()
-
-object MinFunction extends Function("min", Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
-  Some(CondExp(PermGeCmp(VarX, VarY)(), VarY, VarX)())
-)()

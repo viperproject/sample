@@ -37,6 +37,8 @@ trait SilverSpecification
     */
   def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
+  def assumesAfterPreconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
+
   /**
     * Modifies the list of invariants using information stored in the current
     * state.
@@ -46,6 +48,8 @@ trait SilverSpecification
     */
   def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
+  def assumesBeforeLoop(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
+
   /**
     * Modifies the list of postconditions using information stored in the
     * current state.
@@ -54,6 +58,8 @@ trait SilverSpecification
     * @return The modified list of postconditions.
     */
   def postconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
+
+  def assumesBeforePostconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
 
   /**
     * Modifies the list of fields of a new statement using information stored in
@@ -106,6 +112,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
     var precondition = entry.preconditions(method.pres)
     val body = extendStmt(method.body, cfgState)
     val postcondition = exits.foldLeft(method.posts) { case (post, exit) => exit.postconditions(post) }
+    val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Inhale]()) { case (assumes, exit) => exit.assumesBeforePostconditions(assumes) }
 
     // TODO: get rid of this hack
     val paramExists = formalArguments.exists {

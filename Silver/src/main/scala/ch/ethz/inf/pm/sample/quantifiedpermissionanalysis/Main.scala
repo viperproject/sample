@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasA
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.Program
 
 import scala.collection.mutable
 
@@ -29,6 +30,15 @@ object Main {
 object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState] {
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
+
+  /**
+    * Extends a sil.Program with inferred specifications.
+    **/
+  override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState]]): Program = {
+    val tempProg = super.extendProgram(prog, results)
+    println("EXTENDED, " + Context.auxiliaryFunctions.size + " AUX FUNCTIONS")
+    tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions)(pos = tempProg.pos, info = tempProg.info)
+  }
 
   val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder)
 }
