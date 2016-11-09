@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsS
 import com.typesafe.scalalogging.LazyLogging
 import sun.plugin.dom.exception.InvalidStateException
 import viper.silver.ast.{Type => _, _}
+import scala.collection._
 
 /**
   * Abstract state for our analysis
@@ -34,11 +35,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       isBottom: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
-                                      permissionRecords: PermissionRecords = PermissionRecords())
+                                      var permissionRecords: PermissionRecords = PermissionRecords())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification
     with LazyLogging {
+
+  val fieldAccessFunctions: mutable.Set[(String, Function)] = mutable.Set()
 
   // RESULTS FROM ALIAS AND NUMERICAL ANALYSIS
 
@@ -323,6 +326,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       newPreconditions = newPreconditions :+ forall
     }
     newPreconditions
+  }
+
+  override def assumesAfterPreconditions(existing: Seq[Inhale]): Seq[Inhale] = {
+    permissionRecords = permissionRecords.transform { case expr@FieldExpression(_, field, receiver) => expr
+    case expr => expr
+    }
   }
 
   // STUBS

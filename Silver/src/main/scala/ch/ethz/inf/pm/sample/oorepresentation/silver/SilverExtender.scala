@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.{AbstractCFGState, MethodAnalysisResult}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.ProgramPoint
+import viper.silver.ast.Seqn
 import viper.silver.{ast => sil}
 
 /**
@@ -110,9 +111,11 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
     val exitArgs = exits.foldLeft(entryArgs) { case (args, exit) => exit.formalArguments(args) }
     val formalArguments = collectFormalArguments(method.body, exitArgs, cfgState)
     var precondition = entry.preconditions(method.pres)
-    val body = extendStmt(method.body, cfgState)
+    val stmtsAfterPrecondition = entry.assumesAfterPreconditions(Seq())
+    var body = extendStmt(method.body, cfgState)
     val postcondition = exits.foldLeft(method.posts) { case (post, exit) => exit.postconditions(post) }
     val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Inhale]()) { case (assumes, exit) => exit.assumesBeforePostconditions(assumes) }
+    body = Seqn((stmtsAfterPrecondition :+ body) ++ stmtsBeforePostconditions)()
 
     // TODO: get rid of this hack
     val paramExists = formalArguments.exists {
@@ -166,7 +169,8 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
       val pre = cfgState.preStateAt(CFGPosition(position.blockIdx, 0))
       // update the method loop invariants
       val invariants = pre.invariants(stmt.invs)
-      sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info)
+      val stmtsBeforeLoop = pre.assumesBeforeLoop(Seq())
+      Seqn(stmtsBeforeLoop :+ sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info))()
 
     case _ => stmt
   }

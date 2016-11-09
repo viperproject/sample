@@ -50,4 +50,8 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
     }
     thisCopy
   }
+
+  def transform(f: (Expression => Expression)) = {
+    PermissionRecords(permissions.map(entry => (entry._1, entry._2.transform(f))))
+  }
 }
