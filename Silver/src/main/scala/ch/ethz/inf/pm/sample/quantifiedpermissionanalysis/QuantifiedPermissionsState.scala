@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
+import sun.plugin.dom.exception.InvalidStateException
 import viper.silver.ast.{Type => _, _}
 
 /**
@@ -127,6 +128,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
+            // TODO: this is hacky, try to find a better way to avoid the read permission for exhales
+            val permTreeWithoutRead = permissionRecords.permissions(field) match {
+              case Maximum(PermissionLeaf(_, ReadPermission), right) => right
+              case PermissionLeaf(_, ReadPermission) => EmptyPermissionTree
+              case _ => throw new InvalidStateException("Last added permission before an exhale has to be a read!")
+            }
+            permissionRecords.permissions.put(field, permTreeWithoutRead)
             permissionRecords.add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }

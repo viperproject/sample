@@ -17,7 +17,7 @@ trait PermissionTree {
     case _ => PermissionList(Seq(other, this))
   }
   def sub(other: PermissionTree): PermissionTree = add(NegativePermissionTree(other))
-  def max(other: PermissionTree): PermissionTree = Maximum(this, other)
+  def max(other: PermissionTree): PermissionTree = Maximum(other, this)
 }
 
 case class PermissionLeaf(receiver: Expression, permission: Permission) extends PermissionTree {
