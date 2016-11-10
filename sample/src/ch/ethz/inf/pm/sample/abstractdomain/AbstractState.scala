@@ -59,13 +59,22 @@ object ExpressionFactory {
   }
 
   /** @author Caterina Urban */
-  def createPermissionExpression(ids: ExpressionSet, nums: ExpressionSet, dens: ExpressionSet, ty: Type) : ExpressionSet = {
+  def createFieldAccessPredicate(ids: ExpressionSet, nums: ExpressionSet, dens: ExpressionSet, ty: Type) : ExpressionSet = {
     if (!ids.isTop && !nums.isTop && !dens.isTop) {
       var result = new ExpressionSet(ty)
       for (id <- ids.toSetOrFail)
         for (num <- nums.toSetOrFail)
           for (den <- dens.toSetOrFail)
             result = result.add(FieldAccessPredicate(id, num, den, ty))
+      result
+    } else ids.top()
+  }
+
+  def createCurrentPermission(ids: ExpressionSet, typ: Type): ExpressionSet = {
+    if (!ids.isTop) {
+      var result = new ExpressionSet(typ)
+      for (id <- ids.toSetOrFail)
+        result = result.add(CurrentPermission(id, typ))
       result
     } else ids.top()
   }

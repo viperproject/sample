@@ -587,7 +587,6 @@ object AccessPathIdentifier {
  * Note that not every numerical domain has direct support for this.
  *
  * @author Lucas Brutschy
- *
  */
 object NondeterministicOperator extends Enumeration {
 
@@ -609,7 +608,7 @@ object NondeterministicOperator extends Enumeration {
 }
 
 /**
- *Represents an expression with a nondeterministic operator.
+ * Represents an expression with a nondeterministic operator.
  *
  * @author Lucas Brutschy
  */
@@ -653,5 +652,25 @@ case class FieldAccessPredicate(location: Expression, numerator: Expression, den
 
   override def pp: ProgramPoint = location.pp
 
-  override def contains(f: (Expression) => Boolean): Boolean = location.contains(f) || numerator.contains(f) || denominator.contains(f)
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f) || numerator.contains(f) || denominator.contains(f)
+}
+
+/**
+  * A permission expression returning the current amount of permission for
+  * the location specified in the argument.
+  *
+  * @param location The location of the permission expression.
+  * @param typ      The type of the permission expression.
+  * @author Jerome Dohrau
+  */
+case class CurrentPermission(location: Expression, typ: Type)
+  extends Expression
+{
+  override def ids: IdentifierSet = location.ids
+
+  override def pp: ProgramPoint = location.pp
+
+  override def transform(f: (Expression) => Expression): Expression = f(CurrentPermission(location.transform(f), typ))
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f)
 }
