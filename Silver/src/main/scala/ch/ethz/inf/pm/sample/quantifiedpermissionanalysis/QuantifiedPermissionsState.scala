@@ -188,7 +188,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
     // TODO: replace occurrences of x by right
-    copy(expr = ExpressionSet())
+    val newPermissionRecords = permissionRecords.transform {
+      case FieldExpression(typ, field, receiver) => null
+      case expr => expr
+    }
+    copy(expr = ExpressionSet(), permissionRecords = newPermissionRecords)
   }
 
   /** Assigns an expression to a field of an object.
@@ -211,10 +215,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable */
-  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = {
-    // Nothing to do here
-    this
-  }
+  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = ???
 
   /** Removes a variable.
     *
