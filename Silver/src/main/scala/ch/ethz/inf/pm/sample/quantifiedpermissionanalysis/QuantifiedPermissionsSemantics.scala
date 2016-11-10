@@ -70,7 +70,7 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
             assert(implies.op == BooleanOperator.||)
             val right = implies.right
             Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))).asInstanceOf[S])
-          case None => Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, programpoint, operator, parameters.map(exprSet => exprSet.getSingle.get)))).asInstanceOf[S])
+          case None => Some(state.setExpression(ExpressionSet(FunctionCallExpression(returnedtype, operator, parameters.map(exprSet => exprSet.getSingle.get), programpoint))).asInstanceOf[S])
           case _ => None
         }
       case _ => None

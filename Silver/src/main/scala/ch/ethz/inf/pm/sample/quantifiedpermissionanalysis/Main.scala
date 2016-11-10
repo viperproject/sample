@@ -37,7 +37,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
   override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState]]): Program = {
     val tempProg = super.extendProgram(prog, results)
     println("EXTENDED, " + Context.auxiliaryFunctions.size + " AUX FUNCTIONS")
-    tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions)(pos = tempProg.pos, info = tempProg.info)
+    tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
   val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder)

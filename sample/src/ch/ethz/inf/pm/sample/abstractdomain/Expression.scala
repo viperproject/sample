@@ -683,9 +683,9 @@ case class ForallExpression(leftCond: Expression, right: Expression, quantifiedV
 }
 
 case class FunctionCallExpression(typ: Type,
-                                  pp: ProgramPoint = DummyProgramPoint,
-                                  name: String,
-                                  parameters: List[Expression] = List())
+                                  functionName: String,
+                                  parameters: Seq[Expression] = List(),
+                                  pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
   /** All identifiers that are part of this expression. */
@@ -699,7 +699,7 @@ case class FunctionCallExpression(typ: Type,
     * @return the transformed expression
     */
   override def transform(f: (Expression) => Expression): Expression =
-  f(FunctionCallExpression(typ, pp, name, parameters.map(param => param.transform(f))))
+  f(FunctionCallExpression(typ, functionName, parameters.map(param => param.transform(f)), pp))
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))

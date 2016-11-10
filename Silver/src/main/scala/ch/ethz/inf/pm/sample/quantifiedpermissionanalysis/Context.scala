@@ -18,7 +18,7 @@ object Context {
 
   val identifiers: mutable.Set[String] = mutable.Set()
 
-  val auxiliaryFunctions: mutable.Set[Function] = mutable.Set()
+  val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
 
   var maxFunction: Option[Function] = None
 
@@ -64,7 +64,7 @@ object Context {
         Some(CondExp(PermGtCmp(VarX, VarY)(), VarX, VarY)())
       )()
       maxFunction = Some(fun)
-      auxiliaryFunctions += fun
+      auxiliaryFunctions += ((fun.name, fun))
       fun
   }
 
@@ -74,8 +74,8 @@ object Context {
       val fun = Function(createNewUniqueFunctionIdentifier, Seq(VarXDecl), Perm, Seq(), Seq(),
         Some(CondExp(PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
       )()
-      boundaryFunction= Some(fun)
-      auxiliaryFunctions += fun
+      boundaryFunction = Some(fun)
+      auxiliaryFunctions += ((fun.name, fun))
       fun
   }
 
