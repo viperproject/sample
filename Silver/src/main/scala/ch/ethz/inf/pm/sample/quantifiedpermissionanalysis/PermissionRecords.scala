@@ -16,26 +16,26 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
 
   def apply(field: String): PermissionTree = {
     if (!permissions.contains(field)) {
-      permissions.put(field, EmptyPermissionTree)
+      permissions(field) = EmptyPermissionTree
     }
     permissions(field)
   }
 
   def add(field: String, receiver: Expression, permission: Permission) = {
     val thisCopy = copy
-    thisCopy.permissions.put(field, thisCopy(field).add(PermissionLeaf(receiver, permission)))
+    thisCopy.permissions(field) = thisCopy(field).add(PermissionLeaf(receiver, permission))
     thisCopy
   }
 
   def sub(field: String, receiver: Expression, permission: Permission) = {
     val thisCopy = copy
-    thisCopy.permissions.put(field, thisCopy(field).sub(PermissionLeaf(receiver, permission)))
+    thisCopy.permissions(field) = thisCopy(field).sub(PermissionLeaf(receiver, permission))
     thisCopy
   }
 
   def max(field: String, receiver: Expression, permission: Permission) = {
     val thisCopy = copy
-    thisCopy.permissions.put(field, thisCopy(field).max(PermissionLeaf(receiver, permission)))
+    thisCopy.permissions(field) = thisCopy(field).max(PermissionLeaf(receiver, permission))
     thisCopy
   }
 
@@ -43,9 +43,9 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
     val thisCopy = copy
     other.permissions.foreach { case (field: String, permissionTree: PermissionTree) =>
       if (thisCopy.permissions.contains(field)) {
-        thisCopy.permissions.put(field, thisCopy(field).max(permissionTree))
+        thisCopy.permissions(field) = thisCopy(field).max(permissionTree)
       } else {
-        thisCopy.permissions.put(field, permissionTree)
+        thisCopy.permissions(field) = permissionTree
       }
     }
     thisCopy

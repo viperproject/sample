@@ -72,7 +72,6 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       logger.trace(postState.toString)
       logger.trace(stmt.toString)
       logger.trace(preState.toString)
-      println(preState.permissionRecords)
       postState = preState // update the next state
     }
     newStates = postState +: newStates // prepend the next state to the list of new states
