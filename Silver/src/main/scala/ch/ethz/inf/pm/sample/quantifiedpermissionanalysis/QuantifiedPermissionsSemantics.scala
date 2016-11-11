@@ -59,8 +59,8 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
         nativeMethod match {
           case Some(QuantifiedPermissionMethods.acc) =>
             val permissionExpr =
-              if (parameters.size <= 1) createPermissionExpression(thisExpr, parameters.head, ExpressionSet(Constant("1", PermType)), returnedtype)
-              else createPermissionExpression(thisExpr, parameters.head, parameters(1), returnedtype)
+              if (parameters.size <= 1) createFieldAccessPredicate(thisExpr, parameters.head, ExpressionSet(Constant("1", PermType)), returnedtype)
+              else createFieldAccessPredicate(thisExpr, parameters.head, parameters(1), returnedtype)
             Some(state.setExpression(permissionExpr).asInstanceOf[S])
           case Some(QuantifiedPermissionMethods.inhale) => Some(state.inhale(thisExpr).asInstanceOf[S])
           case Some(QuantifiedPermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])

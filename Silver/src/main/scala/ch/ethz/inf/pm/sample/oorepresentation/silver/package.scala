@@ -36,6 +36,8 @@ package object silver {
     val AccessPathIdentifier = dom.AccessPathIdentifier
     val FieldExpression = dom.FieldExpression
     val FunctionCallExpression = dom.FunctionCallExpression
+    val FieldAccessPredicate = dom.FieldAccessPredicate
+    val CurrentPermission = dom.CurrentPermission
 
     // Object-oriented representation
     type ProgramPoint = rep.ProgramPoint
@@ -69,6 +71,7 @@ package object silver {
     val BoolType = rep.silver.BoolType
     val IntType = rep.silver.IntType
     val RefType = rep.silver.RefType
+    val PermType = rep.silver.PermType
     val DomType = rep.silver.DomType
     val TopType = rep.silver.TopType
 

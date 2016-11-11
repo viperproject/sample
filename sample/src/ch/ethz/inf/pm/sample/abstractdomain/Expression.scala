@@ -587,7 +587,6 @@ object AccessPathIdentifier {
  * Note that not every numerical domain has direct support for this.
  *
  * @author Lucas Brutschy
- *
  */
 object NondeterministicOperator extends Enumeration {
 
@@ -609,11 +608,9 @@ object NondeterministicOperator extends Enumeration {
 }
 
 /**
- *
  * Represents an expression with a nondeterministic operator.
  *
  * @author Lucas Brutschy
- *
  */
 case class BinaryNondeterministicExpression(left: Expression, right: Expression, op: NondeterministicOperator.Value, returnType: Type) extends Expression {
   def pp = left.pp
@@ -635,26 +632,6 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
     f(BinaryNondeterministicExpression(left.transform(f), right.transform(f), op, returnType))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
-}
-
-/** Inhale/Exhale expression.
-  *
-  * @param id the identifier for which we inhale/exhale permissions
-  * @param n the numerator of the inhaled/exhaled permission
-  * @param d the denominator of the inhaled/exhaled permission
-  * @author Caterina Urban
-  */
-case class PermissionExpression(id: Expression, n: Expression, d: Expression) extends Expression {
-  /** The type of this expression. */
-  override def typ: Type = id.typ
-  /** Runs f on the expression and all sub-expressions. */
-  override def transform(f: (Expression) => Expression): Expression = PermissionExpression(id.transform(f),n,d)
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = id.ids
-  /** Point in the program where this expression is located. */
-  override def pp: ProgramPoint = id.pp
-  /** Checks if function f evaluates to true for any sub-expression. */
-  override def contains(f: (Expression) => Boolean): Boolean = id.contains(f)
 }
 
 // CUSTOM EXPRESSIONS FOR QUANTIFIED PERMISSION ANALYSIS
@@ -724,4 +701,45 @@ case class FieldExpression(typ: Type, field: String, receiver: Expression) exten
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || receiver.contains(f)
+}
+
+  /**
+    * A field access predicate used in inhale and exhale expressions.
+    *
+    * @param location    The location for which we inhale or exhale the permission.
+    * @param numerator   The numerator of the inhaled or exhaled permission.
+    * @param denominator The denominator of the inhaled or exhaled permission.
+    * @param typ         The type of the field access predicate.
+    * @author Caterina Urban
+    */
+case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression, typ: Type)
+  extends Expression
+{
+  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessPredicate(location.transform(f), numerator.transform(f), denominator.transform(f), typ))
+
+  override def ids: IdentifierSet = location.ids ++ numerator.ids ++ denominator.ids
+
+  override def pp: ProgramPoint = location.pp
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f) || numerator.contains(f) || denominator.contains(f)
+}
+
+/**
+  * A permission expression returning the current amount of permission for
+  * the location specified in the argument.
+  *
+  * @param location The location of the permission expression.
+  * @param typ      The type of the permission expression.
+  * @author Jerome Dohrau
+  */
+case class CurrentPermission(location: Expression, typ: Type)
+  extends Expression
+{
+  override def ids: IdentifierSet = location.ids
+
+  override def pp: ProgramPoint = location.pp
+
+  override def transform(f: (Expression) => Expression): Expression = f(CurrentPermission(location.transform(f), typ))
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f)
 }

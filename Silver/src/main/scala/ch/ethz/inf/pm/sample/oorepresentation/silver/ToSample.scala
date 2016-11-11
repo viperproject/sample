@@ -20,6 +20,7 @@ import scala.collection.mutable
   * @author Jerome Dohrau
   */
 object SilverMethods extends Enumeration {
+  val access = Value(Constants.GhostSymbolPrefix + "access")
   val permission = Value(Constants.GhostSymbolPrefix + "permission")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
@@ -313,7 +314,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(e: sil.Exp): sample.Statement = e match {
-
     case e: sil.DomainOpExp =>
       makeNativeMethodCall(go(e.pos), e.func(prog).op, e.args.map(go), go(e.typ))
     case e: sil.EqualityCmp =>
@@ -355,14 +355,14 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
            _: sil.NoPerm |
            _: sil.LocalVar => makeNativeMethodCall(
         pos = go(e.pos),
-        name = SilverMethods.permission.toString,
+        name = SilverMethods.access.toString,
         args = go(loc) :: go(perm) :: sample.ConstantStatement(go(perm.pos), "1", sample.IntType) :: Nil,
-        returnType = go(loc.typ))
+        returnType = sample.PermType)
       case perm: sil.FractionalPerm => makeNativeMethodCall(
         pos = go(e.pos),
-        name = SilverMethods.permission.toString,
+        name = SilverMethods.access.toString,
         args = go(loc) :: go(perm.left) :: go(perm.right) :: Nil,
-        returnType = go(loc.typ))
+        returnType = sample.PermType)
       case add: sil.PermAdd =>
         // acc(a.f, p + q) -> acc(a.f, p) && acc(a.f, q)
         val left = sil.FieldAccessPredicate(loc, add.left)(e.pos)
@@ -371,8 +371,14 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       case _ =>
         throw new NotImplementedError("A sil.PermExp conversion is missing!")
     }
-    case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.IntType)
-    case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.IntType)
+    case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.PermType)
+    case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.PermType)
+
+    case sil.CurrentPerm(loc: sil.Exp) => makeNativeMethodCall(
+        pos = go(e.pos),
+        name = SilverMethods.permission.toString,
+        args = go(loc) :: Nil,
+        returnType = sample.PermType)
 
     // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
     // their length (e.g., |data|) is treated as another unbounded variable

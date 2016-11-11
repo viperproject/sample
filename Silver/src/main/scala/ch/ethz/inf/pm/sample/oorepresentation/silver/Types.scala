@@ -85,16 +85,16 @@ case class RefType(var fields: Set[Identifier] = Set.empty) extends AbstractType
   def isNumericalType = false
 }
 
+case object PermType extends AbstractType("Perm") {
+  override def isNumericalType: Boolean = true
+}
+
 case class DomType(override val name: String) extends AbstractType(name) {
   def isNumericalType = false
 }
 
 case object PredType extends AbstractType("Pred") {
   // Do not create vertices and edges in abstract heap graphs
-  def isNumericalType = true
-}
-
-case object PermType extends AbstractType("Perm") {
   def isNumericalType = true
 }
 

@@ -1368,7 +1368,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
     expression match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => exhale(left).exhale(right)
-      case PermissionExpression(location, _, _) => location match {
+      case FieldAccessPredicate(location, _, _, _) => location match {
         case AccessPathIdentifier(accessPath) =>
           // TODO: Only assume receivers to be non null if permission is > none
           val path = accessPath.map(_.getName)
@@ -1446,7 +1446,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
         // update state
         if (assumedMay.isEmpty || assumedMust.isEmpty) bottom()
         else copy(may = assumedMay.get, must = assumedMust.get).pruneUnreachableHeap()
-      case PermissionExpression(location, _, _) =>
+      case FieldAccessPredicate(location, _, _, _) =>
         // TODO: If the amount of the permission is not guaranteed to be positive, do nothing
         // assume that receiver of the location is non null
         val assumedMay = may.assumeNonNullReceiver(location)

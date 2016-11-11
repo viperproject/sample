@@ -1,14 +1,13 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, _}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, FieldAccessPredicate, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 import sun.plugin.dom.exception.InvalidStateException
-import viper.silver.ast.{Type => _, FieldAccess => FieldAccess, _}
-
+import viper.silver.{ast => sil}
 import scala.collection._
 
 /**
@@ -42,7 +41,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     with SilverSpecification
     with LazyLogging {
 
-  val fieldAccessFunctions: mutable.Map[String, Function] = mutable.Map()
+  val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
 
   // RESULTS FROM ALIAS AND NUMERICAL ANALYSIS
 
@@ -126,7 +125,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def exhale(acc: Expression): QuantifiedPermissionsState = {
     // TODO: handle exhale
     acc match {
-      case PermissionExpression(id, n, d) =>
+      case FieldAccessPredicate(id, n, d, _) =>
         val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
@@ -316,38 +315,38 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param existing The list of existing preconditions.
     * @return The modified list of preconditions.
     */
-  override def preconditions(existing: Seq[Exp]): Seq[Exp] = {
+  override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
-      val quantifiedVariableDecl = LocalVarDecl("x", Ref)()
-      val quantifiedVariable = LocalVar("x")(Ref)
-      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, Field(fieldName, Ref)())()
+      val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()
+      val quantifiedVariable = sil.LocalVar("x")(sil.Ref)
+      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
       val permissionTreeWithoutFieldAccesses = permissionTree.transform {
         case FieldExpression(typ, field, receiver) =>
           if (!fieldAccessFunctions.contains(field)) {
-            val fun = Function(Context.createNewUniqueFunctionIdentifier, Seq(LocalVarDecl("x", Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
+            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier, Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
             fieldAccessFunctions.put(field, fun)
             Context.auxiliaryFunctions.put(fun.name, fun)
           }
           FunctionCallExpression(typ, fieldAccessFunctions(field).name, Seq(receiver))
         case default => default
       }
-      val implies = Implies(TrueLit()(), FieldAccessPredicate(fieldAccess, permissionTreeWithoutFieldAccesses.toSilExpression(quantifiedVariable))())()
-      val forall = Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTreeWithoutFieldAccesses.toSilExpression(quantifiedVariable))())()
+      val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
       newPreconditions = newPreconditions :+ forall
     }
     newPreconditions
   }
 
-  override def assumesAfterPreconditions(existing: Seq[Inhale]): Seq[Inhale] = {
+  override def assumesAfterPreconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = {
     var newAssumes = existing
     fieldAccessFunctions.foreach {
       case (fieldName, function) =>
-        val quantifiedVarDecl = LocalVarDecl("x", Ref)()
-        val quantifiedVar = LocalVar("x")(Ref)
-        val field = Field(fieldName, function.typ)()
-        val implies = Implies(PermGtCmp(CurrentPerm(FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), EqCmp(FuncApp(function, Seq(quantifiedVar))(), FieldAccess(quantifiedVar, field)())())()
-        newAssumes = newAssumes :+ Inhale(Forall(Seq(quantifiedVarDecl), Seq(), implies)())()
+        val quantifiedVarDecl = sil.LocalVarDecl("x", sil.Ref)()
+        val quantifiedVar = sil.LocalVar("x")(sil.Ref)
+        val field = sil.Field(fieldName, function.typ)()
+        val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
+        newAssumes = newAssumes :+ sil.Inhale(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)())()
     }
     newAssumes
   }

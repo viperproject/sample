@@ -554,7 +554,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         // inhale both sides of the conjunction
         exhale(left).exhale(right)
-      case PermissionExpression(identifier, numerator, denominator) =>
+      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is exhaled
@@ -588,7 +588,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         inhale(right).inhale(left)
-      case PermissionExpression(identifier, numerator, denominator) => {
+      case FieldAccessPredicate(identifier, numerator, denominator, _) => {
         // get access path
         val location = path(identifier)
         // get the amount of permission that is inhaled
@@ -1075,13 +1075,20 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @param expression The expression to add read permission for.
     */
-  private def read(expression: Expression): T =
-    expression.ids.getNonTop.foldLeft(this) {
+  private def read(expression: Expression): T = {
+    val ids = expression.transform {
+      // ignore all current permission expressions
+      case CurrentPermission(_, typ) => Constant("ignore", typ)
+      case e => e
+    }.ids.getNonTop
+
+    ids.foldLeft(this) {
       case (result, identifier) => identifier match {
         case AccessPathIdentifier(path) => result.read(path) // read permission for path
         case _: VariableIdentifier => result // no permission needed
       }
     }
+  }
 
   /** Adds read permission for the specified path. If the permission is already
     * there nothing happens.
@@ -1357,7 +1364,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @return The set of access paths (as strings).
     */
   private def framed(expression: Expression): Set[String] = expression match {
-    case PermissionExpression(id, n, _) => n match {
+    case FieldAccessPredicate(id, n, _, _) => n match {
       case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
       case _ => Set.empty
     }
