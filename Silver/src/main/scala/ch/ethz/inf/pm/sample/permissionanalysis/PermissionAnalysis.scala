@@ -1075,13 +1075,20 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @param expression The expression to add read permission for.
     */
-  private def read(expression: Expression): T =
-    expression.ids.getNonTop.foldLeft(this) {
+  private def read(expression: Expression): T = {
+    val ids = expression.transform {
+      // ignore all current permission expressions
+      case CurrentPermission(_, typ) => Constant("ignore", typ)
+      case e => e
+    }.ids.getNonTop
+
+    ids.foldLeft(this) {
       case (result, identifier) => identifier match {
         case AccessPathIdentifier(path) => result.read(path) // read permission for path
         case _: VariableIdentifier => result // no permission needed
       }
     }
+  }
 
   /** Adds read permission for the specified path. If the permission is already
     * there nothing happens.
