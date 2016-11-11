@@ -89,6 +89,18 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
   def backwardSemantics[S <: State[S]](state: S): S
 
   /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  def specialBackwardSemantics[S <: State[S]](state: S): S
+
+  /**
     * The abstract (refining) backward semantics of the statement.
     *
     * @param state the post state
@@ -182,6 +194,30 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
       case f: FieldAccess => rightState.assignField(leftExpr, f.field, rightExpr)
       case _ => rightState.assignVariable(leftExpr, rightExpr)
     } // perform a field or variable assignment accordingly
+  }
+
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = {
+    var leftState = left.specialBackwardSemantics(state) // evaluate the left
+    val leftExpr = leftState.expr
+    leftState = leftState.removeExpression()
+    // evaluate the right
+    val rightExpr = right.specialBackwardSemantics(leftState).expr
+    val result =
+    left match {
+      case f: FieldAccess => leftState.assignField(leftExpr, f.field, rightExpr)
+      case _ => leftState.assignVariable(leftExpr, rightExpr)
+    }
+    right.specialBackwardSemantics[S](result).removeExpression()
   }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
@@ -286,6 +322,28 @@ case class VariableDeclaration(
 
   override def getChildren: List[Statement] =
     List(Some(variable), right).flatten
+
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = {
+    right match {
+      case Some(right) => // the declaration contains an assignment
+        var resState = Assignment(programpoint, variable, right).specialBackwardSemantics(state) // perform the assigment
+        resState = variable.specialBackwardSemantics(resState) // evaluate the variable
+        resState.removeVariable(resState.expr) // remove the variable
+      case None => // the declaration does not contain an assigment
+        val resState = variable.specialBackwardSemantics(state) // evaluate the variable
+        resState.removeVariable(resState.expr) // remove the variable
+    }
+  }
 }
 
 /**
@@ -324,6 +382,17 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
 
   override def getChildren: List[Statement] = Nil
 
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = state.getVariableValue(id)
 }
 
 /**
@@ -406,6 +475,21 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     s"${obj.toSingleLineString()}.$field"
 
   override def getChildren = List(obj)
+
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = {
+    val objState = obj.specialBackwardSemantics(state) // evaluate the receiver
+    objState.getFieldValue(objState.expr, field, typ) // get the field value
+  }
 
 }
 
@@ -506,6 +590,18 @@ case class MethodCall(
     applyNativeBackwardSemanticsOnObject(calledMethod, objExpr, paramExpr, currentState, programPoint)
   }
 
+  private def specialBackwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S,
+                                                               programPoint: ProgramPoint): S = {
+    var currentState = postState
+    currentState = obj.specialBackwardSemantics[S](currentState)
+    val objExpr = currentState.expr
+    val paramExpr = for (param: Statement <- parameters) yield {
+      currentState = param.specialBackwardSemantics[S](currentState)
+      currentState.expr
+    }
+    applyNativeBackwardSemanticsOnObject(calledMethod, objExpr, paramExpr, currentState, programPoint)
+  }
+
   private def applyNativeForwardSemanticsOnObject[S <: State[S]](invokedMethod: String, thisExpr: ExpressionSet,
                                                                  parametersExpr: List[ExpressionSet], state: S,
                                                                  programpoint: ProgramPoint): S = {
@@ -547,6 +643,24 @@ case class MethodCall(
       ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters) + ")"
 
   override def getChildren: List[Statement] = List(method) ::: parameters
+
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = {
+    val body: Statement = method.normalize()
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    specialBackwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
+  }
+
 }
 
 /**
@@ -589,6 +703,17 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
 
   override def getChildren: List[Statement] = Nil
 
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = state.createObject(typ, pp)
 }
 
 /**
@@ -625,6 +750,17 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
 
   override def getChildren: List[Statement] = Nil
 
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = state.evalConstant(value, typ, pp)
 }
 
 /**
@@ -666,6 +802,17 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
 
   override def getChildren: List[Statement] = Nil
 
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = ???
 }
 
 /**
@@ -701,4 +848,15 @@ case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programp
 
   override def getChildren: List[Statement] = Nil
 
+  /**
+    * The abstract special backward semantics of the statement.
+    * User for quantified permission analysis where for the assignment, the semantics of the right side have to be
+    * executed _after_ the actual assignment itself.
+    * This method is introduced to avoid modification of the [[backwardSemantics]] function so that other parts of
+    * sample inference depending on the backward semantics are not broken.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def specialBackwardSemantics[S <: State[S]](state: S): S = state.removeExpression()
 }

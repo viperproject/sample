@@ -56,7 +56,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       // for each statement (in reverse order)...
       newStates = postState +: newStates // prepend the next state to the list of new states
       logger.info("Execute " + stmt)
-      var preState = stmt.backwardSemantics(postState) // compute the previous state
+      var preState = stmt.specialBackwardSemantics(postState) // compute the previous state
       //if we are at the top of a while loop condition apply the whileLoopRules
       if (loopHeads.contains(blockId) && idx == 0) {
         val exitEdges = cfgState.cfg.exitEdges(blockId)

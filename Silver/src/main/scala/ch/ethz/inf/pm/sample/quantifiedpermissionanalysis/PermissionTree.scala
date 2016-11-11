@@ -19,12 +19,14 @@ trait PermissionTree {
   def sub(other: PermissionTree): PermissionTree = add(NegativePermissionTree(other))
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
   def transform(f: (Expression => Expression)): PermissionTree
+  def exists(f: (PermissionTree => Boolean)): Boolean
 }
 
 case class PermissionLeaf(receiver: Expression, permission: Permission) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     CondExp(EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
+  def exists(f: (PermissionTree => Boolean)) = f(this)
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
@@ -39,18 +41,21 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
       case other: PermissionLeaf => PermissionList(other +: permissions)
     }
   def transform(f: (Expression => Expression)) = PermissionList(permissions.map(permissionTree => permissionTree.transform(f)))
+  def exists(f: (PermissionTree => Boolean)) = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     IntPermMul(IntLit(-1)(), arg.toSilExpression(quantifiedVariable))()
   def transform(f: (Expression => Expression)) = NegativePermissionTree(arg.transform(f))
+  def exists(f: (PermissionTree => Boolean)) = f(this) || arg.exists(f)
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable))()
   def transform(f: (Expression => Expression)) = Condition(cond.transform(f), left.transform(f), right.transform(f))
+  def exists(f: (PermissionTree => Boolean)) = f(this) || left.exists(f) || right.exists(f)
 }
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
@@ -58,6 +63,7 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
   def transform(f: (Expression => Expression)) = Maximum(left.transform(f), right.transform(f))
+  def exists(f: (PermissionTree => Boolean)) = f(this) || left.exists(f) || right.exists(f)
 }
 
 object EmptyPermissionTree extends PermissionList(Seq()) {
@@ -77,7 +83,7 @@ case class NegatedPermission(arg: Permission) extends Permission {
 
 case class ExpressionPermission(expr: Expression) extends Permission {
   def toSilExpression: Exp = DefaultSampleConverter.convert(expr)
-  def replace(f: (Expression => Expression)): Permission = ExpressionPermission(expr.transform(f))
+  override def transform(f: (Expression => Expression)): Permission = ExpressionPermission(expr.transform(f))
 }
 
 case class FractionalPermission(numerator: Expression, denominator: Expression) extends Permission {
@@ -86,13 +92,8 @@ case class FractionalPermission(numerator: Expression, denominator: Expression) 
   override def transform(f: (Expression => Expression)) = FractionalPermission(numerator.transform(f), denominator.transform(f))
 }
 
-object ReadPermission extends Permission {
-  def toSilExpression: Exp = VarRd
-}
+object SymbolicReadPermission extends ExpressionPermission(ReadPermission)
 
 object WritePermission extends FractionalPermission(Constant("1", PermType), Constant("1", PermType))
 
 object ZeroPermission extends FractionalPermission(Constant("0", PermType), Constant("1", PermType))
-
-
-object VarRd extends LocalVar("rdAmount")(Perm)

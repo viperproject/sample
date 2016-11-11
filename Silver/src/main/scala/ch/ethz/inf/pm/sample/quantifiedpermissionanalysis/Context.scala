@@ -1,11 +1,12 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import viper.silver.ast.{CondExp, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
+import viper.silver.ast.{And, CondExp, FullPerm, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
 
 import scala.collection._
 
@@ -20,9 +21,17 @@ object Context {
 
   val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
 
+  val symbolicReadVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
+
   var maxFunction: Option[Function] = None
 
   var boundaryFunction: Option[Function] = None
+
+  def clearMethodSpecificInfo() = {
+    clearAliases()
+    clearNumericalInfo()
+    symbolicReadVariables.clear()
+  }
 
   def initContext = {
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
@@ -33,6 +42,16 @@ object Context {
     identifiers ++= prog.functions.map(function => function.name)
     identifiers ++= prog.predicates.map(predicates => predicates.name)
     identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
+  }
+
+  def getReadVarConstraints = {
+    symbolicReadVariables.values.map(varDecl => And(PermLtCmp(ZeroPerm, LocalVar(varDecl.name)(Perm))(), PermLtCmp(LocalVar(varDecl.name)(Perm), WritePerm)())())
+  }
+
+  def createNewUniqueSymbolicReadVar() = {
+    val varDecl = LocalVarDecl(createNewUniqueVarIdentifier, Perm)()
+    symbolicReadVariables(varDecl.name) = varDecl
+    varDecl
   }
 
   def createNewUniqueVarIdentifier = {
@@ -189,3 +208,27 @@ object VarYDecl extends LocalVarDecl("y", Perm)()
 object VarY extends LocalVar("y")(Perm)
 
 object ZeroPerm extends NoPerm()()
+
+object WritePerm extends FullPerm()()
+
+object ReadPermission extends Expression {
+  /** The type of this expression. */
+  override def typ: Type = PermType
+
+  /** Point in the program where this expression is located. */
+  override def pp: ProgramPoint = DummyProgramPoint
+
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = IdentifierSet.Bottom
+
+  /** Runs f on the expression and all sub-expressions
+    *
+    * This also replaces identifiers inside heap ID sets.
+    *
+    * @param f the transformer
+    * @return the transformed expression*/
+  override def transform(f: (Expression) => Expression): Expression = f(this)
+
+  /** Checks if function f evaluates to true for any sub-expression. */
+  override def contains(f: (Expression) => Boolean): Boolean = f(this)
+}

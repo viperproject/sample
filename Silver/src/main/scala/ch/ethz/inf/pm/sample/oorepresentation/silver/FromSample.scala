@@ -7,10 +7,9 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator}
-import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
+import viper.silver.ast.SourcePosition
 import viper.silver.{ast => sil}
-import viper.silver.ast.{NoInfo, NoPosition, SourcePosition}
 
 trait SampleConverter {
   /** Converts a Sample expression to a SIL expression. */
@@ -109,6 +108,7 @@ object DefaultSampleConverter extends SampleConverter {
     case sample.IntType => sil.Int
     case sample.BoolType => sil.Bool
     case sample.RefType(_) => sil.Ref
+    case sample.PermType => sil.Perm
   }
 
   // Convenience aliases

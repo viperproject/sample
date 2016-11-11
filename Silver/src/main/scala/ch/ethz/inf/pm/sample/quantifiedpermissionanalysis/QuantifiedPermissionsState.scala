@@ -3,11 +3,14 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, FieldAccessPredicate, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverSpecification}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 import sun.plugin.dom.exception.InvalidStateException
+import viper.silver.ast.LocalVarDecl
 import viper.silver.{ast => sil}
+
+import scala.Seq
 import scala.collection._
 
 /**
@@ -131,8 +134,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
           case FieldExpression(typ, field, receiver) =>
             // TODO: this is hacky, try to find a better way to avoid the read permission for exhales
             val permTreeWithoutRead = permissionRecords.permissions(field) match {
-              case Maximum(PermissionLeaf(_, ReadPermission), right) => right
-              case PermissionLeaf(_, ReadPermission) => EmptyPermissionTree
+              case Maximum(PermissionLeaf(_, SymbolicReadPermission), right) => right
+              case PermissionLeaf(_, SymbolicReadPermission) => EmptyPermissionTree
               case _ => throw new InvalidStateException("Last added permission before an exhale has to be a read!")
             }
             permissionRecords.permissions.put(field, permTreeWithoutRead)
@@ -146,7 +149,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         // TODO: handle conjunctions, maybe split to multiple exhales?
         ???
-      case _ => throw new UnsupportedOperationException
+      case expr => throw new UnsupportedOperationException(expr.toString)
     }
   }
 
@@ -188,8 +191,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
     // TODO: replace occurrences of x by right
     val newPermissionRecords = permissionRecords.transform {
-      case FieldExpression(typ, field, receiver) => null
-      case expr => expr
+      expr => if (expr.equals(x)) right else expr
     }
     copy(expr = ExpressionSet(), permissionRecords = newPermissionRecords)
   }
@@ -237,7 +239,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field. */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     // TODO: handle field access
-    val newPermissionRecords = permissionRecords.max(field, obj, ReadPermission)
+    val newPermissionRecords = permissionRecords.max(field, obj, SymbolicReadPermission)
     copy(expr = ExpressionSet(FieldExpression(typ, field, obj)), permissionRecords = newPermissionRecords)
   }
 
@@ -307,6 +309,22 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   }
 
   // SPECIFICATIONS
+  /** Modifies the list of formal arguments using information stored in the
+    * current state.
+    *
+    * @param existing The list of existing formal arguments.
+    * @return The modified list of formal arguments*/
+  override def formalArguments(existing: Seq[LocalVarDecl]): Seq[LocalVarDecl] = {
+    var newFormalArguments = existing
+    permissionRecords = permissionRecords.transform {
+      case ReadPermission =>
+        val varDecl = Context.createNewUniqueSymbolicReadVar()
+        newFormalArguments = newFormalArguments :+ varDecl
+        VariableIdentifier(varDecl.name)(PermType)
+      case default => default
+    }
+    newFormalArguments
+  }
 
   /**
     * Modifies the list of preconditions using information stored in the current
@@ -317,6 +335,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
+    Context.getReadVarConstraints.foreach(constraint => newPreconditions = newPreconditions :+ constraint)
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()
       val quantifiedVariable = sil.LocalVar("x")(sil.Ref)

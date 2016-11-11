@@ -225,6 +225,8 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def backwardSemantics[S <: State[S]](state: S): S = ???
 
+  def specialBackwardSemantics[S <: State[S]](state: S): S = ???
+
   def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
   override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)

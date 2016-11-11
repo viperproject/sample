@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
   *         Added on 05/11/16.
   */
 object QuantifiedPermissionMethods extends Enumeration {
-  val acc = Value(Constants.GhostSymbolPrefix + "permission")
+  val acc = Value(Constants.GhostSymbolPrefix + "access")
   val forall = Value(Constants.GhostSymbolPrefix + "forall")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")

@@ -636,7 +636,8 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
 
 // CUSTOM EXPRESSIONS FOR QUANTIFIED PERMISSION ANALYSIS
 
-case class ForallExpression(leftCond: Expression, right: Expression, quantifiedVariable: VariableIdentifier) extends Expression {
+case class ForallExpression(leftCond: Expression, right: Expression, quantifiedVariable: VariableIdentifier) extends
+  Expression {
   /** The type of this expression. */
   override def typ: Type = leftCond.typ
 
