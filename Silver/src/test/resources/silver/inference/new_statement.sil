@@ -1,0 +1,25 @@
+field a: Int
+field b: Int
+field c: Int
+
+method foo()
+{
+    var x: Ref
+    x := new()
+    x.a := 0
+    x.b := 0
+    assert perm(x.a) == write
+    assert perm(x.b) == write
+    assert perm(x.c) == none
+}
+
+method bar()
+{
+    var x: Ref
+    x := new(a)
+    x.a := 0
+    x.b := 0
+    assert perm(x.a) == write
+    assert perm(x.b) == write
+    assert perm(x.c) == none
+}
