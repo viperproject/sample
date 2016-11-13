@@ -12,7 +12,7 @@ import viper.silver.ast._
 trait PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp
   def add(other: PermissionTree): PermissionTree = other match {
-    case other: PermissionLeaf => PermissionList(Seq(other, this))
+    case leaf: PermissionLeaf => PermissionList(Seq(leaf, this))
     case PermissionList(list) => PermissionList(list :+ this)
     case _ => PermissionList(Seq(other, this))
   }
@@ -20,6 +20,7 @@ trait PermissionTree {
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
   def transform(f: (Expression => Expression)): PermissionTree
   def exists(f: (PermissionTree => Boolean)): Boolean
+  def undoLastRead: PermissionTree = throw new UnsupportedOperationException("This permission tree does not support undo!")
 }
 
 case class PermissionLeaf(receiver: Expression, permission: Permission) extends PermissionTree {
@@ -27,6 +28,7 @@ case class PermissionLeaf(receiver: Expression, permission: Permission) extends 
     CondExp(EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
   def exists(f: (PermissionTree => Boolean)) = f(this)
+  override def undoLastRead = EmptyPermissionTree
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
@@ -38,10 +40,11 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
   override def add(other: PermissionTree) =
     other match {
       case PermissionList(otherPermissions) => PermissionList(otherPermissions ++ permissions)
-      case other: PermissionLeaf => PermissionList(other +: permissions)
+      case _: PermissionLeaf => PermissionList(other +: permissions)
     }
   def transform(f: (Expression => Expression)) = PermissionList(permissions.map(permissionTree => permissionTree.transform(f)))
   def exists(f: (PermissionTree => Boolean)) = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
+  override def undoLastRead = PermissionList(permissions.init)
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
@@ -64,6 +67,7 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
     FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
   def transform(f: (Expression => Expression)) = Maximum(left.transform(f), right.transform(f))
   def exists(f: (PermissionTree => Boolean)) = f(this) || left.exists(f) || right.exists(f)
+  override def undoLastRead = right
 }
 
 object EmptyPermissionTree extends PermissionList(Seq()) {
@@ -78,22 +82,25 @@ trait Permission {
 
 case class NegatedPermission(arg: Permission) extends Permission {
   def toSilExpression: Exp = IntPermMul(IntLit(-1)(), arg.toSilExpression)()
-  override def transform(f: (Expression => Expression)): Permission = NegatedPermission(arg.transform(f))
+  override def transform(f: (Expression => Expression)) = NegatedPermission(arg.transform(f))
 }
 
-case class ExpressionPermission(expr: Expression) extends Permission {
+trait ExpressionPermission extends Permission {
+  def expr: Expression
   def toSilExpression: Exp = DefaultSampleConverter.convert(expr)
-  override def transform(f: (Expression => Expression)): Permission = ExpressionPermission(expr.transform(f))
 }
 
-case class FractionalPermission(numerator: Expression, denominator: Expression) extends Permission {
-  def toSilExpression: Exp =
-    DefaultSampleConverter.convert(BinaryArithmeticExpression(numerator, denominator, ArithmeticOperator./, PermType))
+case class SimpleExpressionPermission(expr: Expression) extends ExpressionPermission {
+  override def transform(f: (Expression => Expression)) = SimpleExpressionPermission(expr.transform(f))
+}
+
+case class FractionalPermission(numerator: Expression, denominator: Expression) extends ExpressionPermission {
+  def expr = BinaryArithmeticExpression(numerator, denominator, ArithmeticOperator./, PermType)
   override def transform(f: (Expression => Expression)) = FractionalPermission(numerator.transform(f), denominator.transform(f))
 }
 
-object SymbolicReadPermission extends ExpressionPermission(ReadPermission)
+object SymbolicReadPermission extends SimpleExpressionPermission(ReadPermission)
 
-object WritePermission extends FractionalPermission(Constant("1", PermType), Constant("1", PermType))
+object WritePermission extends SimpleExpressionPermission(Constant("1", PermType))
 
-object ZeroPermission extends FractionalPermission(Constant("0", PermType), Constant("1", PermType))
+object ZeroPermission extends SimpleExpressionPermission(Constant("0", PermType))

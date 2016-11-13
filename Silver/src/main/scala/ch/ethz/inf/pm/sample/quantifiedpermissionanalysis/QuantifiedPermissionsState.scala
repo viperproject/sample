@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, ExpressionSet, FieldAccessPredicate, _}
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType, SilverSpecification}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, PermType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 import sun.plugin.dom.exception.InvalidStateException
@@ -132,12 +132,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
-            // TODO: this is hacky, try to find a better way to avoid the read permission for exhales
-            val permTreeWithoutRead = permissionRecords.permissions(field) match {
-              case Maximum(PermissionLeaf(_, SymbolicReadPermission), right) => right
-              case PermissionLeaf(_, SymbolicReadPermission) => EmptyPermissionTree
-              case _ => throw new InvalidStateException("Last added permission before an exhale has to be a read!")
-            }
+            val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
             permissionRecords.permissions.put(field, permTreeWithoutRead)
             permissionRecords.add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
@@ -149,7 +144,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         // TODO: handle conjunctions, maybe split to multiple exhales?
         ???
-      case expr => throw new UnsupportedOperationException(expr.toString)
+      case _ => throw new UnsupportedOperationException(acc.toString)
     }
   }
 
@@ -174,11 +169,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = {
-    if (typ.isObject) {
-      copy(expr = ExpressionSet(x))
-    } else {
-      this
-    }
+    // Nothing to do here
+    this
   }
 
   /** Assigns an expression to a variable.
@@ -189,11 +181,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right The assigned expression
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
-    // TODO: replace occurrences of x by right
     val newPermissionRecords = permissionRecords.transform {
       expr => if (expr.equals(x)) right else expr
     }
-    copy(expr = ExpressionSet(), permissionRecords = newPermissionRecords)
+    copy(permissionRecords = newPermissionRecords)
   }
 
   /** Assigns an expression to a field of an object.
@@ -207,7 +198,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
     // TODO: add write access to obj.field, replace all occurrences of obj.field by right and for every access o.field
     // where o != obj (syntactically), add case distinction for aliasing.
-    copy(expr = ExpressionSet(FieldExpression(right.typ, field, obj)))
+    val receiver = obj match {
+      case FieldExpression(_, _, rec) => rec
+      case _ => throw new InvalidStateException("Obj expression has to be a FieldExpression!")
+    }
+    val transformer = (orig: Expression) => orig match {
+      case FieldExpression(_, `field`, rec) => ConditionalExpression(ReferenceComparisonExpression(receiver, rec, ArithmeticOperator.==, BoolType), right, orig, right.typ)
+      case _ => orig
+    }
+    val newPermissionRecords = permissionRecords.undoLastRead(field).transform(transformer).max(field, receiver, WritePermission)
+    copy(permissionRecords = newPermissionRecords)
   }
 
   /** Forgets the value of a variable.
@@ -321,7 +321,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val varDecl = Context.createNewUniqueSymbolicReadVar()
         newFormalArguments = newFormalArguments :+ varDecl
         VariableIdentifier(varDecl.name)(PermType)
-      case default => default
+      case other => other
     }
     newFormalArguments
   }
@@ -348,7 +348,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
             Context.auxiliaryFunctions.put(fun.name, fun)
           }
           FunctionCallExpression(typ, fieldAccessFunctions(field).name, Seq(receiver))
-        case default => default
+        case other => other
       }
       val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTreeWithoutFieldAccesses.toSilExpression(quantifiedVariable))())()
       val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()

@@ -744,3 +744,23 @@ case class CurrentPermission(location: Expression, typ: Type)
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f)
 }
+
+case class ConditionalExpression(cond: Expression, left: Expression, right: Expression, typ: Type) extends Expression {
+  /** Point in the program where this expression is located. */
+  override def pp: ProgramPoint = cond.pp
+
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = cond.ids ++ left.ids ++ right.ids
+
+  /** Runs f on the expression and all sub-expressions
+    *
+    * This also replaces identifiers inside heap ID sets.
+    *
+    * @param f the transformer
+    * @return the transformed expression
+    */
+  override def transform(f: (Expression) => Expression): Expression = f(ConditionalExpression(cond.transform(f), left.transform(f), right.transform(f), typ))
+
+  /** Checks if function f evaluates to true for any sub-expression. */
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || cond.contains(f) || left.contains(f) || right.contains(f)
+}

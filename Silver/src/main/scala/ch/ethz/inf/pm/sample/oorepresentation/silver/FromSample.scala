@@ -25,6 +25,7 @@ trait SampleConverter {
 object DefaultSampleConverter extends SampleConverter {
 
   def convert(e: sample.Expression): sil.Exp = e match {
+    case sample.ConditionalExpression(cond, left, right, _) => sil.CondExp(go(cond), go(left), go(right))()
     case sample.FunctionCallExpression(typ, functionName, parameters, _) => sil.FuncApp(Context.auxiliaryFunctions(functionName), parameters.map(param => go(param)))()
     case sample.FieldExpression(typ, field, receiver) => sil.FieldAccess(go(receiver), sil.Field(field, go(typ))())()
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
@@ -81,6 +82,11 @@ object DefaultSampleConverter extends SampleConverter {
       case t: sample.RefType => c match {
         case "null" => sil.NullLit()(go(pp))
         case _ => sys.error(s"unexpected reference constant '$c'")
+      }
+      case sample.PermType => c match {
+        case "0" => sil.NoPerm()()
+        case "1" => sil.FullPerm()()
+        case _ => sys.error(s"unexpected permission constant '$c'")
       }
       case _ => sys.error(s"unexpected constant type $typ")
     }

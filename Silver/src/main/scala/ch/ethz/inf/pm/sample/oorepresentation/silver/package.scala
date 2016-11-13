@@ -36,6 +36,7 @@ package object silver {
     val AccessPathIdentifier = dom.AccessPathIdentifier
     val FieldExpression = dom.FieldExpression
     val FunctionCallExpression = dom.FunctionCallExpression
+    val ConditionalExpression = dom.ConditionalExpression
     val FieldAccessPredicate = dom.FieldAccessPredicate
     val CurrentPermission = dom.CurrentPermission
 

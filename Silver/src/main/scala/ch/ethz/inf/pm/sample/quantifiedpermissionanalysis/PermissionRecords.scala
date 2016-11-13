@@ -10,8 +10,6 @@ import scala.collection.mutable
   */
 case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = new mutable.HashMap) {
 
-  def lub(other: PermissionRecords) = max(other)
-
   def copy = PermissionRecords(mutable.HashMap(permissions.toSeq: _*))
 
   def apply(field: String): PermissionTree = {
@@ -39,7 +37,7 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
     thisCopy
   }
 
-  def max(other: PermissionRecords) = {
+  def lub(other: PermissionRecords) = {
     val thisCopy = copy
     other.permissions.foreach { case (field: String, permissionTree: PermissionTree) =>
       if (thisCopy.permissions.contains(field)) {
@@ -48,6 +46,12 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
         thisCopy.permissions(field) = permissionTree
       }
     }
+    thisCopy
+  }
+
+  def undoLastRead(field: String) = {
+    val thisCopy = copy
+    thisCopy.permissions(field) = this(field).undoLastRead
     thisCopy
   }
 
