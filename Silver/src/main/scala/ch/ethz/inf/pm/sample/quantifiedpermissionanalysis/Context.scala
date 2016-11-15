@@ -27,6 +27,8 @@ object Context {
 
   var boundaryFunction: Option[Function] = None
 
+  var quantifiedVariable: Option[LocalVarDecl] = None
+
   def clearMethodSpecificInfo() = {
     clearAliases()
     clearNumericalInfo()

@@ -44,7 +44,10 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
     }
   def transform(f: (Expression => Expression)) = PermissionList(permissions.map(permissionTree => permissionTree.transform(f)))
   def exists(f: (PermissionTree => Boolean)) = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
-  override def undoLastRead = PermissionList(permissions.init)
+  override def undoLastRead = this match {
+    case PermissionList(onlyElement :: Nil) => EmptyPermissionTree
+    case PermissionList(perms) => PermissionList(perms.init)
+  }
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
@@ -70,9 +73,12 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
   override def undoLastRead = right
 }
 
-object EmptyPermissionTree extends PermissionList(Seq()) {
+object EmptyPermissionTree extends PermissionTree {
   override def add(other: PermissionTree): PermissionTree = other
   override def max(other: PermissionTree): PermissionTree = other
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException("An empty permission tree is not meant to be converted to a silver expression!")
+  override def transform(f: (Expression) => Expression): PermissionTree = this
+  override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
 }
 
 trait Permission {

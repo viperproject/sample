@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.execution.{Interpreter, TrackingCFGState, TrackingCFGStateFactory}
-import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.ArithmeticAndBooleanNativeMethodSemantics
+import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodCall, Statement}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -37,6 +38,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
             case _ => throw new IllegalStateException("should only have one true and one false edge.")
           }
+            trueState.setExpression(ArithmeticAndBooleanNativeMethodSemantics.applyBackwardNativeSemantics()cfgWithoutCycles.getBasicBlockStatements(currentBlockId).last.asInstanceOf[MethodCall])
             trueState.lub(falseState)
           case _ => throw new IllegalStateException("A node cannot have more than 2 exit edges.")
         }
@@ -48,10 +50,10 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     cfgState
   }
 
-  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
+  private def backwardExecuteBlock(lastBlockState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
     var newStates = ListBuffer[QuantifiedPermissionsState]() // initially empty list of new states
     val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(blockId) // get the statements within the block
-    var postState = exitState // initial next state
+    var postState = lastBlockState // initial next state
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) {
       // for each statement (in reverse order)...
       newStates = postState +: newStates // prepend the next state to the list of new states
@@ -67,7 +69,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
           cfgState.statesOfBlock(loopBodyIdx).last, cfgState.statesOfBlock(afterLoopIdx).head)
         //strengthen the numerical domain by taking the numDomain before the loop and widen it with the exit state of the loop
         // TODO: implement loop handling
-        // preState = preState.refiningWhileLoop(exitState, loopBodyFirstState, loopBodyLastState, afterLoopState)
+        // preState = preState.refiningWhileLoop(lastBlockState, loopBodyFirstState, loopBodyLastState, afterLoopState)
       }
       logger.trace(postState.toString)
       logger.trace(stmt.toString)

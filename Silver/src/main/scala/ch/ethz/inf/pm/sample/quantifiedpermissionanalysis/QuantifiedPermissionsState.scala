@@ -115,8 +115,25 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param acc The permission to inhale
     * @return The abstract state after inhaling the permission */
   override def inhale(acc: Expression): QuantifiedPermissionsState = {
-    // TODO: handle inhale
-    this
+    acc match {
+      case FieldAccessPredicate(id, n, d, _) =>
+        val newPermissionRecords =
+          id match {
+            case FieldExpression(typ, field, receiver) =>
+              val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
+              permissionRecords.permissions(field) = permTreeWithoutRead
+              permissionRecords.sub(field, receiver, FractionalPermission(n, d))
+            case _ => throw new UnsupportedOperationException
+          }
+        copy(permissionRecords = newPermissionRecords)
+      case ForallExpression(leftCond, right, quantifiedVariable) =>
+        // TODO: handle forall
+        ???
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+        // TODO: handle conjunctions, maybe split to multiple inhales?
+        ???
+      case _ => throw new UnsupportedOperationException(acc.toString)
+    }
   }
 
   /** Exhales permissions.
@@ -126,14 +143,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param acc The permission to exhale
     * @return The abstract state after exhaling the permission */
   override def exhale(acc: Expression): QuantifiedPermissionsState = {
-    // TODO: handle exhale
     acc match {
       case FieldAccessPredicate(id, n, d, _) =>
         val newPermissionRecords =
         id match {
           case FieldExpression(typ, field, receiver) =>
             val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
-            permissionRecords.permissions.put(field, permTreeWithoutRead)
+            permissionRecords.permissions(field) = permTreeWithoutRead
             permissionRecords.add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }
@@ -196,8 +212,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right the assigned expression
     * @return the abstract state after the assignment */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
-    // TODO: add write access to obj.field, replace all occurrences of obj.field by right and for every access o.field
-    // where o != obj (syntactically), add case distinction for aliasing.
     val receiver = obj match {
       case FieldExpression(_, _, rec) => rec
       case _ => throw new InvalidStateException("Obj expression has to be a FieldExpression!")
@@ -340,6 +354,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()
       val quantifiedVariable = sil.LocalVar("x")(sil.Ref)
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
+      /*
+      val permissionTreeWithoutFieldAccesses = permissionTree */
       val permissionTreeWithoutFieldAccesses = permissionTree.transform {
         case FieldExpression(typ, field, receiver) =>
           if (!fieldAccessFunctions.contains(field)) {
