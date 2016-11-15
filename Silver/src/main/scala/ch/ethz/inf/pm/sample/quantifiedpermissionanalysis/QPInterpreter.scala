@@ -37,7 +37,6 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
             case _ => throw new IllegalStateException("should only have one true and one false edge.")
           }
-//            trueState.setExpression(ArithmeticAndBooleanNativeMethodSemantics.applyBackwardNativeSemantics()cfgWithoutCycles.getBasicBlockStatements(currentBlockId).last.asInstanceOf[MethodCall])
             trueState.lub(falseState)
           case _ => throw new IllegalStateException("A node cannot have more than 2 exit edges.")
         }
