@@ -362,7 +362,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val permissionTreeWithoutFieldAccesses = permissionTree.transform {
         case FieldExpression(typ, field, receiver) =>
           if (!fieldAccessFunctions.contains(field)) {
-            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier, Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
+            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
             fieldAccessFunctions.put(field, fun)
             Context.auxiliaryFunctions.put(fun.name, fun)
           }

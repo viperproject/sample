@@ -35,6 +35,7 @@ object Context {
     clearAliases()
     clearNumericalInfo()
     rdAmountVariable = None
+    quantifiedVariable = None
   }
 
   def initContext = {
@@ -48,32 +49,29 @@ object Context {
     identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
   }
 
-  def createNewUniqueVarIdentifier = {
-    val prefix = "_var"
-    var count = 0
-    while (identifiers.contains(prefix + count)) {
-      count += 1
+  private def createNewUniqueIdentifier(name: String) = {
+    var identifier: String = ""
+    if (identifiers.contains(name)) {
+      var count = 0
+      while (identifiers.contains(name + count)) {
+        count += 1
+      }
+      identifier = name + count
+    } else {
+      identifier = name
     }
-    val identifier = prefix + count
     identifiers += identifier
     identifier
   }
 
-  def createNewUniqueFunctionIdentifier = {
-    val prefix = "_func"
-    var count = 0
-    while (identifiers.contains(prefix + count)) {
-      count += 1
-    }
-    val identifier = prefix + count
-    identifiers += identifier
-    identifier
-  }
+  def createNewUniqueVarIdentifier(name: String = "_var") = createNewUniqueIdentifier(name)
+
+  def createNewUniqueFunctionIdentifier(name: String = "_func") = createNewUniqueIdentifier(name)
 
   def getRdAmountVariable = rdAmountVariable match {
     case Some(existingRdAmountVar) => existingRdAmountVar
     case None =>
-      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier, Perm)()
+      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("rdAmount"), Perm)()
       rdAmountVariable = Some(varDecl)
       varDecl
   }
@@ -81,7 +79,7 @@ object Context {
   def getMaxFunction = maxFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
-      val fun = Function(createNewUniqueFunctionIdentifier, Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
+      val fun = Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
         Some(CondExp(PermGtCmp(VarX, VarY)(), VarX, VarY)())
       )()
       maxFunction = Some(fun)
@@ -92,7 +90,7 @@ object Context {
   def getBoundaryFunction = boundaryFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
-      val fun = Function(createNewUniqueFunctionIdentifier, Seq(VarXDecl), Perm, Seq(), Seq(),
+      val fun = Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), Perm, Seq(), Seq(),
         Some(CondExp(PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
       )()
       boundaryFunction = Some(fun)
