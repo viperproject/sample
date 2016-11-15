@@ -1,12 +1,12 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import viper.silver.ast.{And, CondExp, FullPerm, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
+import viper.silver.ast.{CondExp, FullPerm, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
 
 import scala.collection._
 
@@ -21,8 +21,6 @@ object Context {
 
   val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
 
-  val symbolicReadVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
-
   val quantifiedVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
 
   var maxFunction: Option[Function] = None
@@ -31,10 +29,12 @@ object Context {
 
   var quantifiedVariable: Option[LocalVarDecl] = None
 
+  var rdAmountVariable: Option[LocalVarDecl] = None
+
   def clearMethodSpecificInfo() = {
     clearAliases()
     clearNumericalInfo()
-    symbolicReadVariables.clear()
+    rdAmountVariable = None
   }
 
   def initContext = {
@@ -46,16 +46,6 @@ object Context {
     identifiers ++= prog.functions.map(function => function.name)
     identifiers ++= prog.predicates.map(predicates => predicates.name)
     identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
-  }
-
-  def getReadVarConstraints = {
-    symbolicReadVariables.values.map(varDecl => And(PermLtCmp(ZeroPerm, LocalVar(varDecl.name)(Perm))(), PermLtCmp(LocalVar(varDecl.name)(Perm), WritePerm)())())
-  }
-
-  def createNewUniqueSymbolicReadVar() = {
-    val varDecl = LocalVarDecl(createNewUniqueVarIdentifier, Perm)()
-    symbolicReadVariables(varDecl.name) = varDecl
-    varDecl
   }
 
   def createNewUniqueVarIdentifier = {
@@ -78,6 +68,14 @@ object Context {
     val identifier = prefix + count
     identifiers += identifier
     identifier
+  }
+
+  def getRdAmountVariable = rdAmountVariable match {
+    case Some(existingRdAmountVar) => existingRdAmountVar
+    case None =>
+      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier, Perm)()
+      rdAmountVariable = Some(varDecl)
+      varDecl
   }
 
   def getMaxFunction = maxFunction match {

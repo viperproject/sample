@@ -58,4 +58,8 @@ case class PermissionRecords(permissions: mutable.Map[String, PermissionTree] = 
   def transform(f: (Expression => Expression)) = {
     PermissionRecords(permissions.map(entry => (entry._1, entry._2.transform(f))))
   }
+
+  def exists(f: (PermissionTree => Boolean)): Boolean = {
+    permissions.exists(entry => entry._2.exists(f))
+  }
 }

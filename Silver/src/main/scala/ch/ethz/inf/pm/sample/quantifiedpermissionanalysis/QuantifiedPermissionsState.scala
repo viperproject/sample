@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleCon
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 import sun.plugin.dom.exception.InvalidStateException
-import viper.silver.ast.LocalVarDecl
+import viper.silver.ast.{Type => _, _}
 import viper.silver.{ast => sil}
 
 import scala.Seq
@@ -332,10 +332,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     var newFormalArguments = existing
     permissionRecords = permissionRecords.transform {
       case ReadPermission =>
-        val varDecl = Context.createNewUniqueSymbolicReadVar()
-        newFormalArguments = newFormalArguments :+ varDecl
+        val varDecl = Context.getRdAmountVariable
         VariableIdentifier(varDecl.name)(PermType)
       case other => other
+    }
+    Context.rdAmountVariable match {
+      case Some(rdAmount) => if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
     }
     newFormalArguments
   }
@@ -349,13 +351,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
-    Context.getReadVarConstraints.foreach(constraint => newPreconditions = newPreconditions :+ constraint)
+    Context.rdAmountVariable match {
+      case Some(rdAmount) => newPreconditions = newPreconditions :+ And(PermLtCmp(ZeroPerm, rdAmount.localVar)(), PermLtCmp(rdAmount.localVar, WritePerm)())()
+    }
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()
       val quantifiedVariable = sil.LocalVar("x")(sil.Ref)
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-      /*
-      val permissionTreeWithoutFieldAccesses = permissionTree */
+//      val permissionTreeWithoutFieldAccesses = permissionTree
       val permissionTreeWithoutFieldAccesses = permissionTree.transform {
         case FieldExpression(typ, field, receiver) =>
           if (!fieldAccessFunctions.contains(field)) {
@@ -370,20 +373,15 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
       newPreconditions = newPreconditions :+ forall
     }
-    newPreconditions
-  }
-
-  override def assumesAfterPreconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = {
-    var newAssumes = existing
     fieldAccessFunctions.foreach {
       case (fieldName, function) =>
         val quantifiedVarDecl = sil.LocalVarDecl("x", sil.Ref)()
         val quantifiedVar = sil.LocalVar("x")(sil.Ref)
         val field = sil.Field(fieldName, function.typ)()
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
-        newAssumes = newAssumes :+ sil.Inhale(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)())()
+        newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), TrueLit()())()
     }
-    newAssumes
+    newPreconditions
   }
 
   // STUBS
