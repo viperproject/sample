@@ -1,8 +1,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.execution.{Interpreter, TrackingCFGState, TrackingCFGStateFactory}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.ArithmeticAndBooleanNativeMethodSemantics
-import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodCall, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, Statement}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -38,7 +37,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
             case _ => throw new IllegalStateException("should only have one true and one false edge.")
           }
-            trueState.setExpression(ArithmeticAndBooleanNativeMethodSemantics.applyBackwardNativeSemantics()cfgWithoutCycles.getBasicBlockStatements(currentBlockId).last.asInstanceOf[MethodCall])
+//            trueState.setExpression(ArithmeticAndBooleanNativeMethodSemantics.applyBackwardNativeSemantics()cfgWithoutCycles.getBasicBlockStatements(currentBlockId).last.asInstanceOf[MethodCall])
             trueState.lub(falseState)
           case _ => throw new IllegalStateException("A node cannot have more than 2 exit edges.")
         }

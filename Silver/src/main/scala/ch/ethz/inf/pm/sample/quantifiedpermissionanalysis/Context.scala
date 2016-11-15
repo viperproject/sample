@@ -23,6 +23,8 @@ object Context {
 
   val symbolicReadVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
 
+  val quantifiedVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
+
   var maxFunction: Option[Function] = None
 
   var boundaryFunction: Option[Function] = None
