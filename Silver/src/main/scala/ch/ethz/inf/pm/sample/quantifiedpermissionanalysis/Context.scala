@@ -3,10 +3,10 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import viper.silver.ast.{CondExp, FullPerm, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
+import viper.silver.ast.{CondExp, FullPerm, FuncLike, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
 
 import scala.collection._
 
@@ -15,11 +15,13 @@ import scala.collection._
   */
 object Context {
 
-  lazy val prog: Program = DefaultSilverConverter.prog
+  var prog: Program = _
 
   val identifiers: mutable.Set[String] = mutable.Set()
 
   val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
+
+  val programFunctions: mutable.Map[String, FuncLike] = mutable.Map()
 
   val quantifiedVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
 
@@ -30,6 +32,15 @@ object Context {
   var quantifiedVariable: Option[LocalVarDecl] = None
 
   var rdAmountVariable: Option[LocalVarDecl] = None
+
+  def setProgram(prog: Program) = {
+    this.prog = prog
+    initContext
+  }
+
+  def functions = (name: String) => {
+    if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
+  }
 
   def clearMethodSpecificInfo() = {
     clearAliases()
@@ -47,6 +58,8 @@ object Context {
     identifiers ++= prog.functions.map(function => function.name)
     identifiers ++= prog.predicates.map(predicates => predicates.name)
     identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
+    programFunctions ++= prog.functions.map(function => (function.name, function))
+    programFunctions ++= prog.domains.flatMap(domain => domain._functions.map(function => (function.name, function)))
   }
 
   private def createNewUniqueIdentifier(name: String) = {

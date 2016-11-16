@@ -592,8 +592,10 @@ case class MethodCall(
 
   private def specialBackwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S,
                                                                programPoint: ProgramPoint): S = {
-    var currentState = postState
-    currentState = obj.specialBackwardSemantics[S](currentState)
+    var currentState = obj match {
+      case null => postState
+      case _ => obj.specialBackwardSemantics[S](postState)
+    }
     val objExpr = currentState.expr
     val paramExpr = for (param: Statement <- parameters) yield {
       currentState = param.specialBackwardSemantics[S](currentState)
@@ -656,9 +658,11 @@ case class MethodCall(
     */
   override def specialBackwardSemantics[S <: State[S]](state: S): S = {
     val body: Statement = method.normalize()
-    val castedStatement = body.asInstanceOf[FieldAccess]
-    val calledMethod = castedStatement.field
-    specialBackwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
+    val (receiver, calledMethod) = body match {
+      case body: FieldAccess => (body.obj, body.field)
+      case body: Variable => (null, body.getName)
+    }
+    specialBackwardAnalyzeMethodCallOnObject[S](receiver, calledMethod, state, getPC())
   }
 
 }

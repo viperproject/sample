@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
-import viper.silver.ast.SourcePosition
+import viper.silver.ast.{SourcePosition, Type, TypeVar}
 import viper.silver.{ast => sil}
 
 trait SampleConverter {
@@ -26,7 +26,7 @@ object DefaultSampleConverter extends SampleConverter {
 
   def convert(e: sample.Expression): sil.Exp = e match {
     case sample.ConditionalExpression(cond, left, right, _) => sil.CondExp(go(cond), go(left), go(right))()
-    case sample.FunctionCallExpression(typ, functionName, parameters, _) => sil.FuncApp(Context.auxiliaryFunctions(functionName), parameters.map(param => go(param)))()
+    case sample.FunctionCallExpression(typ, functionName, parameters, _) => sil.FuncLikeApp(Context.functions(functionName), parameters.map(param => go(param)), Map())
     case sample.FieldExpression(typ, field, receiver) => sil.FieldAccess(go(receiver), sil.Field(field, go(typ))())()
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
@@ -115,6 +115,7 @@ object DefaultSampleConverter extends SampleConverter {
     case sample.BoolType => sil.Bool
     case sample.RefType(_) => sil.Ref
     case sample.PermType => sil.Perm
+    case sample.DomType(name) => sil.DomainType(name, Map[TypeVar, Type]())(Seq())
   }
 
   // Convenience aliases

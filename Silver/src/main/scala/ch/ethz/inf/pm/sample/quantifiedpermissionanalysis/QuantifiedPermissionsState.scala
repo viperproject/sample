@@ -338,6 +338,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     Context.rdAmountVariable match {
       case Some(rdAmount) => if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
+      case None =>
     }
     newFormalArguments
   }
@@ -353,6 +354,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     var newPreconditions = existing
     Context.rdAmountVariable match {
       case Some(rdAmount) => newPreconditions = newPreconditions :+ And(PermLtCmp(ZeroPerm, rdAmount.localVar)(), PermLtCmp(rdAmount.localVar, WritePerm)())()
+      case None =>
     }
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()

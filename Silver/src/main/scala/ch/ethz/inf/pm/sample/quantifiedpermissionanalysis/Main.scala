@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodDeclaration}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
@@ -74,14 +74,16 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
   def analyze(method: MethodDeclaration): MethodAnalysisResult[QuantifiedPermissionsState] = {
 
-    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = aliasAnalysisBuilder.build(method)
-      val interpreter = TrackingForwardInterpreter[SimpleAliasAnalysisState](entryState)
-      val cfgState = interpreter.forwardExecute(method.body, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
+    Context.setProgram(DefaultSilverConverter.prog)
 
-    Context.setAliases(aliasAnalysisResult.cfgState)
+//    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+//      val entryState = aliasAnalysisBuilder.build(method)
+//      val interpreter = TrackingForwardInterpreter[SimpleAliasAnalysisState](entryState)
+//      val cfgState = interpreter.forwardExecute(method.body, entryState)
+//      MethodAnalysisResult(method, cfgState)
+//    }
+//
+//    Context.setAliases(aliasAnalysisResult.cfgState)
 
     val numericalAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = numericalEntryStateBuilder.build(method)
