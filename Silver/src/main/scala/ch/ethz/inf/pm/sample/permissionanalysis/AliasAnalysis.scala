@@ -1515,7 +1515,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     val accessPath = receiver match {
       case variable: VariableIdentifier => variable :: VariableIdentifier(field)(typ) :: Nil
       case AccessPathIdentifier(receiverPath) => receiverPath :+ VariableIdentifier(field)(typ)
-      case _ => throw new IllegalArgumentException("A field access must occur via an identifier.")
+      case _ => throw new IllegalArgumentException("A field access must occur via an identifier. Actual: " + receiver)
     }
     // materialize path
     val path = accessPath.map(_.getName)
