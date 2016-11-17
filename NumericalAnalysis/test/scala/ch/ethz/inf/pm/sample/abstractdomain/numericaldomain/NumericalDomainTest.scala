@@ -121,14 +121,6 @@ class SignTest extends NonRelationalNumericalDomainTest[Sign] {
 
 }
 
-trait ApronTest[T <: Apron[T]]
-  extends NumericalDomainTest[T]
-    with MostPreciseAssignment[T] {
-
-  SystemParameters.typ = DummyNumericalType
-
-}
-
 trait BoxedNonRelationalNumericalDomainTest[T <: NonRelationalNumericalDomain[T]]
   extends NumericalDomainTest[BoxedNonRelationalNumericalDomain[T]] {
 
@@ -136,41 +128,6 @@ trait BoxedNonRelationalNumericalDomainTest[T <: NonRelationalNumericalDomain[T]
 
   def domain: T
 
-}
-
-class ApronOctagonTest extends ApronTest[Apron.Octagons] {
-  override def factory = Apron.Octagons.Bottom
-}
-
-class ApronLinearEqualitiesTest extends ApronTest[Apron.LinearEqualities] {
-  override def factory = Apron.LinearEqualities.Bottom
-
-  // FAILS, therefore ignore. This is for antoine
-  override val ignoreLubLessEqualWidening = true
-
-}
-
-class ApronOptOctagonsTest extends ApronTest[Apron.OptOctagons] {
-  override def factory = Apron.OptOctagons.Bottom
-}
-
-class ApronFloatOptOctagonsTest extends ApronTest[Apron.FloatOptOctagons] {
-  override def factory = Apron.FloatOptOctagons.Bottom
-}
-
-class ApronPolyhedraTest extends ApronTest[Apron.Polyhedra] {
-  override def factory = Apron.Polyhedra.Bottom
-}
-
-class ApronStrictPolyhedraTest extends ApronTest[Apron.StrictPolyhedra] {
-  override def factory = Apron.StrictPolyhedra.Bottom
-}
-
-class ApronBoxTest extends ApronTest[Apron.Box] {
-  override def factory = Apron.Box.Bottom
-
-  // FAILS, therefore ignore. This is for antoine
-  override val ignoreMostPreciseAssignment = true
 }
 
 class BoxedIntegerIntervalTest
