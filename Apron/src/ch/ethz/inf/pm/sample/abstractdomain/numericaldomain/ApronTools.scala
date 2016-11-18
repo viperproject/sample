@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
+
 import scala.language.implicitConversions
 
 object ApronTools {
