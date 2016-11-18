@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import viper.silver.ast.{CondExp, FullPerm, FuncLike, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program}
+import viper.silver.ast.{CondExp, FullPerm, FuncLike, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program, Ref}
 
 import scala.collection._
 
@@ -22,8 +22,6 @@ object Context {
   val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
 
   val programFunctions: mutable.Map[String, FuncLike] = mutable.Map()
-
-  val quantifiedVariables: mutable.Map[String, LocalVarDecl] = mutable.Map()
 
   var maxFunction: Option[Function] = None
 
@@ -109,6 +107,14 @@ object Context {
       boundaryFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))
       fun
+  }
+
+  def getQuantifiedVarDecl = quantifiedVariable match {
+    case Some(existingQuantifiedVarDecl) => existingQuantifiedVarDecl
+    case None =>
+      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("x"), Ref)()
+      quantifiedVariable = Some(varDecl)
+      varDecl
   }
 
   /**

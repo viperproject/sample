@@ -332,8 +332,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     var newFormalArguments = existing
     permissionRecords = permissionRecords.transform {
       case ReadPermission =>
-        val varDecl = Context.getRdAmountVariable
-        VariableIdentifier(varDecl.name)(PermType)
+        VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
       case other => other
     }
     Context.rdAmountVariable match {
@@ -357,14 +356,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case None =>
     }
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
-      val quantifiedVariableDecl = sil.LocalVarDecl("x", sil.Ref)()
-      val quantifiedVariable = sil.LocalVar("x")(sil.Ref)
+      val quantifiedVariableDecl = Context.getQuantifiedVarDecl
+      val quantifiedVariable = quantifiedVariableDecl.localVar
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
 //      val permissionTreeWithoutFieldAccesses = permissionTree
       val permissionTreeWithoutFieldAccesses = permissionTree.transform {
         case FieldExpression(typ, field, receiver) =>
           if (!fieldAccessFunctions.contains(field)) {
-            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
+            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(quantifiedVariableDecl), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
             fieldAccessFunctions.put(field, fun)
             Context.auxiliaryFunctions.put(fun.name, fun)
           }
