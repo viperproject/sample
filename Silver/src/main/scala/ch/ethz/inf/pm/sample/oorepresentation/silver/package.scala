@@ -62,9 +62,6 @@ package object silver {
     val StaticModifier = rep.StaticModifier
     val PureModifier = rep.PureModifier
 
-    // Value-driven heap analysis
-    val ValueHeapIdentifier = dom.vdha.ValueHeapIdentifier
-
     // Simplon-specific types and values
     type RefType = rep.silver.RefType
 
@@ -80,17 +77,6 @@ package object silver {
     val PackageIdentifier = rep.DummyPackageIdentifier
     val ClassIdentifier = rep.DummyClassIdentifier
     val MethodIdentifier = rep.DummyMethodIdentifier
-
-    // Simplon-specific abstract domains
-    type PredicatesDomain = dom.valueheap.PredicateDefinitionsDomain
-    type PredicateBody = dom.valueheap.PredicateBody
-    type NestedPredicatesDomain = dom.valueheap.NestedPredicatesDomain
-    type PredicateIdentifier = dom.valueheap.PredicateIdentifier
-
-    val PredicatesDomain = dom.valueheap.PredicateDefinitionsDomain
-    val PredicateBody = dom.valueheap.PredicateBody
-    val NestedPredicatesDomain = dom.valueheap.NestedPredicatesDomain
-    val PredicateIdentifier = dom.valueheap.PredicateIdentifier
   }
 
 }

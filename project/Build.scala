@@ -52,7 +52,7 @@ object SampleBuild extends Build {
 
   lazy val silver = Project(
     id = "sample-silver",
-    base = file("Silver")) dependsOn(core, numerical, valuedrivenheap)
+    base = file("Silver")) dependsOn(core, numerical)
 
   lazy val web = Project(
     id = "sample-web",

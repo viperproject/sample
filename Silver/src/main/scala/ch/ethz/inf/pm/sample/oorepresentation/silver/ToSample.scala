@@ -77,16 +77,6 @@ trait SilverConverter {
     * Converts a SIL expression to a Sample expression.
     */
   def convert(exp: sil.Exp): sample.Statement
-
-  /**
-    * Converts a sequence of SIL predicates to Sample predicates.
-    *
-    * The method only converts a SIL predicate if its shape is supported
-    * by Samples predicate domain and if all of its nested predicate
-    * could be converted as well. This is the reason why the method
-    * takes a sequence of SIL predicates.
-    */
-  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
 object DefaultSilverConverter extends SilverConverter with LazyLogging {
@@ -409,98 +399,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
          sil.ExplicitSet(_) => ???
   }
 
-  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
-    val predIdToBodyMap: Map[sample.PredicateIdentifier, sample.PredicateBody] =
-      preds.map(convert).flatten.toMap
-
-    /** Returns the set of all predicate IDs recursively nested
-      * in the predicate with the given ID.
-      */
-    def deeplyNestedPredIds(
-        predId: sample.PredicateIdentifier,
-        foundSoFar: Set[sample.PredicateIdentifier] = Set.empty):
-      Set[sample.PredicateIdentifier] = {
-
-      if (foundSoFar.contains(predId)) {
-        foundSoFar // Terminate when reaching an already handled predicate ID
-      } else {
-        // Get nested predicate IDs, if any
-        val nestedPredIds = predIdToBodyMap.get(predId) match {
-          case Some(predBody) => predBody.nestedPredIds
-          case None => Set.empty
-        }
-
-        // Recurse to all nested predicate IDs
-        nestedPredIds.foldLeft(foundSoFar + predId)({
-          case (newFoundSoFar, nestedPredId) =>
-            deeplyNestedPredIds(nestedPredId, newFoundSoFar)
-        })
-      }
-    }
-
-    // Filter out any predicates that could not be converted completely
-    var result = sample.PredicatesDomain().top()
-    for ((predId, predBody) <- predIdToBodyMap) {
-      if (deeplyNestedPredIds(predId).subsetOf(predIdToBodyMap.keySet)) {
-        result = result.add(predId, predBody)
-      }
-    }
-
-    result
-  }
-
-  /** Converts a single SIL predicate to a Sample predicate, if possible.
-    *
-    * If the given predicate has a shape that our domain of predicates does not
-    * support, the method returns `None`.
-    */
-  private def convert(pred: sil.Predicate): Option[(sample.PredicateIdentifier, sample.PredicateBody)] = {
-    if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
-      // Only support SIL predicates with a single reference parameter
-      return None
-    }
-
-    val formalArgVar = pred.formalArgs.head.localVar
-
-    // Reorder null-ness check expressions such that the null literals always
-    // appear on the right side. Makes it easier to pattern-match later.
-    val normalizedBody = pred.body.get.transform()(post = { // TODO: may not allow abstract predicates
-      case n @ sil.NeCmp(left @ sil.NullLit(), right) =>
-        n.copy(right, left)(n.pos, n.info)
-    })
-
-    // Maps each field with write permission to a set of predicate IDs
-    var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.PredicateIdentifier]]
-
-    // Predicate must be a conjunction of constituents we support, that is,
-    // field access predicates, and conditional predicate access predicates
-    flattenConjunction(normalizedBody).foreach({
-      case sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm())
-        if formalArgVar == rcv =>
-        // Found a field access predicate for a field of the formal argument
-        fieldsWithPerm += makeVariableIdentifier(field) -> Set.empty
-      case implies @ sil.Implies(
-      sil.NeCmp(fa @ sil.FieldAccess(rcv, field), sil.NullLit()),
-      sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm()))
-        if formalArgVar == rcv && args == Seq(fa) =>
-        // Found a nested predicate access predicate for a field
-        // of the formal argument
-        val nestedPredId = new sample.PredicateIdentifier(nestedPred)
-        fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
-      case n =>
-        // Give up if the predicate contains anything else
-        logger.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
-        return None
-    })
-
-    val samplePredId = new sample.PredicateIdentifier(pred.name)
-    val samplePredBody = sample.PredicateBody().functionalFactory(
-      fieldsWithPerm.mapValues(predIds => {
-        predIds.foldLeft(sample.NestedPredicatesDomain())(_.+(_))
-      }))
-    Some(samplePredId -> samplePredBody)
-  }
-
   /**
    * Converts a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
     *
@@ -640,6 +538,4 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   private def go(s: sil.Stmt) = convert(s)
 
   private def go(e: sil.Exp) = convert(e)
-
-  private def go(p: sil.Predicate) = convert(p)
 }

@@ -8,7 +8,6 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron.Polyhedra
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
@@ -1091,6 +1090,7 @@ case class PointsToIntervalsState(exprSet: ExpressionSet,
     PointsToIntervalsState(exprSet, fieldSet, refToObj, objFieldToObj, numDom, currentPP)
 }
 
+/*
 /** PointsTo+Polyhedra Analysis State.
   *
   * @param exprSet `ExpressionSet` used to store the result of each statement
@@ -1115,6 +1115,7 @@ case class PointsToPolyhedraState(exprSet: ExpressionSet,
                     currentPP: ProgramPoint): PointsToPolyhedraState =
     PointsToPolyhedraState(exprSet, fieldSet, refToObj, objFieldToObj, numDom, currentPP)
 }
+*/
 
 /** PointsTo+Numerical analysis entry states for given method declarations.
   *
@@ -1150,6 +1151,7 @@ object PointsToIntervalsEntryStateBuilder
 
 }
 
+/*
 /** PointsTo+Polyhedra analysis entry states for given method declarations.
   *
   * @author Caterina Urban
@@ -1163,6 +1165,7 @@ object PointsToPolyhedraEntryStateBuilder
     Apron.Polyhedra.Bottom.factory(), DummyProgramPoint)
 
 }
+*/
 
 /** Runs the PointsTo+Numerical analysis.
   *
@@ -1225,6 +1228,7 @@ object PointsToIntervalsAnalysisRunner
   override def toString = "PointsTo+Intervals Analysis"
 }
 
+/*
 /** Runs the PointsTo+Polyhedra analysis.
   *
   * @author Caterina Urban
@@ -1234,3 +1238,4 @@ object PointsToPolyhedraAnalysisRunner
   override val analysis = SimpleForwardAnalysis[PointsToPolyhedraState](PointsToPolyhedraEntryStateBuilder)
   override def toString = "PointsTo+Polyhedra Analysis"
 }
+*/

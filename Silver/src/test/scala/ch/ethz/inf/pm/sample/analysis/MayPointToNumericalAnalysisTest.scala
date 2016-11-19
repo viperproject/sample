@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.analysis
 import java.nio.file.Path
 
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.permissionanalysis.{MayPointToIntervalsAnalysisRunner, MayPointToAPolyhedraAnalysisRunner, PointsToIntervalsAnalysisRunner}
+import ch.ethz.inf.pm.sample.permissionanalysis.{MayPointToIntervalsAnalysisRunner, PointsToIntervalsAnalysisRunner}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silver.ast.{Position, Program}
 import viper.silver.frontend.{Frontend, SilFrontend}
