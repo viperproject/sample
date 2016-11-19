@@ -11,10 +11,8 @@ import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 object NumDom {
   type I = BoxedNonRelationalNumericalDomain[DoubleInterval]
-  type AO = Apron.Octagons
   type IO = IntegerOctagons
   type DO = DoubleOctagons
-  type AP = Apron.Polyhedra
 }
 
 /** Main for the permission inference.
