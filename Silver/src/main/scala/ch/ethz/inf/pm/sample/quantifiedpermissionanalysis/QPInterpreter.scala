@@ -63,6 +63,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
         val (_, exitIndex1, weight1) = exitEdges.head
         val (_, exitIndex2, _) = exitEdges.last
         val (loopBodyIdx, afterLoopIdx) = if (weight1.contains(true)) (exitIndex1, exitIndex2) else (exitIndex2, exitIndex1)
+        assert(cfgState.cfg.entryEdges(blockId).exists { case (from, _, _) => from == loopBodyIdx })
         val (loopBodyFirstState, loopBodyLastState, afterLoopState) = (cfgState.statesOfBlock(loopBodyIdx).head,
           cfgState.statesOfBlock(loopBodyIdx).last, cfgState.statesOfBlock(afterLoopIdx).head)
         //strengthen the numerical domain by taking the numDomain before the loop and widen it with the exit state of the loop
