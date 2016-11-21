@@ -49,14 +49,13 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
   var loopHeads = Set[Int]()
 
-  def preprocessGraph(cfg: ControlFlowGraph): (ControlFlowGraph, mutable.LinkedHashSet[Int]) = {
+  def preprocessGraph(cfg: ControlFlowGraph): mutable.LinkedHashSet[Int] = {
     val (loopHeads, flowOrder) = findLoops(ForwardInterpreter.startBlockId, cfg, Set())
     this.loopHeads = loopHeads
-    (cfg, flowOrder)
+    flowOrder
   }
 
-  def findLoops(currentNode: Int, cfg: ControlFlowGraph, visited: Set[Int]): (Set[Int], mutable
-  .LinkedHashSet[Int]) = {
+  def findLoops(currentNode: Int, cfg: ControlFlowGraph, visited: Set[Int]): (Set[Int], mutable.LinkedHashSet[Int]) = {
     if (visited.contains(currentNode)) {
       return (Set[Int](currentNode), mutable.LinkedHashSet[Int]())
     }
@@ -97,8 +96,8 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     val quantifiedPermissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder.build(method)
       val interpreter = TrackingQPInterpreter(loopHeads, entryState)
-      val (cfgWithoutCycles, flowOrder) = preprocessGraph(method.body)
-      val cfgState = interpreter.simpleBackwardExecute(cfgWithoutCycles, flowOrder, entryState)
+      val flowOrder = preprocessGraph(method.body)
+      val cfgState = interpreter.simpleBackwardExecute(method.body, flowOrder, entryState)
       MethodAnalysisResult(method, cfgState)
     }
 

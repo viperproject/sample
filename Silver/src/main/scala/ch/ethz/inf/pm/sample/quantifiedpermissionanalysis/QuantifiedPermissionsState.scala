@@ -38,13 +38,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       isBottom: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
-                                      var permissionRecords: PermissionRecords = PermissionRecords())
+                                      var permissionRecords: PermissionRecords = PermissionRecords(),
+                                      changingExpressions: Map[Expression, Set[Expression]] = Map())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification
     with LazyLogging {
-
-  val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
 
   // RESULTS FROM ALIAS AND NUMERICAL ANALYSIS
 
@@ -83,8 +82,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            isBottom: Boolean = isBottom,
            expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP,
-           permissionRecords: PermissionRecords = permissionRecords):
-  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP, permissionRecords)
+           permissionRecords: PermissionRecords = permissionRecords,
+           changingExpressions: Map[Expression, Set[Expression]] = changingExpressions):
+  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP, permissionRecords, changingExpressions)
 
   /** Computes the least upper bound of two elements.
     *
@@ -92,7 +92,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments */
   override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, expr = expr lub other.expr, permissionRecords = permissionRecords lub other.permissionRecords)
+    copy(isTop = isTop || other.isTop,
+      isBottom = isBottom && other.isBottom,
+      expr = expr lub other.expr,
+      permissionRecords = permissionRecords lub other.permissionRecords,
+      changingExpressions = changingExpressions ++ other.changingExpressions.map {
+        case (changingExpression, values) => changingExpression -> (values ++ changingExpressions.getOrElse(changingExpression, Set()))
+      })
   }
 
   // ABSTRACT TRANSFORMERS
@@ -197,10 +203,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right The assigned expression
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
-    val newPermissionRecords = permissionRecords.transform {
-      expr => if (expr.equals(x)) right else expr
-    }
-    copy(permissionRecords = newPermissionRecords)
+    val replacer = (e: Expression) => if (e.equals(x)) right else e
+    val newPermissionRecords = permissionRecords.transform(replacer)
+    val newChangingExpressions = changingExpressions.map {
+      case (changingExpression, values) => changingExpression.transform(replacer) -> values.map(e => e.transform(replacer))
+    } + (x -> Set(right))
+    copy(permissionRecords = newPermissionRecords, changingExpressions = newChangingExpressions)
   }
 
   /** Assigns an expression to a field of an object.
@@ -212,6 +220,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right the assigned expression
     * @return the abstract state after the assignment */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
+    val typ = right.typ
     val receiver = obj match {
       case FieldExpression(_, _, rec) => rec
       case _ => throw new InvalidStateException("Obj expression has to be a FieldExpression!")
@@ -220,8 +229,18 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldExpression(_, `field`, rec) => ConditionalExpression(ReferenceComparisonExpression(receiver, rec, ArithmeticOperator.==, BoolType), right, orig, right.typ)
       case _ => orig
     }
+    val newChangingExpressions =
+    if (typ.isObject) {
+      val fieldExpression = FieldExpression(typ, field, receiver)
+      val replacer = (e: Expression) => if (e.equals(fieldExpression)) right else e
+      changingExpressions.map {
+        case (changingExpression, values) => changingExpression.transform(replacer) -> values.map(e => e.transform(replacer))
+      } + (fieldExpression -> Set(right))
+    } else {
+      changingExpressions
+    }
     val newPermissionRecords = permissionRecords.undoLastRead(field).transform(transformer).max(field, receiver, WritePermission)
-    copy(permissionRecords = newPermissionRecords)
+    copy(permissionRecords = newPermissionRecords, changingExpressions = newChangingExpressions)
   }
 
   /** Forgets the value of a variable.
@@ -355,6 +374,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case Some(rdAmount) => newPreconditions = newPreconditions :+ And(PermLtCmp(ZeroPerm, rdAmount.localVar)(), PermLtCmp(rdAmount.localVar, WritePerm)())()
       case None =>
     }
+    val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
     permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = Context.getQuantifiedVarDecl
       val quantifiedVariable = quantifiedVariableDecl.localVar
@@ -376,8 +396,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     fieldAccessFunctions.foreach {
       case (fieldName, function) =>
-        val quantifiedVarDecl = sil.LocalVarDecl("x", sil.Ref)()
-        val quantifiedVar = sil.LocalVar("x")(sil.Ref)
+        val quantifiedVarDecl = Context.getQuantifiedVarDecl
+        val quantifiedVar = quantifiedVarDecl.localVar
         val field = sil.Field(fieldName, function.typ)()
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
         newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), TrueLit()())()

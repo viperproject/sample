@@ -14,19 +14,19 @@ import scala.collection.mutable.ListBuffer
 trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLogging {
   def loopHeads: Set[Int]
 
-  def simpleBackwardExecute(cfgWithoutCycles: ControlFlowGraph, flowOrder: mutable.LinkedHashSet[Int], entryState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
+  def simpleBackwardExecute(cfg: ControlFlowGraph, flowOrder: mutable.LinkedHashSet[Int], entryState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
     val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](entryState)
-    val cfgState: TrackingCFGState[QuantifiedPermissionsState] = cfgStateFactory.allBottom(cfgWithoutCycles)
+    val cfgState: TrackingCFGState[QuantifiedPermissionsState] = cfgStateFactory.allBottom(cfg)
     // process the blocks of the cfg
     while (flowOrder.nonEmpty) {
       // while there still are blocks to be processed...
       val currentBlockId: Int = flowOrder.head
       flowOrder.remove(currentBlockId) // extract the current block
       // figure out the current exit state
-      val postState: QuantifiedPermissionsState = if (cfgWithoutCycles.getLeavesIds.contains(currentBlockId)) {
+      val postState: QuantifiedPermissionsState = if (cfg.getLeavesIds.contains(currentBlockId)) {
         entryState
       } else {
-        val exitEdges = cfgWithoutCycles.exitEdges(currentBlockId)
+        val exitEdges = cfg.exitEdges(currentBlockId)
         exitEdges.size match {
           case 0 => cfgState.statesOfBlock(currentBlockId).last
           case 1 => cfgState.statesOfBlock(exitEdges.head._2).head
@@ -35,11 +35,15 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
             case ((_, toFalse, Some(false)), (_, toTrue, Some(true))) =>
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
-            case _ => throw new IllegalStateException("should only have one true and one false edge.")
+            case _ => throw new IllegalStateException("There should be exactly one true and one false edge.")
           }
             trueState.lub(falseState)
           case _ => throw new IllegalStateException("A node cannot have more than 2 exit edges.")
         }
+      }
+
+      if (cfg.entryEdges(currentBlockId).exists{ case (from, _, Some(true)) => loopHeads.contains(from)}) {
+
       }
 
       // backward execute the current block
@@ -48,32 +52,28 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     cfgState
   }
 
-  private def backwardExecuteBlock(lastBlockState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
-    var newStates = ListBuffer[QuantifiedPermissionsState]() // initially empty list of new states
-    val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(blockId) // get the statements within the block
-    var postState = lastBlockState // initial next state
+  private def backwardExecuteBlock(postBlockState: QuantifiedPermissionsState, blockId: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
+    var newStates = ListBuffer[QuantifiedPermissionsState]()
+    val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(blockId)
+    var postState = postBlockState
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) {
-      // for each statement (in reverse order)...
-      newStates = postState +: newStates // prepend the next state to the list of new states
+      newStates = postState +: newStates
       logger.info("Execute " + stmt)
-      var preState = stmt.specialBackwardSemantics(postState) // compute the previous state
-      //if we are at the top of a while loop condition apply the whileLoopRules
-      if (loopHeads.contains(blockId) && idx == 0) {
-        val exitEdges = cfgState.cfg.exitEdges(blockId)
-        val (_, exitIndex1, weight1) = exitEdges.head
-        val (_, exitIndex2, _) = exitEdges.last
-        val (loopBodyIdx, afterLoopIdx) = if (weight1.contains(true)) (exitIndex1, exitIndex2) else (exitIndex2, exitIndex1)
-        assert(cfgState.cfg.entryEdges(blockId).exists { case (from, _, _) => from == loopBodyIdx })
-        val (loopBodyFirstState, loopBodyLastState, afterLoopState) = (cfgState.statesOfBlock(loopBodyIdx).head,
-          cfgState.statesOfBlock(loopBodyIdx).last, cfgState.statesOfBlock(afterLoopIdx).head)
-        //strengthen the numerical domain by taking the numDomain before the loop and widen it with the exit state of the loop
-        // TODO: implement loop handling
-        // preState = preState.refiningWhileLoop(lastBlockState, loopBodyFirstState, loopBodyLastState, afterLoopState)
-      }
+      var preState = stmt.specialBackwardSemantics(postState)
       logger.trace(postState.toString)
       logger.trace(stmt.toString)
       logger.trace(preState.toString)
       postState = preState // update the next state
+    }
+    if (loopHeads.contains(blockId)) {
+      val exitEdges = cfgState.cfg.exitEdges(blockId)
+      val (_, exitIndex1, weight1) = exitEdges.head
+      val (_, exitIndex2, _) = exitEdges.last
+      val (loopBodyIdx, afterLoopIdx) = if (weight1.contains(true)) (exitIndex1, exitIndex2) else (exitIndex2, exitIndex1)
+      assert(cfgState.cfg.entryEdges(blockId).exists { case (from, _, _) => from == loopBodyIdx })
+      val (loopBodyFirstState, loopBodyLastState, afterLoopState) = (cfgState.statesOfBlock(loopBodyIdx).head,
+        cfgState.statesOfBlock(loopBodyIdx).last, cfgState.statesOfBlock(afterLoopIdx).head)
+//      postState = postState.refiningWhileLoop(postBlockState, loopBodyFirstState, loopBodyLastState, afterLoopState)
     }
     newStates = postState +: newStates // prepend the next state to the list of new states
     cfgState.setStatesOfBlock(blockId, newStates.toList) // update the cfg with the new block states

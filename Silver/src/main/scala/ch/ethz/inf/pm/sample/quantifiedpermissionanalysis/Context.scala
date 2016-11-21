@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{PermType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import viper.silver.ast.{CondExp, FullPerm, FuncLike, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program, Ref}
@@ -50,7 +50,7 @@ object Context {
   def initContext = {
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
     identifiers ++= prog.fields.map(field => field.name)
-    identifiers ++= prog.methods.flatMap(method => (method.formalArgs ++ method.formalReturns).toSet).map(varDecl => varDecl.name)
+    identifiers ++= prog.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
     identifiers ++= prog.methods.map(method => method.name)
     identifiers ++= prog.domains.map(domain => domain.name)
     identifiers ++= prog.functions.map(function => function.name)
@@ -250,4 +250,26 @@ object ReadPermission extends Expression {
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this)
+}
+
+case class ExpressionCollection(var expressions: Set[Expression]) extends Expression {
+  /** The type of this expression. */
+  override def typ: Type = RefType()
+
+  /** Point in the program where this expression is located. */
+  override def pp: ProgramPoint = DummyProgramPoint
+
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = expressions.map(expr => expr.ids).reduce { case (ids1, ids2) => ids1 ++ ids2 }
+
+  /** Runs f on the expression and all sub-expressions
+    *
+    * This also replaces identifiers inside heap ID sets.
+    *
+    * @param f the transformer
+    * @return the transformed expression*/
+  override def transform(f: (Expression) => Expression): Expression = ExpressionCollection(expressions.map(expr => expr.transform(f)))
+
+  /** Checks if function f evaluates to true for any sub-expression. */
+  override def contains(f: (Expression) => Boolean): Boolean = expressions.exists(f)
 }
