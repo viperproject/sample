@@ -7,11 +7,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
-import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator => AOp}
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -88,12 +87,12 @@ case class ApronInterfaceTranslator (
 
     val zero = Constant("0", typ, DummyProgramPoint)
     val result = BinaryArithmeticExpression(
-      left = BinaryArithmeticExpression(leftExps, AOp.`+`, typ, zero),
-      right = BinaryArithmeticExpression(rightExps, AOp.`+`, typ, zero),
+      left = BinaryArithmeticExpression(leftExps, ArithmeticOperator.`+`, typ, zero),
+      right = BinaryArithmeticExpression(rightExps, ArithmeticOperator.`+`, typ, zero),
       op = op,
       returntyp = boolType)
 
-    if (typ.isBooleanType && (result.op != AOp.`==` && result.op != AOp.`!=`))
+    if (typ.isBooleanType && (result.op != ArithmeticOperator.`==` && result.op != ArithmeticOperator.`!=`))
       None // Do not return boolean inequalities for the moment
     else
       Some(resultTransformer(result))

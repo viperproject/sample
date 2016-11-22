@@ -11,7 +11,7 @@ import play.twirl.sbt.SbtTwirl
 object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
-    base = file(".")) aggregate(core, numerical, touchdevelop,
+    base = file(".")) aggregate(core, numerical, apron, touchdevelop,
     scalapreproc, partitioning, string, valuedrivenheap, sil, silver, web)
 
   lazy val core = Project(
@@ -22,9 +22,13 @@ object SampleBuild extends Build {
     id = "sample-numerical",
     base = file("NumericalAnalysis")) dependsOn(core)
 
+  lazy val apron = Project(
+    id = "sample-apron",
+    base = file("Apron")) dependsOn(core, numerical)
+
   lazy val touchdevelop = Project(
     id = "sample-touchdevelop",
-    base = file("TouchDevelopPreprocessing")) dependsOn(core, numerical, string)
+    base = file("TouchDevelopPreprocessing")) dependsOn(core, numerical, apron, string)
 
   lazy val scalapreproc = Project(
     id = "sample-scala-preprocessing",
@@ -36,25 +40,25 @@ object SampleBuild extends Build {
 
   lazy val string = Project(
     id = "sample-string",
-    base = file("String")) dependsOn(core, numerical)
+    base = file("String")) dependsOn(core, numerical, apron)
 
   lazy val valuedrivenheap = Project(
     id = "sample-valuedriven-heap",
-    base = file("ValueDrivenHeapAnalysis")) dependsOn(core, numerical, scalapreproc)
+    base = file("ValueDrivenHeapAnalysis")) dependsOn(core, numerical, apron, scalapreproc)
 
   lazy val sil = Project(
     id = "sample-sil",
-    base = file("SIL")) dependsOn(core, numerical, valuedrivenheap)
+    base = file("SIL")) dependsOn(core, numerical, apron, valuedrivenheap)
 
   lazy val silver = Project(
     id = "sample-silver",
-    base = file("Silver")) dependsOn(core, numerical, valuedrivenheap)
+    base = file("Silver")) dependsOn(core, numerical)
 
   lazy val web = Project(
     id = "sample-web",
     base = file("Web"),
     settings = Defaults.coreDefaultSettings++ com.earldouglas.xwp.XwpPlugin.jetty()
-  ).enablePlugins(SbtTwirl).dependsOn(core, numerical, valuedrivenheap, sil, touchdevelop)
+  ).enablePlugins(SbtTwirl).dependsOn(core, numerical, apron, valuedrivenheap, sil, touchdevelop)
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",
@@ -81,8 +85,8 @@ object SampleBuild extends Build {
       //"-Xdisable-assertions"
     ),
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.1.3" % "runtime", // Logging Backend
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",  // Logging Frontend
+      "ch.qos.logback" % "logback-classic" % "1.1.7" % "runtime", // Logging Backend % "runtime"
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",  // Logging Frontend
       "org.scalatest" % "scalatest_2.11" % "2.2.1",               // Testing Framework
       "org.scalaz" %% "scalaz-core" % "7.1.5"                     // Functional Programming
     )

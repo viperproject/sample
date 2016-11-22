@@ -1194,7 +1194,7 @@ case class MayPointToDoubleOctagonsState(fieldSet: Set[(Type, String)],
     MayPointToDoubleOctagonsState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
 
-
+/*
 /** MayPointTo+Octagons Analysis State.
   *
   * @param fieldSet fields declared within the program
@@ -1256,6 +1256,7 @@ case class MayPointToAPolyhedraState(fieldSet: Set[(Type, String)],
                     numDom: NumDom.AP): MayPointToAPolyhedraState =
     MayPointToAPolyhedraState(fieldSet, currentPP, flag, nonce, exprSet, refToObj, objToObj, numDom)
 }
+*/
 
 /** MayPointTo+Numerical Analysis Entry State.
   *
@@ -1315,7 +1316,7 @@ object MayPointToDoubleOctagonsEntryStateBuilder
     DoubleOctagons.Bottom.factory)
 }
 
-
+/*
 /** MayPointTo+Octagons Analysis Entry States.
   *
   * @author Caterina Urban
@@ -1343,6 +1344,7 @@ object MayPointToAPolyhedraEntryStateBuilder
     Map[OldHeapNode,Map[String,Set[OldHeapNode]]](),
     Apron.Polyhedra.Bottom.factory)
 }
+*/
 
 /** MayPointTo+Numerical Analysis Runner.
   *
@@ -1395,6 +1397,7 @@ trait MayPointToNumericalAnalysisRunner[N <: NumericalDomain[N], T <: MayPointTo
   override def toString = "PointsTo+Numerical Analysis"
 }
 
+
 /** MayPointTo+Intervals Analysis Runner.
   *
   * @author Caterina Urban
@@ -1415,6 +1418,7 @@ object MayPointToIntegerOctagonsAnalysisRunner
   override def toString = "PointsTo+Octagons Analysis"
 }
 
+/*
 /** MayPointTo+Octagons Analysis Runner.
   *
   * @author Caterina Urban
@@ -1435,3 +1439,4 @@ object MayPointToAPolyhedraAnalysisRunner
   override val analysis = SimpleForwardAnalysis[MayPointToAPolyhedraState](MayPointToAPolyhedraEntryStateBuilder)
   override def toString = "MayPointTo+Polyhedra Analysis"
 }
+*/
