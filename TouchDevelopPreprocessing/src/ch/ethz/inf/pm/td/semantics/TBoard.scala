@@ -18,29 +18,6 @@ import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
  */
 object TBoard extends Default_TBoard {
 
-  /**
-   * Copy is only used in foreach-loops to create a copy of the traversed collection
-   * In the case of TBoard, it is automatically converted to a TSprite_Set
-   */
-  override lazy val member_copy = super.member_copy.copy(returnType = TSprite_Set,
-    semantics = new ApiMemberSemantics {
-    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      var curState = state
-      curState = New[S](TSprite_Set,initials = Map(
-        TSprite_Set.field_entry -> Field[S](this0,TBoard.field_entry),
-        TSprite_Set.field_count -> Field[S](this0,TBoard.field_count)
-      ))(curState,pp)
-      curState
-    }
-  })
-
-  override lazy val member_on_every_frame = super.member_on_every_frame.copy(semantics = new ApiMemberSemantics {
-    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      val newState = AssignField(this0,TBoard.field_on_every_frame_handler,parameters.head)
-      New(TEvent_Binding)(newState, pp)
-    }
-  })
-
   /** Gets the background scene */
   lazy val field_background_scene = ApiField("background scene", TBoard_Background_Scene)
 
@@ -85,7 +62,39 @@ object TBoard extends Default_TBoard {
   lazy val field_tap_handler = ApiField("tap handler", TPosition_Action)
   lazy val field_touch_down_handler = ApiField("touch down handler", TPosition_Action)
   lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
-  lazy val field_on_every_frame_handler = ApiField("on every frame handler", TAction)
+  lazy val field_on_every_frame_handler = ApiField("every frame handler", TAction)
+
+
+  /**
+    * Copy is only used in foreach-loops to create a copy of the traversed collection
+    * In the case of TBoard, it is automatically converted to a TSprite_Set
+    */
+  override lazy val member_copy = super.member_copy.copy(returnType = TSprite_Set,
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        var curState = state
+        curState = New[S](TSprite_Set,initials = Map(
+          TSprite_Set.field_entry -> Field[S](this0,TBoard.field_entry),
+          TSprite_Set.field_count -> Field[S](this0,TBoard.field_count)
+        ))(curState,pp)
+        curState
+      }
+    })
+
+  override def member_on_swipe =
+    super.member_on_swipe.copy(semantics = AAction.EnableSemantics(TBoard.field_swipe_handler))
+
+  override def member_on_tap =
+    super.member_on_tap.copy(semantics = AAction.EnableSemantics(TBoard.field_tap_handler))
+
+  override def member_on_touch_down =
+    super.member_on_touch_down.copy(semantics = AAction.EnableSemantics(TBoard.field_touch_down_handler))
+
+  override def member_on_touch_up =
+    super.member_on_touch_up.copy(semantics = AAction.EnableSemantics(TBoard.field_touch_up_handler))
+
+  override def member_on_every_frame =
+    super.member_on_every_frame.copy(semantics = AAction.EnableSemantics(TBoard.field_on_every_frame_handler))
 
   override def mutedFields = super.mutedFields ++ List(
     field_width,
@@ -124,6 +133,12 @@ object TBoard extends Default_TBoard {
     /** add an action that fires for every display frame. */
     case "add on every frame" =>
       val List(perform) = parameters // Action
+      var curState = state
+      curState = AssignField[S](this0, TBoard.field_on_every_frame_handler, perform)(curState,pp)
+      curState = TAction.Enable[S](perform)(curState,pp)
+      curState = New[S](TEvent_Binding)(curState,pp)
+      curState
+
       New[S](TEvent_Binding)
 
     // Clears the background camera
@@ -248,30 +263,6 @@ object TBoard extends Default_TBoard {
     /** create a timer that fires for every display frame. */
     case "frame timer" =>
       Top[S](TTimer)
-
-    /** set the handler that is invoked when the board is swiped */
-    case "on swipe" =>
-      val List(swiped) = parameters // Vector_Action
-    val newState = AssignField[S](this0, TBoard.field_swipe_handler, swiped)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** set the handler that is invoked when the board is tapped */
-    case "on tap" =>
-      val List(tapped) = parameters // Position_Action
-    val newState = AssignField[S](this0, TBoard.field_tap_handler, tapped)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** set the handler that is invoked when the board is touched */
-    case "on touch down" =>
-      val List(touch_down) = parameters // Position_Action
-    val newState = AssignField[S](this0, TBoard.field_touch_down_handler, touch_down)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** set the handler that is invoked when the board touch is released */
-    case "on touch up" =>
-      val List(touch_up) = parameters // Position_Action
-    val newState = AssignField[S](this0, TBoard.field_touch_up_handler, touch_up)
-      New[S](TEvent_Binding)(newState, pp)
 
     // Sets the default friction for sprites to a fraction of speed loss between 0 and 1
     case "set friction" =>

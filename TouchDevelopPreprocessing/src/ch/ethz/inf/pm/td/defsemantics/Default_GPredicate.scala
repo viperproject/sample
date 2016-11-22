@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,27 +18,14 @@ import ch.ethz.inf.pm.td.semantics._
  * @author Lucas Brutschy
  */
 
-trait Default_GPredicate extends AAny {
+trait Default_GPredicate extends AAction {
 
   def TElt:AAny
-           
 
   lazy val typeName = TypeName("Predicate", List(TElt.typeName))
-          
-  /** Never used: Run the inline action. */
-  def member_run = ApiMember(
-    name = "run",
-    paramTypes = List(ApiParam(TElt)),
-    thisType = ApiParam(this),
-    returnType = TBoolean,
-    semantics = DefaultSemantics
-  )
 
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "run" -> member_run
-  )
-            
+  override def actionReturnValue: AAny = TBoolean
+  override def actionArguments: List[ApiParam] = List(ApiParam(TElt))
 
 }
           

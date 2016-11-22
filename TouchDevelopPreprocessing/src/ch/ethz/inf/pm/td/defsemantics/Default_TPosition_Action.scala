@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +22,8 @@ trait Default_TPosition_Action extends AAction {
 
   lazy val typeName = TypeName("Position Action")
           
-  def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber))
+  override def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber))
+  override def actionReturnValue: AAny = TNothing
 
 
 }

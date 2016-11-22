@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,8 +22,8 @@ trait Default_TBoolean_Action extends AAction {
 
   lazy val typeName = TypeName("Boolean Action")
           
-  def actionArguments = List(ApiParam(TBoolean_Action))
-
+  override def actionArguments = List(ApiParam(TBoolean_Action))
+  override def actionReturnValue: AAny = TNothing
 
 }
           

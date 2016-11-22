@@ -57,7 +57,8 @@ object TypeList  {
 
   def getTypeOrFail(typ:TypeName):AAny = getType(typ) match {
     case Some(x) => x
-    case None => throw TouchException("TypeList: Non-existing type detected: "+typ)
+    case None =>
+      throw TouchException("TypeList: Non-existing type detected: "+typ)
   }
 
   def getType(typ:TypeName):Option[AAny] = {

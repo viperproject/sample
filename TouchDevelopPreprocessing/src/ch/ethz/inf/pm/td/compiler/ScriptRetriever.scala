@@ -41,6 +41,8 @@ object ScriptRetriever extends LazyLogging {
       else if (path.startsWith("https://"))
         (ScriptRetriever.getLocally(ScriptQuery.pubIDfromURL(path)).get, ScriptQuery.pubIDfromURL(path))
       else if (path.startsWith("td://"))
+        (ScriptRetriever.getLocally(path.substring(5)).get, path.substring(5))
+      else if (path.startsWith("td+mongo://"))
         (ScriptRetriever.getMongo(path.substring(5)).get, path.substring(5))
       else if (path.toLowerCase.endsWith(".td"))
         ((ScriptParser(Source.fromFile(path).getLines().mkString("\n")),None), ScriptQuery.pubIDfromFilename(path))

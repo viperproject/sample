@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -87,6 +86,18 @@ object SBox extends Default_SBox {
   lazy val field_text_edited_handler = ApiField("text edited handler", TText_Action)
   lazy val field_text_editing_handler = ApiField("text editing handler", TText_Action)
   lazy val field_tapped_handler = ApiField("tapped handler", TAction)
+
+  override def member_edit =
+    super.member_edit.copy(semantics = AAction.EnableSemantics(SBox.field_text_edited_handler, argIndex = 2))
+
+  override def member_on_text_edited =
+    super.member_on_text_edited.copy(semantics = AAction.EnableSemantics(SBox.field_text_edited_handler))
+
+  override def member_on_text_editing =
+    super.member_on_text_editing.copy(semantics = AAction.EnableSemantics(SBox.field_text_editing_handler))
+
+  override def member_on_tapped =
+    super.member_on_tapped.copy(semantics = AAction.EnableSemantics(SBox.field_tapped_handler))
 
   override lazy val possibleFields = super.possibleFields ++ Set(
     field_is_init,
@@ -236,30 +247,6 @@ object SBox extends Default_SBox {
     case "edit text" =>
       val List(text, multiline) = parameters // String,Boolean
       Skip
-
-    /** Display editable text, with the given binding. */
-    case "edit" =>
-      val List(style, value, changehandler) = parameters // String,String,Text_Action
-      val newState = AssignField[S](this0, SBox.field_text_editing_handler, changehandler)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set what happens when the user has finished editing the text in the box. */
-    case "on text edited" =>
-      val List(handler) = parameters // Text_Action
-      val newState = AssignField[S](this0, SBox.field_text_edited_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set what happens whenever the text in the box is being edited. */
-    case "on text editing" =>
-      val List(handler) = parameters // Text_Action
-      val newState = AssignField[S](this0, SBox.field_text_editing_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
-
-    /** Set what happens when the box is tapped. */
-    case "on tapped" =>
-      val List(handler) = parameters // Action
-      val newState = AssignField[S](this0, SBox.field_tapped_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the color and width of the border. */
     case "set border" =>

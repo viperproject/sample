@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -58,6 +57,10 @@ object TWeb_Request extends Default_TWeb_Request {
 
   /** Async response handler */
   lazy val field_handler = ApiField("handler", TWeb_Response_Action)
+
+  override def member_on_response_received =
+    super.member_on_response_received.copy(semantics = AAction.EnableSemantics(TWeb_Request.field_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_header_storage, field_method, field_url,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_picture_quality,
     field_content_as_xml, field_content_as_form,
@@ -80,15 +83,9 @@ object TWeb_Request extends Default_TWeb_Request {
     case "header names" =>
       CallApi[S](Field[S](this0, TWeb_Request.field_header_storage), "keys", Nil, returnedType)
 
-    /** Set what happens whenever the response comes back from 'send async'. */
-    case "on response received" =>
-      val List(handler) = parameters // Web_Response_Action
-    val newState = AssignField[S](this0, TWeb_Request.field_handler, handler)
-      New[S](TEvent_Binding)(newState, pp)
-
     /** Sends the request asynchronously. Attach a handler to 'on response received' to receive the response. */
     case "send async" =>
-      Skip
+      TWeb_Response_Action.Enable[S](Field[S](this0,TWeb_Request.field_handler))
 
     /** Performs the request synchronously */
     case "send" =>
@@ -110,7 +107,7 @@ object TWeb_Request extends Default_TWeb_Request {
     /** Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */
     case "set content as picture" =>
       val List(pic, quality) = parameters // Picture,Number
-    var curState = state
+      var curState = state
       curState = AssignField[S](this0, TWeb_Request.field_content_as_picture, pic)(curState, pp)
       curState = AssignField[S](this0, TWeb_Request.field_content_as_picture_quality, quality)(curState, pp)
       curState

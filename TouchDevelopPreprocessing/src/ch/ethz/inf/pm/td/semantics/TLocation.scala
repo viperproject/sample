@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{ApiMember, TopSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TLocation
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -51,6 +51,9 @@ object TLocation extends Default_TLocation {
 
   override def possibleFields = super.possibleFields ++ List(field_latitude,field_longitude,field_altitude,
       field_speed, field_hor_accuracy,field_course,field_vert_accuracy)
+
+  /** Sometimes used: Converts to a string lat,long */
+  override def member_to_string: ApiMember = super.member_to_string.copy(semantics = TopSemantics)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 

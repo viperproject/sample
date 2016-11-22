@@ -66,7 +66,7 @@ abstract class App extends ScalatraServlet {
 
     results match {
       case Some(r) =>
-        resultsOption = Some(r.asInstanceOf[List[MethodAnalysisResult[_ <: State[_]]]])
+        resultsOption = Some(r)
 
         // If there is only a single result, redirect to it
         // Otherwise, let the user choose
@@ -147,8 +147,8 @@ abstract class App extends ScalatraServlet {
   private def resultOption[S <: State[S]]: Option[AnalysisResult] = {
     resultsOption match {
       case Some(results) =>
-        val resultIndex = params("result").toInt
-        Some(results(resultIndex))
+        val resultID = params("result")
+        results.find(_.uniqueID == resultID)
       case None =>
         None
     }

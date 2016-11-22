@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,6 +46,7 @@ object TDateTime extends Default_TDateTime {
 
   override lazy val member_greater_or_equal = super.member_greater_or_equal.copy(semantics = TopSemantics)
   override lazy val member_subtract = super.member_subtract.copy(semantics = TopSemantics)
+  override lazy val member_greater = super.member_greater.copy(semantics = TopSemantics)
 
   override def possibleFields = super.possibleFields ++ List(
     field_day,

@@ -242,15 +242,19 @@ case class TouchAnalysisParameters(
                                      */
                                     includeLibraryStableComponent: Boolean = false,
 
+                                    conditionalHandlers: Boolean = true,
 
                                     /**
                                      * Settings for the mongodb server
                                      */
                                     mongoServer:String = "localhost",
                                     mongoPort:Int = 27017,
-                                    mongoDatabase:String = "tb"
+                                    mongoDatabase:String = "tb",
 
-                                    )
+                                    enableCloudAnalysis:Boolean = false
+
+                                    ) {
+}
 
 object LibraryErrorReportingMode extends Enumeration {
 

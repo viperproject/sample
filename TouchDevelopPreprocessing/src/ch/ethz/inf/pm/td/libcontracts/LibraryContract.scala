@@ -23,7 +23,11 @@ object LibraryContract extends ForwardNativeMethodSemantics {
   def contracts = List(
     GameLib,
     GamepadLib,
-    TurtleLib
+    TurtleLib,
+    LayoutLib,
+    ThemeLib,
+    FormsLib,
+    WidgetLib
   )
 
   /**

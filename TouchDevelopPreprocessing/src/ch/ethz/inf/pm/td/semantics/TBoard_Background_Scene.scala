@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,8 +27,12 @@ object TBoard_Background_Scene extends Default_TBoard_Background_Scene {
 
   override lazy val member_create_layer = super.member_create_layer.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
-      val curState = Top[S](valueType)
-      Add[S](this0,curState.expr)(curState,pp)
+      var curState = state
+      curState = Top[S](valueType)(curState,pp)
+      val obj = curState.expr
+      curState = Add[S](this0,obj)(curState,pp)
+      curState = Return[S](obj)(curState,pp)
+      curState
     }
   })
 

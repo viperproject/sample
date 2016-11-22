@@ -43,9 +43,9 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   var parsedTouchScripts: Map[String, Script] = Map.empty
 
-  var publicMethods: Set[MethodDeclaration] = Set.empty
-  var privateMethods: Set[MethodDeclaration] = Set.empty
-  var events: Set[MethodDeclaration] = Set.empty
+  var mainPublicMethods: Set[MethodDeclaration] = Set.empty
+  var mainPrivateMethods: Set[MethodDeclaration] = Set.empty
+  var events: List[MethodDeclaration] = Nil
   var globalData: Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields: Set[String] = Set.empty
 
@@ -73,15 +73,16 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     main = compileScriptRecursive(script, pubID)
     mainID = pubID
 
-    val allTouchMethods = main.methods.toSet
+    val mainTouchMethods = main.methods.toSet
+    val allTouchMethods = parsedScripts.flatMap(_.methods)
 
     // We analyze public methods from the main class, events from the main class but globalData from all files (library)
-    publicMethods = allTouchMethods filter {
+    mainPublicMethods = mainTouchMethods filter {
       tm =>
         !tm.name.asInstanceOf[TouchMethodIdentifier].isPrivate && !tm.name.asInstanceOf[TouchMethodIdentifier].isEvent
     }
 
-    privateMethods = allTouchMethods filter {
+    mainPrivateMethods = mainTouchMethods filter {
       tm =>
         tm.name.asInstanceOf[TouchMethodIdentifier].isPrivate
     }
@@ -207,20 +208,20 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     else throw TouchException("Local or library call may resolve to multiple methods.")
   }
 
-  def getPublicMethods: Set[MethodDeclaration] = publicMethods
+  def getPublicMethods: Set[MethodDeclaration] = mainPublicMethods
 
-  def getPrivateMethods: Set[MethodDeclaration] = privateMethods
+  def getPrivateMethods: Set[MethodDeclaration] = mainPrivateMethods
 
   def getMethods(name: String): List[(ClassDefinition, MethodDeclaration)] =
-    for (mdecl <- publicMethods.toList if mdecl.name.toString == name)
+    for (mdecl <- mainPublicMethods.toList if mdecl.name.toString == name)
     yield (mdecl.classDef, mdecl)
 
   def reset() {
     TypeList.reset()
     main = null
-    publicMethods = Set.empty
-    privateMethods = Set.empty
-    events = Set.empty
+    mainPublicMethods = Set.empty
+    mainPrivateMethods = Set.empty
+    events = Nil
     globalData = Set.empty
     parsedNames = Nil
     relevantLibraryFields = Set.empty
@@ -233,6 +234,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     SystemParameters.typ = TNothing.top()
   }
 
-  override def allMethods: List[MethodDeclaration] = (publicMethods ++ privateMethods ++ events).toList
+  override def allMethods: List[MethodDeclaration] = (mainPublicMethods ++ mainPrivateMethods ++ events).toList
 
 }

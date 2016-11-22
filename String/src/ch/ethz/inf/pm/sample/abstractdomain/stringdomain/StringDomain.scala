@@ -6,10 +6,11 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
+import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.abstractdomain.Identifier.FieldIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyStringType, Type}
-import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BooleanExpressionSimplifier, NumericalDomain}
 
 trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
@@ -30,7 +31,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
   def functionalFactory(_value:Map[Identifier, T] = Map.empty[Identifier, T],
                         _isBottom:Boolean = false,
                         _isTop:Boolean = false) : NonrelationalStringDomain[T] =
-    new NonrelationalStringDomain(dom,_value,_isBottom,_isTop)
+    NonrelationalStringDomain(dom, _value, _isBottom, _isTop)
 
   def get(key : Identifier) : T = map.get(key) match {
     case None => dom.bottom()
