@@ -207,7 +207,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     for (edgeRight <- edgeMap.values) {
       var newState = edgeRight.state.removeVariables(idsToRemove)
-      newState = newState.rename(renameMap.toMap)
+      newState = newState.rename(renameMap)
       val edgeToAdd = Edge(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdge(edgeToAdd)
     }
@@ -257,7 +257,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     for (e <- edgesToAdd) {
       val newSrc = renaming.getOrElse(e.source, e.source)
       val newTrg = renaming.getOrElse(e.target, e.target)
-      resultingGraph = resultingGraph.addEdge(Edge(newSrc, e.state.rename(renameMap.toMap), e.field, newTrg))
+      resultingGraph = resultingGraph.addEdge(Edge(newSrc, e.state.rename(renameMap), e.field, newTrg))
     }
     (resultingGraph, renaming)
   }

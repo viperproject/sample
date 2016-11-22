@@ -10,26 +10,24 @@ import java.io.IOException
 
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
-import ch.ethz.inf.pm.td.tools.{AnalyzeRecords, Instrumentation, FindCloud, FindConstruct}
+import ch.ethz.inf.pm.td.tools.{AnalyzeRecords, FindCloud, Instrumentation}
 import ch.ethz.inf.pm.td.webapi._
-import com.mongodb.MongoException
 import net.liftweb.json.MappingException
 
 
-
 /**
- * Defines the commandline interface for TouchGuru
- */
+  * Defines the commandline interface for TouchGuru
+  */
 object Main {
 
   /**
-   * Defines the modes of the commandline interfac
-   *
-   * - Default:   Reads a list of files or script ids from the command-line and analyses them one by one
-   * - WatchMode: Watches a the mongodb for incoming analysis jobs (nonterminating)
-   * - Help:      Prints a list of options and exits
-   * - Feeder:    Feeds analysis jobs into the database
-   */
+    * Defines the modes of the commandline interfac
+    *
+    * - Default:   Reads a list of files or script ids from the command-line and analyses them one by one
+    * - WatchMode: Watches a the mongodb for incoming analysis jobs (nonterminating)
+    * - Help:      Prints a list of options and exits
+    * - Feeder:    Feeds analysis jobs into the database
+    */
   object Mode extends Enumeration {
     type Mode = Value
     val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument, AnalyzeRecords = Value
@@ -37,7 +35,7 @@ object Main {
 
   def main(args: Array[String]) {
 
-    var mode:Mode.Value = Mode.Default
+    var mode: Mode.Value = Mode.Default
     val ExportPath = "-exportPath=(.*)".r
     val JobID = "-jobID=(.*)".r
     val Timeout = "-timeout=(.*)".r
@@ -47,7 +45,7 @@ object Main {
     val MongoPort = "-mongoPort=(.*)".r
     val MongoDatabase = "-mongoDatabase=(.*)".r
 
-    val nonOptions = args.filter{
+    val nonOptions = args.filter {
       case ExportPath(x) => FileSystemExporter.exportPath = x; false
       case "-json" => Exporters.exportAsJSON = true; false
       case "-no-json" => Exporters.exportAsJSON = false; false
@@ -73,7 +71,7 @@ object Main {
       case MongoPort(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoPort = x.toInt)); false
       case MongoDatabase(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(mongoDatabase = x)); false
 
-        // Undocumented tools
+      // Undocumented tools
       case "-findCloud" => mode = Mode.FindCloud; false
       case "-analyzeRecords" => mode = Mode.AnalyzeRecords; false
 
@@ -104,10 +102,10 @@ object Main {
   }
 
   /**
-   *
-   * Prints the help screen
-   *
-   */
+    *
+    * Prints the help screen
+    *
+    */
   def printHelp(args: Array[String]) {
 
     println(
@@ -158,10 +156,10 @@ object Main {
   }
 
   /**
-   *
-   * Prints statistics about the analysis results in the local mongo database
-   *
-   */
+    *
+    * Prints statistics about the analysis results in the local mongo database
+    *
+    */
   def printStatistics(args: Array[String]) {
 
 
@@ -173,12 +171,12 @@ object Main {
     var mode = StatisticsMode.Default
     args filter {
 
-      case "-dummies" => mode = StatisticsMode.Dummies;     false
-      case "-bottoms" => mode = StatisticsMode.Bottoms;     false
-      case "-debug"   => mode = StatisticsMode.Debug;       false
-      case "-libs"    => mode = StatisticsMode.Libraries;   false
-      case "-alarms"  => mode = StatisticsMode.Alarms;      false
-      case "-timings" => mode = StatisticsMode.Timings;     false
+      case "-dummies" => mode = StatisticsMode.Dummies; false
+      case "-bottoms" => mode = StatisticsMode.Bottoms; false
+      case "-debug" => mode = StatisticsMode.Debug; false
+      case "-libs" => mode = StatisticsMode.Libraries; false
+      case "-alarms" => mode = StatisticsMode.Alarms; false
+      case "-timings" => mode = StatisticsMode.Timings; false
       case _ => true
 
     }
@@ -192,25 +190,29 @@ object Main {
 
       case StatisticsMode.Bottoms =>
 
-        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        var map = scala.collection.mutable.HashMap.empty[String, Set[String]]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
-          val script = x.getAsOrElse[String]("url","").split("\n").head
-          for (y <- x.getAsOrElse[MongoDBList]("bottoms",MongoDBList.empty)) {
-            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
-            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          val script = x.getAsOrElse[String]("url", "").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("bottoms", MongoDBList.empty)) {
+            val mess = y.asInstanceOf[DBObject].getAsOrElse[String]("message", "").split("\n").head
+            map += (mess -> (map.getOrElse(mess, Set.empty) + script))
           }
         }
-        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+        println(map.toList.sortBy {
+          _._2.size
+        }.map { x => x._2.size + "\t||" + x._1 + "\t||" + x._2.mkString(",") }.mkString("\n"))
 
       case StatisticsMode.Debug =>
 
-        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        var map = scala.collection.mutable.HashMap.empty[String, Set[String]]
         for (x <- collection.find(MongoDBObject("status" -> "Failed"))) {
-          val error =  x.getAsOrElse[String]("debug","").split("\n").head
-          val script = x.getAsOrElse[String]("url","").split("\n").head
-          map += (error -> (map.getOrElse(error,Set.empty) + script))
+          val error = x.getAsOrElse[String]("debug", "").split("\n").head
+          val script = x.getAsOrElse[String]("url", "").split("\n").head
+          map += (error -> (map.getOrElse(error, Set.empty) + script))
         }
-        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+        println(map.toList.sortBy {
+          _._2.size
+        }.map { x => x._2.size + "\t||" + x._1 + "\t||" + x._2.mkString(",") }.mkString("\n"))
 
       case StatisticsMode.Default =>
 
@@ -220,64 +222,70 @@ object Main {
 
       case StatisticsMode.Libraries =>
 
-        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        var map = scala.collection.mutable.HashMap.empty[String, Set[String]]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
-          val script = x.getAsOrElse[String]("url","").split("\n").head
-          for (y <- x.getAsOrElse[MongoDBList]("libs",MongoDBList.empty)) {
-            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("id","").split("\n").head
-            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          val script = x.getAsOrElse[String]("url", "").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("libs", MongoDBList.empty)) {
+            val mess = y.asInstanceOf[DBObject].getAsOrElse[String]("id", "").split("\n").head
+            map += (mess -> (map.getOrElse(mess, Set.empty) + script))
           }
         }
-        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+        println(map.toList.sortBy {
+          _._2.size
+        }.map { x => x._2.size + "\t||" + x._1 + "\t||" + x._2.mkString(",") }.mkString("\n"))
 
       case StatisticsMode.Timings =>
 
-        val mapAvg = scala.collection.mutable.HashMap.empty[String,Double]
-        val mapNumber = scala.collection.mutable.HashMap.empty[String,Int]
+        val mapAvg = scala.collection.mutable.HashMap.empty[String, Double]
+        val mapNumber = scala.collection.mutable.HashMap.empty[String, Int]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
-          for (y <- x.getAsOrElse[MongoDBList]("timings",MongoDBList.empty)) {
+          for (y <- x.getAsOrElse[MongoDBList]("timings", MongoDBList.empty)) {
             for (z <- List("TouchAnalysisMainAnalysis", "TouchAnalysisHeapPreanalysis", "TouchAnalysisLibraryFieldAnalysis")) {
-              val time =  y.asInstanceOf[DBObject].getAsOrElse[Long](z,0)
-              val num = mapNumber.getOrElse(z,0) + 1
+              val time = y.asInstanceOf[DBObject].getAsOrElse[Long](z, 0)
+              val num = mapNumber.getOrElse(z, 0) + 1
               mapNumber += (z -> num)
-              mapAvg += (z -> (mapAvg.getOrElse(z,0.0)+time.toDouble/num))
+              mapAvg += (z -> (mapAvg.getOrElse(z, 0.0) + time.toDouble / num))
             }
           }
         }
-        println(mapAvg.map{x => x._1+"\t||"+x._2}.mkString("\n"))
+        println(mapAvg.map { x => x._1 + "\t||" + x._2 }.mkString("\n"))
 
       case StatisticsMode.Dummies =>
 
-        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        var map = scala.collection.mutable.HashMap.empty[String, Set[String]]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
-          val script = x.getAsOrElse[String]("url","").split("\n").head
-          for (y <- x.getAsOrElse[MongoDBList]("dummies",MongoDBList.empty)) {
-            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
-            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          val script = x.getAsOrElse[String]("url", "").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("dummies", MongoDBList.empty)) {
+            val mess = y.asInstanceOf[DBObject].getAsOrElse[String]("message", "").split("\n").head
+            map += (mess -> (map.getOrElse(mess, Set.empty) + script))
           }
         }
-        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+        println(map.toList.sortBy {
+          _._2.size
+        }.map { x => x._2.size + "\t||" + x._1 + "\t||" + x._2.mkString(",") }.mkString("\n"))
 
       case StatisticsMode.Alarms =>
 
-        var map = scala.collection.mutable.HashMap.empty[String,Set[String]]
+        var map = scala.collection.mutable.HashMap.empty[String, Set[String]]
         for (x <- collection.find(MongoDBObject("status" -> "Done"))) {
-          val script = x.getAsOrElse[String]("url","").split("\n").head
-          for (y <- x.getAsOrElse[MongoDBList]("result",MongoDBList.empty)) {
-            val mess =  y.asInstanceOf[DBObject].getAsOrElse[String]("message","").split("\n").head
-            map += (mess -> (map.getOrElse(mess,Set.empty) + script))
+          val script = x.getAsOrElse[String]("url", "").split("\n").head
+          for (y <- x.getAsOrElse[MongoDBList]("result", MongoDBList.empty)) {
+            val mess = y.asInstanceOf[DBObject].getAsOrElse[String]("message", "").split("\n").head
+            map += (mess -> (map.getOrElse(mess, Set.empty) + script))
           }
         }
-        println(map.toList.sortBy{ _._2.size }.map{x => x._2.size+"\t||"+x._1+"\t||"+x._2.mkString(",")}.mkString("\n"))
+        println(map.toList.sortBy {
+          _._2.size
+        }.map { x => x._2.size + "\t||" + x._1 + "\t||" + x._2.mkString(",") }.mkString("\n"))
 
     }
   }
 
   /**
-   *
-   * Constantly inserts new jobs into the database
-   *
-   */
+    *
+    * Constantly inserts new jobs into the database
+    *
+    */
   def runFeedMode(args: Array[String]) {
 
     val settings = TouchAnalysisParameters.get
@@ -294,8 +302,8 @@ object Main {
     args filter {
 
       case ParallelTasksOption(x) => parallelTasks = x.toInt; false
-      case "-skipPrevious" =>        skipPrevious = true;     false
-      case "-reanalyzeFailing" =>    reanalyzeFailing = true;          false
+      case "-skipPrevious" => skipPrevious = true; false
+      case "-reanalyzeFailing" => reanalyzeFailing = true; false
       case _ => true
 
     }
@@ -304,8 +312,8 @@ object Main {
 
       println("Reanalyzing failing scripts")
       for (x <- collection.find(MongoDBObject("status" -> "Failed"))) {
-        println("Reanalyzing "+x.getAsOrElse[String]("url","(no url??)"))
-        collection.findAndModify(x,$set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> ""))
+        println("Reanalyzing " + x.getAsOrElse[String]("url", "(no url??)"))
+        collection.findAndModify(x, $set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> ""))
       }
 
     } else {
@@ -315,19 +323,19 @@ object Main {
       for (script <- query) {
 
         if (collection.count(MongoDBObject("status" -> "Waiting")) < parallelTasks) {
-          collection.findOne(MongoDBObject("url" -> ("td://"+script.id))) match {
+          collection.findOne(MongoDBObject("url" -> ("td://" + script.id))) match {
             case Some(x) =>
               if (!skipPrevious) {
-                println("Enabled an existing record for "+script.id)
-                collection.findAndModify(x,$set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> "", "bottoms" -> MongoDBObject(),
-                    "dummies" -> MongoDBObject(), "libs" -> MongoDBObject()))
+                println("Enabled an existing record for " + script.id)
+                collection.findAndModify(x, $set("status" -> "Waiting", "debug" -> "", "result" -> MongoDBObject(), "html" -> "", "bottoms" -> MongoDBObject(),
+                  "dummies" -> MongoDBObject(), "libs" -> MongoDBObject()))
               } else {
-                println("Skipping an existing record for "+script.id)
+                println("Skipping an existing record for " + script.id)
               }
             case None =>
-              println("Creating new record for "+script.id)
+              println("Creating new record for " + script.id)
               collection.insert(MongoDBObject(
-                "url" -> ("td://"+script.id),
+                "url" -> ("td://" + script.id),
                 "status" -> "Waiting",
                 "jobID" -> randomString(10),
                 "fast" -> false,
@@ -344,13 +352,13 @@ object Main {
   }
 
   /**
-   *
-   * Watches the mongo database for incoming jobs
-   *
-   */
+    *
+    * Watches the mongo database for incoming jobs
+    *
+    */
   def runFetchMode(args: Array[String]) {
 
-    var query:ScriptQuery = new Scripts
+    var query: ScriptQuery = new Scripts
 
     var redownload = false
     val Search = """-search=([^\s]+)""".r
@@ -430,10 +438,10 @@ object Main {
 
 
   /**
-   *
-   * Watches the mongo database for incoming jobs
-   *
-   */
+    *
+    * Watches the mongo database for incoming jobs
+    *
+    */
   def runWatchMode(args: Array[String]) {
 
     var waitTime = 200
@@ -444,7 +452,10 @@ object Main {
       case _ => true
 
     }
-    if (otherArgs.nonEmpty) { println("Invalid argument"); sys.exit(1) }
+    if (otherArgs.nonEmpty) {
+      println("Invalid argument")
+      sys.exit(1)
+    }
 
     val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
@@ -458,10 +469,10 @@ object Main {
           TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = x.getAs[Int]("timeout")))
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
           // Objective may be analysis or instrumentation
-          if (x.getAsOrElse[String]("objective","analysis") == "instrumentation") {
+          if (x.getAsOrElse[String]("objective", "analysis") == "instrumentation") {
             Instrumentation.main(x.getAs[String]("url").toArray)
           } else {
-            if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
+            if (x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
             TouchRun.main(x.getAs[String]("url").toArray)
           }
         case _ =>
@@ -476,16 +487,16 @@ object Main {
 
     TouchAnalysisParameters.set(
       TouchAnalysisParameters(
-          //localizeStateOnMethodCall = true, BUGGY
-          //singleExecution = true,
-          prematureAbort = false,
-          //singleEventOccurrence = true, BUGGY
-          contextSensitiveInterproceduralAnalysis = false,
-          collectionsSummarizeElements = true,
-          collectionsSummarizeLinearElements = true,
-//          numericalDomain = NumericDomainChoice.Intervals
-          numberOfVersions = 1
-        )
+        //localizeStateOnMethodCall = true, BUGGY
+        //singleExecution = true,
+        prematureAbort = false,
+        //singleEventOccurrence = true, BUGGY
+        contextSensitiveInterproceduralAnalysis = false,
+        collectionsSummarizeElements = true,
+        collectionsSummarizeLinearElements = true,
+        //          numericalDomain = NumericDomainChoice.Intervals
+        numberOfVersions = 1
+      )
     )
 
   }

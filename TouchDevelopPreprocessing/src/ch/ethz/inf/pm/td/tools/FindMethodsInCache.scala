@@ -12,15 +12,15 @@ import ch.ethz.inf.pm.td.compiler.{ScriptRetriever, TouchException}
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.transform.{LoopRewriter, Matcher}
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{URLFetcher, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.WebASTImporter
 import net.liftweb.json.JsonParser.ParseException
 
 /**
- * Created by lucas on 6/19/14.
- *
- * Scans the cache for any use of a certain set of functions
- *
- */
+  * Created by lucas on 6/19/14.
+  *
+  * Scans the cache for any use of a certain set of functions
+  *
+  */
 
 object FindMethodsInCache {
 
@@ -48,7 +48,7 @@ object FindMethodsInCache {
 
           var matches = false
           Matcher(rewrittenScript)(
-          { x: Declaration => ()}, { x: Statement => ()}, { case Access(e, Identifier("heading"), _) if e.typeName.ident == "Senses" => matches = true; case _ => ()}
+            { x: Declaration => () }, { x: Statement => () }, { case Access(e, Identifier("heading"), _) if e.typeName.ident == "Senses" => matches = true; case _ => () }
           )
           if (matches) {
             println(" ===================== " + file + " ===================== ")

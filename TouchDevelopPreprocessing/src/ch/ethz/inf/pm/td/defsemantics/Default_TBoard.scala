@@ -296,7 +296,7 @@ trait Default_TBoard extends AMutableLinearCollection {
     semantics = DefaultSemantics
   )
 
-  /** Sometimes used: Sets the uniform acceleration vector for objects on the board to pixels/sec^2 */
+  /** Sometimes used: Sets the uniform acceleration vector for objects on the board to pixels/sec&#94;2 */
   def member_set_gravity = ApiMember(
     name = "set gravity",
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),

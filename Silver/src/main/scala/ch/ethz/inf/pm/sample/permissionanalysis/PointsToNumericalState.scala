@@ -125,7 +125,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
           queue = queue + ((List[String](),o))
           objs = objs - o // remove the heap identifiers from the set of all heap identifiers
         }
-        while (!queue.isEmpty) {
+        while (queue.nonEmpty) {
           val el: (List[String], HeapIdentifier) = queue.head // pop an element from the queue
           queue = queue - el
           for ((f,ss) <- objFieldToObj(el._2)) { // for all pairs of field and set of heap identifiers...
@@ -304,7 +304,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
         } else this.assume(left) lub this.assume(right)
 
       // NegatedBooleanExpression
-      case cond: NegatedBooleanExpression => {
+      case cond: NegatedBooleanExpression =>
         cond.exp match {
           // Constant
           case c: Constant =>
@@ -346,7 +346,6 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
           case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
             + cond.exp.getClass.getSimpleName + " is missing.")
         }
-      }
 
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
         (left, right) match {
@@ -690,7 +689,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
     // logger.debug("*** evalConstant(" + value + "; " + typ.toString + "; " + pp.toString + ")")
 
-    val const = new Constant(value, typ, pp)
+    val const = Constant(value, typ, pp)
     // return the current state with updated exprSet
     this.copy(exprSet = ExpressionSet(const))
   }

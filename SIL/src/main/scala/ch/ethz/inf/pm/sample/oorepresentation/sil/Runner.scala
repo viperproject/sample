@@ -186,7 +186,7 @@ case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
       // in the original state
       if (initialPreds.ids.getNonTopUnsafe.intersect(event.predIdMerge.predIds.toSet).nonEmpty) {
         val preds = state.generalValState.predDefs
-        throw new AnalysisRestartException(preds)
+        throw AnalysisRestartException(preds)
       }
     case _ =>
   }

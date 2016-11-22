@@ -6,7 +6,6 @@
 
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
@@ -90,14 +89,14 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
   val isTop: Boolean
 
   def copy(
-            forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
-            forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
-            backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
-            versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
-            valueState: S = valueState,
-            expr: ExpressionSet = expr,
-            isTop: Boolean = isTop
-          ): T = {
+      forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
+      forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
+      backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
+      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
+      valueState: S = valueState,
+      expr: ExpressionSet = expr,
+      isTop: Boolean = isTop
+  ): T = {
 
     val res = factory(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
@@ -135,14 +134,14 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   def factory(
-               forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-               forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-               backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-               versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-               valueState: S = valueState.factory(),
-               expr: ExpressionSet = ExpressionFactory.unitExpr,
-               isTop: Boolean = false
-             ): T
+      forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+      valueState: S = valueState.factory(),
+      expr: ExpressionSet = ExpressionFactory.unitExpr,
+      isTop: Boolean = false
+  ): T
 
   /** Creates a variable given a `VariableIdentifier`.
     * Implementations can already assume that this state is non-bottom.
@@ -1207,7 +1206,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
       case IdentifierSet.Inner(v) =>
 
-        var res : Set[List[Identifier]] = v.map(List(_))
+        var res: Set[List[Identifier]] = v.map(List(_))
         var toContinue = res.filter(!_.head.isInstanceOf[VariableIdentifier])
         while (toContinue.nonEmpty) {
           val continued =
@@ -1231,25 +1230,25 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 object TouchState {
 
   case class Default[S <: SemanticDomain[S]](
-                                              forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                                              forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                                              backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-                                              versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-                                              valueState: S,
-                                              expr: ExpressionSet = ExpressionFactory.unitExpr,
-                                              isTop: Boolean = false
-                                            )
+      forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+      valueState: S,
+      expr: ExpressionSet = ExpressionFactory.unitExpr,
+      isTop: Boolean = false
+  )
     extends TouchState[S, Default[S]] {
 
     def factory(
-                 forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                 forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                 backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-                 versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-                 valueState: S,
-                 expr: ExpressionSet = ExpressionFactory.unitExpr,
-                 isTop: Boolean = false
-               ): Default[S] =
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+        valueState: S,
+        expr: ExpressionSet = ExpressionFactory.unitExpr,
+        isTop: Boolean = false
+    ): Default[S] =
       Default(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
   }
@@ -1321,53 +1320,53 @@ object TouchState {
     * Implements a touch state which does not track values at all
     */
   case class PreAnalysis[S <: SemanticDomain[S]](
-                                                  forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                                                  forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                                                  backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-                                                  versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-                                                  valueState: S,
-                                                  expr: ExpressionSet = ExpressionFactory.unitExpr,
-                                                  isTop: Boolean = false,
-                                                  inLoops: Set[ProgramPoint] = Set.empty,
-                                                  notInLoops: Set[ProgramPoint] = Set.empty
-                                                )
+      forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+      valueState: S,
+      expr: ExpressionSet = ExpressionFactory.unitExpr,
+      isTop: Boolean = false,
+      inLoops: Set[ProgramPoint] = Set.empty,
+      notInLoops: Set[ProgramPoint] = Set.empty
+  )
     extends TouchState[S, PreAnalysis[S]] {
 
     def factory(
-                 forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                 forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-                 backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-                 versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-                 valueState: S,
-                 expr: ExpressionSet = ExpressionFactory.unitExpr,
-                 isTop: Boolean = false
-               ): PreAnalysis[S] =
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+        valueState: S,
+        expr: ExpressionSet = ExpressionFactory.unitExpr,
+        isTop: Boolean = false
+    ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
 
     override def copy(
-                       forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
-                       forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
-                       backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
-                       versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
-                       valueState: S = valueState,
-                       expr: ExpressionSet = expr,
-                       isTop: Boolean = isTop
-                     ): PreAnalysis[S] =
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
+        valueState: S = valueState,
+        expr: ExpressionSet = expr,
+        isTop: Boolean = isTop
+    ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
 
     def copyLocal(
-                   forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
-                   forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
-                   backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
-                   versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
-                   valueState: S = valueState,
-                   expr: ExpressionSet = expr,
-                   isTop: Boolean = isTop,
-                   inLoops: Set[ProgramPoint] = inLoops,
-                   notInLoops: Set[ProgramPoint] = notInLoops
-                 ): PreAnalysis[S] =
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
+        valueState: S = valueState,
+        expr: ExpressionSet = expr,
+        isTop: Boolean = isTop,
+        inLoops: Set[ProgramPoint] = inLoops,
+        notInLoops: Set[ProgramPoint] = notInLoops
+    ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
     override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis[S] = {

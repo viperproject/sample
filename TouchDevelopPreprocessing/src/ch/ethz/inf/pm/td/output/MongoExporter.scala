@@ -60,7 +60,7 @@ class MongoExporter extends ErrorExporter {
           "id" -> id,
           "message" -> message,
           "pp" -> getPP(pp),
-          "causes" -> causes.map { x => MongoDBObject("message" -> x._1, "pp" -> getPP(x._2))}
+          "causes" -> causes.map { x => MongoDBObject("message" -> x._1, "pp" -> getPP(x._2)) }
         )
       }
 
@@ -84,9 +84,9 @@ class MongoExporter extends ErrorExporter {
         )
       }
 
-      val timings = for ((str,tm) <- AccumulatingTimer.times) yield {
+      val timings = for ((str, tm) <- AccumulatingTimer.times) yield {
         MongoDBObject(
-          str.replaceAll("[^A-Za-z]+","") -> tm.sum
+          str.replaceAll("[^A-Za-z]+", "") -> tm.sum
         )
       }
 

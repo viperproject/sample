@@ -81,7 +81,7 @@ class ScalaCompiler extends Compiler {
           if (m.name.toString.equals(name) && m.arguments.head.size == parameters.size) {
             var ok: Boolean = true
             if (m.arguments.size != 1) throw new ScalaException("Not yet supported")
-            for (i <- 0 to m.arguments.head.size - 1) {
+            for (i <- 0 until m.arguments.head.size) {
               if (!parameters.apply(i).lessEqual(m.arguments.head.apply(i).typ))
                 ok = false
             }
@@ -126,7 +126,7 @@ class ScalaCompiler extends Compiler {
 
     val classes = compile(Compilable.Path(file.toPath))
 
-    if (classes.length > 0) {
+    if (classes.nonEmpty) {
       SystemParameters.typ = classes.head.typ.top
     }
     else {

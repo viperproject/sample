@@ -193,7 +193,7 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares the string (email, sms, facebook, social or '' to pick from a list) */
+  /** Rarely used: Shares the string (email, sms, facebook, social or &#39;&#39; to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString)),

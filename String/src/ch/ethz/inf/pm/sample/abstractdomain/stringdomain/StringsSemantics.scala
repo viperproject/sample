@@ -52,8 +52,8 @@ object StringSemantics extends NativeMethodSemantics {
   private def createBinaryArithmeticExpression[S <: State[S]]
        (state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], 
         operator : ArithmeticOperator.Value, returnedtype : Type) : Some[S] = parameters match {
-	    	case x :: Nil => new Some(state.setExpression(ExpressionFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
-	    	case _ => new Some(state.top())
+	    	case x :: Nil => Some(state.setExpression(ExpressionFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
+	    	case _ => Some(state.top())
   }
 
   private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.toSetOrFail match {

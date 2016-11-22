@@ -104,12 +104,12 @@ I <: HeapIdentifier[I]](
       newSemanticOpt = Some(newSemantic.top())
     else
       for (singleheapid <- id.value) {
-        if (newSemanticOpt == None)
+        if (newSemanticOpt.isEmpty)
           newSemanticOpt = Some(newSemantic.assign(singleheapid, expr))
         else newSemanticOpt = Some(id.combinator(newSemanticOpt.get, newSemantic.assign(singleheapid, expr)))
       }
     val newSemanticResult =
-      if (newSemanticOpt != None)
+      if (newSemanticOpt.isDefined)
         newSemanticOpt.get //throw new SemanticException("You should assign to something")
       else newSemantic
     factory(newSemanticResult, newHeap3)
@@ -125,7 +125,7 @@ I <: HeapIdentifier[I]](
       newSemanticOpt = Some(newSemantic.top())
     else
       for (singleheapid <- id.value) {
-        if (newSemanticOpt == None)
+        if (newSemanticOpt.isEmpty)
           newSemanticOpt = Some(newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr))
         else newSemanticOpt = Some(id.combinator(newSemanticOpt.get, newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr)))
       }

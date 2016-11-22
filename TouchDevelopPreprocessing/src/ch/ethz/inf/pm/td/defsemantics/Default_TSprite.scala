@@ -22,7 +22,7 @@ trait Default_TSprite extends AAny {
 
   lazy val typeName = TypeName("Sprite")
           
-  /** Never used: Gets the acceleration along x in pixels/sec^2 */
+  /** Never used: Gets the acceleration along x in pixels/sec&#94;2 */
   def member_acceleration_x = ApiMember(
     name = "acceleration x",
     paramTypes = List(),
@@ -31,7 +31,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets the acceleration along y in pixels/sec^2 */
+  /** Never used: Gets the acceleration along y in pixels/sec&#94;2 */
   def member_acceleration_y = ApiMember(
     name = "acceleration y",
     paramTypes = List(),
@@ -337,7 +337,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the x acceleration in pixels/sec^2 */
+  /** Rarely used: Sets the x acceleration in pixels/sec&#94;2 */
   def member_set_acceleration_x = ApiMember(
     name = "set acceleration x",
     paramTypes = List(ApiParam(TNumber)),
@@ -346,7 +346,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the y acceleration in pixels/sec^2 */
+  /** Rarely used: Sets the y acceleration in pixels/sec&#94;2 */
   def member_set_acceleration_y = ApiMember(
     name = "set acceleration y",
     paramTypes = List(ApiParam(TNumber)),
@@ -355,7 +355,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the acceleration in pixels/sec^2 */
+  /** Rarely used: Sets the acceleration in pixels/sec&#94;2 */
   def member_set_acceleration = ApiMember(
     name = "set acceleration",
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),

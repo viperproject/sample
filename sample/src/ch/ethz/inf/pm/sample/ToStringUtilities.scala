@@ -86,7 +86,7 @@ object ToStringUtilities {
     var result : String = ""
     for(key <- map.keySet) {
       val k = if (key != null) key.toString else "null"
-      val v = if (map.get(key).get != null) map.get(key).get.toString else "null"
+      val v = if (map(key) != null) map(key).toString else "null"
       result=result+k+" -> "+v+"\n"
     }
     result

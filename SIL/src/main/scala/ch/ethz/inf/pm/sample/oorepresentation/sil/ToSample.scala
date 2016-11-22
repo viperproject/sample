@@ -52,8 +52,8 @@ trait SilConverter {
 
 object DefaultSilConverter extends SilConverter with LazyLogging {
   var refType: sample.RefType = sample.RefType()
-  var classDef: sample.ClassDefinition = null
-  var prog: sil.Program = null
+  var classDef: sample.ClassDefinition = _
+  var prog: sil.Program = _
 
   def convert(p: sil.Program): List[sample.ClassDefinition] = {
     // Chicken-egg problem: To build the reference type,

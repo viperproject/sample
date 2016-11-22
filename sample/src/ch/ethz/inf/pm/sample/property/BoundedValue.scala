@@ -52,15 +52,15 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 						case VariableIdentifier(v, _) =>
 							if (v == variable) {
 								val expr = BinaryBooleanExpression(
-									BinaryArithmeticExpression(pl, new Constant(lower.toString), ArithmeticOperator.>=),
-									BinaryArithmeticExpression(pl, new Constant(upper.toString), ArithmeticOperator.<=),
+									BinaryArithmeticExpression(pl, Constant(lower.toString), ArithmeticOperator.>=),
+									BinaryArithmeticExpression(pl, Constant(upper.toString), ArithmeticOperator.<=),
 									BooleanOperator.&&,
 									null
 								)
 								if (!sa.lessEqual(sa.assume(new ExpressionSet(SystemParameters.typ.top()).add(expr)))) {
-									out.add(new WarningProgramPoint(pl.pp, "Possible unbounded assignment to " + v))
+									out.add(WarningProgramPoint(pl.pp, "Possible unbounded assignment to " + v))
 								} else {
-									out.add(new ValidatedProgramPoint(pl.pp, "Bounded assignment to " + v))
+									out.add(ValidatedProgramPoint(pl.pp, "Bounded assignment to " + v))
 								}
 							}
 						case _ => ()

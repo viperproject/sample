@@ -20,8 +20,6 @@ package ch.ethz.inf.pm.sample.tracepartitioning
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.SystemParameters
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 
 /**
@@ -154,8 +152,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * The greatest lower bound of two partitioned states operates on the pair-wise
    * on the structure of the partitioning and the leaf states.
    *
-   * @param l A partitioned state
-   * @param r Another partitioned state
+   * @param other Another partitioned state
    * @return The greatest lower bound of the two arguments
    */
   override def glb(other: PartitionedState[D]) : PartitionedState[D] = {
@@ -167,8 +164,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * themselves are responsible for a more fine grained widening.
    * The widening here is just applied to the leaf states.
    *
-   * @param l A partitioned state
-   * @param r Another partitioned state
+   * @param other Another partitioned state
    * @return The least upper bound of the two arguments
    */
   override def widening(other: PartitionedState[D]): PartitionedState[D] = {
@@ -439,15 +435,15 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
   }
 
   def pruneVariables(filter:VariableIdentifier => Boolean) : PartitionedState[D] = {
-    throw new NotImplementedException()
+    throw new NotImplementedError()
   }
 
   def pruneUnreachableHeap(): PartitionedState[D] = {
-    throw new NotImplementedException()
+    throw new NotImplementedError()
   }
 
   def optimizeSummaryNodes(): PartitionedState[D] = {
-    throw new NotImplementedException()
+    throw new NotImplementedError()
   }
 
   /**

@@ -31,20 +31,20 @@ import com.typesafe.scalalogging.LazyLogging
 object TouchEntryStateBuilder {
 
   type PreAnalysisValueState =
-    StringsAnd[
-      CollectingDomain,
-      NonrelationalStringDomain[StringKSetDomain]
-      ]
+  StringsAnd[
+    CollectingDomain,
+    NonrelationalStringDomain[StringKSetDomain]
+    ]
 
   type ValueState =
-    StringsAnd[
-      InvalidAnd[
-        StaticVariablePackingDomain[
-          BoxedNonRelationalNumericalDomain[DoubleInterval],
-          SummaryNodeWrapper[NonDeterminismWrapper[Apron.FloatOptOctagons]]
+  StringsAnd[
+    InvalidAnd[
+      StaticVariablePackingDomain[
+        BoxedNonRelationalNumericalDomain[DoubleInterval],
+        SummaryNodeWrapper[NonDeterminismWrapper[Apron.FloatOptOctagons]]
         ]
       ],
-      NonrelationalStringDomain[StringKSetDomain]
+    NonrelationalStringDomain[StringKSetDomain]
     ]
 
   type State = TouchState.Default[ValueState]
@@ -53,10 +53,10 @@ object TouchEntryStateBuilder {
 
 }
 
-case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
+case class TouchEntryStateBuilder(touchParams: TouchAnalysisParameters)
   extends ForwardEntryStateBuilder[TouchEntryStateBuilder.State] {
 
-  def preAnalysisTopState:TouchEntryStateBuilder.PreAnalysisState = {
+  def preAnalysisTopState: TouchEntryStateBuilder.PreAnalysisState = {
     TouchState.PreAnalysis(valueState =
       StringsAnd(
         CollectingDomain.Top,
@@ -74,13 +74,13 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
   }
 
-  def topStateWithClassifier(c:VariablePackingClassifier) = {
+  def topStateWithClassifier(c: VariablePackingClassifier) = {
 
     TouchState.Default(valueState = numerical(Some(c)))
 
   }
 
-  def numerical(c:Option[VariablePackingClassifier]):TouchEntryStateBuilder.ValueState = {
+  def numerical(c: Option[VariablePackingClassifier]): TouchEntryStateBuilder.ValueState = {
     val classifier =
       c match {
         case Some(x) => x
@@ -91,7 +91,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
     StringsAnd(
       InvalidAnd(
-        StaticVariablePackingDomain(nonRelationalDomain,classifier,relationalDomain,Map.empty)
+        StaticVariablePackingDomain(nonRelationalDomain, classifier, relationalDomain, Map.empty)
       ),
       NonrelationalStringDomain(
         StringKSetDomain.Top(TouchAnalysisParameters.get.stringRepresentationBound).asInstanceOf[StringKSetDomain]
@@ -104,7 +104,7 @@ case class TouchEntryStateBuilder(touchParams:TouchAnalysisParameters)
 
 trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntryStateBuilder.State] with LazyLogging {
 
-  def touchParams:TouchAnalysisParameters
+  def touchParams: TouchAnalysisParameters
 
   override val compiler = new TouchCompiler
 
@@ -147,12 +147,12 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
     val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    val methods:List[MethodAnalysisResult[S]] =
-      analyzer.analyze(Nil,entryState) map { x => MethodAnalysisResult[S](x._2,x._3.asInstanceOf[TrackingCFGState[S]]) }
-    val abs:WeightedGraph[NodeWithState[S],AbstractEventGraph.EdgeLabel.Value] =
+    val methods: List[MethodAnalysisResult[S]] =
+      analyzer.analyze(Nil, entryState) map { x => MethodAnalysisResult[S](x._2, x._3.asInstanceOf[TrackingCFGState[S]]) }
+    val abs: WeightedGraph[NodeWithState[S], AbstractEventGraph.EdgeLabel.Value] =
       AbstractEventGraph.toWeightedGraph
     val messages = Reporter.messages
-    WeightedGraphAnalysisResult("Abstract Event Graph",abs)::methods:::messages.toList
+    WeightedGraphAnalysisResult("Abstract Event Graph", abs) :: methods ::: messages.toList
   }
 
 }
@@ -160,18 +160,18 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
 object TouchDevelopAnalysisRunner {
 
   case class Default(
-                      touchParams:TouchAnalysisParameters = TouchAnalysisParameters.get,
-                      analysis:Analysis[TouchEntryStateBuilder.State] = new DefaultAnalysis
-                    )
+      touchParams: TouchAnalysisParameters = TouchAnalysisParameters.get,
+      analysis: Analysis[TouchEntryStateBuilder.State] = new DefaultAnalysis
+  )
     extends TouchDevelopAnalysisRunner[TouchEntryStateBuilder.State] {
 
-    override def toString:String = "Default TouchDevelop Analysis Runner"
+    override def toString: String = "Default TouchDevelop Analysis Runner"
 
   }
 
   class DefaultAnalysis
     extends SimpleForwardAnalysis[TouchEntryStateBuilder.State](new TouchEntryStateBuilder(TouchAnalysisParameters.get)) {
-    override def toString:String = "Default TouchDevelop Analysis"
+    override def toString: String = "Default TouchDevelop Analysis"
   }
 
 }
@@ -214,10 +214,10 @@ case class AnalysisThread(comp: Compilable, customTouchParams: Option[TouchAnaly
 object TouchRun extends LazyLogging {
 
   /**
-   * We use this to communicate if something bad happened inside the analysis thread.
-   * We then assert that this flag is false, if we want to crash for failed analyses (e.g. in tests)
-   */
-  var threadFailed:Boolean = false
+    * We use this to communicate if something bad happened inside the analysis thread.
+    * We then assert that this flag is false, if we want to crash for failed analyses (e.g. in tests)
+    */
+  var threadFailed: Boolean = false
 
   def runInThread(comp: Compilable): List[AnalysisResult] = {
 

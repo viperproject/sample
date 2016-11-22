@@ -29,8 +29,8 @@ import scala.io.Source
 class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
 
-  var main: ClassDefinition = null
-  var mainID: String = null
+  var main: ClassDefinition = _
+  var mainID: String = _
   var parsedNames: List[String] = Nil
 
   /**

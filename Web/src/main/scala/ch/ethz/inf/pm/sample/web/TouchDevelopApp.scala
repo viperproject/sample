@@ -20,7 +20,7 @@ class TouchDevelopApp extends App {
   override def identifierProvider: Option[IdentifierProvider] = Some(TouchDevelopIdentifierProvider)
 
   /** List of pre-defined analysis runners. */
-  override def availableAnalysisRunners = Seq(new TouchDevelopAnalysisRunner.Default())
+  override def availableAnalysisRunners = Seq(TouchDevelopAnalysisRunner.Default())
 
   val prefix = "td"
 }

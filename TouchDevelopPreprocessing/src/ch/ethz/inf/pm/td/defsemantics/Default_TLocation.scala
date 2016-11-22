@@ -76,7 +76,7 @@ trait Default_TLocation extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares the location (email, sms, social or '' to pick from a list) */
+  /** Rarely used: Shares the location (email, sms, social or &#39;&#39; to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),

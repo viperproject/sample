@@ -781,7 +781,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   /** @todo merge with `removeExpression`. */
   def setUnitExpression(): S = {
-    val unitExp = new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
+    val unitExp = UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
     setExpression(ExpressionSet(unitExp))
   }
 

@@ -114,7 +114,7 @@ case class NonDeterminismWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
       case BinaryNondeterministicExpression(left, right, op, returnType) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label)(expr.typ, expr.pp)
+        val identifier = VariableIdentifier(label)(expr.typ, expr.pp)
         (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
       case x: Expression => (x, Nil)
     }

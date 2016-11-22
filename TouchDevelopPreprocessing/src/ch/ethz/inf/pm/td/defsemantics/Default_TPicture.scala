@@ -328,7 +328,7 @@ trait Default_TPicture extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares this message ('' to pick from a list) */
+  /** Rarely used: Shares this message (&#39;&#39; to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),

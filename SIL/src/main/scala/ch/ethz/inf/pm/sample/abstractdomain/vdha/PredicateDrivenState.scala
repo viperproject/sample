@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, PredType}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import com.typesafe.scalalogging.LazyLogging
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
@@ -599,7 +599,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     resultAH = resultAH.joinCommonEdges()
 
     val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
-    val resGeneralState = thisFolded.generalValState.lub(otherFolded.generalValState.rename(valueRenameMap.toMap))
+    val resGeneralState = thisFolded.generalValState.lub(otherFolded.generalValState.rename(valueRenameMap))
 
     val result = factory(resultAH, resGeneralState, ExpressionSet())
 

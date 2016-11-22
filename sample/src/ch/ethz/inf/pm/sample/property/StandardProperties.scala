@@ -28,14 +28,14 @@ object DivisionByZero extends Visitor {
       for(divisor <- state1.expr.toSetOrFail) {
         if(! state1.assume(
           new ExpressionSet(SystemParameters.typ.top()).add(
-            new BinaryArithmeticExpression(divisor, new Constant("0"), ArithmeticOperator.==)
+            new BinaryArithmeticExpression(divisor, Constant("0"), ArithmeticOperator.==)
             )
            ).lessEqual(state.bottom())) {
-          printer.add(new WarningProgramPoint(statement.getPC(), "Possible division by 0"))
+          printer.add(WarningProgramPoint(statement.getPC(), "Possible division by 0"))
           return
         }
       }
-      printer.add(new ValidatedProgramPoint(statement.getPC(), "Safe division"))
+      printer.add(ValidatedProgramPoint(statement.getPC(), "Safe division"))
     case _ =>
   }
 }

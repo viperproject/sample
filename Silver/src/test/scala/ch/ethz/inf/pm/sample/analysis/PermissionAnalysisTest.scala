@@ -29,7 +29,7 @@ class PermissionAnalysisTest extends SilSuite {
   override def testDirectories = Seq("silver/inference")
 
   override def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilverFrontend()
+    val fe = DummySilverFrontend()
     fe.init(verifier); fe.reset(files); fe
   }
 
@@ -72,14 +72,14 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
 
     // methods that check against expected preconditions
     val preMethods = extendedProgram.methods.filter(preMap contains _.name).map {
-      case method =>
-        val preMethod = preMap.get(method.name).get
+      method =>
+        val preMethod = preMap(method.name)
         preMethod.copy(_posts = method.pres)(preMethod.pos, preMethod.info)
     }
     // methods that check against expected postconditions
     val postMethods = extendedProgram.methods.filter(postMap contains _.name).map {
-      case method =>
-        val postMethod = postMap.get(method.name).get
+      method =>
+        val postMethod = postMap(method.name)
         postMethod.copy(_pres = method.posts)(postMethod.pos, postMethod.info)
     }
 

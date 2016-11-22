@@ -18,7 +18,7 @@ class SampleAnalysisTestSuite extends SilSuite {
   def testDirectories = Seq("sil/issues", "sil/translation")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
+    val fe = DummySilFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe

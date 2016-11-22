@@ -487,7 +487,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   private def upperBoundsOnLists[T](left: List[T], right: List[T], operator: (T, T) => T): List[T] = {
     val maxSize = if (right.size > left.size) right.size else left.size
     var result: List[T] = Nil; //new List[T](maxSize)
-    for (i <- 0 to maxSize - 1) {
+    for (i <- 0 until maxSize) {
       val elLeft: Option[T] = safeApply(left, i)
       val elRight: Option[T] = safeApply(right, i)
       if (elLeft.isEmpty && elRight.isEmpty)

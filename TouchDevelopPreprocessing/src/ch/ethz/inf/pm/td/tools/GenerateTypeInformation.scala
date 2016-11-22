@@ -4,16 +4,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import ch.ethz.inf.pm.td.parser.TypeName
-import ch.ethz.inf.pm.td.webapi.URLFetcher._
+package ch.ethz.inf.pm.td.tools
+
 import java.io.{File, PrintWriter}
+
+import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi.WebASTImporter
-import net.liftweb.json._
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.json._
 
 /**
- * Parses the new JSON based API description an generates type information
- */
+  * Parses the new JSON based API description an generates type information
+  */
 
 object GenerateTypeInformation {
 
@@ -80,14 +82,14 @@ object GenerateTypeInformation {
 
           // For collections, we also generate "at index" and "copy", which are required to implement foreach loops
           val additional =
-            if (propName == "at") {
-              List(
-                "    Member(\"at index\", List(\"Number\"), \"" + resultTyp + "\") /* ONLY INSIDE SAMPLE: an accessor which is always number based */",
-                "    Member(\"copy\", \"" + name + "\") /* ONLY INSIDE SAMPLE: cloning a collection*/"
-              )
-            } else {
-              Nil
-            }
+          if (propName == "at") {
+            List(
+              "    Member(\"at index\", List(\"Number\"), \"" + resultTyp + "\") /* ONLY INSIDE SAMPLE: an accessor which is always number based */",
+              "    Member(\"copy\", \"" + name + "\") /* ONLY INSIDE SAMPLE: cloning a collection*/"
+            )
+          } else {
+            Nil
+          }
 
 
           if (paramList.size > 0) {

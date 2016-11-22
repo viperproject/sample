@@ -6,11 +6,11 @@
 
 package ch.ethz.inf.pm.td.tools
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Lattice, SetDomain}
-import ch.ethz.inf.pm.td.webapi.{URLFetcher, ScriptQuery, ScriptRecord}
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher}
+
 /**
- * Finds all scripts using a specific construct
- */
+  * Finds all scripts using a specific construct
+  */
 object VersionsUsersLines {
 
   val usedScripts =
@@ -47,20 +47,20 @@ object VersionsUsersLines {
       |nvoha
       |sxjua""".stripMargin.split("\n").filterNot(_.startsWith("#"))
 
-  def main(args:Array[String]) {
+  def main(args: Array[String]) {
 
     for (arg <- usedScripts) {
 
       val record = ScriptQuery.getScriptRecord(arg)
       var users = Set(record.userid)
       var versions = Set(record.id)
-      var codes = Map(record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").size)
+      var codes = Map(record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").length)
 
       up(record.baseid)
       down(record.updateid)
       FindConstruct.getLibs(arg).foreach(lib)
 
-      def up(id:String): Unit = {
+      def up(id: String): Unit = {
         if (!id.isEmpty && !versions.contains(id)) {
           versions = versions + id
           val record = ScriptQuery.getScriptRecord(id)
@@ -69,7 +69,7 @@ object VersionsUsersLines {
         }
       }
 
-      def down(id:String): Unit = {
+      def down(id: String): Unit = {
         if (!id.isEmpty && !versions.contains(id)) {
           versions = versions + id
           val record = ScriptQuery.getScriptRecord(id)
@@ -78,10 +78,10 @@ object VersionsUsersLines {
         }
       }
 
-      def lib(id:String): Unit = {
+      def lib(id: String): Unit = {
         if (!id.isEmpty && !codes.contains(id)) {
           val record = ScriptQuery.getScriptRecord(id)
-          codes = codes + (record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").size)
+          codes = codes + (record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").length)
           FindConstruct.getLibs(id).foreach(lib)
         }
       }

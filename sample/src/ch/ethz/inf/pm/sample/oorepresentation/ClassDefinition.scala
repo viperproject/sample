@@ -133,8 +133,8 @@ class MethodDeclaration(
     // If the method is not static, create a variable for the current object
     // and assume that it is non-null
     if (!modifiers.contains(StaticModifier)) {
-      val thisVarId = new VariableIdentifier("this")(ownerType, programpoint)
-      val thisVar = new Variable(programpoint, thisVarId)
+      val thisVarId = VariableIdentifier("this")(ownerType, programpoint)
+      val thisVar = Variable(programpoint, thisVarId)
       result = thisVar.forwardSemantics[S](result)
       val variable = result.expr
       result = result.removeExpression()

@@ -45,7 +45,7 @@ class MethodDeclWithOutParams(
   override def initializeArgument[S <: State[S]](state: S): S = {
     var result = state
     // Create a variable for each formal in-parameter
-    for (variable <- arguments(0)) {
+    for (variable <- arguments.head) {
       result = variable.variable.forwardSemantics[S](result)
       val varExpr = result.expr
       result = result.removeExpression()

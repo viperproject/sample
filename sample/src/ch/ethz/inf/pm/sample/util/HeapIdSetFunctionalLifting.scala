@@ -32,7 +32,7 @@ object HeapIdSetFunctionalLifting {
           rep2 = rep2.lub(rep3);
       }
     }
-    if(state==None || ids == None) throw new SemanticException("We should have at least one abstract id in the HeapIdSetDomain")
+    if(state.isEmpty || ids.isEmpty) throw new SemanticException("We should have at least one abstract id in the HeapIdSetDomain")
     (ids.get, state.get, rep2)
   }
 

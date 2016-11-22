@@ -15,9 +15,9 @@ case class SurelyAndMaybeContainedCharacters(
     SurelyContainedCharacters,
     MaybeContainedCharacters,
     SurelyAndMaybeContainedCharacters] {
-      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r))
+      override def merge(r : Replacement) = SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r))
 
-  def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)
+  def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = SurelyAndMaybeContainedCharacters(a, b)
 
        /*
        def removeVariable(variable : Identifier) : SurelyAndMaybeContainedCharacters = {

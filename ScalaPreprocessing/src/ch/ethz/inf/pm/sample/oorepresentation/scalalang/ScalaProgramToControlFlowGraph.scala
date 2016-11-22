@@ -168,9 +168,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       new FieldDeclaration(
         new ScalaProgramPoint(program.pos),
         extractModifiers(mods),
-        new Variable(
+        Variable(
           new ScalaProgramPoint(program.pos),
-          new VariableIdentifier(stringname)(
+          VariableIdentifier(stringname)(
             new ScalaType(tpt.tpe),
             new ScalaProgramPoint(program.pos))),
         extractType(tpt),
@@ -240,7 +240,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
 
     case Assign(lhs, rhs) =>
-      (cfg, statementsUntilHere ::: new Assignment(new ScalaProgramPoint(body.pos), extractCFG(lhs), extractCFG(rhs)) :: Nil, currentblock, true)
+      (cfg, statementsUntilHere ::: Assignment(new ScalaProgramPoint(body.pos), extractCFG(lhs), extractCFG(rhs)) :: Nil, currentblock, true)
       //bodyToCFG(rhs, cfg, statementsUntilHere ::: new Assignment(new ScalaProgramPoint(body.pos), extractCFG(lhs), extractCFG(rhs)) :: Nil, currentblock)
 
     case Return(expr) =>
@@ -254,7 +254,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: st :: Nil , currentblock, true)*/
 
     case Throw(expr) =>
-      (cfg, statementsUntilHere ::: new oorepresentation.Throw(new ScalaProgramPoint(body.pos), extractCFG(expr)) :: Nil , currentblock, false)
+      (cfg, statementsUntilHere ::: oorepresentation.Throw(new ScalaProgramPoint(body.pos), extractCFG(expr)) :: Nil , currentblock, false)
 
     case EmptyTree => (cfg, statementsUntilHere, currentblock, true)
 
@@ -262,21 +262,21 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     case Typed(what, typed) => bodyToCFG(what, cfg, statementsUntilHere, currentblock)
 
     case Apply(TypeApply(x, targs), args) =>
-      (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), extractCFG(x), extractListTypes(targs), extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: MethodCall(new ScalaProgramPoint(body.pos), extractCFG(x), extractListTypes(targs), extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
     case Apply(x, args) =>
       val calledMethod : Statement = extractCFG(x).normalize()
       calledMethod match {
         case variable: Variable if definedLabel.get(variable.getName).isInstanceOf[Some[RunId]] && args.equals(Nil) =>
           //The method call represents a goto statement!
           cfg.setNode(currentblock, statementsUntilHere)
-          cfg.addEdge(currentblock, definedLabel.get(variable.getName).get, None)
+          cfg.addEdge(currentblock, definedLabel(variable.getName), None)
           (cfg, statementsUntilHere, currentblock, false)
         case _ =>
           x.toString match {
             case u if u.equals("scala.Int.box") =>
               (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
             case _ =>
-              val result = (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil, currentblock, true)
+              val result = (cfg, statementsUntilHere ::: MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil, currentblock, true)
               result
           }
       }
@@ -288,11 +288,11 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 //        }
 
     case Ident(name) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
-        new VariableIdentifier(name decode)(new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: Variable(new ScalaProgramPoint(body.pos),
+        VariableIdentifier(name decode)(new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     case Super(qual, mix) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
-        new VariableIdentifier("super")(new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: Variable(new ScalaProgramPoint(body.pos),
+        VariableIdentifier("super")(new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     //TODO: I have to consider also qual and mix
     // TODO: Should not pass list of statements to the 'FieldAccess' constructor
     // case Select(ArrayValue(elemtpt, trees), field) =>
@@ -306,16 +306,16 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       if(member!=NoSymbol)
     	  tpe = new ScalaType(a.tpe.memberType(member))
       val fieldName=field.decode.replace(" ", "");//remove useless blank spaces, not allowed in fields' names
-      val res=(cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a), fieldName, tpe) :: Nil , currentblock, true)
+      val res=(cfg, statementsUntilHere ::: FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a), fieldName, tpe) :: Nil , currentblock, true)
       res;
     case Literal(value : Constant) =>
-      (cfg, statementsUntilHere ::: new ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
     //TODO: Support also other numerical type, not only int!
     case x : This =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
-        new VariableIdentifier("this")(new ScalaType(x.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: Variable(new ScalaProgramPoint(body.pos),
+        VariableIdentifier("this")(new ScalaType(x.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     case New(tpt) => (
-      cfg, statementsUntilHere ::: new oorepresentation.New(new ScalaProgramPoint(body.pos), extractType(tpt)) :: Nil , currentblock, true)
+      cfg, statementsUntilHere ::: oorepresentation.New(new ScalaProgramPoint(body.pos), extractType(tpt)) :: Nil , currentblock, true)
 
     case x => throw new ScalaException("Invalid statement:\n"+x)
 
@@ -357,11 +357,11 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
   private def extractVariableDefinition(definition : Tree) : VariableDeclaration = definition match {
     case ValDef(mods, name, tpt, rhs) =>
-      new VariableDeclaration(
+      VariableDeclaration(
         new ScalaProgramPoint(definition.pos),
-        new Variable(
+        Variable(
           new ScalaProgramPoint(definition.pos),
-          new VariableIdentifier(name.decode)(extractType(tpt),
+          VariableIdentifier(name.decode)(extractType(tpt),
             new ScalaProgramPoint(definition.pos))),
         extractType(tpt),
         Some(extractCFG(rhs)))
@@ -550,7 +550,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
               if(name.charAt(name.length-1).equals(' '))
             		name=name.substring(0, name.length-1)
               if((! name.equals("_length")) && (! name.equals("$isInstanceOf")) && (! name.equals("$asInstanceOf")) )
-                result = result + new VariableIdentifier(name)(new ScalaType(typ), new ScalaProgramPoint(el.pos))
+                result = result + VariableIdentifier(name)(new ScalaType(typ), new ScalaProgramPoint(el.pos))
              }
             }
         }

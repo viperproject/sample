@@ -139,8 +139,6 @@ object TBoard extends Default_TBoard {
       curState = New[S](TEvent_Binding)(curState,pp)
       curState
 
-      New[S](TEvent_Binding)
-
     // Clears the background camera
     case "clear background camera" =>
       AssignField(this0, TBoard.field_background_camera, Invalid(TCamera, "background camera may have been cleared"))

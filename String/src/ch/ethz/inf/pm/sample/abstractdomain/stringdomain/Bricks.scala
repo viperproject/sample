@@ -127,10 +127,10 @@ class BricksDomain extends StringValueDomain[BricksDomain]
    */
   private def appendEmptyBricks(left : BricksDomain, right : BricksDomain) : Unit = {
     if(left.bricksList.length < right.bricksList.length)
-      for(i <- 0 to (right.bricksList.length - left.bricksList.length - 1))
+      for(i <- 0 until right.bricksList.length - left.bricksList.length)
         left.bricksList = left.bricksList :+ emptyBrick
     else if(right.bricksList.length < left.bricksList.length)
-      for(i <- 0 to (left.bricksList.length - right.bricksList.length - 1))
+      for(i <- 0 until left.bricksList.length - right.bricksList.length)
         right.bricksList = right.bricksList :+ emptyBrick
   }
   
@@ -148,7 +148,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
      val result : BricksDomain = factory()
      result.bricksList = Nil
      val lengthLeft = newLeft.bricksList.length
-     for(i <- 0 to lengthLeft - 1)
+     for(i <- 0 until lengthLeft)
      {
        val newBrick = newLeft.bricksList(lengthLeft - 1 - i).lub(newRight.bricksList(lengthLeft - 1 - i))
        result.bricksList = newBrick :: result.bricksList
@@ -169,7 +169,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
 
    val result : BricksDomain = factory()
    val lengthLeft = newLeft.bricksList.length
-   for(i <- 0 to lengthLeft - 1)
+   for(i <- 0 until lengthLeft)
    {
      val newBrick = newLeft.bricksList(lengthLeft - 1 - i).glb(newRight.bricksList(lengthLeft - 1 - i))
      if(newBrick.min > newBrick.max)
@@ -217,7 +217,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
 
    val result : BricksDomain = factory()
    val n = newLeft.bricksList.length
-   for(i <- 0 to n - 1)
+   for(i <- 0 until n)
    {
      val newBrick = newLeft.bricksList.apply(n - 1 - i).widening(newRight.bricksList.apply(n - 1 - i))
      result.bricksList = newBrick :: result.bricksList
@@ -369,7 +369,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
       //RULE 5
 	    length = this.bricksList.length
       newBricksList = Nil
-      for(i <- 0 to length - 1)
+      for(i <- 0 until length)
 	    {
         val b = this.bricksList.apply(length - 1 - i)
         if(b.min >= 1 && b.max > b.min) {

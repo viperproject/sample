@@ -12,10 +12,10 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter, Script}
 
 /**
- * Exports to HTML
- *
- * @author Lucas Brutschy
- */
+  * Exports to HTML
+  *
+  * @author Lucas Brutschy
+  */
 class HTMLExporter extends FileSystemExporter {
 
   def getExtension = "html"
@@ -25,7 +25,7 @@ class HTMLExporter extends FileSystemExporter {
   }
 
   def warningsToString(compiler: TouchCompiler, id: String): String = {
-    export(Map(id -> compiler.parsedTouchScripts.get(id).get))
+    export(Map(id -> compiler.parsedTouchScripts(id)))
   }
 
   def export(targets: Map[String, Script]): String = {
@@ -115,33 +115,34 @@ class HTMLExporter extends FileSystemExporter {
       res += "<pre>" +
         PrettyPrinter.applyWithPPPrinter(script)({
           (curPositional: IdPositional, pretty: String) =>
-            val pp = TouchProgramPointRegistry.make(id,curPositional)
+            val pp = TouchProgramPointRegistry.make(id, curPositional)
             val spanId = pp.fullPosString
             val onmouseover = "$('#" + spanId + "').addClass('hoverError');"
-            val onmouseout  = "$('#" + spanId + "').removeClass('hoverError');"
+            val onmouseout = "$('#" + spanId + "').removeClass('hoverError');"
             "<span id='" + spanId + "'>" +
-               (for (SampleError(errorTypeId, message, pp, causes) <- violationMap.getOrElse(pp,Set.empty)) yield {
-                  val onmouseover2 = onmouseover + (for (c <- causes) yield {
-                    "$('#" + toStr(c._2) + "').addClass('hoverCause');"
-                  }).mkString(";")
-                  val onmouseout2 = onmouseout + (for (c <- causes) yield {
-                    "$('#" + toStr(c._2) + "').removeClass('hoverCause');"
-                  }).mkString(";")
-                  <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
-                }).mkString("") +
-               (for (m <- unreachableMap.getOrElse(pp,Set.empty)) yield {
-                 <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
-               }).mkString("") +
-               (for (m <- impreciseMap.getOrElse(pp,Set.empty)) yield {
-                 <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
-               }).mkString("") + pretty + "</span>"
+              (for (SampleError(errorTypeId, message, pp, causes) <- violationMap.getOrElse(pp, Set.empty)) yield {
+                val onmouseover2 = onmouseover + (for (c <- causes) yield {
+                  "$('#" + toStr(c._2) + "').addClass('hoverCause');"
+                }).mkString(";")
+                val onmouseout2 = onmouseout + (for (c <- causes) yield {
+                  "$('#" + toStr(c._2) + "').removeClass('hoverCause');"
+                }).mkString(";")
+                <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
+              }).mkString("") +
+              (for (m <- unreachableMap.getOrElse(pp, Set.empty)) yield {
+                <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+              }).mkString("") +
+              (for (m <- impreciseMap.getOrElse(pp, Set.empty)) yield {
+                <div title={m.message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
+              }).mkString("") + pretty + "</span>"
         }) + "</pre>"
     }
 
-    res += """
-             |</body>
-             |</html>
-           """.stripMargin
+    res +=
+      """
+        |</body>
+        |</html>
+      """.stripMargin
 
     res
 
