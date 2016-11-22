@@ -9,12 +9,12 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
+import ch.ethz.inf.pm.td.cloud.{AbstractEventGraph, CloudQueryWrapper, CloudUpdateWrapper}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, MultiValExpression}
-import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
   * The super type of all other TouchDevelop types
@@ -33,10 +33,15 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                                                  method: ApiMember,
                                                  parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val (objs,strs) = this0.ids.getNonTopUnsafe.collect { case f:FieldIdentifier => (f.obj,f.field)}.unzip
-      val objExpr = ExpressionSet(TString,SetDomain.Default.Inner(objs.toSet))
-      val strExpr = ExpressionSet(TString,SetDomain.Default.Inner(strs.map(Constant(_,TString))))
       val typ = GRef(this0.typ.asInstanceOf[AAny])
-      New[S](typ,Map(typ.field__receiver -> objExpr, typ.field__field -> strExpr))
+      if (objs.nonEmpty && strs.nonEmpty) {
+        val objExpr = ExpressionSet(TString, SetDomain.Default.Inner(objs.toSet))
+        val strExpr = ExpressionSet(TString, SetDomain.Default.Inner(strs.map(Constant(_, TString))))
+        New[S](typ, Map(typ.field__receiver -> objExpr, typ.field__field -> strExpr))
+      } else {
+        Reporter.reportImpreciseSemantics("We could not determine the contents of a reference, this could be unsound" ,pp)
+        Top[S](typ)
+      }
     }
   }
 
@@ -50,60 +55,83 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     }
   }
 
-
-  /** Never used: Add specified value to given reference */
-  def member__add:ApiMember = ApiMember(
+  def member__add: ApiMember = ApiMember(
     name = "◈add",
-    paramTypes = List(ApiParam(TNumber)),
-    thisType = ApiParam(this),
+    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__add)
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Assign[S](this0,this0 + 1)
+      }
+    },Set(CloudEnabledModifier))
   )
 
-  /** Never used: Set reference to invalid */
-  def member__clear:ApiMember = ApiMember(
-    name = "◈clear",
-    paramTypes = List(),
-    thisType = ApiParam(this),
+  def member__test_and_set = ApiMember(
+    name = "◈test and set",
+    paramTypes = List(ApiParam(TString,isMutated = false)),
+    thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__clear)
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        If[S](this0 equal String(""), { x: S =>
+          Assign[S](this0,parameters.head)
+        }, { x: S =>
+          Skip[S]
+        })
+      }
+    },Set(CloudEnabledModifier))
   )
 
-  def member__confirmed:ApiMember = ApiMember(
+  /** Never used: Checks if value is confirmed */
+  def member__confirmed = ApiMember(
     name = "◈confirmed",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__confirmed)
-  )
-
-  /** Never used: Get the current value of the reference */
-  def member__get:ApiMember = ApiMember(
-    name = "◈get",
-    paramTypes = List(),
-    thisType = ApiParam(this),
-    returnType = this,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__get)
+    semantics = CloudQueryWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Top[S](TBoolean)
+      }
+    },Set(CloudEnabledModifier))
   )
 
   /** Never used: Set the value of the reference */
-  def member__set:ApiMember = ApiMember(
+  def member__set = ApiMember(
     name = "◈set",
     paramTypes = List(ApiParam(this)),
     thisType = ApiParam(this),
     returnType = TNothing,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__set)
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Assign[S](this0,parameters.head)
+      }
+    },Set(CloudEnabledModifier))
   )
 
-  /** Never used: Set reference to `v` if it's currently non-empty */
-  def member__test_and_set:ApiMember = ApiMember(
-    name = "◈test and set",
-    paramTypes = List(ApiParam(this)),
-    thisType = ApiParam(this),
+  def member__clear = ApiMember(
+    name = "◈clear",
+    paramTypes = Nil,
+    thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
-    semantics = ReferenceConversionAndThenSemantics(GRef(this).member__test_and_set)
+    semantics = CloudUpdateWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Clear[S](this0)
+      }
+    },Set(CloudEnabledModifier))
   )
 
+  def member__get = ApiMember(
+    name = "◈get",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = this,
+    semantics = new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Return[S](this0)
+      }
+    }
+  )
   def member__ref:ApiMember = ApiMember(
     name = "◈ref",
     paramTypes = List(),
@@ -132,7 +160,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     returnType = TBoolean,
     semantics = new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        Return[S](this0 equal Invalid(this0.typ, "")(pp))(state, pp)
+        val res = Return[S](this0 equal Invalid(this0.typ, "")(pp))(state, pp)
+        res
       }
     }
   )
@@ -283,9 +312,13 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         return Some(state.bottom())
       }
 
-      AbstractEventGraph.record(operator,thisExpr,parameters,state,pp)
+      curState = AbstractEventGraph.record(operator,thisExpr,parameters,curState,pp)
 
-      Some(forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState))
+      val res = forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState)
+
+      if (SystemParameters.DEBUG) assert(returnedType == TNothing || res.expr.typ == returnedType)
+
+      Some(res)
 
     } else None
 
@@ -376,6 +409,11 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
                 res.semantics.forwardSemantics(this0,res,parameters)
               case None =>
 
+                if (SystemParameters.DEBUG) {
+                  if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
+                    println("Looks like library fragment analysis missed "+this0.typ+"->"+method)
+                  }
+                }
 //                // Try implicit conversion to Ref
 //                if (!this.isInstanceOf[GRef]) {
 //                  val refType = GRef(this)

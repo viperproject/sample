@@ -53,7 +53,12 @@ trait AnalysisRunner[S <: State[S]] {
 }
 
 trait AnalysisResult {
+
+  /** A decriptive name for the result */
   def displayName:String
+
+  /** A descriptive, unique identifier without special characters */
+  def uniqueID:String = displayName.replaceAll("[^a-z0-9A-Z_]*","")
 }
 
 trait NodeWithState[S <: State[S]] {

@@ -11,13 +11,13 @@ import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
+import ch.ethz.inf.pm.td.analysis.MethodSummaries.SummaryID
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
-import ch.ethz.inf.pm.td.domain.TouchState.Default
-import ch.ethz.inf.pm.td.domain.{TouchStateInterface, TouchState, MultiValExpression}
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
+import ch.ethz.inf.pm.td.domain.{MultiValExpression, TouchStateInterface}
+import ch.ethz.inf.pm.td.semantics.{AAny, TNothing}
 
-case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
+case class MethodSummary[S <: State[S]](pp: SummaryID, method: MethodDeclaration,
                                         cfgState: TrackingCFGState[S]) {
 
   def lub(other:MethodSummary[S]) =
@@ -30,15 +30,17 @@ case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclarat
  */
 object MethodSummaries {
 
+  type SummaryID = (ProgramPoint,ProgramPoint)
+
   /**
    * Stores the summaries of called methods, program point specific
    */
-  private var summaries: Map[ProgramPoint, MethodSummary[_]] = Map.empty
+  private var summaries: Map[SummaryID, MethodSummary[_]] = Map.empty
 
   /**
    * Stores the entry states of a method that is currently on the stack (for recursive calls)
    */
-  private var entriesOnStack: Map[ProgramPoint, _] = Map.empty
+  private var entriesOnStack: Map[SummaryID, _] = Map.empty
 
   /**
    * Stores the entry state of a closure method
@@ -64,8 +66,8 @@ object MethodSummaries {
   def collect[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                              parameters: List[ExpressionSet]): S = {
     val identifyingPP =
-      if (TouchAnalysisParameters.get.contextSensitiveInterproceduralAnalysis) callPoint
-      else callTarget.programpoint
+      if (TouchAnalysisParameters.get.contextSensitiveInterproceduralAnalysis) (callPoint,callTarget.programpoint)
+      else (callTarget.programpoint,callTarget.programpoint)
 
     Localization.enterCollectingFunction(identifyingPP,callTarget)
 
@@ -76,7 +78,31 @@ object MethodSummaries {
     result
   }
 
-  private def collect2[S <: State[S]](identifyingPP: ProgramPoint, callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
+  def collectEventLoop[S<:State[S]](state:S,callPoint: ProgramPoint):S = {
+    if (!TouchAnalysisParameters.get.singleEventOccurrence) {
+      Lattice.lfp(state, collectEvents(_:S,callPoint), SystemParameters.wideningLimit)
+    } else {
+      collectEvents(state, callPoint)
+    }
+  }
+
+  def collectEvents[S<:State[S]](state:S,pp: ProgramPoint):S = {
+
+    var cur = state
+    for (methodDeclaration <- SystemParameters.compiler.asInstanceOf[TouchCompiler].events) {
+      var withArgs = state
+      val topArguments =
+        for ((arg,i) <- methodDeclaration.arguments.head.zipWithIndex) yield {
+          withArgs = Top[S](arg.typ.asInstanceOf[AAny])(state,pp)
+          withArgs.expr
+        }
+      cur = cur.lub(MethodSummaries.collect[S](pp, methodDeclaration, withArgs, topArguments))
+    }
+    cur
+
+  }
+
+  private def collect2[S <: State[S]](identifyingPP: SummaryID, callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                                parameters: List[ExpressionSet]): S = {
 
     var enteredState = enterFunction(identifyingPP, callPoint, callTarget, entryState, parameters)
@@ -246,8 +272,8 @@ object MethodSummaries {
    * @tparam S state type
    */
   def reset[S <: State[S]]() {
-    summaries = Map.empty[ProgramPoint, MethodSummary[S]]
-    entriesOnStack = Map.empty[ProgramPoint, S]
+    summaries = Map.empty[SummaryID, MethodSummary[S]]
+    entriesOnStack = Map.empty[SummaryID, S]
     closureEntries = Map.empty
     abnormalExits = None
   }
@@ -301,7 +327,7 @@ object MethodSummaries {
    * @tparam S The type of the state.
    * @return The exit state of the local edge
    */
-  private def computeLocalState[S <: State[S]](identifyingPP:ProgramPoint, entryState: S): S = {
+  private def computeLocalState[S <: State[S]](identifyingPP:SummaryID, entryState: S): S = {
 
     if (TouchAnalysisParameters.get.reachabilityBasedLocalization || TouchAnalysisParameters.get.accessBasedLocalization) {
 
@@ -351,7 +377,7 @@ object MethodSummaries {
    * @tparam S The type of the state
    * @return The exit state of the call edge, that is, the entry state of the function
    */
-  private def enterFunction[S <: State[S]](identifyingPP:ProgramPoint, callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
+  private def enterFunction[S <: State[S]](identifyingPP:SummaryID, callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                                            parameters: List[ExpressionSet]): S = {
     var curState = entryState
 
@@ -394,7 +420,7 @@ object MethodSummaries {
       // ===== ACCESS-ANALYSIS BASED LOCALIZATION =====
       if (TouchAnalysisParameters.get.accessBasedLocalization && Localization.isPruning) {
         curState = curState.pruneVariables({
-          id: VariableIdentifier => !Localization.matches(callPoint,id)
+          id: VariableIdentifier => !Localization.matches(identifyingPP,id)
         })
       }
 

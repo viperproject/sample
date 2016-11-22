@@ -67,7 +67,7 @@ abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
   }
 
   def exitState(): S = {
-    var result: S = stateFactory.bottom()
+    var result: Option[S] = None
     for (blockId <- cfg.nodes.indices) {
       val states = statesOfBlock(blockId)
       var isExitPoint: Boolean = true
@@ -77,11 +77,11 @@ abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
       }
       if (isExitPoint) states match {
         case Nil =>
-        case x => result = result.lub(states.last)
+        case x => result = result.map(_ lub states.last).orElse(Some(states.last))
 
       }
     }
-    result
+    result.getOrElse(stateFactory.bottom())
   }
 
   def entryState(): S = statesOfBlock(0).head

@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,8 +25,7 @@ trait Default_GAction1 extends AAction {
 
   lazy val typeName = TypeName("Action1", List(TT.typeName))
           
-  def actionArguments = List(ApiParam(TT))
-
-
+  override def actionArguments = List(ApiParam(TT))
+  override def actionReturnValue: AAny = TNothing
 }
           

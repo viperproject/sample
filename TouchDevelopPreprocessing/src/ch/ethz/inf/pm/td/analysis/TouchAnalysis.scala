@@ -159,15 +159,15 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
       AbstractEventGraph.reset()
       Reporter.disableAllOutputs()
-      val oldNumber = TouchAnalysisParameters.get.numberOfVersions
-      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 1))
+      //val oldNumber = TouchAnalysisParameters.get.numberOfVersions
+      //TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 2))
 
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.HeapPreanalysis")
       analyzeScript[TouchEntryStateBuilder.PreAnalysisState](compiler,methods,outMostFixpoint)(
         TouchEntryStateBuilder(TouchAnalysisParameters.get).preAnalysisTopState)
       //if (SystemParameters.TIME) println(AccumulatingTimer)
       if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.HeapPreanalysis")
-      TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
+      //TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = oldNumber))
       logger.debug("Variable packing: "+TouchVariablePacking)
       val classifier = TouchVariablePacking.makeClassifier
       if (TouchAnalysisParameters.get.accessBasedLocalization) {
@@ -200,21 +200,23 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
         originalSummaries.values.groupBy(_.method.programpoint).mapValues(_.reduce(_ lub _))
       else originalSummaries
 
+    // Check bottomness
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report
-    val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
+    val mainClassResult = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList if mustCheck(s)) yield (mDecl.classDef.typ, mDecl, cfgState)
     if (TouchAnalysisParameters.get.reportUnanalyzedFunctions) {
       val unAnalyzed = compiler.allMethods.toSet -- summaries.values.map(_.method)
-      for (un <- unAnalyzed) {
+      for (un <- unAnalyzed if !un.modifiers.contains(ClosureModifier)) {
         logger.info(" Did not analyze "+un.name+" (may be unreachable)")
       }
     }
-    SingleStatementProperty.Default(new BottomVisitor).check(results,output)
+    SingleStatementProperty.Default(new BottomVisitor).check(mainClassResult,output)
 
     Exporters(compiler)
 
     // Reset singletons
     for (sem <- TypeList.getSingletons) sem.reset()
 
+    val results = for (s@MethodSummary(_, mDecl, cfgState) <- summaries.values.toList) yield (mDecl.classDef.typ, mDecl, cfgState)
     results
   }
 
@@ -295,8 +297,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     for (methodDeclaration <- compiler.events) {
       cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
+    cur
 
-    resetEnv(cur)
   }
 
 

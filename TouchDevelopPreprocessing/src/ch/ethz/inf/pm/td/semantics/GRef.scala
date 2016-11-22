@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +12,7 @@ import ch.ethz.inf.pm.td.analysis.{ApiField, RichExpression}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_GRef
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.cloud.CloudUpdateWrapper
+import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper}
 
 /**
  * Customizes the abstract semantics of Ref
@@ -69,7 +68,11 @@ case class GRef (TT:AAny) extends Default_GRef {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
-    semantics = DefaultSemantics
+    semantics = CloudQueryWrapper(new ApiMemberSemantics {
+      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+        Top[S](TBoolean)
+      }
+    },Set(CloudEnabledModifier))
   )
 
   /** Never used: Set the value of the reference */
@@ -87,7 +90,7 @@ case class GRef (TT:AAny) extends Default_GRef {
 
   override def member__clear = ApiMember(
     name = "◈clear",
-    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    paramTypes = Nil,
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {

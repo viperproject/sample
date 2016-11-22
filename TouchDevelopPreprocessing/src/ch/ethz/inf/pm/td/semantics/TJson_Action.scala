@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,21 +20,5 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TJson_Action extends Default_TJson_Action {
-
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
-      
-    /** Run the inline action. */
-    // case "run" =>
-    //   val List(json) = parameters // Json_Object
-    //   Skip
-
-    // FIELDS: 
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-  }
-}
+object TJson_Action extends Default_TJson_Action
       

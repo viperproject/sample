@@ -1,4 +1,3 @@
-
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,16 +33,13 @@ object TMap_Pushpin extends Default_TMap_Pushpin {
   /** PRIVATE HANDLER FIELDS */
   lazy val field_tap_handler = ApiField("tap handler", TPosition_Action)
 
+  override def member_on_tap =
+    super.member_on_tap.copy(semantics = AAction.EnableSemantics(TMap_Pushpin.field_tap_handler))
+
   override def possibleFields = super.possibleFields ++ List(field_location, field_visible, field_tap_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
-
-    /** Set the handler invoked when the pushpin is tapped */
-    case "on tap" =>
-      val List(tapped) = parameters // Action
-    val newState = AssignField[S](this0, TMap_Pushpin.field_tap_handler, tapped)
-      New[S](TEvent_Binding)(newState, pp)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

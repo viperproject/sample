@@ -26,7 +26,7 @@ case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
   -->
 
 <div class="row-fluid">
-    <div class="col-sm-9">
+    <div class="col-sm-12">
         <div class="well graph-well">
             <div class="graph control-flow-graph-block" id="graph">
                 @heapGraph.vertices.toList.map { vertex =>
@@ -35,22 +35,15 @@ case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
             </div>
         </div>
     </div>
+</div>
 
-    <div class="col-sm-3">
+
+<div class="row-fluid">
+    <div class="col-sm-12">
         @additionalPanels
-
-        <div class="panel panel-info" id="edge-state-panel">
-            <div class="panel-heading">Edge Value State</div>
-            <div class="panel-body">
-                <i class="placeholder">Move your mouse over an edge</i>
-                @heapGraph.edges.map { edge =>
-                <div class="edge-state" id="@edgeId(edge)" style="display: none;">
-                </div>
-                }
-            </div>
-        </div>
     </div>
 </div>
+
 
 <script type="text/javascript">
     jsPlumb.ready(function() {
