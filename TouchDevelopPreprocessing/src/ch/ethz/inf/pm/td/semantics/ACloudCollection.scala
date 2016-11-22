@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper}
 import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, ApiParam}
 

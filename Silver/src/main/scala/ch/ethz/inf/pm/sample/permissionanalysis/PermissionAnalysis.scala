@@ -328,11 +328,10 @@ case class PermissionTree(permission: Permission = Permission.none,
       // recursively extract subtree from child corresponding to head of path
       val id = path.head
       children.get(id) match {
-        case Some(child) => {
+        case Some(child) =>
           val (updated, extracted) = child.extract(path.tail)
           val remainder = PermissionTree(permission, children + (id -> updated))
           (remainder, extracted)
-        }
         case None => (this, PermissionTree()) // there is nothing to extract
       }
     }
@@ -356,13 +355,12 @@ case class PermissionTree(permission: Permission = Permission.none,
       val id = path.head
       val updated = children.get(id) match {
         case Some(child) => child.implant(path.tail, other)
-        case None => {
+        case None =>
           // the path does not exist in the tree,
           // thus, we create it and implant te tree there
           path.tail.foldRight(other) {
             case (id, subtree) => PermissionTree(children = Map(id -> subtree))
           }
-        }
       }
       PermissionTree(permission, children + (id -> updated))
     }
@@ -515,7 +513,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case Right(fields) => fields.toSeq
     }
 
-    for (field <- (existing intersect inferred)) {
+    for (field <- existing intersect inferred) {
       val message = s"There might be insufficient permission for the field ${field.name}"
       Reporter.reportGenericWarning(message, currentPP)
     }
@@ -588,7 +586,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
         inhale(right).inhale(left)
-      case FieldAccessPredicate(identifier, numerator, denominator, _) => {
+      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is inhaled
@@ -599,7 +597,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
           if (mustBeSame(postAliases, path, location)) tree.permission minus inhaled
           else tree.permission
         }.read(location.dropRight(1))
-      }
       case _ => assume(acc)
     }
   }
@@ -643,16 +640,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
     logger.trace("getFieldValue")
     obj match {
-      case id: VariableIdentifier => {
+      case id: VariableIdentifier =>
         val fieldId = VariableIdentifier(field)(typ)
         val newPath = AccessPathIdentifier(List(id, fieldId))
         copy(result = ExpressionSet(newPath))
-      }
-      case AccessPathIdentifier(path) => {
+      case AccessPathIdentifier(path) =>
         val fieldId = VariableIdentifier(field)(typ)
         val newPath = AccessPathIdentifier(path ++ List(fieldId))
         copy(result = ExpressionSet(newPath))
-      }
       case _ => throw new IllegalArgumentException("A field access must occur via an identifier.")
     }
   }
@@ -800,7 +795,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     logger.trace("evalConstant")
-    val constant = new Constant(value, typ, pp)
+    val constant = Constant(value, typ, pp)
     copy(result = ExpressionSet(constant))
   }
 
@@ -1279,11 +1274,10 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   private def extractPermissions(expression: sil.Exp): (Seq[sil.Exp], Seq[sil.Exp]) =
     expression match {
-      case sil.And(left, right) => {
+      case sil.And(left, right) =>
         val (leftP, leftU) = extractPermissions(left)
         val (rightP, rightU) = extractPermissions(right)
         (leftP ++ rightP, leftU ++ rightU)
-      }
       case permission: sil.FieldAccessPredicate => (Seq(permission), Seq.empty)
       case unknown => (Seq.empty, Seq(unknown))
 

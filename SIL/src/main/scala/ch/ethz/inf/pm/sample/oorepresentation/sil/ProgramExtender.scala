@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.{vdha}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.{MethodAnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
@@ -108,7 +108,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
         unfoldMap += pos -> collector.unfoldGhostOps
       }
 
-      if (!block.isEmpty) {
+      if (block.nonEmpty) {
         val lastStmt = block.last
         val lastStmtIdx = block.size - 1
         val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
@@ -211,7 +211,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
     val newPredicates = predRegistry.predicates.filter(p =>
       !existingPredNames.contains(p.name))
 
-    (newMethod, newPredicates.toSeq)
+    (newMethod, newPredicates)
   }
 }
 

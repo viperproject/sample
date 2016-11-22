@@ -427,7 +427,7 @@ case class OutputMatcher(
         sys.error("Should not occur because they were previously filtered")
     }
 
-    errors.toSeq
+    errors
   }
 }
 
@@ -514,7 +514,7 @@ sealed case class TestAnnotations(
     case _ => false
   }
 
-  def hasErrors: Boolean = errors.size > 0
+  def hasErrors: Boolean = errors.nonEmpty
 
   /** Returns all the annotations without IgnoreFile and IgnoreFileList. */
   def outputAnnotations: Seq[LocatedAnnotation] = {

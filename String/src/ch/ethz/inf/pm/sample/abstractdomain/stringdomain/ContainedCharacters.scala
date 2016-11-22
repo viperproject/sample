@@ -35,10 +35,10 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
 
   def get(variable: Identifier) = map.get(variable) match {
     case Some(x) => x;
-    case None => new InvertedCharacterSet().top();
+    case None => InvertedCharacterSet().top();
   }
 
-  def setToTop(variable: Identifier): SurelyContainedCharacters = this.add(variable,new InvertedCharacterSet().top())
+  def setToTop(variable: Identifier): SurelyContainedCharacters = this.add(variable,InvertedCharacterSet().top())
 
   def assign(variable: Identifier, expr: Expression): SurelyContainedCharacters = this.add(variable, this.eval(expr))
 
@@ -95,14 +95,14 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
     case _ => this;
   }
 
-  def createVariable(variable: Identifier, typ: Type): SurelyContainedCharacters = this.add(variable,new InvertedCharacterSet().top())
+  def createVariable(variable: Identifier, typ: Type): SurelyContainedCharacters = this.add(variable,InvertedCharacterSet().top())
 
   def removeVariable(variable: Identifier): SurelyContainedCharacters = this.remove(variable)
 
   private def eval(expr: Expression): InvertedCharacterSet = expr match {
     case x: Identifier => this.get(x)
     case x: Constant if x.constant.isInstanceOf[String] =>
-      var result = new InvertedCharacterSet()
+      var result = InvertedCharacterSet()
       for (c <- x.constant.toCharArray)
         result = result.add(c)
       result;
@@ -113,11 +113,11 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
           val right = this.eval(p1)
           left.glb(right)
         case _ =>
-          new InvertedCharacterSet().top()
+          InvertedCharacterSet().top()
       }
     case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringSubstring, _) =>
-      new InvertedCharacterSet().top();
-    case _ => new InvertedCharacterSet().top();
+      InvertedCharacterSet().top();
+    case _ => InvertedCharacterSet().top();
   }
 
   override def getPossibleConstants(id: Identifier) = ???

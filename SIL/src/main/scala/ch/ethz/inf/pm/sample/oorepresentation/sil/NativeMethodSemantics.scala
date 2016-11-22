@@ -26,7 +26,7 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
       case (IntType, "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "\\" | "%", _ :: Nil) |
            (BoolType, "==" | "!=", _ :: Nil) =>
         val arithmeticOp = ArithmeticOperator.withName(op.replace('\\', '/'))
-        Some(createBinaryExpression(leftExp, parameters(0), arithmeticOp, returnType))
+        Some(createBinaryExpression(leftExp, parameters.head, arithmeticOp, returnType))
       case (BoolType, "||" | "&&", rightExp :: Nil) =>
         Some(createBooleanBinaryExpression(leftExp, rightExp, BooleanOperator.withName(op), returnType))
       case (BoolType, "==>", rightExp :: Nil) =>

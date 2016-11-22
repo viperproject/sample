@@ -155,7 +155,7 @@ object WebASTImporter {
           case JIf(id2, cond2, then2, els2, isElseIf2) :: xs if isElseIf2 =>
             x match {
               case JIf(id, cond, thn, els, isElseIf) =>
-                JIf(id, cond, thn, els ::: List(JIf(id2, cond2, then2, els2, false)), isElseIf) :: xs
+                JIf(id, cond, thn, els ::: List(JIf(id2, cond2, then2, els2, isElseIf = false)), isElseIf) :: xs
               case _ =>
                 throw TouchException("not reachable")
             }
@@ -311,12 +311,11 @@ case class WebAstTypeHints(hints: List[Class[_]]) extends TypeHints {
   def classFor(hint: String) = hints find (hintFor(_) == hint)
 }
 
-object types {
+object WebAstTypes {
   type JTypeRef = String
   type JNodeRef = String
 }
-
-import ch.ethz.inf.pm.td.webapi.types._
+import ch.ethz.inf.pm.td.webapi.WebAstTypes._
 
 @Salat
 trait JNode {

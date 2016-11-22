@@ -83,8 +83,6 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
         result = result.lub(filteredState)
       }
 
-      result
-
       // Apply  widening if necessary
       val currentBlockStates = refinedStates.statesOfBlock(blockIndex)
       val previousEntry = currentBlockStates.last

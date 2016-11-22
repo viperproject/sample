@@ -66,7 +66,7 @@ object TMessage extends Default_TMessage {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
-    /** Shares this message (email, sms, facebook, social or '' to pick from a list) */
+    /** Shares this message (email, sms, facebook, social or &#39;&#39; to pick from a list) */
     case "share" =>
        val List(where) = parameters // String
        // TODO: Check for valid value

@@ -224,7 +224,7 @@ object FindCloud {
       decl match {
         case TableDefinition(idx, typ, _, _, _, true, _, _, _) =>
           retState = retState + (Access(SingletonReference("records", "records"), Identifier(idx + " " + typ), Nil), Record(idx + " " + typ))
-        case VariableDefinition(Parameter(idx, typ), flags) if flags.contains("cloudenabled") && flags.get("cloudenabled").get == Left(true) =>
+        case VariableDefinition(Parameter(idx, typ), flags) if flags.contains("cloudenabled") && flags("cloudenabled") == Left(true) =>
           retState = retState + (Access(SingletonReference("data", "data"), Identifier(idx), Nil), Data(idx))
         case ActionDefinition(_, _, _, bd, _, _) => bd.foreach(visitStmt)
         case PageDefinition(_, _, _, initBody, displayBody, _, _) =>

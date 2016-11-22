@@ -54,7 +54,7 @@ object VersionsUsersLines {
       val record = ScriptQuery.getScriptRecord(arg)
       var users = Set(record.userid)
       var versions = Set(record.id)
-      var codes = Map(record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").size)
+      var codes = Map(record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").length)
 
       up(record.baseid)
       down(record.updateid)
@@ -81,7 +81,7 @@ object VersionsUsersLines {
       def lib(id: String): Unit = {
         if (!id.isEmpty && !codes.contains(id)) {
           val record = ScriptQuery.getScriptRecord(id)
-          codes = codes + (record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").size)
+          codes = codes + (record.id -> URLFetcher.fetchFile(record.getCodeURL).split("\n").length)
           FindConstruct.getLibs(id).foreach(lib)
         }
       }

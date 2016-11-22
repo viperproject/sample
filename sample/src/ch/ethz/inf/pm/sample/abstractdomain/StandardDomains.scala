@@ -152,7 +152,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
       if (isTop || right.isTop) return false
       if (map.keySet.equals(right.map.keySet)) {
         for (variable <- map.keySet)
-          if (!map.get(variable).get.equals(right.map.get(variable).get))
+          if (!map(variable).equals(right.map(variable)))
             return false
         true
       }

@@ -270,7 +270,7 @@ case class VariableDeclaration(
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     var st = state
     if (right.isDefined)
-      st = new Assignment(programpoint, variable, right.get).refiningSemantics[S](st, oldPreState)
+      st = Assignment(programpoint, variable, right.get).refiningSemantics[S](st, oldPreState)
     st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
   }
 

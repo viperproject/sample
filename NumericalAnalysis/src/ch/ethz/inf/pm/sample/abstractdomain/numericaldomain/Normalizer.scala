@@ -55,7 +55,7 @@ object Normalizer {
 
       val l: Option[Monomial] = arithmeticExpressionToMonomes(left)
       val r: Option[Monomial] = arithmeticExpressionToMonomes(right)
-      if (l.equals(None) || r.equals(None)) return None
+      if (l.isEmpty || r.isEmpty) return None
       op match {
 
         case ArithmeticOperator.>= =>
@@ -98,7 +98,7 @@ object Normalizer {
     case BinaryArithmeticExpression(left, right, op, typ) =>
       val l: Option[Monomial] = arithmeticExpressionToMonomes(left)
       val r: Option[Monomial] = arithmeticExpressionToMonomes(right)
-      if (l.equals(None) || r.equals(None)) return None
+      if (l.isEmpty || r.isEmpty) return None
       op match {
         case ArithmeticOperator.+ => Some(Monomial(l.get.variables ::: r.get.variables, l.get.constant + r.get.constant))
 
@@ -119,7 +119,7 @@ object Normalizer {
 
     case UnaryArithmeticExpression(left, op, typ) =>
       val l: Option[Monomial] = arithmeticExpressionToMonomes(left)
-      if (l.equals(None)) return None
+      if (l.isEmpty) return None
       op match {
         case ArithmeticOperator.- => Some(Monomial(transform(l.get.variables, (x: Double) => -x), -l.get.constant))
 
@@ -177,7 +177,7 @@ object Normalizer {
           case None =>
             None
           case Some(Monomial(variables, const)) =>
-            val constExp = new Constant(const.toString, exp.typ, exp.pp)
+            val constExp = Constant(const.toString, exp.typ, exp.pp)
             variables.length match {
               case 0 =>
                 Some(constExp)
@@ -185,7 +185,7 @@ object Normalizer {
               case 1 =>
                 var result: BinaryArithmeticExpression = null
                 for ((coef, id) <- variables) {
-                  val coefExp = new Constant(coef.toString, exp.typ, exp.pp)
+                  val coefExp = Constant(coef.toString, exp.typ, exp.pp)
                   val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ)
                   result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ)
                 }

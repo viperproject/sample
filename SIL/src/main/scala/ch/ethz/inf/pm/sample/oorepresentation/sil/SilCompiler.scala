@@ -20,7 +20,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None
 
-  var program: sil.Program = null
+  var program: sil.Program = _
 
   def label: String = "SIL"
 

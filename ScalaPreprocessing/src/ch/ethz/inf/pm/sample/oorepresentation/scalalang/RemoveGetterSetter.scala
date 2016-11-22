@@ -23,10 +23,10 @@ object RemoveGetterSetter {
   
   private def cleanStatement(st : Statement) : Statement = st match {
        case x: ControlFlowGraph => this.cleanCFG(x);
-       case Assignment(pp, left, right) => new Assignment(pp, cleanStatement(left), cleanStatement(right));
+       case Assignment(pp, left, right) => Assignment(pp, cleanStatement(left), cleanStatement(right));
        case VariableDeclaration(pp, variable, typ, right) =>
-         new VariableDeclaration(pp, variable, typ, right.map(cleanStatement))
-       case FieldAccess(pp, obj, field, typ) => new FieldAccess(pp, cleanStatement(obj), field, typ);
+         VariableDeclaration(pp, variable, typ, right.map(cleanStatement))
+       case FieldAccess(pp, obj, field, typ) => FieldAccess(pp, cleanStatement(obj), field, typ);
        case Variable(pp, id) => st;
        case New(pp, typ) => st;
        case ConstantStatement(pp, value, typ) => st;
@@ -36,8 +36,8 @@ object RemoveGetterSetter {
            	parameters match {
            		case assigned :: Nil =>
 	           		val fieldName=field.substring(0, field.length-2)
-                val fieldAccess = new FieldAccess(pp1, cleanStatement(obj), fieldName, typ)
-                return new Assignment(pp, fieldAccess, cleanStatement(assigned))
+                val fieldAccess = FieldAccess(pp1, cleanStatement(obj), fieldName, typ)
+                return Assignment(pp, fieldAccess, cleanStatement(assigned))
            		case _ => throw new MethodSemanticException("I can only assign an expression to a field!")
              }
            else parameters match {
@@ -53,14 +53,14 @@ object RemoveGetterSetter {
                if (!t.equals(t.top()))
                  for (n <- t.possibleFields) {
                    if (field.equals(n.getName))
-                     return new FieldAccess(pp1, cleanObj, field, n.typ)
+                     return FieldAccess(pp1, cleanObj, field, n.typ)
                  }
              case _ => 
              	//System.out.println("Look at this:\n"+st.toString);
            } 
-           new MethodCall(pp, cleanStatement(method), parametricTypes, cleanListStatement(parameters), returnedType);
+           MethodCall(pp, cleanStatement(method), parametricTypes, cleanListStatement(parameters), returnedType);
        } 
-       case Throw(pp, expr) => new Throw(pp, cleanStatement(expr));
+       case Throw(pp, expr) => Throw(pp, cleanStatement(expr));
   }
   
   private def cleanListStatement(list : List[Statement]) : List[Statement] = list match {

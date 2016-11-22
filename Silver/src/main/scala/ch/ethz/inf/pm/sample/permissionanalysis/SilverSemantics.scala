@@ -82,7 +82,7 @@ object SilverSemantics extends NativeMethodSemantics {
         Some(state.setExpression(createBinaryExpression(expression, right, ArithmeticOperator.withName(operator), returnType)))
       case _ =>
         SilverMethods.values.find(_.toString == operator) match {
-          case Some(SilverMethods.access) => Some(state.setExpression(createFieldAccessPredicate(expression, parameters(0), parameters(1), returnType)))
+          case Some(SilverMethods.access) => Some(state.setExpression(createFieldAccessPredicate(expression, parameters.head, parameters(1), returnType)))
           case Some(SilverMethods.permission) => Some(state.setExpression(createCurrentPermission(expression, returnType)))
           case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(expression)))
           case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(expression)))

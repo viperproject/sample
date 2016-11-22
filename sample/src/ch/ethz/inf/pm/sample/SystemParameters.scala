@@ -62,27 +62,27 @@ object SystemParameters {
   /**
    * The output for the window that shows the progresses of the analysis
    */
-  var progressOutput: ScreenOutput = null
+  var progressOutput: ScreenOutput = _
 
   /**
    * The output for the window that shows the results of the analysis
    */
-  var analysisOutput: ScreenOutput = null
+  var analysisOutput: ScreenOutput = _
 
   /**
    * An instance of the current type system
    */
-  var typ: Type = null
+  var typ: Type = _
 
   /**
    * The compiler used to compile the given files
    */
-  var compiler: Compiler = null
+  var compiler: Compiler = _
 
   /**
    * The checked property
    */
-  var property: Property = null
+  var property: Property = _
 
 
   def reset() = {

@@ -239,7 +239,7 @@ case class AssertionTree(
       case (cond, child) => cond -> child.remove(cond).simplify
     })
 
-    if (!newChildren.isEmpty) {
+    if (newChildren.nonEmpty) {
       // Pull up expressions that occur unconditionally in all children
       val commonExps = newChildren.values.map(_.exps).reduceLeft(_ intersect _)
       newExps = newExps ++ commonExps
@@ -446,9 +446,9 @@ case class AssertionExtractor[S <: Apron[S]](
   private def sufficientConditions(ambigEdges: Set[Edge[StateType]]):
     Map[Edge[StateType], sil.Exp] = {
 
-    require(ambigEdges.map(_.source).toSet.size == 1,
+    require(ambigEdges.map(_.source).size == 1,
       "the edges do not have the same source vertex")
-    require(ambigEdges.map(_.target).toSet.size == ambigEdges.size,
+    require(ambigEdges.map(_.target).size == ambigEdges.size,
       "the edge targets are not unique")
 
     if (ambigEdges.size != 2) {

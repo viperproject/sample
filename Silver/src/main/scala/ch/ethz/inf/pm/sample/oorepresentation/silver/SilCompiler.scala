@@ -23,7 +23,7 @@ import viper.silver.verifier.ParseError
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None
 
-  var program: sil.Program = null
+  var program: sil.Program = _
 
   def label: String = "SIL"
 
@@ -38,10 +38,9 @@ class SilCompiler extends Compiler {
       val input = Source.fromInputStream(Files.newInputStream(file)).mkString
       val parseResult = FastParser.parse(input, file)
       val parsed = parseResult match {
-        case fastparse.core.Parsed.Success(e: PProgram, _) => {
+        case fastparse.core.Parsed.Success(e: PProgram, _) =>
           e.initProperties()
           e
-        }
         case fastparse.core.Parsed.Failure(msg, next, extra) =>
           throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
         case ParseError(msg, pos) =>
@@ -50,7 +49,7 @@ class SilCompiler extends Compiler {
             case FilePosition(_, line, col) => (line, col)
             case _ => ??? // should never happen
           }
-          throw new ParseException(s"$msg in $file at ${line}:${col}", 0)
+          throw new ParseException(s"$msg in $file at $line:$col", 0)
       }
 
       Resolver(parsed).run

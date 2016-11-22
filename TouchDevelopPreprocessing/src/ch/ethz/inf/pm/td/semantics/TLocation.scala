@@ -73,7 +73,7 @@ object TLocation extends Default_TLocation {
     case "post to wall" =>
       Skip
 
-    /** Shares the location (email, sms, facebook, social or '' to pick from a list) */
+    /** Shares the location (email, sms, facebook, social or &#39;&#39; to pick from a list) */
     case "share" =>
       val List(network,message) = parameters // String,String
       Skip

@@ -108,7 +108,7 @@ class ScriptQuery extends IteratorOverPrograms {
 
   private var count: Int = 0
   private var limit: Option[Int] = None
-  private var continuation: String = null
+  private var continuation: String = _
   private var hasMore = true
   private var scripts: List[ScriptRecord] = Nil
 
@@ -140,7 +140,7 @@ class ScriptQuery extends IteratorOverPrograms {
     }
   }
 
-  override def hasNext() = hasMore && (!limit.isDefined || limit.get > count)
+  override def hasNext() = hasMore && (limit.isEmpty || limit.get > count)
 
   override def next(): ScriptRecord = {
     this.get()

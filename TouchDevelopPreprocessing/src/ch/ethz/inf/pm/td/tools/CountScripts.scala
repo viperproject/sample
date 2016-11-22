@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+package ch.ethz.inf.pm.td.tools
+
 import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher}
 
 object CountScripts {

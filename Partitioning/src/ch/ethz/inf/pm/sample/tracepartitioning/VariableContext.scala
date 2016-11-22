@@ -116,7 +116,7 @@ trait VariableContext {
  * @version 0.1
  */
 class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) extends VariableContext {
-	 require(ranges.length > 0)
+	 require(ranges.nonEmpty)
 
 	val top = SystemParameters.typ.top()
 

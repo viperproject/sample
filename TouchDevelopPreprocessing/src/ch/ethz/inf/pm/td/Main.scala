@@ -453,7 +453,7 @@ object Main {
 
     }
     if (otherArgs.nonEmpty) {
-      println("Invalid argument");
+      println("Invalid argument")
       sys.exit(1)
     }
 

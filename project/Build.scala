@@ -20,7 +20,7 @@ object SampleBuild extends Build {
 
   lazy val numerical = Project(
     id = "sample-numerical",
-    base = file("NumericalAnalysis")) dependsOn(core)
+    base = file("NumericalAnalysis")) dependsOn core
 
   lazy val apron = Project(
     id = "sample-apron",

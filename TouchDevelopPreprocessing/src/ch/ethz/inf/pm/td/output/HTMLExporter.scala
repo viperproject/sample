@@ -25,7 +25,7 @@ class HTMLExporter extends FileSystemExporter {
   }
 
   def warningsToString(compiler: TouchCompiler, id: String): String = {
-    export(Map(id -> compiler.parsedTouchScripts.get(id).get))
+    export(Map(id -> compiler.parsedTouchScripts(id)))
   }
 
   def export(targets: Map[String, Script]): String = {

@@ -251,7 +251,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
           if (num.isBottom) this.bottom() else this.copy(numDom = num)
         } else this.assume(left) lub this.assume(right)
 
-      case cond: NegatedBooleanExpression => { // NegatedBooleanExpression
+      case cond: NegatedBooleanExpression => // NegatedBooleanExpression
         cond.exp match {
           case c: Constant => // Constant
             val num = numDom.assume(cond)
@@ -285,7 +285,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
           case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
             + cond.exp.getClass.getSimpleName + " is missing.")
         }
-      }
 
       case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
         (left, right) match {
@@ -605,7 +604,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
     // return the current state with updated exprSet
-    this.copy(exprSet = ExpressionSet(new Constant(value, typ, pp)))
+    this.copy(exprSet = ExpressionSet(Constant(value, typ, pp)))
   }
 
   /** The current expression.
@@ -862,19 +861,17 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     logger.trace("*** lessEqual(" + this.repr + ", " + other.repr + ")")
 
     val refMap = this.refToObj.forall {
-      case (k: VariableIdentifier,s: Set[OldHeapNode]) => {
+      case (k: VariableIdentifier,s: Set[OldHeapNode]) =>
         val oo = other.refToObj.getOrElse(k,Set[OldHeapNode]())
         (!oo.contains(SummaryOldHeapNode$) || s.contains(SummaryOldHeapNode$)) &&
           ((s - SummaryOldHeapNode$) subsetOf (oo - SummaryOldHeapNode$))
-      }
     } // compare the refToObj
     val objMap = this.objToObj.forall {
         case (o: OldHeapNode, m: Map[String,Set[OldHeapNode]]) => m.forall {
-          case (f: String, s: Set[OldHeapNode]) => {
+          case (f: String, s: Set[OldHeapNode]) =>
             val oo = other.objToObj.getOrElse(o,Map[String,Set[OldHeapNode]]()).getOrElse(f,Set[OldHeapNode]())
             (!oo.contains(SummaryOldHeapNode$) || s.contains(SummaryOldHeapNode$)) &&
               ((s - SummaryOldHeapNode$) subsetOf (oo - SummaryOldHeapNode$))
-          }
         }
       } // test the objToObj
     val num = this.numDom.lessEqual(other.numDom) // compare the numDom
