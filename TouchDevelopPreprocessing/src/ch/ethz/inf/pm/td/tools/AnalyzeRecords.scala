@@ -9,13 +9,13 @@ package ch.ethz.inf.pm.td.tools
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
- * @author Lucas Brutschy
- */
+  * @author Lucas Brutschy
+  */
 object AnalyzeRecords {
 
-  case class Session(id:String,numberOfEvents:Int,firstEventTime:Int,programID:String)
+  case class Session(id: String, numberOfEvents: Int, firstEventTime: Int, programID: String)
 
-  def getSessions:List[Session] = {
+  def getSessions: List[Session] = {
 
     val settings = TouchAnalysisParameters.get
     import com.mongodb.casbah.Imports._
@@ -26,10 +26,10 @@ object AnalyzeRecords {
         MongoDBObject(
           "$group" -> MongoDBObject(
             "_id" -> "$sessionID",
-            "sessionID" -> MongoDBObject( "$first" -> "$sessionID" ),
-            "numberOfEvents" -> MongoDBObject( "$sum" -> 1 ),
-            "firstEventTime" -> MongoDBObject( "$min" -> "$retrievedAt" ),
-            "programID" -> MongoDBObject( "$first" -> "$programID" )
+            "sessionID" -> MongoDBObject("$first" -> "$sessionID"),
+            "numberOfEvents" -> MongoDBObject("$sum" -> 1),
+            "firstEventTime" -> MongoDBObject("$min" -> "$retrievedAt"),
+            "programID" -> MongoDBObject("$first" -> "$programID")
           )
         )
       )
@@ -37,18 +37,18 @@ object AnalyzeRecords {
 
     (for (doc <- result.results) yield {
       Session(
-        doc.getAsOrElse[String]("sessionID",""),
-        doc.getAsOrElse[Int]("numberOfEvents",0),
-        doc.getAsOrElse[Int]("firstEventTime",0),
-        doc.getAsOrElse[String]("programID","")
+        doc.getAsOrElse[String]("sessionID", ""),
+        doc.getAsOrElse[Int]("numberOfEvents", 0),
+        doc.getAsOrElse[Int]("firstEventTime", 0),
+        doc.getAsOrElse[String]("programID", "")
       )
     }).toList
 
   }
 
-  def analyzeSession(id:String) = ???
+  def analyzeSession(id: String) = ???
 
-  def main(args:Array[String]) {
+  def main(args: Array[String]) {
 
     val Session = """-session=([\w+])""".r
 
@@ -63,15 +63,15 @@ object AnalyzeRecords {
         case "-list" =>
 
           println(getSessions.sortBy(_.firstEventTime).mkString("\n"))
-1
+          1
         case "-interactive" =>
 
           println(getSessions.sortBy(_.firstEventTime).zipWithIndex.mkString("\n"))
-          while(true) {
+          while (true) {
             val index = try {
               Some(scala.io.StdIn.readLine().toInt)
             } catch {
-              case x:NumberFormatException => None
+              case x: NumberFormatException => None
             }
             val validIndex = index.filter(a => a < getSessions.length && a >= 0)
             validIndex.foreach { x =>

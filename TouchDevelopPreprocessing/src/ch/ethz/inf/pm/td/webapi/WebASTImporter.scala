@@ -9,16 +9,16 @@ package ch.ethz.inf.pm.td.webapi
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
 import com.novus.salat.annotations._
-import net.liftweb.json.JsonAST.{JArray, JString, JObject}
-import net.liftweb.json.{JValue, DefaultFormats, TypeHints, parse, parseOpt}
+import net.liftweb.json.JsonAST.{JArray, JObject, JString}
+import net.liftweb.json._
 
 /**
- *
- * Imports the JSON formatted AST of a script from the TouchDevelop web-interface
- *
- * Created by Lucas Brutschy
- *
- */
+  *
+  * Imports the JSON formatted AST of a script from the TouchDevelop web-interface
+  *
+  * Created by Lucas Brutschy
+  *
+  */
 object WebASTImporter {
 
   implicit val formats = new DefaultFormats {
@@ -40,9 +40,9 @@ object WebASTImporter {
     query(pubID) map convert
   }
 
-  def queryAndConvertBoth(pubID: String): Option[(Script,Option[JApp])] = {
+  def queryAndConvertBoth(pubID: String): Option[(Script, Option[JApp])] = {
     query(pubID) match {
-      case Some(script) => Some(convert(script),Some(script))
+      case Some(script) => Some(convert(script), Some(script))
       case None => None
     }
   }
@@ -51,7 +51,9 @@ object WebASTImporter {
     val url = ScriptQuery.webastURLfromPubID(pubID)
     val string = URLFetcher.fetchFile(url)
     val json = parseOpt(string)
-    json map { _.asInstanceOf[JObject].extract[JApp] }
+    json map {
+      _.asInstanceOf[JObject].extract[JApp]
+    }
   }
 
   def parseAST(string: String): Option[JApp] = {
@@ -71,12 +73,12 @@ object WebASTImporter {
     }
   }
 
-  def convertFromStringBoth(string:String): Option[(Script,Option[JApp])] = {
+  def convertFromStringBoth(string: String): Option[(Script, Option[JApp])] = {
     val json = parseOpt(string)
     json match {
       case Some(x) =>
         val japp = x.extract[JApp]
-        Some(convert(japp),Some(japp))
+        Some(convert(japp), Some(japp))
       case None => None
     }
   }
@@ -101,7 +103,7 @@ object WebASTImporter {
           "transient" -> Left(isTransient),
           "cloudenabled" -> Left(isCloudEnabled)
         )).setId(id)
-      case JPage(id, name, inParameters, outParameters, isPrivate, _, _,_, _, _, initBody, displayBody, _, _, hasModelParameter) =>
+      case JPage(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _, initBody, displayBody, _, _, hasModelParameter) =>
         // TODO: This could have a loop for the display code, but since its side-effect free, it should be fine.
         hasModelParameter match {
           case Some(true) =>
@@ -115,7 +117,7 @@ object WebASTImporter {
           case _ =>
             PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isEvent = false, isPrivate).setId(id)
         }
-      case JEvent(id, name, inParameters, outParameters, isPrivate, _, _,_, _, _,  eventName, eventVariableId, body) =>
+      case JEvent(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _, eventName, eventVariableId, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
       case JLibrary(id, name, libIdentifier, libIsPublished, scriptName, exportedTypes, exportedTypeDefs, exportedActions, resolveClauses) =>
         LibraryDefinition(name, libIdentifier, libIsPublished, scriptName, exportedTypes, exportedTypeDefs map convert, exportedActions map convert, resolveClauses map convert).setId(id)
@@ -125,9 +127,9 @@ object WebASTImporter {
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = false, isPrivate = isPrivate).setId(id)
       case JActionType(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _) =>
         ActionType(name, inParameters map convert, outParameters map convert, isPrivate = isPrivate).setId(id)
-      case JLibActionType(id,name,inParameters,outParameters,isPrivate, _, _, _, _, _) =>
+      case JLibActionType(id, name, inParameters, outParameters, isPrivate, _, _, _, _, _) =>
         ActionType(name, inParameters map convert, outParameters map convert, isPrivate = isPrivate).setId(id)
-      case JLibAbstractType(id:String, name:String) =>
+      case JLibAbstractType(id: String, name: String) =>
         LibAbstractType(name).setId(id)
       case JLibRecordType(id, name, sourceName, comment, category, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported, keys, fields) =>
         TableDefinition(name, category, sourceName, keys map convert, fields map convert, isCloudEnabled, isCloudPartiallyEnabled, isPersistent, isExported).setId(id)
@@ -190,9 +192,9 @@ object WebASTImporter {
             Break().setId(id1)
           case JContinue(id1) =>
             Continue().setId(id1)
-          case JReturn(id1,expr1) =>
+          case JReturn(id1, expr1) =>
             Return(convert(expr1)).setId(id1)
-          case JShow(id1,expr1) =>
+          case JShow(id1, expr1) =>
             Show(convert(expr1)).setId(id1)
           case _ =>
             ExpressionStatement(convert(expr)).setId(id)
@@ -314,7 +316,7 @@ object types {
   type JNodeRef = String
 }
 
-import types._
+import ch.ethz.inf.pm.td.webapi.types._
 
 @Salat
 trait JNode {
@@ -335,13 +337,13 @@ trait JExpr extends JToken
 case class JOperator(id: String, op: String) extends JToken
 
 case class JPropertyRef(
-                         id: String,
-                         name: String,
-                         parent: JTypeRef,
-                         // if used as token this is ignored when building
-                         // if used as JCall it's needed for operators
-                         declId: Option[JNodeRef] // filled when the property is user-defined
-                         ) extends JToken
+    id: String,
+    name: String,
+    parent: JTypeRef,
+    // if used as token this is ignored when building
+    // if used as JCall it's needed for operators
+    declId: Option[JNodeRef] // filled when the property is user-defined
+) extends JToken
 
 case class JStringLiteral(id: String, value: String) extends JExpr
 
@@ -352,16 +354,16 @@ case class JNumberLiteral(id: String, value: Double) extends JExpr
 // when building expressions of these three types you can provide localId/`type` or name,
 // if you provide both, name is ignored
 case class JLocalRef(
-                      id: String,
-                      name: String,
-                      localId: JNodeRef
-                      ) extends JExpr
+    id: String,
+    name: String,
+    localId: JNodeRef
+) extends JExpr
 
 case class JPlaceholder(
-                         id: String,
-                         name: String,
-                         `type`: JTypeRef
-                         ) extends JExpr
+    id: String,
+    name: String,
+    `type`: JTypeRef
+) extends JExpr
 
 // A singleton (probably) references one of the top-level categories such as
 // libraries or data. When trying to call "♻ l →  foo(x1, x2)", one may
@@ -376,28 +378,28 @@ case class JPlaceholder(
 // this is surprising, because when calling "1 + 2", we generate a call that
 // has two arguments only.
 case class JSingletonRef(
-                          id: String,
-                          name: String,
-                          `type`: JTypeRef
-                          ) extends JExpr
+    id: String,
+    name: String,
+    `type`: JTypeRef
+) extends JExpr
 
 case class JCall(
-                  id: String,
-                  name: String,
-                  parent: JTypeRef,
-                  declId: Option[JNodeRef], // filled when the property is user-defined
-                  args: List[JExpr],
-                  // If we are calling a *`type`* T on an expression (e.g. create ->
-                  // Collection of -> T), then T will be in there.
-                  typeArgs: Option[List[JTypeRef]] = None,
-                  // The field below, if present, determines without ambiguity the nature
-                  // of the call.
-                  // - extension (the new special syntax)
-                  // - field (reading a record field)
-                  // Other types of calls can be determined by careful inspection of the
-                  // receiver. See the C++ code emitter.
-                  callType: Option[String] = None
-                  ) extends JExpr
+    id: String,
+    name: String,
+    parent: JTypeRef,
+    declId: Option[JNodeRef], // filled when the property is user-defined
+    args: List[JExpr],
+    // If we are calling a *`type`* T on an expression (e.g. create ->
+    // Collection of -> T), then T will be in there.
+    typeArgs: Option[List[JTypeRef]] = None,
+    // The field below, if present, determines without ambiguity the nature
+    // of the call.
+    // - extension (the new special syntax)
+    // - field (reading a record field)
+    // Other types of calls can be determined by careful inspection of the
+    // receiver. See the C++ code emitter.
+    callType: Option[String] = None
+) extends JExpr
 
 // Expressions can be represented in two different manners.
 // - The first one is as a series of tokens. This would correspond to the
@@ -419,12 +421,12 @@ case class JCall(
 // not limited to the tokens, but rather extends until the end of the parent
 // block.
 case class JExprHolder(
-                        id: String,
-                        // if tokens is unset, will try to use tree
-                        tokens: Option[List[JToken]],
-                        tree: JExpr,
-                        locals: List[JLocalDef] // locals variables defined in this expression
-                        ) extends JNode
+    id: String,
+    // if tokens is unset, will try to use tree
+    tokens: Option[List[JToken]],
+    tree: JExpr,
+    locals: List[JLocalDef] // locals variables defined in this expression
+) extends JNode
 
 @Salat
 trait JStmt extends JNode {
@@ -437,18 +439,18 @@ trait JStmt extends JNode {
 case class JComment(id: String, text: String) extends JStmt
 
 case class JFor(id: String,
-                index: JLocalDef,
-                bound: JExprHolder,
-                body: List[JStmt]
-                 ) extends JStmt
+    index: JLocalDef,
+    bound: JExprHolder,
+    body: List[JStmt]
+) extends JStmt
 
 case class JForeach(
-                     id: String,
-                     iterator: JLocalDef,
-                     collection: JExprHolder,
-                     conditions: List[JCondition],
-                     body: List[JStmt]
-                     ) extends JStmt
+    id: String,
+    iterator: JLocalDef,
+    collection: JExprHolder,
+    conditions: List[JCondition],
+    body: List[JStmt]
+) extends JStmt
 
 @Salat
 trait JCondition extends JNode {
@@ -459,10 +461,10 @@ trait JCondition extends JNode {
 case class JWhere(id: String, condition: JExprHolder, locals: Option[List[JLocalDef]]) extends JCondition
 
 case class JWhile(
-                   id: String,
-                   condition: JExprHolder,
-                   body: List[JStmt]
-                   ) extends JStmt
+    id: String,
+    condition: JExprHolder,
+    body: List[JStmt]
+) extends JStmt
 
 case class JContinue(id: String) extends JExpr
 
@@ -501,163 +503,165 @@ case class JShow(id: String, expr: JExpr) extends JExpr
 // program.
 
 case class JIf(
-                id: String,
-                condition: JExprHolder,
-                thenBody: List[JStmt],
-                elseBody: List[JStmt],
-                isElseIf:Boolean
-                ) extends JStmt
+    id: String,
+    condition: JExprHolder,
+    thenBody: List[JStmt],
+    elseBody: List[JStmt],
+    isElseIf: Boolean
+) extends JStmt
 
 case class JBoxed(id: String, body: List[JStmt]) extends JStmt
-case class JExprStmt(id: String,expr: JExprHolder) extends JStmt
+
+case class JExprStmt(id: String, expr: JExprHolder) extends JStmt
+
 case class JInlineActions(id: String, expr: JExprHolder, actions: List[JAbstractInlineParameters]) extends JStmt
 
 @Salat
 trait JAbstractInlineParameters
 
 case class JInlineAction(
-                          id: String,
-                          reference: JLocalDef,
-                          inParameters: List[JLocalDef],
-                          outParameters: List[JLocalDef],
-                          body: List[JStmt],
-                          locals:Option[List[JLocalDef]], // this contains the reference in short mode, it never contains anything else
-                          isImplicit:Option[Boolean],
-                          isOptional:Option[Boolean]
-                          ) extends JNode with JAbstractInlineParameters
+    id: String,
+    reference: JLocalDef,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    body: List[JStmt],
+    locals: Option[List[JLocalDef]], // this contains the reference in short mode, it never contains anything else
+    isImplicit: Option[Boolean],
+    isOptional: Option[Boolean]
+) extends JNode with JAbstractInlineParameters
 
 
 case class JOptionalParameter(
-                               id: String,
-                               name: String,
-                               declId:JNodeRef,
-                               expr: JExprHolder
-                               ) extends JNode with JAbstractInlineParameters
+    id: String,
+    name: String,
+    declId: JNodeRef,
+    expr: JExprHolder
+) extends JNode with JAbstractInlineParameters
 
 @Salat
 trait JActionBase extends JDecl {
   val inParameters: List[JLocalDef]
   val outParameters: List[JLocalDef]
   // note that events should be always treated as private, but for historical reasons this field can be true or false
-  val isPrivate:Boolean
+  val isPrivate: Boolean
   val isOffline: Boolean
   val isQuery: Boolean
   val isTest: Boolean
-  val isAsync:Boolean
+  val isAsync: Boolean
   val description: String
 }
 
 case class JActionType(
-                        id: String,
-                        name: String,
-                        inParameters: List[JLocalDef],
-                        outParameters: List[JLocalDef],
-                        // note that events should be always treated as private, but for historical reasons this field can be true or false
-                        isPrivate: Boolean,
-                        isOffline: Boolean,
-                        isQuery: Boolean,
-                        isTest: Boolean,
-                        isAsync: Boolean,
-                        description: String) extends JActionBase
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String) extends JActionBase
 
 case class JAction(
-                    id: String,
-                    name: String,
-                    inParameters: List[JLocalDef],
-                    outParameters: List[JLocalDef],
-                    // note that events should be always treated as private, but for historical reasons this field can be true or false
-                    isPrivate: Boolean,
-                    isOffline: Boolean,
-                    isQuery: Boolean,
-                    isTest: Boolean,
-                    isAsync: Boolean,
-                    description: String,
-                    body: List[JStmt]) extends JActionBase
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String,
+    body: List[JStmt]) extends JActionBase
 
 case class JPage(
-                  id: String,
-                  name: String,
-                  inParameters: List[JLocalDef],
-                  outParameters: List[JLocalDef],
-                  // note that events should be always treated as private, but for historical reasons this field can be true or false
-                  isPrivate: Boolean,
-                  isOffline: Boolean,
-                  isQuery: Boolean,
-                  isTest: Boolean,
-                  isAsync: Boolean,
-                  description: String,
-                  initBody: List[JStmt],
-                  displayBody: List[JStmt],
-                  initBodyId:Option[String],
-                  displayBodyId:Option[String],
-                  hasModelParameter: Option[Boolean]
-                  ) extends JDecl
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String,
+    initBody: List[JStmt],
+    displayBody: List[JStmt],
+    initBodyId: Option[String],
+    displayBodyId: Option[String],
+    hasModelParameter: Option[Boolean]
+) extends JDecl
 
 case class JEvent(
-                   id: String,
-                   name: String,
-                   inParameters: List[JLocalDef],
-                   outParameters: List[JLocalDef],
-                   // note that events should be always treated as private, but for historical reasons this field can be true or false
-                   isPrivate: Boolean,
-                   isOffline: Boolean,
-                   isQuery: Boolean,
-                   isTest: Boolean,
-                   isAsync: Boolean,
-                   description: String,
-                   // when building provide name or both eventName and eventVariableId (which take precedence over name)
-                   eventName: Option[String],
-                   eventVariableId: Option[JNodeRef],
-                   body: List[JStmt]
-                   ) extends JActionBase
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String,
+    // when building provide name or both eventName and eventVariableId (which take precedence over name)
+    eventName: Option[String],
+    eventVariableId: Option[JNodeRef],
+    body: List[JStmt]
+) extends JActionBase
 
 case class JLibAction(
-                       id: String,
-                       name: String,
-                       inParameters: List[JLocalDef],
-                       outParameters: List[JLocalDef],
-                       // note that events should be always treated as private, but for historical reasons this field can be true or false
-                       isPrivate: Boolean,
-                       isOffline: Boolean,
-                       isQuery: Boolean,
-                       isTest: Boolean,
-                       isAsync: Boolean,
-                       description: String,
-                       parentLibId: JNodeRef // this can be empty - it means "current script"
-                       ) extends JActionBase
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String,
+    parentLibId: JNodeRef // this can be empty - it means "current script"
+) extends JActionBase
 
 case class JLibAbstractType(
-                       id: String,
-                       name: String
-                       ) extends JDecl
+    id: String,
+    name: String
+) extends JDecl
 
 case class JLibActionType(
-                           id: String,
-                           name: String,
-                           inParameters: List[JLocalDef],
-                           outParameters: List[JLocalDef],
-                           // note that events should be always treated as private, but for historical reasons this field can be true or false
-                           isPrivate: Boolean,
-                           isOffline: Boolean,
-                           isQuery: Boolean,
-                           isTest: Boolean,
-                           isAsync: Boolean,
-                           description: String
-                           ) extends JActionBase
+    id: String,
+    name: String,
+    inParameters: List[JLocalDef],
+    outParameters: List[JLocalDef],
+    // note that events should be always treated as private, but for historical reasons this field can be true or false
+    isPrivate: Boolean,
+    isOffline: Boolean,
+    isQuery: Boolean,
+    isTest: Boolean,
+    isAsync: Boolean,
+    description: String
+) extends JActionBase
 
 case class JLibRecordType(
-                           id: String,
-                           name: String,
-                           sourceName: Option[String],
-                           comment: String,
-                           category: String, // "object", "table", "index", or "decorator"
-                           isCloudEnabled: Boolean,
-                           isCloudPartiallyEnabled: Boolean,
-                           isPersistent: Boolean,
-                           isExported: Boolean,
-                           keys: List[JRecordKey],
-                           fields: List[JRecordField]
-                           ) extends JDecl
+    id: String,
+    name: String,
+    sourceName: Option[String],
+    comment: String,
+    category: String, // "object", "table", "index", or "decorator"
+    isCloudEnabled: Boolean,
+    isCloudPartiallyEnabled: Boolean,
+    isPersistent: Boolean,
+    isExported: Boolean,
+    keys: List[JRecordKey],
+    fields: List[JRecordField]
+) extends JDecl
 
 @Salat
 trait JGlobalDef extends JDecl {
@@ -669,134 +673,135 @@ trait JGlobalDef extends JDecl {
 }
 
 case class JArt(
-                 id: String,
-                 name: String,
-                 comment: String,
-                 `type`: JTypeRef,
-                 isReadonly: Boolean,
-                 isTransient: Boolean,
-                 isCloudEnabled: Boolean,
-                 url: String,
-                 // If it's a String art, contains its value.
-                 value: Option[String]
-                 ) extends JGlobalDef
+    id: String,
+    name: String,
+    comment: String,
+    `type`: JTypeRef,
+    isReadonly: Boolean,
+    isTransient: Boolean,
+    isCloudEnabled: Boolean,
+    url: String,
+    // If it's a String art, contains its value.
+    value: Option[String]
+) extends JGlobalDef
 
 case class JData(
-                  id: String,
-                  name: String,
-                  comment: String,
-                  `type`: JTypeRef,
-                  isReadonly: Boolean,
-                  isCloudEnabled: Boolean,
-                  isTransient: Boolean
-                  ) extends JGlobalDef
+    id: String,
+    name: String,
+    comment: String,
+    `type`: JTypeRef,
+    isReadonly: Boolean,
+    isCloudEnabled: Boolean,
+    isTransient: Boolean
+) extends JGlobalDef
 
 case class JLibrary(
-                     id: String,
-                     name: String,
-                     libIdentifier: String,
-                     libIsPublished: Boolean,
-                     scriptName: String, // name of the script to which the library resolves
-                     exportedTypes: String, // space separated, obsolete, use exportedTypeDefs
-                     exportedTypeDefs: List[JDecl], // JLibAbstractType or JLibActionType
-                     exportedActions: List[JLibAction],
-                     resolveClauses: List[JResolveClause]
-                     ) extends JDecl
+    id: String,
+    name: String,
+    libIdentifier: String,
+    libIsPublished: Boolean,
+    scriptName: String, // name of the script to which the library resolves
+    exportedTypes: String, // space separated, obsolete, use exportedTypeDefs
+    exportedTypeDefs: List[JDecl], // JLibAbstractType or JLibActionType
+    exportedActions: List[JLibAction],
+    resolveClauses: List[JResolveClause]
+) extends JDecl
 
 @Salat
 trait JBinding extends JNode {
   val id: String
-  val name: String // name of the formal argument
+  val name: String
+  // name of the formal argument
   val isExplicit: Boolean // was it explicitly specified by the user
   // implicit bindings are ignored when building expressions
 }
 
 case class JTypeBinding(
-                         id: String,
-                         name: String,
-                         isExplicit: Boolean, // was it explicitly specified by the user
-                         `type`: JTypeRef
-                         ) extends JBinding
+    id: String,
+    name: String,
+    isExplicit: Boolean, // was it explicitly specified by the user
+    `type`: JTypeRef
+) extends JBinding
 
 case class JActionBinding(
-                           id: String,
-                           name: String,
-                           isExplicit: Boolean, // was it explicitly specified by the user
-                           actionId: JNodeRef
-                           ) extends JBinding
+    id: String,
+    name: String,
+    isExplicit: Boolean, // was it explicitly specified by the user
+    actionId: JNodeRef
+) extends JBinding
 
 case class JResolveClause(
-                           id: String,
-                           name: String,
-                           // points to a JLibrary (not publish-id),
-                           // it may be null for binding to the current script
-                           defaultLibId:JNodeRef,
-                           withTypes: List[JTypeBinding],
-                           withActions: List[JActionBinding]
-                           ) extends JNode
+    id: String,
+    name: String,
+    // points to a JLibrary (not publish-id),
+    // it may be null for binding to the current script
+    defaultLibId: JNodeRef,
+    withTypes: List[JTypeBinding],
+    withActions: List[JActionBinding]
+) extends JNode
 
 case class JRecord(
-                    id: String,
-                    name: String,
-                    sourceName: Option[String],
-                    comment: String,
-                    category: String, // "object", "table", "index", or "decorator"
-                    isCloudEnabled: Boolean,
-                    isCloudPartiallyEnabled: Boolean,
-                    isPersistent: Boolean,
-                    isExported: Boolean,
-                    keys: List[JRecordKey],
-                    fields: List[JRecordField]
-                    ) extends JDecl
+    id: String,
+    name: String,
+    sourceName: Option[String],
+    comment: String,
+    category: String, // "object", "table", "index", or "decorator"
+    isCloudEnabled: Boolean,
+    isCloudPartiallyEnabled: Boolean,
+    isPersistent: Boolean,
+    isExported: Boolean,
+    keys: List[JRecordKey],
+    fields: List[JRecordField]
+) extends JDecl
 
 
 case class JRecordField(
-                         id: String,
-                         name: String,
-                         `type`: JTypeRef
-                         ) extends JNode
+    id: String,
+    name: String,
+    `type`: JTypeRef
+) extends JNode
 
 case class JRecordKey(
-                       id: String,
-                       name: String,
-                       `type`: JTypeRef
-                       ) extends JNode
+    id: String,
+    name: String,
+    `type`: JTypeRef
+) extends JNode
 
 // local variable or a parameter
 case class JLocalDef(
-                      id: String,
-                      name: String,
-                      `type`: JTypeRef
-                      ) extends JNode
+    id: String,
+    name: String,
+    `type`: JTypeRef
+) extends JNode
 
 // Response to:
 // GET /api/<script-id>/webast
 case class JApp(
-                 id: String,
-                 // both versions are comma-separated list of tokens/features
-                 textVersion: String,
-                 jsonVersion: String,
+    id: String,
+    // both versions are comma-separated list of tokens/features
+    textVersion: String,
+    jsonVersion: String,
 
-                 name: String,
-                 comment: String,
-                 // The name and icon are only given here if they are explicitly specified by the user.
-                 icon: Option[String], // name of the icon, e.g., "Bolt"
-                 color: Option[String], // e.g., #ff00ff
-                 // These two are always present. They are ignored when building new scripts.
-                 autoIcon: String,
-                 autoColor: String,
+    name: String,
+    comment: String,
+    // The name and icon are only given here if they are explicitly specified by the user.
+    icon: Option[String], // name of the icon, e.g., "Bolt"
+    color: Option[String], // e.g., #ff00ff
+    // These two are always present. They are ignored when building new scripts.
+    autoIcon: String,
+    autoColor: String,
 
-                 platform: String, // comma-separated
-                 isLibrary: Boolean,
-                 showAd: Boolean,
-                 hasIds: Boolean, // does it have stable, persistent ids for every stmt
-                 rootId: String,
-                 decls: List[JDecl],
-                 deletedDecls: List[JDecl], // these are present when a node was deleted but is still referenced from somewhere
+    platform: String, // comma-separated
+    isLibrary: Boolean,
+    showAd: Boolean,
+    hasIds: Boolean, // does it have stable, persistent ids for every stmt
+    rootId: String,
+    decls: List[JDecl],
+    deletedDecls: List[JDecl], // these are present when a node was deleted but is still referenced from somewhere
 
-                 libraryName: Option[String], // when used in reflection info
-                 libraryId: Option[String] // when used in reflection info
-                 ) extends JNode
+    libraryName: Option[String], // when used in reflection info
+    libraryId: Option[String] // when used in reflection info
+) extends JNode
 
 
 //
@@ -804,68 +809,68 @@ case class JApp(
 //
 
 case class JPropertyParameter(
-                               name: String,
-                               `type`: JTypeRef,
-                               writesMutable: Option[Boolean], // are fields of the object referenced by this paramter being written to
-                               readsMutable: Option[Boolean], // .... read from
-                               defaultValue: Option[List[JToken]],
-                               stringValues: Option[List[String]] // these show up in intelli buttons, they are usually all allowed values for a parameter
-                               )
+    name: String,
+    `type`: JTypeRef,
+    writesMutable: Option[Boolean], // are fields of the object referenced by this paramter being written to
+    readsMutable: Option[Boolean], // .... read from
+    defaultValue: Option[List[JToken]],
+    stringValues: Option[List[String]] // these show up in intelli buttons, they are usually all allowed values for a parameter
+)
 
 case class JProperty(
-                      name: String,
-                      help: String,
-                      usage_count: Int, // this is used for syntax autocompletion priority
-                      runOnInvalid: Option[Boolean], // should the property by run even if one of the arguments is 'invalid'
-                      isHidden: Option[Boolean], // doesn't show in autocompletion
-                      isAsync: Option[Boolean],
-                      isObsolete: Option[Boolean], // generates a warning
-                      isDbgOnly: Option[Boolean], // an experimental feature, not visible in regular builds
-                      isBetaOnly: Option[Boolean], // a feature in testing, visible in /app/beta
-                      jsName: String, // how is the property refered to from JavaScript
-                      infixPriority: Option[Int], // when present, this is an infix operator with given priority
-                      // higher Int is higher priority, even assosiates left, odd - right
-                      pausesInterpreter: Option[Boolean], // is this a potentially-async operation
-                      usesStackFrame: Option[Boolean], // is the implementation passed IStackFrame object
-                      missingWeb: Option[Boolean], // is the implementation missing from the general web version
-                      missingWab: Option[Boolean], // .... from web version running with WebAppBooster
-                      capabilities: Option[String], // comma-separated list of required platform capabilities (if any)
-                      result: JPropertyParameter,
-                      parameters: List[JPropertyParameter]
-                      )
+    name: String,
+    help: String,
+    usage_count: Int, // this is used for syntax autocompletion priority
+    runOnInvalid: Option[Boolean], // should the property by run even if one of the arguments is 'invalid'
+    isHidden: Option[Boolean], // doesn't show in autocompletion
+    isAsync: Option[Boolean],
+    isObsolete: Option[Boolean], // generates a warning
+    isDbgOnly: Option[Boolean], // an experimental feature, not visible in regular builds
+    isBetaOnly: Option[Boolean], // a feature in testing, visible in /app/beta
+    jsName: String, // how is the property refered to from JavaScript
+    infixPriority: Option[Int], // when present, this is an infix operator with given priority
+    // higher Int is higher priority, even assosiates left, odd - right
+    pausesInterpreter: Option[Boolean], // is this a potentially-async operation
+    usesStackFrame: Option[Boolean], // is the implementation passed IStackFrame object
+    missingWeb: Option[Boolean], // is the implementation missing from the general web version
+    missingWab: Option[Boolean], // .... from web version running with WebAppBooster
+    capabilities: Option[String], // comma-separated list of required platform capabilities (if any)
+    result: JPropertyParameter,
+    parameters: List[JPropertyParameter]
+)
 
 case class JTypeDef(
-                     name: String,
-                     help: String,
-                     icon: String, // a name of the icon representing this `type`
-                     isAction: Option[Boolean], // is it a function `type`, look for 'run' property for the signature
-                     isData: Boolean, // false for singleton types
-                     stemName: String, // used when auto-naming variables of this `type`
-                     jsName: String, // how is the `type` refered to from JavaScript
-                     isDbgOnly: Option[Boolean], // an experimental feature, not visible in regular builds
-                     isBetaOnly: Option[Boolean], // a feature in testing, visible in /app/beta
-                     isSerializable: Boolean, // do we support automatic serialization of this `type`
-                     isBuiltin: Option[Boolean], // true for Int, Boolean, String, the JS calling convention is different for these
-                     ctxLocal: Option[Boolean], // can it be used as local variable
-                     ctxGlobal: Option[Boolean], // .... as global variable
-                     ctxField: Option[Boolean], // .... as field of a record
-                     ctxLocalKey: Option[Boolean], // .... as key in a local index
-                     ctxGcKey: Option[Boolean], // can it have decorators
-                     ctxCloudKey: Option[Boolean],
-                     ctxRowKey: Option[Boolean],
-                     ctxCloudField: Option[Boolean],
-                     ctxWallTap: Option[Boolean], // do global variables of this `type` get 'wall tap' events
-                     ctxEnumerable: Option[Boolean], // can it be used with foreach construct
-                     ctxJson: Option[Boolean], // can it be json exported/imported
-                     properties: List[JProperty]
-                     )
+    name: String,
+    help: String,
+    icon: String, // a name of the icon representing this `type`
+    isAction: Option[Boolean], // is it a function `type`, look for 'run' property for the signature
+    isData: Boolean, // false for singleton types
+    stemName: String, // used when auto-naming variables of this `type`
+    jsName: String, // how is the `type` refered to from JavaScript
+    isDbgOnly: Option[Boolean], // an experimental feature, not visible in regular builds
+    isBetaOnly: Option[Boolean], // a feature in testing, visible in /app/beta
+    isSerializable: Boolean, // do we support automatic serialization of this `type`
+    isBuiltin: Option[Boolean], // true for Int, Boolean, String, the JS calling convention is different for these
+    ctxLocal: Option[Boolean], // can it be used as local variable
+    ctxGlobal: Option[Boolean], // .... as global variable
+    ctxField: Option[Boolean], // .... as field of a record
+    ctxLocalKey: Option[Boolean], // .... as key in a local index
+    ctxGcKey: Option[Boolean], // can it have decorators
+    ctxCloudKey: Option[Boolean],
+    ctxRowKey: Option[Boolean],
+    ctxCloudField: Option[Boolean],
+    ctxWallTap: Option[Boolean], // do global variables of this `type` get 'wall tap' events
+    ctxEnumerable: Option[Boolean], // can it be used with foreach construct
+    ctxJson: Option[Boolean], // can it be json exported/imported
+    properties: List[JProperty]
+)
 
 // GET /api/language/apis
 case class JApis(
-                  textVersion: String,
-                  jsonVersion: String,
-                  types: List[JTypeDef]
-                  )
+    textVersion: String,
+    jsonVersion: String,
+    types: List[JTypeDef]
+)
 
 /*
 

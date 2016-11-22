@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, WeightedGraph}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchEntryStateBuilder}
 import ch.ethz.inf.pm.td.compiler.{CloudEnabledModifier, TouchCompiler}
-import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, TouchStateInterface}
+import ch.ethz.inf.pm.td.domain.{FieldIdentifier, TouchStateInterface}
 import ch.ethz.inf.pm.td.semantics.{SCloud_Data, SData, SRecords, TString}
 
 import scala.collection.mutable
@@ -55,10 +55,10 @@ object AbstractEventGraph {
 
   import EdgeLabel._
 
-  class EventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S],EdgeLabel]
+  class EventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S], EdgeLabel]
 
   case class AbstractEventWithState[S <: State[S]](aE: AbstractEvent,
-                                                   state:S) extends NodeWithState[S] {
+      state: S) extends NodeWithState[S] {
     override def toString = aE.toString
   }
 
@@ -68,18 +68,20 @@ object AbstractEventGraph {
 
   case object InitialEvent extends AbstractEvent {
     val id = ""
-    override def toString:String ="Init"
+
+    override def toString: String = "Init"
   }
 
-  case class ProgramPointEvent[S <: State[S]](pp:ProgramPoint, method:String) extends AbstractEvent {
+  case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, method: String) extends AbstractEvent {
     val id = pp.toString
-    override def toString:String = method
+
+    override def toString: String = method
   }
 
-  private var invProgramOrder:       Map[AbstractEvent,SetDomain.Default[AbstractEvent]] = Map.empty
-  private var localInvariants:       Map[AbstractEvent,_] = Map.empty
-  private var arguments:             Map[AbstractEvent,List[ExpressionSet]] = Map.empty
-  private var stringToEvent:         Map[String,AbstractEvent] = Map.empty
+  private var invProgramOrder: Map[AbstractEvent, SetDomain.Default[AbstractEvent]] = Map.empty
+  private var localInvariants: Map[AbstractEvent, _] = Map.empty
+  private var arguments: Map[AbstractEvent, List[ExpressionSet]] = Map.empty
+  private var stringToEvent: Map[String, AbstractEvent] = Map.empty
 
   def reset(): Unit = {
     localInvariants = Map.empty
@@ -92,32 +94,32 @@ object AbstractEventGraph {
 
     localInvariants = localInvariants + (InitialEvent ->
       TouchEntryStateBuilder(TouchAnalysisParameters.get).topState.bottom().asInstanceOf[S]
-    )
+      )
 
-    val map = mutable.Map.empty[AbstractEvent,Int]
+    val map = mutable.Map.empty[AbstractEvent, Int]
     val graph = new EventGraph[S]
 
-    for ((aE,s) <- localInvariants) {
-      val i = graph.addNode(AbstractEventWithState(aE,s.asInstanceOf[S]))
+    for ((aE, s) <- localInvariants) {
+      val i = graph.addNode(AbstractEventWithState(aE, s.asInstanceOf[S]))
       map += (aE -> i)
     }
 
-    for( (a,bs) <- invProgramOrder; b <- bs.toSetOrFail ) {
+    for ((a, bs) <- invProgramOrder; b <- bs.toSetOrFail) {
       if (a != InitialEvent)
-        graph.addEdge(map(b),map(a),Some(EdgeLabel.ProgramOrder))
+        graph.addEdge(map(b), map(a), Some(EdgeLabel.ProgramOrder))
     }
 
     graph
   }
 
-  def isCloudIdentifier(value: Identifier):Boolean = value match {
+  def isCloudIdentifier(value: Identifier): Boolean = value match {
 
-    case FieldIdentifier(obj,field,typ) if obj.typ == SData =>
+    case FieldIdentifier(obj, field, typ) if obj.typ == SData =>
 
       val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
       compiler.globalData.exists(f => f.variable.getName == field && f.modifiers.contains(CloudEnabledModifier))
 
-    case FieldIdentifier(obj,field,typ) if obj.typ == SRecords =>
+    case FieldIdentifier(obj, field, typ) if obj.typ == SRecords =>
 
       SRecords.mutableFields.exists(x => x._1.name == field && x._2.contains(CloudEnabledModifier))
 
@@ -127,7 +129,7 @@ object AbstractEventGraph {
 
   }
 
-  def prettyPrint(x:List[Identifier]): String = {
+  def prettyPrint(x: List[Identifier]): String = {
     x.map {
       case FieldIdentifier(_, f, _) => f
       case VariableIdentifier(n, _) => n
@@ -137,16 +139,16 @@ object AbstractEventGraph {
 
   private def cloudPaths[S <: State[S]](state: S, this0: ExpressionSet): List[String] = {
     state match {
-      case x:TouchStateInterface[_] =>
+      case x: TouchStateInterface[_] =>
         x.reachingHeapPaths(this0.ids) match {
-          case x:SetDomain.Default.Top[List[Identifier]] => List("")
-          case x:SetDomain.Default.Bottom[List[Identifier]] => Nil
+          case x: SetDomain.Default.Top[List[Identifier]] => List("")
+          case x: SetDomain.Default.Bottom[List[Identifier]] => Nil
           case SetDomain.Default.Inner(inner) => inner.filter(x => x.exists(isCloudIdentifier)).map(prettyPrint).toList
         }
     }
   }
 
-  private def isEscapingOperation(operator:String): Boolean = {
+  private def isEscapingOperation(operator: String): Boolean = {
     operator match {
       case ":=" => true
       case "◈confirmed" => true
@@ -159,7 +161,7 @@ object AbstractEventGraph {
     }
   }
 
-  private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath:String, operator: String, parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
+  private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath: String, operator: String, parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
 
     val cloudData = Singleton(SCloud_Data)(pp)
 
@@ -181,7 +183,7 @@ object AbstractEventGraph {
     if (cloudPath.isEmpty) return state // HACK
     if (constants.isTop) return state // HACK
 
-    val event = ProgramPointEvent(pp, cloudPath+"."+operator)
+    val event = ProgramPointEvent(pp, cloudPath + "." + operator)
     stringToEvent = stringToEvent + (event.id -> event)
 
     val events =
@@ -229,34 +231,34 @@ object AbstractEventGraph {
 
     // Update state to include current relation
     val res =
-      AssignField[S](
-        Singleton(SCloud_Data)(pp),
-        SCloud_Data.field_last_operation,
-        toRichExpression(Constant(pp.toString, TString, pp))
-      )(state, pp)
+    AssignField[S](
+      Singleton(SCloud_Data)(pp),
+      SCloud_Data.field_last_operation,
+      toRichExpression(Constant(pp.toString, TString, pp))
+    )(state, pp)
 
     res
   }
 
 
-  def record[S <: State[S]](operator:String,
-                            this0: ExpressionSet,
-                            parameters: List[ExpressionSet],
-                            state: S,
-                            pp:ProgramPoint):S = {
+  def record[S <: State[S]](operator: String,
+      this0: ExpressionSet,
+      parameters: List[ExpressionSet],
+      state: S,
+      pp: ProgramPoint): S = {
 
     if (TouchAnalysisParameters.get.enableCloudAnalysis) {
 
       var curState = state
 
       for (p <- parameters) {
-        for (r <- cloudPaths(curState,p)) {
+        for (r <- cloudPaths(curState, p)) {
           curState = recordOperation(p, r, "◈get", Nil, curState, pp)
         }
       }
 
       if (isEscapingOperation(operator)) {
-        for (r <- cloudPaths(curState,this0)) {
+        for (r <- cloudPaths(curState, this0)) {
           curState = recordOperation(this0, r, operator, Nil, curState, pp)
         }
       }
@@ -266,17 +268,17 @@ object AbstractEventGraph {
     } else state
   }
 
-  override def toString:String = {
+  override def toString: String = {
     "==Graph==\n" +
-      (for ((aE,preds) <- invProgramOrder; pred <- preds.toSetOrFail) yield {
+      (for ((aE, preds) <- invProgramOrder; pred <- preds.toSetOrFail) yield {
         pred + "->" + aE
       }).mkString(",") +
       "\n==Invariants==\n" +
-      (for ((aE,inv) <- localInvariants) yield {
+      (for ((aE, inv) <- localInvariants) yield {
         aE + ":" + inv
       }).mkString(",") +
       "\n==Argument==\n" +
-      (for ((aE,arg) <- arguments) yield {
+      (for ((aE, arg) <- arguments) yield {
         aE + ":" + arg
       }).mkString(",")
   }

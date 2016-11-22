@@ -13,14 +13,14 @@ import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiMemberSemantics, CloudEnabledMo
 import ch.ethz.inf.pm.td.domain.TouchState
 
 /**
- * @author Lucas Brutschy
- */
+  * @author Lucas Brutschy
+  */
 trait CloudOperationSemantics extends ApiMemberSemantics {
 
-  def typeModifiers:Set[Modifier]
+  def typeModifiers: Set[Modifier]
 
-  def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
-                                     (implicit pp: ProgramPoint, state: S): S = {
+  def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])
+    (implicit pp: ProgramPoint, state: S): S = {
     //AbstractEventGraph.record(ProgramPointEvent(pp,method.name),this0,parameters,state,pp)
     state
   }
@@ -29,13 +29,13 @@ trait CloudOperationSemantics extends ApiMemberSemantics {
 
 trait CloudUpdateSemantics extends CloudOperationSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
-                                     (implicit pp: ProgramPoint, state: S): S = {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])
+    (implicit pp: ProgramPoint, state: S): S = {
 
-    val curState = super.forwardSemantics[S](this0,method,parameters)
+    val curState = super.forwardSemantics[S](this0, method, parameters)
     if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier) && state.isInstanceOf[TouchState.Default[_]]) {
 
-      println(this0._2,method.name)
+      println(this0._2, method.name)
 
     }
     curState
@@ -43,13 +43,13 @@ trait CloudUpdateSemantics extends CloudOperationSemantics {
 
 }
 
-case class CloudUpdateWrapper(sem:ApiMemberSemantics, typeModifiers: Set[Modifier]) extends CloudUpdateSemantics {
+case class CloudUpdateWrapper(sem: ApiMemberSemantics, typeModifiers: Set[Modifier]) extends CloudUpdateSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S = {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])
+    (implicit pp: ProgramPoint, state: S): S = {
 
-    var curState = super.forwardSemantics[S](this0,method,parameters)
-    curState = sem.forwardSemantics[S](this0,method,parameters)(pp,curState)
+    var curState = super.forwardSemantics[S](this0, method, parameters)
+    curState = sem.forwardSemantics[S](this0, method, parameters)(pp, curState)
     curState
 
   }
@@ -58,13 +58,13 @@ case class CloudUpdateWrapper(sem:ApiMemberSemantics, typeModifiers: Set[Modifie
 
 trait CloudQuerySemantics extends CloudOperationSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
-                                     (implicit pp: ProgramPoint, state: S): S = {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])
+    (implicit pp: ProgramPoint, state: S): S = {
 
-    val curState = super.forwardSemantics[S](this0,method,parameters)
+    val curState = super.forwardSemantics[S](this0, method, parameters)
     if (TouchAnalysisParameters.get.trackCloudTypes && typeModifiers.contains(CloudEnabledModifier) && state.isInstanceOf[TouchState.Default[_]]) {
 
-      println(this0._2,method.name)
+      println(this0._2, method.name)
 
     }
     curState
@@ -74,13 +74,13 @@ trait CloudQuerySemantics extends CloudOperationSemantics {
 }
 
 
-case class CloudQueryWrapper(sem:ApiMemberSemantics, typeModifiers: Set[Modifier]) extends CloudQuerySemantics {
+case class CloudQueryWrapper(sem: ApiMemberSemantics, typeModifiers: Set[Modifier]) extends CloudQuerySemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S = {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])
+    (implicit pp: ProgramPoint, state: S): S = {
 
-    var curState = super.forwardSemantics[S](this0,method,parameters)
-    curState = sem.forwardSemantics[S](this0,method,parameters)(pp,curState)
+    var curState = super.forwardSemantics[S](this0, method, parameters)
+    curState = sem.forwardSemantics[S](this0, method, parameters)(pp, curState)
     curState
 
   }

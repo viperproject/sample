@@ -4,14 +4,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import java.io.{File, PrintWriter}
-import net.liftweb.json._
+
+import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.json._
 
 /**
- * Parses the new JSON based API description an generates type information
- */
+  * Parses the new JSON based API description an generates type information
+  */
 
 object GenerateTypeList {
 
@@ -104,30 +105,31 @@ object GenerateTypeList {
           ("types", JArray(types)) <- root;
         typ <- types
       ) yield {
-          val JString(name) = typ \ "name"
-          val isData = typ \ "isData" match {
-            case JBool(x) => x
-            case _ => false
-          }
-
-          val className = if (isData) "T" + name.replace(" ", "_") else "S" + name.replace(" ", "_")
-
-          "    case "+ className + ".typeName => Some(" + className + ")"
+        val JString(name) = typ \ "name"
+        val isData = typ \ "isData" match {
+          case JBool(x) => x
+          case _ => false
         }
+
+        val className = if (isData) "T" + name.replace(" ", "_") else "S" + name.replace(" ", "_")
+
+        "    case " + className + ".typeName => Some(" + className + ")"
+      }
 
       p.println(lines.mkString("\n"))
 
-      p.println( """
-                   |    case _ =>
-                   |      if (!CFGGenerator.isLibraryIdent(typ.ident)) {
-                   |        userTypes.get(typ)
-                   |      } else Some(new ASingleton {
-                   |        override def typeName: TypeName = typ
-                   |      })
-                   |  }
-                   |
-                   |}
-                 """.stripMargin)
+      p.println(
+        """
+          |    case _ =>
+          |      if (!CFGGenerator.isLibraryIdent(typ.ident)) {
+          |        userTypes.get(typ)
+          |      } else Some(new ASingleton {
+          |        override def typeName: TypeName = typ
+          |      })
+          |  }
+          |
+          |}
+        """.stripMargin)
 
 
     } finally {

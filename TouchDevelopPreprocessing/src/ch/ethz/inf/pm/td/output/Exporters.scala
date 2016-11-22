@@ -9,32 +9,32 @@ package ch.ethz.inf.pm.td.output
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 
 /**
- * Exports results into various formats
- *
- * @author Lucas Brutschy
- */
+  * Exports results into various formats
+  *
+  * @author Lucas Brutschy
+  */
 object Exporters {
 
   var jobID: String = System.nanoTime().toString
 
   /**
-   * Enable HTML output
-   */
+    * Enable HTML output
+    */
   var exportAsHTML = true
 
   /**
-   * Export analysis result in a tab-separated value format
-   */
+    * Export analysis result in a tab-separated value format
+    */
   var exportAsTSV = false
 
   /**
-   * Export the resulting json records representing error information
-   */
+    * Export the resulting json records representing error information
+    */
   var exportAsJSON = false
 
   /**
-   * Export to MongoDB
-   */
+    * Export to MongoDB
+    */
   var exportToMongo = false
 
   def apply(compiler: TouchCompiler) {

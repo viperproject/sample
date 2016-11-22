@@ -12,10 +12,10 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 
 /**
- * Exports the analysis result to a string of some format (HTML, TSV, JSON etc.)
- *
- * @author Lucas Brutschy
- */
+  * Exports the analysis result to a string of some format (HTML, TSV, JSON etc.)
+  *
+  * @author Lucas Brutschy
+  */
 trait ErrorExporter {
 
   def setDebugInformation(s: String)
@@ -29,8 +29,8 @@ trait ErrorExporter {
 object FileSystemExporter {
 
   /**
-   * Export to the given path
-   */
+    * Export to the given path
+    */
   var exportPath = "/tmp/" + Exporters.jobID
 
 }
@@ -131,30 +131,31 @@ trait FileSystemExporter {
   }
 
   /**
-   * Exports all analysis results
-   * @param compiler the compiler listing all analyzed scripts
-   * @return analysis results in the desired format
-   */
+    * Exports all analysis results
+    *
+    * @param compiler the compiler listing all analyzed scripts
+    * @return analysis results in the desired format
+    */
   def warningsToString(compiler: TouchCompiler): String
 
   /**
-   * Exports analysis results for a specific script
-   * @param compiler the compiler listing all analyzed scripts
-   * @param id identifier of the script, e.g. public id or filename
-   * @return analysis results in the desired format
-   */
+    * Exports analysis results for a specific script
+    *
+    * @param compiler the compiler listing all analyzed scripts
+    * @param id       identifier of the script, e.g. public id or filename
+    * @return analysis results in the desired format
+    */
   def warningsToString(compiler: TouchCompiler, id: String): String
 
-  def getExtension:String
+  def getExtension: String
 
 }
 
 
 /**
- * An exception that occurs during exporting
- *
- * @param msg Some message.)
- *
- * @author Lucas Brutschy
- */
-case class ExporterException(msg:String) extends Exception(msg)
+  * An exception that occurs during exporting
+  *
+  * @param msg Some message.)
+  * @author Lucas Brutschy
+  */
+case class ExporterException(msg: String) extends Exception(msg)

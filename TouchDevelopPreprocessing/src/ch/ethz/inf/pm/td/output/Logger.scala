@@ -6,19 +6,20 @@
 
 package ch.ethz.inf.pm.td.output
 
-import java.io.{File, IOException, FileWriter}
-import java.nio.file.attribute.BasicFileAttributes
+import java.io.{File, FileWriter, IOException}
 import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
+
 import com.mongodb.casbah.Imports._
 
 /**
- * Custom logger with Mongo backend
- */
+  * Custom logger with Mongo backend
+  */
 object Logger {
 
-  val enableMongoLogging:Boolean =  System.getProperty("ENABLE_MONGO_LOGGING","false").toBoolean
-  var curTestRun:String =           System.getProperty("TESTRUN",System.nanoTime().toString)
-  var curTmpDir =                   Files.createTempDirectory("logger")
+  val enableMongoLogging: Boolean = System.getProperty("ENABLE_MONGO_LOGGING", "false").toBoolean
+  var curTestRun: String = System.getProperty("TESTRUN", System.nanoTime().toString)
+  var curTmpDir = Files.createTempDirectory("logger")
   var tabs = 0
 
   def tempDir = curTmpDir
@@ -28,7 +29,7 @@ object Logger {
     curTmpDir = Files.createTempDirectory("logger")
   }
 
-  def setNewTempDir(str:String):String = {
+  def setNewTempDir(str: String): String = {
     val oldTmpDir = curTmpDir
     curTmpDir = Paths.get(str)
 
@@ -46,7 +47,7 @@ object Logger {
   }
 
 
-  def setExistingTempDir(str:String) {
+  def setExistingTempDir(str: String) {
     curTmpDir = Paths.get(str)
   }
 
@@ -58,7 +59,7 @@ object Logger {
     tabs -= 1
   }
 
-  def log(str: String, ll:Int = 0) {
+  def log(str: String, ll: Int = 0) {
     val str2 = (" " * (tabs * 2)) + str.split("\n").mkString("\n" + (" " * (tabs * 2)))
     println(str2)
     for (i <- 0 to ll) {
@@ -68,7 +69,7 @@ object Logger {
       if (enableMongoLogging) {
         MongoExporter.client.update(
           MongoDBObject("testRun" -> curTestRun),
-          $push (("logger"+i) -> (str2+"\n")))
+          $push(("logger" + i) -> (str2 + "\n")))
       }
     }
   }

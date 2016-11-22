@@ -6,32 +6,33 @@
 
 package ch.ethz.inf.pm.td.webapi
 
-import net.liftweb.json._
-import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.compiler.TouchException
 import java.text.SimpleDateFormat
 
+import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.webapi.URLFetcher._
+import net.liftweb.json._
+
 /**
- * Record storing information about a script, as defined by the TouchDevelop API
- *
- * DO NOT MODIFY THE NAMES OF THE FIELD OF THIS CLASS,
- * AS IT IS CONSTRUCTED BY DESERIALIZATION OF A JSON OBJECT
- */
+  * Record storing information about a script, as defined by the TouchDevelop API
+  *
+  * DO NOT MODIFY THE NAMES OF THE FIELD OF THIS CLASS,
+  * AS IT IS CONSTRUCTED BY DESERIALIZATION OF A JSON OBJECT
+  */
 case class ScriptRecord(
-                         time: Int,
-                         id: String,
-                         name: String,
-                         description: String,
-                         userid: String,
-                         username: String,
-                         comments: Int,
-                         screenshots: Int,
-                         rootid: String,
-                         baseid: String,
-                         updateid: String,
-                         ishidden: Boolean,
-                         islibrary: Boolean,
-                         toptagids: List[String]) {
+    time: Int,
+    id: String,
+    name: String,
+    description: String,
+    userid: String,
+    username: String,
+    comments: Int,
+    screenshots: Int,
+    rootid: String,
+    baseid: String,
+    updateid: String,
+    ishidden: Boolean,
+    islibrary: Boolean,
+    toptagids: List[String]) {
 
   def getAstURL: String = ScriptQuery.astURLfromPubID(id)
 
@@ -84,24 +85,25 @@ object ScriptQuery {
 class ScriptQuery extends IteratorOverPrograms {
 
   /**
-   * Defines whether the given script record should be iterated or filtered out.
-   * Make sure to call super.filter()
-   *
-   * @param s the given script record
-   * @return true if s should be iterated
-   */
+    * Defines whether the given script record should be iterated or filtered out.
+    * Make sure to call super.filter()
+    *
+    * @param s the given script record
+    * @return true if s should be iterated
+    */
   def filter(s: ScriptRecord): Boolean = true
 
   /**
-   * The service of the web api to call. Can be overwritten by scripts, top-scripts, etc.
-   * @return
-   */
+    * The service of the web api to call. Can be overwritten by scripts, top-scripts, etc.
+    *
+    * @return
+    */
   protected def service: String = "scripts"
 
   /**
-   * A list of options that should be included in the query.
-   * Make sure to define it as List(....)::super.searchOptions.
-   */
+    * A list of options that should be included in the query.
+    * Make sure to define it as List(....)::super.searchOptions.
+    */
   protected def searchOptions: List[String] = List("count=999")
 
   private var count: Int = 0
@@ -278,28 +280,29 @@ trait SearchService extends ScriptQuery {
 
 class Scripts extends ScriptQuery
 
-class NewScripts extends ScriptQuery  with NewService
+class NewScripts extends ScriptQuery with NewService
 
 class TopScripts extends ScriptQuery with TopService
 
-class FeaturedScripts extends ScriptQuery  with FeaturedService
+class FeaturedScripts extends ScriptQuery with FeaturedService
 
 class ScriptSearch(query: String) extends ScriptQuery with SearchService {
   setQuery(query)
 }
 
 /**
- * A <code>IteratorOverPrograms</code> iterates over a list of paths from which programs can be retrieved
- *
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A <code>IteratorOverPrograms</code> iterates over a list of paths from which programs can be retrieved
+  *
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 trait IteratorOverPrograms extends Iterator[ScriptRecord] {
 
   /**
-  This method returns a short description of the iterator.
-
-   @return a short the description of the iterator (e.g., files in a directory)
+    * This method returns a short description of the iterator.
+    * *
+    *
+    * @return a short the description of the iterator (e.g., files in a directory)
     */
   def label: String
 
