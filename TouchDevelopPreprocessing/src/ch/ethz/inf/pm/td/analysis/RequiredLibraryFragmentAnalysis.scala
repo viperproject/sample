@@ -179,6 +179,7 @@ case class AccessCollectingState(myType: Type)
 
   override def ids: IdentifierSet = IdentifierSet.Top
 
-  override def readableFrom(expr: IdentifierSet): IdentifierSet = IdentifierSet.Top
+  override def reachingIdentifiers(expr: IdentifierSet): IdentifierSet = IdentifierSet.Top
+  override def reachingHeapPaths(ids: IdentifierSet): SetDomain.Default[List[Identifier]] = SetDomain.Default.Top[List[Identifier]]()
 
 }

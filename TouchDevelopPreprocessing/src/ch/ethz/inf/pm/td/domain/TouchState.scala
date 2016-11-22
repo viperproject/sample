@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
@@ -53,13 +54,20 @@ trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
 
   /**
+    * For a given IdentifierSet, returns all paths of identifiers that may reach any of the given identifiers
+    *
+    * @param ids The identifiers to reached
+    * @return The reaching heap paths
+    */
+  def reachingHeapPaths(ids: IdentifierSet): SetDomain.Default[List[Identifier]]
+
+  /**
     * For a given IdentifierSet, returns all identifiers that may reach any of the given identifiers
     *
     * @param ids The identifiers to reached
-    * @return The reaching identifiers
+    * @return The reaching heap paths
     */
-  def readableFrom(ids: IdentifierSet): IdentifierSet
-
+  def reachingIdentifiers(ids: IdentifierSet): IdentifierSet
 }
 
 
@@ -1166,7 +1174,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   override def getPossibleConstants(id: Identifier) = valueState.getPossibleConstants(id)
 
-  override def readableFrom(ids: IdentifierSet): IdentifierSet = {
+  override def reachingIdentifiers(ids: IdentifierSet): IdentifierSet = {
     Lattice.lfp[IdentifierSet](ids, {
       case IdentifierSet.Top => IdentifierSet.Top
       case IdentifierSet.Bottom => IdentifierSet.Bottom
@@ -1184,6 +1192,40 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     }, 99)
   }
 
+  /**
+    * For a given IdentifierSet, returns all paths of identifiers that may reach any of the given identifiers
+    *
+    * @param ids The identifiers to reached
+    * @return The reaching heap paths
+    */
+  override def reachingHeapPaths(ids: IdentifierSet): SetDomain.Default[List[Identifier]] = {
+    ids match {
+
+      case IdentifierSet.Top => SetDomain.Default.Top[List[Identifier]]()
+
+      case IdentifierSet.Bottom => SetDomain.Default.Bottom[List[Identifier]]()
+
+      case IdentifierSet.Inner(v) =>
+
+        var res : Set[List[Identifier]] = v.map(List(_))
+        var toContinue = res.filter(!_.head.isInstanceOf[VariableIdentifier])
+        while (toContinue.nonEmpty) {
+          val continued =
+            toContinue.flatMap { x =>
+              x.head match {
+                case i: HeapIdentifier =>
+                  backwardMay.getOrElse(i, Set.empty).map(y => if (x.contains(y)) x else y :: x)
+                case f@FieldIdentifier(obj, _, _) =>
+                  backwardMay.getOrElse(obj, Set.empty).map(y => if (x.contains(y)) x else y :: x)
+                case _ => Set(x)
+              }
+            }
+          res = (res -- toContinue) ++ continued
+          toContinue = continued.filter(!_.head.isInstanceOf[VariableIdentifier]) -- toContinue // make sure we terminate in cycles
+        }
+        SetDomain.Default.Inner(res)
+    }
+  }
 }
 
 object TouchState {

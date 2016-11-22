@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.test
 
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import ch.ethz.inf.pm.sample.reporting.{SampleError, SampleInfo, SampleMessage}
+import ch.ethz.inf.pm.sample.reporting.{SampleError, SampleInfo}
 import ch.ethz.inf.pm.td.analysis.TouchDevelopAnalysisRunner
 import org.scalatest.FunSuite
 
@@ -30,7 +30,7 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
   test("cloud list (blqz)") {
     runAnalysis("td://blqz")
   }
-  test("Save Passwords (eddm)") {
+  test("Save Passwords (eddm)") { // OK
     runAnalysis("td://eddm")
   }
   test("ec2 demo chat (eijba)") {

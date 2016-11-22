@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.td.analysis.TouchDevelopAnalysisRunner
 import org.scalatest.FunSuite
 
 /**
-  * Created by lucas on 25.08.16.
+  * @author Lucas Brutschy
   */
 class ComplexPoplWeakConsistencyTest extends FunSuite {
 

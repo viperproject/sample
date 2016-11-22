@@ -1,11 +1,13 @@
 package ch.ethz.inf.pm.td.cloud
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.NodeWithState
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, WeightedGraph}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchEntryStateBuilder}
-import ch.ethz.inf.pm.td.domain.{FieldIdentifier, TouchStateInterface}
+import ch.ethz.inf.pm.td.compiler.{CloudEnabledModifier, TouchCompiler}
+import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, TouchStateInterface}
 import ch.ethz.inf.pm.td.semantics.{SCloud_Data, SData, SRecords, TString}
 
 import scala.collection.mutable
@@ -68,10 +70,10 @@ object AbstractEventGraph {
     override def toString:String = method
   }
 
-  private var invProgramOrder: Map[AbstractEvent,SetDomain.Default[AbstractEvent]] = Map.empty
-  private var localInvariants: Map[AbstractEvent,_] = Map.empty
-  private var arguments:       Map[AbstractEvent,List[ExpressionSet]] = Map.empty
-  private var stringToEvent:   Map[String,AbstractEvent] = Map.empty
+  private var invProgramOrder:       Map[AbstractEvent,SetDomain.Default[AbstractEvent]] = Map.empty
+  private var localInvariants:       Map[AbstractEvent,_] = Map.empty
+  private var arguments:             Map[AbstractEvent,List[ExpressionSet]] = Map.empty
+  private var stringToEvent:         Map[String,AbstractEvent] = Map.empty
 
   def reset(): Unit = {
     localInvariants = Map.empty
@@ -106,11 +108,12 @@ object AbstractEventGraph {
 
     case FieldIdentifier(obj,field,typ) if obj.typ == SData =>
 
-      true
+      val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
+      compiler.globalData.exists(f => f.variable.getName == field && f.modifiers.contains(CloudEnabledModifier))
 
     case FieldIdentifier(obj,field,typ) if obj.typ == SRecords =>
 
-      true
+      SRecords.mutableFields.exists(x => x._1.name == field && x._2.contains(CloudEnabledModifier))
 
     case _ =>
 
@@ -118,16 +121,117 @@ object AbstractEventGraph {
 
   }
 
-  private def reachableFromCloud[S <: State[S]](state: S, this0: ExpressionSet): Boolean = {
+  def prettyPrint(x:List[Identifier]): String = {
+    x.map {
+      case FieldIdentifier(_, f, _) => f
+      case VariableIdentifier(n, _) => n
+      case _ => ""
+    }.filter(_.nonEmpty).mkString(".")
+  }
+
+  private def cloudPaths[S <: State[S]](state: S, this0: ExpressionSet): List[String] = {
     state match {
       case x:TouchStateInterface[_] =>
-        x.readableFrom(this0.ids) match {
-          case IdentifierSet.Top => true
-          case IdentifierSet.Bottom => false
-          case IdentifierSet.Inner(inner) => inner.exists(isCloudIdentifier)
+        x.reachingHeapPaths(this0.ids) match {
+          case x:SetDomain.Default.Top[List[Identifier]] => List("")
+          case x:SetDomain.Default.Bottom[List[Identifier]] => Nil
+          case SetDomain.Default.Inner(inner) => inner.filter(x => x.exists(isCloudIdentifier)).map(prettyPrint).toList
         }
     }
   }
+
+  private def isEscapingOperation(operator:String): Boolean = {
+    operator match {
+      case ":=" => true
+      case "◈confirmed" => true
+      case "◈get" => true
+      case "=" => true
+      case "post to wall" => true
+      case "clear fields" => true
+      case "equals" => true
+      case _ => false
+    }
+  }
+
+  private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath:String, operator: String, parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
+
+    val cloudData = Singleton(SCloud_Data)(pp)
+
+    val constants =
+      Field[S](cloudData, SCloud_Data.field_last_operation)(state, pp)._2 match {
+        case s: SetDomain.Default.Top[Expression] =>
+          SetDomain.Default.Bottom[Constant]()
+        case s: SetDomain.Default.Bottom[Expression] =>
+          SetDomain.Default.Bottom[Constant]()
+        case SetDomain.Default.Inner(v) =>
+          val separateConstants =
+            for (f@FieldIdentifier(_, _, _) <- v) yield
+              state.asInstanceOf[TouchStateInterface[_]].getPossibleConstants(f)
+
+          if (separateConstants.isEmpty) SetDomain.Default.Bottom[Constant]()
+          else Lattice.bigLub(separateConstants)
+      }
+
+    if (cloudPath.isEmpty) return state // HACK
+    if (constants.isTop) return state // HACK
+
+    val event = ProgramPointEvent(pp, cloudPath+"."+operator)
+    stringToEvent = stringToEvent + (event.id -> event)
+
+    val events =
+      constants.map {
+        case Constant(c, _, _) if c.nonEmpty =>
+          stringToEvent(c)
+        case Constant(c, _, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
+          InitialEvent
+      }
+
+    invProgramOrder = invProgramOrder +
+      (event -> (invProgramOrder.getOrElse(event, SetDomain.Default.Bottom[AbstractEvent]()) lub events))
+
+    // Map all actual parameters to their formal parameters
+    val assignedState: S =
+    (this0 :: parameters).zipWithIndex.foldLeft(state) {
+      case (s, (expr, i)) =>
+        val formalArgument = ExpressionSet(VariableIdentifier("arg" + i)(expr.typ, pp))
+        s.createVariable(formalArgument, expr.typ, pp).assignVariable(formalArgument, expr)
+    }
+
+    // Prune everything we do not care about.
+    val prunedState: S =
+    assignedState.pruneVariables {
+      x => !x.name.startsWith("arg")
+    }
+
+    // Update the stored local invariant
+    val newState: S =
+    localInvariants.get(event) match {
+      case Some(oldState) => oldState.asInstanceOf[S].lub(prunedState)
+      case None => prunedState
+    }
+    localInvariants += (event -> newState)
+
+    val args = this0 :: parameters
+
+    arguments.get(event) match {
+      case Some(x) =>
+        assert(x.length == args.length)
+        arguments += (event -> x.zip(args).map { x: (ExpressionSet, ExpressionSet) => x._1 lub x._2 })
+      case None =>
+        arguments += (event -> args)
+    }
+
+    // Update state to include current relation
+    val res =
+      AssignField[S](
+        Singleton(SCloud_Data)(pp),
+        SCloud_Data.field_last_operation,
+        toRichExpression(Constant(pp.toString, TString, pp))
+      )(state, pp)
+
+    res
+  }
+
 
   def record[S <: State[S]](operator:String,
                             this0: ExpressionSet,
@@ -135,74 +239,25 @@ object AbstractEventGraph {
                             state: S,
                             pp:ProgramPoint):S = {
 
-    if (TouchAnalysisParameters.get.enableCloudAnalysis && reachableFromCloud(state,this0)) {
+    if (TouchAnalysisParameters.get.enableCloudAnalysis) {
 
-      val event = ProgramPointEvent(pp, operator)
+      var curState = state
 
-      stringToEvent = stringToEvent + (event.id -> event)
-
-      val cloudData = Singleton(SCloud_Data)(pp)
-
-      val separateConstants =
-        for (f@FieldIdentifier(_, _, _) <- Field[S](cloudData, SCloud_Data.field_last_operation)(state, pp).toSetOrFail) yield
-          state.asInstanceOf[TouchStateInterface[_]].getPossibleConstants(f)
-
-      val constants =
-        if (separateConstants.isEmpty) SetDomain.Default.Bottom[Constant]()
-        else Lattice.bigLub(separateConstants)
-
-      val events =
-        constants.map {
-          case Constant(c, _, _) if c.nonEmpty =>
-            stringToEvent(c)
-          case Constant(c, _, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
-            InitialEvent
+      for (p <- parameters) {
+        for (r <- cloudPaths(curState,p)) {
+          curState = recordOperation(p, r, "◈get", Nil, curState, pp)
         }
-
-      invProgramOrder = invProgramOrder +
-        (event -> (events lub invProgramOrder.getOrElse(event, SetDomain.Default.Bottom[AbstractEvent]())))
-
-      // Map all actual parameters to their formal parameters
-      val assignedState: S =
-      (this0 :: parameters).zipWithIndex.foldLeft(state) {
-        case (s, (expr, i)) =>
-          val formalArgument = ExpressionSet(VariableIdentifier("arg" + i)(expr.typ, pp))
-          s.createVariable(formalArgument, expr.typ, pp).assignVariable(formalArgument, expr)
       }
 
-      // Prune everything we do not care about.
-      val prunedState: S =
-      assignedState.pruneVariables {
-        x => !x.name.startsWith("arg")
+      if (isEscapingOperation(operator)) {
+        for (r <- cloudPaths(curState,this0)) {
+          curState = recordOperation(this0, r, operator, Nil, curState, pp)
+        }
       }
 
-      // Update the stored local invariant
-      val newState: S =
-      localInvariants.get(event) match {
-        case Some(oldState) => oldState.asInstanceOf[S].lub(prunedState)
-        case None => prunedState
-      }
-      localInvariants += (event -> newState)
-
-      val args = this0 :: parameters
-
-      arguments.get(event) match {
-        case Some(x) =>
-          assert(x.length == args.length)
-          arguments += (event -> x.zip(args).map { x: (ExpressionSet, ExpressionSet) => x._1 lub x._2 })
-        case None =>
-          arguments += (event -> args)
-      }
-
-      // Update state to include current relation
-      AssignField[S](
-        Singleton(SCloud_Data)(pp),
-        SCloud_Data.field_last_operation,
-        toRichExpression(Constant(pp.toString, TString, pp))
-      )(state, pp)
+      curState
 
     } else state
-
   }
 
   override def toString:String = {

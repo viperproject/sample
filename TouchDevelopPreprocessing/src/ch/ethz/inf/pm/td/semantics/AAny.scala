@@ -312,7 +312,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         return Some(state.bottom())
       }
 
-      AbstractEventGraph.record(operator,thisExpr,parameters,state,pp)
+      curState = AbstractEventGraph.record(operator,thisExpr,parameters,curState,pp)
 
       val res = forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState)
 
