@@ -57,7 +57,7 @@ case class TouchAnalysisParameters(
                                     /**
                                      * Context-sensitivity in the interprocedural analysis.
                                      */
-                                    contextSensitiveInterproceduralAnalysis: Boolean = false,
+                                    contextSensitiveInterproceduralAnalysis: Boolean = true,
 
                                     /**
                                      * The default behavior of TouchGuru is to initialize the global state to invalid
@@ -242,7 +242,7 @@ case class TouchAnalysisParameters(
                                      */
                                     includeLibraryStableComponent: Boolean = false,
 
-                                    conditionalHandlers: Boolean = false,
+                                    conditionalHandlers: Boolean = true,
 
                                     /**
                                      * Settings for the mongodb server
@@ -251,7 +251,7 @@ case class TouchAnalysisParameters(
                                     mongoPort:Int = 27017,
                                     mongoDatabase:String = "tb",
 
-                                    enableCloudAnalysis:Boolean = true
+                                    enableCloudAnalysis:Boolean = false
 
                                     ) {
 }
@@ -265,7 +265,11 @@ object LibraryErrorReportingMode extends Enumeration {
   val Report = Value
 
 }
-
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 object NumericDomainChoice extends Enumeration {
   type NumericDomainChoice = Value
 

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.test
 
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.reporting.{SampleError, SampleInfo}
-import ch.ethz.inf.pm.td.analysis.TouchDevelopAnalysisRunner
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchDevelopAnalysisRunner}
 import org.scalatest.FunSuite
 
 /**
@@ -35,9 +35,6 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
   }
   test("ec2 demo chat (eijba)") {
     runAnalysis("td://eijba")
-  }
-  test("Contest Voting (etww)") {
-    runAnalysis("td://etww")
   }
   test("NuvolaList 2 (kjxzcgcv)") {
     runAnalysis("td://kjxzcgcv")
@@ -76,19 +73,28 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
       ("assert.failed","UuPke2O9n5X3PHwb$i10")
     ))
   }
-  test("Color Line (uvlma)") {
-    runAnalysis("td://uvlma")
-  }
-  test("unique poll (wbuei)") {
-    runAnalysis("td://wbuei")
-  }
+//  test("Contest Voting (etww)") {
+//    runAnalysis("td://etww")
+//  }
+//  test("Color Line (uvlma)") {
+//    runAnalysis("td://uvlma")
+//  }
+//  test("unique poll (wbuei)") {
+//    runAnalysis("td://wbuei")
+//  }
 
   // Replace from Google Docs:
   //   +(\w+)\t([^\n]*)
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
   def runAnalysis(id:String, expectedErrors:Set[(String,String)] = Set.empty) = {
-    val res = TouchDevelopAnalysisRunner.Default().run(Compilable.Identifier(id))
+    val res = TouchDevelopAnalysisRunner.Default(
+      TouchAnalysisParameters.get.copy(
+        enableCloudAnalysis = true,
+        conditionalHandlers = false,
+        contextSensitiveInterproceduralAnalysis = false
+      )
+    ).run(Compilable.Identifier(id))
     val err =
       res.collect {
         case SampleError(i, _, pp, _) => (i, pp.toString)
