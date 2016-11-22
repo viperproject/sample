@@ -25,7 +25,7 @@ trait PermissionTree {
 
 case class PermissionLeaf(receiver: Expression, permission: Permission) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
-    CondExp(EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
+    CondExp(if (quantifiedVariable.typ.isInstanceOf[SetType]) AnySetContains(DefaultSampleConverter.convert(receiver), quantifiedVariable)() else EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
   def exists(f: (PermissionTree => Boolean)) = f(this)
   override def undoLastRead = EmptyPermissionTree

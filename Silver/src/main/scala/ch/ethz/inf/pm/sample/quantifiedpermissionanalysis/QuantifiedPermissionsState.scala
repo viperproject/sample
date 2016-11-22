@@ -405,6 +405,21 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     newPreconditions
   }
 
+  /**
+    * Modifies the list of invariants using information stored in the current
+    * state.
+    *
+    * @param existing The list of existing invariants.
+    * @return The modified list of invariants.
+    */
+  override def invariants(existing: Seq[Exp]): Seq[Exp] = {
+    val setDefinitions: mutable.Map[Expression, Expression] = mutable.Map()
+    permissionRecords = permissionRecords.transform(expr => if (changingExpressions.contains(expr)) {
+      expr
+    } else expr)
+    existing
+  }
+
   // STUBS
 
   override def ids: IdentifierSet = ???
