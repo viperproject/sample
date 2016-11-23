@@ -76,7 +76,7 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
 object EmptyPermissionTree extends PermissionTree {
   override def add(other: PermissionTree): PermissionTree = other
   override def max(other: PermissionTree): PermissionTree = other
-  override def toSilExpression(quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException("An empty permission tree is not meant to be converted to a silver expression!")
+  override def toSilExpression(quantifiedVariable: LocalVar): Exp = ZeroPerm
   override def transform(f: (Expression) => Expression): PermissionTree = this
   override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
 }

@@ -260,7 +260,7 @@ case class ExpressionCollection(var expressions: Set[Expression]) extends Expres
   override def pp: ProgramPoint = DummyProgramPoint
 
   /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = expressions.map(expr => expr.ids).reduce { case (ids1, ids2) => ids1 ++ ids2 }
+  override def ids: IdentifierSet = expressions.map(expr => expr.ids).reduce[IdentifierSet] { case (ids1: IdentifierSet, ids2: IdentifierSet) => ids1 ++ ids2 }
 
   /** Runs f on the expression and all sub-expressions
     *

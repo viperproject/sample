@@ -6,7 +6,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, PermType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
-import sun.plugin.dom.exception.InvalidStateException
 import viper.silver.ast.{Type => _, _}
 import viper.silver.{ast => sil}
 
@@ -223,7 +222,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val typ = right.typ
     val receiver = obj match {
       case FieldExpression(_, _, rec) => rec
-      case _ => throw new InvalidStateException("Obj expression has to be a FieldExpression!")
+      case _ => throw new IllegalStateException("Obj expression has to be a FieldExpression!")
     }
     val transformer = (orig: Expression) => orig match {
       case FieldExpression(_, `field`, rec) => ConditionalExpression(ReferenceComparisonExpression(receiver, rec, ArithmeticOperator.==, BoolType), right, orig, right.typ)
