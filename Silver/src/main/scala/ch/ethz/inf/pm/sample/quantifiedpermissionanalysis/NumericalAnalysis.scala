@@ -66,7 +66,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     x match {
       case x: VariableIdentifier =>
         var newNumDom: N = right match {
-          case right: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
+          case _: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
           case _ => numDom.assign(x, right)
         }
         if(newNumDom.isBottom){
@@ -229,9 +229,9 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown*/
-  override def throws(t: ExpressionSet): T = ???
+  override def throws(t: ExpressionSet): T = throw new UnsupportedOperationException()
 
-  override def ids: IdentifierSet = ???
+  override def ids: IdentifierSet = throw new UnsupportedOperationException()
 
   /** Returns a new instance of the lattice.
     *

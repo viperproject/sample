@@ -51,7 +51,7 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
   def transform(f: (Expression => Expression)) = PermissionList(permissions.map(permissionTree => permissionTree.transform(f)))
   def exists(f: (PermissionTree => Boolean)) = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
   override def undoLastRead = this match {
-    case PermissionList(onlyElement :: Nil) => EmptyPermissionTree
+    case PermissionList(_ :: Nil) => EmptyPermissionTree
     case PermissionList(perms) => PermissionList(perms.init)
   }
 }

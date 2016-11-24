@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, PermType, SilverSpecification}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast.{Type => _, _}
 import viper.silver.{ast => sil}
 
 import scala.Seq
@@ -130,19 +129,17 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldAccessPredicate(id, n, d, _) =>
         val newPermissionRecords =
           id match {
-            case FieldExpression(typ, field, receiver) =>
+            case FieldExpression(_, field, receiver) =>
               val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
               permissionRecords.permissions(field) = permTreeWithoutRead
               permissionRecords.sub(field, receiver, FractionalPermission(n, d))
             case _ => throw new UnsupportedOperationException
           }
         copy(permissionRecords = newPermissionRecords)
-      case ForallExpression(leftCond, right, quantifiedVariable) =>
-        // TODO: handle forall
-        ???
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
-        // TODO: handle conjunctions, maybe split to multiple inhales?
-        ???
+//      case ForallExpression(leftCond, right, quantifiedVariable) =>
+//        // TODO: handle forall
+//      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+//        // TODO: handle conjunctions, maybe split to multiple inhales?
       case _ => throw new UnsupportedOperationException(acc.toString)
     }
   }
@@ -158,19 +155,17 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldAccessPredicate(id, n, d, _) =>
         val newPermissionRecords =
         id match {
-          case FieldExpression(typ, field, receiver) =>
+          case FieldExpression(_, field, receiver) =>
             val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
             permissionRecords.permissions(field) = permTreeWithoutRead
             permissionRecords.add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }
         copy(permissionRecords = newPermissionRecords)
-      case ForallExpression(leftCond, right, quantifiedVariable) =>
-        // TODO: handle forall
-        ???
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
-        // TODO: handle conjunctions, maybe split to multiple exhales?
-        ???
+//      case ForallExpression(leftCond, right, quantifiedVariable) =>
+//        // TODO: handle forall
+//      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+//        // TODO: handle conjunctions, maybe split to multiple exhales?
       case _ => throw new UnsupportedOperationException(acc.toString)
     }
   }
@@ -254,7 +249,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable */
-  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = ???
+  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Removes a variable.
     *
@@ -352,7 +347,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param existing The list of existing formal arguments.
     * @return The modified list of formal arguments*/
-  override def formalArguments(existing: Seq[LocalVarDecl]): Seq[LocalVarDecl] = {
+  override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
     permissionRecords = permissionRecords.transform {
       case ReadPermission =>
@@ -376,7 +371,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
     Context.rdAmountVariable match {
-      case Some(rdAmount) => newPreconditions = newPreconditions :+ And(PermLtCmp(ZeroPerm, rdAmount.localVar)(), PermLtCmp(rdAmount.localVar, WritePerm)())()
+      case Some(rdAmount) => newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount.localVar)(), sil.PermLtCmp(rdAmount.localVar, WritePerm)())()
       case None =>
     }
     val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
@@ -405,7 +400,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val quantifiedVar = quantifiedVarDecl.localVar
         val field = sil.Field(fieldName, function.typ)()
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
-        newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), TrueLit()())()
+        newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
     newPreconditions
   }
@@ -417,8 +412,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param existing The list of existing invariants.
     * @return The modified list of invariants.
     */
-  override def invariants(existing: Seq[Exp]): Seq[Exp] = {
-    val setDefinitions: mutable.Map[Expression, Expression] = mutable.Map()
+  override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     permissionRecords = permissionRecords.transform(expr => if (changingExpressions.contains(expr)) {
       expr
     } else expr)
@@ -427,45 +421,45 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   // STUBS
 
-  override def ids: IdentifierSet = ???
+  override def ids: IdentifierSet = throw new UnsupportedOperationException()
 
   /** Computes the greatest lower bound of two elements.
     *
     * @param other The other value
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments */
-  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Computes the widening of two elements.
     *
     * @param other The new value
     * @return The widening of `this` and `other` */
-  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Returns true if and only if `this` is less than or equal to `other`.
     *
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other` */
-  override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
+  override def lessEqual(other: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
 
   /** Throws an exception.
     *
     * @param t The thrown exception
     * @return The abstract state after the thrown */
-  override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
+  override def throws(t: ExpressionSet): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Assigns an expression to an argument.
     *
     * @param x     The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment */
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
+  override def pruneUnreachableHeap(): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 }
 
 /** Trait adding Inhale/Exhale methods to a SimpleState.
