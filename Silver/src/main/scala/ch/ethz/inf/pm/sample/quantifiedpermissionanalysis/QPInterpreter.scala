@@ -48,7 +48,10 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
         }
       }
 
-      if (cfg.entryEdges(currentBlockId).exists{ case (from, _, Some(true)) => loopHeads.contains(from)}) {
+      if (cfg.entryEdges(currentBlockId).exists {
+        case (from, _, Some(true)) => loopHeads.contains(from)
+        case _ => false
+      }) {
 
       }
 
