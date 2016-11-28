@@ -130,9 +130,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val newPermissionRecords =
           id match {
             case FieldExpression(_, field, receiver) =>
-              val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
-              permissionRecords.permissions(field) = permTreeWithoutRead
-              permissionRecords.sub(field, receiver, FractionalPermission(n, d))
+              permissionRecords.undoLastRead(field).sub(field, receiver, FractionalPermission(n, d))
             case _ => throw new UnsupportedOperationException
           }
         copy(permissionRecords = newPermissionRecords)
@@ -156,9 +154,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val newPermissionRecords =
         id match {
           case FieldExpression(_, field, receiver) =>
-            val permTreeWithoutRead = permissionRecords.permissions(field).undoLastRead
-            permissionRecords.permissions(field) = permTreeWithoutRead
-            permissionRecords.add(field, receiver, FractionalPermission(n, d))
+            permissionRecords.undoLastRead(field).add(field, receiver, FractionalPermission(n, d))
           case _ => throw new UnsupportedOperationException
         }
         copy(permissionRecords = newPermissionRecords)
