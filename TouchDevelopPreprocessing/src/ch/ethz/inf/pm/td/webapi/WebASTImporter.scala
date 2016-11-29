@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.td.webapi
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.webapi.WebAST._
+import com.novus.salat.annotations.Salat
 import net.liftweb.json.JsonAST.{JArray, JObject, JString}
 import net.liftweb.json._
 
