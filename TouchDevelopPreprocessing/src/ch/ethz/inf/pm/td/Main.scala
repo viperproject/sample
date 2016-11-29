@@ -11,6 +11,7 @@ import java.io.IOException
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 import ch.ethz.inf.pm.td.tools.{AnalyzeRecords, FindCloud, Instrumentation}
+import ch.ethz.inf.pm.td.webapi.WebAST._
 import ch.ethz.inf.pm.td.webapi._
 import net.liftweb.json.MappingException
 
@@ -19,19 +20,6 @@ import net.liftweb.json.MappingException
   * Defines the commandline interface for TouchGuru
   */
 object Main {
-
-  /**
-    * Defines the modes of the commandline interfac
-    *
-    * - Default:   Reads a list of files or script ids from the command-line and analyses them one by one
-    * - WatchMode: Watches a the mongodb for incoming analysis jobs (nonterminating)
-    * - Help:      Prints a list of options and exits
-    * - Feeder:    Feeds analysis jobs into the database
-    */
-  object Mode extends Enumeration {
-    type Mode = Value
-    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument, AnalyzeRecords = Value
-  }
 
   def main(args: Array[String]) {
 
@@ -351,6 +339,16 @@ object Main {
     }
   }
 
+  def randomString(len: Int): String = {
+    val rand = new scala.util.Random(System.nanoTime)
+    val sb = new StringBuilder(len)
+    val ab = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    for (i <- 0 until len) {
+      sb.append(ab(rand.nextInt(ab.length)))
+    }
+    sb.toString()
+  }
+
   /**
     *
     * Watches the mongo database for incoming jobs
@@ -509,14 +507,17 @@ object Main {
 
   }
 
-  def randomString(len: Int): String = {
-    val rand = new scala.util.Random(System.nanoTime)
-    val sb = new StringBuilder(len)
-    val ab = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    for (i <- 0 until len) {
-      sb.append(ab(rand.nextInt(ab.length)))
-    }
-    sb.toString()
+  /**
+    * Defines the modes of the commandline interfac
+    *
+    * - Default:   Reads a list of files or script ids from the command-line and analyses them one by one
+    * - WatchMode: Watches a the mongodb for incoming analysis jobs (nonterminating)
+    * - Help:      Prints a list of options and exits
+    * - Feeder:    Feeds analysis jobs into the database
+    */
+  object Mode extends Enumeration {
+    type Mode = Value
+    val Default, WatchMode, Help, FeedMode, FetchMode, Statistics, FindCloud, Instrument, AnalyzeRecords = Value
   }
 
 }

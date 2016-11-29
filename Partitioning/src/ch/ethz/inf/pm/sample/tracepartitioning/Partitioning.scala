@@ -254,18 +254,6 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 		} yield c.zipmap(for (css <- cs) yield css(i), f))
   }
 
-	override def bottomState: D = {
-		(children.find(!_.isSupremum): @unchecked) match {		// class invariant
-			case Some(c) => c.bottomState
-		}
-	}
-	
-	override def topState: D = {
-		(children.find(!_.isSupremum): @unchecked) match {
-			case Some(c) => c.topState
-		}
-	}
-	
 	override def glbState: D = {
 		val glb: Partitioning[D] = (top() /: children)((c1, c2) => c1.glb(c2))
 		glb match {
@@ -275,7 +263,20 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 			case Leaf(v) => v
 		}
 	}
-	
+
+  override def bottomState: D = {
+    (children.find(!_.isSupremum): @unchecked) match {
+      // class invariant
+      case Some(c) => c.bottomState
+    }
+  }
+
+  override def topState: D = {
+    (children.find(!_.isSupremum): @unchecked) match {
+      case Some(c) => c.topState
+    }
+  }
+
 	override def lubState: D = {
 		val lub: Partitioning[D] = (bottom() /: children)((c1, c2) => c1.lub(c2))
 		lub match {
@@ -385,12 +386,10 @@ case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
 /**
  * Common operations on both Top() and Bottom()
  *
- * @tparam D
- *
  * @author Dominik Gabi
  * @version 0.1
  */
-trait Supremum[D <: State[D]] extends Partitioning[D] {
+sealed trait Supremum[D <: State[D]] extends Partitioning[D] {
 
 	override def canonical: Partitioning[D] = this
 
@@ -424,8 +423,6 @@ trait Supremum[D <: State[D]] extends Partitioning[D] {
 
 /**
  * The bottom element of the lattice.
- * 
- * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -450,8 +447,6 @@ case class Bottom[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
 
 /**
  * The top element of the lattice.
- * 
- * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1

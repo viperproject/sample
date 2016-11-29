@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.td.tools
 
 import java.io.{File, PrintWriter}
 
+import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi.WebASTImporter
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
@@ -18,6 +19,16 @@ import net.liftweb.json._
   */
 
 object GenerateTypeInformation {
+
+  def serialize(t: TypeName): String = {
+    "TypeName(\"" + t.ident + "\", )"
+  }
+
+  def makeCode(t: TypeName): String = {
+    "TypeName(\"" + t.ident + "\"" +
+      (if (t.arguments.nonEmpty) ",List(" + t.arguments.map(makeCode).mkString(",") + ")" else "") +
+      ")"
+  }
 
   def main(args: Array[String]) {
     val url = "https://www.touchdevelop.com/api/language/apis"
@@ -74,7 +85,7 @@ object GenerateTypeInformation {
             val JString(paramType) = parameter \ "type"
 
             if (paramName != "this")
-              Some(WebASTImporter.makeTypeName(paramType).makeCode)
+              Some(makeCode(WebASTImporter.makeTypeName(paramType)))
             else
               None
 
@@ -93,9 +104,9 @@ object GenerateTypeInformation {
 
 
           if (paramList.size > 0) {
-            additional ::: List("    Member(\"" + propName + "\", List(" + paramList.mkString(", ") + "), " + WebASTImporter.makeTypeName(resultTyp).makeCode + ") /* " + propHelp + " */")
+            additional ::: List("    Member(\"" + propName + "\", List(" + paramList.mkString(", ") + "), " + makeCode(WebASTImporter.makeTypeName(resultTyp)) + ") /* " + propHelp + " */")
           } else {
-            additional ::: List("    Member(\"" + propName + "\", " + WebASTImporter.makeTypeName(resultTyp).makeCode + ") /* " + propHelp + " */")
+            additional ::: List("    Member(\"" + propName + "\", " + makeCode(WebASTImporter.makeTypeName(resultTyp)) + ") /* " + propHelp + " */")
           }
 
         }).flatten

@@ -207,6 +207,8 @@ object FindCloud {
     }
   }
 
+  trait Artifact
+
   case class Transform(state: SetDomain.Default[(Expression, Artifact)], script: Script, set: mutable.Set[String]) {
     var retState = state
     var matching: Set[Artifact] = Set.empty[Artifact]
@@ -299,6 +301,7 @@ object FindCloud {
           case Break() => ()
           case Continue() => ()
           case Box(_) => ()
+          case MetaStatement(_, _) => ()
           case Show(expr) =>
             matching = Set.empty
             visitExpr(expr)
@@ -354,8 +357,6 @@ object FindCloud {
     visitDecl(script)
 
   }
-
-  trait Artifact
 
   case class Data(str: String) extends Artifact
 

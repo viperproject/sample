@@ -6,12 +6,13 @@
 
 package ch.ethz.inf.pm.td.compiler
 
-import java.io.{IOException, File, PrintWriter}
+import java.io.{File, IOException, PrintWriter}
 import java.util.NoSuchElementException
 
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.parser.{ScriptParser, Script}
-import ch.ethz.inf.pm.td.webapi.{JApp, ScriptQuery, URLFetcher, WebASTImporter}
+import ch.ethz.inf.pm.td.parser.{Script, ScriptParser}
+import ch.ethz.inf.pm.td.webapi.WebAST._
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher, WebASTImporter}
 import com.novus.salat.util.MissingTypeHint
 import com.typesafe.scalalogging.LazyLogging
 

@@ -6,10 +6,12 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
-import ch.ethz.inf.pm.sample._
-import scala.tools.nsc._
-import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io._
+
+import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.oorepresentation._
+
+import scala.tools.nsc._
 
 object ScalaClasses {
   var classes: List[ClassDefinition] = Nil
@@ -26,6 +28,62 @@ class ScalaCompiler extends Compiler {
   def getNativeMethodsSemantics: List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics)
 
   def getSourceCode(path: String): String = getOriginalCode(new BufferedReader(new FileReader(path)))
+
+  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
+    getClassDeclaration(classType) match {
+      case Some(classe) =>
+        for (m <- classe.methods)
+          if (m.name.toString.equals(name) && m.arguments.head.size == parameters.size) {
+            var ok: Boolean = true
+            if (m.arguments.size != 1) throw new ScalaException("Not yet supported")
+            for (i <- 0 until m.arguments.head.size) {
+              if (!parameters.apply(i).lessEqual(m.arguments.head.apply(i).typ))
+                ok = false
+            }
+            if (ok) return new Some[(MethodDeclaration, Type)]((m, classType))
+          }
+        for (ext <- classe.extend)
+          getMethod(name, ext.getThisType(), parameters) match {
+            case Some(s) => return Some(s);
+            case None =>
+          }
+        None;
+      case None => None;
+    }
+  }
+
+  def getMethods(name: String): List[(ClassDefinition, MethodDeclaration)] =
+    for (clazz <- parsedclasses; method <- clazz.methods; if method.name.toString == name) yield (clazz, method)
+
+  override def allMethods: List[MethodDeclaration] =
+    for (clazz <- parsedclasses; method <- clazz.methods) yield method
+
+  def reset() {
+    parsedclasses = Nil
+  }
+
+  def generateTopType() {
+    val suffix: String = ".scala"
+    val file: File = File.createTempFile("Dummy", suffix)
+    val className: String = file.getName.substring(0, file.getName.length - suffix.length)
+    val source: String = "class " + className + " {}"
+
+    val out: FileWriter = new FileWriter(file)
+    out.write(source)
+    out.close
+
+    val classes = compile(Compilable.Path(file.toPath))
+
+    if (classes.nonEmpty) {
+      SystemParameters.typ = classes.head.typ.top
+    }
+    else {
+      throw new Exception("Could not generate type information")
+    }
+
+    val classFile: File = new File(className + ".class")
+    if (classFile.exists) classFile.delete
+  }
 
   def compile(comp: Compilable): List[ClassDefinition] = {
     comp match {
@@ -70,71 +128,18 @@ class ScalaCompiler extends Compiler {
         parsedclasses = parsedclasses ::: ScalaClasses.classes
         ScalaClasses.classes
 
+      case _ =>
+        throw new UnsupportedOperationException("Can only read scala code from files")
+
     }
 
   }
-
-  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
-    getClassDeclaration(classType) match {
-      case Some(classe) =>
-        for (m <- classe.methods)
-          if (m.name.toString.equals(name) && m.arguments.head.size == parameters.size) {
-            var ok: Boolean = true
-            if (m.arguments.size != 1) throw new ScalaException("Not yet supported")
-            for (i <- 0 until m.arguments.head.size) {
-              if (!parameters.apply(i).lessEqual(m.arguments.head.apply(i).typ))
-                ok = false
-            }
-            if (ok) return new Some[(MethodDeclaration, Type)]((m, classType))
-          }
-        for (ext <- classe.extend)
-          getMethod(name, ext.getThisType(), parameters) match {
-            case Some(s) => return Some(s);
-            case None =>
-          }
-        None;
-      case None => None;
-    }
-  }
-
-  def getMethods(name: String): List[(ClassDefinition, MethodDeclaration)] =
-    for (clazz <- parsedclasses; method <- clazz.methods; if method.name.toString == name) yield (clazz, method)
 
   private def getClassDeclaration(t: Type): Option[ClassDefinition] = {
     for (c <- parsedclasses)
       if (c.typ.equals(t))
         return Some(c)
     None
-  }
-
-  override def allMethods: List[MethodDeclaration] =
-    for (clazz <- parsedclasses; method <- clazz.methods) yield method
-
-  def reset() {
-    parsedclasses = Nil
-  }
-
-  def generateTopType() {
-    val suffix: String = ".scala"
-    val file: File = File.createTempFile("Dummy", suffix)
-    val className: String = file.getName.substring(0, file.getName.length - suffix.length)
-    val source: String = "class " + className + " {}"
-
-    val out: FileWriter = new FileWriter(file)
-    out.write(source)
-    out.close
-
-    val classes = compile(Compilable.Path(file.toPath))
-
-    if (classes.nonEmpty) {
-      SystemParameters.typ = classes.head.typ.top
-    }
-    else {
-      throw new Exception("Could not generate type information")
-    }
-
-    val classFile: File = new File(className + ".class")
-    if (classFile.exists) classFile.delete
   }
 
 }
