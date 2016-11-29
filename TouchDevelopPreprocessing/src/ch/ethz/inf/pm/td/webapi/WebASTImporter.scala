@@ -9,7 +9,6 @@ package ch.ethz.inf.pm.td.webapi
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.webapi.WebAST._
-import com.novus.salat.annotations.Salat
 import net.liftweb.json.JsonAST.{JArray, JObject, JString}
 import net.liftweb.json._
 
@@ -306,7 +305,7 @@ case class WebAstTypeHints(hints: List[Class[_]]) extends TypeHints {
   def classFor(hint: String) = hints find (hintFor(_) == hint)
 
   def hintFor(msgClass: Class[_]): String = {
-    val shortNameIdx = msgClass.getName.lastIndexOf(".") + 2
+    val shortNameIdx = msgClass.getName.lastIndexOf("$") + 2
     msgClass.getName.substring(shortNameIdx, shortNameIdx + 1).toLowerCase +
       msgClass.getName.substring(shortNameIdx + 1)
   }
