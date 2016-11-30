@@ -15,6 +15,19 @@ import com.typesafe.scalalogging.LazyLogging
 
 object Z3Prover {
 
+  def withZ3[A](f: Z3Prover => A): A = {
+    val z3 = Z3Prover()
+    try {
+      val res = f(z3)
+      z3.stop()
+      res
+    } catch {
+      case t: Throwable =>
+        z3.stop()
+        throw t
+    }
+  }
+
   trait ExpressionConverter {
 
     def declare(expr: VariableIdentifier): String
@@ -73,6 +86,8 @@ case class Z3Prover(
   private val input: BufferedReader = new BufferedReader(new InputStreamReader(z3.getInputStream))
   private val output: PrintWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(z3.getOutputStream)), true)
 
+  emitPreamble()
+
   private var pushPopScopeDepth = 0
   private var lastTimeout: Int = -1
 
@@ -88,10 +103,6 @@ case class Z3Prover(
       case versionPattern(v) => Version(v)
       case _ => throw InteractionFailed(s"Unexpected output of Z3 while getting version: $line")
     }
-  }
-
-  def reset() {
-    stop()
   }
 
   def stop() {
@@ -114,11 +125,6 @@ case class Z3Prover(
     val cmd = (if (n == 1) "(pop)" else "(pop " + n + ")") + " ; " + pushPopScopeDepth
     pushPopScopeDepth -= n
     writeLine(cmd)
-    readSuccess()
-  }
-
-  def emit(content: String) {
-    writeLine(content)
     readSuccess()
   }
 
@@ -149,7 +155,7 @@ case class Z3Prover(
       if (result.toLowerCase != "success") logger.debug(result)
 
       val warning = result.startsWith("WARNING")
-      if (warning) logger.info(s"Z3: $result")
+      if (warning) logger.debug(s"Z3: $result")
 
       repeat = warning
     }
@@ -183,13 +189,20 @@ case class Z3Prover(
   def check(timeout: Option[Int] = None): Result = {
     setTimeout(timeout)
 
-    writeLine("(check-sat)")
+    emit("(check-sat)")
 
-    readLine() match {
+    val res = readLine() match {
       case "sat" => Sat
       case "unsat" => Unsat
       case "unknown" => Unknown
     }
+
+    res
+  }
+
+  def emit(content: String) {
+    writeLine(content)
+    readSuccess()
   }
 
   private def setTimeout(timeout: Option[Int]) {
@@ -204,7 +217,7 @@ case class Z3Prover(
       lastTimeout = effectiveTimeout
 
       writeLine(s"(set-option :timeout $effectiveTimeout)")
-      readSuccess()
+      //readSuccess()
     }
   }
 
@@ -256,14 +269,14 @@ case class Z3Prover(
   }
 
   private def createZ3Instance() = {
-    logger.info(s"Starting Z3 at $z3Path")
+    logger.debug(s"Starting Z3 at $z3Path")
 
     val userProvidedZ3Args: Array[String] = config.z3Args match {
       case None =>
         Array()
 
       case Some(args) =>
-        logger.info(s"Additional command-line arguments are $args")
+        logger.debug(s"Additional command-line arguments are $args")
         args.split(' ').map(_.trim)
     }
 
@@ -357,6 +370,31 @@ case class Z3Prover(
         println("Error reading model: " + e)
         ""
     }
+  }
+
+  private def emitPreamble(): Unit = {
+
+    """
+      |(set-option :print-success true) ; Boogie: false
+      |(set-option :global-decls true) ; Boogie: default
+      |(set-option :auto_config false) ; Usually a good idea
+      |(set-option :smt.mbqi false)
+      |(set-option :model.v2 true)
+      |(set-option :smt.phase_selection 0)
+      |(set-option :smt.restart_strategy 0)
+      |(set-option :smt.restart_factor |1.5|)
+      |(set-option :smt.arith.random_initial_value true)
+      |(set-option :smt.case_split 3)
+      |(set-option :smt.delay_units true)
+      |(set-option :smt.delay_units_threshold 16)
+      |(set-option :nnf.sk_hack true)
+      |(set-option :smt.qi.eager_threshold 100)
+      |(set-option :smt.qi.cost "(+ weight generation)")
+      |(set-option :type_check true)
+      |(set-option :smt.bv.reflect true)
+      |
+      |""".stripMargin.split("\n").filter(_.nonEmpty) foreach emit
+
   }
 
 }
