@@ -5,7 +5,6 @@
  */
 package ch.ethz.inf.pm.sample.test
 
-import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory
 import ch.ethz.inf.pm.td.cloud.Z3Prover
 import org.scalatest.FunSuite
 
@@ -20,14 +19,6 @@ class Z3ProverTest extends FunSuite {
   test("Direct from string") {
     Z3Prover.withZ3 { z3 =>
       z3.emit("(declare-const a Int)")
-      z3.emit("(assert (> a 10))")
-      assert(z3.check(Some(100)) == Z3Prover.Sat)
-    }
-  }
-
-  test("Direct from string") {
-    Z3Prover.withZ3 { z3 =>
-      z3.assume(ExpressionFactory.createBinaryExpression())
       z3.emit("(assert (> a 10))")
       assert(z3.check(Some(100)) == Z3Prover.Sat)
     }
