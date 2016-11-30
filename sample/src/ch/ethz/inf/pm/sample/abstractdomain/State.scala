@@ -98,6 +98,49 @@ trait Lattice[T <: Lattice[T]] {
 
 object Lattice extends LazyLogging {
 
+  /** Returns the least upper bound of zero or more lattice elements. */
+  def bigLub[S <: Lattice[S]](elements: Iterable[S], lattice: S): S = {
+    if (elements.isEmpty) lattice.bottom()
+    else bigLub(elements)
+  }
+
+  /** Returns the least upper bound of one or more lattice elements. */
+  def bigLub[S <: Lattice[S]](elements: Iterable[S]): S = {
+    require(elements.nonEmpty, "there must be at least one element")
+    elements.reduceLeft(_ lub _)
+  }
+
+  /** Returns the greatest lower bound of one or more lattice elements. */
+  def bigGlb[S <: Lattice[S]](elements: Iterable[S]): S = {
+    require(elements.nonEmpty, "there must be at least one element")
+    elements.reduceLeft(_ glb _)
+  }
+
+  /** Returns the widening of multiple one or more elements. */
+  def bigWidening[S <: Lattice[S]](elements: Iterable[S]): S = {
+    require(elements.nonEmpty, "there must be at least one element")
+    elements.reduceLeft(_ widening _)
+  }
+
+  /** Returns (over-approximation) of least fix point of function iterates.  */
+  def lfp[S <: Lattice[S]](s: S, f: (S => S), wideningLimit: Int): S = {
+    var iteration = 1
+    var prev = s
+    var cur = prev.lub(f(prev))
+    while (!cur.lessEqual(prev)) {
+      prev = cur
+      iteration += 1
+      if (iteration > wideningLimit) {
+        if (iteration > wideningLimit + 10) {
+          logger.debug("Looks like we are not terminating here!" + cur.toString)
+        }
+        cur = prev.widening(f(prev))
+      }
+      else cur = prev.lub(f(prev))
+    }
+    cur
+  }
+
   /** Defines a top lattice element.
     *
     * @author Lucas Brutschy
@@ -180,49 +223,6 @@ object Lattice extends LazyLogging {
   trait Must[T <: Must[T]] extends Lattice[T] {
     this: T =>
     override def lub(other: T) = glb(other)
-  }
-
-  /** Returns the least upper bound of one or more lattice elements. */
-  def bigLub[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(elements.nonEmpty, "there must be at least one element")
-    elements.reduceLeft(_ lub _)
-  }
-
-  /** Returns the least upper bound of zero or more lattice elements. */
-  def bigLub[S <: Lattice[S]](elements: Iterable[S], lattice: S): S = {
-    if (elements.isEmpty) lattice.bottom()
-    else bigLub(elements)
-  }
-
-  /** Returns the greatest lower bound of one or more lattice elements. */
-  def bigGlb[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(elements.nonEmpty, "there must be at least one element")
-    elements.reduceLeft(_ glb _)
-  }
-
-  /** Returns the widening of multiple one or more elements. */
-  def bigWidening[S <: Lattice[S]](elements: Iterable[S]): S = {
-    require(elements.nonEmpty, "there must be at least one element")
-    elements.reduceLeft(_ widening _)
-  }
-
-  /** Returns (over-approximation) of least fix point of function iterates.  */
-  def lfp[S <: Lattice[S]](s: S, f: (S => S), wideningLimit: Int): S = {
-    var iteration = 1
-    var prev = s
-    var cur = prev.lub(f(prev))
-    while (!cur.lessEqual(prev)) {
-      prev = cur
-      iteration += 1
-      if (iteration > wideningLimit) {
-        if (iteration > wideningLimit + 10) {
-          logger.debug("Looks like we are not terminating here!" + cur.toString)
-        }
-        cur = prev.widening(f(prev))
-      }
-      else cur = prev.lub(f(prev))
-    }
-    cur
   }
 
 }
@@ -531,14 +531,6 @@ trait StateWithRefiningAnalysisStubs[S <: StateWithRefiningAnalysisStubs[S]] ext
 trait SimpleState[S <: SimpleState[S]] extends State[S] {
   this: S =>
 
-  /** Executes the given function only if this state and the given `ExpressionSet` are non-bottom. */
-  def unlessBottom(set: ExpressionSet, f: => S): S =
-    if (isBottom) {
-      bottom()
-    } else if (set.isBottom) {
-      bottom()
-    } else f
-
   /** Creates a variable given a `VariableIdentifier`.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -576,6 +568,11 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
       val variable = unpackSingle(x).asInstanceOf[VariableIdentifier]
       createVariableForArgument(variable, typ).setUnitExpression()
     })
+  }
+
+  private def unpackSingle(set: ExpressionSet): Expression = {
+    require(set.toSetOrFail.size == 1, "ExpressionSet must contain exactly one Expression")
+    set.toSetOrFail.head
   }
 
   /** Assigns an expression to a variable.
@@ -641,13 +638,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     */
   def setVariableToTop(varExpr: Expression): S
 
-  def setVariableToTop(varSet: ExpressionSet): S = {
-    unlessBottom(varSet, {
-      val result = Lattice.bigLub(varSet.toSetOrFail.map(setVariableToTop))
-      result.removeExpression()
-    })
-  }
-
   /** Removes a variable.
     *
     * Implementations can assume this state is non-bottom
@@ -678,12 +668,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     */
   def getFieldValue(obj: Expression, field: String, typ: Type): S
 
-  def getFieldValue(objSet: ExpressionSet, field: String, typ: Type): S = {
-    unlessBottom(objSet, {
-      Lattice.bigLub(objSet.toSetOrFail.map(getFieldValue(_, field, typ)))
-    })
-  }
-
   /** Performs refining backward assignment of variables.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -711,6 +695,21 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     })
   }
 
+  def setVariableToTop(varSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      val result = Lattice.bigLub(varSet.toSetOrFail.map(setVariableToTop))
+      result.removeExpression()
+    })
+  }
+
+  /** Executes the given function only if this state and the given `ExpressionSet` are non-bottom. */
+  def unlessBottom(set: ExpressionSet, f: => S): S =
+    if (isBottom) {
+      bottom()
+    } else if (set.isBottom) {
+      bottom()
+    } else f
+
   /** Refining backward transformer for field assignments.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -728,7 +727,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
           val t = this.getFieldValue(objSet, field, rightSet.typ)
-          t.setVariableToTop(t.expr).setExpression(ExpressionFactory.unitExpr)
+          t.setVariableToTop(t.expr).setExpression(ExpressionSetFactory.unitExpr)
         } else {
           Lattice.bigLub(for (
             obj <- objSet.toSetOrFail;
@@ -737,6 +736,12 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
         }
         result.setUnitExpression()
       })
+    })
+  }
+
+  def getFieldValue(objSet: ExpressionSet, field: String, typ: Type): S = {
+    unlessBottom(objSet, {
+      Lattice.bigLub(objSet.toSetOrFail.map(getFieldValue(_, field, typ)))
     })
   }
 
@@ -749,13 +754,8 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     */
   def assume(cond: Expression): S
 
-  def assume(condSet: ExpressionSet): S = {
-    // Return this, not bottom, when set of conditions is empty
-    if (isBottom || condSet.isBottom || condSet.isTop || condSet._2.isTop) this
-    else {
-      Lattice.bigLub(condSet.toSetOrFail.map(assume))
-    }
-  }
+  override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
+    expr.toSetOrFail.flatMap(this.explainError)
 
   /** May try to explain an error.
     *
@@ -763,9 +763,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     * @return If a cause of the error is found, it returns an explanation and the program point of the cause
     */
   def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
-
-  override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
-    expr.toSetOrFail.flatMap(this.explainError)
 
   /** Assumes that the current expression holds.
     *
@@ -779,15 +776,18 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     */
   def testFalse(): S = assume(expr.not()).setUnitExpression()
 
+  def assume(condSet: ExpressionSet): S = {
+    // Return this, not bottom, when set of conditions is empty
+    if (isBottom || condSet.isBottom || condSet.isTop || condSet._2.isTop) this
+    else {
+      Lattice.bigLub(condSet.toSetOrFail.map(assume))
+    }
+  }
+
   /** @todo merge with `removeExpression`. */
   def setUnitExpression(): S = {
     val unitExp = UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
     setExpression(ExpressionSet(unitExp))
-  }
-
-  private def unpackSingle(set: ExpressionSet): Expression = {
-    require(set.toSetOrFail.size == 1, "ExpressionSet must contain exactly one Expression")
-    set.toSetOrFail.head
   }
 }
 
@@ -847,7 +847,7 @@ object UtilitiesOnStates {
   def refiningExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.refiningSemantics[S](state, oldPreState)
     val expr = finalState.expr
-    (expr, finalState.setExpression(ExpressionFactory.unitExpr))
+    (expr, finalState.setExpression(ExpressionSetFactory.unitExpr))
   }
 
 }

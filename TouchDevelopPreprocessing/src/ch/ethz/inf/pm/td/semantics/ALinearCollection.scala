@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichExpression}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, RichExpressionSet}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.TouchState
@@ -20,15 +20,6 @@ import ch.ethz.inf.pm.td.domain.TouchState
  **/
 trait ALinearCollection extends ACollection {
 
-  override def At[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    val res = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) {
-      AllValues[S](collection)
-    } else {
-      super.At[S](collection,key)
-    }
-    res
-  }
-
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(index) = parameters // Key_Type
@@ -37,6 +28,21 @@ trait ALinearCollection extends ACollection {
       Return[S](At[S](this0, index))
     }
   })
+
+  override def At[S <: State[S]](collection: RichExpressionSet, key: RichExpressionSet)(implicit state: S, pp: ProgramPoint): RichExpressionSet = {
+    val res = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) {
+      AllValues[S](collection)
+    } else {
+      super.At[S](collection, key)
+    }
+    res
+  }
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "at" -> member_at,
+    "rand" -> member_rand,
+    "random" -> member_random
+  )
 
   /** Sometimes used: Gets the picture at position 'index'; invalid if index is out of bounds */
   def member_at = ApiMember(
@@ -61,6 +67,10 @@ trait ALinearCollection extends ACollection {
     }
   )
 
+  def IndexInRange[S <: State[S]](collection: RichExpressionSet, index: RichExpressionSet)(implicit state: S, pp: ProgramPoint): RichExpressionSet = {
+    index >= 0 && index < Count[S](collection)
+  }
+
   /** Never used: Renamed to 'random' */
   def member_rand = ApiMember(
     name = "rand",
@@ -79,23 +89,7 @@ trait ALinearCollection extends ACollection {
     semantics = RandomSemantics
   )
 
-  object RandomSemantics extends ApiMemberSemantics {
-    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-      If[S](Count[S](this0) > 0, Then = {
-        Return[S](AllValues[S](this0))(_, pp)
-      }, Else = {
-        Return[S](Invalid(this0.typ.asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
-      })
-    }
-  }
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "at" -> member_at,
-    "rand" -> member_rand,
-    "random" -> member_random
-  )
-
-  def collectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def collectionContainsValue[S <: State[S]](collection: RichExpressionSet, value: RichExpressionSet)(implicit state: S, pp: ProgramPoint): RichExpressionSet = {
     // Improve precision: Always true if collection size must be empty
     if (Assume[S](Count[S](collection) > 0).isBottom) {
       return False
@@ -108,12 +102,15 @@ trait ALinearCollection extends ACollection {
     x
   }
 
-  def InvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def InvalidateKeys[S <: State[S]](collection: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     Assign[S](AllKeys[S](collection),0 ndToIncl (Count[S](collection) - 1))
   }
 
-  def IndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    index >= 0 && index < Count[S](collection)
+  def Add[S <: State[S]](this0: RichExpressionSet, value: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = Insert[S](this0, Count[S](this0), value)(curState, pp)
+    curState = IncreaseLength[S](this0)(curState, pp)
+    curState
   }
 
   /**
@@ -121,7 +118,7 @@ trait ALinearCollection extends ACollection {
    * Generally, there is no need to represent the entries of a linear collection separately.
    * Instead, we always use the same pp for all collections.
    */
-  override def Insert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  override def Insert[S <: State[S]](collection: RichExpressionSet, index: RichExpressionSet, right: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
     val idPP = if (TouchAnalysisParameters.get.collectionsSummarizeLinearElements) DummyProgramPoint else pp
     curState = New[S](entryType, initials = Map(
@@ -132,11 +129,14 @@ trait ALinearCollection extends ACollection {
     curState
   }
 
-  def Add[S <: State[S]](this0: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    var curState = state
-    curState = Insert[S](this0,Count[S](this0), value)(curState,pp)
-    curState = IncreaseLength[S](this0)(curState,pp)
-    curState
+  object RandomSemantics extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      If[S](Count[S](this0) > 0, Then = {
+        Return[S](AllValues[S](this0))(_, pp)
+      }, Else = {
+        Return[S](Invalid(this0.typ.asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
+      })
+    }
   }
 
   object InvalidateKeysSemantics extends ApiMemberSemantics {

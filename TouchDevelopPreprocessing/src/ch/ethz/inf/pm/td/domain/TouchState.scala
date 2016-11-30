@@ -31,9 +31,9 @@ case class HeapIdentifier(pp: ProgramPoint, typ: Type, summary: Boolean, unique:
 }
 
 case class FieldIdentifier(obj: HeapIdentifier, field: String, typ: Type) extends Identifier.FieldIdentifier {
-  override def pp: ProgramPoint = obj.pp
-
   override val getName: String = obj + "." + field
+
+  override def pp: ProgramPoint = obj.pp
 
   override def getField: Option[String] = Some(field)
 
@@ -80,6 +80,21 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     with TouchStateInterface[T] {
   self: T =>
 
+  /**
+    * Graph-like interface
+    */
+  lazy val vertices: Set[Identifier] = forwardMay.flatMap { case (a, b) => b.toSet[Identifier] + a }.toSet
+  lazy val edges: Set[(Identifier, String, Identifier)] = {
+    (forwardMay.flatMap { case (a, b) => b.map((a, "may", _)) } ++
+      forwardMust.flatMap { case (a, b) => b.map((a, "must", _)) } ++
+      backwardMay.flatMap { case (a, b) => b.map((a, "back", _)) } ++
+      (for (v <- vertices) yield {
+        v match {
+          case x: FieldIdentifier => Some((x.obj, "field", x))
+          case _ => None
+        }
+      }).flatten).toSet
+  }
   val forwardMay: Map[Identifier, Set[HeapIdentifier]]
   val forwardMust: Map[Identifier, Set[HeapIdentifier]]
   val backwardMay: Map[HeapIdentifier, Set[Identifier]]
@@ -139,7 +154,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
       versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
       valueState: S = valueState.factory(),
-      expr: ExpressionSet = ExpressionFactory.unitExpr,
+      expr: ExpressionSet = ExpressionSetFactory.unitExpr,
       isTop: Boolean = false
   ): T
 
@@ -185,7 +200,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     result3
   }
 
-
   override def removeVariable(va: VariableIdentifier): T = removeVariables(Set(va))
 
   /** Returns a new state whose `ExpressionSet` holds the value of the given field.
@@ -206,6 +220,21 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
         copy(expr = expr.bottom())
       }
     case _ => bottom()
+  }
+
+  /**
+    * Returns all objects pointed to by the field which may / must match the given filter
+    *
+    * @param objSet An expression set containing objects
+    * @param field  The name of the field
+    * @param typ    The type of the field
+    * @param filter The filter, that, given an object and a state, returns whether it matches
+    * @return A may set and a must set of object
+    */
+  override def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter: (Identifier, T) => Boolean): (Set[Identifier], Set[Identifier]) = {
+    val (left, right) = objSet.toSetOrFail.map(getFieldValueWhere(_, field, typ, filter)).unzip
+    val (newLeft, newRight) = (left.flatten, right.flatten)
+    (newLeft, newRight)
   }
 
   /**
@@ -242,21 +271,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     }).flatten.toSet[Identifier]
 
     (valsMay, valsMust)
-  }
-
-  /**
-    * Returns all objects pointed to by the field which may / must match the given filter
-    *
-    * @param objSet An expression set containing objects
-    * @param field  The name of the field
-    * @param typ    The type of the field
-    * @param filter The filter, that, given an object and a state, returns whether it matches
-    * @return A may set and a must set of object
-    */
-  override def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter: (Identifier, T) => Boolean): (Set[Identifier], Set[Identifier]) = {
-    val (left, right) = objSet.toSetOrFail.map(getFieldValueWhere(_, field, typ, filter)).unzip
-    val (newLeft, newRight) = (left.flatten, right.flatten)
-    (newLeft, newRight)
   }
 
   /** Assumes an expression.
@@ -429,7 +443,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     *
     * @return The abstract state after removing the current expression
     */
-  override def removeExpression(): T = copy(expr = ExpressionFactory.unitExpr)
+  override def removeExpression(): T = copy(expr = ExpressionSetFactory.unitExpr)
 
   /**
     * Removes all variables satisfying filter
@@ -535,7 +549,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     * @return The bottom value, that is, a value x that is less or equal than any other value
     */
   override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom(), isTop = false)
-
 
   /**
     * Computes the upper bound of two elements
@@ -675,7 +688,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   }
 
-
   def mergeForwards(rep: Replacement, map: Map[Identifier, Set[HeapIdentifier]], revMap: Map[HeapIdentifier, Set[Identifier]]): Map[Identifier, Set[HeapIdentifier]] = {
 
     if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeForwards")
@@ -774,7 +786,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     result
   }
-
 
   def mergeVersions(rep: Replacement, map: Map[(ProgramPoint, Type), Seq[HeapIdentifier]]): Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = {
 
@@ -927,7 +938,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     FieldIdentifier(node, tField.getField.get, tField.typ)
   }
 
-
   def strongUpdateAlias(left: Identifier, right: Identifier): T = {
     // copy references from other variable/field
     val newObjectsMay = forwardMay.getOrElse(right, Set.empty)
@@ -938,11 +948,10 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       (backwardMay map { x => x._1 -> (x._2 - left) }) ++ (newObjectsMay map { x => x -> (backwardMay.getOrElse(x, Set.empty) + left) }),
       versions,
       valueState.assign(left, right),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     ).garbageCollect(forwardMay.getOrElse(left, Set.empty)).canonicalizeEnvironment
     result
   }
-
 
   def strongUpdateReference(left: Identifier, right: HeapIdentifier): T = {
     // reference object
@@ -952,7 +961,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       (backwardMay map { x => x._1 -> (x._2 - left) }) + (right -> (backwardMay.getOrElse(right, Set.empty) + left)),
       versions,
       valueState.assign(left, ValidExpression(left.typ, left.pp)),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     )
     val afterGarbageCollect = afterUpdate.garbageCollect(forwardMay.getOrElse(left, Set.empty))
     val canonicalized = afterGarbageCollect.canonicalizeEnvironment
@@ -967,7 +976,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay,
       versions,
       valueState.assign(left, right),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     )
     res
   }
@@ -980,7 +989,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay + (right -> (backwardMay.getOrElse(right, Set.empty) + left)),
       versions,
       valueState.assign(left, ValidExpression(left.typ, left.pp)).lub(valueState),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     )
     // nothing may become unreachable
   }
@@ -995,7 +1004,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay ++ (newObjectsMay map { x => x -> (backwardMay.getOrElse(x, Set.empty) + left) }),
       versions,
       valueState.assign(left, right).lub(valueState),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     )
     // nothing may become unreachable
   }
@@ -1008,7 +1017,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay,
       versions,
       valueState.assign(left, right).lub(valueState),
-      ExpressionFactory.unitExpr
+      ExpressionSetFactory.unitExpr
     )
   }
 
@@ -1154,23 +1163,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   }
 
-  /**
-    * Graph-like interface
-    */
-  lazy val vertices: Set[Identifier] = forwardMay.flatMap { case (a, b) => b.toSet[Identifier] + a }.toSet
-
-  lazy val edges: Set[(Identifier, String, Identifier)] = {
-    (forwardMay.flatMap { case (a, b) => b.map((a, "may", _)) } ++
-      forwardMust.flatMap { case (a, b) => b.map((a, "must", _)) } ++
-      backwardMay.flatMap { case (a, b) => b.map((a, "back", _)) } ++
-      (for (v <- vertices) yield {
-        v match {
-          case x: FieldIdentifier => Some((x.obj, "field", x))
-          case _ => None
-        }
-      }).flatten).toSet
-  }
-
   override def getPossibleConstants(id: Identifier) = valueState.getPossibleConstants(id)
 
   override def reachingIdentifiers(ids: IdentifierSet): IdentifierSet = {
@@ -1229,30 +1221,6 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
 object TouchState {
 
-  case class Default[S <: SemanticDomain[S]](
-      forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-      forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-      backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-      valueState: S,
-      expr: ExpressionSet = ExpressionFactory.unitExpr,
-      isTop: Boolean = false
-  )
-    extends TouchState[S, Default[S]] {
-
-    def factory(
-        forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-        forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
-        backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
-        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
-        valueState: S,
-        expr: ExpressionSet = ExpressionFactory.unitExpr,
-        isTop: Boolean = false
-    ): Default[S] =
-      Default(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
-
-  }
-
   trait CollectingDomain
     extends SimplifiedSemanticDomain[CollectingDomain] {
 
@@ -1273,9 +1241,9 @@ object TouchState {
       factory(ids ++ IdentifierSet.Inner(rep.value.flatMap(_._2).toSet))
     }
 
-    def factory(id: Identifier) = CollectingDomain.Inner(IdentifierSet.Inner(Set(id)))
-
     def factory(ids: IdentifierSet) = CollectingDomain.Inner(ids)
+
+    def factory(id: Identifier) = CollectingDomain.Inner(IdentifierSet.Inner(Set(id)))
 
     override def factory(): CollectingDomain = factory(IdentifierSet.Bottom)
 
@@ -1284,37 +1252,29 @@ object TouchState {
     override def top(): CollectingDomain = CollectingDomain.Top
   }
 
-  object CollectingDomain {
+  case class Default[S <: SemanticDomain[S]](
+      forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+      backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+      versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+      valueState: S,
+      expr: ExpressionSet = ExpressionSetFactory.unitExpr,
+      isTop: Boolean = false
+  )
+    extends TouchState[S, Default[S]] {
 
-    object Top extends CollectingDomain with SemanticDomain.Top[CollectingDomain]
-
-    object Bottom extends CollectingDomain with SemanticDomain.Bottom[CollectingDomain] {
-      override def createVariable(variable: Identifier, typ: Type) = factory(variable)
-    }
-
-    case class Inner(ids: IdentifierSet) extends CollectingDomain with SemanticDomain.Inner[CollectingDomain, CollectingDomain.Inner] {
-      override def lubInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids ++ ids)
-
-      override def glbInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids glb ids)
-
-      override def wideningInner(other: CollectingDomain.Inner): CollectingDomain = CollectingDomain.Inner(other.ids widening ids)
-
-      override def lessEqualInner(other: CollectingDomain.Inner) = other.ids lessEqual ids
-
-      override def setToTop(variable: Identifier) = CollectingDomain.Inner(ids + variable)
-
-      override def removeVariable(id: Identifier) = CollectingDomain.Inner(ids - id)
-
-      override def createVariable(variable: Identifier, typ: Type) = CollectingDomain.Inner(ids + variable)
-
-      override def getStringOfId(id: Identifier) = ""
-
-      override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
-
-    }
+    def factory(
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
+        valueState: S,
+        expr: ExpressionSet = ExpressionSetFactory.unitExpr,
+        isTop: Boolean = false
+    ): Default[S] =
+      Default(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
 
   }
-
 
   /**
     * Implements a touch state which does not track values at all
@@ -1325,7 +1285,7 @@ object TouchState {
       backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
       versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
       valueState: S,
-      expr: ExpressionSet = ExpressionFactory.unitExpr,
+      expr: ExpressionSet = ExpressionSetFactory.unitExpr,
       isTop: Boolean = false,
       inLoops: Set[ProgramPoint] = Set.empty,
       notInLoops: Set[ProgramPoint] = Set.empty
@@ -1338,7 +1298,7 @@ object TouchState {
         backwardMay: Map[HeapIdentifier, Set[Identifier]] = Map.empty,
         versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = Map.empty,
         valueState: S,
-        expr: ExpressionSet = ExpressionFactory.unitExpr,
+        expr: ExpressionSet = ExpressionSetFactory.unitExpr,
         isTop: Boolean = false
     ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
@@ -1354,25 +1314,6 @@ object TouchState {
         isTop: Boolean = isTop
     ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
-
-
-    def copyLocal(
-        forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
-        forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
-        backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
-        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
-        valueState: S = valueState,
-        expr: ExpressionSet = expr,
-        isTop: Boolean = isTop,
-        inLoops: Set[ProgramPoint] = inLoops,
-        notInLoops: Set[ProgramPoint] = notInLoops
-    ): PreAnalysis[S] =
-      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
-
-    override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis[S] = {
-      analysis.Localization.collectAccess(obj.ids)
-      super.getFieldValue(obj, field, typ)
-    }
 
     override def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter: (Identifier, PreAnalysis[S]) => Boolean): (Predef.Set[Identifier], Predef.Set[Identifier]) = {
       analysis.Localization.collectAccess(obj.ids)
@@ -1405,6 +1346,11 @@ object TouchState {
       super.assignField(obj, field, right)
     }
 
+    override def getFieldValue(obj: Expression, field: String, typ: Type): PreAnalysis[S] = {
+      analysis.Localization.collectAccess(obj.ids)
+      super.getFieldValue(obj, field, typ)
+    }
+
     override def getVariableValue(id: Identifier): PreAnalysis[S] = {
       analysis.Localization.collectAccess(id.asInstanceOf[Identifier])
       super.getVariableValue(id)
@@ -1427,6 +1373,19 @@ object TouchState {
           res.copyLocal(inLoops = inLoops ++ points, notInLoops = notInLoops -- points)
       }
     }
+
+    def copyLocal(
+        forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
+        forwardMust: Map[Identifier, Set[HeapIdentifier]] = forwardMust,
+        backwardMay: Map[HeapIdentifier, Set[Identifier]] = backwardMay,
+        versions: Map[(ProgramPoint, Type), Seq[HeapIdentifier]] = versions,
+        valueState: S = valueState,
+        expr: ExpressionSet = expr,
+        isTop: Boolean = isTop,
+        inLoops: Set[ProgramPoint] = inLoops,
+        notInLoops: Set[ProgramPoint] = notInLoops
+    ): PreAnalysis[S] =
+      PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
     /** We may jump out of a loop here - reset stats */
     override def testFalse() = {
@@ -1461,6 +1420,37 @@ object TouchState {
 
     override def ids = {
       IdentifierSet.Bottom ++ (forwardMay.keySet ++ forwardMay.values.flatten)
+    }
+
+  }
+
+  object CollectingDomain {
+
+    case class Inner(ids: IdentifierSet) extends CollectingDomain with SemanticDomain.Inner[CollectingDomain, CollectingDomain.Inner] {
+      override def lubInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids ++ ids)
+
+      override def glbInner(other: CollectingDomain.Inner) = CollectingDomain.Inner(other.ids glb ids)
+
+      override def wideningInner(other: CollectingDomain.Inner): CollectingDomain = CollectingDomain.Inner(other.ids widening ids)
+
+      override def lessEqualInner(other: CollectingDomain.Inner) = other.ids lessEqual ids
+
+      override def setToTop(variable: Identifier) = CollectingDomain.Inner(ids + variable)
+
+      override def removeVariable(id: Identifier) = CollectingDomain.Inner(ids - id)
+
+      override def createVariable(variable: Identifier, typ: Type) = CollectingDomain.Inner(ids + variable)
+
+      override def getStringOfId(id: Identifier) = ""
+
+      override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
+
+    }
+
+    object Top extends CollectingDomain with SemanticDomain.Top[CollectingDomain]
+
+    object Bottom extends CollectingDomain with SemanticDomain.Bottom[CollectingDomain] {
+      override def createVariable(variable: Identifier, typ: Type) = factory(variable)
     }
 
   }

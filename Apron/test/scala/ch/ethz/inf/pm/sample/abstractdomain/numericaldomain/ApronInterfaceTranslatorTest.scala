@@ -8,33 +8,30 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, DummyProgramPoint, Type}
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 /** Tests ApronInterfaceTranslator. */
 class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Matchers {
   val dom:Apron.Polyhedra = Apron.Polyhedra.Bottom
-  val numType = DummyNumericalType
+  val numType = DummyIntegerType
   val boolType = DummyBooleanType
 
-  SystemParameters.typ = DummyNumericalType
-
-  def makeVarId(name: String, typ: Type) = VariableIdentifier(name)(typ)
-  def makeConst(value: String, typ: Type) = Constant(value.toString, typ, DummyProgramPoint)
-
+  SystemParameters.typ = DummyIntegerType
   val idx = makeVarId("x", numType)
   val idy = makeVarId("y", numType)
-
   val idb1 = makeVarId("b1", boolType)
   val idb2 = makeVarId("b2", boolType)
-
   val constMinus1 = makeConst("-1", numType)
   val const0 = makeConst("0", numType)
   val const1 = makeConst("1", numType)
   val const2 = makeConst("2", numType)
-
   val constTrue = makeConst("true", boolType)
   val constFalse = makeConst("false", boolType)
+
+  def makeVarId(name: String, typ: Type) = VariableIdentifier(name)(typ)
+
+  def makeConst(value: String, typ: Type) = Constant(value.toString, typ, DummyProgramPoint)
 
   def translate(iFace: Apron.Polyhedra): Set[String] = {
     val translator = ApronInterfaceTranslator(boolType = boolType)(iFace.asInstanceOf[Apron.Polyhedra.Inner])

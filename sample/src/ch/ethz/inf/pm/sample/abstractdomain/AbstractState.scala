@@ -6,11 +6,113 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
-import util.HeapIdSetFunctionalLifting
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.util.HeapIdSetFunctionalLifting
 
 object ExpressionFactory {
+
+  @inline def Var(name: String, typ: Type)(implicit pp: ProgramPoint): Expression =
+    VariableIdentifier(name)(typ, pp)
+
+  @inline def IntVar(name: String)(implicit pp: ProgramPoint, tm: TypeMap): Expression =
+    VariableIdentifier(name)(tm.Int, pp)
+
+  @inline def BoolVar(name: String)(implicit pp: ProgramPoint, tm: TypeMap): Expression =
+    VariableIdentifier(name)(tm.Boolean, pp)
+
+  @inline def StringVar(name: String)(implicit pp: ProgramPoint, tm: TypeMap): Expression =
+    VariableIdentifier(name)(tm.String, pp)
+
+  @inline def BinaryNumNum(a: Expression, b: Expression, op: ArithmeticOperator.Value): Expression = {
+    assert(a.typ.isNumericalType && b.typ.isNumericalType)
+    BinaryArithmeticExpression(a, b, op, a.typ.lub(b.typ))
+  }
+
+  @inline def BinaryNumBool(a: Expression, b: Expression, op: ArithmeticOperator.Value)(implicit tm: TypeMap): Expression = {
+    assert(a.typ.isNumericalType && b.typ.isNumericalType)
+    BinaryArithmeticExpression(a, b, op, tm.Boolean)
+  }
+
+  @inline def BinaryBoolBool(a: Expression, b: Expression, op: BooleanOperator.Value): Expression = {
+    assert(a.typ.isBooleanType && b.typ.isBooleanType && a.typ == b.typ)
+    BinaryBooleanExpression(a, b, op, a.typ)
+  }
+
+  @inline def -(expr: Expression): Expression = {
+    UnaryArithmeticExpression(expr, ArithmeticOperator.-, expr.typ)
+  }
+
+  @inline implicit def toRichExpression(e: Expression): RichExpression = RichExpression(e)
+
+  @inline implicit def toExpression(e: RichExpression): Expression = e.expr
+
+  @inline implicit def toRichExpression(e: Int)(implicit pp: ProgramPoint, tm: TypeMap): RichExpression =
+    RichExpression(Constant(e.toString, tm.Int, pp))
+
+  @inline implicit def toRichExpression(e: String)(implicit pp: ProgramPoint, tm: TypeMap): RichExpression =
+    RichExpression(Constant(e.toString, tm.Int, pp))
+
+  @inline implicit def toRichExpression(e: Boolean)(implicit pp: ProgramPoint, tm: TypeMap): RichExpression =
+    RichExpression(Constant(e.toString, tm.Int, pp))
+
+  @inline def not(expr: Expression): Expression = {
+    NegatedBooleanExpression(expr)
+  }
+
+  case class TypeMap(
+      Int: Type = DummyIntegerType,
+      Float: Type = DummyFloatType,
+      String: Type = DummyStringType,
+      Boolean: Type = DummyBooleanType
+  )
+
+  final case class RichExpression(expr: Expression) {
+
+    @inline def +(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.+)
+
+    @inline def -(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.-)
+
+    @inline def *(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.*)
+
+    @inline def /(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator./)
+
+    @inline def <(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.<)
+
+    @inline def >(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.>)
+
+    @inline def >=(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.>=)
+
+    @inline def <=(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.<=)
+
+    @inline def ==(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.==)
+
+    @inline def !=(other: RichExpression)(implicit tm: TypeMap): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.!=)
+
+    @inline def &&(other: RichExpression): RichExpression =
+      BinaryBoolBool(this.expr, other.expr, BooleanOperator.&&)
+
+    @inline def ||(other: RichExpression): RichExpression =
+      BinaryBoolBool(this.expr, other.expr, BooleanOperator.||)
+
+  }
+
+
+}
+
+object ExpressionSetFactory {
+
+  lazy val unitExpr = ExpressionSet(UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
 
   def createVariable(variable: Variable, ty: Type, pp: ProgramPoint): ExpressionSet = {
     var result = new ExpressionSet(ty)
@@ -23,7 +125,7 @@ object ExpressionFactory {
       var result = new ExpressionSet(ty)
       for (expleft <- left.toSetOrFail)
         for (expright <- right.toSetOrFail)
-          result = result.add(new BinaryArithmeticExpression(expleft, expright, op, ty))
+          result = result.add(BinaryArithmeticExpression(expleft, expright, op, ty))
       result
     } else left.top()
   }
@@ -108,8 +210,6 @@ object ExpressionFactory {
     } else thisExpr.top()
   }
 
-  lazy val unitExpr = ExpressionSet(UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
-
   def createUnitExpression(pp: ProgramPoint): ExpressionSet = {
     ExpressionSet(UnitExpression(SystemParameters.typ.top(), pp))
   }
@@ -132,12 +232,11 @@ case class ExpressionSet(
                           s: SetDomain.Default[Expression] = SetDomain.Default.Bottom())
   extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
-  def _1 = initialTyp
-  def _2 = s
-  def typ = _1
   def expressions = _2
 
   override def factory(): ExpressionSet = new ExpressionSet(typ.top(),s.top())
+
+  def typ = _1
 
   def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
 
@@ -147,13 +246,15 @@ case class ExpressionSet(
     case SetDomain.Default.Inner(x) => Lattice.bigLub(x.map(_.ids))
   }
 
-  def toSetOrFail = this._2.toSetOrFail
-
   def add(exp: Expression): ExpressionSet = {
     val v2 = this._2.+(exp)
     val typ = this._1.glb(exp.typ)
     new ExpressionSet(typ, v2)
   }
+
+  def _1 = initialTyp
+
+  def _2 = s
 
   def add(expr: ExpressionSet): ExpressionSet = {
     var set = this._2
@@ -161,6 +262,8 @@ case class ExpressionSet(
     val typ = this._1.glb(expr.typ)
     new ExpressionSet(typ, set)
   }
+
+  def toSetOrFail = this._2.toSetOrFail
 
   def not(): ExpressionSet = {
     var result:SetDomain.Default[Expression] = this._2.bottom()
@@ -191,7 +294,7 @@ case class ExpressionSet(
       new ExpressionSet(typ, SetDomain.Default.Inner(newSet))
   }
 
-  def isUnitExprSet: Boolean = this == ExpressionFactory.unitExpr
+  def isUnitExprSet: Boolean = this == ExpressionSetFactory.unitExpr
 
   /** Returns a single expression iff this has exactly one expression */
   def getSingle:Option[Expression] = {
@@ -220,6 +323,10 @@ object ExpressionSet {
     es
   }
 
+  /** Creates an empty `ExpressionSet` whose type is top. */
+  def apply(): ExpressionSet =
+    new ExpressionSet(SystemParameters.typ.top())
+
   def flatten(exprSets: Seq[ExpressionSet]): ExpressionSet = {
     require(exprSets.nonEmpty)
 
@@ -229,10 +336,6 @@ object ExpressionSet {
     }
     es
   }
-
-  /** Creates an empty `ExpressionSet` whose type is top. */
-  def apply(): ExpressionSet =
-    new ExpressionSet(SystemParameters.typ.top())
 
 }
 
@@ -247,11 +350,7 @@ I <: HeapIdentifier[I]](
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N, H, I]] {
 
-  def _1 = domain
-
   def _2 = expr
-
-  def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
 
   def getStringOfId(id: Identifier): String = domain.getStringOfId(id)
 
@@ -281,9 +380,14 @@ I <: HeapIdentifier[I]](
 
   }
 
-  def removeExpression(): AbstractState[N, H, I] = {
-    if (isBottom) return factory(domain, expr.bottom())
-    factory(domain, ExpressionFactory.unitExpr)
+  def setExpression(value: ExpressionSet): AbstractState[N, H, I] = {
+    if (isBottom) return this
+    factory(domain, value)
+  }
+
+  def setState(value: HeapAndAnotherDomain[N, H, I]): AbstractState[N, H, I] = {
+    if (isBottom) return this
+    factory(value, expr)
   }
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
@@ -293,6 +397,8 @@ I <: HeapIdentifier[I]](
     val (newDomain, _) = domain.createVariableForArgument(variable, typ, Nil)
     factory(newDomain, expr)
   }
+
+  def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
 
   def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
     left match {
@@ -361,6 +467,17 @@ I <: HeapIdentifier[I]](
     result
   }
 
+  override def lub(other: AbstractState[N, H, I]): AbstractState[N, H, I] = lubWithReplacement(other)._1
+
+  override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
+    if (isBottom) return (other, new Replacement())
+    if (other.isBottom) return (this, new Replacement())
+    val (d, rep) = domain.lubWithReplacement(other.domain)
+    val s = expr.lub(other.expr)
+    val result = factory(d, s.merge(rep))
+    (result, rep)
+  }
+
   def removeVariable(varExpr: VariableIdentifier): AbstractState[N, H, I] = {
     factory(domain.removeVariable(varExpr), expr)
   }
@@ -386,9 +503,9 @@ I <: HeapIdentifier[I]](
           val newHeap = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther.heap, objectIds, heapAndOther.heap.removeObject(_)._1)
           heapAndOther = domain.factory(heapAndOther.semantic, newHeap)
 
-          val newState = new AbstractState[N, H, I](heapAndOther, ExpressionFactory.unitExpr)
+          val newState = new AbstractState[N, H, I](heapAndOther, ExpressionSetFactory.unitExpr)
           result = result.lub(newState)
-          result = result.setExpression(ExpressionFactory.unitExpr)
+          result = result.setExpression(ExpressionSetFactory.unitExpr)
       }
     }
     result
@@ -411,6 +528,11 @@ I <: HeapIdentifier[I]](
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
+  }
+
+  def removeExpression(): AbstractState[N, H, I] = {
+    if (isBottom) return factory(domain, expr.bottom())
+    factory(domain, ExpressionSetFactory.unitExpr)
   }
 
   def getType(variable: Identifier): Type = {
@@ -463,16 +585,6 @@ I <: HeapIdentifier[I]](
     factory(dom, expr.merge(replacement))
   }
 
-  def setExpression(value: ExpressionSet): AbstractState[N, H, I] = {
-    if (isBottom) return this
-    factory(domain, value)
-  }
-
-  def setState(value: HeapAndAnotherDomain[N, H, I]): AbstractState[N, H, I] = {
-    if (isBottom) return this
-    factory(value, expr)
-  }
-
   override def toSingleLineString(): String = {
     if (isBottom) "⊥"
     else domain.toString + ";\nExpr.: " + expr.toString
@@ -484,6 +596,8 @@ I <: HeapIdentifier[I]](
   }
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr)
+
+  def _1 = domain
 
   /**
    * Removes all variables satisfying filter
@@ -521,22 +635,12 @@ I <: HeapIdentifier[I]](
     factory(newInnerState, expr)
   }
 
-
   /**
    * Performs abstract garbage collection
    */
   def pruneUnreachableHeap(): AbstractState[N, H, I] = ???
 
-  override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
-    if (isBottom) return (other, new Replacement())
-    if (other.isBottom) return (this, new Replacement())
-    val (d, rep) = domain.lubWithReplacement(other.domain)
-    val s = expr.lub(other.expr)
-    val result = factory(d, s.merge(rep))
-    (result, rep)
-  }
-
-  override def lub(other: AbstractState[N, H, I]): AbstractState[N, H, I] = lubWithReplacement(other)._1
+  override def glb(other: AbstractState[N, H, I]): AbstractState[N, H, I] = glbWithReplacement(other)._1
 
   override def glbWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
     if (isBottom || other.isBottom) return (bottom(), new Replacement())
@@ -546,7 +650,7 @@ I <: HeapIdentifier[I]](
     (result, rep)
   }
 
-  override def glb(other: AbstractState[N, H, I]): AbstractState[N, H, I] = glbWithReplacement(other)._1
+  override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
   override def wideningWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
     if (isBottom) return (other, new Replacement())
@@ -556,8 +660,6 @@ I <: HeapIdentifier[I]](
     val result = factory(d, s.merge(rep))
     (result, rep)
   }
-
-  override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
   override def ids = domain.ids lub expr.ids
 

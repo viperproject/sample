@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{RichExpressionSet, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
@@ -25,26 +25,6 @@ trait AMap extends ACollection {
     case _ => throw new SemanticException("keys() operation is not supported for that object")
   }
 
-  /**
-   * This is imprecise, because we do not keep the relation between the collection
-   * and its key collection
-   */
-  def ExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    var curState = state
-    curState = New[S](keyCollectionTyp)(curState,pp)
-    val keyCollection = curState.expr
-    curState = keyCollectionTyp.Insert(
-      keyCollection,
-      Valid(TNumber),
-      this.AllKeys[S](collection)(curState,pp)
-    )(curState,pp)
-    curState = keyCollectionTyp.SetCount[S](
-      keyCollection, Field[S](collection,field_count)(curState,pp)
-    )(curState,pp)
-    val res = Return[S](keyCollection)(curState,pp)
-    res
-  }
-
   override def member_at_index = super.member_at_index.copy(semantics = new ApiMemberSemantics {
     override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
       val List(index) = parameters
@@ -53,6 +33,17 @@ trait AMap extends ACollection {
       Return[S](AllKeys[S](this0))
     }
   })
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "at" -> member_at,
+    "clear" -> member_clear,
+    "is invalid" -> member_is_invalid,
+    "keys" -> member_keys,
+    "post to wall" -> member_post_to_wall,
+    "remove" -> member_remove,
+    "set at" -> member_set_at,
+    "set many" -> member_set_many
+  )
 
   /** Frequently used: Gets the value at a given key; invalid if not found */
   def member_at = ApiMember(
@@ -86,6 +77,26 @@ trait AMap extends ACollection {
         ExtractKeys[S](this0)
     }
   )
+
+  /**
+    * This is imprecise, because we do not keep the relation between the collection
+    * and its key collection
+    */
+  def ExtractKeys[S <: State[S]](collection: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = New[S](keyCollectionTyp)(curState, pp)
+    val keyCollection = curState.expr
+    curState = keyCollectionTyp.Insert(
+      keyCollection,
+      Valid(TNumber),
+      this.AllKeys[S](collection)(curState, pp)
+    )(curState, pp)
+    curState = keyCollectionTyp.SetCount[S](
+      keyCollection, Field[S](collection, field_count)(curState, pp)
+    )(curState, pp)
+    val res = Return[S](keyCollection)(curState, pp)
+    res
+  }
 
   /** Rarely used: Removes the value at a given key */
   def member_remove = ApiMember(
@@ -143,17 +154,6 @@ trait AMap extends ACollection {
     thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
-  )
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "at" -> member_at,
-    "clear" -> member_clear,
-    "is invalid" -> member_is_invalid,
-    "keys" -> member_keys,
-    "post to wall" -> member_post_to_wall,
-    "remove" -> member_remove,
-    "set at" -> member_set_at,
-    "set many" -> member_set_many
   )
   
 }

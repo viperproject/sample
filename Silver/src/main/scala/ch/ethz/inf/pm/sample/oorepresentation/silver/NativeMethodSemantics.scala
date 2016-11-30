@@ -13,7 +13,29 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 /** Native method semantic for arithmetic and boolean operators */
 object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
 
-  import ExpressionFactory._
+  import ExpressionSetFactory._
+
+  /**
+    * It defines the backward semantics of native method calls
+    *
+    * @param thisExpr       the expression representing the object on whom the method is called
+    * @param operator       the string of the called method
+    * @param parameters     the parameters of the called method
+    * @param typeParameters the list of type generics
+    * @param returnType     the type of the returned value
+    * @param programPoint   the program point of the method call
+    * @param state          the abstract state in which the method call is evaluated
+    * @return the abstract state obtained after the backward evaluation of the native method call,
+    *         None if the semantics of the method call is not defined
+    */
+  override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
+      operator: String,
+      parameters: List[ExpressionSet],
+      typeParameters: List[Type],
+      returnType: Type,
+      programPoint: ProgramPoint,
+      state: S): Option[S] =
+    applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
 
   override def applyForwardNativeSemantics[S <: State[S]](leftExp: ExpressionSet,
                                                           op: String,
@@ -41,6 +63,12 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
     }
     if (exprSet.isDefined) Some(state.setExpression(exprSet.get)) else None
   }
+}
+
+/** Provides the semantics of the custom 'assert', 'assume' and 'cond' methods.
+  * The latter is used to support conditional expressions.
+  */
+object RichNativeMethodSemantics extends NativeMethodSemantics {
 
   /**
     * It defines the backward semantics of native method calls
@@ -49,7 +77,7 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
     * @param operator       the string of the called method
     * @param parameters     the parameters of the called method
     * @param typeParameters the list of type generics
-    * @param returnType   the type of the returned value
+    * @param returnType     the type of the returned value
     * @param programPoint   the program point of the method call
     * @param state          the abstract state in which the method call is evaluated
     * @return the abstract state obtained after the backward evaluation of the native method call,
@@ -63,12 +91,6 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
                                                            programPoint: ProgramPoint,
                                                            state: S): Option[S] =
     applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
-}
-
-/** Provides the semantics of the custom 'assert', 'assume' and 'cond' methods.
-  * The latter is used to support conditional expressions.
-  */
-object RichNativeMethodSemantics extends NativeMethodSemantics {
 
   override def applyForwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
                                                  operator: String,
@@ -101,28 +123,6 @@ object RichNativeMethodSemantics extends NativeMethodSemantics {
       case None => None
     }
   }
-
-  /**
-    * It defines the backward semantics of native method calls
-    *
-    * @param thisExpr       the expression representing the object on whom the method is called
-    * @param operator       the string of the called method
-    * @param parameters     the parameters of the called method
-    * @param typeParameters the list of type generics
-    * @param returnType     the type of the returned value
-    * @param programPoint   the program point of the method call
-    * @param state          the abstract state in which the method call is evaluated
-    * @return the abstract state obtained after the backward evaluation of the native method call,
-    *         None if the semantics of the method call is not defined
-    */
-  override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
-                                                           operator: String,
-                                                           parameters: List[ExpressionSet],
-                                                           typeParameters: List[Type],
-                                                           returnType: Type,
-                                                           programPoint: ProgramPoint,
-                                                           state: S): Option[S] =
-    applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
 }
 
 object NativeMethods extends Enumeration {

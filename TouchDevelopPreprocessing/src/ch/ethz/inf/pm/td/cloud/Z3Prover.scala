@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.td.cloud
 import java.io._
 import java.nio.file.Paths
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -85,6 +85,7 @@ case class Z3Prover(
   private val z3: Process = createZ3Instance()
   private val input: BufferedReader = new BufferedReader(new InputStreamReader(z3.getInputStream))
   private val output: PrintWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(z3.getOutputStream)), true)
+  private var alreadyDeclared = Set.empty[Identifier]
 
   emitPreamble()
 
@@ -129,6 +130,7 @@ case class Z3Prover(
   }
 
   def assume(term: Expression): Any = {
+    declareMissing(term)
     assume(converter.convert(term))
   }
 
@@ -139,37 +141,26 @@ case class Z3Prover(
     readSuccess()
   }
 
-  private def readSuccess() {
-    val answer = readLine()
-
-    if (answer != "success")
-      throw InteractionFailed(s"Unexpected output of Z3. Expected 'success' but found: $answer")
+  def declare(id: VariableIdentifier): Unit = {
+    emit(converter.declare(id))
   }
 
-  private def readLine(): String = {
-    var repeat = true
-    var result = ""
-
-    while (repeat) {
-      result = input.readLine()
-      if (result.toLowerCase != "success") logger.debug(result)
-
-      val warning = result.startsWith("WARNING")
-      if (warning) logger.debug(s"Z3: $result")
-
-      repeat = warning
+  def declareMissing(goal: Expression): Unit = {
+    for (id <- goal.ids.getNonTopUnsafe -- alreadyDeclared) {
+      id match {
+        case x: VariableIdentifier =>
+          declare(x)
+        case _ =>
+          throw new UnsupportedOperationException("Trying to encode into SMT an identifier which is not a simple variable")
+      }
     }
-
-    result
+    alreadyDeclared = alreadyDeclared ++ goal.ids.getNonTopUnsafe
   }
 
-  private def writeLine(out: String) = {
-    logger.debug(out)
-    output.println(out)
-  }
-
-  def assert(goal: Expression, timeout: Option[Int] = None): Boolean =
+  def assert(goal: Expression, timeout: Option[Int] = None): Boolean = {
+    declareMissing(goal)
     assert(converter.convert(goal), timeout)
+  }
 
   def assert(goal: String, timeout: Option[Int]): Boolean = {
     bookkeeper.assertionCounter += 1
@@ -198,11 +189,6 @@ case class Z3Prover(
     }
 
     res
-  }
-
-  def emit(content: String) {
-    writeLine(content)
-    readSuccess()
   }
 
   private def setTimeout(timeout: Option[Int]) {
@@ -247,6 +233,11 @@ case class Z3Prover(
     } while (repeat)
 
     stats
+  }
+
+  private def writeLine(out: String) = {
+    logger.debug(out)
+    output.println(out)
   }
 
   def declareFresh(name: String, resultSort: Type): VariableIdentifier = {
@@ -395,6 +386,35 @@ case class Z3Prover(
       |
       |""".stripMargin.split("\n").filter(_.nonEmpty) foreach emit
 
+  }
+
+  def emit(content: String) {
+    writeLine(content)
+    readSuccess()
+  }
+
+  private def readSuccess() {
+    val answer = readLine()
+
+    if (answer != "success")
+      throw InteractionFailed(s"Unexpected output of Z3. Expected 'success' but found: $answer")
+  }
+
+  private def readLine(): String = {
+    var repeat = true
+    var result = ""
+
+    while (repeat) {
+      result = input.readLine()
+      if (result.toLowerCase != "success") logger.debug(result)
+
+      val warning = result.startsWith("WARNING")
+      if (warning) logger.debug(s"Z3: $result")
+
+      repeat = warning
+    }
+
+    result
   }
 
 }

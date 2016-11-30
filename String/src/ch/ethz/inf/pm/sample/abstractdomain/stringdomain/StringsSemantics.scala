@@ -21,54 +21,54 @@ object StringSemantics extends NativeMethodSemantics {
 	) : Option[S] = {
      if(! thisExpr.typ.toString.equals("String")) return None
       operator match {
-	  case "+" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+	  case "+" =>
+      Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
              returnedtype)));
-     case "concat" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+     case "concat" =>
+       Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
              returnedtype)));
-     case "substring" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+     case "substring" =>
+       Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, 
              returnedtype)));
-     case "contains" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+     case "contains" =>
+       Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringContains, 
              returnedtype)));
-     case "indexOf" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+     case "indexOf" =>
+       Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringIndexof, 
              returnedtype)));
-     case "lastIndexOf" => 
-	    Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
+     case "lastIndexOf" =>
+       Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringLastindexof, 
              returnedtype)));
   	  case _ => None
 	}
   }
   
-  private def createBinaryArithmeticExpression[S <: State[S]]
-       (state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], 
-        operator : ArithmeticOperator.Value, returnedtype : Type) : Some[S] = parameters match {
-	    	case x :: Nil => Some(state.setExpression(ExpressionFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
-	    	case _ => Some(state.top())
-  }
-
-  private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.toSetOrFail match {
-	  case x if x.size==1 => Some(x.head)
-	  case _ => None;
-  }
-   
 	def applyBackwardNativeSemantics[S <: State[S]](
-		thisExpr : ExpressionSet, 
-		operator : String, 
-		parameters : List[ExpressionSet], 
-		typeparameters : List[Type], 
+      thisExpr: ExpressionSet,
+      operator: String,
+      parameters: List[ExpressionSet],
+      typeparameters: List[Type],
 		returnedtype : Type,
     programpoint : ProgramPoint,
 		state : S) : Option[S] = throw new StringException("Backward analysis not implemented/existing :)")
+
+  private def createBinaryArithmeticExpression[S <: State[S]]
+  (state: S, thisExpr: ExpressionSet, parameters: List[ExpressionSet],
+      operator: ArithmeticOperator.Value, returnedtype: Type): Some[S] = parameters match {
+    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
+    case _ => Some(state.top())
+  }
+
+  private def extractExpression[S <: State[S]](s: ExpressionSet): Option[Expression] = s.toSetOrFail match {
+    case x if x.size == 1 => Some(x.head)
+    case _ => None;
+  }
 }
 
 class StringException(s : String) extends Exception(s)
