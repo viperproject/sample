@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons.{DoubleDbm, Environment, IntegerDbm, Interval}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyNumericalType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, Type}
 
 /** The common super trait of integer octagons and double octagons.
   *
@@ -70,11 +70,11 @@ object Octagons
   {
     this: S =>
 
-    override def add(ids: Set[Identifier]): S =
-      factory(ids)
-
     override def createVariable(variable: Identifier, typ: Type): S =
       add(Set(variable))
+
+    override def add(ids: Set[Identifier]): S =
+      factory(ids)
   }
 
   /** The super trait for integer octagons and double octagons that are neither
@@ -208,63 +208,6 @@ object Octagons
       */
     def makeConstant(value: Double): Expression
 
-    override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
-      val dbm = getDbm
-
-      // collect all constraints involving one variable
-      val (constraints, relational) = ids.foldLeft((Set.empty[Expression], List.empty[Identifier])) {
-        case ((currConstraints, currRelational), idA) =>
-          val i = env.getIndex(idA)
-          val bounds = dbm.getBounds(i)
-          val newConstraints = currConstraints ++ makeConstraints(idA, bounds)
-          val newRelational = if (bounds.low == bounds.high) currRelational else idA :: currRelational
-          (newConstraints, newRelational)
-      }
-
-      val pairs = for {
-        a <- relational
-        b <- relational
-        if env.getIndex(a) < env.getIndex(b)
-      } yield (a,b)
-
-      // collect all relational constraints that are not (trivially) implied by
-      // the constraints we already have
-      pairs.foldLeft(constraints) {
-        case (currConstraints, (idA, idB)) =>
-          val sumBounds = dbm.getBounds(env.getNegative(idB), env.getPositive(idA))
-          val diffBounds = dbm.getBounds(env.getPositive(idB), env.getPositive(idA))
-          val sum = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.+, DummyNumericalType)
-          val diff = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.-, DummyNumericalType)
-          currConstraints ++ makeConstraints(sum, sumBounds) ++ makeConstraints(diff, diffBounds)
-      }
-    }
-
-    /** A helper function that constructs a set of constraints for an expression
-      * that is bounded by the given interval.
-      */
-    private def makeConstraints(expression: Expression, bounds: Interval): Set[Expression] = {
-      if (bounds.low == bounds.high) {
-        // return an equality
-        val constant = makeConstant(bounds.low)
-        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==, DummyBooleanType))
-      } else {
-        // construct lower bound if it is not negative infinity
-        val lower = if (bounds.low.isNegInfinity) None else {
-          val constant = makeConstant(bounds.low)
-          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=, DummyBooleanType)
-          Some(inequality)
-        }
-        // construct upper bound if it is not positive infinity
-        val upper = if (bounds.high.isPosInfinity) None else {
-          val constant = makeConstant(bounds.high)
-          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=, DummyBooleanType)
-          Some(inequality)
-        }
-        // return constraints
-        lower.toSet ++ upper.toSet
-      }
-    }
-
     /**
       * Assumption: the environments of this and that are disjoint.
       */
@@ -325,6 +268,18 @@ object Octagons
     override def removeVariable(id: Identifier): S =
       remove(Set(id))
 
+    override def remove(ids: Set[Identifier]): S = {
+      val diff = ids.filter(exists).filter(numerical)
+      if (diff.nonEmpty) {
+        val newEnv = Environment(env.set -- diff)
+        copy(newEnv, env.getIndices(newEnv.ids), newEnv.getIndices(newEnv.ids))
+      } else this
+    }
+
+    private def exists(id: Identifier): Boolean = env.set.contains(id)
+
+    private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
+
     override def createVariable(variable: Identifier, typ: Type): S =
       add(Set(variable))
 
@@ -340,14 +295,6 @@ object Octagons
       case IdentifierSet.Bottom => this
       case IdentifierSet.Top => factory(Set.empty[Identifier])
       case IdentifierSet.Inner(value) => remove(value)
-    }
-
-    override def remove(ids: Set[Identifier]): S = {
-      val diff = ids.filter(exists).filter(numerical)
-      if (diff.nonEmpty) {
-        val newEnv = Environment(env.set -- diff)
-        copy(newEnv, env.getIndices(newEnv.ids), newEnv.getIndices(newEnv.ids))
-      } else this
     }
 
     override def setToTop(variable: Identifier): S = {
@@ -483,6 +430,71 @@ object Octagons
       */
     def evaluate(id: Identifier): Interval = getDbm.getBounds(env.getPositive(id))
 
+    // STRING REPRESENTATION
+    override def toString: String = s"Octagon(" +
+      s"\n\tenvironment: ${env.ids}" +
+      s"\n\tconstraints: ${getConstraints(env.ids.toSet).mkString}" +
+      s"\n)"
+
+    // HELPERS
+
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
+      val dbm = getDbm
+
+      // collect all constraints involving one variable
+      val (constraints, relational) = ids.foldLeft((Set.empty[Expression], List.empty[Identifier])) {
+        case ((currConstraints, currRelational), idA) =>
+          val i = env.getIndex(idA)
+          val bounds = dbm.getBounds(i)
+          val newConstraints = currConstraints ++ makeConstraints(idA, bounds)
+          val newRelational = if (bounds.low == bounds.high) currRelational else idA :: currRelational
+          (newConstraints, newRelational)
+      }
+
+      val pairs = for {
+        a <- relational
+        b <- relational
+        if env.getIndex(a) < env.getIndex(b)
+      } yield (a, b)
+
+      // collect all relational constraints that are not (trivially) implied by
+      // the constraints we already have
+      pairs.foldLeft(constraints) {
+        case (currConstraints, (idA, idB)) =>
+          val sumBounds = dbm.getBounds(env.getNegative(idB), env.getPositive(idA))
+          val diffBounds = dbm.getBounds(env.getPositive(idB), env.getPositive(idA))
+          val sum = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.+, DummyIntegerType)
+          val diff = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.-, DummyIntegerType)
+          currConstraints ++ makeConstraints(sum, sumBounds) ++ makeConstraints(diff, diffBounds)
+      }
+    }
+
+    /** A helper function that constructs a set of constraints for an expression
+      * that is bounded by the given interval.
+      */
+    private def makeConstraints(expression: Expression, bounds: Interval): Set[Expression] = {
+      if (bounds.low == bounds.high) {
+        // return an equality
+        val constant = makeConstant(bounds.low)
+        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==, DummyBooleanType))
+      } else {
+        // construct lower bound if it is not negative infinity
+        val lower = if (bounds.low.isNegInfinity) None else {
+          val constant = makeConstant(bounds.low)
+          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=, DummyBooleanType)
+          Some(inequality)
+        }
+        // construct upper bound if it is not positive infinity
+        val upper = if (bounds.high.isPosInfinity) None else {
+          val constant = makeConstant(bounds.high)
+          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=, DummyBooleanType)
+          Some(inequality)
+        }
+        // return constraints
+        lower.toSet ++ upper.toSet
+      }
+    }
+
     /** Divides the first interval by the second interval. This method is
       * abstract to allow different behavior for integer octagons and double
       * octagons.
@@ -493,70 +505,27 @@ object Octagons
       */
     protected def divide(left: Interval, right: Interval): Interval
 
-    // HELPERS
-
-    private def exists(id: Identifier): Boolean = env.set.contains(id)
-
-    private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
-
     protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): S
-
-    // STRING REPRESENTATION
-    override def toString: String = s"Octagon(" +
-      s"\n\tenvironment: ${env.ids}" +
-      s"\n\tconstraints: ${getConstraints(env.ids.toSet).mkString}" +
-      s"\n)"
   }
 
-  object Dbm
-  {
-    /** A shorter name for positive infinity.
+  /** Represents a positive or a negative occurrence of an identifier.
+    *
+    * @author Jerome Dohrau
+    */
+  sealed trait Literal {
+    /** Returns the identifier.
       *
-      * @return The double representing positive infinity.
+      * @return the identifier.
       */
-    def Infinity: Double = Double.PositiveInfinity
+    def id: Identifier
 
-    /** Computes the number of matrix elements in an DBM with the
-      * specified dimension.
+    /** Negates the literal.
       *
-      * @param dim The dimension of the DBM.
-      * @return The number of matrix elements in the DBM.
+      * @return The negation of the literal.
       */
-    def size(dim: Int): Int = 2 * dim * (dim + 1)
-
-    /** Computes the index of a matrix element with the specified row and column
-      * indices in the array.
-      *
-      * @param row the row index of the element
-      * @param col the column index of the element
-      * @return the index of the matrix element in the array
-      */
-    def index(row: Int, col: Int): Int = if (row < col) lower(col ^ 1, row ^ 1) else lower(row, col)
-
-    /** Computes the index of a lower left matrix element with the specified row
-      * and column indices in the array.
-      *
-      * Note: A lower left matrix element is a matrix element where the row and
-      * column indices satisfy the inequality row/2 >= col/2.
-      *
-      * @param row the row index of the matrix element
-      * @param col the column index of the matrix element
-      * @return the index of the matrix element in the array
-      */
-    def lower(row: Int, col: Int): Int = (row + 1) * (row + 1) / 2 + col
-
-    /** Returns the internal matrix of a DBM with the given dimension where all
-      * identifiers are top.
-      *
-      * @param dim The dimension.
-      * @return The internal matrix of the DBM.
-      */
-    def topArr(dim: Int) = {
-      val arr = Array.fill(size(dim))(Infinity)
-      for (i <- 0 until 2 * dim) {
-        arr(lower(i, i)) = 0.0
-      }
-      arr
+    def unary_-(): Literal = this match {
+      case Positive(id) => Negative(id)
+      case Negative(id) => Positive(id)
     }
   }
 
@@ -668,39 +637,6 @@ object Octagons
     }
 
     /**
-      * Note: modifies the internal matrix
-      */
-    def assignTop(i: Int): S = {
-      require(i % 2 == 0)
-
-      // forget relations with other variables
-      for (k <- 0 until i) {
-        arr(lower(i, k)) = Infinity
-        arr(lower(i ^ 1, k)) = Infinity
-        arr(lower(i, k ^ 1)) = Infinity
-        arr(lower(i ^ 1, k ^ 1)) = Infinity
-      }
-      for (k <- i + 2 until 2 * dim) {
-        arr(lower(k ^ 1, i ^ 1)) = Infinity
-        arr(lower(k ^ 1, i)) = Infinity
-        arr(lower(k, i ^ 1)) = Infinity
-        arr(lower(k, i)) = Infinity
-      }
-
-      // forget conflicting constraints involving v_i
-      arr(lower(i, i)) = 0.0
-      arr(lower(i ^ 1, i ^ 1)) = 0.0
-
-      // set lower bound to a and upper bound to b
-      arr(lower(i, i ^ 1)) = Infinity
-      arr(lower(i ^ 1, i)) = Infinity
-
-      this
-    }
-
-    def getBound(i: Int, j: Int): Double = arr(index(i, j))
-
-    /**
       * @param i The index corresponding to the literal x_i.
       * @return An interval [low, high] such that low <= x_i <= high.
       */
@@ -720,6 +656,8 @@ object Octagons
       val high = getBound(i, j)
       Interval(low, high)
     }
+
+    def getBound(i: Int, j: Int): Double = arr(index(i, j))
 
     /**
       * v_{i/2} := [a, b]
@@ -790,6 +728,37 @@ object Octagons
 
       close(i, j)
       close(i ^ 1, j ^ 1)
+
+      this
+    }
+
+    /**
+      * Note: modifies the internal matrix
+      */
+    def assignTop(i: Int): S = {
+      require(i % 2 == 0)
+
+      // forget relations with other variables
+      for (k <- 0 until i) {
+        arr(lower(i, k)) = Infinity
+        arr(lower(i ^ 1, k)) = Infinity
+        arr(lower(i, k ^ 1)) = Infinity
+        arr(lower(i ^ 1, k ^ 1)) = Infinity
+      }
+      for (k <- i + 2 until 2 * dim) {
+        arr(lower(k ^ 1, i ^ 1)) = Infinity
+        arr(lower(k ^ 1, i)) = Infinity
+        arr(lower(k, i ^ 1)) = Infinity
+        arr(lower(k, i)) = Infinity
+      }
+
+      // forget conflicting constraints involving v_i
+      arr(lower(i, i)) = 0.0
+      arr(lower(i ^ 1, i ^ 1)) = 0.0
+
+      // set lower bound to a and upper bound to b
+      arr(lower(i, i ^ 1)) = Infinity
+      arr(lower(i ^ 1, i)) = Infinity
 
       this
     }
@@ -1047,7 +1016,7 @@ object Octagons
     /** A helper function that constructs a constant from the given value.
       */
     def makeConstant(value: Double): Expression =
-      Constant(value.toString, DummyNumericalType)
+      Constant(value.toString, DummyIntegerType)
   }
 
   /**
@@ -1083,35 +1052,6 @@ object Octagons
 
     def size: Int = ids.length
 
-    /** Returns the index in the DBM of the positive occurrence of the given
-      * identifier.
-      *
-      * @param id The identifier.
-      * @return The index in the DBM of the positive occurrence of the given
-      *         identifier.
-      */
-    def getPositive(id: Identifier): Int =
-      2 * map(id)
-
-    /** Returns the index in the DBM of the negative occurrence of the given
-      * identifier.
-      *
-      * @param id The identifier.
-      * @return The index in the DBM of the negative occurrence of the given
-      *         identifier.
-      */
-    def getNegative(id: Identifier): Int =
-      2 * map(id) + 1
-
-    /** Returns the index in the DBM of (positive occurrence) the given
-      * identifier.
-      *
-      * @param id The identifier.
-      * @return The index in the DBM of the given identifier.
-      */
-    def getIndex(id: Identifier): Int =
-      getPositive(id)
-
     /** Returns the index in the DBM of the given literal.
       *
       * @param literal The literal.
@@ -1123,6 +1063,16 @@ object Octagons
         case Negative(id) => getNegative(id)
       }
 
+    /** Returns the index in the DBM of the negative occurrence of the given
+      * identifier.
+      *
+      * @param id The identifier.
+      * @return The index in the DBM of the negative occurrence of the given
+      *         identifier.
+      */
+    def getNegative(id: Identifier): Int =
+      2 * map(id) + 1
+
     /** Returns the list of indices in the DBM for the given list of
       * identifiers.
       *
@@ -1132,19 +1082,38 @@ object Octagons
       */
     def getIndices(ids: List[Identifier]): List[Int] = ids.map(getIndex)
 
+    /** Returns the index in the DBM of (positive occurrence) the given
+      * identifier.
+      *
+      * @param id The identifier.
+      * @return The index in the DBM of the given identifier.
+      */
+    def getIndex(id: Identifier): Int =
+      getPositive(id)
+
+    /** Returns the index in the DBM of the positive occurrence of the given
+      * identifier.
+      *
+      * @param id The identifier.
+      * @return The index in the DBM of the positive occurrence of the given
+      *         identifier.
+      */
+    def getPositive(id: Identifier): Int =
+      2 * map(id)
+
     // OPERATORS
 
     def ++(other: Environment): Environment = this ++ other.set
 
-    def ++(ids: IdentifierSet): Environment = Environment(set ++ ids)
-
     def ++(ids: Set[Identifier]): Environment = this ++ IdentifierSet.Inner(ids)
+
+    def ++(ids: IdentifierSet): Environment = Environment(set ++ ids)
 
     def --(other: Environment): Environment = this -- other.set
 
-    def --(ids: IdentifierSet): Environment = Environment(set -- ids)
-
     def --(ids: Set[Identifier]): Environment = this -- IdentifierSet.Inner(ids)
+
+    def --(ids: IdentifierSet): Environment = Environment(set -- ids)
 
     def +(id: Identifier): Environment = Environment(set + id)
 
@@ -1159,6 +1128,14 @@ object Octagons
     // of literals are cancelled out.
     if (SystemParameters.DEBUG) assert(literals == cancel(literals))
 
+    /** Subtracts the given other normalized expression from this normalized
+      * expression.
+      *
+      * @param other THe normalized expression to be subtracted.
+      * @return The difference between this and the other normalized expression.
+      */
+    def -(other: Normalized) = this + -other
+
     def unary_-(): Normalized = Normalized(literals.map(x => -x), -interval)
 
     /** Adds the given other normalized expression to this normalized
@@ -1168,29 +1145,6 @@ object Octagons
       * @return The sum of this and the other normalized expression.
       */
     def +(other: Normalized) = Normalized(cancel(literals ++ other.literals), interval + other.interval)
-
-    /** Subtracts the given other normalized expression from this normalized
-      * expression.
-      *
-      * @param other THe normalized expression to be subtracted.
-      * @return The difference between this and the other normalized expression.
-      */
-    def -(other: Normalized) = this + -other
-
-    /** Adds the given interval to this normalized expression.
-      *
-      * @param value The interval to be added.
-      * @return The normalized expression after the given interval is added.
-      */
-    def +(value: Interval) = Normalized(literals, interval + value)
-
-    /** Subtracts the given interval from this normalized expression.
-      *
-      * @param value The interval to be subtracted.
-      * @return The normalized expression after the given interval is
-      *         subtracted.
-      */
-    def -(value: Interval) = Normalized(literals, interval - value)
 
     /** A helper function that cancels out positive and negative occurrences of
       * literals.
@@ -1216,27 +1170,21 @@ object Octagons
         }
       }.values.toList.flatten
     }
-  }
 
-  /** Represents a positive or a negative occurrence of an identifier.
-    *
-    * @author Jerome Dohrau
-    */
-  sealed trait Literal {
-    /** Returns the identifier.
+    /** Adds the given interval to this normalized expression.
       *
-      * @return the identifier.
+      * @param value The interval to be added.
+      * @return The normalized expression after the given interval is added.
       */
-    def id: Identifier
+    def +(value: Interval) = Normalized(literals, interval + value)
 
-    /** Negates the literal.
+    /** Subtracts the given interval from this normalized expression.
       *
-      * @return The negation of the literal.
+      * @param value The interval to be subtracted.
+      * @return The normalized expression after the given interval is
+      *         subtracted.
       */
-    def unary_-(): Literal = this match {
-      case Positive(id) => Negative(id)
-      case Negative(id) => Positive(id)
-    }
+    def -(value: Interval) = Normalized(literals, interval - value)
   }
 
   /** Represents a positive occurrence of an identifier.
@@ -1252,30 +1200,6 @@ object Octagons
     * @author Jerome Dohrau
     */
   case class Negative(id: Identifier) extends Literal
-
-  object Interval {
-    /** Returns the interval from negative infinity to positive infinity.
-      *
-      * @return The interval from negative infinity to positive infinity.
-      */
-    def Top = Interval(Double.NegativeInfinity, Double.PositiveInfinity)
-
-    /** Returns the interval containing zero.
-      *
-      * @return The interval containing zero.
-      */
-    def Zero = Interval(0.0, 0.0)
-
-    /** Returns the interval containing one.
-      *
-      * @return The interval containing one.
-      */
-    def One = Interval(1.0, 1.0)
-
-
-    def Epsilon = Interval(NumericalAnalysisConstants.epsilon, NumericalAnalysisConstants.epsilon)
-
-  }
 
   /** Represents an interval.
     *
@@ -1317,6 +1241,28 @@ object Octagons
       Interval(min(a, b, c, d), max(a, b, c, d))
     }
 
+    /** A helper function that returns the minimum of the four given numbers.
+      *
+      * @param a The first number.
+      * @param b The second number.
+      * @param c The third number.
+      * @param d The fourth number.
+      * @return The minimum of the four given numbers.
+      */
+    private def min(a: Double, b: Double, c: Double, d: Double): Double =
+      math.min(math.min(a, b), math.min(c, d))
+
+    /** A helper function that returns the maximum of the four given numbers.
+      *
+      * @param a The first number.
+      * @param b The second number.
+      * @param c The third number.
+      * @param d The fourth number.
+      * @return The maximum of the four given numbers.
+      */
+    private def max(a: Double, b: Double, c: Double, d: Double): Double =
+      math.max(math.max(a, b), math.max(c, d))
+
     /** Divides this interval by the given other interval.
       *
       * @param other The interval to divide by.
@@ -1344,28 +1290,6 @@ object Octagons
     def truncate(): Interval =
       Interval(truncate(low), truncate(high))
 
-    /** A helper function that returns the minimum of the four given numbers.
-      *
-      * @param a The first number.
-      * @param b The second number.
-      * @param c The third number.
-      * @param d The fourth number.
-      * @return The minimum of the four given numbers.
-      */
-    private def min(a: Double, b: Double, c: Double, d: Double): Double =
-      math.min(math.min(a, b), math.min(c, d))
-
-    /** A helper function that returns the maximum of the four given numbers.
-      *
-      * @param a The first number.
-      * @param b The second number.
-      * @param c The third number.
-      * @param d The fourth number.
-      * @return The maximum of the four given numbers.
-      */
-    private def max(a: Double, b: Double, c: Double, d: Double): Double =
-      math.max(math.max(a, b), math.max(c, d))
-
     /** A helper function that truncates a number to an integer value. This
       * function is used to mimic the behavior of an integer division.
       *
@@ -1374,6 +1298,81 @@ object Octagons
       */
     private def truncate(a: Double): Double =
       if (a >= 0) math.floor(a) else math.ceil(a)
+  }
+
+  object Dbm {
+    /** Computes the index of a matrix element with the specified row and column
+      * indices in the array.
+      *
+      * @param row the row index of the element
+      * @param col the column index of the element
+      * @return the index of the matrix element in the array
+      */
+    def index(row: Int, col: Int): Int = if (row < col) lower(col ^ 1, row ^ 1) else lower(row, col)
+
+    /** Returns the internal matrix of a DBM with the given dimension where all
+      * identifiers are top.
+      *
+      * @param dim The dimension.
+      * @return The internal matrix of the DBM.
+      */
+    def topArr(dim: Int) = {
+      val arr = Array.fill(size(dim))(Infinity)
+      for (i <- 0 until 2 * dim) {
+        arr(lower(i, i)) = 0.0
+      }
+      arr
+    }
+
+    /** A shorter name for positive infinity.
+      *
+      * @return The double representing positive infinity.
+      */
+    def Infinity: Double = Double.PositiveInfinity
+
+    /** Computes the number of matrix elements in an DBM with the
+      * specified dimension.
+      *
+      * @param dim The dimension of the DBM.
+      * @return The number of matrix elements in the DBM.
+      */
+    def size(dim: Int): Int = 2 * dim * (dim + 1)
+
+    /** Computes the index of a lower left matrix element with the specified row
+      * and column indices in the array.
+      *
+      * Note: A lower left matrix element is a matrix element where the row and
+      * column indices satisfy the inequality row/2 >= col/2.
+      *
+      * @param row the row index of the matrix element
+      * @param col the column index of the matrix element
+      * @return the index of the matrix element in the array
+      */
+    def lower(row: Int, col: Int): Int = (row + 1) * (row + 1) / 2 + col
+  }
+
+  object Interval {
+    /** Returns the interval from negative infinity to positive infinity.
+      *
+      * @return The interval from negative infinity to positive infinity.
+      */
+    def Top = Interval(Double.NegativeInfinity, Double.PositiveInfinity)
+
+    /** Returns the interval containing zero.
+      *
+      * @return The interval containing zero.
+      */
+    def Zero = Interval(0.0, 0.0)
+
+    /** Returns the interval containing one.
+      *
+      * @return The interval containing one.
+      */
+    def One = Interval(1.0, 1.0)
+
+
+    def Epsilon = Interval(NumericalAnalysisConstants.epsilon, NumericalAnalysisConstants.epsilon)
+
   }
 }
 
@@ -1398,22 +1397,6 @@ sealed trait IntegerOctagons
 object IntegerOctagons
 {
 
-  /** The top element of the integer octagon domain.
-    *
-    * @author Jerome Dohrau
-    */
-  object Top
-    extends IntegerOctagons
-      with Octagons.Top[IntegerOctagons]
-
-  /** The bottom element of the integer octagon domain.
-    *
-    * @author Jerome Dohrau
-    */
-  object Bottom
-    extends IntegerOctagons
-      with Octagons.Bottom[IntegerOctagons]
-
   /** An element of the integer octagon domain that is neither the top element
     * nor the bottom element.
     *
@@ -1432,24 +1415,6 @@ object IntegerOctagons
     extends IntegerOctagons
       with Octagons.Inner[IntegerOctagons, IntegerDbm] {
 
-    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons = {
-      val dbm = closed.orElse(open).get
-      if (env.isTop) Top
-      else if (dbm.isBottom)
-        Bottom
-      else Inner(env, closed, open)
-    }
-
-    require(closed.isDefined || open.isDefined)
-
-    /** Returns the underlying DBM. When an open and a closed DBM are present,
-      * the closed version is returned.
-      *
-      * @return The underlying DBM.
-      */
-    override def getDbm: IntegerDbm =
-      closed.orElse(open).get
-
     /** Returns the underlying closed DBM. If closed DBM is present, it is
       * computed from the open DBM.
       *
@@ -1459,6 +1424,8 @@ object IntegerOctagons
       if (closed.isEmpty) closed = open.map(_.clone().close())
       closed.get
     }
+
+    require(closed.isDefined || open.isDefined)
 
     /** Returns the underlying DBM. When an open and a closed DBM are present,
       * the open version is returned.
@@ -1475,21 +1442,6 @@ object IntegerOctagons
     override def isClosed: Boolean =
       closed.isDefined
 
-    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagons = {
-      val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
-      val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
-      factory(newEnv, newClosed, newOpen)
-    }
-
-    /** Divides the first interval by the second interval.
-      *
-      * @param left  The first interval.
-      * @param right The second interval.
-      * @return The result of the division.
-      */
-    override protected def divide(left: Interval, right: Interval): Interval =
-      (left / right).truncate()
-
     override def epsilon = Interval.One
 
     override def toInterval(value:String) = Interval(value.toInt, value.toInt)
@@ -1503,9 +1455,56 @@ object IntegerOctagons
       else s"${bounds.low.toInt}<=$id<=${bounds.high.toInt}"
     }
 
+    /** Returns the underlying DBM. When an open and a closed DBM are present,
+      * the closed version is returned.
+      *
+      * @return The underlying DBM.
+      */
+    override def getDbm: IntegerDbm =
+      closed.orElse(open).get
+
     override def makeConstant(value: Double): Expression =
-      Constant(value.toInt.toString, DummyNumericalType)
+      Constant(value.toInt.toString, DummyIntegerType)
+
+    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagons = {
+      val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
+      val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
+      factory(newEnv, newClosed, newOpen)
+    }
+
+    override def factory(env: Environment, closed: Option[IntegerDbm], open: Option[IntegerDbm]): IntegerOctagons = {
+      val dbm = closed.orElse(open).get
+      if (env.isTop) Top
+      else if (dbm.isBottom)
+        Bottom
+      else Inner(env, closed, open)
+    }
+
+    /** Divides the first interval by the second interval.
+      *
+      * @param left  The first interval.
+      * @param right The second interval.
+      * @return The result of the division.
+      */
+    override protected def divide(left: Interval, right: Interval): Interval =
+      (left / right).truncate()
   }
+
+  /** The top element of the integer octagon domain.
+    *
+    * @author Jerome Dohrau
+    */
+  object Top
+    extends IntegerOctagons
+      with Octagons.Top[IntegerOctagons]
+
+  /** The bottom element of the integer octagon domain.
+    *
+    * @author Jerome Dohrau
+    */
+  object Bottom
+    extends IntegerOctagons
+      with Octagons.Bottom[IntegerOctagons]
 }
 
 /** An element of the double octagon domain.
@@ -1527,22 +1526,6 @@ sealed trait DoubleOctagons
 
 object DoubleOctagons {
 
-  /** The top element of the double octagon domain.
-    *
-    * @author Jerome Dohrau
-    */
-  object Top
-    extends DoubleOctagons
-      with Octagons.Top[DoubleOctagons]
-
-  /** The bottom element of the double octagon domain.
-    *
-    * @author Jerome Dohrau
-    */
-  object Bottom
-    extends DoubleOctagons
-      with Octagons.Bottom[DoubleOctagons]
-
   /** An element of the double octagon domain that is neither the top element
     * nor the bottom element.
     *
@@ -1560,22 +1543,6 @@ object DoubleOctagons {
                    open: Option[DoubleDbm])
     extends DoubleOctagons
       with Octagons.Inner[DoubleOctagons, DoubleDbm] {
-
-    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons = {
-      val dbm = closed.orElse(open).get
-      if (env.isTop) Top
-      else if (dbm.isBottom)
-        Bottom
-      else Inner(env, closed, open)
-    }
-
-    /** Returns the underlying DBM. When an open and a closed DBM are present,
-      * the closed version is returned.
-      *
-      * @return The underlying DBM.
-      */
-    override def getDbm: DoubleDbm =
-      closed.orElse(open).get
 
     /** Returns the underlying closed DBM. If closed DBM is present, it is
       * computed from the open DBM.
@@ -1602,21 +1569,6 @@ object DoubleOctagons {
     override def isClosed: Boolean =
       closed.isDefined
 
-    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
-      val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
-      val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
-      factory(newEnv, newClosed, newOpen)
-    }
-
-    /** Divides the first interval by the second interval.
-      *
-      * @param left  The first interval.
-      * @param right The second interval.
-      * @return The result of the division.
-      */
-    override protected def divide(left: Interval, right: Interval): Interval =
-      left / right
-
     override def epsilon = Interval.Epsilon
 
     override def toInterval(value:String) = Interval(value.toDouble, value.toDouble)
@@ -1630,7 +1582,54 @@ object DoubleOctagons {
       else s"${bounds.low}<=$id<=${bounds.high}"
     }
 
+    /** Returns the underlying DBM. When an open and a closed DBM are present,
+      * the closed version is returned.
+      *
+      * @return The underlying DBM.
+      */
+    override def getDbm: DoubleDbm =
+      closed.orElse(open).get
+
      override def makeConstant(value: Double): Expression =
-      Constant(value.toString, DummyNumericalType)
+       Constant(value.toString, DummyIntegerType)
+
+    override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
+      val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
+      val newOpen = open.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
+      factory(newEnv, newClosed, newOpen)
+    }
+
+    override def factory(env: Environment, closed: Option[DoubleDbm], open: Option[DoubleDbm]): DoubleOctagons = {
+      val dbm = closed.orElse(open).get
+      if (env.isTop) Top
+      else if (dbm.isBottom)
+        Bottom
+      else Inner(env, closed, open)
+    }
+
+    /** Divides the first interval by the second interval.
+      *
+      * @param left  The first interval.
+      * @param right The second interval.
+      * @return The result of the division.
+      */
+    override protected def divide(left: Interval, right: Interval): Interval =
+      left / right
   }
+
+  /** The top element of the double octagon domain.
+    *
+    * @author Jerome Dohrau
+    */
+  object Top
+    extends DoubleOctagons
+      with Octagons.Top[DoubleOctagons]
+
+  /** The bottom element of the double octagon domain.
+    *
+    * @author Jerome Dohrau
+    */
+  object Bottom
+    extends DoubleOctagons
+      with Octagons.Bottom[DoubleOctagons]
 }

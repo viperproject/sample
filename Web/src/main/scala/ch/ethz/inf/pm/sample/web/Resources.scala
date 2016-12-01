@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.web
 
-import java.nio.file._
 import java.net.{URI, URL, URLEncoder}
+import java.nio.file._
 
 import scala.collection.JavaConversions._
 
@@ -16,7 +16,7 @@ case class IdentifierTest(name:String, id:String) extends Ordered[IdentifierTest
   def compare(that: IdentifierTest) =
     name.compareTo(that.name)
 
-  def urlEncoded:String = URLEncoder.encode(id)
+  def urlEncoded: String = URLEncoder.encode(id, "UTF-8")
 
 }
 
@@ -65,6 +65,7 @@ case class ResourceTestFileProvider(
       testFilesRecursive(path, testDir)
     }.sorted
   }
+  private var openFileSystems: Seq[FileSystem] = Seq()
 
   private def testFilesRecursive(dir: Path, prefix: String): Seq[TestFile] = {
     require(Files.isDirectory(dir), "Path must represent a directory")
@@ -93,8 +94,6 @@ case class ResourceTestFileProvider(
    * @return A class loader for accessing resources.
    */
   private def classLoader: ClassLoader = getClass.getClassLoader
-
-  private var openFileSystems: Seq[FileSystem] = Seq()
   addShutdownHookForOpenFileSystems()
 
   /**

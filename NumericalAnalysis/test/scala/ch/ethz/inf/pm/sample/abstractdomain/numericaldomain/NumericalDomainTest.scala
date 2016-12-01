@@ -8,13 +8,13 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticDomain, Constant}
-import ch.ethz.inf.pm.sample.oorepresentation.DummyNumericalType
+import ch.ethz.inf.pm.sample.oorepresentation.DummyIntegerType
 import ch.ethz.inf.pm.sample.test.{SemanticDomainTest, LatticeTest}
 
 
 trait NumericalDomainTest[T <: NumericalDomain[T]] extends SemanticDomainTest[T] {
 
-  override lazy val typ = DummyNumericalType
+  override lazy val typ = DummyIntegerType
 
   override def values = super.values ++ Set(
     Constant("0", typ),
@@ -91,13 +91,13 @@ class IntegerIntervalTest extends NonRelationalNumericalDomainTest[IntegerInterv
 
 class DoubleIntervalTest extends NonRelationalNumericalDomainTest[DoubleInterval] {
 
-  override def factory: DoubleInterval = DoubleInterval.Bottom
-
   override lazy val instances: Set[DoubleInterval] = super.instances ++ Set(
     DoubleInterval.Inner(-1, Double.PositiveInfinity),
     DoubleInterval.Inner(Double.NegativeInfinity, 1),
     DoubleInterval.Inner(0, 0)
   )
+
+  override def factory: DoubleInterval = DoubleInterval.Bottom
 
   test("[10, 20] / [-2, 2] = Top") {
     val a = DoubleInterval.Inner(10, 20)

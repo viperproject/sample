@@ -26,23 +26,20 @@ import ch.ethz.inf.pm.td.semantics._
  *
  */
 
-object RichNativeSemantics extends RichExpressionImplicits {
+object RichNativeSemantics extends RichExpressionSetImplicits {
 
-  def isInReportableSection: Boolean = {
-    if (TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report) return true
-    val currentClass = SystemParameters.analysisUnitContext.clazz
-    val mainClass = SystemParameters.compiler.asInstanceOf[TouchCompiler].main
-    currentClass.equals(mainClass)
-  }
-
-  /*-- Checking / Reporting errors --*/
-
-  def Dummy[S <: State[S]](obj: RichExpression, method: String)(implicit state: S, pp: ProgramPoint) {
+  def Dummy[S <: State[S]](obj: RichExpressionSet, method: String)(implicit state: S, pp: ProgramPoint) {
     if (TouchAnalysisParameters.get.reportDummyImplementations)
       Reporter.reportDummyImplementation(obj.typ.toString + "->" + method, pp)
   }
 
-  def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
+  /*-- Checking / Reporting errors --*/
+
+  def Error[S <: State[S]](expr: RichExpressionSet, method: String, message: String)(implicit state: S, pp: ProgramPoint): S = {
+    Error[S](expr, "When calling " + method + ": " + message)
+  }
+
+  def Error[S <: State[S]](expr: RichExpressionSet, message: String)(implicit state: S, pp: ProgramPoint): S = {
     val errorState = state.assume(expr).setExpression(ExpressionSet(UnitExpression(SystemParameters.typ.top(), pp)))
     if (!errorState.isBottom && Reporter.reportingLevels(MessageClass.AssertionViolation) != ReportingLevel.Off) {
       if (isInReportableSection) {
@@ -56,11 +53,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
     } else state.assume(expr.not())
   }
 
-  def Error[S <: State[S]](expr: RichExpression, method: String, message: String)(implicit state: S, pp: ProgramPoint): S = {
-    Error[S](expr, "When calling " + method + ": " + message)
+  def isInReportableSection: Boolean = {
+    if (TouchAnalysisParameters.get.libraryErrorReportingMode == LibraryErrorReportingMode.Report) return true
+    val currentClass = SystemParameters.analysisUnitContext.clazz
+    val mainClass = SystemParameters.compiler.asInstanceOf[TouchCompiler].main
+    currentClass.equals(mainClass)
   }
 
-  def CheckInRangeInclusive[S <: State[S]](expr: RichExpression, low: RichExpression, high: RichExpression, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
+  def CheckInRangeInclusive[S <: State[S]](expr: RichExpressionSet, low: RichExpressionSet, high: RichExpressionSet, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
     if (TouchAnalysisParameters.get.printValuesInWarnings) {
       val state1 = Error(expr < low, method + ": Parameter " + parameter + " (" + expr + ") may be less than the lowest allowed value (" + low + ")")(s, pp)
       Error(expr > high, method + ": Parameter " + parameter + " (" + expr + ") may be greater than the highest allowed value " + high + ")")(state1, pp)
@@ -70,14 +70,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
     }
   }
 
-  def CheckNonNegative[S <: State[S]](expr: RichExpression, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
+  def CheckNonNegative[S <: State[S]](expr: RichExpressionSet, method: String, parameter: String)(implicit s: S, pp: ProgramPoint): S = {
     if (TouchAnalysisParameters.get.printValuesInWarnings)
       Error(expr < 0, method + ": Parameter " + parameter + " (" + expr + ") may be negative")(s, pp)
     else
       Error(expr < 0, method + ": Parameter " + parameter + " may be negative")(s, pp)
   }
 
-  def If[S <: State[S]](expr: RichExpression, Then: S => S, Else: S => S)(implicit state: S, pp: ProgramPoint): S = {
+  def If[S <: State[S]](expr: RichExpressionSet, Then: S => S, Else: S => S)(implicit state: S, pp: ProgramPoint): S = {
     val thenState = state.assume(expr)
     val elseState = state.assume(expr.not())
 
@@ -106,7 +106,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
   def New[S <: State[S]](typ: TouchType,
-                         initials: Map[ApiField, RichExpression] = Map.empty[ApiField, RichExpression],
+      initials: Map[ApiField, RichExpressionSet] = Map.empty[ApiField, RichExpressionSet],
                          initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     typ match {
@@ -167,7 +167,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Top[S <: State[S]](typ: TouchType,
-                         initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression],
+      initials: Map[Identifier, RichExpressionSet] = Map.empty[Identifier, RichExpressionSet],
                          initializeFields: Boolean = true)
                         (implicit s: S, pp: ProgramPoint): S = {
     typ match {
@@ -220,7 +220,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def TopWithInvalid[S <: State[S]](typ: TouchType,
                                     invalidCause: String,
-                                    initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression],
+      initials: Map[Identifier, RichExpressionSet] = Map.empty[Identifier, RichExpressionSet],
                                     initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     val curState = Top[S](typ, initials, initializeFields = initializeFields)(s, pp)
@@ -229,15 +229,15 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   }
 
-  def SetToTopWithInvalid[S <: State[S]](expr: RichExpression, invalidCause: String)(implicit s: S, pp: ProgramPoint): S = {
+  def SetToTopWithInvalid[S <: State[S]](expr: RichExpressionSet, invalidCause: String)(implicit s: S, pp: ProgramPoint): S = {
     Assign[S](expr,Valid(expr.typ) or Invalid(expr.typ,invalidCause)) // FIXME: Unsound: Handle object types
   }
 
-  def SetToTop[S <: State[S]](expr: RichExpression)(implicit s: S, pp: ProgramPoint): S = {
+  def SetToTop[S <: State[S]](expr: RichExpressionSet)(implicit s: S, pp: ProgramPoint): S = {
     Assign[S](expr,Valid(expr.typ)) // FIXME: Unsound: Handle object types
   }
 
-  def Clone[S <: State[S]](obj: RichExpression, initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression], recursive: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
+  def Clone[S <: State[S]](obj: RichExpressionSet, initials: Map[Identifier, RichExpressionSet] = Map.empty[Identifier, RichExpressionSet], recursive: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     var curState = s
     val anyType = obj.typ.asInstanceOf[AAny]
@@ -284,7 +284,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   /*-- Misc --*/
 
-  def Assume[S <: State[S]](expr: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def Assume[S <: State[S]](expr: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     state.assume(expr)
   }
 
@@ -303,12 +303,12 @@ object RichNativeSemantics extends RichExpressionImplicits {
     }
   }
 
-  def CallApi[S <: State[S]](obj: RichExpression, method: String, parameters: List[ExpressionSet] = Nil, returnedType: TouchType)(implicit state: S, pp: ProgramPoint): S = {
+  def CallApi[S <: State[S]](obj: RichExpressionSet, method: String, parameters: List[ExpressionSet] = Nil, returnedType: TouchType)(implicit state: S, pp: ProgramPoint): S = {
     if (obj.isBottom) state.bottom()
     else obj.typ.asInstanceOf[AAny].forwardSemantics(obj, method, parameters, returnedType)(pp, state)
   }
 
-  def Return[S <: State[S]](e: RichExpression*)(implicit state: S, pp: ProgramPoint): S = {
+  def Return[S <: State[S]](e: RichExpressionSet*)(implicit state: S, pp: ProgramPoint): S = {
     if (e.size > 1) {
       lazy val typ = e.head.typ
       var set = new ExpressionSet(typ)
@@ -324,7 +324,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     }
   }
 
-  def Assign[S <: State[S]](id: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def Assign[S <: State[S]](id: RichExpressionSet, value: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
 
     def join(a: List[ExpressionSet], b: List[ExpressionSet]): List[ExpressionSet] = {
       a match {
@@ -337,7 +337,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
       }
     }
 
-    def getMultiValAsList(expr: RichExpression): List[ExpressionSet] = {
+    def getMultiValAsList(expr: RichExpressionSet): List[ExpressionSet] = {
       var ret: List[ExpressionSet] = Nil
       for (sExpr <- expr.thisExpr.toSetOrFail) yield {
         sExpr match {
@@ -391,7 +391,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   }
 
-  def EvalConstant[S <: State[S]](id: RichExpression)(implicit state: S, pp: ProgramPoint): SetDomain.Default[Constant] = {
+  def EvalConstant[S <: State[S]](id: RichExpressionSet)(implicit state: S, pp: ProgramPoint): SetDomain.Default[Constant] = {
     id.s match {
       case SetDomain.Default.Bottom() => SetDomain.Default.Bottom()
       case SetDomain.Default.Top() => SetDomain.Default.Top()
@@ -406,11 +406,11 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   /*-- Reading and writing of fields --*/
 
-  def AssignField[S <: State[S]](obj: RichExpression, field: Identifier, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def AssignField[S <: State[S]](obj: RichExpressionSet, field: Identifier, value: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     AssignField[S](obj, field.getName, value)
   }
 
-  def AssignField[S <: State[S]](obj: RichExpression, field: String, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+  def AssignField[S <: State[S]](obj: RichExpressionSet, field: String, value: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     if (obj.typ.representedFields.exists(x => x.getField match { case None => false; case Some(y) => y == field})) {
       val res = state.assignField(obj, field, value)
       if (SystemParameters.DEBUG && !state.isBottom && res.isBottom)
@@ -419,7 +419,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     } else state
   }
 
-  def Field[S <: State[S]](obj: RichExpression, field: ApiField)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def Field[S <: State[S]](obj: RichExpressionSet, field: ApiField)(implicit state: S, pp: ProgramPoint): RichExpressionSet = {
     if (obj.isBottom || state.isBottom) Bottom(field.typ)
     else obj.thisExpr.typ.asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
   }
@@ -484,4 +484,4 @@ case object TopInitializer extends Initializer
 
 case class TopWithInvalidInitializer(invalidReason: String) extends Initializer
 
-case class ExpressionInitializer(e: RichExpression) extends Initializer
+case class ExpressionInitializer(e: RichExpressionSet) extends Initializer

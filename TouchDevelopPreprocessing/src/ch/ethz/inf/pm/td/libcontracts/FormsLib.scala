@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.td.libcontracts
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.RichExpressionImplicits
+import ch.ethz.inf.pm.td.analysis.RichExpressionSetImplicits
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.semantics.{AAction, GRef}
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.semantics.{AAction, GRef}
 /**
  * @author Lucas Brutschy
  */
-case object FormsLib extends LibraryContract with RichExpressionImplicits {
+case object FormsLib extends LibraryContract with RichExpressionSetImplicits {
 
   override val name = "forms"
 

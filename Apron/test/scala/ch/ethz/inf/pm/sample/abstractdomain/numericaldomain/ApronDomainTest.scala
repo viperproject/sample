@@ -2,12 +2,12 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, SemanticDomain}
-import ch.ethz.inf.pm.sample.oorepresentation.DummyNumericalType
+import ch.ethz.inf.pm.sample.oorepresentation.DummyIntegerType
 import ch.ethz.inf.pm.sample.test.SemanticDomainTest
 
 trait NumericalDomainTest[T <: NumericalDomain[T]] extends SemanticDomainTest[T] {
 
-  override lazy val typ = DummyNumericalType
+  override lazy val typ = DummyIntegerType
 
   override def values = super.values ++ Set(
     Constant("0", typ),
@@ -42,7 +42,7 @@ trait ApronTest[T <: Apron[T]]
   extends NumericalDomainTest[T]
     with MostPreciseAssignment[T] {
 
-  SystemParameters.typ = DummyNumericalType
+  SystemParameters.typ = DummyIntegerType
 
 }
 
@@ -51,10 +51,10 @@ class ApronOctagonTest extends ApronTest[Apron.Octagons] {
 }
 
 class ApronLinearEqualitiesTest extends ApronTest[Apron.LinearEqualities] {
-  override def factory = Apron.LinearEqualities.Bottom
-
   // FAILS, therefore ignore. This is for antoine
   override val ignoreLubLessEqualWidening = true
+
+  override def factory = Apron.LinearEqualities.Bottom
 
 }
 
@@ -75,8 +75,8 @@ class ApronStrictPolyhedraTest extends ApronTest[Apron.StrictPolyhedra] {
 }
 
 class ApronBoxTest extends ApronTest[Apron.Box] {
-  override def factory = Apron.Box.Bottom
-
   // FAILS, therefore ignore. This is for antoine
   override val ignoreMostPreciseAssignment = true
+
+  override def factory = Apron.Box.Bottom
 }

@@ -20,6 +20,6 @@ class BooleanInvalidDomainWithSourceTest
     ValidExpression(typ, DummyProgramPoint)
   )
 
-  override lazy val typ = DummyNumericalType
+  override lazy val typ = DummyIntegerType
   override lazy val factory = BooleanInvalidDomainWithSource()
 }

@@ -8,7 +8,8 @@ package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
 import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchCompiler, TouchProgramPointRegistry}
-import ch.ethz.inf.pm.td.webapi.{JNode, WebAstTypeHints}
+import ch.ethz.inf.pm.td.webapi.WebAST._
+import ch.ethz.inf.pm.td.webapi.WebAstTypeHints
 import net.liftweb.json.{DefaultFormats, Serialization}
 
 case class JResult(
@@ -52,6 +53,10 @@ class JSONExporter extends FileSystemExporter {
     makeJson(id)
   }
 
+  private def makeJson(scriptID: String): String = {
+    toJson(makeResult(scriptID))
+  }
+
   private def makeResult(scriptID: String): JResult = {
 
     val errors = (for (SampleError(id, string, pp, causes) <- Reporter.assertionViolations) yield {
@@ -67,10 +72,6 @@ class JSONExporter extends FileSystemExporter {
 
     JResult(scriptID, errors)
 
-  }
-
-  private def makeJson(scriptID: String): String = {
-    toJson(makeResult(scriptID))
   }
 
   private def toJson(result: JResult): String = {

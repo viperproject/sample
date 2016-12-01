@@ -11,7 +11,7 @@ import java.io.{PrintWriter, StringWriter}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.ScriptRetriever
 import ch.ethz.inf.pm.td.output.{Exporters, MongoExporter}
-import ch.ethz.inf.pm.td.webapi._
+import ch.ethz.inf.pm.td.webapi.WebAST._
 import com.typesafe.scalalogging.LazyLogging
 
 /**

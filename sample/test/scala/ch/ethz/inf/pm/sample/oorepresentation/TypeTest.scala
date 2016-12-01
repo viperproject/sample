@@ -14,7 +14,7 @@ case object DummyObjectTypeA extends DummyObjectType {
   override def possibleFields = Set(
     VariableIdentifier("a")(DummyObjectTypeA),
     VariableIdentifier("b")(DummyObjectTypeB),
-    VariableIdentifier("i")(DummyNumericalType))
+    VariableIdentifier("i")(DummyIntegerType))
 }
 
 case object DummyObjectTypeB extends DummyObjectType {

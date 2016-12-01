@@ -144,18 +144,6 @@ object TypeName {
 case class TypeName(ident: String, arguments: List[TypeName] = Nil, isSingleton: Boolean = false, isUserDefined: Boolean = false)
   extends IdPositional with Serializable {
   override lazy val toString: String = (arguments ::: List(ident)).mkString(" ")
-
-  @deprecated
-  def serialize: String = {
-    "TypeName(\"" + ident + "\", )"
-  }
-
-  @deprecated
-  def makeCode: String = {
-    "TypeName(\"" + ident + "\"" +
-      (if (arguments.nonEmpty) ",List(" + arguments.map(_.makeCode).mkString(",") + ")" else "") +
-      ")"
-  }
 }
 
 sealed trait Statement extends IdPositional with Scope {

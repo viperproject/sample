@@ -8,11 +8,11 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichExpression}
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichExpressionSet}
+import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_GRef
-import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.cloud.{CloudQueryWrapper, CloudUpdateWrapper}
 
 /**
  * Customizes the abstract semantics of Ref
@@ -25,6 +25,10 @@ case class GRef (TT:AAny) extends Default_GRef {
 
   lazy val field__receiver = ApiField("*receiver",TNothing)
   lazy val field__field = ApiField("*field",TString)
+  override lazy val possibleFields = super.possibleFields ++ Set(
+    field__receiver,
+    field__field
+  )
 
   override def member__ref:ApiMember = ApiMember(
     name = "◈ref",
@@ -113,15 +117,10 @@ case class GRef (TT:AAny) extends Default_GRef {
     }
   )
 
-  override lazy val possibleFields = super.possibleFields ++ Set(
-    field__receiver,
-    field__field
-  )
-
   /**
     * Converts a stored string back into a reference
     */
-  def DeRef[S <: State[S]](this0:RichExpression)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+  def DeRef[S <: State[S]](this0: RichExpressionSet)(implicit state: S, pp: ProgramPoint): ExpressionSet = {
 
     val botRes = ExpressionSet(TT,SetDomain.Default.Bottom[Expression]())
     val topRes = ExpressionSet(TT,SetDomain.Default.Top[Expression]())

@@ -8,7 +8,8 @@ package ch.ethz.inf.pm.td.tools
 
 import ch.ethz.inf.pm.td.compiler.{ScriptRetriever, TouchException}
 import ch.ethz.inf.pm.td.parser.TableDefinition
-import ch.ethz.inf.pm.td.webapi.{JLibrary, ScriptQuery, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.WebAST._
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, WebASTImporter}
 import net.liftweb.json.MappingException
 
 import scala.collection.mutable

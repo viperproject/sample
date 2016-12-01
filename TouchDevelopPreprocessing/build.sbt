@@ -10,7 +10,8 @@ unmanagedJars in Compile <++= baseDirectory map { base =>
   customJars.classpath
 }
 
-libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.4"
+
+libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.5"
 
 libraryDependencies += "net.liftweb" %% "lift-json" % "2.6.2"
 

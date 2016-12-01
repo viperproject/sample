@@ -119,6 +119,15 @@ class MethodDeclaration(
       body.toString +
       "\n-------------------\n\n"
 
+  /** this is not run by the touchdevelop code! */
+  def forwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
+    SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
+      val result = initializeArgument[S](state)
+      val r = new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
+      r
+    }
+  }
+
   def initializeArgument[S <: State[S]](state: S): S = {
     var result = state
     // Create a variable for each formal parameter
@@ -146,15 +155,6 @@ class MethodDeclaration(
         SystemParameters.typ.top())))
     }
     result
-  }
-
-  /** this is not run by the touchdevelop code! */
-  def forwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
-    SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
-      val result = initializeArgument[S](state)
-      val r = new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
-      r
-    }
   }
 
   def backwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
@@ -358,7 +358,7 @@ trait DummyObjectType extends DummyType {
 }
 
 /** A dummy numerical type with no proper hierarchy for testing. */
-case object DummyNumericalType extends DummyType {
+case object DummyIntegerType extends DummyType {
   def name = "Int"
 
   def isBottom = false
@@ -368,6 +368,25 @@ case object DummyNumericalType extends DummyType {
   def isObject = false
 
   def isNumericalType = true
+
+  override def isFloatingPointType = false
+
+  def possibleFields: Set[Identifier] = Set.empty
+}
+
+/** A dummy numerical type with no proper hierarchy for testing. */
+case object DummyFloatType extends DummyType {
+  def name = "Float"
+
+  def isBottom = false
+
+  def isTop = false
+
+  def isObject = false
+
+  def isNumericalType = true
+
+  override def isFloatingPointType = true
 
   def possibleFields: Set[Identifier] = Set.empty
 }

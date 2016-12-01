@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSetFactory._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethods, sample}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
@@ -57,6 +57,28 @@ case class InvariantCommand(condition: ExpressionSet) extends SilverCommand
 object SilverSemantics extends NativeMethodSemantics {
 
   /**
+    * It defines the backward semantics of native method calls
+    *
+    * @param thisExpr       the expression representing the object on whom the method is called
+    * @param operator       the string of the called method
+    * @param parameters     the parameters of the called method
+    * @param typeParameters the list of type generics
+    * @param returnType     the type of the returned value
+    * @param programPoint   the program point of the method call
+    * @param state          the abstract state in which the method call is evaluated
+    * @return the abstract state obtained after the backward evaluation of the native method call,
+    *         None if the semantics of the method call is not defined
+    */
+  override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
+      operator: String,
+      parameters: List[ExpressionSet],
+      typeParameters: List[Type],
+      returnType: Type,
+      programPoint: ProgramPoint,
+      state: S): Option[S] =
+    applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
+
+  /**
     * It defines the forward semantics of native method calls
     *
     * @param expression the expression representing the object on whom the method is called
@@ -94,26 +116,4 @@ object SilverSemantics extends NativeMethodSemantics {
         }
     }
   }
-
-  /**
-    * It defines the backward semantics of native method calls
-    *
-    * @param thisExpr the expression representing the object on whom the method is called
-    * @param operator the string of the called method
-    * @param parameters the parameters of the called method
-    * @param typeParameters the list of type generics
-    * @param returnType the type of the returned value
-    * @param programPoint the program point of the method call
-    * @param state the abstract state in which the method call is evaluated
-    * @return the abstract state obtained after the backward evaluation of the native method call,
-    *         None if the semantics of the method call is not defined
-    */
-  override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
-                                                           operator: String,
-                                                           parameters: List[ExpressionSet],
-                                                           typeParameters: List[Type],
-                                                           returnType: Type,
-                                                           programPoint: ProgramPoint,
-                                                           state: S): Option[S] =
-    applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
 }

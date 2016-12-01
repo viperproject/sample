@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{RichExpressionSet, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler._
 import RichNativeSemantics._
 
@@ -18,6 +18,20 @@ import RichNativeSemantics._
 trait AMutableLinearCollection extends ALinearCollection {
 
   override def isImmutable = false
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add many" -> member_add_many,
+    "add" -> member_add,
+    "clear" -> member_clear,
+    "contains" -> member_contains,
+    "index of" -> member_index_of,
+    "insert at" -> member_insert_at,
+    "remove at" -> member_remove_at,
+    "remove" -> member_remove,
+    "reverse" -> member_reverse,
+    "set at" -> member_set_at,
+    "sort" -> member_sort
+  )
 
   /** Never used: Adds many objects at once */
   def member_add_many = ApiMember(
@@ -221,20 +235,6 @@ trait AMutableLinearCollection extends ALinearCollection {
         InvalidateKeys[S](this0)
       }
     }
-  )
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add many" -> member_add_many,
-    "add" -> member_add,
-    "clear" -> member_clear,
-    "contains" -> member_contains,
-    "index of" -> member_index_of,
-    "insert at" -> member_insert_at,
-    "remove at" -> member_remove_at,
-    "remove" -> member_remove,
-    "reverse" -> member_reverse,
-    "set at" -> member_set_at,
-    "sort" -> member_sort
   )
 
 }

@@ -9,20 +9,19 @@ package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.SystemParameters
 
 object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
 	  case "$isInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
-	      case t :: Nil => Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, returnedtype)));
+        case t :: Nil => Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, returnedtype)));
           case _ => throw new MethodSemanticException("isInstanceOf must have exactly one type parameters")
         }
 	    case _ => throw new MethodSemanticException("isInstanceOf cannot have parameters")
 	  } 
     case "$asInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
-	      case t :: Nil => Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.asInstanceOf, returnedtype)));
+        case t :: Nil => Some(state.setExpression(ExpressionSetFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.asInstanceOf, returnedtype)));
           case _ => throw new MethodSemanticException("asInstanceOf must have exactly one type parameters")
         }
 	    case _ => throw new MethodSemanticException("asInstanceOf cannot have parameters")
@@ -152,17 +151,17 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
  
  
 	private def createUnaryArithmeticExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-	    case Nil => Some(state.setExpression(ExpressionFactory.createUnaryExpression(thisExpr, operator, returnedtype)));
+    case Nil => Some(state.setExpression(ExpressionSetFactory.createUnaryExpression(thisExpr, operator, returnedtype)));
 	    case _ => None
     }
  
 	private def createBinaryArithmeticExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-	    case x :: Nil => Some(state.setExpression(ExpressionFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
+    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
 	    case _ => None
     }
 
   private def createReferenceComparisonExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-      case x :: Nil => Some(state.setExpression(ExpressionFactory.createReferenceComparisonExpression(thisExpr, x, operator, returnedtype)));
+    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createReferenceComparisonExpression(thisExpr, x, operator, returnedtype)));
       case _ => None
     }
 
@@ -183,7 +182,7 @@ object BooleanNativeMethodSemantics extends NativeMethodSemantics {
 	}
 
 	private def createBinaryBooleanExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : BooleanOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-	    case x :: Nil => Some(state.setExpression(ExpressionFactory.createBooleanBinaryExpression(thisExpr, x, operator, returnedtype)));
+    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, x, operator, returnedtype)));
 	    case _ => None
     }
 

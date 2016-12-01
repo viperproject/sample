@@ -24,11 +24,6 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
   def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
     new BoxedNonRelationalNumericalDomain[N](dom, _value, _isBottom, _isTop)
 
-  def get(key: Identifier): N = map.get(key) match {
-    case None => dom.bottom()
-    case Some(x) => x
-  }
-
   override def createVariable(variable: Identifier, typ: Type): BoxedNonRelationalNumericalDomain[N] = {
     if (variable.typ.isNumericalType) {
       this.add(variable, dom.top())
@@ -43,6 +38,19 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   override def setToTop(variable: Identifier): BoxedNonRelationalNumericalDomain[N] = {
     this.add(variable, dom.top())
+  }
+
+  /**
+    * Adds [key->value] to the domain
+    *
+    * @param key   The key
+    * @param value The value
+    * @return The state of the domain after the assignment
+    */
+  override def add(key: Identifier, value: N): BoxedNonRelationalNumericalDomain[N] = {
+    if (value.isBottom)
+      bottom()
+    else super.add(key, value)
   }
 
   override def removeVariable(variable: Identifier): BoxedNonRelationalNumericalDomain[N] = {
@@ -70,20 +78,6 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
     val mayBeFalse = if (!this.assume(NegatedBooleanExpression(expr)).isBottom) dom.evalConstant(0) else dom.bottom()
     mayBeTrue.lub(mayBeFalse)
-  }
-
-
-  /**
-   * Adds [key->value] to the domain
-    *
-    * @param key The key
-   * @param value The value
-   * @return The state of the domain after the assignment
-   */
-  override def add(key: Identifier, value: N): BoxedNonRelationalNumericalDomain[N] = {
-    if (value.isBottom)
-      bottom()
-    else super.add(key,value)
   }
 
   def eval(expr: Expression): N = {
@@ -248,6 +242,11 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
   }
 
   override def getPossibleConstants(id: Identifier) = get(id).getPossibleConstants
+
+  def get(key: Identifier): N = map.get(key) match {
+    case None => dom.bottom()
+    case Some(x) => x
+  }
 }
 
 
@@ -373,12 +372,6 @@ sealed trait Sign extends NonRelationalNumericalDomain[Sign] {
 
   def bottom(): Sign = Sign.Bottom
 
-  def evalConstant(value: Double): Sign = {
-    if (value > 0) Sign.Plus
-    else if (value == 0) Sign.Zero
-    else Sign.Minus
-  }
-
   def evalConstant(value: Constant): Sign = {
     try {
       evalConstant(value.constant.toInt)
@@ -387,17 +380,15 @@ sealed trait Sign extends NonRelationalNumericalDomain[Sign] {
     }
   }
 
+  def evalConstant(value: Double): Sign = {
+    if (value > 0) Sign.Plus
+    else if (value == 0) Sign.Zero
+    else Sign.Minus
+  }
+
 }
 
 object Sign {
-
-  object Top extends Sign with NonRelationalNumericalDomain.Top[Sign] {
-
-    val zero = Zero
-
-  }
-
-  object Bottom extends Sign with NonRelationalNumericalDomain.Bottom[Sign]
 
   sealed trait Inner extends Sign with NonRelationalNumericalDomain.Inner[Sign,Inner] {
 
@@ -413,6 +404,14 @@ object Sign {
     def lessEqualInner(other: Inner): Boolean = other == this
 
   }
+
+  object Top extends Sign with NonRelationalNumericalDomain.Top[Sign] {
+
+    val zero = Zero
+
+  }
+
+  object Bottom extends Sign with NonRelationalNumericalDomain.Bottom[Sign]
 
   object Plus extends Inner {
 
@@ -521,7 +520,7 @@ object Sign {
     override def asConstraint(id: Identifier): Option[Expression] =
       Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.==))
 
-    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", DummyNumericalType)))
+    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", DummyIntegerType)))
 
   }
 
@@ -535,9 +534,6 @@ sealed trait IntegerInterval extends NonRelationalNumericalDomain[IntegerInterva
 
   def bottom() = IntegerInterval.Bottom
 
-  def evalConstant(value: Double): IntegerInterval =
-    IntegerInterval.Inner(value.toInt, value.toInt)
-
   def evalConstant(value: Constant): IntegerInterval = {
     try {
       evalConstant(value.constant.toInt)
@@ -546,18 +542,13 @@ sealed trait IntegerInterval extends NonRelationalNumericalDomain[IntegerInterva
     }
   }
 
+  def evalConstant(value: Double): IntegerInterval =
+    IntegerInterval.Inner(value.toInt, value.toInt)
+
 }
 
 object IntegerInterval {
 
-
-  object Top extends IntegerInterval with NonRelationalNumericalDomain.Top[IntegerInterval]  {
-
-    override val zero: IntegerInterval = Inner(0,0)
-
-  }
-
-  object Bottom extends IntegerInterval with NonRelationalNumericalDomain.Bottom[IntegerInterval]
 
   case class Inner(left: Int, right: Int)
     extends IntegerInterval
@@ -566,12 +557,6 @@ object IntegerInterval {
     if (SystemParameters.DEBUG) {
       assert(left <= right)
       assert(left != Int.MinValue || right != Int.MaxValue)
-    }
-
-    def factory(newLeft: Int, newRight:Int) = {
-      if (newLeft == Int.MinValue && newRight == Int.MaxValue) Top
-      else if (newLeft > newRight) Bottom
-      else Inner(newLeft,newRight)
     }
 
     def lubInner(other: Inner) = other match {
@@ -622,7 +607,6 @@ object IntegerInterval {
         factory(newLeft, newRight)
     }
 
-
     def multiply(other: IntegerInterval): IntegerInterval = other match {
       case Bottom => Bottom
       case Top => Top
@@ -633,6 +617,22 @@ object IntegerInterval {
         val d = managedMultiply(right, oRight)
         factory(min(a, b, c, d), max(a, b, c, d))
     }
+
+    private def managedMultiply(a: Int, b: Int): Int = {
+      if (a == 0 || b == 0) return 0
+      var result: Int = a * b
+      if (result / a != b) {
+        //Overflow
+        if (a >= 0 && b >= 0) result = Int.MaxValue
+        else if (a <= 0 && b <= 0) result = Int.MaxValue
+        else result = Int.MinValue
+      }
+      result
+    }
+
+    private def max(a: Int, b: Int, c: Int, d: Int): Int = Math.max(Math.max(a, b), Math.max(c, d))
+
+    private def min(a: Int, b: Int, c: Int, d: Int): Int = Math.min(Math.min(a, b), Math.min(c, d))
 
     def divide(other: IntegerInterval): IntegerInterval = other match {
       case Bottom => Bottom
@@ -652,6 +652,12 @@ object IntegerInterval {
     }
 
     def valueGEQ: IntegerInterval = factory(left, Int.MaxValue)
+
+    def factory(newLeft: Int, newRight: Int) = {
+      if (newLeft == Int.MinValue && newRight == Int.MaxValue) Top
+      else if (newLeft > newRight) Bottom
+      else Inner(newLeft, newRight)
+    }
 
     def valueLEQ: IntegerInterval = factory(Int.MinValue, right)
 
@@ -684,30 +690,22 @@ object IntegerInterval {
         (if (right == Int.MaxValue) "+oo" else right.toString) +
         "]"
 
-    private def managedMultiply(a: Int, b: Int): Int = {
-      if (a == 0 || b == 0) return 0
-      var result: Int = a * b
-      if (result / a != b) {
-        //Overflow
-        if (a >= 0 && b >= 0) result = Int.MaxValue
-        else if (a <= 0 && b <= 0) result = Int.MaxValue
-        else result = Int.MinValue
-      }
-      result
-    }
-
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString,DummyNumericalType)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, DummyIntegerType)))
       else
         SetDomain.Default.Top()
     }
 
-    private def max(a: Int, b: Int, c: Int, d: Int): Int = Math.max(Math.max(a, b), Math.max(c, d))
+  }
 
-    private def min(a: Int, b: Int, c: Int, d: Int): Int = Math.min(Math.min(a, b), Math.min(c, d))
+  object Top extends IntegerInterval with NonRelationalNumericalDomain.Top[IntegerInterval] {
+
+    override val zero: IntegerInterval = Inner(0, 0)
 
   }
+
+  object Bottom extends IntegerInterval with NonRelationalNumericalDomain.Bottom[IntegerInterval]
 
 }
 
@@ -717,10 +715,6 @@ sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval]
   def top() = DoubleInterval.Top
   def bottom() = DoubleInterval.Bottom
 
-  def evalConstant(value: Double) =
-    if (value == 0) DoubleInterval.Zero
-    else DoubleInterval.Inner(value, value)
-
   def evalConstant(value: Constant) = {
     try {
       evalConstant(value.constant.toDouble)
@@ -729,19 +723,15 @@ sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval]
     }
   }
 
+  def evalConstant(value: Double) =
+    if (value == 0) DoubleInterval.Zero
+    else DoubleInterval.Inner(value, value)
+
 }
 
 object DoubleInterval {
 
   val Zero = Inner(0,0)
-
-  object Top extends DoubleInterval with NonRelationalNumericalDomain.Top[DoubleInterval] {
-
-    override def zero = DoubleInterval.Zero
-
-  }
-
-  object Bottom extends DoubleInterval with NonRelationalNumericalDomain.Bottom[DoubleInterval]
 
   case class Inner(left: Double, right: Double)
     extends DoubleInterval
@@ -753,12 +743,6 @@ object DoubleInterval {
       assert {!left.isNaN && !right.isNaN}
       assert {!right.isNegInfinity}
       assert {!left.isPosInfinity}
-    }
-
-    def factory(newLeft:Double, newRight: Double):DoubleInterval = {
-      if (newLeft.isNegInfinity && newRight.isPosInfinity) Top
-      else if (newLeft > newRight) Bottom
-      else Inner(newLeft,newRight)
     }
 
     def overlapsWith(other: DoubleInterval): Boolean =
@@ -774,6 +758,12 @@ object DoubleInterval {
         case Inner(oLeft, oRight) =>
           factory(Math.min(left, oLeft), Math.max(right, oRight))
       }
+
+    def factory(newLeft: Double, newRight: Double): DoubleInterval = {
+      if (newLeft.isNegInfinity && newRight.isPosInfinity) Top
+      else if (newLeft > newRight) Bottom
+      else Inner(newLeft, newRight)
+    }
 
     def glbInner(other: Inner) =
       other match {
@@ -827,6 +817,12 @@ object DoubleInterval {
           }
       }
 
+    private def max(a: Double, b: Double, c: Double, d: Double): Double =
+      Math.max(Math.max(a, b), Math.max(c, d))
+
+    private def min(a: Double, b: Double, c: Double, d: Double): Double =
+      Math.min(Math.min(a, b), Math.min(c, d))
+
     def divide(other: DoubleInterval) =
       other match {
         case Bottom => Bottom
@@ -847,8 +843,11 @@ object DoubleInterval {
       }
 
     def valueGEQ = factory(left, Double.PositiveInfinity)
+
     def valueLEQ = factory(Double.NegativeInfinity, right)
+
     def valueGreater = factory(left + NumericalAnalysisConstants.epsilon, Double.PositiveInfinity)
+
     def valueLess = factory(Double.NegativeInfinity, right - NumericalAnalysisConstants.epsilon)
 
     /** Returns the constraint expressed by this interval on a given identifier, if some (None if unconstrained) */
@@ -862,7 +861,7 @@ object DoubleInterval {
 
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString,DummyNumericalType)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, DummyIntegerType)))
       else
         SetDomain.Default.Top()
     }
@@ -874,12 +873,6 @@ object DoubleInterval {
         (if (right == Double.PositiveInfinity) "+oo" else right.toString) +
         "]"
 
-    private def max(a: Double, b: Double, c: Double, d: Double): Double =
-      Math.max(Math.max(a, b), Math.max(c, d))
-
-    private def min(a: Double, b: Double, c: Double, d: Double): Double =
-      Math.min(Math.min(a, b), Math.min(c, d))
-
     private def infinitySign(d: Double): Double =
       if (d > 0) Double.PositiveInfinity else if (d < 0) Double.NegativeInfinity else 0.0
 
@@ -887,6 +880,14 @@ object DoubleInterval {
       if (d < 0) Double.PositiveInfinity else if (d > 0) Double.NegativeInfinity else 0.0
 
   }
+
+  object Top extends DoubleInterval with NonRelationalNumericalDomain.Top[DoubleInterval] {
+
+    override def zero = DoubleInterval.Zero
+
+  }
+
+  object Bottom extends DoubleInterval with NonRelationalNumericalDomain.Bottom[DoubleInterval]
 
 }
 

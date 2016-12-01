@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSetFactory._
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{Constants, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}

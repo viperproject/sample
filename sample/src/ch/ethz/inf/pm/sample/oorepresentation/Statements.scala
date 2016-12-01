@@ -54,9 +54,9 @@ abstract class LineColumnProgramPoint extends ProgramPoint {
 case class TaggedProgramPoint(base: ProgramPoint, tag: String)
   extends ProgramPoint {
 
-  override def description: String = s"$tag@$base"
-
   override def toString: String = description
+
+  override def description: String = s"$tag@$base"
 }
 
 /**
@@ -137,14 +137,14 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
     case z => z
   }
 
+  override def toString: String
+
+  def getChildren: List[Statement]
+
   private def normalizeList(list: List[Statement]): List[Statement] = list match {
     case Nil => Nil
     case x :: xs => x.normalize() :: normalizeList(xs)
   }
-
-  override def toString: String
-
-  def getChildren: List[Statement]
 
 }
 
@@ -229,7 +229,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     val exprright = stateright.expr
     stateright = stateright.removeExpression()
     var result = stateright.setVariableToTop(exprleft)
-    val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.typ.top()); //TODO type is wrong
+    val condition = ExpressionSetFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.typ.top()); //TODO type is wrong
     result = result.setExpression(condition)
     result.testTrue().refiningAssignVariable(oldPreState, exprleft, exprright)
   }
@@ -307,7 +307,7 @@ case class VariableDeclaration(
     var st = state
     if (right.isDefined)
       st = Assignment(programpoint, variable, right.get).refiningSemantics[S](st, oldPreState)
-    st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
+    st.removeVariable(ExpressionSetFactory.createVariable(variable, typ, programpoint))
   }
 
   override def toString: String =
@@ -376,9 +376,9 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.refiningGetVariableValue(id)
 
-  override def toString: String = id.getName
-
   override def toSingleLineString(): String = toString
+
+  override def toString: String = id.getName
 
   override def getChildren: List[Statement] = Nil
 
@@ -440,6 +440,16 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     }
   }
 
+  private def getTypeOfStatement(s: Statement): Type = {
+    s match {
+      case v: Variable => v.id.typ
+      case fa: FieldAccess =>
+        if (SystemParameters.DEBUG) assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
+        fa.typ
+      case _ => throw new Exception("Should not happen as we use this only inside access path.")
+    }
+  }
+
   /**
     * The abstract backward semantics of the statement.
     *
@@ -449,16 +459,6 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
   override def backwardSemantics[S <: State[S]](state: S): S = {
     val objState = obj.backwardSemantics(state) // evaluate the receiver
     objState.getFieldValue(objState.expr, field, typ) // get the field value
-  }
-
-  private def getTypeOfStatement(s: Statement): Type = {
-    s match {
-      case v: Variable => v.id.typ
-      case fa: FieldAccess =>
-        if (SystemParameters.DEBUG) assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
-        fa.typ
-      case _ => throw new Exception("Should not happen as we use this only inside access path.")
-    }
   }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
@@ -537,26 +537,6 @@ case class MethodCall(
     forwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
-  /**
-    * The abstract backward semantics of the statement.
-    *
-    * @param state the post state
-    * @return the state obtained before the execution of the statement
-    */
-  override def backwardSemantics[S <: State[S]](state: S): S = {
-    val body: Statement = method.normalize()
-    val castedStatement = body.asInstanceOf[FieldAccess]
-    val calledMethod = castedStatement.field
-    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
-  }
-
-  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val body: Statement = method.normalize()
-    val castedStatement = body.asInstanceOf[FieldAccess]
-    val calledMethod = castedStatement.field
-    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
-  }
-
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
                                                               programPoint: ProgramPoint): S = {
 
@@ -618,6 +598,26 @@ case class MethodCall(
     }
     Reporter.reportImpreciseSemantics("Type " + thisExpr.typ + " with method " + invokedMethod + " not implemented", programpoint)
     state.top()
+  }
+
+  /**
+    * The abstract backward semantics of the statement.
+    *
+    * @param state the post state
+    * @return the state obtained before the execution of the statement
+    */
+  override def backwardSemantics[S <: State[S]](state: S): S = {
+    val body: Statement = method.normalize()
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
+  }
+
+  override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+    val body: Statement = method.normalize()
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
   private def applyNativeBackwardSemanticsOnObject[S <: State[S]](invokedMethod: String, thisExpr: ExpressionSet,
@@ -701,9 +701,9 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
     state.removeExpression().removeVariable(ex)
   }
 
-  override def toString: String = "new " + typ.toString
-
   override def toSingleLineString(): String = toString
+
+  override def toString: String = "new " + typ.toString
 
   override def getChildren: List[Statement] = Nil
 
@@ -748,9 +748,9 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.evalConstant(value, typ, pp)
 
-  override def toString: String = value
-
   override def toSingleLineString(): String = toString
+
+  override def toString: String = value
 
   override def getChildren: List[Statement] = Nil
 
@@ -846,9 +846,9 @@ case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programp
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = state.removeExpression()
 
-  override def toString: String = "#empty statement#"
-
   override def toSingleLineString(): String = toString
+
+  override def toString: String = "#empty statement#"
 
   override def getChildren: List[Statement] = Nil
 

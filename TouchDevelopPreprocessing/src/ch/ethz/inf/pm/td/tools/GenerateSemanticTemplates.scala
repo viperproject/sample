@@ -160,7 +160,6 @@ object GenerateSemanticTemplates {
         case "TSprite_Set_Action" => superClass = "AAction"; actionArgs = List("TSprite_Set")
         case "TText_Action" => superClass = "AAction"; actionArgs = List("TString")
         case "TWeb_Response_Action" => superClass = "AAction"; actionArgs = List("TWeb_Response")
-        case "TVector_Action" => superClass = "AAction"; actionArgs = List("TNumber", "TNumber", "TNumber", "TNumber")
         case "GComparison" => ??? // update to have superclass AAction
         case "GConverter" => ??? // update to have superclass AAction
         case "GNumber_Converter" => ??? // update to have superclass AAction
