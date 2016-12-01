@@ -37,23 +37,23 @@ object Context {
 
   var rdAmountVariable: Option[LocalVarDecl] = None
 
-  def setProgram(prog: Program) = {
+  def setProgram(prog: Program): Unit = {
     this.prog = prog
     initContext
   }
 
-  def functions = (name: String) => {
+  def functions(name: String): FuncLike = {
     if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
   }
 
-  def clearMethodSpecificInfo() = {
+  def clearMethodSpecificInfo(): Unit = {
     clearAliases()
     clearNumericalInfo()
     rdAmountVariable = None
     quantifiedVariable = None
   }
 
-  def initContext = {
+  private def initContext = {
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
     identifiers ++= prog.fields.map(field => field.name)
     identifiers ++= prog.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
@@ -81,11 +81,11 @@ object Context {
     identifier
   }
 
-  def createNewUniqueVarIdentifier(name: String = "_var") = createNewUniqueIdentifier(name)
+  def createNewUniqueVarIdentifier(name: String = "_var"): String = createNewUniqueIdentifier(name)
 
-  def createNewUniqueFunctionIdentifier(name: String = "_func") = createNewUniqueIdentifier(name)
+  def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
 
-  def getRdAmountVariable = rdAmountVariable match {
+  def getRdAmountVariable: LocalVarDecl = rdAmountVariable match {
     case Some(existingRdAmountVar) => existingRdAmountVar
     case None =>
       val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("rdAmount"), Perm)()
@@ -93,7 +93,7 @@ object Context {
       varDecl
   }
 
-  def getMaxFunction = maxFunction match {
+  def getMaxFunction: Function = maxFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
       val fun = Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
@@ -104,7 +104,7 @@ object Context {
       fun
   }
 
-  def getBoundaryFunction = boundaryFunction match {
+  def getBoundaryFunction: Function = boundaryFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
       val fun = Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), Perm, Seq(), Seq(),
@@ -115,7 +115,7 @@ object Context {
       fun
   }
 
-  def getQuantifiedVarDecl = quantifiedVariable match {
+  def getQuantifiedVarDecl: LocalVarDecl = quantifiedVariable match {
     case Some(existingQuantifiedVarDecl) => existingQuantifiedVarDecl
     case None =>
       val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("x"), Ref)()
@@ -133,13 +133,15 @@ object Context {
     */
   private var numericalInfo: Option[TrackingCFGState[_ <: NumericalAnalysisState[_ <: NumericalDomain[_], _]]] = None
 
+  private var firstRunInfo: Option[TrackingCFGState[QuantifiedPermissionsState]] = None
+
   /**
     * Sets the result of the alias analysis.
     *
     * @param aliases The result of the alias analysis to set.
     * @tparam A The type of the alias analysis.
     */
-  def setAliases[A <: AliasAnalysisState[A]](aliases: TrackingCFGState[A]) = {
+  def setAliases[A <: AliasAnalysisState[A]](aliases: TrackingCFGState[A]): Unit = {
     this.aliases = Some(aliases)
   }
 
@@ -176,7 +178,7 @@ object Context {
     * @param numericalInfo The result of the numerical analysis to set.
     * @tparam T The type of the numerical analysis.
     */
-  def setNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](numericalInfo: TrackingCFGState[T]) = {
+  def setNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](numericalInfo: TrackingCFGState[T]): Unit = {
     this.numericalInfo = Some(numericalInfo)
   }
 
@@ -206,6 +208,14 @@ object Context {
     */
   def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
   numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
+
+  def setFirstRunInfo(firstRunInfo: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
+    this.firstRunInfo = Some(firstRunInfo)
+  }
+
+  def preFirstRunInfo(pp: ProgramPoint): QuantifiedPermissionsState = firstRunInfo.get.preStateAt(position(pp))
+
+  def postFirstRunInfo(pp: ProgramPoint): QuantifiedPermissionsState = firstRunInfo.get.postStateAt(position(pp))
 
   /**
     * Returns the cfg position corresponding to the given program point.
@@ -258,7 +268,7 @@ object ReadPermission extends Expression {
   override def contains(f: (Expression) => Boolean): Boolean = f(this)
 }
 
-case class ExpressionCollection(var expressions: Set[Expression]) extends Expression {
+case class ExpressionCollection(root: Expression, expressions: Set[Expression]) extends Expression {
   /** The type of this expression. */
   override def typ: Type = RefType()
 
@@ -274,7 +284,7 @@ case class ExpressionCollection(var expressions: Set[Expression]) extends Expres
     *
     * @param f the transformer
     * @return the transformed expression*/
-  override def transform(f: (Expression) => Expression): Expression = ExpressionCollection(expressions.map(expr => expr.transform(f)))
+  override def transform(f: (Expression) => Expression): Expression = ExpressionCollection(root, expressions.map(expr => expr.transform(f)))
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = expressions.exists(f)

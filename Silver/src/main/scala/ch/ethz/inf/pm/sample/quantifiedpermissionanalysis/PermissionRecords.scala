@@ -32,7 +32,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map()) {
     copy(withDefault(field).transform { case (`field`, tree) => tree.max(PermissionLeaf(receiver, permission))})
   }
 
-  def lub(other: PermissionRecords): PermissionRecords = {
+  def lub (other: PermissionRecords): PermissionRecords = {
     copy(permissions ++ other.permissions.map { case (field, tree) =>
       if (permissions.contains(field)) field -> tree.max(permissions(field))
       else field -> tree

@@ -35,7 +35,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
         val exitEdges = cfg.exitEdges(currentBlockId)
         exitEdges.size match {
           case 0 => cfgState.statesOfBlock(currentBlockId).last
-          case 1 => cfgState.statesOfBlock(exitEdges.head._2).head
+          case 1 => cfgState.statesOfBlock(exitEdges.head._2).head.lub(QuantifiedPermissionsState())
           case 2 => val (trueState, falseState) = (exitEdges.head, exitEdges.last) match {
             case ((_, toTrue, Some(true)), (_, toFalse, Some(false))) =>
               (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)

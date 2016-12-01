@@ -65,7 +65,10 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     if (visited.contains(currentNode)) {
       return (Set[Int](currentNode), mutable.LinkedHashSet[Int]())
     }
-    val successors: Set[Int] = cfg.getDirectSuccessors(currentNode)
+    val successors: List[Int] = cfg.exitEdges(currentNode).toList.sortWith{
+      case ((_, _, Some(false)), _) => true
+      case _ => false
+    }.map(edge => edge._2)
     var loopHeads = Set[Int]()
     var flowOrder = mutable.LinkedHashSet[Int]()
     for (nextNode <- successors) {
@@ -106,6 +109,8 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
       val cfgState = interpreter.simpleBackwardExecute(method.body, flowOrder, entryState)
       MethodAnalysisResult(method, cfgState)
     }
+
+    Context.setFirstRunInfo(quantifiedPermissionAnalysisResult.cfgState)
 
     loopHeads = Set[Int]()
 
