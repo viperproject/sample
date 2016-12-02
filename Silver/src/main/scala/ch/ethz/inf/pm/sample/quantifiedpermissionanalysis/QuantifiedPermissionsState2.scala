@@ -45,9 +45,11 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     with SilverSpecification
     with LazyLogging {
 
-  lazy val preFirstRunInfo: QuantifiedPermissionsState = Context.preFirstRunInfo(currentPP)
+  // result of the alias analysis before the current program point
+  private lazy val preFirstRunInfo = Context.preFirstRunInfo(currentPP)
 
-  lazy val postFirstRunInfo: QuantifiedPermissionsState = Context.postFirstRunInfo(currentPP)
+  // result of the alias analysis after the current program point
+//  private lazy val postFirstRunInfo = Context.postFirstRunInfo(currentPP)
 
   def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
@@ -291,8 +293,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     }
   }
 
-
   // SPECIFICATIONS
+  
   /** Modifies the list of formal arguments using information stored in the
     * current state.
     *
