@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.execution.{Interpreter, TrackingCFGState, TrackingCFGStateFactory}
-import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, ProgramPointUtils, Statement}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -68,7 +68,9 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) {
       newStates = postState +: newStates
       logger.info("Execute " + stmt)
-      var preState = stmt.specialBackwardSemantics(postState)
+      val pp = ProgramPointUtils.identifyingPP(stmt)
+      val tempState = postState.before(pp)
+      var preState = stmt.specialBackwardSemantics(tempState)
       logger.trace(postState.toString)
       logger.trace(stmt.toString)
       logger.trace(preState.toString)

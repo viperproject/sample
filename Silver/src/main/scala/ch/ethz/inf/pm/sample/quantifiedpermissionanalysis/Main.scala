@@ -33,25 +33,26 @@ object Main {
 }
 
 /** SIL analysis runner that uses the default QuantifiedPermissions analysis. */
-object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState] {
+object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState2] {
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
 
   /**
     * Extends a sil.Program with inferred specifications.
     **/
-  override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState]]): Program = {
+  override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState2]]): Program = {
     val tempProg = super.extendProgram(prog, results)
     tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder, QuantifiedPermissionsEntryStateBuilder2)
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
                                       numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
-                                      entryStateBuilder: EntryStateBuilder[QuantifiedPermissionsState])
-  extends Analysis[QuantifiedPermissionsState] with LazyLogging {
+                                      entryStateBuilder: EntryStateBuilder[QuantifiedPermissionsState],
+                                      entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState2])
+  extends Analysis[QuantifiedPermissionsState2] with LazyLogging {
 
   var loopHeads = Set[Int]()
 
@@ -80,7 +81,12 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     (loopHeads, flowOrder)
   }
 
-  def analyze(method: MethodDeclaration): MethodAnalysisResult[QuantifiedPermissionsState] = {
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[QuantifiedPermissionsState2] = {
+
+
+    loopHeads = Set[Int]()
+
+    Context.clearMethodSpecificInfo()
 
     Context.setProgram(DefaultSilverConverter.prog)
 
@@ -112,10 +118,13 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.setFirstRunInfo(quantifiedPermissionAnalysisResult.cfgState)
 
-    loopHeads = Set[Int]()
+    val quantifiedPermissionAnalysisResult2 = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+      val entryState = entryStateBuilder2.build(method)
+      val interpreter = TrackingQPInterpreter2(entryState)
+      val cfgState = interpreter.backwardExecute(method.body, entryState)
+      MethodAnalysisResult(method, cfgState)
+    }
 
-    Context.clearMethodSpecificInfo()
-
-    quantifiedPermissionAnalysisResult
+    quantifiedPermissionAnalysisResult2
   }
 }

@@ -133,7 +133,7 @@ object Context {
     */
   private var numericalInfo: Option[TrackingCFGState[_ <: NumericalAnalysisState[_ <: NumericalDomain[_], _]]] = None
 
-  private var firstRunInfo: Option[TrackingCFGState[QuantifiedPermissionsState]] = None
+   var firstRunInfo: Option[TrackingCFGState[QuantifiedPermissionsState]] = None
 
   /**
     * Sets the result of the alias analysis.
@@ -197,7 +197,7 @@ object Context {
     * @return The state of the numerical analysis before the given program point.
     */
   def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
-  numericalInfo.get.preStateAt(position(pp)).asInstanceOf[T]
+    numericalInfo.get.preStateAt(position(pp)).asInstanceOf[T]
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -207,7 +207,7 @@ object Context {
     * @return The state of the alias analysis after the given program point.
     */
   def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
-  numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
+    numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
 
   def setFirstRunInfo(firstRunInfo: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
     this.firstRunInfo = Some(firstRunInfo)
@@ -224,13 +224,13 @@ object Context {
     * @return The cfg position corresponding to the given program point.
     */
   private def position(pp: ProgramPoint): CFGPosition = {
-    val cfg = aliases.get.cfg
+    val cfg = numericalInfo.get.cfg
     val positions = for {
       (block, i) <- cfg.nodes.zipWithIndex
       (statement, j) <- block.zipWithIndex
       if statement.getPC() == pp
     } yield CFGPosition(i, j)
-    positions.head
+    if (positions.nonEmpty) positions.head else null
   }
 }
 

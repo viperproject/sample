@@ -42,8 +42,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       isBottom: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
-                                      var permissionRecords: PermissionRecords = PermissionRecords(),
-                                      changingExpressions: Map[Expression, Set[Expression]] = Map())
+                                      var permissionRecords: PermissionRecords = PermissionRecords())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification
@@ -86,9 +85,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            isBottom: Boolean = isBottom,
            expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP,
-           permissionRecords: PermissionRecords = permissionRecords,
-           changingExpressions: Map[Expression, Set[Expression]] = changingExpressions):
-  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP, permissionRecords, changingExpressions)
+           permissionRecords: PermissionRecords = permissionRecords):
+  QuantifiedPermissionsState = QuantifiedPermissionsState(isTop, isBottom, expr, currentPP, permissionRecords)
 
   /** Computes the least upper bound of two elements.
     *
@@ -99,10 +97,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     copy(isTop = isTop || other.isTop,
       isBottom = isBottom && other.isBottom,
       expr = expr lub other.expr,
-      permissionRecords = permissionRecords lub other.permissionRecords,
-      changingExpressions = changingExpressions ++ other.changingExpressions.map {
-        case (changingExpression, values) => changingExpression -> (values ++ changingExpressions.getOrElse(changingExpression, Set()))
-      })
+      permissionRecords = permissionRecords lub other.permissionRecords)
   }
 
   // ABSTRACT TRANSFORMERS
@@ -201,10 +196,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
     val replacer = (e: Expression) => if (e.equals(x)) right else e
     val newPermissionRecords = permissionRecords.transform(replacer)
-    val newChangingExpressions = changingExpressions.map {
-      case (changingExpression, values) => changingExpression.transform(replacer) -> values.map(e => e.transform(replacer))
-    } + (x -> Set(right))
-    copy(permissionRecords = newPermissionRecords, changingExpressions = newChangingExpressions)
+    copy(permissionRecords = newPermissionRecords)
   }
 
   /** Assigns an expression to a field of an object.
@@ -216,7 +208,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param right the assigned expression
     * @return the abstract state after the assignment */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
-    val typ = right.typ
     val receiver = obj match {
       case FieldExpression(_, _, rec) => rec
       case _ => throw new IllegalStateException("Obj expression has to be a FieldExpression!")
@@ -225,18 +216,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldExpression(_, `field`, rec) => ConditionalExpression(ReferenceComparisonExpression(receiver, rec, ArithmeticOperator.==, BoolType), right, orig, right.typ)
       case _ => orig
     }
-    val newChangingExpressions =
-    if (typ.isObject) {
-      val fieldExpression = FieldExpression(typ, field, receiver)
-      val replacer = (e: Expression) => if (e.equals(fieldExpression)) right else e
-      changingExpressions.map {
-        case (changingExpression, values) => changingExpression.transform(replacer) -> values.map(e => e.transform(replacer))
-      } + (fieldExpression -> Set(right))
-    } else {
-      changingExpressions
-    }
     val newPermissionRecords = permissionRecords.undoLastRead(field).transform(transformer).max(field, receiver, WritePermission)
-    copy(permissionRecords = newPermissionRecords, changingExpressions = newChangingExpressions)
+    copy(permissionRecords = newPermissionRecords)
   }
 
   /** Forgets the value of a variable.
@@ -409,9 +390,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The modified list of invariants.
     */
   override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    permissionRecords = permissionRecords.transform(expr => if (changingExpressions.contains(expr)) {
-      expr
-    } else expr)
     existing
   }
 
