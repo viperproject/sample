@@ -47,14 +47,12 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
           case _ => throw new IllegalStateException("A node cannot have more than 2 exit edges.")
         }
       }
-
       if (cfg.entryEdges(currentBlockId).exists {
         case (from, _, Some(true)) => loopHeads.contains(from)
         case _ => false
       }) {
 
       }
-
       // backward execute the current block
       backwardExecuteBlock(postState, currentBlockId, cfgState)
     }
@@ -67,7 +65,6 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
     var postState = postBlockState
     for ((stmt: Statement, idx: Int) <- stmts.zipWithIndex.reverse) {
       newStates = postState +: newStates
-      logger.info("Execute " + stmt)
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val tempState = postState.before(pp)
       var preState = stmt.specialBackwardSemantics(tempState)

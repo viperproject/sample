@@ -45,22 +45,21 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       var permissionRecords: PermissionRecords = PermissionRecords())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
-    with SilverSpecification
     with LazyLogging {
 
   // RESULTS FROM ALIAS AND NUMERICAL ANALYSIS
 
   // result of the alias analysis before the current program point
-  lazy val preAliases = Context.preAliases(currentPP)
+  private lazy val preAliases = Context.preAliases(currentPP)
 
   // result of the alias analysis after the current program point
-  lazy val postAliases = Context.postAliases(currentPP)
+  private lazy val postAliases = Context.postAliases(currentPP)
 
   // result of the alias analysis before the current program point
-  lazy val preNumericalInfo = Context.preNumericalInfo(currentPP)
+  private lazy val preNumericalInfo = Context.preNumericalInfo(currentPP)
 
   // result of the alias analysis after the current program point
-  lazy val postNumericalInfo = Context.postNumericalInfo(currentPP)
+  private lazy val postNumericalInfo = Context.postNumericalInfo(currentPP)
 
   // BASIC METHODS
 
@@ -169,10 +168,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param typ The static type of the variable
     * @param pp  The program point that creates the variable
     * @return The abstract state after the creation of the variable */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    // Nothing to do here
-    this
-  }
+  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -181,10 +177,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param x   The name of the argument
     * @param typ The static type of the argument
     * @return The abstract state after the creation of the argument */
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = {
-    // Nothing to do here
-    this
-  }
+  override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = this
 
   /** Assigns an expression to a variable.
     *
@@ -195,7 +188,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the assignment */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = {
     val replacer = (e: Expression) => if (e.equals(x)) right else e
-    val newPermissionRecords = permissionRecords.transform(replacer)
+    val newPermissionRecords = permissionRecords.transformExpressions(replacer)
     copy(permissionRecords = newPermissionRecords)
   }
 
@@ -216,17 +209,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldExpression(_, `field`, rec) => ConditionalExpression(ReferenceComparisonExpression(receiver, rec, ArithmeticOperator.==, BoolType), right, orig, right.typ)
       case _ => orig
     }
-    val newPermissionRecords = permissionRecords.undoLastRead(field).transform(transformer).max(field, receiver, WritePermission)
+    val newPermissionRecords = permissionRecords.undoLastRead(field).transformExpressions(transformer).max(field, receiver, WritePermission)
     copy(permissionRecords = newPermissionRecords)
   }
-
-  /** Forgets the value of a variable.
-    *
-    * Implementations can assume this state is non-bottom
-    *
-    * @param varExpr The variable to be forgotten
-    * @return The abstract state obtained after forgetting the variable */
-  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 
   /** Removes a variable.
     *
@@ -234,9 +219,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable */
-  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = {
-    copy(expr = ExpressionSet(varExpr))
-  }
+  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = copy(expr = ExpressionSet(varExpr))
 
   /** Accesses a field of an object.
     *
@@ -259,9 +242,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds */
-  override def assume(cond: Expression): QuantifiedPermissionsState = {
-    this
-  }
+  override def assume(cond: Expression): QuantifiedPermissionsState = this
 
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
@@ -269,19 +250,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *
     * @param pp The point of the program that is going to be analyzed
     * @return The abstract state eventually modified */
-  override def before(pp: ProgramPoint): QuantifiedPermissionsState = {
-    this.copy(currentPP = pp)
-  }
+  override def before(pp: ProgramPoint): QuantifiedPermissionsState = copy(currentPP = pp)
 
   /** Creates an object
     *
     * @param typ The dynamic type of the created object
     * @param pp  The point of the program that creates the object
     * @return The abstract state after the creation of the object */
-  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    // TODO: implement
-    this
-  }
+  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
 
   /** Evaluates a numerical constant.
     *
@@ -290,108 +266,25 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param pp    The program point that contains the constant
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant */
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    copy(expr = ExpressionSet(Constant(value, typ, pp)))
-  }
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = copy(expr = ExpressionSet(Constant(value, typ, pp)))
 
   /** Gets the value of a variable.
     *
     * @param id The variable to access
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable */
-  override def getVariableValue(id: Identifier): QuantifiedPermissionsState = {
-    copy(expr = ExpressionSet(id))
-  }
+  override def getVariableValue(id: Identifier): QuantifiedPermissionsState = copy(expr = ExpressionSet(id))
 
   /** Removes the current expression.
     *
     * @return The abstract state after removing the current expression */
-  override def removeExpression(): QuantifiedPermissionsState = {
-    copy(expr = ExpressionSet())
-  }
+  override def removeExpression(): QuantifiedPermissionsState = copy(expr = ExpressionSet())
 
   /** Sets the current expression.
     *
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one */
-  override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = {
-    copy(expr = expr)
-  }
-
-  // SPECIFICATIONS
-  /** Modifies the list of formal arguments using information stored in the
-    * current state.
-    *
-    * @param existing The list of existing formal arguments.
-    * @return The modified list of formal arguments*/
-  override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
-    var newFormalArguments = existing
-    permissionRecords = permissionRecords.transform {
-      case ReadPermission =>
-        VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
-      case other => other
-    }
-    Context.rdAmountVariable match {
-      case Some(rdAmount) => if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
-      case None =>
-    }
-    newFormalArguments
-  }
-
-  /**
-    * Modifies the list of preconditions using information stored in the current
-    * state.
-    *
-    * @param existing The list of existing preconditions.
-    * @return The modified list of preconditions.
-    */
-  override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    var newPreconditions = existing
-    Context.rdAmountVariable match {
-      case Some(rdAmount) => newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount.localVar)(), sil.PermLtCmp(rdAmount.localVar, WritePerm)())()
-      case None =>
-    }
-    val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
-    permissionRecords.permissions foreach { case (fieldName, permissionTree) =>
-      val quantifiedVariableDecl = Context.getQuantifiedVarDecl
-      val quantifiedVariable = quantifiedVariableDecl.localVar
-      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-//      val permissionTreeWithoutFieldAccesses = permissionTree
-      val permissionTreeWithoutFieldAccesses = permissionTree.transform {
-        case FieldExpression(typ, field, receiver) =>
-          if (!fieldAccessFunctions.contains(field)) {
-            val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(quantifiedVariableDecl), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
-            fieldAccessFunctions.put(field, fun)
-            Context.auxiliaryFunctions.put(fun.name, fun)
-          }
-          FunctionCallExpression(typ, fieldAccessFunctions(field).name, Seq(receiver))
-        case other => other
-      }
-      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTreeWithoutFieldAccesses.toSilExpression(quantifiedVariable))())()
-      val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-      newPreconditions = newPreconditions :+ forall
-    }
-    fieldAccessFunctions.foreach {
-      case (fieldName, function) =>
-        val quantifiedVarDecl = Context.getQuantifiedVarDecl
-        val quantifiedVar = quantifiedVarDecl.localVar
-        val field = sil.Field(fieldName, function.typ)()
-        val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
-        newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
-    }
-    newPreconditions
-  }
-
-  /**
-    * Modifies the list of invariants using information stored in the current
-    * state.
-    *
-    * @param existing The list of existing invariants.
-    * @return The modified list of invariants.
-    */
-  override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    existing
-  }
+  override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = copy(expr = expr)
 
   // STUBS
 
@@ -434,6 +327,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   /** Removes all variables satisfying filter. */
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = throw new UnsupportedOperationException()
+
+  /** Forgets the value of a variable.
+    *
+    * Implementations can assume this state is non-bottom
+    *
+    * @param varExpr The variable to be forgotten
+    * @return The abstract state obtained after forgetting the variable */
+  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = throw new UnsupportedOperationException()
 }
 
 /** Trait adding Inhale/Exhale methods to a SimpleState.

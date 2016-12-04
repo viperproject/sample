@@ -7,12 +7,14 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import scala.collection.immutable
 
 /**
   * @author Severin Münger
   *         Added on 07.11.16.
   */
-case class PermissionRecords(permissions: Map[String, PermissionTree] = Map()) {
+case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
+  extends immutable.Map[String, PermissionTree] {
 
   private def withDefault(field: String) =
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
@@ -43,11 +45,21 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map()) {
     copy(permissions.updated(field, permissions(field).undoLastRead))
   }
 
-  def transform(f: (Expression => Expression)): PermissionRecords = {
+  def transformExpressions(f: (Expression => Expression)): PermissionRecords = {
     PermissionRecords(permissions.map { case (field, permissionTree) => (field, permissionTree.transform(f)) })
   }
 
-  def exists(f: (PermissionTree => Boolean)): Boolean = {
+  def existsPermissionTree(f: (PermissionTree => Boolean)): Boolean = {
     permissions.exists { case (_, permissionTree) => permissionTree.exists(f) }
   }
+
+  override def +[B1 >: PermissionTree](kv: (String, B1)): Map[String, B1] = permissions + kv
+
+  def +(kv: (String, PermissionTree)): PermissionRecords = PermissionRecords(permissions + kv)
+
+  override def get(key: String): Option[PermissionTree] = permissions.get(key)
+
+  override def iterator: Iterator[(String, PermissionTree)] = permissions.iterator
+
+  override def -(key: String): Map[String, PermissionTree] = PermissionRecords(permissions - key)
 }

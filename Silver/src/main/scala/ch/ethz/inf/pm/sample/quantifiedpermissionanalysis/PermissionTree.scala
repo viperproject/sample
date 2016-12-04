@@ -26,6 +26,7 @@ trait PermissionTree {
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
   def transform(f: (Expression => Expression)): PermissionTree
   def exists(f: (PermissionTree => Boolean)): Boolean
+  def foreach(f: (Expression => Unit)): Unit
   def undoLastRead: PermissionTree = throw new UnsupportedOperationException("This permission tree does not support undo!")
 }
 
@@ -33,7 +34,8 @@ case class PermissionLeaf(receiver: Expression, permission: Permission) extends 
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     CondExp(if (quantifiedVariable.typ.isInstanceOf[SetType]) AnySetContains(DefaultSampleConverter.convert(receiver), quantifiedVariable)() else EqCmp(quantifiedVariable, DefaultSampleConverter.convert(receiver))(), permission.toSilExpression, NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
-  def exists(f: (PermissionTree => Boolean)) = f(this)
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
+  def foreach(f: (Expression => Unit)): Unit = f(receiver)
   override def undoLastRead = EmptyPermissionTree
 }
 
@@ -43,31 +45,38 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
       case None => Some(permTree.toSilExpression(quantifiedVariable))
       case Some(silExpression) => Some(PermAdd(silExpression, permTree.toSilExpression(quantifiedVariable))())
     }).get
-  override def add(other: PermissionTree) =
+  override def add(other: PermissionTree): PermissionTree =
     other match {
       case PermissionList(otherPermissions) => PermissionList(otherPermissions ++ permissions)
       case _: PermissionLeaf => PermissionList(other +: permissions)
     }
   def transform(f: (Expression => Expression)) = PermissionList(permissions.map(permissionTree => permissionTree.transform(f)))
-  def exists(f: (PermissionTree => Boolean)) = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
-  override def undoLastRead = this match {
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(permissionTree => permissionTree.exists(f))
+  override def undoLastRead: PermissionTree = this match {
     case PermissionList(_ :: Nil) => EmptyPermissionTree
     case PermissionList(perms) => PermissionList(perms.init)
   }
+  def foreach(f: (Expression => Unit)): Unit = permissions.foreach(tree => tree.foreach(f))
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     IntPermMul(IntLit(-1)(), arg.toSilExpression(quantifiedVariable))()
   def transform(f: (Expression => Expression)) = NegativePermissionTree(arg.transform(f))
-  def exists(f: (PermissionTree => Boolean)) = f(this) || arg.exists(f)
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || arg.exists(f)
+  def foreach(f: (Expression => Unit)): Unit = arg.foreach(f)
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable))()
   def transform(f: (Expression => Expression)) = Condition(cond.transform(f), left.transform(f), right.transform(f))
-  def exists(f: (PermissionTree => Boolean)) = f(this) || left.exists(f) || right.exists(f)
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
+  def foreach(f: (Expression => Unit)): Unit = {
+    f(cond)
+    left.foreach(f)
+    right.foreach(f)
+  }
 }
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
@@ -75,8 +84,12 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
   def toSilExpression(quantifiedVariable: LocalVar): Exp =
     FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(quantifiedVariable), right.toSilExpression(quantifiedVariable)))()
   def transform(f: (Expression => Expression)) = Maximum(left.transform(f), right.transform(f))
-  def exists(f: (PermissionTree => Boolean)) = f(this) || left.exists(f) || right.exists(f)
-  override def undoLastRead = right
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
+  override def undoLastRead: PermissionTree = right
+  def foreach(f: (Expression => Unit)): Unit = {
+    left.foreach(f)
+    right.foreach(f)
+  }
 }
 
 object EmptyPermissionTree extends PermissionTree {
@@ -85,11 +98,12 @@ object EmptyPermissionTree extends PermissionTree {
   override def toSilExpression(quantifiedVariable: LocalVar): Exp = ZeroPerm
   override def transform(f: (Expression) => Expression): PermissionTree = this
   override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
+  def foreach(f: (Expression => Unit)): Unit = {}
 }
 
 trait Permission {
   def toSilExpression: Exp
-  def transform(f: (Expression => Expression)) = this
+  def transform(f: (Expression => Expression)): Permission = this
 }
 
 case class NegatedPermission(arg: Permission) extends Permission {
