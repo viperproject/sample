@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, Pe
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.BlockType.{BlockType, Default}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState2.{Bottom, Top}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -41,8 +42,7 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
                                        expr: ExpressionSet = ExpressionSet(),
                                        currentPP: ProgramPoint = DummyProgramPoint,
                                        blockType: BlockType = Default,
-                                       concreteExpressions: Map[(Expression, ProgramPoint), Set[Expression]] = Map(),
-                                       rootSets: Map[Expression, SetDescription] = Map()
+                                       rootSets: Map[(Expression, ProgramPoint), SetDescription] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState2]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState2]
@@ -80,8 +80,7 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
            expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP,
            blockType: BlockType = blockType,
-           concreteExpressions: Map[(Expression, ProgramPoint), Set[Expression]] = concreteExpressions,
-           rootSets: Map[Expression, SetDescription] = rootSets) = QuantifiedPermissionsState2(isTop, isBottom, expr, currentPP, blockType, concreteExpressions, rootSets)
+           rootSets: Map[(Expression, ProgramPoint), SetDescription] = rootSets) = QuantifiedPermissionsState2(isTop, isBottom, expr, currentPP, blockType, rootSets)
 
   /** Removes the current expression.
     *
@@ -109,7 +108,11 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
       case (Bottom, Bottom) => Bottom
       case (Bottom, _) => other
       case (_, Bottom) => this
-      case (_, _) => this
+      case (_, _) => copy(
+        expr = expr lub other.expr,
+        rootSets = rootSets ++ other.rootSets.transform { case (key, setDescription) =>
+          if (rootSets.contains(key)) rootSets(key) lub setDescription
+          else setDescription })
     }
   }
 
@@ -128,9 +131,21 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
 
   // SPECIAL METHODS
 
+  def collectExpressionsToTrack(root: Expression): Set[Expression] = root match {
+    case FieldExpression(typ, field, receiver) => collectExpressionsToTrack(receiver).map(expr => FieldExpression(typ, field, expr))
+    case ConditionalExpression(_, left, right, _) => Set(left, right)
+    case _ => Set(root)
+  }
+
   def prepareLoopHead(): QuantifiedPermissionsState2 = {
-    preFirstRunInfo.permissionRecords.foreach { case (field, tree) => tree.}
-    this
+    var newRootSets = rootSets.transform { case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription }
+    val expressionsToTrack: Set[Expression] = preFirstRunInfo.permissionRecords.flatMap { case (_, tree) =>
+      var set: Set[Expression] = Set()
+      tree.foreach(expr => set = set ++ collectExpressionsToTrack(expr))
+      set
+    }.toSet
+    expressionsToTrack.foreach(expr => newRootSets = newRootSets + ((expr, currentPP) -> InnerSetDescription(expr)))
+    copy(rootSets = newRootSets)
   }
 
   // ABSTRACT TRANSFORMERS
@@ -214,8 +229,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     * @return The widening of `this` and `other`
     */
   override def widening(other: QuantifiedPermissionsState2): QuantifiedPermissionsState2 = {
-    // TODO: implement
-    this
+    var newRootSets = rootSets.transform { case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription }
+    copy(rootSets = newRootSets)
   }
 
   // SPECIFICATIONS

@@ -6,8 +6,10 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Lattice, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FieldExpression, Lattice, VariableIdentifier}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
+
+import scala.collection.mutable
 
 /**
   * @author Severin Münger
@@ -18,7 +20,54 @@ object SetDescription {
 
   case object Bottom extends SetDescription with Lattice.Bottom[SetDescription]
 
-  case class InnerSetDescription() extends SetDescription {
+  object InnerSetDescription {
+    def apply(initExpression: Expression) = new InnerSetDescription(initExpression)
+  }
+
+  case class InnerSetDescription(widened: Boolean = false, concreteExpressions: Map[Expression, Set[Expression]] = Map(), abstractExpressions: Set[SetElementDescriptor] = Set()) extends SetDescription {
+
+    def this(initExpression: Expression) = this(concreteExpressions = Map(initExpression -> Set(initExpression)), abstractExpressions = Set(RootElement(initExpression)))
+
+    def copy(widened: Boolean = widened,
+             concreteExpressions: Map[Expression, Set[Expression]] = concreteExpressions,
+             abstractExpressions: Set[SetElementDescriptor] = abstractExpressions): InnerSetDescription = InnerSetDescription(widened, concreteExpressions, abstractExpressions)
+
+    override def update: InnerSetDescription = {
+      val newAbstractExpressions: mutable.Set[SetElementDescriptor] = mutable.Set() ++ abstractExpressions
+      val newConcreteExpressions: mutable.Map[Expression, Set[Expression]] = mutable.Map()
+      concreteExpressions.foreach {
+        case (expr, mapsTo) =>
+            newConcreteExpressions.put(expr, Set(expr))
+            mapsTo.foreach {
+              e =>
+                newConcreteExpressions.put(e, Set(e))
+                newAbstractExpressions.union(extractRules(e))
+            }
+        }
+      copy(concreteExpressions = newConcreteExpressions.toMap, abstractExpressions = newAbstractExpressions.toSet)
+    }
+
+    private def extractRules(expr: Expression): Set[SetElementDescriptor] = {
+      expr match {
+        case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
+        case id: VariableIdentifier => Set(VariableElement(id))
+      }
+    }
+
+    override def transformAssignField(left: FieldExpression, right: Expression): SetDescription = {
+      this
+    }
+
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = {
+      val newConcreteExpressions = concreteExpressions.transform {
+        case (_, set) => set.map(expr => expr.transform(e => if (e.equals(left)) right else e))
+      }
+      val newAbstractExpressions = abstractExpressions.map {
+        case RootElement()
+      }
+      copy(concreteExpressions = newConcreteExpressions, abstractExpressions = newAbstractExpressions)
+    }
+
     /** Computes the least upper bound of two elements.
       *
       * @param other The other value
@@ -42,7 +91,9 @@ object SetDescription {
       * @param other The new value
       * @return The widening of `this` and `other`
       */
-    override def widening(other: SetDescription): SetDescription = throw new UnsupportedOperationException()
+    override def widening(other: SetDescription): SetDescription = {
+      copy(widened = true)
+    }
 
     /** Returns true if and only if `this` is less than or equal to `other`.
       *
@@ -52,6 +103,10 @@ object SetDescription {
     override def lessEqual(other: SetDescription): Boolean = other match {
       case Top => true
       case Bottom => false
+      case other: InnerSetDescription =>
+        (abstractExpressions.subsetOf(other.abstractExpressions)
+          && ((widened && other.widened) || concreteExpressions.forall { case (expr, set) => set.subsetOf(other.concreteExpressions.getOrElse(expr, Set())) }))
+      case _ => throw new IllegalStateException()
     }
 
     /** Checks whether the given domain element is equivalent to bottom.
@@ -74,6 +129,12 @@ trait SetDescription extends Lattice[SetDescription] {
   override def top() = Top
 
   override def bottom() = Bottom
+
+  def update: SetDescription = this
+
+  def transformAssignField(left: FieldExpression, right: Expression): SetDescription = this
+
+  def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = this
 }
 
 trait SetElementDescriptor {
@@ -85,5 +146,3 @@ case class RootElement(expr: Expression) extends SetElementDescriptor
 case class VariableElement(expr: VariableIdentifier) extends SetElementDescriptor
 
 case class AddField(field: String) extends SetElementDescriptor
-
-case class IfFieldAddField(existing: String, addAlso: String) extends SetElementDescriptor

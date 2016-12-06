@@ -108,7 +108,6 @@ trait QPInterpreter2 extends Interpreter[QuantifiedPermissionsState2] with LazyL
       newStates = nextState +: newStates // prepend the next state to the list of new states
     }
     cfgState.setStatesOfBlock(id, newStates.toList) // update the cfg with the new block states
-    cfgState.setStatesOfBlock(id, newStates.toList) // update the cfg with the new block states
   }
 
 }
