@@ -133,8 +133,6 @@ object Context {
     */
   private var numericalInfo: Option[TrackingCFGState[_ <: NumericalAnalysisState[_ <: NumericalDomain[_], _]]] = None
 
-   var firstRunInfo: Option[TrackingCFGState[QuantifiedPermissionsState]] = None
-
   /**
     * Sets the result of the alias analysis.
     *
@@ -208,14 +206,6 @@ object Context {
     */
   def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
     numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
-
-  def setFirstRunInfo(firstRunInfo: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
-    this.firstRunInfo = Some(firstRunInfo)
-  }
-
-  def preFirstRunInfo(pp: ProgramPoint): QuantifiedPermissionsState = firstRunInfo.get.preStateAt(position(pp))
-
-  def postFirstRunInfo(pp: ProgramPoint): QuantifiedPermissionsState = firstRunInfo.get.postStateAt(position(pp))
 
   /**
     * Returns the cfg position corresponding to the given program point.

@@ -62,9 +62,7 @@ object SetDescription {
       val newConcreteExpressions = concreteExpressions.transform {
         case (_, set) => set.map(expr => expr.transform(e => if (e.equals(left)) right else e))
       }
-      val newAbstractExpressions = abstractExpressions.map {
-        case RootElement()
-      }
+      val newAbstractExpressions = abstractExpressions
       copy(concreteExpressions = newConcreteExpressions, abstractExpressions = newAbstractExpressions)
     }
 

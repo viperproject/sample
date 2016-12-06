@@ -45,12 +45,11 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
     tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder, QuantifiedPermissionsEntryStateBuilder2)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder2)
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
                                       numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
-                                      entryStateBuilder: EntryStateBuilder[QuantifiedPermissionsState],
                                       entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState2])
   extends Analysis[QuantifiedPermissionsState2] with LazyLogging {
 
@@ -107,16 +106,6 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     }
 
     Context.setNumericalInfo[Apron.Polyhedra, PolyhedraAnalysisState](numericalAnalysisResult.cfgState)
-
-    val quantifiedPermissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = entryStateBuilder.build(method)
-      val interpreter = TrackingQPInterpreter(loopHeads, entryState)
-      val flowOrder = preprocessGraph(method.body)
-      val cfgState = interpreter.simpleBackwardExecute(method.body, flowOrder, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
-
-    Context.setFirstRunInfo(quantifiedPermissionAnalysisResult.cfgState)
 
     val quantifiedPermissionAnalysisResult2 = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder2.build(method)

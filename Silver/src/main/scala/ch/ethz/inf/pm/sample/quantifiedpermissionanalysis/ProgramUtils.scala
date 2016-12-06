@@ -16,7 +16,8 @@ import viper.silver.{ast => sil}
   */
 object ProgramUtils {
 
-  def isFunctionInjective(function: sil.Function, prog: sil.Program): Boolean = isFunctionInjective(function, prog, function.formalArgs.zipWithIndex.map{ case (_, index) => index }.toSet)
+  def isFunctionInjective(function: sil.Function, prog: sil.Program): Boolean =
+    isFunctionInjective(function, prog, function.formalArgs.zipWithIndex.map{ case (_, index) => index }.toSet)
 
   def isFunctionInjective(function: sil.Function, prog: sil.Program, args: Set[Int]): Boolean = {
     val newProg: sil.Program = sil.Program(prog.domains, prog.fields, prog.functions, prog.predicates, Seq())()
