@@ -39,10 +39,11 @@ object QuantifiedPermissionsState2 {
 case class QuantifiedPermissionsState2(isTop: Boolean = false,
                                        isBottom: Boolean = false,
                                        expr: ExpressionSet = ExpressionSet(),
+                                       visited: Set[ProgramPoint] = Set(),
                                        currentPP: ProgramPoint = DummyProgramPoint,
                                        blockType: BlockType = Default,
-                                       permissions: Map[String, PermissionTree] = Map(),
-                                       expressions: Map[(ProgramPoint, Expression), ExpressionCollection] = Map()
+                                       permissions: PermissionRecords = PermissionRecords(),
+                                       expressions: Map[(ProgramPoint, Expression), SetDescription] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState2]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState2]
@@ -75,10 +76,11 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
   def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            expr: ExpressionSet = expr,
+           visited: Set[ProgramPoint] = visited,
            currentPP: ProgramPoint = currentPP,
            blockType: BlockType = blockType,
-           permissions: Map[String, PermissionTree] = permissions,
-           expressions: Map[(ProgramPoint, Expression), ExpressionCollection] = expressions) = QuantifiedPermissionsState2(isTop, isBottom, expr, currentPP, blockType, permissions, expressions)
+           permissions: PermissionRecords = permissions,
+           expressions: Map[(ProgramPoint, Expression), SetDescription] = expressions) = QuantifiedPermissionsState2(isTop, isBottom, expr, visited, currentPP, blockType, permissions, expressions)
 
   /** Removes the current expression.
     *
@@ -106,11 +108,16 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
       case (Bottom, Bottom) => Bottom
       case (Bottom, _) => other
       case (_, Bottom) => this
-      case (_, _) => copy(
-        expr = expr lub other.expr,
-        rootSets = rootSets ++ other.rootSets.transform { case (key, setDescription) =>
-          if (rootSets.contains(key)) rootSets(key) lub setDescription
-          else setDescription })
+      case (_, _) =>
+        val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
+          case (true, _) => permissions
+          case (_, true) => other.permissions
+          case (false, false) => permissions.lub(other.permissions)
+        }
+        val newExpressions = expressions ++ other.expressions.transform {
+          case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
+        }
+        copy(expr = expr lub other.expr, visited = visited ++ other.visited, permissions = newPermissions, expressions = newExpressions)
     }
   }
 
@@ -127,6 +134,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     }
   }
 
+  def addVisited(pp: ProgramPoint): QuantifiedPermissionsState2 = copy(visited = visited + pp)
+
   // SPECIAL METHODS
 
   def collectExpressionsToTrack(root: Expression): Set[Expression] = root match {
@@ -136,9 +145,10 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
   }
 
   def prepareLoopHead(): QuantifiedPermissionsState2 = {
-    var newRootSets = rootSets.transform { case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription }
-
-    copy(rootSets = newRootSets)
+//    var newRootSets = rootSets.transform {
+//      case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription
+//    }
+    this
   }
 
   // ABSTRACT TRANSFORMERS
@@ -222,8 +232,7 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     * @return The widening of `this` and `other`
     */
   override def widening(other: QuantifiedPermissionsState2): QuantifiedPermissionsState2 = {
-    var newRootSets = rootSets.transform { case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription }
-    copy(rootSets = newRootSets)
+    this
   }
 
   // SPECIFICATIONS

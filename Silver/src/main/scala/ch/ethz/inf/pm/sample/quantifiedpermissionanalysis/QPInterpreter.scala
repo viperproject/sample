@@ -105,7 +105,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) { // for each statement (in reverse order)...
       newStates = nextState +: newStates // prepend the next state to the list of new states
       val pp = ProgramPointUtils.identifyingPP(stmt)
-      val prevState: QuantifiedPermissionsState2 = stmt.backwardSemantics(nextState.before(pp).setBlockType(blockTypes(id))) // compute the previous state
+      val prevState: QuantifiedPermissionsState2 = stmt.backwardSemantics(nextState.before(pp).setBlockType(blockTypes(id))).addVisited(pp) // compute the previous state
       logger.trace(nextState.toString)
       logger.trace(stmt.toString)
       logger.trace(prevState.toString)

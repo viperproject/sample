@@ -35,9 +35,9 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   }
 
   def lub (other: PermissionRecords): PermissionRecords = {
-    copy(permissions ++ other.permissions.map { case (field, tree) =>
-      if (permissions.contains(field)) field -> tree.max(permissions(field))
-      else field -> tree
+    copy(permissions ++ other.permissions.transform { case (field, tree) =>
+      if (permissions.contains(field)) tree.max(permissions(field))
+      else tree
     })
   }
 
@@ -46,7 +46,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   }
 
   def transformExpressions(f: (Expression => Expression)): PermissionRecords = {
-    PermissionRecords(permissions.map { case (field, permissionTree) => (field, permissionTree.transform(f)) })
+    PermissionRecords(permissions.transform { case (_, permissionTree) => permissionTree.transform(f) })
   }
 
   def existsPermissionTree(f: (PermissionTree => Boolean)): Boolean = {
