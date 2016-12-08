@@ -30,7 +30,7 @@ case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
         <div class="well graph-well">
             <div class="graph control-flow-graph-block" id="graph">
                 @heapGraph.vertices.toList.map { vertex =>
-                <div class="node @nodeCssClassNames(vertex)" id="@nodeId(vertex)">@vertex.sanitizedName</div>
+                <div class="node @nodeCssClassNames(vertex)" id="@nodeId(vertex)">@xml.Utility.escape(vertex.getName)</div>
                 }
             </div>
         </div>

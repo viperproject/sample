@@ -9,14 +9,15 @@ package ch.ethz.inf.pm.td.cloud
 import java.io._
 import java.nio.file.Paths
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier, VariableIdentifier}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 object Z3Prover {
 
-  def withZ3[A](f: Z3Prover => A): A = {
-    val z3 = Z3Prover()
+  def withZ3[A, Expr, Var](f: Z3Prover[Expr,Var] => A,
+      converter: Z3Prover.ExpressionConverter[Expr, Var],
+      config: Z3Prover.Config = Z3Prover.Config(),
+      bookkeeper: Z3Prover.Bookkeeper = Z3Prover.Bookkeeper()): A = {
+    val z3 = Z3Prover[Expr,Var](converter,config,bookkeeper)
     try {
       val res = f(z3)
       z3.stop()
@@ -28,16 +29,15 @@ object Z3Prover {
     }
   }
 
-  trait ExpressionConverter {
+  trait ExpressionConverter[Expr,Var] {
 
-    def declare(expr: VariableIdentifier): String
+    def name(v: Var): String
 
-    def convert(expr: Expression): String
+    def sort(v: Var): String
 
-    def fresh(str: String): String
+    def vars(goal: Expr):Set[Var]
 
-    def freshVariableIdentifier(str: String, typ: Type): VariableIdentifier =
-      VariableIdentifier(fresh(str))(typ, DummyProgramPoint)
+    def convert(expr: Expr): String
 
   }
 
@@ -51,8 +51,7 @@ object Z3Prover {
       z3Exe: String = "z3",
       z3Args: Option[String] = None,
       z3Timeout: Int = 100,
-      assertionMode: AssertionMode.Value = AssertionMode.PushPop,
-      ideModeAdvanced: Boolean = false
+      assertionMode: AssertionMode.Value = AssertionMode.PushPop
   )
 
   case class Bookkeeper() {
@@ -76,16 +75,17 @@ object Z3Prover {
 
 import ch.ethz.inf.pm.td.cloud.Z3Prover._
 
-case class Z3Prover(
-    converter: Z3Prover.ExpressionConverter = Z3DefaultExpressionConverter(),
+case class Z3Prover[Expr,Var](
+    converter: Z3Prover.ExpressionConverter[Expr,Var],
     config: Z3Prover.Config = Z3Prover.Config(),
     bookkeeper: Z3Prover.Bookkeeper = Z3Prover.Bookkeeper()
 ) extends LazyLogging {
 
+
   private val z3: Process = createZ3Instance()
   private val input: BufferedReader = new BufferedReader(new InputStreamReader(z3.getInputStream))
   private val output: PrintWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(z3.getOutputStream)), true)
-  private var alreadyDeclared = Set.empty[Identifier]
+  private var alreadyDeclared = Set.empty[Var]
 
   emitPreamble()
 
@@ -129,7 +129,7 @@ case class Z3Prover(
     readSuccess()
   }
 
-  def assume(term: Expression): Any = {
+  def assume(term: Expr): Any = {
     declareMissing(term)
     assume(converter.convert(term))
   }
@@ -141,23 +141,23 @@ case class Z3Prover(
     readSuccess()
   }
 
-  def declare(id: VariableIdentifier): Unit = {
-    emit(converter.declare(id))
+  def declare(id: Var): Unit = {
+    emit("(declare-const " + converter.name(id) + " " + converter.sort(id) + ")")
   }
 
-  def declareMissing(goal: Expression): Unit = {
-    for (id <- goal.ids.getNonTopUnsafe -- alreadyDeclared) {
+  def declareMissing(goal: Expr): Unit = {
+    for (id <- converter.vars(goal) -- alreadyDeclared) {
       id match {
-        case x: VariableIdentifier =>
+        case x: Var =>
           declare(x)
         case _ =>
           throw new UnsupportedOperationException("Trying to encode into SMT an identifier which is not a simple variable")
       }
     }
-    alreadyDeclared = alreadyDeclared ++ goal.ids.getNonTopUnsafe
+    alreadyDeclared = alreadyDeclared ++ converter.vars(goal)
   }
 
-  def assert(goal: Expression, timeout: Option[Int] = None): Boolean = {
+  def assert(goal: Expr, timeout: Option[Int] = None): Boolean = {
     declareMissing(goal)
     assert(converter.convert(goal), timeout)
   }
@@ -235,15 +235,9 @@ case class Z3Prover(
     stats
   }
 
-  private def writeLine(out: String) = {
+  def writeLine(out: String): Unit = {
     logger.debug(out)
     output.println(out)
-  }
-
-  def declareFresh(name: String, resultSort: Type): VariableIdentifier = {
-    val id = converter.freshVariableIdentifier(name, resultSort)
-    emit(converter.declare(id))
-    id
   }
 
   def resetCounters() {
@@ -307,16 +301,24 @@ case class Z3Prover(
     (result, endTime - startTime)
   }
 
-  private def printModel(): Unit = {
-    if (config.ideModeAdvanced) {
-      writeLine("(get-model)")
-      val model = readModel().trim()
-      println(model + "\r\n")
-    }
+  def printModel(): Unit = {
+    writeLine("(get-model)")
+    println(readModel())
+  }
+
+  def printUnsatCore(): Unit = {
+    writeLine("(get-unsat-core)")
+    println(readModel())
+  }
+
+  def extractModel():Map[String,String] = {
+    writeLine("(get-model)")
+    readModel()
   }
 
   private def assertUsingSoftConstraints(goal: String): (Boolean, Long) = {
-    val guard = declareFresh("grd", DummyBooleanType)
+    val guard = "grd"
+    writeLine(s"(declare-const $guard bool)")
 
     writeLine(s"(assert (implies $guard (not $goal)))")
     readSuccess()
@@ -342,24 +344,30 @@ case class Z3Prover(
       throw InteractionFailed(s"Unexpected output of Z3 while trying to refute an assertion: $result")
   }
 
-  private def readModel(): String = {
+  private def readModel(): Map[String,String] = {
     try {
       var endFound = false
-      var result = ""
+      var result = Map.empty[String,String]
       var firstTime = true
       while (!endFound) {
-        val nextLine = input.readLine()
+        val nextLine = input.readLine().replace("\\\"","'")
         if (nextLine.trim().endsWith("\"") || (firstTime && !nextLine.startsWith("\""))) {
           endFound = true
         }
-        result = result + " " + nextLine
+        val cleanLine = nextLine.stripPrefix("\"").stripSuffix("\"")
+        cleanLine.split(" -> ") match {
+          case Array(a,b) =>
+            result = result + (a -> b)
+          case _ =>
+            logger.debug("skipped model line "+cleanLine)
+        }
         firstTime = false
       }
       result
     } catch {
       case e: Exception =>
-        println("Error reading model: " + e)
-        ""
+        logger.warn("Error reading model: " + e)
+        Map.empty
     }
   }
 
@@ -383,6 +391,7 @@ case class Z3Prover(
       |(set-option :smt.qi.cost "(+ weight generation)")
       |(set-option :type_check true)
       |(set-option :smt.bv.reflect true)
+      |(set-option :produce-unsat-cores true)
       |
       |""".stripMargin.split("\n").filter(_.nonEmpty) foreach emit
 

@@ -73,11 +73,6 @@ case class TouchAnalysisParameters(
     generalPersistentState: Boolean = false,
 
     /**
-      * Set to true to be sound
-      */
-    fullAliasingInGenericInput: Boolean = false,
-
-    /**
       * Take into account premature abortion. This means, the persistent data at any
       * program point will be included in the entry state.
       */

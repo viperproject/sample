@@ -11,21 +11,28 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution.CFGState
 
+
+object WeightedGraph {
+
+  class Default[Node,Weight] extends WeightedGraph[Node,Weight] {
+
+  }
+
+}
+
 /**
  * This class represents an oriented weighted graph.
  *
- * @author Pietro Ferrara
- * @version 0.1
+ * @author Pietro Ferrara, Lucas Brutschy
  */
-trait WeightedGraph[T, W] {
+trait WeightedGraph[Node, Weight] {
 
-  var nodes: List[T] = Nil
-  var edges: Set[(Int, Int, Option[W])] = Set.empty
-  val weightLabel = "weight"
+  var nodes: List[Node] = Nil
+  var edges: Set[(Int, Int, Option[Weight])] = Set.empty
 
-  def removeNode(node: T) {
+  def removeNode(node: Node) {
     val index: Int = this.addNodeIfNotExisting(node)
-    var newEdges: Set[(Int, Int, Option[W])] = Set.empty
+    var newEdges: Set[(Int, Int, Option[Weight])] = Set.empty
     for ((i1, i2, w) <- edges) {
       val index1 = if (i1 > index) i1 - 1 else i1
       val index2 = if (i2 > index) i2 - 1 else i2
@@ -48,7 +55,7 @@ trait WeightedGraph[T, W] {
    * @param node the node to be added
    * @return the index of the inserted node
    */
-  def addNode(node: T): Int = {
+  def addNode(node: Node): Int = {
     nodes = nodes ::: node :: Nil; nodes.lastIndexOf(node)
   }
 
@@ -59,7 +66,7 @@ trait WeightedGraph[T, W] {
    * @param node the node to be added if it does not exist
    * @return the index of the(evantually inserted) node
    */
-  def addNodeIfNotExisting(node: T): Int = {
+  def addNodeIfNotExisting(node: Node): Int = {
     for (i <- nodes.indices)
       if (nodes.apply(i).equals(node)) return i
     nodes = nodes ::: node :: Nil
@@ -72,7 +79,7 @@ trait WeightedGraph[T, W] {
    * @param index the index of the node to be replaced
    * @param  node the node to be inserted
    */
-  def setNode(index: Int, node: T) {
+  def setNode(index: Int, node: Node) {
     nodes = nodes.updated(index, node)
   }
 
@@ -83,14 +90,14 @@ trait WeightedGraph[T, W] {
    * @param to the node to which point the edge
    * @param weight the weight of the edge or None if this edge is not linked to a weight
    */
-  def addEdge(from: Int, to: Int, weight: Option[W]): Unit = edges = edges.+((from, to, weight))
+  def addEdge(from: Int, to: Int, weight: Option[Weight]): Unit = edges = edges.+((from, to, weight))
 
   /**
    * Return the node ids without sorting edges
    *
    * @return the leaves of the graph
    */
-  def getLeaves: Set[T] = {
+  def getLeaves: Set[Node] = {
     getLeavesIds map { id => nodes(id) }
   }
 
@@ -105,18 +112,18 @@ trait WeightedGraph[T, W] {
     result
   }
 
-  def entryEdges(nodeIndex: Int): Set[(Int, Int, Option[W])] = {
+  def entryEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
     for (e@(from, to, _) <- edges if to == nodeIndex) yield e
   }
 
-  def exitEdges(nodeIndex: Int): Set[(Int, Int, Option[W])] = {
+  def exitEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
     for (e@(from, to, _) <- edges if from == nodeIndex) yield e
   }
 
   def initialBlockInLoop(index: Int): Boolean = {
     if (entryEdges(index).size <= 1) return false
-    var prevEdges: Set[(Int, Int, Option[W])] = this.exitEdges(index)
-    var nextEdges: Set[(Int, Int, Option[W])] = prevEdges
+    var prevEdges: Set[(Int, Int, Option[Weight])] = this.exitEdges(index)
+    var nextEdges: Set[(Int, Int, Option[Weight])] = prevEdges
 
     while (nextEdges.nonEmpty) {
       prevEdges = nextEdges
@@ -135,7 +142,7 @@ trait WeightedGraph[T, W] {
     var result: String = ""
     var i: Int = 0
     while (i < nodes.size) {
-      val node: T = nodes.apply(i)
+      val node: Node = nodes.apply(i)
       result = result +
         "Node n." + i + "\n-----------------\n" +
         "Pred: " + entryNodesToString(i) +
@@ -151,9 +158,9 @@ trait WeightedGraph[T, W] {
    * It adds an edge from each entry point to the fresh node (related with the given condition).
    * It returns the index of the fresh node. 
    */
-  def addSummaryNode(statements: T, entryPoints: List[(Int, Option[W])]): Int = {
+  def addSummaryNode(statements: Node, entryPoints: List[(Int, Option[Weight])]): Int = {
     val index: Int = this.addNode(statements)
-    for (entryIndex: (Int, Option[W]) <- entryPoints)
+    for (entryIndex: (Int, Option[Weight]) <- entryPoints)
       this.addEdge(entryIndex._1, index, entryIndex._2)
     index
   }
@@ -168,9 +175,9 @@ trait WeightedGraph[T, W] {
 
 
 
-  protected def nodeToString(node: T) = node.toString
+  protected def nodeToString(node: Node) = node.toString
 
-  private def weightToString(weight: Option[W]): String = weight match {
+  private def weightToString(weight: Option[Weight]): String = weight match {
     case None => ""
     case null => ""
     case Some(x) => "(" + x.toString + ")"
@@ -215,11 +222,9 @@ case class CFGPosition(blockIdx: Int, stmtIdx: Int)
  * Since we want to be as generic as possible, we allow that a statement may be also
  * a structured control flow graph.
  *
- * @author Pietro Ferrara
- * @version 0.1
+ * @author Pietro Ferrara,Lucas Brutschy
  */
 class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(programpoint) with WeightedGraph[List[Statement], Boolean] {
-  override val weightLabel = "condition"
 
   def forwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).forwardSemantics(state).exitState()
 
