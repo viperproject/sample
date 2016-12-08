@@ -38,7 +38,7 @@ trait SilverSpecification
     */
   def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
-  def assumesAfterPreconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
+  def statementsAfterPreconditions(existing: Seq[sil.Stmt]): Seq[sil.Stmt] = Seq()
 
   /**
     * Modifies the list of invariants using information stored in the current
@@ -49,7 +49,7 @@ trait SilverSpecification
     */
   def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
-  def assumesBeforeLoop(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
+  def statementsBeforeLoop(existing: Seq[sil.Stmt]): Seq[sil.Stmt] = Seq()
 
   /**
     * Modifies the list of postconditions using information stored in the
@@ -60,7 +60,7 @@ trait SilverSpecification
     */
   def postconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
 
-  def assumesBeforePostconditions(existing: Seq[sil.Inhale]): Seq[sil.Inhale] = Seq()
+  def statementsBeforePostconditions(existing: Seq[sil.Stmt]): Seq[sil.Stmt] = Seq()
 
   /**
     * Modifies the list of fields of a new statement using information stored in
@@ -111,10 +111,10 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
     val exitArgs = exits.foldLeft(entryArgs) { case (args, exit) => exit.formalArguments(args) }
     val formalArguments = collectFormalArguments(method.body, exitArgs, cfgState)
     var precondition = entry.preconditions(method.pres)
-    val stmtsAfterPrecondition = entry.assumesAfterPreconditions(Seq())
+    val stmtsAfterPrecondition = entry.statementsAfterPreconditions(Seq())
     var body = extendStmt(method.body, cfgState)
     val postcondition = exits.foldLeft(method.posts) { case (post, exit) => exit.postconditions(post) }
-    val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Inhale]()) { case (assumes, exit) => exit.assumesBeforePostconditions(assumes) }
+    val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Inhale]()) { case (assumes, exit) => exit.statementsBeforePostconditions(assumes) }
     body = Seqn((stmtsAfterPrecondition :+ body) ++ stmtsBeforePostconditions)()
 
     // TODO: get rid of this hack
@@ -169,7 +169,7 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
       val pre = cfgState.preStateAt(CFGPosition(position.blockIdx, 0))
       // update the method loop invariants
       val invariants = pre.invariants(stmt.invs)
-      val stmtsBeforeLoop = pre.assumesBeforeLoop(Seq())
+      val stmtsBeforeLoop = pre.statementsBeforeLoop(Seq())
       Seqn(stmtsBeforeLoop :+ sil.While(stmt.cond, invs = invariants, stmt.locals, body = extendStmt(stmt.body, cfgState))(stmt.pos, stmt.info))()
 
     case _ => stmt

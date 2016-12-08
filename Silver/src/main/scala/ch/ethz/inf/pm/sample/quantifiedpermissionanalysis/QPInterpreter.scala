@@ -23,7 +23,7 @@ object BlockType extends Enumeration {
   type BlockType = Value
   val Default, LoopHead, Loop, LoopHeadInLoop = Value
 }
-trait QPInterpreter2 extends Interpreter[QuantifiedPermissionsState2] with LazyLogging {
+trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLogging {
 
   var blockTypes: Map[Int, BlockType] = Map()
 
@@ -64,7 +64,7 @@ trait QPInterpreter2 extends Interpreter[QuantifiedPermissionsState2] with LazyL
     val cfgState = cfgStateFactory.allBottom(cfg) // set the whole cfg to bottom
     val leavesIds: Set[Int] = cfg.getLeavesIds // get the ids of the leaves of the cfg
     // process the blocks of the cfg
-    var blocksToProcessIds = mutable.LinkedHashSet[Int]() ++ leavesIds // initial blocks to be processes
+    var blocksToProcessIds: mutable.LinkedHashSet[Int] = mutable.LinkedHashSet[Int]() ++ leavesIds // initial blocks to be processes
     var iterationAtBlock = Map[Int, Int]() // initially empty map from ids to iteration counts
     while (blocksToProcessIds.nonEmpty) { // while there still are blocks to be processed...
       val currentId: Int = blocksToProcessIds.head; blocksToProcessIds.remove(currentId) // extract the current block
@@ -79,7 +79,19 @@ trait QPInterpreter2 extends Interpreter[QuantifiedPermissionsState2] with LazyL
       // backward execute the current block
       if (!currentState.lessEqual(oldState)) {
         backwardExecuteBlock(currentState, currentId, currentCount, cfgState)
-        blocksToProcessIds = blocksToProcessIds ++ cfg.getDirectPredecessors(currentId)
+        val entryEdges = cfg.entryEdges(currentId)
+        blocksToProcessIds = entryEdges.size match {
+          case 2 =>
+            val ((fromLoopBody, _, _), (fromRest, _, _)) = entryEdges.head match {
+              case (_, _, Some(true)) => (entryEdges.head, entryEdges.last)
+              case (_, _, Some(false)) => (entryEdges.last, entryEdges.head)
+              case _ => throw new IllegalStateException("Non-labeled entry edge detected!")
+            }
+            mutable.LinkedHashSet(fromLoopBody, fromRest) ++ (blocksToProcessIds -- Set(fromLoopBody, fromRest))
+          case 1 =>
+            mutable.LinkedHashSet(cfg.getDirectPredecessors(currentId).head) ++ (blocksToProcessIds -- cfg.getDirectPredecessors(currentId))
+          case 0 => blocksToProcessIds
+        }
         iterationAtBlock = iterationAtBlock + (currentId -> (currentCount + 1))
       }
     }
@@ -112,7 +124,7 @@ trait QPInterpreter2 extends Interpreter[QuantifiedPermissionsState2] with LazyL
 
 }
 
-case class TrackingQPInterpreter2(stateFactory: QuantifiedPermissionsState2) extends QPInterpreter2 {
+case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState2) extends QPInterpreter {
   type C = TrackingCFGState[QuantifiedPermissionsState2]
   val cfgStateFactory: CFGStateFactory[QuantifiedPermissionsState2, TrackingCFGState[QuantifiedPermissionsState2]] = TrackingCFGStateFactory[QuantifiedPermissionsState2](stateFactory)
 }

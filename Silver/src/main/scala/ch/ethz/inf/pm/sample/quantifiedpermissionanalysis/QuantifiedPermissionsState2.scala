@@ -41,7 +41,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
                                        expr: ExpressionSet = ExpressionSet(),
                                        currentPP: ProgramPoint = DummyProgramPoint,
                                        blockType: BlockType = Default,
-                                       rootSets: Map[(Expression, ProgramPoint), SetDescription] = Map()
+                                       permissions: Map[String, PermissionTree] = Map(),
+                                       expressions: Map[(ProgramPoint, Expression), ExpressionCollection] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState2]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState2]
@@ -76,7 +77,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
            expr: ExpressionSet = expr,
            currentPP: ProgramPoint = currentPP,
            blockType: BlockType = blockType,
-           rootSets: Map[(Expression, ProgramPoint), SetDescription] = rootSets) = QuantifiedPermissionsState2(isTop, isBottom, expr, currentPP, blockType, rootSets)
+           permissions: Map[String, PermissionTree] = permissions,
+           expressions: Map[(ProgramPoint, Expression), ExpressionCollection] = expressions) = QuantifiedPermissionsState2(isTop, isBottom, expr, currentPP, blockType, permissions, expressions)
 
   /** Removes the current expression.
     *
