@@ -83,18 +83,22 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
   /**
     * Graph-like interface
     */
-  lazy val vertices: Set[Identifier] = forwardMay.flatMap { case (a, b) => b.toSet[Identifier] + a }.toSet
-  lazy val edges: Set[(Identifier, String, Identifier)] = {
-    (forwardMay.flatMap { case (a, b) => b.map((a, "may", _)) } ++
-      forwardMust.flatMap { case (a, b) => b.map((a, "must", _)) } ++
-      backwardMay.flatMap { case (a, b) => b.map((a, "back", _)) } ++
-      (for (v <- vertices) yield {
-        v match {
-          case x: FieldIdentifier => Some((x.obj, "field", x))
-          case _ => None
+  lazy val vertices: Set[Identifier] =
+    (for ((a, b) <- forwardMay) yield {
+      a match {
+        case _: VariableIdentifier => b.toSet[Identifier] + a
+        case _: FieldIdentifier => b.toSet[Identifier]
+      }
+    }).flatten.toSet[Identifier]
+
+  lazy val edges: Set[(Identifier, String, Identifier)] =
+      (for ((a, b) <- forwardMay) yield {
+        a match {
+          case x: VariableIdentifier => b.map(y => (x.asInstanceOf[Identifier], "=", y.asInstanceOf[Identifier]))
+          case x: FieldIdentifier =>    b.map(y => (x.obj.asInstanceOf[Identifier], x.field, y.asInstanceOf[Identifier]))
         }
-      }).flatten).toSet
-  }
+      }).flatten.toSet
+
   val forwardMay: Map[Identifier, Set[HeapIdentifier]]
   val forwardMust: Map[Identifier, Set[HeapIdentifier]]
   val backwardMay: Map[HeapIdentifier, Set[Identifier]]

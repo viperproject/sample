@@ -6,22 +6,39 @@
 package ch.ethz.inf.pm.td.cloud
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Type
 
-case class Z3DefaultExpressionConverter() extends Z3Prover.ExpressionConverter {
+object Z3Sample {
 
-  override def declare(expr: VariableIdentifier): String = {
-    "(declare-const " + expr.name + " " + convertSort(expr.typ) + ")"
+  def withZ3[A](f: Z3Prover[Expression,VariableIdentifier] => A,
+      converter: Z3SampleExpressionConverter = Z3SampleExpressionConverter(),
+      config: Z3Prover.Config = Z3Prover.Config(),
+      bookkeeper: Z3Prover.Bookkeeper = Z3Prover.Bookkeeper()): A = {
+    val z3 = Z3Prover[Expression,VariableIdentifier](converter,config,bookkeeper)
+    try {
+      val res = f(z3)
+      z3.stop()
+      res
+    } catch {
+      case t: Throwable =>
+        z3.stop()
+        throw t
+    }
   }
 
-  def convertSort(typ: Type): String = {
-    if (typ.isStringType) {
+}
+
+case class Z3SampleExpressionConverter() extends Z3Prover.ExpressionConverter[Expression,VariableIdentifier] {
+
+  override def name(v: VariableIdentifier): String = v.name
+
+  override def sort(v: VariableIdentifier): String = {
+    if (v.typ.isStringType) {
       "String"
-    } else if (typ.isBooleanType) {
+    } else if (v.typ.isBooleanType) {
       "Bool"
-    } else if (typ.isNumericalType && !typ.isFloatingPointType) {
+    } else if (v.typ.isNumericalType && !v.typ.isFloatingPointType) {
       "Int"
-    } else if (typ.isNumericalType && typ.isFloatingPointType) {
+    } else if (v.typ.isNumericalType && v.typ.isFloatingPointType) {
       "Real"
     } else {
       throw new UnsupportedOperationException("Cannot encode non-primitive types into SMT")
@@ -49,8 +66,6 @@ case class Z3DefaultExpressionConverter() extends Z3Prover.ExpressionConverter {
     }
   }
 
-  override def fresh(str: String): String = ???
-
   private def convertBO(op: BooleanOperator.Value): String = {
     op match {
       case BooleanOperator.&& => "and"
@@ -73,5 +88,7 @@ case class Z3DefaultExpressionConverter() extends Z3Prover.ExpressionConverter {
       case ArithmeticOperator.< => "<"
     }
   }
-  
+
+  override def vars(goal: Expression): Set[VariableIdentifier] =
+    goal.ids.getNonTopUnsafe.collect { case x:VariableIdentifier => x }
 }

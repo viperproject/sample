@@ -55,11 +55,11 @@ object AbstractEventGraph {
 
   import EdgeLabel._
 
-  class EventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S], EdgeLabel]
+  class GeneralEventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S], EdgeLabel]
 
   case class AbstractEventWithState[S <: State[S]](aE: AbstractEvent,
       state: S) extends NodeWithState[S] {
-    override def toString = aE.toString
+    override def toString: String = aE.toString
   }
 
   trait AbstractEvent {
@@ -72,8 +72,8 @@ object AbstractEventGraph {
     override def toString: String = "Init"
   }
 
-  case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, method: String) extends AbstractEvent {
-    val id = pp.toString
+  case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, obj: String, method: String) extends AbstractEvent {
+    val id: String = pp.toString
 
     override def toString: String = method
   }
@@ -97,7 +97,7 @@ object AbstractEventGraph {
       )
 
     val map = mutable.Map.empty[AbstractEvent, Int]
-    val graph = new EventGraph[S]
+    val graph = new GeneralEventGraph[S]
 
     for ((aE, s) <- localInvariants) {
       val i = graph.addNode(AbstractEventWithState(aE, s.asInstanceOf[S]))
@@ -183,7 +183,7 @@ object AbstractEventGraph {
     if (cloudPath.isEmpty) return state // HACK
     if (constants.isTop) return state // HACK
 
-    val event = ProgramPointEvent(pp, cloudPath + "." + operator)
+    val event = ProgramPointEvent(pp, cloudPath, operator)
     stringToEvent = stringToEvent + (event.id -> event)
 
     val events =

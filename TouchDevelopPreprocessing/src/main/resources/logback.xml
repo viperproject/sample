@@ -15,6 +15,7 @@
     </appender>
 
     <logger name="org.mongodb.driver" level="warn"/>
+    <logger name="ch.ethz.inf.pm.td.cloud.Z3Prover" level="all"/>
 
     <root level="info">
         <appender-ref ref="STDOUT"/>
