@@ -22,15 +22,15 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
 
   def copy(permissions: Map[String, PermissionTree] = permissions) = PermissionRecords(permissions)
 
-  def add(field: String, receiver: Expression, permission: Permission): PermissionRecords = {
+  def add(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
     copy(withDefault(field).transform { case (`field`, tree) => tree.add(PermissionLeaf(receiver, permission))})
   }
 
-  def sub(field: String, receiver: Expression, permission: Permission): PermissionRecords = {
+  def sub(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
     copy(withDefault(field).transform { case (`field`, tree) => tree.sub(PermissionLeaf(receiver, permission))})
   }
 
-  def max(field: String, receiver: Expression, permission: Permission): PermissionRecords = {
+  def max(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
     copy(withDefault(field).transform { case (`field`, tree) => tree.max(PermissionLeaf(receiver, permission))})
   }
 

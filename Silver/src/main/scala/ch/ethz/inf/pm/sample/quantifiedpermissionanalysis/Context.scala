@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{PermType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import viper.silver.ast.{CondExp, FullPerm, FuncLike, Function, LocalVar, LocalVarDecl, NoPerm, Perm, PermGtCmp, PermLtCmp, Program, Ref}
+import viper.silver.{ast => sil}
 
 import scala.collection._
 
@@ -21,28 +21,30 @@ import scala.collection._
   */
 object Context {
 
-  var prog: Program = _
+  var prog: sil.Program = _
 
   val identifiers: mutable.Set[String] = mutable.Set()
 
-  val auxiliaryFunctions: mutable.Map[String, Function] = mutable.Map()
+  val auxiliaryFunctions: mutable.Map[String, sil.Function] = mutable.Map()
 
-  val programFunctions: mutable.Map[String, FuncLike] = mutable.Map()
+  val programFunctions: mutable.Map[String, sil.FuncLike] = mutable.Map()
 
-  var maxFunction: Option[Function] = None
+  var maxFunction: Option[sil.Function] = None
 
-  var boundaryFunction: Option[Function] = None
+  var boundaryFunction: Option[sil.Function] = None
 
-  var quantifiedVariable: Option[LocalVarDecl] = None
+  var quantifiedVariable: Option[sil.LocalVarDecl] = None
 
-  var rdAmountVariable: Option[LocalVarDecl] = None
+  var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
-  def setProgram(prog: Program): Unit = {
+  val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
+
+  def setProgram(prog: sil.Program): Unit = {
     this.prog = prog
     initContext
   }
 
-  def functions(name: String): FuncLike = {
+  def functions(name: String): sil.FuncLike = {
     if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
   }
 
@@ -85,40 +87,42 @@ object Context {
 
   def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
 
-  def getRdAmountVariable: LocalVarDecl = rdAmountVariable match {
+  def createNewUniqueSetIdentifier(name: String = "_set"): String = createNewUniqueIdentifier(name)
+
+  def getRdAmountVariable: sil.LocalVarDecl = rdAmountVariable match {
     case Some(existingRdAmountVar) => existingRdAmountVar
     case None =>
-      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("rdAmount"), Perm)()
+      val varDecl = sil.LocalVarDecl(createNewUniqueVarIdentifier("rdAmount"), sil.Perm)()
       rdAmountVariable = Some(varDecl)
       varDecl
   }
 
-  def getMaxFunction: Function = maxFunction match {
+  def getMaxFunction: sil.Function = maxFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
-      val fun = Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), Perm, Seq(), Seq(),
-        Some(CondExp(PermGtCmp(VarX, VarY)(), VarX, VarY)())
+      val fun = sil.Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), sil.Perm, Seq(), Seq(),
+        Some(sil.CondExp(sil.PermGtCmp(VarX, VarY)(), VarX, VarY)())
       )()
       maxFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))
       fun
   }
 
-  def getBoundaryFunction: Function = boundaryFunction match {
+  def getBoundaryFunction: sil.Function = boundaryFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
-      val fun = Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), Perm, Seq(), Seq(),
-        Some(CondExp(PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
+      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(),
+        Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
       )()
       boundaryFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))
       fun
   }
 
-  def getQuantifiedVarDecl: LocalVarDecl = quantifiedVariable match {
+  def getQuantifiedVarDecl: sil.LocalVarDecl = quantifiedVariable match {
     case Some(existingQuantifiedVarDecl) => existingQuantifiedVarDecl
     case None =>
-      val varDecl = LocalVarDecl(createNewUniqueVarIdentifier("x"), Ref)()
+      val varDecl = sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), sil.Ref)()
       quantifiedVariable = Some(varDecl)
       varDecl
   }
@@ -224,17 +228,17 @@ object Context {
   }
 }
 
-object VarXDecl extends LocalVarDecl("x", Perm)()
+object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()
 
-object VarX extends LocalVar("x")(Perm)
+object VarX extends sil.LocalVar("x")(sil.Perm)
 
-object VarYDecl extends LocalVarDecl("y", Perm)()
+object VarYDecl extends sil.LocalVarDecl("y", sil.Perm)()
 
-object VarY extends LocalVar("y")(Perm)
+object VarY extends sil.LocalVar("y")(sil.Perm)
 
-object ZeroPerm extends NoPerm()()
+object ZeroPerm extends sil.NoPerm()()
 
-object WritePerm extends FullPerm()()
+object WritePerm extends sil.FullPerm()()
 
 object ReadPermission extends Expression {
   /** The type of this expression. */
@@ -271,7 +275,7 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
     *
     * @param f the transformer
     * @return the transformed expression*/
-  override def transform(f: (Expression) => Expression): Expression = ExpressionDescription(pp, expr.transform(f))
+  override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)

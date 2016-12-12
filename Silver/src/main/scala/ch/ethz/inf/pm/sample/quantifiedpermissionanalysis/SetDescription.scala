@@ -7,9 +7,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
-
-import scala.collection.mutable
+import viper.silver.{ast => sil}
 
 /**
   * @author Severin Münger
@@ -24,13 +24,39 @@ object SetDescription {
     def apply(initExpression: Expression) = new InnerSetDescription(initExpression)
   }
 
-  case class InnerSetDescription(widened: Boolean = false, concreteExpressions: Map[Expression, Set[Expression]] = Map()) extends SetDescription {
+  case class InnerSetDescription(widened: Boolean = false, concreteExpressions: Set[Expression] = Set()) extends SetDescription {
 
-    def this(initExpression: Expression) = this(concreteExpressions = Map(initExpression -> Set(initExpression)))
+    lazy val setName: String = Context.createNewUniqueSetIdentifier()
 
-    def copy(widened: Boolean = widened,
-             concreteExpressions: Map[Expression, Set[Expression]] = concreteExpressions
+    def this(initExpression: Expression) = this(concreteExpressions = Set(initExpression))
+
+    override def copy(widened: Boolean = widened,
+             concreteExpressions: Set[Expression] = concreteExpressions
             ): InnerSetDescription = InnerSetDescription(widened, concreteExpressions)
+
+    def finiteExpressable: Boolean = {
+      !widened || !abstractExpressions.exists {
+        case _: AddField => true
+        case _ => false
+      }
+    }
+
+    override def toSilExpression(quantifiedVariable: sil.LocalVar): sil.Exp = {
+      if (finiteExpressable)
+
+        concreteExpressions.map (expr => expr.transform {
+          case FieldExpression(typ, field, receiver) =>
+            if (!Context.fieldAccessFunctions.contains(field)) {
+              val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
+              Context.fieldAccessFunctions.put(field, fun)
+              Context.auxiliaryFunctions.put(fun.name, fun)
+            }
+            FunctionCallExpression(typ, Context.fieldAccessFunctions(field).name, Seq(receiver))
+          case other => other
+        }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
+      else
+        sil.AnySetContains(quantifiedVariable, sil.LocalVar(setName)(sil.SetType(sil.Ref)))()
+    }
 
     private def blubb2(paramSets: Seq[Set[Expression]]): Set[Seq[Expression]] = {
       if (paramSets.isEmpty) Set(Seq())
@@ -48,17 +74,12 @@ object SetDescription {
     }
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = {
-      val fieldExpression = FieldExpression(right.typ, field, receiver)
-      val newConcreteExpressions = concreteExpressions.transform {
-        case (_, set) => set.flatMap(expr => blubb(field, receiver, right, expr))
-      }
+      val newConcreteExpressions = concreteExpressions.flatMap(expr => blubb(field, receiver, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
     override def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = {
-      val newConcreteExpressions = concreteExpressions.transform {
-        case (_, set) => set.map(expr => expr.transform(e => if (e.equals(left)) right else e))
-      }
+      val newConcreteExpressions = concreteExpressions.map(expr => expr.transform(e => if (e.equals(left)) right else e))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
@@ -74,9 +95,8 @@ object SetDescription {
       case InnerSetDescription(widened_, concreteExpressions_) =>
         copy(
           widened = widened || widened_,
-          concreteExpressions = concreteExpressions ++ concreteExpressions_.transform {
-            case (expr, exprSet) => if (concreteExpressions.contains(expr)) concreteExpressions(expr) ++ exprSet else exprSet
-          })
+          concreteExpressions = concreteExpressions ++ concreteExpressions_
+        )
     }
 
     /** Computes the greatest lower bound of two elements.
@@ -93,19 +113,11 @@ object SetDescription {
       * @return The widening of `this` and `other`
       */
     override def widening(other: SetDescription): SetDescription = {
-      copy(widened = true)
+      lub(other).copy(widened = true)
     }
 
     def abstractExpressions: Set[SetElementDescriptor] = {
-      val abstractExpressions: mutable.Set[SetElementDescriptor] = mutable.Set()
-      concreteExpressions.foreach {
-        case (expr, mapsTo) =>
-            mapsTo.foreach {
-              e =>
-                newConcreteExpressions.put(e, Set(e))
-                newAbstractExpressions.union(extractRules(e))
-            }
-        }
+      concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 
     //    override def update: InnerSetDescription = {
@@ -126,6 +138,7 @@ object SetDescription {
     private def extractRules(expr: Expression): Set[SetElementDescriptor] = expr match {
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
+      case functionCall: FunctionCallExpression => Set(RootElement(functionCall))
     }
 
 
@@ -139,7 +152,7 @@ object SetDescription {
       case Bottom => false
       case other: InnerSetDescription =>
         (abstractExpressions.subsetOf(other.abstractExpressions)
-          && ((widened && other.widened) || concreteExpressions.forall { case (expr, set) => set.subsetOf(other.concreteExpressions.getOrElse(expr, Set())) }))
+          && ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions)))
       case _ => throw new IllegalStateException()
     }
 
@@ -164,11 +177,13 @@ trait SetDescription extends Lattice[SetDescription] {
 
   override def bottom() = Bottom
 
-//  def update: SetDescription = this
+  def copy(widened: Boolean = false, concreteExpressions: Set[Expression] = Set()): SetDescription = this
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = this
 
   def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = this
+
+  def toSilExpression(quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException
 }
 
 trait SetElementDescriptor

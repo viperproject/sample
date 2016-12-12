@@ -33,25 +33,25 @@ object Main {
 }
 
 /** SIL analysis runner that uses the default QuantifiedPermissions analysis. */
-object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState2] {
+object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState] {
   SystemParameters.isValueDrivenHeapAnalysis = false
   SystemParameters.typ = TopType
 
   /**
     * Extends a sil.Program with inferred specifications.
     **/
-  override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState2]]): Program = {
+  override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState]]): Program = {
     val tempProg = super.extendProgram(prog, results)
     tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder2)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder)
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
                                       numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
-                                      entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState2])
-  extends Analysis[QuantifiedPermissionsState2] with LazyLogging {
+                                      entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState])
+  extends Analysis[QuantifiedPermissionsState] with LazyLogging {
 
   var loopHeads = Set[Int]()
 
@@ -80,7 +80,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     (loopHeads, flowOrder)
   }
 
-  def analyze(method: MethodDeclaration): MethodAnalysisResult[QuantifiedPermissionsState2] = {
+  def analyze(method: MethodDeclaration): MethodAnalysisResult[QuantifiedPermissionsState] = {
 
 
     loopHeads = Set[Int]()

@@ -23,13 +23,16 @@ object BlockType extends Enumeration {
   type BlockType = Value
   val Default, LoopHead, Loop, LoopHeadInLoop = Value
 }
-trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLogging {
+trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLogging {
 
   var blockTypes: Map[Int, BlockType] = Map()
+  var blocksLastInLoop: Set[Int] = Set()
 
   def determineBlockTypes(cfg: ControlFlowGraph, blockIndex: Int = ForwardInterpreter.startBlockId, visited: Set[Int] = Set()): Boolean = {
-    if (visited.contains(blockIndex)) true
-    else {
+    if (visited.contains(blockIndex)) {
+      blocksLastInLoop += blockIndex
+      true
+    } else {
       val exitEdges = cfg.exitEdges(blockIndex)
       exitEdges.size match {
         case 2 =>
@@ -45,22 +48,22 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
             case (false, true) => BlockType.Loop
             case (false, false) => BlockType.Default
           }
-          blockTypes = blockTypes + (blockIndex -> blockType)
+          blockTypes += (blockIndex -> blockType)
           falseBranchLoop
         case 1 =>
           val isInLoop = determineBlockTypes(cfg, cfg.getDirectSuccessors(blockIndex).head, visited + blockIndex)
-          blockTypes = blockTypes + (blockIndex -> (if (isInLoop) BlockType.Loop else BlockType.Default))
+          blockTypes += (blockIndex -> (if (isInLoop) BlockType.Loop else BlockType.Default))
           isInLoop
         case 0 =>
-          blockTypes = blockTypes + (blockIndex -> BlockType.Default)
+          blockTypes += (blockIndex -> BlockType.Default)
           false
       }
     }
   }
 
-  def backwardExecute(cfg: ControlFlowGraph, finalState: QuantifiedPermissionsState2): TrackingCFGState[QuantifiedPermissionsState2] = {
+  def backwardExecute(cfg: ControlFlowGraph, finalState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
     determineBlockTypes(cfg)
-    val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState2](finalState)
+    val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](finalState)
     val cfgState = cfgStateFactory.allBottom(cfg) // set the whole cfg to bottom
     val leavesIds: Set[Int] = cfg.getLeavesIds // get the ids of the leaves of the cfg
     // process the blocks of the cfg
@@ -70,23 +73,21 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
       val currentId: Int = blocksToProcessIds.head; blocksToProcessIds.remove(currentId) // extract the current block
       val currentCount: Int = iterationAtBlock.getOrElse(currentId, 0) // extract the corresponding iteration count
       // figure out the current exit state
-      val currentState: QuantifiedPermissionsState2 =
+      val currentState: QuantifiedPermissionsState =
         if (leavesIds.contains(currentId)) finalState
-        else cfg.exitEdges(currentId).map { case (_: Int, to: Int, _: Option[Boolean]) => cfgState.statesOfBlock(to).head }.reduceLeft [QuantifiedPermissionsState2] { case (a, b) => a lub b }
+        else cfg.exitEdges(currentId).map { case (_: Int, to: Int, _: Option[Boolean]) => cfgState.statesOfBlock(to).head }.reduceLeft [QuantifiedPermissionsState] { case (a, b) => a lub b }
       // figure out the exit state of the previous iteration
-      val blockStates: List[QuantifiedPermissionsState2] = cfgState.statesOfBlock(currentId) // get the result of the previous iteration
-      val oldState: QuantifiedPermissionsState2 = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
+      val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(currentId) // get the result of the previous iteration
+      val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
       // backward execute the current block
       if (!currentState.lessEqual(oldState)) {
         backwardExecuteBlock(currentState, currentId, currentCount, cfgState)
         val entryEdges = cfg.entryEdges(currentId)
         blocksToProcessIds = entryEdges.size match {
           case 2 =>
-            val ((fromLoopBody, _, _), (fromRest, _, _)) = entryEdges.head match {
-              case (_, _, Some(true)) => (entryEdges.head, entryEdges.last)
-              case (_, _, Some(false)) => (entryEdges.last, entryEdges.head)
-              case _ => throw new IllegalStateException("Non-labeled entry edge detected!")
-            }
+            val ((fromLoopBody, _, _), (fromRest, _, _)) =
+              if (blocksLastInLoop.contains(entryEdges.head._1)) (entryEdges.head, entryEdges.last)
+              else (entryEdges.last, entryEdges.head)
             mutable.LinkedHashSet(fromLoopBody, fromRest) ++ (blocksToProcessIds -- Set(fromLoopBody, fromRest))
           case 1 =>
             mutable.LinkedHashSet(cfg.getDirectPredecessors(currentId).head) ++ (blocksToProcessIds -- cfg.getDirectPredecessors(currentId))
@@ -98,14 +99,14 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
     cfgState
   }
 
-  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState2, id: Int, count: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState2]): Unit = {
-    var newStates = ListBuffer[QuantifiedPermissionsState2]() // initially empty list of new states
+  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, id: Int, count: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
+    var newStates = ListBuffer[QuantifiedPermissionsState]() // initially empty list of new states
     val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(id) // get the statements within the block
-    var nextState: QuantifiedPermissionsState2 = exitState // initial next state
+    var nextState: QuantifiedPermissionsState = exitState // initial next state
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) { // for each statement (in reverse order)...
       newStates = nextState +: newStates // prepend the next state to the list of new states
       val pp = ProgramPointUtils.identifyingPP(stmt)
-      val prevState: QuantifiedPermissionsState2 = stmt.backwardSemantics(nextState.before(pp).setBlockType(blockTypes(id))).after(pp) // compute the previous state
+      val prevState: QuantifiedPermissionsState = stmt.backwardSemantics(nextState.before(pp).setBlockType(blockTypes(id))).after(pp) // compute the previous state
       logger.trace(nextState.toString)
       logger.trace(stmt.toString)
       logger.trace(prevState.toString)
@@ -113,7 +114,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
     }
     // perform widening where needed
     if (cfgState.cfg.exitEdges(id).size > 1 && count > SystemParameters.wideningLimit) {
-      val blockStates: List[QuantifiedPermissionsState2] = cfgState.statesOfBlock(id) // get the result of the previous iteration
+      val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(id) // get the result of the previous iteration
       nextState = blockStates.head widening nextState
       newStates = nextState +: newStates // prepend the widened state to the list of new states
     } else {
@@ -124,7 +125,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState2] with LazyLo
 
 }
 
-case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState2) extends QPInterpreter {
-  type C = TrackingCFGState[QuantifiedPermissionsState2]
-  val cfgStateFactory: CFGStateFactory[QuantifiedPermissionsState2, TrackingCFGState[QuantifiedPermissionsState2]] = TrackingCFGStateFactory[QuantifiedPermissionsState2](stateFactory)
+case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState) extends QPInterpreter {
+  type C = TrackingCFGState[QuantifiedPermissionsState]
+  val cfgStateFactory: CFGStateFactory[QuantifiedPermissionsState, TrackingCFGState[QuantifiedPermissionsState]] = TrackingCFGStateFactory[QuantifiedPermissionsState](stateFactory)
 }
