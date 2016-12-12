@@ -114,23 +114,8 @@ trait SilverExtender[S <: State[S] with SilverSpecification]
     val stmtsAfterPrecondition = entry.statementsAfterPreconditions(Seq())
     var body = extendStmt(method.body, cfgState)
     val postcondition = exits.foldLeft(method.posts) { case (post, exit) => exit.postconditions(post) }
-    val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Inhale]()) { case (assumes, exit) => exit.statementsBeforePostconditions(assumes) }
+    val stmtsBeforePostconditions = exits.foldLeft(Seq[sil.Stmt]()) { case (assumes, exit) => exit.statementsBeforePostconditions(assumes) }
     body = Seqn((stmtsAfterPrecondition :+ body) ++ stmtsBeforePostconditions)()
-
-    // TODO: get rid of this hack
-    val paramExists = formalArguments.exists {
-      case sil.LocalVarDecl(name, _) => name == "read"
-      case _ => false
-    }
-    val condExists = precondition.exists {
-      case sil.PermGtCmp(_, _) => true
-      case _ => false
-    }
-    if (paramExists && !condExists) {
-      val read = sil.LocalVar("read")(sil.Perm)
-      val cond = Seq(sil.And(sil.PermGtCmp(read, sil.NoPerm()())(),sil.PermLtCmp(read, sil.FullPerm()())())())
-      precondition = cond ++ precondition
-    }
 
     // return updated method
     method.copy(formalArgs = formalArguments, _pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)

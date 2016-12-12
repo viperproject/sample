@@ -258,15 +258,12 @@ object ReadPermission extends Expression {
   override def contains(f: (Expression) => Boolean): Boolean = f(this)
 }
 
-case class ExpressionCollection(root: Expression, expressions: Set[Expression]) extends Expression {
+case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
   /** The type of this expression. */
   override def typ: Type = RefType()
 
-  /** Point in the program where this expression is located. */
-  override def pp: ProgramPoint = DummyProgramPoint
-
   /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = expressions.map(expr => expr.ids).reduce[IdentifierSet] { case (ids1: IdentifierSet, ids2: IdentifierSet) => ids1 ++ ids2 }
+  override def ids: IdentifierSet = expr.ids
 
   /** Runs f on the expression and all sub-expressions
     *
@@ -274,8 +271,8 @@ case class ExpressionCollection(root: Expression, expressions: Set[Expression]) 
     *
     * @param f the transformer
     * @return the transformed expression*/
-  override def transform(f: (Expression) => Expression): Expression = ExpressionCollection(root, expressions.map(expr => expr.transform(f)))
+  override def transform(f: (Expression) => Expression): Expression = ExpressionDescription(pp, expr.transform(f))
 
   /** Checks if function f evaluates to true for any sub-expression. */
-  override def contains(f: (Expression) => Boolean): Boolean = expressions.exists(f)
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
 }

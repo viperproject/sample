@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.BlockType.{BlockType, Default}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState2.{Bottom, Top}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -117,7 +118,11 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
         val newExpressions = expressions ++ other.expressions.transform {
           case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
         }
-        copy(expr = expr lub other.expr, visited = visited ++ other.visited, permissions = newPermissions, expressions = newExpressions)
+        copy(
+          expr = expr lub other.expr,
+          visited = visited ++ other.visited,
+          permissions = newPermissions,
+          expressions = newExpressions)
     }
   }
 
@@ -130,25 +135,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     (this, other) match {
       case (Bottom, _) => true
       case (_, Bottom) => false
-      case (_, _) => true
+      case (_, _) => expressions.forall { case (key, setDescription) => setDescription.lessEqual(other.expressions.getOrElse(key, SetDescription.Bottom)) }
     }
-  }
-
-  def addVisited(pp: ProgramPoint): QuantifiedPermissionsState2 = copy(visited = visited + pp)
-
-  // SPECIAL METHODS
-
-  def collectExpressionsToTrack(root: Expression): Set[Expression] = root match {
-    case FieldExpression(typ, field, receiver) => collectExpressionsToTrack(receiver).map(expr => FieldExpression(typ, field, expr))
-    case ConditionalExpression(_, left, right, _) => Set(left, right)
-    case _ => Set(root)
-  }
-
-  def prepareLoopHead(): QuantifiedPermissionsState2 = {
-//    var newRootSets = rootSets.transform {
-//      case ((_, programPoint), setDescription) => if (programPoint.equals(currentPP)) setDescription.update else setDescription
-//    }
-    this
   }
 
   // ABSTRACT TRANSFORMERS
@@ -175,7 +163,20 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState2 = {
-    this
+    val key = (currentPP, obj)
+    val newPermissions =
+      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), WritePermission)
+      else permissions
+    var newExpressions = expressions.transform {
+      case (_, setDescription) => setDescription.transformAssignField(obj, field, right)
+    }
+    newExpressions =
+      if (!expressions.contains(key)) expressions + (key -> InnerSetDescription(obj))
+      else expressions + (key -> expressions(key).lub(InnerSetDescription(obj)))
+    copy(
+      permissions = newPermissions,
+      expressions = newExpressions
+    )
   }
 
   /** Removes a variable.
@@ -197,7 +198,20 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     * @return The abstract state obtained after the field access, that is,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
     */
-  override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState2 = copy(expr = ExpressionSet(FieldExpression(typ, field, obj)))
+  override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState2 = {
+    val key = (currentPP, obj)
+    val newPermissions =
+      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission)
+      else permissions
+    val newExpressions =
+      if (!expressions.contains(key)) expressions + (key -> InnerSetDescription(obj))
+      else expressions + (key -> expressions(key).lub(InnerSetDescription(obj)))
+    copy(
+      expr = ExpressionSet(FieldExpression(typ, field, obj)),
+      permissions = newPermissions,
+      expressions = newExpressions
+    )
+  }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
@@ -207,6 +221,8 @@ case class QuantifiedPermissionsState2(isTop: Boolean = false,
     * @return The abstract state eventually modified
     */
   override def before(pp: ProgramPoint): QuantifiedPermissionsState2 = copy(currentPP = pp)
+
+  def after(pp: ProgramPoint): QuantifiedPermissionsState2 = copy(visited = visited + pp)
 
   /** Evaluates a numerical constant.
     *
