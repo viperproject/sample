@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, IdentifierSet}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{PermType, RefType}
@@ -21,7 +21,7 @@ import scala.collection._
   */
 object Context {
 
-  var prog: sil.Program = _
+  var program: sil.Program = _
 
   val identifiers: mutable.Set[String] = mutable.Set()
 
@@ -39,8 +39,22 @@ object Context {
 
   val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
 
+  val sets: mutable.Map[(ProgramPoint, Expression), sil.LocalVarDecl] = mutable.Map()
+
+  def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
+    if (!sets.contains(key))
+      sets.put(key, sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(sil.Ref))())
+    sets(key)
+  }
+
+  private def extractSetName(expr: Expression): String = expr match {
+    case FieldExpression(_, field, rec) => extractSetName(rec) + "_" + field
+    case VariableIdentifier(name, _) => name
+    case FunctionCallExpression(_, functionName, _, _) => functionName
+  }
+
   def setProgram(prog: sil.Program): Unit = {
-    this.prog = prog
+    this.program = prog
     initContext
   }
 
@@ -53,19 +67,20 @@ object Context {
     clearNumericalInfo()
     rdAmountVariable = None
     quantifiedVariable = None
+    sets.clear()
   }
 
   private def initContext = {
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
-    identifiers ++= prog.fields.map(field => field.name)
-    identifiers ++= prog.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
-    identifiers ++= prog.methods.map(method => method.name)
-    identifiers ++= prog.domains.map(domain => domain.name)
-    identifiers ++= prog.functions.map(function => function.name)
-    identifiers ++= prog.predicates.map(predicates => predicates.name)
-    identifiers ++= prog.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
-    programFunctions ++= prog.functions.map(function => (function.name, function))
-    programFunctions ++= prog.domains.flatMap(domain => domain._functions.map(function => (function.name, function)))
+    identifiers ++= program.fields.map(field => field.name)
+    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
+    identifiers ++= program.methods.map(method => method.name)
+    identifiers ++= program.domains.map(domain => domain.name)
+    identifiers ++= program.functions.map(function => function.name)
+    identifiers ++= program.predicates.map(predicates => predicates.name)
+    identifiers ++= program.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
+    programFunctions ++= program.functions.map(function => (function.name, function))
+    programFunctions ++= program.domains.flatMap(domain => domain._functions.map(function => (function.name, function)))
   }
 
   private def createNewUniqueIdentifier(name: String) = {
@@ -279,4 +294,6 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
+
+  def key: (ProgramPoint, Expression) = (pp, expr)
 }

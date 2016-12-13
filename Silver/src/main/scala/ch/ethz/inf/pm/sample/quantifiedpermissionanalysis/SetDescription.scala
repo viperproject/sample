@@ -26,24 +26,21 @@ object SetDescription {
 
   case class InnerSetDescription(widened: Boolean = false, concreteExpressions: Set[Expression] = Set()) extends SetDescription {
 
-    lazy val setName: String = Context.createNewUniqueSetIdentifier()
-
     def this(initExpression: Expression) = this(concreteExpressions = Set(initExpression))
 
     override def copy(widened: Boolean = widened,
              concreteExpressions: Set[Expression] = concreteExpressions
             ): InnerSetDescription = InnerSetDescription(widened, concreteExpressions)
 
-    def finiteExpressable: Boolean = {
+    override def isFinite: Boolean = {
       !widened || !abstractExpressions.exists {
         case _: AddField => true
         case _ => false
       }
     }
 
-    override def toSilExpression(quantifiedVariable: sil.LocalVar): sil.Exp = {
-      if (finiteExpressable)
-
+    override def toSilExpression(quantifiedVariable: sil.LocalVar, set: sil.LocalVarDecl): sil.Exp = {
+      if (isFinite)
         concreteExpressions.map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
             if (!Context.fieldAccessFunctions.contains(field)) {
@@ -55,7 +52,27 @@ object SetDescription {
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
-        sil.AnySetContains(quantifiedVariable, sil.LocalVar(setName)(sil.SetType(sil.Ref)))()
+        sil.AnySetContains(quantifiedVariable, set.localVar)()
+    }
+
+    override def toSetDefinition(quantifiedVariable: sil.LocalVarDecl, set: sil.LocalVarDecl): sil.Exp = {
+      if (isFinite) null
+      else {
+        val roots = abstractExpressions.filter {
+          case _: RootElement => true
+          case _ => false
+        }.map {
+          case RootElement(root) => sil.AnySetContains(DefaultSampleConverter.convert(root), set.localVar)()
+        }
+        val fields = abstractExpressions.filter {
+          case _: AddField => true
+          case _ => false
+        }.map {
+          case AddField(field) =>
+            sil.CondExp(sil.AnySetContains(quantifiedVariable.localVar, set.localVar)(), sil.AnySetContains(sil.FieldAccess(quantifiedVariable.localVar, sil.Field(field, sil.Ref)())(), set.localVar)(), sil.TrueLit()())()
+        }
+        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()))())()
+      }
     }
 
     private def blubb2(paramSets: Seq[Set[Expression]]): Set[Seq[Expression]] = {
@@ -183,7 +200,11 @@ trait SetDescription extends Lattice[SetDescription] {
 
   def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = this
 
-  def toSilExpression(quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException
+  def toSilExpression(quantifiedVariable: sil.LocalVar, set: sil.LocalVarDecl): sil.Exp = throw new UnsupportedOperationException
+
+  def isFinite: Boolean = false
+
+  def toSetDefinition(quantifiedVariable: sil.LocalVarDecl, set: sil.LocalVarDecl): sil.Exp = throw new UnsupportedOperationException
 }
 
 trait SetElementDescriptor

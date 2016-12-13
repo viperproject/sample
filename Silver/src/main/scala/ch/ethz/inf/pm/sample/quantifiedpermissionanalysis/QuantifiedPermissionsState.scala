@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSe
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
-import scala.collection.{Seq, mutable}
+import scala.collection.Seq
 
 /**
   * @author Severin Münger
@@ -184,8 +184,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
     }
     newExpressions =
-      if (!expressions.contains(key)) expressions + (key -> InnerSetDescription(receiver))
-      else expressions + (key -> expressions(key).lub(InnerSetDescription(receiver)))
+      if (!newExpressions.contains(key)) newExpressions + (key -> InnerSetDescription(receiver))
+      else newExpressions + (key -> newExpressions(key).lub(InnerSetDescription(receiver)))
     copy(
       permissions = newPermissions,
       expressions = newExpressions
@@ -286,6 +286,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case Some(rdAmount) => if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
       case None =>
     }
+    expressions.foreach {
+      case (key, setDescription: InnerSetDescription) =>
+        if (!setDescription.isFinite && !newFormalArguments.contains(Context.getSetFor(key)))
+          newFormalArguments = newFormalArguments :+ Context.getSetFor(key)
+    }
     newFormalArguments
   }
 
@@ -302,7 +307,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case Some(rdAmount) => newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount.localVar)(), sil.PermLtCmp(rdAmount.localVar, WritePerm)())()
       case None =>
     }
-    val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
     permissions.foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = Context.getQuantifiedVarDecl
       val quantifiedVariable = quantifiedVariableDecl.localVar
@@ -311,13 +315,18 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
       newPreconditions = newPreconditions :+ forall
     }
-    fieldAccessFunctions.foreach {
+    Context.fieldAccessFunctions.foreach {
       case (fieldName, function) =>
         val quantifiedVarDecl = Context.getQuantifiedVarDecl
         val quantifiedVar = quantifiedVarDecl.localVar
         val field = sil.Field(fieldName, function.typ)()
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
         newPreconditions = newPreconditions :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
+    }
+    expressions.foreach {
+      case (key, setDescription: InnerSetDescription) =>
+        if (!setDescription.isFinite)
+          newPreconditions = newPreconditions :+ setDescription.toSetDefinition(Context.getQuantifiedVarDecl, Context.getSetFor(key))
     }
     newPreconditions
   }
@@ -330,7 +339,29 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The modified list of invariants.
     */
   override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    existing
+    var newInvariants = existing
+    permissions.foreach { case (fieldName, permissionTree) =>
+      val quantifiedVariableDecl = Context.getQuantifiedVarDecl
+      val quantifiedVariable = quantifiedVariableDecl.localVar
+      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
+      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(expressions, quantifiedVariable))())()
+      val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+      newInvariants = newInvariants :+ forall
+    }
+    Context.fieldAccessFunctions.foreach {
+      case (fieldName, function) =>
+        val quantifiedVarDecl = Context.getQuantifiedVarDecl
+        val quantifiedVar = quantifiedVarDecl.localVar
+        val field = sil.Field(fieldName, function.typ)()
+        val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
+        newInvariants = newInvariants :+ sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
+    }
+    expressions.foreach {
+      case (key, setDescription: InnerSetDescription) =>
+        if (!setDescription.isFinite)
+          newInvariants = newInvariants :+ setDescription.toSetDefinition(Context.getQuantifiedVarDecl, Context.getSetFor(key))
+    }
+    newInvariants
   }
 
   // DO NOTHING ON THESE OPERATIONS
