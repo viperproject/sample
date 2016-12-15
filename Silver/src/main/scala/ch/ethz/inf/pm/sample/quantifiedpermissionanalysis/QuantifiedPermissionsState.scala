@@ -105,27 +105,44 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments
     */
-  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    (this, other) match {
-      case (Bottom, Bottom) => Bottom
-      case (Bottom, _) => other
-      case (_, Bottom) => this
-      case (_, _) =>
-        val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
-          case (true, _) => permissions
-          case (_, true) => other.permissions
-          case (false, false) => permissions.lub(other.permissions)
-        }
-        val newExpressions = expressions ++ other.expressions.transform {
-          case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
-        }
-        copy(
-          expr = expr lub other.expr,
-          visited = visited ++ other.visited,
-          permissions = newPermissions,
-          expressions = newExpressions
-        )
-    }
+  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = (this, other) match {
+    case (Bottom, Bottom) => Bottom
+    case (Bottom, _) => other
+    case (_, Bottom) => this
+    case (_, _) =>
+      val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
+        case (true, _) => permissions
+        case (_, true) => other.permissions
+        case (false, false) => permissions.lub(other.permissions)
+      }
+      val newExpressions = expressions ++ other.expressions.transform {
+        case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
+      }
+      copy(
+        expr = expr lub other.expr,
+        visited = visited ++ other.visited,
+        permissions = newPermissions,
+        expressions = newExpressions
+      )
+  }
+
+  def lub(other: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, other) match {
+    case (false, _, _) | (_, Bottom, _) | (_, _, Bottom) => lub(other)
+    case (_, _, _) =>
+      val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
+        case (true, _) => permissions
+        case (_, true) => other.permissions
+        case (false, false) => permissions.cond(cond.getSingle.get, other.permissions)
+      }
+      val newExpressions = expressions ++ other.expressions.transform {
+        case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
+      }
+      copy(
+        expr = expr lub other.expr,
+        visited = visited ++ other.visited,
+        permissions = newPermissions,
+        expressions = newExpressions
+      )
   }
 
   /** Returns true if and only if `this` is less than or equal to `other`.

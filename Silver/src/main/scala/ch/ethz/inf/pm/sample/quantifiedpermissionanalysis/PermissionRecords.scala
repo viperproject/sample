@@ -20,47 +20,44 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
     else permissions
 
-  def copy(permissions: Map[String, PermissionTree] = permissions) = PermissionRecords(permissions)
+  def cond(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
+    copy(elsePermissions ++ permissions.transform { case (field, tree) =>
+      if (elsePermissions.contains(field)) tree.max(elsePermissions(field))
+      else tree
+    })
 
-  def add(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
+  def add(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.add(PermissionLeaf(receiver, permission))
       case (_, other) => other
     })
-  }
 
-  def sub(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
+  def sub(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.sub(PermissionLeaf(receiver, permission))
       case (_, other) => other
     })
-  }
 
-  def max(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords = {
+  def max(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.max(PermissionLeaf(receiver, permission))
       case (_, other) => other
     })
-  }
 
-  def lub (other: PermissionRecords): PermissionRecords = {
+  def lub (other: PermissionRecords): PermissionRecords =
     copy(permissions ++ other.permissions.transform { case (field, tree) =>
       if (permissions.contains(field)) tree.max(permissions(field))
       else tree
     })
-  }
 
-  def undoLastRead(field: String): PermissionRecords = {
+  def undoLastRead(field: String): PermissionRecords =
     copy(permissions.updated(field, permissions(field).undoLastRead))
-  }
 
-  def transformExpressions(f: (Expression => Expression)): PermissionRecords = {
-    PermissionRecords(permissions.transform { case (_, permissionTree) => permissionTree.transform(f) })
-  }
+  def transformExpressions(f: (Expression => Expression)): PermissionRecords =
+    copy(permissions.transform { case (_, permissionTree) => permissionTree.transform(f) })
 
-  def existsPermissionTree(f: (PermissionTree => Boolean)): Boolean = {
+  def existsPermissionTree(f: (PermissionTree => Boolean)): Boolean =
     permissions.exists { case (_, permissionTree) => permissionTree.exists(f) }
-  }
 
   override def +[B1 >: PermissionTree](kv: (String, B1)): Map[String, B1] = permissions + kv
 

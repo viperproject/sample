@@ -73,10 +73,25 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       val currentId: Int = blocksToProcessIds.head; blocksToProcessIds.remove(currentId) // extract the current block
       val currentCount: Int = iterationAtBlock.getOrElse(currentId, 0) // extract the corresponding iteration count
       // figure out the current exit state
+      val exitEdges = cfg.exitEdges(currentId)
       val currentState: QuantifiedPermissionsState =
         if (leavesIds.contains(currentId)) finalState
-        else cfg.exitEdges(currentId).map { case (_: Int, to: Int, _: Option[Boolean]) => cfgState.statesOfBlock(to).head }.reduceLeft [QuantifiedPermissionsState] { case (a, b) => a lub b }
-      // figure out the exit state of the previous iteration
+        else exitEdges.size match {
+          case 1 => cfgState.statesOfBlock(cfg.exitEdges(currentId).head._2).head
+          case 2 =>
+            val (trueState, falseState) =
+              (exitEdges.head, exitEdges.last) match {
+                case ((_, toTrue, Some(true)), (_, toFalse, Some(false))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
+                case ((_, toFalse, Some(false)), (_, toTrue, Some(true))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
+                case _ => throw new IllegalStateException()
+              }
+            val tempCurrentState =  trueState.lub(falseState)
+            val states = computeExpressions(tempCurrentState, currentId, cfgState)
+//            trueState.lub(falseState, states.init.last.expr)
+            trueState.lub(falseState)
+          case _ => throw new IllegalStateException()
+        }
+          // figure out the exit state of the previous iteration
       val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(currentId) // get the result of the previous iteration
       val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
       // backward execute the current block
@@ -97,6 +112,20 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       }
     }
     cfgState
+  }
+
+  private def computeExpressions(exitState: QuantifiedPermissionsState, id: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): List[QuantifiedPermissionsState] = {
+    var newStates = ListBuffer[QuantifiedPermissionsState]() // initially empty list of new states
+    val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(id) // get the statements within the block
+    var nextState: QuantifiedPermissionsState = exitState // initial next state
+    for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) { // for each statement (in reverse order)...
+      newStates = nextState +: newStates // prepend the next state to the list of new states
+      val pp = ProgramPointUtils.identifyingPP(stmt)
+      val prevState: QuantifiedPermissionsState = stmt.backwardSemantics(nextState.before(pp).setBlockType(blockTypes(id))).after(pp) // compute the previous state
+      nextState = prevState // update the next state
+    }
+    newStates = nextState +: newStates
+    newStates.toList
   }
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, id: Int, count: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {

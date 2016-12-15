@@ -25,6 +25,7 @@ trait PermissionTree {
   }
   def sub(other: PermissionTree): PermissionTree = add(NegativePermissionTree(other))
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
+  def condition(cond: Expression, elsePermissions: PermissionTree) = Condition(cond, this, elsePermissions)
   def transform(f: (Expression => Expression)): PermissionTree
   def exists(f: (PermissionTree => Boolean)): Boolean
   def foreach(f: (Expression => Unit)): Unit
