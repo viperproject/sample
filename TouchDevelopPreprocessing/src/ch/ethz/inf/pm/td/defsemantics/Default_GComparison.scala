@@ -20,12 +20,14 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GComparison extends AAction {
 
-  def TElt:AAny
-
   lazy val typeName = TypeName("Comparison", List(TElt.typeName))
 
-  override def actionReturnValue: AAny = TNumber
+  def TElt: AAny
+
   override def actionArguments: List[ApiParam] = List(ApiParam(TElt), ApiParam(TElt))
+
+  override def actionReturnValue: AAny = TNumber
+
 
 }
           

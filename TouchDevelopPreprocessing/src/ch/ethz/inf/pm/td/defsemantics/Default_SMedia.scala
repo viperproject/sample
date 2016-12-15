@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,13 +21,35 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SMedia extends ASingleton {
 
   lazy val typeName = TypeName("Media", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "choose picture" -> member_choose_picture,
+    "create board" -> member_create_board,
+    "create full board" -> member_create_full_board,
+    "create landscape board" -> member_create_landscape_board,
+    "create picture" -> member_create_picture,
+    "create portrait board" -> member_create_portrait_board,
+    "icon names" -> member_icon_names,
+    "icon" -> member_icon,
+    "large icon" -> member_large_icon,
+    "picture albums" -> member_picture_albums,
+    "pictures" -> member_pictures,
+    "playlists" -> member_playlists,
+    "saved pictures" -> member_saved_pictures,
+    "search marketplace" -> member_search_marketplace,
+    "song albums" -> member_song_albums,
+    "songs" -> member_songs,
+    "play note" -> member_play_note,
+    "tone" -> member_tone
+  )
+
   /** Sometimes used: Chooses a picture from the media library */
   def member_choose_picture = ApiMember(
     name = "choose picture",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -103,6 +125,26 @@ trait Default_SMedia extends ASingleton {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Plays a monotone note */
+  def member_play_note = ApiMember(
+    name = "play note",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TNumber), ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Plays a monotone sine wave */
+  def member_tone = ApiMember(
+    name = "tone",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Sometimes used: Gets the picture albums */
   def member_picture_albums = ApiMember(
     name = "picture albums",
@@ -164,26 +206,6 @@ trait Default_SMedia extends ASingleton {
     thisType = ApiParam(this),
     returnType = TSongs,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "choose picture" -> member_choose_picture,
-    "create board" -> member_create_board,
-    "create full board" -> member_create_full_board,
-    "create landscape board" -> member_create_landscape_board,
-    "create picture" -> member_create_picture,
-    "create portrait board" -> member_create_portrait_board,
-    "icon names" -> member_icon_names,
-    "icon" -> member_icon,
-    "large icon" -> member_large_icon,
-    "picture albums" -> member_picture_albums,
-    "pictures" -> member_pictures,
-    "playlists" -> member_playlists,
-    "saved pictures" -> member_saved_pictures,
-    "search marketplace" -> member_search_marketplace,
-    "song albums" -> member_song_albums,
-    "songs" -> member_songs
   )
             
 

@@ -21,7 +21,18 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TLink extends AAny {
 
   lazy val typeName = TypeName("Link")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "address" -> member_address,
+    "kind" -> member_kind,
+    "location" -> member_location,
+    "name" -> member_name,
+    "set location" -> member_set_location,
+    "set name" -> member_set_name,
+    "share" -> member_share,
+    "to picture" -> member_to_picture
+  )
+
   /** Sometimes used: Gets the url */
   def member_address = ApiMember(
     name = "address",
@@ -76,12 +87,13 @@ trait Default_TLink extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares the link (email, sms, facebook, social or &#39;&#39; to pick from a list) */
+  /** Rarely used: Shares the link (email, sms, facebook, social or '' to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -92,18 +104,6 @@ trait Default_TLink extends AAny {
     thisType = ApiParam(this),
     returnType = TPicture,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "address" -> member_address,
-    "kind" -> member_kind,
-    "location" -> member_location,
-    "name" -> member_name,
-    "set location" -> member_set_location,
-    "set name" -> member_set_name,
-    "share" -> member_share,
-    "to picture" -> member_to_picture
   )
             
 

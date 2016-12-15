@@ -76,6 +76,7 @@ object GenerateTypeInformation {
           val JString(propHelp) = property \ "help"
           val JString(resultTyp) = property \ "result" \ "type"
 
+
           val paramList = (for (
             JField("parameters", JArray(parameters)) <- property;
             parameter <- parameters

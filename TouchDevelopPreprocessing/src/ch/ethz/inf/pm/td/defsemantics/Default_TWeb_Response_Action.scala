@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.ApiParam
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,8 +21,8 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TWeb_Response_Action extends AAction {
 
   lazy val typeName = TypeName("Web Response Action")
-          
-  override def actionArguments = List(ApiParam(TWeb_Response))
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TWeb_Response))
   override def actionReturnValue: AAny = TNothing
 
 

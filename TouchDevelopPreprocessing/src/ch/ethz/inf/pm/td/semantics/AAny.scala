@@ -27,7 +27,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def isImmutable = true
 
-  def representedTouchFields = representedFields.map(_.asInstanceOf[ApiField])
+  def representedTouchFields: Set[ApiField] = representedFields.map(_.asInstanceOf[ApiField])
 
   /**
     * Backward semantics are empty for all native function for now
@@ -172,6 +172,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
           case None =>
             getDeclaration(method) match {
               case Some(res) =>
+
+                if (res.isAsync && TouchAnalysisParameters.get.enableCloudAnalysis) {
+
+                  println("hit async function " + res.name)
+                  CloudAnalysisState.recordTransactionBoundary(pp)
+
+                }
+
                 res.semantics.forwardSemantics(this0, res, parameters)
               case None =>
 
@@ -201,7 +209,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   }
 
-  override def representedFields =
+  override def representedFields: Set[Identifier] =
     if (TouchAnalysisParameters.get.libraryFieldPruning &&
       SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
       val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
@@ -213,9 +221,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def mutedFields: Set[ApiField] = Set.empty
 
-  def possibleFields = Set.empty
+  def possibleFields: Set[Identifier] = Set.empty
 
-  def getDeclaration(s: String) = declarations.get(s)
+  def getDeclaration(s: String): Option[ApiMember] = declarations.get(s)
 
   def declarations: Map[String, ApiMember] =
     Map(
@@ -237,7 +245,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def member__add: ApiMember = ApiMember(
     name = "◈add",
-    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
@@ -249,7 +257,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def member__test_and_set = ApiMember(
     name = "◈test and set",
-    paramTypes = List(ApiParam(TString,isMutated = false)),
+    paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
@@ -301,7 +309,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     },Set(CloudEnabledModifier))
   )
 
-  def Clear[S <: State[S]](this0: RichExpressionSet)(implicit state: S, pp: ProgramPoint) = {
+  def Clear[S <: State[S]](this0: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     Assign[S](this0, Default(this0.typ, "Value got cleared"))
   }
 
@@ -374,7 +382,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     thisType = ApiParam(this),
     returnType = TUnknown,
     semantics = new ApiMemberSemantics {
-      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      override def forwardSemantics[S <: State[S]](this0:
+      ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(right) = parameters
         val res = Assign[S](this0, right)
         // Dirty old PhD students hacking dirty
@@ -415,7 +424,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     "set " + x.getName -> ApiMember("set " + x.getName, List(), ApiParam(this, isMutated = true), TNothing, DefaultSemantics))
   }.toMap
 
-  def mkGetters(fields: Set[ApiField]) = fields.map { x: ApiField => (
+  def mkGetters(fields: Set[ApiField]): Map[String, ApiMember] = fields.map { x: ApiField =>
+    (
     x.getName, ApiMember(x.getName, List(), ApiParam(this), x.typ, DefaultSemantics))
   }.toMap
 

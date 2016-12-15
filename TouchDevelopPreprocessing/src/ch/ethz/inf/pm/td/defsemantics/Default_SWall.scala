@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,45 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SWall extends ASingleton {
 
   lazy val typeName = TypeName("Wall", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add button" -> member_add_button,
+    "ask boolean" -> member_ask_boolean,
+    "ask number" -> member_ask_number,
+    "ask string" -> member_ask_string,
+    "button icon names" -> member_button_icon_names,
+    "clear background" -> member_clear_background,
+    "clear buttons" -> member_clear_buttons,
+    "clear" -> member_clear,
+    "create text box" -> member_create_text_box,
+    "current page" -> member_current_page,
+    "display search" -> member_display_search,
+    "height" -> member_height,
+    "icon names" -> member_icon_names,
+    "pages" -> member_pages,
+    "pick date" -> member_pick_date,
+    "pick string" -> member_pick_string,
+    "pick time" -> member_pick_time,
+    "pop page with transition" -> member_pop_page_with_transition,
+    "pop page" -> member_pop_page,
+    "prompt" -> member_prompt,
+    "push new page" -> member_push_new_page,
+    "screenshot" -> member_screenshot,
+    "set background camera" -> member_set_background_camera,
+    "set background cloud picture" -> member_set_background_cloud_picture,
+    "set background picture" -> member_set_background_picture,
+    "set background" -> member_set_background,
+    "set foreground" -> member_set_foreground,
+    "set page transition style" -> member_set_page_transition_style,
+    "set reversed" -> member_set_reversed,
+    "set subtitle" -> member_set_subtitle,
+    "set title" -> member_set_title,
+    "set transform matrix" -> member_set_transform_matrix,
+    "show back button" -> member_show_back_button,
+    "show title bar" -> member_show_title_bar,
+    "width" -> member_width
+  )
+
   /** Frequently used: Add a new button. icon must be the name of a built-in icon, text must be non-empty. */
   def member_add_button = ApiMember(
     name = "add button",
@@ -37,6 +75,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +85,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +95,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -154,6 +195,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TDateTime,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -163,6 +205,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(GCollection(TString))),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -172,6 +215,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TDateTime,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -199,6 +243,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -217,6 +262,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -226,6 +272,8 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TCamera)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -244,6 +292,7 @@ trait Default_SWall extends ASingleton {
     paramTypes = List(ApiParam(TPicture)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -335,45 +384,6 @@ trait Default_SWall extends ASingleton {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add button" -> member_add_button,
-    "ask boolean" -> member_ask_boolean,
-    "ask number" -> member_ask_number,
-    "ask string" -> member_ask_string,
-    "button icon names" -> member_button_icon_names,
-    "clear background" -> member_clear_background,
-    "clear buttons" -> member_clear_buttons,
-    "clear" -> member_clear,
-    "create text box" -> member_create_text_box,
-    "current page" -> member_current_page,
-    "display search" -> member_display_search,
-    "height" -> member_height,
-    "icon names" -> member_icon_names,
-    "pages" -> member_pages,
-    "pick date" -> member_pick_date,
-    "pick string" -> member_pick_string,
-    "pick time" -> member_pick_time,
-    "pop page with transition" -> member_pop_page_with_transition,
-    "pop page" -> member_pop_page,
-    "prompt" -> member_prompt,
-    "push new page" -> member_push_new_page,
-    "screenshot" -> member_screenshot,
-    "set background camera" -> member_set_background_camera,
-    "set background cloud picture" -> member_set_background_cloud_picture,
-    "set background picture" -> member_set_background_picture,
-    "set background" -> member_set_background,
-    "set foreground" -> member_set_foreground,
-    "set page transition style" -> member_set_page_transition_style,
-    "set reversed" -> member_set_reversed,
-    "set subtitle" -> member_set_subtitle,
-    "set title" -> member_set_title,
-    "set transform matrix" -> member_set_transform_matrix,
-    "show back button" -> member_show_back_button,
-    "show title bar" -> member_show_title_bar,
-    "width" -> member_width
   )
             
 

@@ -20,12 +20,14 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GPredicate extends AAction {
 
-  def TElt:AAny
-
   lazy val typeName = TypeName("Predicate", List(TElt.typeName))
 
-  override def actionReturnValue: AAny = TBoolean
+  def TElt: AAny
+          
   override def actionArguments: List[ApiParam] = List(ApiParam(TElt))
+
+  override def actionReturnValue: AAny = TBoolean
+
 
 }
           

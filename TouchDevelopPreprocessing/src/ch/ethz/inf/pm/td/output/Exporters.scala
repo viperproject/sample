@@ -24,15 +24,15 @@ object Exporters {
   var resultExporters: ListSet[ResultExporter] =
     ListSet(
       HTMLExporter,
-      TSVExporter,
-      JSONExporter,
-      MongoExporter,
-      CloudGraphExporter
+      //TSVExporter,
+      //JSONExporter,
+      //MongoExporter,
+      WeightedGraphExporter
     )
 
   var statusExporters: ListSet[StatusExporter] =
     ListSet(
-      MongoExporter
+      //MongoExporter
     )
 
   def exportResults(compiler: TouchCompiler, results: List[AnalysisResult]) {

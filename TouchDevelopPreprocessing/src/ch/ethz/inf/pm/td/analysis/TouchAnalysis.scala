@@ -293,6 +293,11 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     var cur = s
     for (methodDeclaration <- compiler.events) {
+
+      if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+        CloudAnalysisState.recordTransactionBoundary(methodDeclaration.programpoint)
+      }
+
       cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
     cur

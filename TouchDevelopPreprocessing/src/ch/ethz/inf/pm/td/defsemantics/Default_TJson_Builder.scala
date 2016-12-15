@@ -26,6 +26,49 @@ trait Default_TJson_Builder extends AMap {
 
   def valueType = TJson_Builder
 
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add boolean" -> member_add_boolean,
+    "add builder" -> member_add_builder,
+    "add null" -> member_add_null,
+    "add number" -> member_add_number,
+    "add string" -> member_add_string,
+    "add" -> member_add,
+    "boolean" -> member_boolean,
+    "clone" -> member_clone,
+    "contains key" -> member_contains_key,
+    "copy from" -> member_copy_from,
+    "field" -> member_field,
+    "kind" -> member_kind,
+    "number" -> member_number,
+    "remove at" -> member_remove_at,
+    "remove field" -> member_remove_field,
+    "serialize" -> member_serialize,
+    "set boolean" -> member_set_boolean,
+    "set builder" -> member_set_builder,
+    "set field null" -> member_set_field_null,
+    "set field" -> member_set_field,
+    "set number" -> member_set_number,
+    "set picture" -> member_set_picture,
+    "set sound" -> member_set_sound,
+    "set string" -> member_set_string,
+    "string" -> member_string,
+    "time" -> member_time,
+    "to boolean" -> member_to_boolean,
+    "to collection" -> member_to_collection,
+    "to number" -> member_to_number,
+    "to string" -> member_to_string,
+    "to time" -> member_to_time
+  )
+
+  /** Never used: Adds a boolean to the array. */
+  def member_add_boolean = ApiMember(
+    name = "add boolean",
+    paramTypes = List(ApiParam(TBoolean)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Add a reference to JsonBuilder to the array. */
   def member_add_builder = ApiMember(
     name = "add builder",
@@ -39,6 +82,24 @@ trait Default_TJson_Builder extends AMap {
   def member_add_null = ApiMember(
     name = "add null",
     paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Adds a number to the array. */
+  def member_add_number = ApiMember(
+    name = "add number",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Adds a string to the array. */
+  def member_add_string = ApiMember(
+    name = "add string",
+    paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
@@ -194,6 +255,7 @@ trait Default_TJson_Builder extends AMap {
     paramTypes = List(ApiParam(TString), ApiParam(TPicture), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -276,38 +338,6 @@ trait Default_TJson_Builder extends AMap {
     thisType = ApiParam(this),
     returnType = TDateTime,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add builder" -> member_add_builder,
-    "add null" -> member_add_null,
-    "add" -> member_add,
-    "boolean" -> member_boolean,
-    "clone" -> member_clone,
-    "contains key" -> member_contains_key,
-    "copy from" -> member_copy_from,
-    "field" -> member_field,
-    "kind" -> member_kind,
-    "number" -> member_number,
-    "remove at" -> member_remove_at,
-    "remove field" -> member_remove_field,
-    "serialize" -> member_serialize,
-    "set boolean" -> member_set_boolean,
-    "set builder" -> member_set_builder,
-    "set field null" -> member_set_field_null,
-    "set field" -> member_set_field,
-    "set number" -> member_set_number,
-    "set picture" -> member_set_picture,
-    "set sound" -> member_set_sound,
-    "set string" -> member_set_string,
-    "string" -> member_string,
-    "time" -> member_time,
-    "to boolean" -> member_to_boolean,
-    "to collection" -> member_to_collection,
-    "to number" -> member_to_number,
-    "to string" -> member_to_string,
-    "to time" -> member_to_time
   )
             
 

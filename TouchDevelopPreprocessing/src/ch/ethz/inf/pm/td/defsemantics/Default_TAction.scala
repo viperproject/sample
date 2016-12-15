@@ -21,8 +21,8 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TAction extends AAction {
 
   lazy val typeName = TypeName("Action")
-          
-  override def actionArguments = List()
+
+  override def actionArguments: List[ApiParam] = Nil
   override def actionReturnValue: AAny = TNothing
 
 

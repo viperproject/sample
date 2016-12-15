@@ -21,7 +21,33 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SApp extends ASingleton {
 
   lazy val typeName = TypeName("App", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "allow other events" -> member_allow_other_events,
+    "consume rendered comments" -> member_consume_rendered_comments,
+    "create logger" -> member_create_logger,
+    "current handler" -> member_current_handler,
+    "editor" -> member_editor,
+    "env" -> member_env,
+    "fail if not" -> member_fail_if_not,
+    "host exec" -> member_host_exec,
+    "host subscribe" -> member_host_subscribe,
+    "import" -> member_import_,
+    "javascript async" -> member_javascript_async,
+    "javascript" -> member_javascript,
+    "log" -> member_log,
+    "reflect" -> member_reflect,
+    "restart" -> member_restart,
+    "run command" -> member_run_command,
+    "script id" -> member_script_id,
+    "server request" -> member_server_request,
+    "server response" -> member_server_response,
+    "server setting" -> member_server_setting,
+    "show logs" -> member_show_logs,
+    "stop" -> member_stop,
+    "thumb" -> member_thumb
+  )
+
   /** Never used: Allow execution of other events, before the current event finishes. */
   def member_allow_other_events = ApiMember(
     name = "allow other events",
@@ -91,6 +117,8 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -100,6 +128,8 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TText_Action)),
     thisType = ApiParam(this),
     returnType = TEvent_Binding,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -118,6 +148,8 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -154,6 +186,7 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -163,6 +196,8 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TJson_Object)),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -208,6 +243,7 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -217,33 +253,17 @@ trait Default_SApp extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "allow other events" -> member_allow_other_events,
-    "consume rendered comments" -> member_consume_rendered_comments,
-    "create logger" -> member_create_logger,
-    "current handler" -> member_current_handler,
-    "editor" -> member_editor,
-    "env" -> member_env,
-    "fail if not" -> member_fail_if_not,
-    "host exec" -> member_host_exec,
-    "host subscribe" -> member_host_subscribe,
-    "import" -> member_import_,
-    "javascript async" -> member_javascript_async,
-    "javascript" -> member_javascript,
-    "log" -> member_log,
-    "reflect" -> member_reflect,
-    "restart" -> member_restart,
-    "run command" -> member_run_command,
-    "script id" -> member_script_id,
-    "server request" -> member_server_request,
-    "server response" -> member_server_response,
-    "server setting" -> member_server_setting,
-    "show logs" -> member_show_logs,
-    "stop" -> member_stop
+  /** Never used: When compiled to ARM Thumb, inline the body. */
+  def member_thumb = ApiMember(
+    name = "thumb",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
   )
             
 

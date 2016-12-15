@@ -20,14 +20,16 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GConverter extends AAction {
 
-  def TFrom:AAny
-  def TTo:AAny
-  
   lazy val typeName = TypeName("Converter", List(TFrom.typeName, TTo.typeName))
 
-  override def actionReturnValue: AAny = TTo
+  def TFrom:AAny
+
+  def TTo:AAny
+
   override def actionArguments: List[ApiParam] = List(ApiParam(TFrom))
-            
+
+  override def actionReturnValue: AAny = TTo
+
 
 }
           

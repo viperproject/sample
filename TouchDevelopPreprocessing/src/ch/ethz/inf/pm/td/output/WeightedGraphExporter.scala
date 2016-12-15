@@ -11,13 +11,13 @@ import ch.ethz.inf.pm.sample.execution.{AnalysisResult, WeightedGraphAnalysisRes
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.output.DumpGraph.SimpleGraphRenderer
 
-object CloudGraphExporter extends ResultExporter {
+object WeightedGraphExporter extends ResultExporter {
 
   def exportResults(compiler: TouchCompiler, results: List[AnalysisResult]) {
     results.foreach {
       case x: WeightedGraphAnalysisResult[_, _] =>
 
-        val file = FileSystemExporter.export(x.name + ".html", makeGraph(x))
+        val file = FileSystemExporter.export(compiler.mainID + "." + x.shortName + ".html", makeGraph(x))
         SystemParameters.progressOutput.put("Exported graph " + x.name + " for id " + compiler.mainID + " to " + file.toString)
 
       case _ => ()

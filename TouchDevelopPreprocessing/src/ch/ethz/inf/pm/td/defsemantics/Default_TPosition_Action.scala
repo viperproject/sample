@@ -21,8 +21,8 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TPosition_Action extends AAction {
 
   lazy val typeName = TypeName("Position Action")
-          
-  override def actionArguments = List(ApiParam(TNumber),ApiParam(TNumber))
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TNumber), ApiParam(TNumber))
   override def actionReturnValue: AAny = TNothing
 
 

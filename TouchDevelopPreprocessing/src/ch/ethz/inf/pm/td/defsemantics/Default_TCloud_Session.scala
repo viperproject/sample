@@ -21,7 +21,15 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TCloud_Session extends AAny {
 
   lazy val typeName = TypeName("Cloud Session")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "id" -> member_id,
+    "is owned" -> member_is_owned,
+    "owner" -> member_owner,
+    "server info" -> member_server_info,
+    "title" -> member_title
+  )
+
   /** Sometimes used: Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */
   def member_id = ApiMember(
     name = "id",
@@ -55,6 +63,8 @@ trait Default_TCloud_Session extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -65,15 +75,6 @@ trait Default_TCloud_Session extends AAny {
     thisType = ApiParam(this),
     returnType = TString,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "id" -> member_id,
-    "is owned" -> member_is_owned,
-    "owner" -> member_owner,
-    "server info" -> member_server_info,
-    "title" -> member_title
   )
             
 

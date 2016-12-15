@@ -21,7 +21,20 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TWeb_Response extends AAny {
 
   lazy val typeName = TypeName("Web Response")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "content as buffer" -> member_content_as_buffer,
+    "content as json" -> member_content_as_json,
+    "content as picture" -> member_content_as_picture,
+    "content as sound" -> member_content_as_sound,
+    "content as xml" -> member_content_as_xml,
+    "content" -> member_content,
+    "header names" -> member_header_names,
+    "header" -> member_header,
+    "request" -> member_request,
+    "status code" -> member_status_code
+  )
+
   /** Never used: Reads the response body as a Buffer. */
   def member_content_as_buffer = ApiMember(
     name = "content as buffer",
@@ -46,6 +59,8 @@ trait Default_TWeb_Response extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -110,20 +125,6 @@ trait Default_TWeb_Response extends AAny {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "content as buffer" -> member_content_as_buffer,
-    "content as json" -> member_content_as_json,
-    "content as picture" -> member_content_as_picture,
-    "content as sound" -> member_content_as_sound,
-    "content as xml" -> member_content_as_xml,
-    "content" -> member_content,
-    "header names" -> member_header_names,
-    "header" -> member_header,
-    "request" -> member_request,
-    "status code" -> member_status_code
   )
             
 

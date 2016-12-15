@@ -21,9 +21,10 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TBoolean_Action extends AAction {
 
   lazy val typeName = TypeName("Boolean Action")
-          
-  override def actionArguments = List(ApiParam(TBoolean_Action))
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TBoolean_Action))
   override def actionReturnValue: AAny = TNothing
+
 
 }
           

@@ -21,7 +21,17 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TWeb_Socket extends AAny {
 
   lazy val typeName = TypeName("Web Socket")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "buffered amount" -> member_buffered_amount,
+    "close" -> member_close,
+    "ready state" -> member_ready_state,
+    "receive" -> member_receive,
+    "send buffer" -> member_send_buffer,
+    "send json" -> member_send_json,
+    "send" -> member_send
+  )
+
   /** Never used: The number of bytes of data that have been queued using calls to send() but not yet transmitted to the network. This value does not reset to zero when the connection is closed; if you keep calling send(), this will continue to climb. */
   def member_buffered_amount = ApiMember(
     name = "buffered amount",
@@ -55,6 +65,8 @@ trait Default_TWeb_Socket extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TWeb_Socket_Message,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -83,17 +95,6 @@ trait Default_TWeb_Socket extends AAny {
     thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "buffered amount" -> member_buffered_amount,
-    "close" -> member_close,
-    "ready state" -> member_ready_state,
-    "receive" -> member_receive,
-    "send buffer" -> member_send_buffer,
-    "send json" -> member_send_json,
-    "send" -> member_send
   )
             
 

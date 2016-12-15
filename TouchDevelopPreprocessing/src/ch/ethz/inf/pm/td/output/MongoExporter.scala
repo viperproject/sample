@@ -106,7 +106,7 @@ object MongoExporter extends ResultExporter with StatusExporter {
 
   }
 
-  def log(testRun: String, level: String, message: String) = {
+  def log(testRun: String, level: String, message: String): Unit = {
     MongoExporter.client.update(
       MongoDBObject("testRun" -> testRun),
       $push(level -> (message + "\n")))

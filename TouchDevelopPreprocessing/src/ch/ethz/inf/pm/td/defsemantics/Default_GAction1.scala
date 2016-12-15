@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.ApiParam
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -20,12 +20,13 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GAction1 extends AAction {
 
-  def TT:AAny
-           
-
   lazy val typeName = TypeName("Action1", List(TT.typeName))
-          
-  override def actionArguments = List(ApiParam(TT))
+
+  def TT: AAny
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TT))
   override def actionReturnValue: AAny = TNothing
+
+
 }
           

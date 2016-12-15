@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,15 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SMaps extends ASingleton {
 
   lazy val typeName = TypeName("Maps", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "create full map" -> member_create_full_map,
+    "create map" -> member_create_map,
+    "directions" -> member_directions,
+    "open directions" -> member_open_directions,
+    "open map" -> member_open_map
+  )
+
   /** Sometimes used: Creates a full screen Bing map. Use 'post to wall' to display it. */
   def member_create_full_map = ApiMember(
     name = "create full map",
@@ -46,6 +54,8 @@ trait Default_SMaps extends ASingleton {
     paramTypes = List(ApiParam(TLocation), ApiParam(TLocation), ApiParam(TBoolean)),
     thisType = ApiParam(this),
     returnType = GCollection(TLocation),
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +65,7 @@ trait Default_SMaps extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TLocation), ApiParam(TString), ApiParam(TLocation)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,16 +75,8 @@ trait Default_SMaps extends ASingleton {
     paramTypes = List(ApiParam(TLocation), ApiParam(TString), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "create full map" -> member_create_full_map,
-    "create map" -> member_create_map,
-    "directions" -> member_directions,
-    "open directions" -> member_open_directions,
-    "open map" -> member_open_map
   )
             
 

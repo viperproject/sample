@@ -21,7 +21,28 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SBits extends ASingleton {
 
   lazy val typeName = TypeName("Bits", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add int32" -> member_add_int32,
+    "add uint32" -> member_add_uint32,
+    "and int32" -> member_and_int32,
+    "and uint32" -> member_and_uint32,
+    "create buffer" -> member_create_buffer,
+    "multiply int32" -> member_multiply_int32,
+    "multiply uint32" -> member_multiply_uint32,
+    "not uint32" -> member_not_uint32,
+    "or int32" -> member_or_int32,
+    "or uint32" -> member_or_uint32,
+    "rotate left uint32" -> member_rotate_left_uint32,
+    "rotate right uint32" -> member_rotate_right_uint32,
+    "shift left uint32" -> member_shift_left_uint32,
+    "shift right uint32" -> member_shift_right_uint32,
+    "string to buffer" -> member_string_to_buffer,
+    "subtract int32" -> member_subtract_int32,
+    "subtract uint32" -> member_subtract_uint32,
+    "xor uint32" -> member_xor_uint32
+  )
+
   /** Never used: Add two signed 32 bit numbers */
   def member_add_int32 = ApiMember(
     name = "add int32",
@@ -34,6 +55,15 @@ trait Default_SBits extends ASingleton {
   /** Never used: Add two unsigned 32 bit numbers */
   def member_add_uint32 = ApiMember(
     name = "add uint32",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Perform bitwise and (`&` in C) on signed integers */
+  def member_and_int32 = ApiMember(
+    name = "and int32",
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
@@ -80,6 +110,15 @@ trait Default_SBits extends ASingleton {
   def member_not_uint32 = ApiMember(
     name = "not uint32",
     paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Perform bitwise or (`|` in C) on signed integers */
+  def member_or_int32 = ApiMember(
+    name = "or int32",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
@@ -164,26 +203,6 @@ trait Default_SBits extends ASingleton {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add int32" -> member_add_int32,
-    "add uint32" -> member_add_uint32,
-    "and uint32" -> member_and_uint32,
-    "create buffer" -> member_create_buffer,
-    "multiply int32" -> member_multiply_int32,
-    "multiply uint32" -> member_multiply_uint32,
-    "not uint32" -> member_not_uint32,
-    "or uint32" -> member_or_uint32,
-    "rotate left uint32" -> member_rotate_left_uint32,
-    "rotate right uint32" -> member_rotate_right_uint32,
-    "shift left uint32" -> member_shift_left_uint32,
-    "shift right uint32" -> member_shift_right_uint32,
-    "string to buffer" -> member_string_to_buffer,
-    "subtract int32" -> member_subtract_int32,
-    "subtract uint32" -> member_subtract_uint32,
-    "xor uint32" -> member_xor_uint32
   )
             
 

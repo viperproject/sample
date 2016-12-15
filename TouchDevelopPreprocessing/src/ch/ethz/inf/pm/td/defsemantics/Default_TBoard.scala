@@ -26,6 +26,47 @@ trait Default_TBoard extends AMutableLinearCollection {
 
   def valueType = TSprite
 
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add on every frame" -> member_add_on_every_frame,
+    "background scene" -> member_background_scene,
+    "clear background camera" -> member_clear_background_camera,
+    "clear background picture" -> member_clear_background_picture,
+    "clear events" -> member_clear_events,
+    "clear every frame timers" -> member_clear_every_frame_timers,
+    "create anchor" -> member_create_anchor,
+    "create boundary" -> member_create_boundary,
+    "create ellipse" -> member_create_ellipse,
+    "create obstacle" -> member_create_obstacle,
+    "create picture" -> member_create_picture,
+    "create rectangle" -> member_create_rectangle,
+    "create spring" -> member_create_spring,
+    "create sprite set" -> member_create_sprite_set,
+    "create sprite sheet" -> member_create_sprite_sheet,
+    "create text" -> member_create_text,
+    "evolve" -> member_evolve,
+    "frame timer" -> member_frame_timer,
+    "height" -> member_height,
+    "is landscape" -> member_is_landscape,
+    "on every frame" -> member_on_every_frame,
+    "on swipe" -> member_on_swipe,
+    "on tap" -> member_on_tap,
+    "on touch down" -> member_on_touch_down,
+    "on touch up" -> member_on_touch_up,
+    "set background camera" -> member_set_background_camera,
+    "set background picture" -> member_set_background_picture,
+    "set background" -> member_set_background,
+    "set debug mode" -> member_set_debug_mode,
+    "set friction" -> member_set_friction,
+    "set gravity" -> member_set_gravity,
+    "touch current" -> member_touch_current,
+    "touch end" -> member_touch_end,
+    "touch start" -> member_touch_start,
+    "touch velocity" -> member_touch_velocity,
+    "touched" -> member_touched,
+    "update on wall" -> member_update_on_wall,
+    "width" -> member_width
+  )
+
   /** Never used: add an action that fires for every display frame. */
   def member_add_on_every_frame = ApiMember(
     name = "add on every frame",
@@ -122,6 +163,7 @@ trait Default_TBoard extends AMutableLinearCollection {
     paramTypes = List(ApiParam(TPicture)),
     thisType = ApiParam(this),
     returnType = TSprite,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -366,48 +408,6 @@ trait Default_TBoard extends AMutableLinearCollection {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add on every frame" -> member_add_on_every_frame,
-    "background scene" -> member_background_scene,
-    "clear background camera" -> member_clear_background_camera,
-    "clear background picture" -> member_clear_background_picture,
-    "clear events" -> member_clear_events,
-    "clear every frame timers" -> member_clear_every_frame_timers,
-    "create anchor" -> member_create_anchor,
-    "create boundary" -> member_create_boundary,
-    "create ellipse" -> member_create_ellipse,
-    "create obstacle" -> member_create_obstacle,
-    "create picture" -> member_create_picture,
-    "create rectangle" -> member_create_rectangle,
-    "create spring" -> member_create_spring,
-    "create sprite set" -> member_create_sprite_set,
-    "create sprite sheet" -> member_create_sprite_sheet,
-    "create text" -> member_create_text,
-    "evolve" -> member_evolve,
-    "frame timer" -> member_frame_timer,
-    "height" -> member_height,
-    "is landscape" -> member_is_landscape,
-    "on every frame" -> member_on_every_frame,
-    "on swipe" -> member_on_swipe,
-    "on tap" -> member_on_tap,
-    "on touch down" -> member_on_touch_down,
-    "on touch up" -> member_on_touch_up,
-    "set background camera" -> member_set_background_camera,
-    "set background picture" -> member_set_background_picture,
-    "set background" -> member_set_background,
-    "set debug mode" -> member_set_debug_mode,
-    "set friction" -> member_set_friction,
-    "set gravity" -> member_set_gravity,
-    "touch current" -> member_touch_current,
-    "touch end" -> member_touch_end,
-    "touch start" -> member_touch_start,
-    "touch velocity" -> member_touch_velocity,
-    "touched" -> member_touched,
-    "update on wall" -> member_update_on_wall,
-    "width" -> member_width
   )
             
 

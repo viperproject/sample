@@ -21,13 +21,25 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TUser extends AAny {
 
   lazy val typeName = TypeName("User")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "about" -> member_about,
+    "has picture" -> member_has_picture,
+    "id" -> member_id,
+    "name" -> member_name,
+    "picture address" -> member_picture_address,
+    "picture" -> member_picture,
+    "preload" -> member_preload,
+    "settings" -> member_settings
+  )
+
   /** Never used: Gets the about-me text of the user */
   def member_about = ApiMember(
     name = "about",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +49,7 @@ trait Default_TUser extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +68,7 @@ trait Default_TUser extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +78,7 @@ trait Default_TUser extends AAny {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +88,7 @@ trait Default_TUser extends AAny {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -82,6 +98,8 @@ trait Default_TUser extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -91,19 +109,8 @@ trait Default_TUser extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "about" -> member_about,
-    "has picture" -> member_has_picture,
-    "id" -> member_id,
-    "name" -> member_name,
-    "picture address" -> member_picture_address,
-    "picture" -> member_picture,
-    "preload" -> member_preload,
-    "settings" -> member_settings
   )
             
 

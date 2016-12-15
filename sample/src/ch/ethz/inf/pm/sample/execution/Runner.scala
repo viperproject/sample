@@ -6,27 +6,33 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.oorepresentation._
-import java.nio.file.Path
-
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StringCollector, SystemParameters}
 import java.io.File
 
-import com.sun.corba.se.impl.orbutil.graph.Graph
+import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StringCollector, SystemParameters}
 
 trait AnalysisRunner[S <: State[S]] {
   val compiler: Compiler
 
   val analysis: Analysis[S]
 
-  /** Which methods to analyze (by default: all of them). */
-  def methodsToAnalyze: List[MethodDeclaration] = compiler.allMethods
+  def main(args: Array[String]) {
+    run(Compilable.Path(new File(args(0)).toPath))
+  }
 
   def run(comp: Compilable): List[AnalysisResult] = {
     compiler.compile(comp)
     _run()
   }
+
+  protected def _run(): List[AnalysisResult] = {
+    prepareContext()
+    methodsToAnalyze.map(analysis.analyze)
+  }
+
+  /** Which methods to analyze (by default: all of them). */
+  def methodsToAnalyze: List[MethodDeclaration] = compiler.allMethods
 
   protected def prepareContext() {
     SystemParameters.analysisOutput = new StringCollector
@@ -40,15 +46,6 @@ trait AnalysisRunner[S <: State[S]] {
     // Set up native methods
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
-  }
-
-  protected def _run(): List[AnalysisResult] = {
-    prepareContext()
-    methodsToAnalyze.map(analysis.analyze)
-  }
-
-  def main(args: Array[String]) {
-    run(Compilable.Path(new File(args(0)).toPath))
   }
 }
 
@@ -67,12 +64,12 @@ trait NodeWithState[S <: State[S]] {
 
 }
 
-case class WeightedGraphAnalysisResult[S, W](name:String, graph: WeightedGraph[S,W]) extends AnalysisResult {
-  override def displayName = name
+case class WeightedGraphAnalysisResult[S, W](name: String, shortName: String, graph: WeightedGraph[S, W]) extends AnalysisResult {
+  override def displayName: String = name
 }
 
 case class MethodAnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S]) extends AnalysisResult {
-  override def displayName = "Method "+method.name
+  override def displayName: String = "Method " + method.name
 }
 
 /** Entry State Builder. Builds analysis entry states for given method declarations.
@@ -108,7 +105,7 @@ trait BackwardEntryStateBuilder[S <: State[S]] extends EntryStateBuilder[S] {
 trait Analysis[S <: State[S]] {
   def analyze(method: MethodDeclaration): MethodAnalysisResult[S]
 
-  def time[A](a: => A) = {
+  def time[A](a: => A): A = {
     val now = System.nanoTime
     val result = a
     val micros = (System.nanoTime - now) / 1000

@@ -21,7 +21,20 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TSong extends AAny {
 
   lazy val typeName = TypeName("Song")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "album" -> member_album,
+    "artist" -> member_artist,
+    "duration" -> member_duration,
+    "genre" -> member_genre,
+    "name" -> member_name,
+    "play count" -> member_play_count,
+    "play" -> member_play,
+    "protected" -> member_protected,
+    "rating" -> member_rating,
+    "track" -> member_track
+  )
+
   /** Frequently used: Gets the song album containing the song */
   def member_album = ApiMember(
     name = "album",
@@ -37,6 +50,7 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +60,7 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +70,7 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +89,7 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -100,6 +117,7 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -109,21 +127,8 @@ trait Default_TSong extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "album" -> member_album,
-    "artist" -> member_artist,
-    "duration" -> member_duration,
-    "genre" -> member_genre,
-    "name" -> member_name,
-    "play count" -> member_play_count,
-    "play" -> member_play,
-    "protected" -> member_protected,
-    "rating" -> member_rating,
-    "track" -> member_track
   )
             
 

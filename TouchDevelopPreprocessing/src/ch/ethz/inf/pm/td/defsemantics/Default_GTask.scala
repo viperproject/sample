@@ -20,17 +20,25 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GTask extends AAny {
 
-  def TT:AAny
-           
-
   lazy val typeName = TypeName("Task", List(TT.typeName))
-          
+
+  def TT: AAny
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "await at most" -> member_await_at_most,
+    "await" -> member_await,
+    "completed" -> member_completed,
+    "value" -> member_value
+  )
+
   /** Never used: Wait for the task to finish for at most `seconds`; returns invalid in case of timeout */
   def member_await_at_most = ApiMember(
     name = "await at most",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TT,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -40,6 +48,8 @@ trait Default_GTask extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TT,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -59,14 +69,6 @@ trait Default_GTask extends AAny {
     thisType = ApiParam(this),
     returnType = TT,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "await at most" -> member_await_at_most,
-    "await" -> member_await,
-    "completed" -> member_completed,
-    "value" -> member_value
   )
             
 

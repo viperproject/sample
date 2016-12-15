@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,13 +21,31 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TNumber extends AAny {
 
   lazy val typeName = TypeName("Number")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "*" -> member_multiply,
+    "+" -> member_add,
+    "-" -> member_subtract,
+    "/" -> member_divide,
+    "<" -> member_lt,
+    "=" -> member_eq,
+    ">" -> member_gt,
+    "to character" -> member_to_character,
+    "to color" -> member_to_color,
+    "to json" -> member_to_json,
+    "to string" -> member_to_string,
+    "≠" -> member_neq,
+    "≤" -> member_le,
+    "≥" -> member_ge
+  )
+
   /** Very frequently used: Multiplies numbers */
   def member_multiply = ApiMember(
     name = "*",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
+    infixPriority = 20.0,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +55,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
+    infixPriority = 10.0,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +65,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
+    infixPriority = 10.0,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +75,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNumber,
+    infixPriority = 20.0,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +85,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +95,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
   )
 
@@ -82,6 +105,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
   )
 
@@ -127,6 +151,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
   )
 
@@ -136,6 +161,7 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
   )
 
@@ -145,25 +171,8 @@ trait Default_TNumber extends AAny {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 5.0,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "*" -> member_multiply,
-    "+" -> member_add,
-    "-" -> member_subtract,
-    "/" -> member_divide,
-    "<" -> member_lt,
-    "=" -> member_eq,
-    ">" -> member_gt,
-    "to character" -> member_to_character,
-    "to color" -> member_to_color,
-    "to json" -> member_to_json,
-    "to string" -> member_to_string,
-    "≠" -> member_neq,
-    "≤" -> member_le,
-    "≥" -> member_ge
   )
             
 

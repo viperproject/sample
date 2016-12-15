@@ -21,13 +21,23 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TBoolean extends AAny {
 
   lazy val typeName = TypeName("Boolean")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "and" -> member_and,
+    "not" -> member_not,
+    "or" -> member_or,
+    "to json" -> member_to_json,
+    "to number" -> member_to_number,
+    "to string" -> member_to_string
+  )
+
   /** Very frequently used: Builds conjunction */
   def member_and = ApiMember(
     name = "and",
     paramTypes = List(ApiParam(TBoolean)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 3.0,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +47,7 @@ trait Default_TBoolean extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 4.0,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +57,7 @@ trait Default_TBoolean extends AAny {
     paramTypes = List(ApiParam(TBoolean)),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    infixPriority = 2.0,
     semantics = DefaultSemantics
   )
 
@@ -74,16 +86,6 @@ trait Default_TBoolean extends AAny {
     thisType = ApiParam(this),
     returnType = TString,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "and" -> member_and,
-    "not" -> member_not,
-    "or" -> member_or,
-    "to json" -> member_to_json,
-    "to number" -> member_to_number,
-    "to string" -> member_to_string
   )
             
 

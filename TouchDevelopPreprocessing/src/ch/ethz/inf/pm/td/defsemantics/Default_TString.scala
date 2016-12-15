@@ -21,7 +21,48 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TString extends AAny {
 
   lazy val typeName = TypeName("String")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "at" -> member_at,
+    "code at" -> member_code_at,
+    "compare" -> member_compare,
+    "concat" -> member_concat,
+    "contains" -> member_contains,
+    "copy to clipboard" -> member_copy_to_clipboard,
+    "count" -> member_count,
+    "ends with" -> member_ends_with,
+    "index of" -> member_index_of,
+    "insert" -> member_insert,
+    "is empty" -> member_is_empty,
+    "is match regex" -> member_is_match_regex,
+    "last index of" -> member_last_index_of,
+    "match" -> member_match,
+    "matches" -> member_matches,
+    "remove" -> member_remove,
+    "replace regex with converter" -> member_replace_regex_with_converter,
+    "replace regex" -> member_replace_regex,
+    "replace" -> member_replace,
+    "share" -> member_share,
+    "split" -> member_split,
+    "starts with" -> member_starts_with,
+    "substring" -> member_substring,
+    "to boolean" -> member_to_boolean,
+    "to character code" -> member_to_character_code,
+    "to color" -> member_to_color,
+    "to datetime" -> member_to_datetime,
+    "to json" -> member_to_json,
+    "to location" -> member_to_location,
+    "to lower case" -> member_to_lower_case,
+    "to number" -> member_to_number,
+    "to time" -> member_to_time,
+    "to unicode" -> member_to_unicode,
+    "to upper case" -> member_to_upper_case,
+    "trim end" -> member_trim_end,
+    "trim overflow" -> member_trim_overflow,
+    "trim start" -> member_trim_start,
+    "trim" -> member_trim
+  )
+
   /** Sometimes used: Gets the character at a specified index. Returns invalid if out of bounds. */
   def member_at = ApiMember(
     name = "at",
@@ -73,6 +114,7 @@ trait Default_TString extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -193,12 +235,13 @@ trait Default_TString extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares the string (email, sms, facebook, social or &#39;&#39; to pick from a list) */
+  /** Rarely used: Shares the string (email, sms, facebook, social or to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -362,48 +405,6 @@ trait Default_TString extends AAny {
     thisType = ApiParam(this),
     returnType = TString,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "at" -> member_at,
-    "code at" -> member_code_at,
-    "compare" -> member_compare,
-    "concat" -> member_concat,
-    "contains" -> member_contains,
-    "copy to clipboard" -> member_copy_to_clipboard,
-    "count" -> member_count,
-    "ends with" -> member_ends_with,
-    "index of" -> member_index_of,
-    "insert" -> member_insert,
-    "is empty" -> member_is_empty,
-    "is match regex" -> member_is_match_regex,
-    "last index of" -> member_last_index_of,
-    "match" -> member_match,
-    "matches" -> member_matches,
-    "remove" -> member_remove,
-    "replace regex with converter" -> member_replace_regex_with_converter,
-    "replace regex" -> member_replace_regex,
-    "replace" -> member_replace,
-    "share" -> member_share,
-    "split" -> member_split,
-    "starts with" -> member_starts_with,
-    "substring" -> member_substring,
-    "to boolean" -> member_to_boolean,
-    "to character code" -> member_to_character_code,
-    "to color" -> member_to_color,
-    "to datetime" -> member_to_datetime,
-    "to json" -> member_to_json,
-    "to location" -> member_to_location,
-    "to lower case" -> member_to_lower_case,
-    "to number" -> member_to_number,
-    "to time" -> member_to_time,
-    "to unicode" -> member_to_unicode,
-    "to upper case" -> member_to_upper_case,
-    "trim end" -> member_trim_end,
-    "trim overflow" -> member_trim_overflow,
-    "trim start" -> member_trim_start,
-    "trim" -> member_trim
   )
             
 

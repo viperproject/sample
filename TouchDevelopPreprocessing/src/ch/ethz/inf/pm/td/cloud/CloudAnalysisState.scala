@@ -265,6 +265,24 @@ object CloudAnalysisState {
     res
   }
 
+  /**
+    *
+    * Called whenever the analysis hits a transaction boundary.
+    *
+    * In TouchDevelop transaction boundaries are inserted whenever there is no code to execute, in particular,
+    * when no event is currently being executed and the event queue is empty. That might happen
+    *
+    * (a) after an event handler terminates
+    * (b) when an event handler is blocked due to an asynchronous operation.
+    *
+    * @param pp the program point identifying the new transaction, e.g. the program point of the
+    *           event handler, or the program point after an asynchronous operation.
+    *
+    */
+  def recordTransactionBoundary(pp: ProgramPoint): Unit = {
+    println("hit transaction boundary at " + pp)
+  }
+
   override def toString: String = {
     "==Graph==\n" +
       (for ((aE, preds) <- invProgramOrder; pred <- preds.toSetOrFail) yield {
@@ -296,16 +314,15 @@ object CloudAnalysisState {
 
     override def toString: String = method
   }
-
-  object EdgeLabel extends Enumeration {
-    type EdgeLabel = Value
-    val ProgramOrder, Arbitration, Dependency, AntiDependency = Value
-  }
-
   case object InitialEvent extends AbstractEvent {
     val id = ""
 
     override def toString: String = "Init"
   }
 
+}
+
+object EdgeLabel extends Enumeration {
+  type EdgeLabel = Value
+  val ProgramOrder, Arbitration, Dependency, AntiDependency = Value
 }

@@ -21,7 +21,19 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SLanguages extends ASingleton {
 
   lazy val typeName = TypeName("Languages", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "current language" -> member_current_language,
+    "detect language" -> member_detect_language,
+    "picture to text" -> member_picture_to_text,
+    "record text" -> member_record_text,
+    "speak ssml" -> member_speak_ssml,
+    "speak text" -> member_speak_text,
+    "speak" -> member_speak,
+    "speech to text" -> member_speech_to_text,
+    "translate" -> member_translate
+  )
+
   /** Sometimes used: Gets the current language code, to be used in the 'translate' method. */
   def member_current_language = ApiMember(
     name = "current language",
@@ -37,6 +49,8 @@ trait Default_SLanguages extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +69,7 @@ trait Default_SLanguages extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +79,8 @@ trait Default_SLanguages extends ASingleton {
     paramTypes = List(ApiParam(TXml_Object)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +90,8 @@ trait Default_SLanguages extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -100,20 +119,9 @@ trait Default_SLanguages extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "current language" -> member_current_language,
-    "detect language" -> member_detect_language,
-    "picture to text" -> member_picture_to_text,
-    "record text" -> member_record_text,
-    "speak ssml" -> member_speak_ssml,
-    "speak text" -> member_speak_text,
-    "speak" -> member_speak,
-    "speech to text" -> member_speech_to_text,
-    "translate" -> member_translate
   )
             
 

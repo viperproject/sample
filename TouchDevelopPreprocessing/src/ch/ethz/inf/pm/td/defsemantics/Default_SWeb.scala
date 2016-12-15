@@ -21,8 +21,68 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SWeb extends ASingleton {
 
   lazy val typeName = TypeName("Web", isSingleton = true)
-          
-  /** Never used: Decodes a string that has been base64-encoded */
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "base64 decode" -> member_base64_decode,
+    "base64 encode" -> member_base64_encode,
+    "browse" -> member_browse,
+    "connection name" -> member_connection_name,
+    "connection type" -> member_connection_type,
+    "create event source" -> member_create_event_source,
+    "create form builder" -> member_create_form_builder,
+    "create json builder" -> member_create_json_builder,
+    "create request" -> member_create_request,
+    "csv" -> member_csv,
+    "decode uri component" -> member_decode_uri_component,
+    "decode uri" -> member_decode_uri,
+    "download json" -> member_download_json,
+    "download picture" -> member_download_picture,
+    "download song" -> member_download_song,
+    "download sound" -> member_download_sound,
+    "download xml" -> member_download_xml,
+    "download" -> member_download,
+    "encode uri component" -> member_encode_uri_component,
+    "encode uri" -> member_encode_uri,
+    "feed" -> member_feed,
+    "html decode" -> member_html_decode,
+    "html encode" -> member_html_encode,
+    "is connected" -> member_is_connected,
+    "json array" -> member_json_array,
+    "json object" -> member_json_object,
+    "json" -> member_json,
+    "link deep zoom" -> member_link_deep_zoom,
+    "link image" -> member_link_image,
+    "link media" -> member_link_media,
+    "link url" -> member_link_url,
+    "oauth token from json" -> member_oauth_token_from_json,
+    "oauth token from url" -> member_oauth_token_from_url,
+    "oauth v2" -> member_oauth_v2,
+    "on received message from parent" -> member_on_received_message_from_parent,
+    "open connection settings" -> member_open_connection_settings,
+    "open web socket" -> member_open_web_socket,
+    "picture" -> member_picture,
+    "play media" -> member_play_media,
+    "post message to parent" -> member_post_message_to_parent,
+    "redirect" -> member_redirect,
+    "rss" -> member_rss,
+    "search images nearby" -> member_search_images_nearby,
+    "search images" -> member_search_images,
+    "search nearby" -> member_search_nearby,
+    "search news nearby" -> member_search_news_nearby,
+    "search news" -> member_search_news,
+    "search phone numbers nearby" -> member_search_phone_numbers_nearby,
+    "search phone numbers" -> member_search_phone_numbers,
+    "search" -> member_search,
+    "upload picture" -> member_upload_picture,
+    "upload sound" -> member_upload_sound,
+    "upload" -> member_upload,
+    "url decode" -> member_url_decode,
+    "url encode" -> member_url_encode,
+    "wait for message from parent" -> member_wait_for_message_from_parent,
+    "xml" -> member_xml
+  )
+
+  /** Never used: Decodes a string that has been base64-encoded (assuming utf8 encoding) */
   def member_base64_decode = ApiMember(
     name = "base64 decode",
     paramTypes = List(ApiParam(TString)),
@@ -31,7 +91,7 @@ trait Default_SWeb extends ASingleton {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Converts a string into an base64-encoded string */
+  /** Rarely used: Converts a string into an base64-encoded string (with utf8 encoding) */
   def member_base64_encode = ApiMember(
     name = "base64 encode",
     paramTypes = List(ApiParam(TString)),
@@ -46,6 +106,7 @@ trait Default_SWeb extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -533,67 +594,6 @@ trait Default_SWeb extends ASingleton {
     thisType = ApiParam(this),
     returnType = TXml_Object,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "base64 decode" -> member_base64_decode,
-    "base64 encode" -> member_base64_encode,
-    "browse" -> member_browse,
-    "connection name" -> member_connection_name,
-    "connection type" -> member_connection_type,
-    "create event source" -> member_create_event_source,
-    "create form builder" -> member_create_form_builder,
-    "create json builder" -> member_create_json_builder,
-    "create request" -> member_create_request,
-    "csv" -> member_csv,
-    "decode uri component" -> member_decode_uri_component,
-    "decode uri" -> member_decode_uri,
-    "download json" -> member_download_json,
-    "download picture" -> member_download_picture,
-    "download song" -> member_download_song,
-    "download sound" -> member_download_sound,
-    "download xml" -> member_download_xml,
-    "download" -> member_download,
-    "encode uri component" -> member_encode_uri_component,
-    "encode uri" -> member_encode_uri,
-    "feed" -> member_feed,
-    "html decode" -> member_html_decode,
-    "html encode" -> member_html_encode,
-    "is connected" -> member_is_connected,
-    "json array" -> member_json_array,
-    "json object" -> member_json_object,
-    "json" -> member_json,
-    "link deep zoom" -> member_link_deep_zoom,
-    "link image" -> member_link_image,
-    "link media" -> member_link_media,
-    "link url" -> member_link_url,
-    "oauth token from json" -> member_oauth_token_from_json,
-    "oauth token from url" -> member_oauth_token_from_url,
-    "oauth v2" -> member_oauth_v2,
-    "on received message from parent" -> member_on_received_message_from_parent,
-    "open connection settings" -> member_open_connection_settings,
-    "open web socket" -> member_open_web_socket,
-    "picture" -> member_picture,
-    "play media" -> member_play_media,
-    "post message to parent" -> member_post_message_to_parent,
-    "redirect" -> member_redirect,
-    "rss" -> member_rss,
-    "search images nearby" -> member_search_images_nearby,
-    "search images" -> member_search_images,
-    "search nearby" -> member_search_nearby,
-    "search news nearby" -> member_search_news_nearby,
-    "search news" -> member_search_news,
-    "search phone numbers nearby" -> member_search_phone_numbers_nearby,
-    "search phone numbers" -> member_search_phone_numbers,
-    "search" -> member_search,
-    "upload picture" -> member_upload_picture,
-    "upload sound" -> member_upload_sound,
-    "upload" -> member_upload,
-    "url decode" -> member_url_decode,
-    "url encode" -> member_url_encode,
-    "wait for message from parent" -> member_wait_for_message_from_parent,
-    "xml" -> member_xml
   )
             
 

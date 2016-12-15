@@ -21,8 +21,95 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TSprite extends AAny {
 
   lazy val typeName = TypeName("Sprite")
-          
-  /** Never used: Gets the acceleration along x in pixels/sec&#94;2 */
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "acceleration x" -> member_acceleration_x,
+    "acceleration y" -> member_acceleration_y,
+    "angle" -> member_angle,
+    "angular speed" -> member_angular_speed,
+    "background" -> member_background,
+    "bottom" -> member_bottom,
+    "bubble" -> member_bubble,
+    "color" -> member_color,
+    "create animation" -> member_create_animation,
+    "delete" -> member_delete_,
+    "elasticity" -> member_elasticity,
+    "fit text" -> member_fit_text,
+    "font size" -> member_font_size,
+    "friction" -> member_friction,
+    "gradient" -> member_gradient,
+    "height" -> member_height,
+    "hide" -> member_hide,
+    "is deleted" -> member_is_deleted,
+    "is visible" -> member_is_visible,
+    "left" -> member_left,
+    "location" -> member_location,
+    "mass" -> member_mass,
+    "move clip" -> member_move_clip,
+    "move towards" -> member_move_towards,
+    "move" -> member_move,
+    "on drag" -> member_on_drag,
+    "on every frame" -> member_on_every_frame,
+    "on swipe" -> member_on_swipe,
+    "on tap" -> member_on_tap,
+    "on touch down" -> member_on_touch_down,
+    "on touch up" -> member_on_touch_up,
+    "opacity" -> member_opacity,
+    "overlap with" -> member_overlap_with,
+    "overlaps with" -> member_overlaps_with,
+    "picture" -> member_picture,
+    "right" -> member_right,
+    "say" -> member_say,
+    "scale" -> member_scale,
+    "set acceleration x" -> member_set_acceleration_x,
+    "set acceleration y" -> member_set_acceleration_y,
+    "set acceleration" -> member_set_acceleration,
+    "set angle" -> member_set_angle,
+    "set angular speed" -> member_set_angular_speed,
+    "set background" -> member_set_background,
+    "set bottom" -> member_set_bottom,
+    "set bubble" -> member_set_bubble,
+    "set clip" -> member_set_clip,
+    "set color" -> member_set_color,
+    "set elasticity" -> member_set_elasticity,
+    "set font size" -> member_set_font_size,
+    "set friction" -> member_set_friction,
+    "set gradient" -> member_set_gradient,
+    "set height" -> member_set_height,
+    "set left" -> member_set_left,
+    "set location" -> member_set_location,
+    "set mass" -> member_set_mass,
+    "set opacity" -> member_set_opacity,
+    "set picture" -> member_set_picture,
+    "set pos" -> member_set_pos,
+    "set right" -> member_set_right,
+    "set scale" -> member_set_scale,
+    "set shadow" -> member_set_shadow,
+    "set speed x" -> member_set_speed_x,
+    "set speed y" -> member_set_speed_y,
+    "set speed" -> member_set_speed,
+    "set text baseline" -> member_set_text_baseline,
+    "set text" -> member_set_text,
+    "set top" -> member_set_top,
+    "set width" -> member_set_width,
+    "set x" -> member_set_x,
+    "set y" -> member_set_y,
+    "set z index" -> member_set_z_index,
+    "sheet" -> member_sheet,
+    "show" -> member_show,
+    "speed towards" -> member_speed_towards,
+    "speed x" -> member_speed_x,
+    "speed y" -> member_speed_y,
+    "text baseline" -> member_text_baseline,
+    "text" -> member_text,
+    "top" -> member_top,
+    "width" -> member_width,
+    "x" -> member_x,
+    "y" -> member_y,
+    "z index" -> member_z_index
+  )
+
+  /** Never used: Gets the acceleration along x in pixels/sec^2 */
   def member_acceleration_x = ApiMember(
     name = "acceleration x",
     paramTypes = List(),
@@ -31,7 +118,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Never used: Gets the acceleration along y in pixels/sec&#94;2 */
+  /** Never used: Gets the acceleration along y in pixels/sec^2 */
   def member_acceleration_y = ApiMember(
     name = "acceleration y",
     paramTypes = List(),
@@ -58,12 +145,30 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Gets the background color */
+  def member_background = ApiMember(
+    name = "background",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TColor,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Gets the bottom position in pixels */
   def member_bottom = ApiMember(
     name = "bottom",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Gets the bubble sprite if any */
+  def member_bubble = ApiMember(
+    name = "bubble",
+    paramTypes = List(),
+    thisType = ApiParam(this, isMutated = true),
+    returnType = TSprite,
     semantics = DefaultSemantics
   )
 
@@ -328,6 +433,15 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Displays a text bubble attached to the sprite and returns the bubble sprite. */
+  def member_say = ApiMember(
+    name = "say",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TSprite,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Gets the scaling applied when rendering the sprite. This scaling does not influence the bounding box. */
   def member_scale = ApiMember(
     name = "scale",
@@ -337,7 +451,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the x acceleration in pixels/sec&#94;2 */
+  /** Rarely used: Sets the x acceleration in pixels/sec^2 */
   def member_set_acceleration_x = ApiMember(
     name = "set acceleration x",
     paramTypes = List(ApiParam(TNumber)),
@@ -346,7 +460,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the y acceleration in pixels/sec&#94;2 */
+  /** Rarely used: Sets the y acceleration in pixels/sec^2 */
   def member_set_acceleration_y = ApiMember(
     name = "set acceleration y",
     paramTypes = List(ApiParam(TNumber)),
@@ -355,7 +469,7 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Sets the acceleration in pixels/sec&#94;2 */
+  /** Rarely used: Sets the acceleration in pixels/sec^2 */
   def member_set_acceleration = ApiMember(
     name = "set acceleration",
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber)),
@@ -382,11 +496,29 @@ trait Default_TSprite extends AAny {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Sets the background color */
+  def member_set_background = ApiMember(
+    name = "set background",
+    paramTypes = List(ApiParam(TColor)),
+    thisType = ApiParam(this, isMutated = true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
   /** Never used: Sets the bottom position in pixels */
   def member_set_bottom = ApiMember(
     name = "set bottom",
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Sets the bubble sprite */
+  def member_set_bubble = ApiMember(
+    name = "set bubble",
+    paramTypes = List(ApiParam(TSprite)),
+    thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
   )
@@ -496,6 +628,7 @@ trait Default_TSprite extends AAny {
     paramTypes = List(ApiParam(TPicture)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -731,89 +864,6 @@ trait Default_TSprite extends AAny {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "acceleration x" -> member_acceleration_x,
-    "acceleration y" -> member_acceleration_y,
-    "angle" -> member_angle,
-    "angular speed" -> member_angular_speed,
-    "bottom" -> member_bottom,
-    "color" -> member_color,
-    "create animation" -> member_create_animation,
-    "delete" -> member_delete_,
-    "elasticity" -> member_elasticity,
-    "fit text" -> member_fit_text,
-    "font size" -> member_font_size,
-    "friction" -> member_friction,
-    "gradient" -> member_gradient,
-    "height" -> member_height,
-    "hide" -> member_hide,
-    "is deleted" -> member_is_deleted,
-    "is visible" -> member_is_visible,
-    "left" -> member_left,
-    "location" -> member_location,
-    "mass" -> member_mass,
-    "move clip" -> member_move_clip,
-    "move towards" -> member_move_towards,
-    "move" -> member_move,
-    "on drag" -> member_on_drag,
-    "on every frame" -> member_on_every_frame,
-    "on swipe" -> member_on_swipe,
-    "on tap" -> member_on_tap,
-    "on touch down" -> member_on_touch_down,
-    "on touch up" -> member_on_touch_up,
-    "opacity" -> member_opacity,
-    "overlap with" -> member_overlap_with,
-    "overlaps with" -> member_overlaps_with,
-    "picture" -> member_picture,
-    "right" -> member_right,
-    "scale" -> member_scale,
-    "set acceleration x" -> member_set_acceleration_x,
-    "set acceleration y" -> member_set_acceleration_y,
-    "set acceleration" -> member_set_acceleration,
-    "set angle" -> member_set_angle,
-    "set angular speed" -> member_set_angular_speed,
-    "set bottom" -> member_set_bottom,
-    "set clip" -> member_set_clip,
-    "set color" -> member_set_color,
-    "set elasticity" -> member_set_elasticity,
-    "set font size" -> member_set_font_size,
-    "set friction" -> member_set_friction,
-    "set gradient" -> member_set_gradient,
-    "set height" -> member_set_height,
-    "set left" -> member_set_left,
-    "set location" -> member_set_location,
-    "set mass" -> member_set_mass,
-    "set opacity" -> member_set_opacity,
-    "set picture" -> member_set_picture,
-    "set pos" -> member_set_pos,
-    "set right" -> member_set_right,
-    "set scale" -> member_set_scale,
-    "set shadow" -> member_set_shadow,
-    "set speed x" -> member_set_speed_x,
-    "set speed y" -> member_set_speed_y,
-    "set speed" -> member_set_speed,
-    "set text baseline" -> member_set_text_baseline,
-    "set text" -> member_set_text,
-    "set top" -> member_set_top,
-    "set width" -> member_set_width,
-    "set x" -> member_set_x,
-    "set y" -> member_set_y,
-    "set z index" -> member_set_z_index,
-    "sheet" -> member_sheet,
-    "show" -> member_show,
-    "speed towards" -> member_speed_towards,
-    "speed x" -> member_speed_x,
-    "speed y" -> member_speed_y,
-    "text baseline" -> member_text_baseline,
-    "text" -> member_text,
-    "top" -> member_top,
-    "width" -> member_width,
-    "x" -> member_x,
-    "y" -> member_y,
-    "z index" -> member_z_index
   )
             
 

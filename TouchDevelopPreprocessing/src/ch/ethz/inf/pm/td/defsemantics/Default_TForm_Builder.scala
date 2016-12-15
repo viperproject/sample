@@ -21,7 +21,17 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TForm_Builder extends AAny {
 
   lazy val typeName = TypeName("Form Builder")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "add boolean" -> member_add_boolean,
+    "add buffer" -> member_add_buffer,
+    "add number" -> member_add_number,
+    "add picture" -> member_add_picture,
+    "add string as file" -> member_add_string_as_file,
+    "add string" -> member_add_string,
+    "add text" -> member_add_text
+  )
+
   /** Never used: Adds a boolean value */
   def member_add_boolean = ApiMember(
     name = "add boolean",
@@ -55,6 +65,7 @@ trait Default_TForm_Builder extends AAny {
     paramTypes = List(ApiParam(TString), ApiParam(TPicture), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -83,17 +94,6 @@ trait Default_TForm_Builder extends AAny {
     thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "add boolean" -> member_add_boolean,
-    "add buffer" -> member_add_buffer,
-    "add number" -> member_add_number,
-    "add picture" -> member_add_picture,
-    "add string as file" -> member_add_string_as_file,
-    "add string" -> member_add_string,
-    "add text" -> member_add_text
   )
             
 

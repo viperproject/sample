@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,13 +21,22 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TUnknown extends AAny {
 
   lazy val typeName = TypeName("Unknown")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "break" -> member_break_,
+    "continue" -> member_continue_,
+    "fun" -> member_fun,
+    "return" -> member_return_,
+    "show" -> member_show
+  )
+
   /** Rarely used:  */
   def member_break_ = ApiMember(
     name = "break",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUnknown,
+    infixPriority = 0.5,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +46,7 @@ trait Default_TUnknown extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUnknown,
+    infixPriority = 0.5,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +56,7 @@ trait Default_TUnknown extends AAny {
     paramTypes = List(ApiParam(TUnknown)),
     thisType = ApiParam(this),
     returnType = TUnknown,
+    infixPriority = 2.5,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +66,7 @@ trait Default_TUnknown extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUnknown,
+    infixPriority = 0.5,
     semantics = DefaultSemantics
   )
 
@@ -64,16 +76,8 @@ trait Default_TUnknown extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUnknown,
+    infixPriority = 0.5,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "break" -> member_break_,
-    "continue" -> member_continue_,
-    "fun" -> member_fun,
-    "return" -> member_return_,
-    "show" -> member_show
   )
             
 

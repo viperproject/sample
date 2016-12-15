@@ -96,13 +96,15 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
   def runAnalysis(id: String, expectedErrors: Set[(String, String)] = Set.empty): Unit = {
-    val res = TouchDevelopAnalysisRunner.Default(
+    val original = TouchAnalysisParameters.get
+    TouchAnalysisParameters.set(
       TouchAnalysisParameters.get.copy(
         enableCloudAnalysis = true,
         conditionalHandlers = false,
         contextSensitiveInterproceduralAnalysis = false
       )
-    ).run(Compilable.Identifier(id))
+    )
+    val res = TouchDevelopAnalysisRunner.Default(TouchAnalysisParameters.get).run(Compilable.Identifier(id))
     val err =
       res.collect {
         case SampleError(i, _, pp, _) => (i, pp.toString)
@@ -114,6 +116,7 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
     for (e <- err) {
       assert(expectedErrors.contains(e), "Did not expect reported error " + e)
     }
+    TouchAnalysisParameters.set(original)
   }
 
 }

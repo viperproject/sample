@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,58 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TContact extends AAny {
 
   lazy val typeName = TypeName("Contact")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "birthday" -> member_birthday,
+    "company" -> member_company,
+    "email" -> member_email,
+    "first name" -> member_first_name,
+    "home address" -> member_home_address,
+    "home phone" -> member_home_phone,
+    "id" -> member_id,
+    "job title" -> member_job_title,
+    "last name" -> member_last_name,
+    "middle name" -> member_middle_name,
+    "mobile phone" -> member_mobile_phone,
+    "name" -> member_name,
+    "nick name" -> member_nick_name,
+    "office" -> member_office,
+    "personal email" -> member_personal_email,
+    "phone number" -> member_phone_number,
+    "picture" -> member_picture,
+    "set Picture url" -> member_setPicture_url,
+    "set birthday" -> member_set_birthday,
+    "set company" -> member_set_company,
+    "set email" -> member_set_email,
+    "set first name" -> member_set_first_name,
+    "set home address" -> member_set_home_address,
+    "set home phone" -> member_set_home_phone,
+    "set id" -> member_set_id,
+    "set job title" -> member_set_job_title,
+    "set last name" -> member_set_last_name,
+    "set middle name" -> member_set_middle_name,
+    "set mobile phone" -> member_set_mobile_phone,
+    "set nick name" -> member_set_nick_name,
+    "set office" -> member_set_office,
+    "set personal email" -> member_set_personal_email,
+    "set phone number" -> member_set_phone_number,
+    "set picture" -> member_set_picture,
+    "set source" -> member_set_source,
+    "set suffix" -> member_set_suffix,
+    "set title" -> member_set_title,
+    "set web site" -> member_set_web_site,
+    "set work address" -> member_set_work_address,
+    "set work email" -> member_set_work_email,
+    "set work phone" -> member_set_work_phone,
+    "source" -> member_source,
+    "suffix" -> member_suffix,
+    "title" -> member_title,
+    "web site" -> member_web_site,
+    "work address" -> member_work_address,
+    "work email" -> member_work_email,
+    "work phone" -> member_work_phone
+  )
+
   /** Never used: Gets the birth date if any. */
   def member_birthday = ApiMember(
     name = "birthday",
@@ -172,6 +223,7 @@ trait Default_TContact extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -452,58 +504,6 @@ trait Default_TContact extends AAny {
     thisType = ApiParam(this),
     returnType = TLink,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "birthday" -> member_birthday,
-    "company" -> member_company,
-    "email" -> member_email,
-    "first name" -> member_first_name,
-    "home address" -> member_home_address,
-    "home phone" -> member_home_phone,
-    "id" -> member_id,
-    "job title" -> member_job_title,
-    "last name" -> member_last_name,
-    "middle name" -> member_middle_name,
-    "mobile phone" -> member_mobile_phone,
-    "name" -> member_name,
-    "nick name" -> member_nick_name,
-    "office" -> member_office,
-    "personal email" -> member_personal_email,
-    "phone number" -> member_phone_number,
-    "picture" -> member_picture,
-    "set Picture url" -> member_setPicture_url,
-    "set birthday" -> member_set_birthday,
-    "set company" -> member_set_company,
-    "set email" -> member_set_email,
-    "set first name" -> member_set_first_name,
-    "set home address" -> member_set_home_address,
-    "set home phone" -> member_set_home_phone,
-    "set id" -> member_set_id,
-    "set job title" -> member_set_job_title,
-    "set last name" -> member_set_last_name,
-    "set middle name" -> member_set_middle_name,
-    "set mobile phone" -> member_set_mobile_phone,
-    "set nick name" -> member_set_nick_name,
-    "set office" -> member_set_office,
-    "set personal email" -> member_set_personal_email,
-    "set phone number" -> member_set_phone_number,
-    "set picture" -> member_set_picture,
-    "set source" -> member_set_source,
-    "set suffix" -> member_set_suffix,
-    "set title" -> member_set_title,
-    "set web site" -> member_set_web_site,
-    "set work address" -> member_set_work_address,
-    "set work email" -> member_set_work_email,
-    "set work phone" -> member_set_work_phone,
-    "source" -> member_source,
-    "suffix" -> member_suffix,
-    "title" -> member_title,
-    "web site" -> member_web_site,
-    "work address" -> member_work_address,
-    "work email" -> member_work_email,
-    "work phone" -> member_work_phone
   )
             
 
