@@ -69,9 +69,9 @@ object SetDescription {
           case _ => false
         }.map {
           case AddField(field) =>
-            sil.CondExp(sil.AnySetContains(quantifiedVariable.localVar, set.localVar)(), sil.AnySetContains(sil.FieldAccess(quantifiedVariable.localVar, sil.Field(field, sil.Ref)())(), set.localVar)(), sil.TrueLit()())()
+            sil.AnySetContains(sil.FieldAccess(quantifiedVariable.localVar, sil.Field(field, sil.Ref)())(), set.localVar)()
         }
-        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()))())()
+        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), sil.CondExp(sil.AnySetContains(quantifiedVariable.localVar, set.localVar)(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.TrueLit()())())())()
       }
     }
 
