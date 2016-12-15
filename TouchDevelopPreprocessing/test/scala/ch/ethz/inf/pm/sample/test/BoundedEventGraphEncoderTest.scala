@@ -5,14 +5,13 @@
  */
 package ch.ethz.inf.pm.sample.test
 
-import ch.ethz.inf.pm.td.cloud.BoundedEventGraph._
-import ch.ethz.inf.pm.td.cloud.{BoundedEventGraph, BoundedEventGraphEncoder, SystemSpecification}
-import org.scalatest.FunSuite
+import ch.ethz.inf.pm.td.cloud.boundedgraph._
+import org.scalatest.{FunSuite, Matchers}
 
-class BoundedEventGraphEncoderTest extends FunSuite {
+class BoundedEventGraphEncoderTest extends FunSuite with Matchers {
 
   test("Single read, single write") {
-    val x = BoundedEventGraph.Graph(
+    val x = Graph(
       events = List(
         Event("u","u","put"),
         Event("q","q","get")
@@ -23,11 +22,11 @@ class BoundedEventGraphEncoderTest extends FunSuite {
       system = SystemSpecification.PutGetMap
     )
 
-    assert(BoundedEventGraphEncoder.findViolations(x).isEmpty)
+    assert(Encoder.findViolations(x).isEmpty)
   }
 
   test("Dekker R/W") {
-    val x = BoundedEventGraph.Graph(
+    val x = Graph(
       events = List(
         Event("u1","u1","wx"),
         Event("u2","u2","wy"),
@@ -41,11 +40,11 @@ class BoundedEventGraphEncoderTest extends FunSuite {
       system = SystemSpecification.ReadWriteRegister
     )
 
-    assert(BoundedEventGraphEncoder.findViolations(x).isDefined)
+    assert(Encoder.findViolations(x).isDefined)
   }
 
   test("Dekker") {
-    val x = BoundedEventGraph.Graph(
+    val x = Graph(
       events = List(
         Event("u1","u1","put"),
         Event("u2","u2","put"),
@@ -59,7 +58,52 @@ class BoundedEventGraphEncoderTest extends FunSuite {
       system = SystemSpecification.PutGetMap
     )
 
-    assert(BoundedEventGraphEncoder.findViolations(x).isDefined)
+    assert(Encoder.findViolations(x).isDefined)
   }
+
+
+  test("Local store") {
+    val x = Graph(
+      events = List(
+        Event("u1", "u1", "put"),
+        Event("u2", "u2", "put"),
+        Event("q1", "q1", "get"),
+        Event("q2", "q2", "get")
+      ),
+      programOrder = List(
+        Edge("u1", "q1", Equal(StringArgLeft(0), StringArgRight(0))),
+        Edge("u2", "q2", Equal(StringArgLeft(0), StringArgRight(0)))
+      ),
+      system = SystemSpecification.PutGetMap
+    )
+
+    assert(Encoder.findViolations(x).isEmpty)
+  }
+
+
+  test("JSON export/import") {
+
+    val x = Graph(
+      events = List(
+        Event("u1", "u1", "put"),
+        Event("u2", "u2", "put"),
+        Event("q1", "q1", "get"),
+        Event("q2", "q2", "get")
+      ),
+      programOrder = List(
+        Edge("u1", "q1", Equal(StringArgLeft(0), StringArgRight(0))),
+        Edge("u2", "q2", Equal(StringArgLeft(0), StringArgRight(0)))
+      ),
+      system = SystemSpecification.PutGetMap
+    )
+
+    val json = x.toJSON
+    println(json)
+    val y = Graph.fromJSON(json)
+
+    x.toString should equal(y.toString)
+
+  }
+
 
 }
