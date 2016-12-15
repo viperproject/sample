@@ -3,9 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package ch.ethz.inf.pm.td.cloud
+package ch.ethz.inf.pm.td.cloud.boundedgraph
 
-import ch.ethz.inf.pm.td.cloud.BoundedEventGraph._
+import ch.ethz.inf.pm.td.cloud.boundedgraph.Graph._
 
 case class SystemSpecification (
 
@@ -38,8 +38,8 @@ object SystemSpecification {
       ),
       absorptionSpecs = Map(
         ("wx","wx") -> True,
-        ("wx","wy") -> True,
-        ("wy","wx") -> True,
+        ("wx", "wy") -> False,
+        ("wy", "wx") -> False,
         ("wy","wy") -> True
       )
     )

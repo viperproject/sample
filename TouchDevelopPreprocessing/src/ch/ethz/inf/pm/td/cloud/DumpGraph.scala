@@ -18,18 +18,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
   */
 object DumpGraph {
 
-  trait GraphRenderer[Node,Weight] {
-
-    def clazz(node: Node):String
-
-    def name(node: Node):String
-
-    def label(value: Weight):String
-
-    def partitioning(value:Node):Option[Node]
-
-  }
-
   /** Returns a string to a file visualizing the given graph structure */
   def apply[Node,Weight,Partition](
       graphName: String,
@@ -40,7 +28,7 @@ object DumpGraph {
     val nodeMap = graph.nodes.zipWithIndex.toMap
 
     val nodeStr = (graph.nodes.zipWithIndex map { case (node,id) =>
-      val name = renderer.name(node)
+      val name = renderer.name(node).replace("'", "\"")
       val clazz = renderer.clazz(node)
       val partition = renderer.partitioning(node).map { x => ", parent: '"+nodeMap(x)+"'" }.getOrElse("")
       s"{ data: { id: '$id', name: '$name' $partition }, classes: '$clazz' }"
@@ -207,6 +195,18 @@ object DumpGraph {
     }
 
     fileName
+  }
+
+  trait GraphRenderer[Node, Weight] {
+
+    def clazz(node: Node): String
+
+    def name(node: Node): String
+
+    def label(value: Weight): String
+
+    def partitioning(value: Node): Option[Node]
+
   }
 
 }
