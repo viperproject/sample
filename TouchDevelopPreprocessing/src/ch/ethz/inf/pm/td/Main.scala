@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.td
 import java.io.IOException
 
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
+import ch.ethz.inf.pm.td.output._
 import ch.ethz.inf.pm.td.tools.{AnalyzeRecords, FindCloud, Instrumentation}
 import ch.ethz.inf.pm.td.webapi.WebAST._
 import ch.ethz.inf.pm.td.webapi._
@@ -35,14 +35,14 @@ object Main {
 
     val nonOptions = args.filter {
       case ExportPath(x) => FileSystemExporter.exportPath = x; false
-      case "-json" => Exporters.exportAsJSON = true; false
-      case "-no-json" => Exporters.exportAsJSON = false; false
-      case "-html" => Exporters.exportAsHTML = true; false
-      case "-no-html" => Exporters.exportAsHTML = false; false
-      case "-tsv" => Exporters.exportAsTSV = true; false
-      case "-no-tsv" => Exporters.exportAsTSV = false; false
-      case "-mongo" => Exporters.exportToMongo = true; false
-      case "-no-mongo" => Exporters.exportToMongo = false; false
+      case "-json" => Exporters.enable(JSONExporter); false
+      case "-no-json" => Exporters.disable(JSONExporter); false
+      case "-html" => Exporters.enable(HTMLExporter); false
+      case "-no-html" => Exporters.disable(HTMLExporter); false
+      case "-tsv" => Exporters.enable(TSVExporter); false
+      case "-no-tsv" => Exporters.disable(TSVExporter); false
+      case "-mongo" => Exporters.enable(MongoExporter); false
+      case "-no-mongo" => Exporters.disable(MongoExporter); false
       case "-fast" => setFastMode(); false
       case "-no-fast" => unsetFastMode(); false
       case Timeout(x) => TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(timeout = Some(x.toInt))); false

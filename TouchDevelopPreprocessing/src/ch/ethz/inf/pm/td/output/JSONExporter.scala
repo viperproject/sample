@@ -41,13 +41,9 @@ case class JReplacement(
     replacement: JNode // Textual representation of the replacement (without nodeIDs?)
 )
 
-class JSONExporter extends FileSystemExporter {
+object JSONExporter extends FileSystemResultExporter {
 
   def getExtension = "json"
-
-  def warningsToString(compiler: TouchCompiler): String = {
-    (for ((id, _) <- compiler.parsedTouchScripts) yield makeJson(id)).mkString("\n")
-  }
 
   def warningsToString(compiler: TouchCompiler, id: String): String = {
     makeJson(id)

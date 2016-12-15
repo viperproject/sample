@@ -29,7 +29,7 @@ object Instrumentation extends LazyLogging {
 
   def main(args: Array[String]) = {
 
-    val exporter = new MongoExporter
+    val exporter = MongoExporter
 
     var printMode = false
     val newArgs = args filter {

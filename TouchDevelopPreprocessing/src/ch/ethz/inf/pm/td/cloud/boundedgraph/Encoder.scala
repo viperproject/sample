@@ -7,7 +7,8 @@ package ch.ethz.inf.pm.td.cloud.boundedgraph
 
 import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
 import ch.ethz.inf.pm.td.cloud.boundedgraph.Graph._
-import ch.ethz.inf.pm.td.cloud.{DumpGraph, Z3Prover}
+import ch.ethz.inf.pm.td.cloud.Z3Prover
+import ch.ethz.inf.pm.td.output.DumpGraph
 
 import scala.util.Random
 
@@ -26,7 +27,7 @@ object Encoder {
           println(model.mkString("\n"))
           val cycle = toGraph(model)(g)
           val session = sessionName.getOrElse(Random.alphanumeric.take(5).mkString(""))
-          println(DumpGraph("cycle_" + session, cycle, EventGraphRenderer(g, cycle)))
+          println(DumpGraph.dumpToFile("cycle_" + session, cycle, EventGraphRenderer(g, cycle)))
           violation = Some(cycle)
         case Z3Prover.Unknown =>
           assert(false)

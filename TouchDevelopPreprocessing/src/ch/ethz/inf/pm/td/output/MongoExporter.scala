@@ -6,6 +6,9 @@
 
 package ch.ethz.inf.pm.td.output
 
+import java.net.ConnectException
+
+import ch.ethz.inf.pm.sample.execution.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
@@ -13,24 +16,19 @@ import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchCompiler, Touch
 import com.mongodb.MongoException
 import com.mongodb.casbah.Imports._
 
+object MongoExporter extends ResultExporter with StatusExporter {
 
-object MongoExporter {
-
-  lazy val client = {
+  private lazy val client = {
     MongoClient()("tb")("analysisJobs")
   }
-
-}
-
-class MongoExporter extends ErrorExporter {
 
   def setDebugInformation(s: String) {
 
     try {
       MongoExporter.client.update(MongoDBObject("jobID" -> Exporters.jobID), $set("debug" -> s))
     } catch {
-      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
-      case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.disable(this) // Mongo disabled
+      case x: java.net.ConnectException => Exporters.disable(this) // Mongo disabled
     }
 
   }
@@ -40,13 +38,13 @@ class MongoExporter extends ErrorExporter {
     try {
       MongoExporter.client.update(MongoDBObject("jobID" -> Exporters.jobID), $set("status" -> s))
     } catch {
-      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
-      case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.disable(this) // Mongo disabled
+      case x: java.net.ConnectException => Exporters.disable(this) // Mongo disabled
     }
 
   }
 
-  def exportWarnings(compiler: TouchCompiler) {
+  override def exportResults(compiler: TouchCompiler, results: List[AnalysisResult]): Unit = {
 
     try {
       def getPP(pp: ProgramPoint): String = pp match {
@@ -90,7 +88,7 @@ class MongoExporter extends ErrorExporter {
         )
       }
 
-      val html = new HTMLExporter().export(compiler.parsedTouchScripts)
+      val html = HTMLExporter.export(compiler.parsedTouchScripts)
 
       MongoExporter.client.update(MongoDBObject("jobID" -> Exporters.jobID), $set(
         "result" -> result,
@@ -102,11 +100,17 @@ class MongoExporter extends ErrorExporter {
       ))
 
     } catch {
-      case x: MongoException => Exporters.exportToMongo = false // Mongo disabled
-      case x: java.net.ConnectException => Exporters.exportToMongo = false // Mongo disabled
+      case x: MongoException => Exporters.disable(this) // Mongo disabled
+      case x: ConnectException => Exporters.disable(this) // Mongo disabled
     }
 
-
   }
+
+  def log(testRun: String, level: String, message: String) = {
+    MongoExporter.client.update(
+      MongoDBObject("testRun" -> testRun),
+      $push(level -> (message + "\n")))
+  }
+
 
 }

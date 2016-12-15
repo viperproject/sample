@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.cloud.{AbstractEventGraph, CloudQueryWrapper, CloudUpdateWrapper}
+import ch.ethz.inf.pm.td.cloud.{CloudAnalysisState, CloudQueryWrapper, CloudUpdateWrapper}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, MultiValExpression}
 
@@ -28,20 +28,6 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
   def isImmutable = true
 
   def representedTouchFields = representedFields.map(_.asInstanceOf[ApiField])
-
-  override def representedFields =
-    if (TouchAnalysisParameters.get.libraryFieldPruning &&
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
-      val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-      val typFields = possibleFields -- mutedFields
-      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
-    } else {
-      possibleFields -- mutedFields
-    }
-
-  def possibleFields = Set.empty
-
-  def mutedFields: Set[ApiField] = Set.empty
 
   /**
     * Backward semantics are empty for all native function for now
@@ -92,7 +78,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
         return Some(state.bottom())
       }
 
-      curState = AbstractEventGraph.record(operator, thisExpr, parameters, curState, pp)
+      curState = CloudAnalysisState.record(operator, thisExpr, parameters, curState, pp)
 
       val res = forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState)
 
@@ -214,6 +200,20 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     }
 
   }
+
+  override def representedFields =
+    if (TouchAnalysisParameters.get.libraryFieldPruning &&
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
+      val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
+      val typFields = possibleFields -- mutedFields
+      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
+    } else {
+      possibleFields -- mutedFields
+    }
+
+  def mutedFields: Set[ApiField] = Set.empty
+
+  def possibleFields = Set.empty
 
   def getDeclaration(s: String) = declarations.get(s)
 

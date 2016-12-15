@@ -16,13 +16,9 @@ import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter, Script}
   *
   * @author Lucas Brutschy
   */
-class HTMLExporter extends FileSystemExporter {
+object HTMLExporter extends FileSystemResultExporter {
 
   def getExtension = "html"
-
-  def warningsToString(compiler: TouchCompiler): String = {
-    export(compiler.parsedTouchScripts)
-  }
 
   def warningsToString(compiler: TouchCompiler, id: String): String = {
     export(Map(id -> compiler.parsedTouchScripts(id)))

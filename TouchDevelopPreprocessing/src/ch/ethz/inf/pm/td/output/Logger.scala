@@ -10,8 +10,6 @@ import java.io.{File, FileWriter, IOException}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
-import com.mongodb.casbah.Imports._
-
 /**
   * Custom logger with Mongo backend
   */
@@ -46,34 +44,6 @@ object Logger {
     oldTmpDir.toString
   }
 
-
-  def setExistingTempDir(str: String) {
-    curTmpDir = Paths.get(str)
-  }
-
-  def incIndent() {
-    tabs += 1
-  }
-
-  def decIndent() {
-    tabs -= 1
-  }
-
-  def log(str: String, ll: Int = 0) {
-    val str2 = (" " * (tabs * 2)) + str.split("\n").mkString("\n" + (" " * (tabs * 2)))
-    println(str2)
-    for (i <- 0 to ll) {
-
-      appendFile(Logger.curTmpDir + File.separator + "logger" + i, str2 + "\n")
-
-      if (enableMongoLogging) {
-        MongoExporter.client.update(
-          MongoDBObject("testRun" -> curTestRun),
-          $push(("logger" + i) -> (str2 + "\n")))
-      }
-    }
-  }
-
   def removeRecursive(path: Path) {
     Files.walkFileTree(path, new SimpleFileVisitor[Path]() {
       override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
@@ -96,6 +66,31 @@ object Logger {
       }
     })
 
+  }
+
+  def setExistingTempDir(str: String) {
+    curTmpDir = Paths.get(str)
+  }
+
+  def incIndent() {
+    tabs += 1
+  }
+
+  def decIndent() {
+    tabs -= 1
+  }
+
+  def log(str: String, ll: Int = 0) {
+    val str2 = (" " * (tabs * 2)) + str.split("\n").mkString("\n" + (" " * (tabs * 2)))
+    println(str2)
+    for (i <- 0 to ll) {
+
+      appendFile(Logger.curTmpDir + File.separator + "logger" + i, str2 + "\n")
+
+      if (enableMongoLogging) {
+        MongoExporter.log(curTestRun, "logger" + i, str2)
+      }
+    }
   }
 
   def appendFile(fileName: String, line: String) = {

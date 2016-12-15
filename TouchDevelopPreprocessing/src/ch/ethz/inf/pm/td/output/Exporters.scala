@@ -6,7 +6,10 @@
 
 package ch.ethz.inf.pm.td.output
 
+import ch.ethz.inf.pm.sample.execution.AnalysisResult
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
+
+import scala.collection.immutable.ListSet
 
 /**
   * Exports results into various formats
@@ -15,41 +18,78 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler
   */
 object Exporters {
 
+
   var jobID: String = System.nanoTime().toString
 
-  /**
-    * Enable HTML output
-    */
-  var exportAsHTML = true
+  var resultExporters: ListSet[ResultExporter] =
+    ListSet(
+      HTMLExporter,
+      TSVExporter,
+      JSONExporter,
+      MongoExporter,
+      CloudGraphExporter
+    )
 
-  /**
-    * Export analysis result in a tab-separated value format
-    */
-  var exportAsTSV = false
+  var statusExporters: ListSet[StatusExporter] =
+    ListSet(
+      MongoExporter
+    )
 
-  /**
-    * Export the resulting json records representing error information
-    */
-  var exportAsJSON = false
-
-  /**
-    * Export to MongoDB
-    */
-  var exportToMongo = false
-
-  def apply(compiler: TouchCompiler) {
-    if (exportAsHTML) new HTMLExporter().exportWarnings(compiler)
-    if (exportAsTSV) new TSVExporter().exportWarnings(compiler)
-    if (exportAsJSON) new JSONExporter().exportWarnings(compiler)
-    if (exportToMongo) new MongoExporter().exportWarnings(compiler)
+  def exportResults(compiler: TouchCompiler, results: List[AnalysisResult]) {
+    resultExporters.foreach(_.exportResults(compiler, results))
   }
 
-  def setStatus(s: String) = {
-    if (exportToMongo) new MongoExporter().setStatus(s)
+  def setStatus(s: String): Unit = {
+    statusExporters.foreach(_.setStatus(s))
   }
 
-  def setDebugInformation(s: String) = {
-    if (exportToMongo) new MongoExporter().setDebugInformation(s)
+  def setDebugInformation(s: String): Unit = {
+    statusExporters.foreach(_.setDebugInformation(s))
   }
+
+  def disable(exporter: Exporter): Unit = {
+    resultExporters = resultExporters.filter(_ != exporter)
+    statusExporters = statusExporters.filter(_ != exporter)
+  }
+
+  def enable(exporter: Exporter): Unit = {
+    exporter match {
+      case x: ResultExporter =>
+        resultExporters = resultExporters + x
+      case _ => ()
+    }
+    exporter match {
+      case x: StatusExporter =>
+        statusExporters = statusExporters + x
+      case _ => ()
+    }
+  }
+
+}
+
+trait Exporter
+
+/**
+  * Exports the analysis result to a string of some format (HTML, TSV, JSON etc.)
+  *
+  * @author Lucas Brutschy
+  */
+trait ResultExporter extends Exporter {
+
+  def exportResults(compiler: TouchCompiler, results: List[AnalysisResult])
+
+}
+
+
+/**
+  * Exports the current status
+  *
+  * @author Lucas Brutschy
+  */
+trait StatusExporter extends Exporter {
+
+  def setDebugInformation(s: String)
+
+  def setStatus(s: String)
 
 }

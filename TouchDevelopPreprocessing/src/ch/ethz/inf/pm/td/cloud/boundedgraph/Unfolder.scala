@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.td.cloud.boundedgraph
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.GeneralEventGraph
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState.GeneralEventGraph
 
 object Unfolder {
 

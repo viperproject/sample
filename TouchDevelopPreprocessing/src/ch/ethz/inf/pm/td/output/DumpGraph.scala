@@ -4,9 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package ch.ethz.inf.pm.td.cloud
-
-import java.io.{File, FileWriter, PrintWriter}
+package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
 
@@ -18,14 +16,23 @@ import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
   */
 object DumpGraph {
 
-  /** Returns a string to a file visualizing the given graph structure */
-  def apply[Node,Weight,Partition](
-      graphName: String,
-      graph: WeightedGraph[Node,Weight],
-      renderer: GraphRenderer[Node,Weight]
+  def dumpToFile[Node <: S, Weight <: T, S, T](
+      name: String,
+      graph: WeightedGraph[Node, Weight],
+      renderer: GraphRenderer[S, T]
   ): String = {
 
-    val nodeMap = graph.nodes.zipWithIndex.toMap
+    FileSystemExporter.export(name + ".html", getString(graph, renderer))
+
+  }
+
+  /** Returns a string to a file visualizing the given graph structure */
+  def getString[Node <: S, Weight <: T, S, T](
+      graph: WeightedGraph[Node,Weight],
+      renderer: GraphRenderer[S, T]
+  ): String = {
+
+    val nodeMap = graph.nodes.zipWithIndex.toMap[S, Int]
 
     val nodeStr = (graph.nodes.zipWithIndex map { case (node,id) =>
       val name = renderer.name(node).replace("'", "\"")
@@ -40,7 +47,6 @@ object DumpGraph {
       s"{ data: { id: '$id', source: '$source', target: '$target', label: '$label' }, classes: '$label' }"
     }).mkString(",\n")
 
-    dumpHTMLFile(graphName,
       s"""
          |<!DOCTYPE html>
          |<html>
@@ -159,42 +165,8 @@ object DumpGraph {
          |
          |</body>
          |</html>
-    """.stripMargin)
+    """.stripMargin
 
-  }
-
-  private def dumpHTMLFile(name: String, s: String): String = {
-
-    val exportPath = "/tmp"
-    val fileName = exportPath + File.separator + name + ".html"
-
-    val dir = new File(exportPath)
-
-    if (dir.isDirectory || dir.mkdir()) {
-
-      val file = new File(fileName)
-      var fw: FileWriter = null
-      var pw: PrintWriter = null
-
-      try {
-
-        fw = new FileWriter(file, false)
-        pw = new PrintWriter(fw)
-
-        pw.println(s)
-
-      } finally {
-
-        if (pw != null) pw.close()
-        if (fw != null) fw.close()
-
-      }
-
-    } else {
-      throw new Exception("Failed to create output directory")
-    }
-
-    fileName
   }
 
   trait GraphRenderer[Node, Weight] {
@@ -206,6 +178,18 @@ object DumpGraph {
     def label(value: Weight): String
 
     def partitioning(value: Node): Option[Node]
+
+  }
+
+  object SimpleGraphRenderer extends GraphRenderer[Any, Any] {
+
+    def clazz(node: Any): String = "node"
+
+    def name(node: Any): String = node.toString
+
+    def label(value: Any): String = value.toString
+
+    def partitioning(value: Any) = None
 
   }
 

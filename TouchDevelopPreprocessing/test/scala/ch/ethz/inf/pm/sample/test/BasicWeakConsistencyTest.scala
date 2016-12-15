@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.test
 
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.td.analysis.{TouchDevelopAnalysisRunner, TouchRun}
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState
 import org.scalatest.FunSuite
 
 /**
