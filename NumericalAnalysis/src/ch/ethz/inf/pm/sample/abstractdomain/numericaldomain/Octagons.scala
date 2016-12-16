@@ -268,18 +268,6 @@ object Octagons
     override def removeVariable(id: Identifier): S =
       remove(Set(id))
 
-    override def remove(ids: Set[Identifier]): S = {
-      val diff = ids.filter(exists).filter(numerical)
-      if (diff.nonEmpty) {
-        val newEnv = Environment(env.set -- diff)
-        copy(newEnv, env.getIndices(newEnv.ids), newEnv.getIndices(newEnv.ids))
-      } else this
-    }
-
-    private def exists(id: Identifier): Boolean = env.set.contains(id)
-
-    private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
-
     override def createVariable(variable: Identifier, typ: Type): S =
       add(Set(variable))
 
@@ -297,6 +285,18 @@ object Octagons
       case IdentifierSet.Inner(value) => remove(value)
     }
 
+    override def remove(ids: Set[Identifier]): S = {
+      val diff = ids.filter(exists).filter(numerical)
+      if (diff.nonEmpty) {
+        val newEnv = Environment(env.set -- diff)
+        copy(newEnv, env.getIndices(newEnv.ids), newEnv.getIndices(newEnv.ids))
+      } else this
+    }
+
+    private def exists(id: Identifier): Boolean = env.set.contains(id)
+
+    private def numerical(id: Identifier): Boolean = id.typ.isNumericalType
+
     override def setToTop(variable: Identifier): S = {
       if (numerical(variable)) {
         if (exists(variable)) {
@@ -306,9 +306,6 @@ object Octagons
         } else add(Set(variable)).setToTop(variable)
       } else this
     }
-
-    override def getPossibleConstants(id: Identifier): Default[Constant] =
-      SetDomain.Default.Top[Constant]()
 
     override def assign(variable: Identifier, expr: Expression): S = {
       if (numerical(variable)) {
@@ -1073,6 +1070,16 @@ object Octagons
     def getNegative(id: Identifier): Int =
       2 * map(id) + 1
 
+    /** Returns the index in the DBM of the positive occurrence of the given
+      * identifier.
+      *
+      * @param id The identifier.
+      * @return The index in the DBM of the positive occurrence of the given
+      *         identifier.
+      */
+    def getPositive(id: Identifier): Int =
+      2 * map(id)
+
     /** Returns the list of indices in the DBM for the given list of
       * identifiers.
       *
@@ -1091,23 +1098,13 @@ object Octagons
     def getIndex(id: Identifier): Int =
       getPositive(id)
 
-    /** Returns the index in the DBM of the positive occurrence of the given
-      * identifier.
-      *
-      * @param id The identifier.
-      * @return The index in the DBM of the positive occurrence of the given
-      *         identifier.
-      */
-    def getPositive(id: Identifier): Int =
-      2 * map(id)
-
     // OPERATORS
 
     def ++(other: Environment): Environment = this ++ other.set
 
-    def ++(ids: Set[Identifier]): Environment = this ++ IdentifierSet.Inner(ids)
-
     def ++(ids: IdentifierSet): Environment = Environment(set ++ ids)
+
+    def ++(ids: Set[Identifier]): Environment = this ++ IdentifierSet.Inner(ids)
 
     def --(other: Environment): Environment = this -- other.set
 
@@ -1310,6 +1307,18 @@ object Octagons
       */
     def index(row: Int, col: Int): Int = if (row < col) lower(col ^ 1, row ^ 1) else lower(row, col)
 
+    /** Computes the index of a lower left matrix element with the specified row
+      * and column indices in the array.
+      *
+      * Note: A lower left matrix element is a matrix element where the row and
+      * column indices satisfy the inequality row/2 >= col/2.
+      *
+      * @param row the row index of the matrix element
+      * @param col the column index of the matrix element
+      * @return the index of the matrix element in the array
+      */
+    def lower(row: Int, col: Int): Int = (row + 1) * (row + 1) / 2 + col
+
     /** Returns the internal matrix of a DBM with the given dimension where all
       * identifiers are top.
       *
@@ -1337,18 +1346,6 @@ object Octagons
       * @return The number of matrix elements in the DBM.
       */
     def size(dim: Int): Int = 2 * dim * (dim + 1)
-
-    /** Computes the index of a lower left matrix element with the specified row
-      * and column indices in the array.
-      *
-      * Note: A lower left matrix element is a matrix element where the row and
-      * column indices satisfy the inequality row/2 >= col/2.
-      *
-      * @param row the row index of the matrix element
-      * @param col the column index of the matrix element
-      * @return the index of the matrix element in the array
-      */
-    def lower(row: Int, col: Int): Int = (row + 1) * (row + 1) / 2 + col
   }
 
   object Interval {

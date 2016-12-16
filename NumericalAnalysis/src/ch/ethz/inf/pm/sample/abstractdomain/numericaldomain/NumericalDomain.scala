@@ -14,12 +14,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.DummyBooleanType
  */
 trait NumericalDomain[T <: NumericalDomain[T]] extends SemanticDomain[T] {
   this: T =>
-
-  /**
-   * Returns all the knowledge we have on the given identifiers as an expression
-   */
-  def getConstraints(ids: Set[Identifier]): Set[Expression]
-
 }
 
 object NumericalDomain {
@@ -48,8 +42,6 @@ object NumericalDomain {
     extends NumericalDomain[T]
     with SemanticDomainWrapper[X,T] {
     self:T =>
-
-    override def getConstraints(ids: Set[Identifier]) = wrapped.getConstraints(ids)
 
   }
 
@@ -140,6 +132,18 @@ object NumericalDomain {
         }
       }
 
+      override def lubSameEnv(other: T) = other match {
+        case x: Relational.Top[T] => other
+        case x: Relational.Bottom[T] => this
+        case x: Relational.Inner[T, X] => lubSameEnvInner(x.asInstanceOf[X])
+      }
+
+      override def unify(other: T) = other match {
+        case x: Relational.Top[T] => other
+        case x: Relational.Bottom[T] => this
+        case x: Relational.Inner[T, X] => unifyInner(x.asInstanceOf[X])
+      }
+
       override def glbInner(that: X) = {
         if (this.ids == that.ids) glbSameEnv(that.asInstanceOf[T])
         else {
@@ -147,6 +151,12 @@ object NumericalDomain {
           val commonThat = that.remove(that.ids -- this.ids)
           commonThis.glbSameEnv(commonThat)
         }
+      }
+
+      override def glbSameEnv(other: T) = other match {
+        case x: Relational.Top[T] => this
+        case x: Relational.Bottom[T] => other
+        case x: Relational.Inner[T, X] => glbSameEnvInner(x.asInstanceOf[X])
       }
 
       override def wideningInner(that: X) = {
@@ -161,6 +171,12 @@ object NumericalDomain {
         }
       }
 
+      override def wideningSameEnv(other: T) = other match {
+        case x: Relational.Top[T] => other
+        case x: Relational.Bottom[T] => this
+        case x: Relational.Inner[T, X] => wideningSameEnvInner(x.asInstanceOf[X])
+      }
+
       override def lessEqualInner(that: X) = {
         if (this.ids == that.ids) lessEqualSameEnv(that.asInstanceOf[T])
         else {
@@ -171,30 +187,6 @@ object NumericalDomain {
           val extendedThat = that.unify(diffThis)
           extendedThis.lessEqualSameEnv(extendedThat)
         }
-      }
-
-      override def wideningSameEnv(other: T) = other match {
-        case x:Relational.Top[T]     => other
-        case x:Relational.Bottom[T]  => this
-        case x:Relational.Inner[T,X] => wideningSameEnvInner(x.asInstanceOf[X])
-      }
-
-      override def glbSameEnv(other: T) = other match {
-        case x:Relational.Top[T]     => this
-        case x:Relational.Bottom[T]  => other
-        case x:Relational.Inner[T,X] => glbSameEnvInner(x.asInstanceOf[X])
-      }
-
-      override def lubSameEnv(other: T) = other match {
-        case x:Relational.Top[T]     => other
-        case x:Relational.Bottom[T]  => this
-        case x:Relational.Inner[T,X] => lubSameEnvInner(x.asInstanceOf[X])
-      }
-
-      override def unify(other: T) = other match {
-        case x:Relational.Top[T]     => other
-        case x:Relational.Bottom[T]  => this
-        case x:Relational.Inner[T,X] => unifyInner(x.asInstanceOf[X])
       }
 
       override def lessEqualSameEnv(other: T) = other match {

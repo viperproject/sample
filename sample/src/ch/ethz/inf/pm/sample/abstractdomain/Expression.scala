@@ -23,9 +23,9 @@ object ArithmeticOperator extends Enumeration {
   val > = Value(">")
   val < = Value("<")
 
-  def isComparison(op: Value): Boolean = Set(>=, <=, ==, !=, >, <) contains op
-
   def isArithmetic(op: Value): Boolean = !isComparison(op)
+
+  def isComparison(op: Value): Boolean = Set(>=, <=, ==, !=, >, <) contains op
 
   /**
    * Negates the given given arithmetic operator if possible.
@@ -100,6 +100,9 @@ object AbstractOperatorIdentifiers extends Enumeration {
   */
 trait Expression {
 
+  /** Whether the expression does not contain conjunctions, disjunctions or negations. */
+  var canonical: Boolean = false
+
   /** The type of this expression. */
   def typ: Type
 
@@ -133,13 +136,6 @@ trait Expression {
 
   /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
-
-  // SHORTHANDS
-  def equal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.==,DummyBooleanType)
-  def unequal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.!=,DummyBooleanType)
-
-  /** Whether the expression does not contain conjunctions, disjunctions or negations. */
-  var canonical:Boolean = false
 
 }
 
@@ -505,9 +501,9 @@ case class VariableIdentifier
 
   require(typ != null)
 
-  override def getName = name.toString + scope.toString
-
   override def toString = getName
+
+  override def getName = name.toString + scope.toString
 
   override def getField = None
 
@@ -549,11 +545,7 @@ case class AccessPathIdentifier(path: List[Identifier])
 
   require(path.nonEmpty, "the access path must not be empty")
 
-  def getName = stringPath.mkString(".")
-
   def getField = ???
-
-  def typ = path.last.typ
 
   def pp = path.last.pp
 
@@ -561,11 +553,15 @@ case class AccessPathIdentifier(path: List[Identifier])
 
   override def toString = getName
 
+  def getName = stringPath.mkString(".")
+
   def stringPath: List[String] =
     path.map(_.getName)
 
   def objPath: List[String] =
     if (typ.isObject) stringPath else stringPath.dropRight(1)
+
+  def typ = path.last.typ
 }
 
 object AccessPathIdentifier {

@@ -7,9 +7,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{SemanticDomain, Constant}
-import ch.ethz.inf.pm.sample.oorepresentation.DummyIntegerType
-import ch.ethz.inf.pm.sample.test.{SemanticDomainTest, LatticeTest}
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, SemanticDomain}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyIntegerType, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.test.{LatticeTest, SemanticDomainTest}
 
 
 trait NumericalDomainTest[T <: NumericalDomain[T]] extends SemanticDomainTest[T] {
@@ -34,6 +34,10 @@ trait MostPreciseAssignment[T <: SemanticDomain[T]] extends SemanticDomainTest[T
     if (!ignoreMostPreciseAssignment)
       for (a1 <- values; a2 <- values) {
         if (a1 != a2) {
+          import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+          implicit val tm = TypeMap()
+          implicit val pp = DummyProgramPoint
+
           val x = factory.createVariable(v1).createVariable(v2).assign(v1, a1).assign(v2, a2)
           assert(x.assume(v1 unequal a1).isBottom)
           assert(x.assume(v2 unequal a2).isBottom)

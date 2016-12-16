@@ -32,11 +32,6 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
   def functionalFactory(_value: Map[Identifier, CharacterSet] = Map.empty[Identifier, CharacterSet], _isBottom: Boolean = false, _isTop: Boolean = false): MaybeContainedCharacters =
     new MaybeContainedCharacters(_value, _isBottom, _isTop)
 
-  def get(variable: Identifier) = map.get(variable) match {
-    case Some(x) => x;
-    case None => TopCharacterSet
-  }
-
   def setToTop(variable: Identifier): MaybeContainedCharacters = this.add(variable, TopCharacterSet)
 
   def assign(variable: Identifier, expr: Expression): MaybeContainedCharacters = this.add(variable, this.eval(expr))
@@ -94,6 +89,11 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
     case _ => this;
   }
 
+  def get(variable: Identifier) = map.get(variable) match {
+    case Some(x) => x;
+    case None => TopCharacterSet
+  }
+
   def createVariable(variable: Identifier, typ: Type): MaybeContainedCharacters = this.add(variable, TopCharacterSet)
 
   def removeVariable(variable: Identifier): MaybeContainedCharacters = this.remove(variable)
@@ -117,6 +117,4 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       this.eval(thisExpr);
     case _ => TopCharacterSet
   }
-
-  override def getPossibleConstants(id: Identifier) = ???
 }

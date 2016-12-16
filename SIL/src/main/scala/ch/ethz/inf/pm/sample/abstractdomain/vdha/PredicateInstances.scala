@@ -6,10 +6,9 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
 
 case class PredicateInstancesDomain(
@@ -31,8 +30,6 @@ case class PredicateInstancesDomain(
     case AccessPathIdentifier(path) if path.last.isInstanceOf[PredicateInstanceIdentifier] => true
     case _ => false
   }
-
-  def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
   override def glb(other: PredicateInstancesDomain) = lub(other)
 
@@ -56,6 +53,17 @@ case class PredicateInstancesDomain(
     PredicateInstancesDomain(map, isBottom = newIsBottom, isTop = newIsTop, defaultValue = defaultValue)
   }
 
+  /** The predicate instance IDs of all folded and unfolded predicate instances. */
+  def foldedAndUnfoldedInstIds: Set[PredicateInstanceIdentifier] = foldedInstIds ++ unfoldedInstIds
+
+  def ids(instState: PredicateInstanceState): Set[PredicateIdentifier] =
+    instIds(instState).map(_.predId)
+
+  def foldedIds: Set[PredicateIdentifier] = foldedInstIds.map(_.predId)
+
+  /** The predicate instance IDs of all folded predicate instances. */
+  def foldedInstIds: Set[PredicateInstanceIdentifier] = instIds(Folded)
+
   /** Returns the IDs of all predicates instance for which we have an instance
     * in the given state.
     */
@@ -66,21 +74,10 @@ case class PredicateInstancesDomain(
         if get(id).value.contains(instState) => predId.asInstanceOf[PredicateInstanceIdentifier]
     })
 
-  /** The predicate instance IDs of all folded predicate instances. */
-  def foldedInstIds: Set[PredicateInstanceIdentifier] = instIds(Folded)
+  def unfoldedIds: Set[PredicateIdentifier] = unfoldedInstIds.map(_.predId)
 
   /** The predicate instance IDs of all unfolded predicate instances. */
   def unfoldedInstIds: Set[PredicateInstanceIdentifier] = instIds(Unfolded)
-
-  /** The predicate instance IDs of all folded and unfolded predicate instances. */
-  def foldedAndUnfoldedInstIds: Set[PredicateInstanceIdentifier] = foldedInstIds ++ unfoldedInstIds
-
-  def ids(instState: PredicateInstanceState): Set[PredicateIdentifier] =
-    instIds(instState).map(_.predId)
-
-  def foldedIds: Set[PredicateIdentifier] = foldedInstIds.map(_.predId)
-
-  def unfoldedIds: Set[PredicateIdentifier] = unfoldedInstIds.map(_.predId)
 
   def foldedAndUnfoldedIds: Set[PredicateIdentifier] = foldedAndUnfoldedInstIds.map(_.predId)
 
@@ -129,12 +126,11 @@ case class PredicateInstancesDomain(
       this
   }
 
+  def get(key: Identifier) = map.getOrElse(key, defaultValue)
+
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
-  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
-
-  override def getPossibleConstants(id: Identifier) = ???
 }
 
 /** Inverse set domain with empty set as top element and
@@ -173,15 +169,15 @@ object PredicateInstanceIdentifier {
     nextVersion.set(0)
   }
 
+  /** Make a predicate instance identifier with a fresh version number. */
+  def make(predId: PredicateIdentifier): PredicateInstanceIdentifier =
+    new PredicateInstanceIdentifier(predId, makeVersion())
+
   def makeVersion(): Int = {
     val version = nextVersion.get
     nextVersion.set(version + 1)
     version
   }
-
-  /** Make a predicate instance identifier with a fresh version number. */
-  def make(predId: PredicateIdentifier): PredicateInstanceIdentifier =
-    new PredicateInstanceIdentifier(predId, makeVersion())
 }
 
 final case class PredicateInstanceState(name: String) extends Expression {

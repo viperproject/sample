@@ -14,10 +14,11 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 case class InvertedCharacterSet(wrapped: SetDomain.Default[Char] = SetDomain.Default.Bottom[Char]())
   extends InvertedLatticeWrapper[SetDomain.Default[Char], InvertedCharacterSet] {
 
-  override def wrapperFactory(wrapped: Default[Char]): InvertedCharacterSet = InvertedCharacterSet(wrapped)
-
   def add(c:Char) = wrapperFactory(wrapped.+(c))
+
   def remove(c:Char) = wrapperFactory(wrapped.-(c))
+
+  override def wrapperFactory(wrapped: Default[Char]): InvertedCharacterSet = InvertedCharacterSet(wrapped)
 
 }
 
@@ -32,11 +33,6 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
                         _isBottom: Boolean = false,
                         _isTop: Boolean = false): SurelyContainedCharacters =
     new SurelyContainedCharacters(_value, _isBottom, _isTop)
-
-  def get(variable: Identifier) = map.get(variable) match {
-    case Some(x) => x;
-    case None => InvertedCharacterSet().top();
-  }
 
   def setToTop(variable: Identifier): SurelyContainedCharacters = this.add(variable,InvertedCharacterSet().top())
 
@@ -95,6 +91,11 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
     case _ => this;
   }
 
+  def get(variable: Identifier) = map.get(variable) match {
+    case Some(x) => x;
+    case None => InvertedCharacterSet().top();
+  }
+
   def createVariable(variable: Identifier, typ: Type): SurelyContainedCharacters = this.add(variable,InvertedCharacterSet().top())
 
   def removeVariable(variable: Identifier): SurelyContainedCharacters = this.remove(variable)
@@ -119,6 +120,4 @@ class SurelyContainedCharacters (val map: Map[Identifier, InvertedCharacterSet] 
       InvertedCharacterSet().top();
     case _ => InvertedCharacterSet().top();
   }
-
-  override def getPossibleConstants(id: Identifier) = ???
 }

@@ -86,6 +86,11 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     lift(other, _ ++ _, _ lub _)
   }
 
+  private def lift(other: T, keySetFunc: (Set[K], Set[K]) => Set[K], valueFunc: (V, V) => V): T = {
+    val newMap = keySetFunc(map.keySet, other.map.keySet).map(k =>
+      k -> valueFunc(get(k), other.get(k))).toMap
+    functionalFactory(newMap)
+  }
 
   /**
    * Computes the lower bound between two states. It is defined by:
@@ -124,9 +129,10 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   /**
-   * Implements the partial ordering between two states of functional domains. It is defined by: 
-   * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)   
-   * @param r The other operand
+    * Implements the partial ordering between two states of functional domains. It is defined by:
+    * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)
+    *
+    * @param r The other operand
    * @return true iff this is less or equal than t
    */
   override def lessEqual(r: T): Boolean = {
@@ -169,12 +175,6 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   def top(): T = functionalFactory(isTop = true)
 
   def bottom(): T = functionalFactory(isBottom = true)
-
-  private def lift(other: T, keySetFunc: (Set[K], Set[K]) => Set[K], valueFunc: (V, V) => V): T = {
-    val newMap = keySetFunc(map.keySet, other.map.keySet).map(k =>
-      k -> valueFunc(get(k), other.get(k))).toMap
-    functionalFactory(newMap)
-  }
 }
 
 object FunctionalDomain {
@@ -285,9 +285,9 @@ object RelationalDomain {
 
     override def wideningInner(other: X) = lubInner(other)
 
-    override def glbInner(other: X) = factory(elements.union(other.elements))
-
     override def lubInner(other: X) = factory(elements.intersect(other.elements))
+
+    override def glbInner(other: X) = factory(elements.union(other.elements))
 
     override def expand(idA: Identifier, idsB: Set[Identifier]): T = factory(elements.expand(idA,idsB))
 
@@ -363,12 +363,12 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
     else this.add(id, v)
   }
 
-  def getStringOfId(id: Identifier): String = this.get(id).toString
-
   def ids =
     if (isBottom || map.isEmpty) IdentifierSet.Bottom
     else if (isTop) IdentifierSet.Top
     else IdentifierSet.Inner(map.keySet)
+
+  def getStringOfId(id: Identifier): String = this.get(id).toString
 
 }
 
@@ -463,6 +463,18 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
 
 object SetDomain {
 
+  /** Simple implementation of `SetDomain`. Cannot be extended. */
+  sealed trait Default[V] extends SetDomain[V, Default[V]] {
+
+    override def top() = Default.Top()
+
+    override def factory(value: Set[V]): Default[V] =
+      if (value.isEmpty) bottom() else Default.Inner(value)
+
+    override def bottom() = Default.Bottom()
+
+  }
+
   trait Top[V, T <: SetDomain[V,T]]
     extends SetDomain[V,T]
     with Lattice.Top[T] {
@@ -519,9 +531,13 @@ object SetDomain {
     def +(v: V) =                   factory(value + v)
     def ++(v: T) =                  lub(v)
     def contains(v: V) =            value.contains(v)
-    def lubInner(other: I) =        factory(value ++ other.value)
+
     def glbInner(other: I) =        factory(value intersect other.value)
+
     def wideningInner(other: I) =   lubInner(other)
+
+    def lubInner(other: I) = factory(value ++ other.value)
+
     def lessEqualInner(other: I) =  value subsetOf other.value
     def toSet(universe:Set[V]) =    value
     def toSetOrFail =               value
@@ -530,31 +546,7 @@ object SetDomain {
     override def toString = ToStringUtilities.setToString(value)
 
   }
-
-  /** Simple implementation of `SetDomain`. Cannot be extended. */
-  sealed trait Default[V] extends SetDomain[V,Default[V]] {
-
-    override def top()     = Default.Top()
-    override def bottom()  = Default.Bottom()
-
-    override def factory(value: Set[V]): Default[V] =
-      if(value.isEmpty) bottom() else Default.Inner(value)
-
-  }
   
-  object Default {
-
-    final case class Inner[V](value: Set[V])
-      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]]
-
-    final case class Bottom[V]()
-      extends Default[V] with SetDomain.Bottom[V, Default[V]]
-
-    final case class Top[V]()
-      extends Default[V] with SetDomain.Top[V, Default[V]]
-
-  }
-
   /**
    * A set domain which is bounded by a given function
    *
@@ -570,6 +562,19 @@ object SetDomain {
      * Returns a version of this set which restricts the bounds
      */
     def cap:T
+
+  }
+
+  object Default {
+
+    final case class Inner[V](value: Set[V])
+      extends Default[V] with SetDomain.Inner[V, Default[V], Inner[V]]
+
+    final case class Bottom[V]()
+      extends Default[V] with SetDomain.Bottom[V, Default[V]]
+
+    final case class Top[V]()
+      extends Default[V] with SetDomain.Top[V, Default[V]]
 
   }
   
@@ -645,6 +650,22 @@ trait IdentifierSet extends SetDomain[Identifier,IdentifierSet] with SimplifiedM
 
 object IdentifierSet {
 
+  case class Inner(value: Set[Identifier]) extends SetDomain.Inner[Identifier, IdentifierSet, Inner] with IdentifierSet {
+    override def expand(idA: Identifier, idsB: Set[Identifier]) = factory(value - idA ++ idsB)
+
+    override def rename(idA: Identifier, idB: Identifier) = factory(value - idA + idB)
+
+    override def remove(ids: Set[Identifier]) = factory(value -- ids)
+
+    override def fold(idsA: Set[Identifier], idB: Identifier) = factory(value -- idsA + idB)
+
+    override def add(ids: Set[Identifier]) = factory(value ++ ids)
+
+    override def getNonTop: Set[Identifier] = value
+
+    override def getNonTopUnsafe: Set[Identifier] = value
+  }
+
   object Bottom extends SetDomain.Bottom[Identifier,IdentifierSet] with IdentifierSet {
     override def expand(idA: Identifier, idsB: Set[Identifier]) = this
     override def rename(idA: Identifier, idB: Identifier) = this
@@ -663,16 +684,6 @@ object IdentifierSet {
     override def add(ids: Set[Identifier]) = this
     override def getNonTop:Set[Identifier] = throw new UnsupportedOperationException("Invalid access")
     override def getNonTopUnsafe:Set[Identifier] = { println("trying to convert top lattice to set --- unsound"); Set.empty }
-  }
-
-  case class Inner(value:Set[Identifier]) extends SetDomain.Inner[Identifier,IdentifierSet,Inner] with IdentifierSet {
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = factory(value - idA ++ idsB)
-    override def rename(idA: Identifier, idB: Identifier) = factory(value - idA + idB)
-    override def remove(ids: Set[Identifier]) = factory(value -- ids)
-    override def fold(idsA: Set[Identifier], idB: Identifier) = factory(value -- idsA + idB)
-    override def add(ids: Set[Identifier]) = factory(value ++ ids)
-    override def getNonTop:Set[Identifier] = value
-    override def getNonTopUnsafe:Set[Identifier] = value
   }
 
 }
@@ -711,7 +722,6 @@ T <: CartesianProductDomain[T1, T2, T]]
 
   def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
 
-  def isBottom = _1.isBottom || _2.isBottom
   def isTop = _1.isTop && _2.isTop
 
   override def strictGlb(other: T): T = factory(_1.strictGlb(other._1), _2.strictGlb(other._2))
@@ -724,9 +734,13 @@ T <: CartesianProductDomain[T1, T2, T]]
     _1.lessEqual(other._1) && _2.lessEqual(other._2)
   }
 
+  def isBottom = _1.isBottom || _2.isBottom
+
   override def toString =
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
       "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
+
+
 
 }
 
@@ -784,59 +798,8 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   /** Returns true if the first domain can handle the given identifier. */
   def _1canHandle(id: Identifier): Boolean
 
-  def _1canHandle(ids: IdentifierSet): Boolean =
-    ids match {
-      case IdentifierSet.Bottom => true
-      case IdentifierSet.Top => true
-      case IdentifierSet.Inner(v) => v.forall(_1canHandle)
-    }
-
-  def _2canHandle(ids: IdentifierSet): Boolean =
-    ids match {
-      case IdentifierSet.Bottom => true
-      case IdentifierSet.Top => true
-      case IdentifierSet.Inner(v) => v.forall(_2canHandle)
-    }
-
-  /** Returns true if the first domain can handle all identifiers
-    * in the given expressions.
-    */
-  private def _1canHandle(exps: Expression*): Boolean =
-    _1canHandle(Lattice.bigLub(exps.map(_.ids)))
-
   /** Returns true if the second domain can handle the given identifier. */
   def _2canHandle(id: Identifier): Boolean
-
-  /** Returns true if the second domain can handle all identifiers
-    * in the given expressions.
-    */
-  private def _2canHandle(exps: Expression*): Boolean =
-    _2canHandle(Lattice.bigLub(exps.map(_.ids)))
-
-  /**
-   * Constructs a new state with `op_1` applied to the state of the first
-   * domain only if it can handle the identifiers in the expression passed
-   * as an argument. Analogous for `op_2`.
-   *
-   * @param exp the expression to supply to the operations
-   * @param op_1 to apply to the first domain if it can handle `exp`
-   * @param op_2 to apply to the second domain if it can handle `exp`
-   * @tparam E the type of the expression
-   * @return the new state
-   */
-  def factory[E <: Expression](exp: E, op_1: E => T1, op_2: E => T2): T = {
-    factory(
-      if (_1canHandle(exp)) op_1(exp) else _1,
-      if (_2canHandle(exp)) op_2(exp) else _2)
-  }
-
-  /** Analogous to `factory`, but with two expressions passed as arguments. */
-  def factory[E1 <: Expression, E2 <: Expression](
-                                                   a: E1, b: E2, op_1: (E1, E2) => T1, op_2: (E1, E2) => T2): T = {
-    factory(
-      if (_1canHandle(a, b)) op_1(a, b) else _1,
-      if (_2canHandle(a, b)) op_2(a, b) else _2)
-  }
 
   def ids = _1.ids ++ _2.ids
 
@@ -877,6 +840,49 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   def createVariable(variable: Identifier, typ: Type): T =
     factory[Identifier](variable, _1.createVariable(_, typ), _2.createVariable(_, typ))
 
+  /**
+    * Constructs a new state with `op_1` applied to the state of the first
+    * domain only if it can handle the identifiers in the expression passed
+    * as an argument. Analogous for `op_2`.
+    *
+    * @param exp  the expression to supply to the operations
+    * @param op_1 to apply to the first domain if it can handle `exp`
+    * @param op_2 to apply to the second domain if it can handle `exp`
+    * @tparam E the type of the expression
+    * @return the new state
+    */
+  def factory[E <: Expression](exp: E, op_1: E => T1, op_2: E => T2): T = {
+    factory(
+      if (_1canHandle(exp)) op_1(exp) else _1,
+      if (_2canHandle(exp)) op_2(exp) else _2)
+  }
+
+  /** Returns true if the first domain can handle all identifiers
+    * in the given expressions.
+    */
+  private def _1canHandle(exps: Expression*): Boolean =
+    _1canHandle(Lattice.bigLub(exps.map(_.ids)))
+
+  def _1canHandle(ids: IdentifierSet): Boolean =
+    ids match {
+      case IdentifierSet.Bottom => true
+      case IdentifierSet.Top => true
+      case IdentifierSet.Inner(v) => v.forall(_1canHandle)
+    }
+
+  /** Returns true if the second domain can handle all identifiers
+    * in the given expressions.
+    */
+  private def _2canHandle(exps: Expression*): Boolean =
+    _2canHandle(Lattice.bigLub(exps.map(_.ids)))
+
+  def _2canHandle(ids: IdentifierSet): Boolean =
+    ids match {
+      case IdentifierSet.Bottom => true
+      case IdentifierSet.Top => true
+      case IdentifierSet.Inner(v) => v.forall(_2canHandle)
+    }
+
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     val (a1, b1) = if (_1canHandle(variable)) _1.createVariableForArgument(variable, typ, path) else (_1, Map.empty[Identifier, List[String]])
     val (a2, b2) = if (_2canHandle(variable)) _2.createVariableForArgument(variable, typ, path) else (_2, Map.empty[Identifier, List[String]])
@@ -890,6 +896,14 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
     factory[Identifier, Expression](variable, expr,
       _1.backwardAssign(oldPreState._1, _, _),
       _2.backwardAssign(oldPreState._2, _, _))
+
+  /** Analogous to `factory`, but with two expressions passed as arguments. */
+  def factory[E1 <: Expression, E2 <: Expression](
+      a: E1, b: E2, op_1: (E1, E2) => T1, op_2: (E1, E2) => T2): T = {
+    factory(
+      if (_1canHandle(a, b)) op_1(a, b) else _1,
+      if (_2canHandle(a, b)) op_2(a, b) else _2)
+  }
 
   def getStringOfId(id: Identifier): String = {
     if (_1canHandle(id) && _2canHandle(id))
@@ -905,6 +919,16 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
 
   override def getPossibleConstants(id: Identifier) = _1.getPossibleConstants(id) glb _2.getPossibleConstants(id)
+
+  /**
+    * Given a possible set of constraints
+    *
+    * @param ids the list of identifiers which should be addressed
+    * @return a set of expressions that express a statement about th ids. May return "true"
+    */
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
+    _1.getConstraints(ids) ++ _2.getConstraints(ids)
+  }
 }
 
 /**

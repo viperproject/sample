@@ -90,16 +90,16 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   def createVariable(variable: Identifier, typ: Type): T
 
   /**
-   * Creates a variable whose type is the type of the given identifier.
-   */
-  def createVariable(variable: Identifier): T =
-    createVariable(variable, variable.typ)
-
-  /**
    * Returns a copy of this state with all given variables created.
    */
   def createVariables[I <: Identifier](variables: Set[I]): T =
     variables.foldLeft(this)(_.createVariable(_))
+
+  /**
+    * Creates a variable whose type is the type of the given identifier.
+    */
+  def createVariable(variable: Identifier): T =
+    createVariable(variable, variable.typ)
 
   /**
   This method creates a variable that is an argument of the analyzed method
@@ -160,15 +160,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
     merge(replacement)
   }
 
-  /**
-   * May try to explain an error
-   *
-   * @param expr An error-expression that should be infeasible but exposes an error
-   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
-   */
-  def explainError(expr: Expression): Set[(String, ProgramPoint)]
-
-  override def toString = {
+  override def toString: String = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
     else {
@@ -180,7 +172,35 @@ trait SemanticDomain[T <: SemanticDomain[T]]
     }
   }
 
-  def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
+  /**
+    * May try to explain an error
+    * This method is _optional_, not all domains must implement it
+    *
+    * @param expr An error-expression that should be infeasible but exposes an error
+    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+    */
+  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
+
+  /**
+    *
+    * Returns all possible constant values for an identifier.
+    * Returns top, if we cannot represent the set of constants easily.
+    * Returns bottom, if the state is bottom
+    * This method is _optional_, not all domains must implement it
+    *
+    * @param id the identifier, should be of primitive type
+    * @return the set of constants, top or bottom.
+    */
+  def getPossibleConstants(id: Identifier): SetDomain.Default[Constant] = SetDomain.Default.Top()
+
+  /**
+    * Given a possible set of constraints.
+    * This method is _optional_, not all domains must implement it
+    *
+    * @param ids the list of identifiers which should be addressed
+    * @return a set of expressions that express a statement about th ids. May return "true"
+    */
+  def getConstraints(ids: Set[Identifier]): Set[Expression] = ???
 
 }
 
@@ -197,6 +217,8 @@ object SemanticDomain {
     override def ids = IdentifierSet.Bottom
     override def getPossibleConstants(id: Identifier) = SetDomain.Default.Bottom[Constant]()
 
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set(Constant("false", DummyBooleanType))
+
   }
 
   trait Top[T <: SemanticDomain[T]] extends Lattice.Top[T] with SemanticDomain[T] {
@@ -208,6 +230,8 @@ object SemanticDomain {
     override def removeVariable(id: Identifier) = this
     override def ids = IdentifierSet.Top
     override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
+
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set.empty
 
   }
 
@@ -246,10 +270,6 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
   def getStringOfId(id: Identifier): String = ""
 
   def merge(f: Replacement) = this
-
-  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
-
-  override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
 }
 
 /**
@@ -271,8 +291,6 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
   }
 
   override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = throw new SymbolicSemanticException("Backward analysis not supported")
-
-  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
 }
 
 

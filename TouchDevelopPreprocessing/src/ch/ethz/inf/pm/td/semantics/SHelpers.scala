@@ -7,11 +7,11 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
-import RichNativeSemantics._
 
 /**
   * This implements helper functions that I use for the analysis.
@@ -38,19 +38,22 @@ object SHelpers extends ASingleton {
       pausesInterpreter = true,
       semantics = SkipSemantics // only semantics is "pausing interpreter"
     )
-  val cloudArgumentFields = new scala.collection.mutable.HashMap[String, ApiField]
+  val cloudArgumentFields = new scala.collection.mutable.HashMap[String, Set[ApiField]]
   // ==== Handler tracking
   val handlerCreatorMethods = new scala.collection.mutable.HashMap[String,ApiMember]
   val handlerEnabledFields = new scala.collection.mutable.HashMap[String,ApiField]
   val handlerTypes = new scala.collection.mutable.HashMap[String,TypeName]
 
-  def getCloudArgumentField(eventID: String, typ: AAny, num: Int): ApiField = {
-    val name = "cloudarg_" + eventID + "_" + typ.name + "_" + num
-    cloudArgumentFields.getOrElse(name, {
-      val newField = ApiField(name, typ)
-      cloudArgumentFields += (name -> newField)
-      newField
-    })
+
+  def getCloudArgumentFields[S <: State[S]](eventID: String)(implicit state: S): Set[ApiField] = {
+    cloudArgumentFields(eventID)
+  }
+
+  def getCloudArgumentField(eventID: String, typ: AAny, name: String): ApiField = {
+    val field = ApiField(name, typ)
+    if (!cloudArgumentFields.contains(eventID) || !cloudArgumentFields(eventID).contains(field))
+      cloudArgumentFields += (eventID -> (cloudArgumentFields.getOrElse(name, Set.empty) + field))
+    field
   }
 
   def createHandler(handlerName:String, t:TypeName):String = {
@@ -87,7 +90,7 @@ object SHelpers extends ASingleton {
   }
 
   override def possibleFields: Set[Identifier] = {
-    super.possibleFields ++ handlerEnabledFields.values ++ cloudArgumentFields.values + field_last_operation
+    super.possibleFields ++ handlerEnabledFields.values ++ cloudArgumentFields.values.flatten + field_last_operation
   }
 
   override def reset(): Unit = {

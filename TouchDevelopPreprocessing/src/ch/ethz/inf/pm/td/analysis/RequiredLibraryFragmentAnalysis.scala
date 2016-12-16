@@ -14,6 +14,8 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchStateInterface}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.collection.immutable.Set
+
 
 /**
   * Collects all the fields that are accessed in a program. This can be used to
@@ -82,10 +84,6 @@ case class AccessCollectingState(myType: Type)
 
   def isBottom = myType.isBottom
 
-  def setType(typ: Type): AccessCollectingState = AccessCollectingState(typ)
-
-  def getType: Type = myType
-
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
@@ -95,6 +93,8 @@ case class AccessCollectingState(myType: Type)
   }
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.typ)
+
+  def setType(typ: Type): AccessCollectingState = AccessCollectingState(typ)
 
   def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
@@ -151,6 +151,8 @@ case class AccessCollectingState(myType: Type)
   def lub(other: AccessCollectingState): AccessCollectingState =
     AccessCollectingState(getType.lub(other.getType))
 
+  def getType: Type = myType
+
   def top(): AccessCollectingState = AccessCollectingState(myType.top())
 
   def widening(other: AccessCollectingState): AccessCollectingState =
@@ -176,6 +178,8 @@ case class AccessCollectingState(myType: Type)
   override def merge(r: Replacement): AccessCollectingState = this
 
   override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
+
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set.empty
 
   override def ids: IdentifierSet = IdentifierSet.Top
 
