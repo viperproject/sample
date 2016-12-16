@@ -6,14 +6,14 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
 /**
  * Specifies the abstract semantics of Math
  *
- * Mathematical operators, cos, sin, ...
+  * Math goodness, abs, max, ...
  *
  * @author Lucas Brutschy
  */
@@ -21,7 +21,60 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SMath extends ASingleton {
 
   lazy val typeName = TypeName("Math", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "abs" -> member_abs,
+    "acos" -> member_acos,
+    "asin" -> member_asin,
+    "atan" -> member_atan,
+    "atan2" -> member_atan2,
+    "ceiling" -> member_ceiling,
+    "clamp" -> member_clamp,
+    "cos" -> member_cos,
+    "cosh" -> member_cosh,
+    "create matrix" -> member_create_matrix,
+    "create number map" -> member_create_number_map,
+    "create vector3" -> member_create_vector3,
+    "deg to rad" -> member_deg_to_rad,
+    "div" -> member_div,
+    "e" -> member_e,
+    "exp" -> member_exp,
+    "floor" -> member_floor,
+    "gravity" -> member_gravity,
+    "ieee remainder" -> member_ieee_remainder,
+    "is nan" -> member_is_nan,
+    "is ∞" -> member_is_inf,
+    "is ∞₊" -> member_is_pos_inf,
+    "is ∞₋" -> member_is_neg_inf,
+    "log" -> member_log,
+    "log10" -> member_log10,
+    "loge" -> member_loge,
+    "map range" -> member_map_range,
+    "max" -> member_max,
+    "min" -> member_min,
+    "mod" -> member_mod,
+    "normalize" -> member_normalize,
+    "pow" -> member_pow,
+    "rad to deg" -> member_rad_to_deg,
+    "rand norm" -> member_rand_norm,
+    "random normalized" -> member_random_normalized,
+    "random range" -> member_random_range,
+    "random" -> member_random,
+    "range" -> member_range,
+    "round with precision" -> member_round_with_precision,
+    "round" -> member_round,
+    "sign" -> member_sign,
+    "sin" -> member_sin,
+    "sinh" -> member_sinh,
+    "sqrt" -> member_sqrt,
+    "tan" -> member_tan,
+    "tanh" -> member_tanh,
+    "ε" -> member_epsilon,
+    "π" -> member_pi,
+    "∞₊" -> member_pos_inf,
+    "∞₋" -> member_neg_inf
+  )
+
   /** Frequently used: Returns the absolute value of a number */
   def member_abs = ApiMember(
     name = "abs",
@@ -256,6 +309,15 @@ trait Default_SMath extends ASingleton {
     semantics = DefaultSemantics
   )
 
+  /** Never used: Maps an integer value from one range to another. Does not contrain the value. */
+  def member_map_range = ApiMember(
+    name = "map range",
+    paramTypes = List(ApiParam(TNumber), ApiParam(TNumber), ApiParam(TNumber), ApiParam(TNumber), ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = TNumber,
+    semantics = DefaultSemantics
+  )
+
   /** Sometimes used: Returns the larger of two numbers */
   def member_max = ApiMember(
     name = "max",
@@ -461,59 +523,6 @@ trait Default_SMath extends ASingleton {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "abs" -> member_abs,
-    "acos" -> member_acos,
-    "asin" -> member_asin,
-    "atan" -> member_atan,
-    "atan2" -> member_atan2,
-    "ceiling" -> member_ceiling,
-    "clamp" -> member_clamp,
-    "cos" -> member_cos,
-    "cosh" -> member_cosh,
-    "create matrix" -> member_create_matrix,
-    "create number map" -> member_create_number_map,
-    "create vector3" -> member_create_vector3,
-    "deg to rad" -> member_deg_to_rad,
-    "div" -> member_div,
-    "e" -> member_e,
-    "exp" -> member_exp,
-    "floor" -> member_floor,
-    "gravity" -> member_gravity,
-    "ieee remainder" -> member_ieee_remainder,
-    "is nan" -> member_is_nan,
-    "is ∞" -> member_is_inf,
-    "is ∞₊" -> member_is_pos_inf,
-    "is ∞₋" -> member_is_neg_inf,
-    "log" -> member_log,
-    "log10" -> member_log10,
-    "loge" -> member_loge,
-    "max" -> member_max,
-    "min" -> member_min,
-    "mod" -> member_mod,
-    "normalize" -> member_normalize,
-    "pow" -> member_pow,
-    "rad to deg" -> member_rad_to_deg,
-    "rand norm" -> member_rand_norm,
-    "random normalized" -> member_random_normalized,
-    "random range" -> member_random_range,
-    "random" -> member_random,
-    "range" -> member_range,
-    "round with precision" -> member_round_with_precision,
-    "round" -> member_round,
-    "sign" -> member_sign,
-    "sin" -> member_sin,
-    "sinh" -> member_sinh,
-    "sqrt" -> member_sqrt,
-    "tan" -> member_tan,
-    "tanh" -> member_tanh,
-    "ε" -> member_epsilon,
-    "π" -> member_pi,
-    "∞₊" -> member_pos_inf,
-    "∞₋" -> member_neg_inf
   )
             
 

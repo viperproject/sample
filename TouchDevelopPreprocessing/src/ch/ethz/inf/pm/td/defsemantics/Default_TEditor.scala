@@ -21,7 +21,20 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TEditor extends AAny {
 
   lazy val typeName = TypeName("Editor")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "annotate ast" -> member_annotate_ast,
+    "annotate caller" -> member_annotate_caller,
+    "current script ast" -> member_current_script_ast,
+    "current script id" -> member_current_script_id,
+    "deployment settings" -> member_deployment_settings,
+    "package current script" -> member_package_current_script,
+    "progress" -> member_progress,
+    "tutorial step completed" -> member_tutorial_step_completed,
+    "upload json" -> member_upload_json,
+    "user token" -> member_user_token
+  )
+
   /** Never used: Place a message on an AST node */
   def member_annotate_ast = ApiMember(
     name = "annotate ast",
@@ -46,6 +59,7 @@ trait Default_TEditor extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +78,8 @@ trait Default_TEditor extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +89,8 @@ trait Default_TEditor extends AAny {
     paramTypes = List(ApiParam(TJson_Object)),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -109,21 +127,9 @@ trait Default_TEditor extends AAny {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "annotate ast" -> member_annotate_ast,
-    "annotate caller" -> member_annotate_caller,
-    "current script ast" -> member_current_script_ast,
-    "current script id" -> member_current_script_id,
-    "deployment settings" -> member_deployment_settings,
-    "package current script" -> member_package_current_script,
-    "progress" -> member_progress,
-    "tutorial step completed" -> member_tutorial_step_completed,
-    "upload json" -> member_upload_json,
-    "user token" -> member_user_token
   )
             
 

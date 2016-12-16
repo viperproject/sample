@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.{ApiField, MethodSummaries, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -23,14 +23,34 @@ import RichNativeSemantics._
 
 object SHelpers extends ASingleton {
 
+
+  lazy val typeName = TypeName("Helpers", isSingleton = true)
+
+  // ==== Cloud tracking
+  lazy val field_last_operation = ApiField("*last operation", TString)
+  lazy val member_yield =
+    ApiMember(
+      name = "yield",
+      paramTypes = List(),
+      thisType = ApiParam(this),
+      returnType = TNothing,
+      isAsync = true,
+      pausesInterpreter = true,
+      semantics = SkipSemantics // only semantics is "pausing interpreter"
+    )
+  val cloudArgumentFields = new scala.collection.mutable.HashMap[String, ApiField]
+  // ==== Handler tracking
   val handlerCreatorMethods = new scala.collection.mutable.HashMap[String,ApiMember]
   val handlerEnabledFields = new scala.collection.mutable.HashMap[String,ApiField]
   val handlerTypes = new scala.collection.mutable.HashMap[String,TypeName]
 
-  lazy val typeName = TypeName("Helpers",isSingleton = true)
-
-  def handlerEnabledFieldName(handlerName:String):String = {
-     handlerName+" enabled"
+  def getCloudArgumentField(eventID: String, typ: AAny, num: Int): ApiField = {
+    val name = "cloudarg_" + eventID + "_" + typ.name + "_" + num
+    cloudArgumentFields.getOrElse(name, {
+      val newField = ApiField(name, typ)
+      cloudArgumentFields += (name -> newField)
+      newField
+    })
   }
 
   def createHandler(handlerName:String, t:TypeName):String = {
@@ -58,27 +78,16 @@ object SHelpers extends ASingleton {
     n
   }
 
-  lazy val member_yield =
-    ApiMember(
-      name = "yield",
-      paramTypes = List(),
-      thisType = ApiParam(this),
-      returnType = TNothing,
-      semantics = new ApiMemberSemantics {
-        override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember,
-                                                     parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-          val res = MethodSummaries.collectEventLoop[S](state,pp)
-          res
-        }
-      }
-    )
+  def handlerEnabledFieldName(handlerName: String): String = {
+    handlerName + " enabled"
+  }
 
-  override def declarations = {
+  override def declarations: Map[String, ApiMember] = {
     super.declarations ++ handlerCreatorMethods + ("yield" -> member_yield)
   }
 
   override def possibleFields: Set[Identifier] = {
-    super.possibleFields ++ handlerEnabledFields.values
+    super.possibleFields ++ handlerEnabledFields.values ++ cloudArgumentFields.values + field_last_operation
   }
 
   override def reset(): Unit = {

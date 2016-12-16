@@ -21,13 +21,36 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SCloud_Data extends ASingleton {
 
   lazy val typeName = TypeName("Cloud Data", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "authenticate" -> member_authenticate,
+    "clear all data" -> member_clear_all_data,
+    "connection status" -> member_connection_status,
+    "create session" -> member_create_session,
+    "current session" -> member_current_session,
+    "everyone session" -> member_everyone_session,
+    "from json" -> member_from_json,
+    "is sync enabled" -> member_is_sync_enabled,
+    "just me session" -> member_just_me_session,
+    "last session" -> member_last_session,
+    "participant number" -> member_participant_number,
+    "rebuild cache" -> member_rebuild_cache,
+    "session of" -> member_session_of,
+    "set sync enabled" -> member_set_sync_enabled,
+    "set token validator" -> member_set_token_validator,
+    "switch sessions" -> member_switch_sessions,
+    "switch to session" -> member_switch_to_session,
+    "to json" -> member_to_json,
+    "wait for server" -> member_wait_for_server
+  )
+
   /** Never used: [**dbg**] Authenticate against your deployed cloud library. Returns false if the authentication fails or the connection times out. */
   def member_authenticate = ApiMember(
     name = "authenticate",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +78,8 @@ trait Default_SCloud_Data extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TCloud_Session,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -127,6 +152,8 @@ trait Default_SCloud_Data extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TCloud_Session,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -163,6 +190,7 @@ trait Default_SCloud_Data extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -172,6 +200,7 @@ trait Default_SCloud_Data extends ASingleton {
     paramTypes = List(ApiParam(TCloud_Session)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -190,30 +219,9 @@ trait Default_SCloud_Data extends ASingleton {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TBoolean,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "authenticate" -> member_authenticate,
-    "clear all data" -> member_clear_all_data,
-    "connection status" -> member_connection_status,
-    "create session" -> member_create_session,
-    "current session" -> member_current_session,
-    "everyone session" -> member_everyone_session,
-    "from json" -> member_from_json,
-    "is sync enabled" -> member_is_sync_enabled,
-    "just me session" -> member_just_me_session,
-    "last session" -> member_last_session,
-    "participant number" -> member_participant_number,
-    "rebuild cache" -> member_rebuild_cache,
-    "session of" -> member_session_of,
-    "set sync enabled" -> member_set_sync_enabled,
-    "set token validator" -> member_set_token_validator,
-    "switch sessions" -> member_switch_sessions,
-    "switch to session" -> member_switch_to_session,
-    "to json" -> member_to_json,
-    "wait for server" -> member_wait_for_server
   )
             
 

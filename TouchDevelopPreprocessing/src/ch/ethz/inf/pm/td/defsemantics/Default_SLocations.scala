@@ -21,7 +21,14 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SLocations extends ASingleton {
 
   lazy val typeName = TypeName("Locations", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "create location list" -> member_create_location_list,
+    "create location" -> member_create_location,
+    "describe location" -> member_describe_location,
+    "search location" -> member_search_location
+  )
+
   /** Rarely used: Creates an empty list of locations */
   def member_create_location_list = ApiMember(
     name = "create location list",
@@ -46,6 +53,8 @@ trait Default_SLocations extends ASingleton {
     paramTypes = List(ApiParam(TLocation)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -55,15 +64,9 @@ trait Default_SLocations extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TLocation,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "create location list" -> member_create_location_list,
-    "create location" -> member_create_location,
-    "describe location" -> member_describe_location,
-    "search location" -> member_search_location
   )
             
 

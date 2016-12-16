@@ -22,8 +22,10 @@ trait Default_TAtomic_Action extends AAction {
 
   lazy val typeName = TypeName("Atomic Action")
 
-  override def actionReturnValue: AAny = TNothing
   override def actionArguments: List[ApiParam] = Nil
+
+  override def actionReturnValue: AAny = TNothing
+
 
 }
           

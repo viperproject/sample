@@ -7,11 +7,10 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
-import ch.ethz.inf.pm.sample.oorepresentation.{Modifier, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.domain.TouchStateInterface
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics.{AAction, AAny, TNothing}
 
@@ -24,22 +23,9 @@ trait TouchType extends Named with Type {
   def isSingleton: Boolean
   def isImmutable: Boolean
 
-  def isBottom = this == BottomTouchType
-  def isTop = this == TopTouchType
+  def factory(): TopTouchType.type = top()
 
-  def factory() = top()
   def top() = TopTouchType
-  def bottom() = BottomTouchType
-
-  def lub(other: oorepresentation.Type): oorepresentation.Type = {
-    if (other == null) return this
-    val other_ = other.asInstanceOf[TouchType]
-    if (isTop || other_.isTop) return top()
-    if (isBottom) return other_
-    if (other_.isBottom) return this
-    if (!equals(other_)) top()
-    else this
-  }
 
   def glb(other: oorepresentation.Type): oorepresentation.Type = {
     if (other == null) return this
@@ -51,18 +37,39 @@ trait TouchType extends Named with Type {
     else this
   }
 
-  def widening(other: Type) = lub(other)
+  def bottom() = BottomTouchType
 
-  def lessEqual(other: Type) = other == this || this.isBottom || other == top()
+  def isTop: Boolean = this == TopTouchType
 
-  def isBottomExcluding(types: Set[Type]) = isBottom || types.contains(this)
+  def isBottom: Boolean = this == BottomTouchType
 
-  def isObject = !isNumericalType && !isStringType
-  def isBooleanType = name == "Boolean"
-  def isNumericalType = name == "Number" || name == "Boolean"
-  def isFloatingPointType = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
-  def isStringType = name == "String"
-  def isStatic = isSingleton
+  def widening(other: Type): Type = lub(other)
+
+  def lub(other: oorepresentation.Type): oorepresentation.Type = {
+    if (other == null) return this
+    val other_ = other.asInstanceOf[TouchType]
+    if (isTop || other_.isTop) return top()
+    if (isBottom) return other_
+    if (other_.isBottom) return this
+    if (!equals(other_)) top()
+    else this
+  }
+
+  def lessEqual(other: Type): Boolean = other == this || this.isBottom || other == top()
+
+  def isBottomExcluding(types: Set[Type]): Boolean = isBottom || types.contains(this)
+
+  def isObject: Boolean = !isNumericalType && !isStringType
+
+  def isNumericalType: Boolean = name == "Number" || name == "Boolean"
+
+  def isStringType: Boolean = name == "String"
+
+  def isBooleanType: Boolean = name == "Boolean"
+
+  def isFloatingPointType: Boolean = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
+
+  def isStatic: Boolean = isSingleton
   def arrayElementsType = None
 
 }
@@ -89,6 +96,9 @@ case class ApiMember(
                       thisType:ApiParam,
                       returnType:AAny,
                       semantics:ApiMemberSemantics,
+    pausesInterpreter: Boolean = false,
+    isAsync: Boolean = false,
+    infixPriority: Double = 0.0,
                       runOnInvalid:Boolean = false
                       ) {
 
@@ -154,7 +164,7 @@ object StopSemantics extends ApiMemberSemantics {
 }
 
 object ExitSemantics extends ApiMemberSemantics {
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S) = {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
     Exit[S]
   }
 }

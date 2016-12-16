@@ -21,7 +21,30 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TWeb_Request extends AAny {
 
   lazy val typeName = TypeName("Web Request")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "header names" -> member_header_names,
+    "header" -> member_header,
+    "method" -> member_method,
+    "on response received" -> member_on_response_received,
+    "send async" -> member_send_async,
+    "send" -> member_send,
+    "set accept" -> member_set_accept,
+    "set compress" -> member_set_compress,
+    "set content as buffer" -> member_set_content_as_buffer,
+    "set content as form" -> member_set_content_as_form,
+    "set content as json" -> member_set_content_as_json,
+    "set content as picture" -> member_set_content_as_picture,
+    "set content as xml" -> member_set_content_as_xml,
+    "set content" -> member_set_content,
+    "set credentials" -> member_set_credentials,
+    "set header" -> member_set_header,
+    "set method" -> member_set_method,
+    "set url" -> member_set_url,
+    "show notifications" -> member_show_notifications,
+    "url" -> member_url
+  )
+
   /** Never used: Gets the names of the headers */
   def member_header_names = ApiMember(
     name = "header names",
@@ -73,6 +96,8 @@ trait Default_TWeb_Request extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TWeb_Response,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -127,6 +152,7 @@ trait Default_TWeb_Request extends AAny {
     paramTypes = List(ApiParam(TPicture), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -200,30 +226,6 @@ trait Default_TWeb_Request extends AAny {
     thisType = ApiParam(this),
     returnType = TString,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "header names" -> member_header_names,
-    "header" -> member_header,
-    "method" -> member_method,
-    "on response received" -> member_on_response_received,
-    "send async" -> member_send_async,
-    "send" -> member_send,
-    "set accept" -> member_set_accept,
-    "set compress" -> member_set_compress,
-    "set content as buffer" -> member_set_content_as_buffer,
-    "set content as form" -> member_set_content_as_form,
-    "set content as json" -> member_set_content_as_json,
-    "set content as picture" -> member_set_content_as_picture,
-    "set content as xml" -> member_set_content_as_xml,
-    "set content" -> member_set_content,
-    "set credentials" -> member_set_credentials,
-    "set header" -> member_set_header,
-    "set method" -> member_set_method,
-    "set url" -> member_set_url,
-    "show notifications" -> member_show_notifications,
-    "url" -> member_url
   )
             
 

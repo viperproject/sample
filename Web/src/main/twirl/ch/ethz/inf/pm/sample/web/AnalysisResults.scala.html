@@ -25,8 +25,8 @@
                 @result.displayName
             </a><br />
         }
-        <h2>Weighted graph analysis results</h2>
-        @for(result <- app.resultsOption.get.collect{case x:WeightedGraphAnalysisResult[_,_] => x}) {
+        <h2>Labeled graph analysis results</h2>
+        @for(result <- app.resultsOption.get.collect{case x:LabeledGraphAnalysisResult[_,_] => x}) {
             <a class="btn btn-lg btn-primary" href="/@app.prefix/results/@result.uniqueID/">
                 @result.displayName
             </a><br />

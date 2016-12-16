@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,13 +21,48 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SSenses extends ASingleton {
 
   lazy val typeName = TypeName("Senses", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "acceleration quick" -> member_acceleration_quick,
+    "acceleration smooth" -> member_acceleration_smooth,
+    "acceleration stable" -> member_acceleration_stable,
+    "battery level" -> member_battery_level,
+    "bluetooth devices" -> member_bluetooth_devices,
+    "camera" -> member_camera,
+    "current location accurate" -> member_current_location_accurate,
+    "current location" -> member_current_location,
+    "first gamepad" -> member_first_gamepad,
+    "front camera" -> member_front_camera,
+    "gamepads" -> member_gamepads,
+    "has accelerometer" -> member_has_accelerometer,
+    "has compass" -> member_has_compass,
+    "has front camera" -> member_has_front_camera,
+    "has gyroscope" -> member_has_gyroscope,
+    "has motion" -> member_has_motion,
+    "heading" -> member_heading,
+    "is device stable" -> member_is_device_stable,
+    "is key pressed" -> member_is_key_pressed,
+    "motion" -> member_motion,
+    "on key pressed" -> member_on_key_pressed,
+    "on phone face down" -> member_on_phone_face_down,
+    "on phone face up" -> member_on_phone_face_up,
+    "on phone landscape left" -> member_on_phone_landscape_left,
+    "on phone landscape right" -> member_on_phone_landscape_right,
+    "on phone portrait" -> member_on_phone_portrait,
+    "on shake" -> member_on_shake,
+    "orientation" -> member_orientation,
+    "record microphone" -> member_record_microphone,
+    "rotation speed" -> member_rotation_speed,
+    "take camera picture" -> member_take_camera_picture
+  )
+
   /** Sometimes used: Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
   def member_acceleration_quick = ApiMember(
     name = "acceleration quick",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TVector3,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +72,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TVector3,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +82,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TVector3,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +92,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +111,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TCamera,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -82,6 +121,8 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TLocation,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -91,6 +132,8 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TLocation,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -109,6 +152,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TCamera,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -145,6 +189,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -172,6 +217,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -181,6 +227,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -271,6 +318,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TVector3,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -280,6 +328,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TSound,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -289,6 +338,7 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TVector3,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -298,42 +348,8 @@ trait Default_SSenses extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "acceleration quick" -> member_acceleration_quick,
-    "acceleration smooth" -> member_acceleration_smooth,
-    "acceleration stable" -> member_acceleration_stable,
-    "battery level" -> member_battery_level,
-    "bluetooth devices" -> member_bluetooth_devices,
-    "camera" -> member_camera,
-    "current location accurate" -> member_current_location_accurate,
-    "current location" -> member_current_location,
-    "first gamepad" -> member_first_gamepad,
-    "front camera" -> member_front_camera,
-    "gamepads" -> member_gamepads,
-    "has accelerometer" -> member_has_accelerometer,
-    "has compass" -> member_has_compass,
-    "has front camera" -> member_has_front_camera,
-    "has gyroscope" -> member_has_gyroscope,
-    "has motion" -> member_has_motion,
-    "heading" -> member_heading,
-    "is device stable" -> member_is_device_stable,
-    "is key pressed" -> member_is_key_pressed,
-    "motion" -> member_motion,
-    "on key pressed" -> member_on_key_pressed,
-    "on phone face down" -> member_on_phone_face_down,
-    "on phone face up" -> member_on_phone_face_up,
-    "on phone landscape left" -> member_on_phone_landscape_left,
-    "on phone landscape right" -> member_on_phone_landscape_right,
-    "on phone portrait" -> member_on_phone_portrait,
-    "on shake" -> member_on_shake,
-    "orientation" -> member_orientation,
-    "record microphone" -> member_record_microphone,
-    "rotation speed" -> member_rotation_speed,
-    "take camera picture" -> member_take_camera_picture
   )
             
 

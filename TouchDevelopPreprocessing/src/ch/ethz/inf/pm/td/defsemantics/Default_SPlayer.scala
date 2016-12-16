@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,13 +21,40 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SPlayer extends ASingleton {
 
   lazy val typeName = TypeName("Player", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "active song" -> member_active_song,
+    "is muted" -> member_is_muted,
+    "is paused" -> member_is_paused,
+    "is playing" -> member_is_playing,
+    "is repeating" -> member_is_repeating,
+    "is shuffled" -> member_is_shuffled,
+    "is stopped" -> member_is_stopped,
+    "next" -> member_next,
+    "on active song changed" -> member_on_active_song_changed,
+    "on player state changed" -> member_on_player_state_changed,
+    "pause" -> member_pause,
+    "play home media" -> member_play_home_media,
+    "play many" -> member_play_many,
+    "play position" -> member_play_position,
+    "play" -> member_play,
+    "previous" -> member_previous,
+    "resume" -> member_resume,
+    "set repeating" -> member_set_repeating,
+    "set shuffled" -> member_set_shuffled,
+    "set sound volume" -> member_set_sound_volume,
+    "sound volume" -> member_sound_volume,
+    "stop" -> member_stop,
+    "volume" -> member_volume
+  )
+
   /** Frequently used: Gets the active song if any */
   def member_active_song = ApiMember(
     name = "active song",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TSong,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +64,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +74,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +84,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +94,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +104,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -82,6 +114,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TBoolean,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -145,6 +178,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -181,6 +215,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(ApiParam(TBoolean)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -190,6 +225,7 @@ trait Default_SPlayer extends ASingleton {
     paramTypes = List(ApiParam(TBoolean)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -227,33 +263,6 @@ trait Default_SPlayer extends ASingleton {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "active song" -> member_active_song,
-    "is muted" -> member_is_muted,
-    "is paused" -> member_is_paused,
-    "is playing" -> member_is_playing,
-    "is repeating" -> member_is_repeating,
-    "is shuffled" -> member_is_shuffled,
-    "is stopped" -> member_is_stopped,
-    "next" -> member_next,
-    "on active song changed" -> member_on_active_song_changed,
-    "on player state changed" -> member_on_player_state_changed,
-    "pause" -> member_pause,
-    "play home media" -> member_play_home_media,
-    "play many" -> member_play_many,
-    "play position" -> member_play_position,
-    "play" -> member_play,
-    "previous" -> member_previous,
-    "resume" -> member_resume,
-    "set repeating" -> member_set_repeating,
-    "set shuffled" -> member_set_shuffled,
-    "set sound volume" -> member_set_sound_volume,
-    "sound volume" -> member_sound_volume,
-    "stop" -> member_stop,
-    "volume" -> member_volume
   )
             
 

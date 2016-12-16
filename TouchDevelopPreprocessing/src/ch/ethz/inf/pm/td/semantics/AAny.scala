@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.cloud.{AbstractEventGraph, CloudQueryWrapper, CloudUpdateWrapper}
+import ch.ethz.inf.pm.td.cloud.{CloudAnalysisState, CloudQueryWrapper, CloudUpdateWrapper}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, MultiValExpression}
 
@@ -27,9 +27,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def isImmutable = true
 
-  def representedTouchFields = representedFields.map(_.asInstanceOf[ApiField])
+  def representedTouchFields: Set[ApiField] = representedFields.map(_.asInstanceOf[ApiField])
 
-  override def representedFields =
+  override def representedFields: Set[Identifier] =
     if (TouchAnalysisParameters.get.libraryFieldPruning &&
       SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
       val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
@@ -39,9 +39,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
       possibleFields -- mutedFields
     }
 
-  def possibleFields = Set.empty
-
   def mutedFields: Set[ApiField] = Set.empty
+
+  def possibleFields: Set[Identifier] = Set.empty
 
   /**
     * Backward semantics are empty for all native function for now
@@ -92,7 +92,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
         return Some(state.bottom())
       }
 
-      curState = AbstractEventGraph.record(operator, thisExpr, parameters, curState, pp)
+      curState = CloudAnalysisState.record(operator, thisExpr, parameters, curState, pp)
 
       val res = forwardSemantics(thisExpr, operator, parameters, returnedType.asInstanceOf[TouchType])(pp, curState)
 
@@ -183,39 +183,47 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
         mutedFieldResult match {
           case Some(res) => res
-          case None =>
-            getDeclaration(method) match {
-              case Some(res) =>
-                res.semantics.forwardSemantics(this0, res, parameters)
-              case None =>
-
-                if (SystemParameters.DEBUG) {
-                  if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
-                    println("Looks like library fragment analysis missed " + this0.typ + "->" + method)
-                  }
-                }
-                //                // Try implicit conversion to Ref
-                //                if (!this.isInstanceOf[GRef]) {
-                //                  val refType = GRef(this)
-                //                  refType.getDeclaration(method) match {
-                //                    case Some(x) =>
-                //                      x.semantics.forwardSemantics[S](this0,x,parameters)
-                //                    case None =>
-                //                      Unimplemented[S](this.toString + "." + method, returnedType)
-                //                  }
-                //
-                //                } else {
-                Unimplemented[S](this.toString + "." + method, returnedType)
-              //                }
-
-            }
+          case None => findDeclaration(this0, parameters, method, returnedType)
 
         }
     }
 
   }
 
-  def getDeclaration(s: String) = declarations.get(s)
+  private def findDeclaration[S <: State[S]](this0: RichExpressionSet, parameters: List[ExpressionSet], method: String,
+      returnedType: TouchType)(implicit state: S, pp: ProgramPoint): S = {
+
+
+    getDeclaration(method) match {
+      case Some(res) =>
+
+        val s =
+          res.semantics.forwardSemantics[S](this0, res, parameters)
+
+        if (res.isAsync) {
+          // == This is a asynchronous function -- we might execute events
+          if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+            CloudAnalysisState.recordTransactionBoundary(pp)
+          }
+          MethodSummaries.collectEventLoop[S](s, pp)
+        } else {
+          s
+        }
+
+      case None =>
+
+        if (SystemParameters.DEBUG) {
+          if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
+            println("Looks like library fragment analysis missed " + this0.typ + "->" + method)
+          }
+        }
+
+        Unimplemented[S](this.toString + "." + method, returnedType)
+
+    }
+  }
+
+  def getDeclaration(s: String): Option[ApiMember] = declarations.get(s)
 
   def declarations: Map[String, ApiMember] =
     Map(
@@ -237,7 +245,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def member__add: ApiMember = ApiMember(
     name = "◈add",
-    paramTypes = List(ApiParam(TNumber,isMutated = false)),
+    paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
@@ -249,7 +257,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def member__test_and_set = ApiMember(
     name = "◈test and set",
-    paramTypes = List(ApiParam(TString,isMutated = false)),
+    paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this, isMutated = true),
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
@@ -301,7 +309,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     },Set(CloudEnabledModifier))
   )
 
-  def Clear[S <: State[S]](this0: RichExpressionSet)(implicit state: S, pp: ProgramPoint) = {
+  def Clear[S <: State[S]](this0: RichExpressionSet)(implicit state: S, pp: ProgramPoint): S = {
     Assign[S](this0, Default(this0.typ, "Value got cleared"))
   }
 
@@ -374,7 +382,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     thisType = ApiParam(this),
     returnType = TUnknown,
     semantics = new ApiMemberSemantics {
-      override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      override def forwardSemantics[S <: State[S]](this0:
+      ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
         val List(right) = parameters
         val res = Assign[S](this0, right)
         // Dirty old PhD students hacking dirty
@@ -415,7 +424,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
     "set " + x.getName -> ApiMember("set " + x.getName, List(), ApiParam(this, isMutated = true), TNothing, DefaultSemantics))
   }.toMap
 
-  def mkGetters(fields: Set[ApiField]) = fields.map { x: ApiField => (
+  def mkGetters(fields: Set[ApiField]): Map[String, ApiMember] = fields.map { x: ApiField =>
+    (
     x.getName, ApiMember(x.getName, List(), ApiParam(this), x.typ, DefaultSemantics))
   }.toMap
 

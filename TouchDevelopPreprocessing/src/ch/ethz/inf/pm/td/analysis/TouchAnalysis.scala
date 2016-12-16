@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, Relation}
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -137,7 +137,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     //
     if (TouchAnalysisParameters.get.libraryFieldPruning) {
       SystemParameters.resetOutput()
-      AbstractEventGraph.reset()
+      CloudAnalysisState.reset()
       MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
       Reporter.disableAllOutputs()
       if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.LibraryFieldAnalysis")
@@ -157,7 +157,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       TouchVariablePacking.reset()
       SystemParameters.resetOutput()
       MethodSummaries.reset[TouchEntryStateBuilder.PreAnalysisState]()
-      AbstractEventGraph.reset()
+      CloudAnalysisState.reset()
       Reporter.disableAllOutputs()
       //val oldNumber = TouchAnalysisParameters.get.numberOfVersions
       //TouchAnalysisParameters.set(TouchAnalysisParameters.get.copy(numberOfVersions = 2))
@@ -183,7 +183,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     if(SystemParameters.TIME) AccumulatingTimer.start("TouchAnalysis.MainAnalysis")
     SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
-    AbstractEventGraph.reset()
+    CloudAnalysisState.reset()
     analyzeScript(compiler,methods,outMostFixpoint)(newEntryState)
     if(SystemParameters.TIME) AccumulatingTimer.stopAndWrite("TouchAnalysis.MainAnalysis")
 
@@ -210,8 +210,6 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
       }
     }
     SingleStatementProperty.Default(new BottomVisitor).check(mainClassResult,output)
-
-    Exporters(compiler)
 
     // Reset singletons
     for (sem <- TypeList.getSingletons) sem.reset()
@@ -295,6 +293,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     var cur = s
     for (methodDeclaration <- compiler.events) {
+
+
       cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
     cur
@@ -303,6 +303,10 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
 
   private def analyzeMethod[S <: State[S]](callTarget: MethodDeclaration, entryState: S): S = {
+
+    if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+      CloudAnalysisState.recordTransactionBoundary(callTarget.programpoint)
+    }
 
     val exitState = MethodSummaries.collect[S](callTarget.programpoint, callTarget, entryState, Nil)
 

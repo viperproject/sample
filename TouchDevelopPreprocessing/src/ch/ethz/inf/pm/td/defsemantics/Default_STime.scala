@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,22 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_STime extends ASingleton {
 
   lazy val typeName = TypeName("Time", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "create" -> member_create,
+    "fail if not" -> member_fail_if_not,
+    "log" -> member_log,
+    "now" -> member_now,
+    "on every frame" -> member_on_every_frame,
+    "run after" -> member_run_after,
+    "run every" -> member_run_every,
+    "sleep" -> member_sleep,
+    "stop and close" -> member_stop_and_close,
+    "stop" -> member_stop,
+    "today" -> member_today,
+    "tomorrow" -> member_tomorrow
+  )
+
   /** Sometimes used: Creates a new date instance */
   def member_create = ApiMember(
     name = "create",
@@ -91,6 +106,8 @@ trait Default_STime extends ASingleton {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -100,6 +117,7 @@ trait Default_STime extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -109,6 +127,7 @@ trait Default_STime extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -128,22 +147,6 @@ trait Default_STime extends ASingleton {
     thisType = ApiParam(this),
     returnType = TDateTime,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "create" -> member_create,
-    "fail if not" -> member_fail_if_not,
-    "log" -> member_log,
-    "now" -> member_now,
-    "on every frame" -> member_on_every_frame,
-    "run after" -> member_run_after,
-    "run every" -> member_run_every,
-    "sleep" -> member_sleep,
-    "stop and close" -> member_stop_and_close,
-    "stop" -> member_stop,
-    "today" -> member_today,
-    "tomorrow" -> member_tomorrow
   )
             
 

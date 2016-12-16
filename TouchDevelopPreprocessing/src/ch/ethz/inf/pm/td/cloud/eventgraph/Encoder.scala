@@ -3,19 +3,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package ch.ethz.inf.pm.td.cloud.boundedgraph
+package ch.ethz.inf.pm.td.cloud.eventgraph
 
-import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
-import ch.ethz.inf.pm.td.cloud.boundedgraph.Graph._
-import ch.ethz.inf.pm.td.cloud.{DumpGraph, Z3Prover}
+import ch.ethz.inf.pm.sample.oorepresentation.LabeledGraph
+import ch.ethz.inf.pm.td.cloud.eventgraph.Graph._
+import ch.ethz.inf.pm.td.cloud.Z3Prover
+import ch.ethz.inf.pm.td.output.DumpGraph
 
 import scala.util.Random
 
 object Encoder {
 
-  def findViolations(g: Graph, sessionName:Option[String] = None): Option[WeightedGraph[String,String]] = {
+  def findViolations(g: Graph, sessionName: Option[String] = None): Option[LabeledGraph[String, String]] = {
 
-    var violation:Option[WeightedGraph[String,String]] = None
+    var violation: Option[LabeledGraph[String, String]] = None
 
     Z3Prover.withZ3[Unit,Expr,Var] ( { z3 =>
 
@@ -24,9 +25,9 @@ object Encoder {
         case Z3Prover.Sat =>
           val model = z3.extractModel()
           println(model.mkString("\n"))
-          val cycle = toGraph(model)(g)
+          val cycle = toLabeledGraph(model)(g)
           val session = sessionName.getOrElse(Random.alphanumeric.take(5).mkString(""))
-          println(DumpGraph("cycle_" + session, cycle, EventGraphRenderer(g, cycle)))
+          println(DumpGraph.dumpToFile("cycle_" + session, cycle))
           violation = Some(cycle)
         case Z3Prover.Unknown =>
           assert(false)
@@ -39,13 +40,11 @@ object Encoder {
     violation
   }
 
-  def toGraph(model: Map[String, String])(implicit g: Graph): LabeledGraph[String, String] = {
+  def toLabeledGraph(model: Map[String, String])(implicit g: Graph): LabeledGraph[String, String] = {
 
-    val pg = new LabeledGraph[String, String]()
+    val pg = g.toLabeledGraph
 
-    g.transactions.map(TransactionNames.make).foreach(pg.addNode)
     val nodeMap = pg.nodes.zipWithIndex.toMap
-    g.events.foreach(x => pg.addNode(x.id))
     var nodeLabels = Map.empty[String, Map[String, String]]
 
     model.foreach {
@@ -62,7 +61,7 @@ object Encoder {
         println("skipping "+x)
     }
 
-    nodeLabels.foreach(x => pg.setLabel(x._1, x._2.map(y => y._1 + "=" + y._2).mkString(",")))
+    nodeLabels.foreach(x => pg.setNodeLabel(x._1, x._2.map(y => y._1 + "=" + y._2).mkString(",")))
 
     pg
   }
@@ -165,19 +164,6 @@ object Encoder {
     z3.assume(a)
   }
 
-  case class EventGraphRenderer(g: Graph, lg: LabeledGraph[String, String]) extends DumpGraph.GraphRenderer[String, String] {
-    override def clazz(node: String): String =
-      if (TransactionNames.isName(node)) "coral" else "blue"
-
-    override def name(node: String): String =
-      if (TransactionNames.isName(node)) node else node + " (" + lg.getLabel(node) + ")"
-
-    override def label(value: String): String = value
-
-    override def partitioning(value: String): Option[String] =
-      g.eventMap.get(value).map(x => TransactionNames.make(x.txn))
-  }
-
   case class Ar(l: TransactionID, r: TransactionID) extends BoolVar {
     override def name: String = EdgeNames.make("ar", l, r)
   }
@@ -226,20 +212,6 @@ object Encoder {
 
   }
 
-  private object TransactionNames {
-
-    def make(r: TransactionID): String =
-      "txn_" + r
-
-    def isName(a: String): Boolean =
-      a.startsWith("txn_")
-
-    def deconstruct(str: String): TransactionID = {
-      str.stripPrefix("txn_")
-    }
-
-  }
-
 }
 
 object EventGraphZ3Converter extends Z3Prover.ExpressionConverter[Expr,Var] {
@@ -247,18 +219,4 @@ object EventGraphZ3Converter extends Z3Prover.ExpressionConverter[Expr,Var] {
   override def sort(v: Var): String = v.sort
   override def vars(expr: Expr): Set[Var] = expr.vars
   override def convert(expr: Expr): String = expr.smt
-}
-
-case class LabeledGraph[Node, Weight]() extends WeightedGraph[Node, Weight] {
-
-  private var labels = Map.empty[Node, String]
-
-  def setLabel(a: Node, b: String): Unit = {
-    labels = labels + (a -> b)
-  }
-
-  def getLabel(a: Node): String = {
-    labels.getOrElse(a, "")
-  }
-
 }

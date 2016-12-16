@@ -20,8 +20,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, WeightedGraph}
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph
-import ch.ethz.inf.pm.td.cloud.AbstractEventGraph.AbstractEventWithState
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState.AbstractEventWithState
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain.TouchState.CollectingDomain
 import ch.ethz.inf.pm.td.domain._
@@ -111,7 +111,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
   override def prepareContext() = {
     super.prepareContext()
 
-    AbstractEventGraph.reset()
+    CloudAnalysisState.reset()
     MethodSummaries.reset()
     SystemParameters.reset()
     TouchVariablePacking.reset()
@@ -147,12 +147,20 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics)
     val analyzer = new TouchAnalysis[Apron.FloatOptOctagons, NonrelationalStringDomain[StringKSetDomain]]
-    val methods: List[MethodAnalysisResult[S]] =
-      analyzer.analyze(Nil, entryState) map { x => MethodAnalysisResult[S](x._2, x._3.asInstanceOf[TrackingCFGState[S]]) }
-    val abs: WeightedGraph[NodeWithState[S], AbstractEventGraph.EdgeLabel.Value] =
-      AbstractEventGraph.toWeightedGraph
-    val messages = Reporter.messages
-    WeightedGraphAnalysisResult("Abstract Event Graph", abs) :: methods ::: messages.toList
+
+    var results: List[AnalysisResult] = Nil
+
+    // Analysis states, for inspection
+    results = results :::
+      (analyzer.analyze(Nil, entryState) map { x => MethodAnalysisResult[S](x._2, x._3.asInstanceOf[TrackingCFGState[S]]) })
+
+    if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+      results = LabeledGraphAnalysisResult("Abstract Event Graph", "aeg", CloudAnalysisState.toEventGraph[S].toLabeledGraph) :: results
+    }
+
+    results = results ::: Reporter.messages.toList
+    Exporters.exportResults(compiler, results)
+    results
   }
 
 }

@@ -21,8 +21,8 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TSprite_Set_Action extends AAction {
 
   lazy val typeName = TypeName("Sprite Set Action")
-          
-  override def actionArguments = List(ApiParam(TSprite_Set))
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TSprite_Set))
   override def actionReturnValue: AAny = TNothing
 
 

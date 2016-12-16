@@ -9,13 +9,9 @@ package ch.ethz.inf.pm.td.output
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
 import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchCompiler, TouchProgramPoint, TouchProgramPointRegistry}
 
-class TSVExporter extends FileSystemExporter {
+object TSVExporter extends FileSystemResultExporter {
 
   def getExtension = "tsv"
-
-  def warningsToString(compiler: TouchCompiler): String = {
-    (for ((id, _) <- compiler.parsedTouchScripts) yield apply(id)).mkString("\n")
-  }
 
   def warningsToString(compiler: TouchCompiler, id: String): String = {
     apply(id)

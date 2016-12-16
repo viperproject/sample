@@ -21,7 +21,14 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TCamera extends AAny {
 
   lazy val typeName = TypeName("Camera")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "height" -> member_height,
+    "is front" -> member_is_front,
+    "preview" -> member_preview,
+    "width" -> member_width
+  )
+
   /** Rarely used: [**not implemented**] Gets the height of the camera image in pixels. */
   def member_height = ApiMember(
     name = "height",
@@ -46,6 +53,7 @@ trait Default_TCamera extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TPicture,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -56,14 +64,6 @@ trait Default_TCamera extends AAny {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "height" -> member_height,
-    "is front" -> member_is_front,
-    "preview" -> member_preview,
-    "width" -> member_width
   )
             
 

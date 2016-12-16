@@ -26,6 +26,15 @@ trait Default_TBoard_Background_Scene extends ALinearCollection {
 
   def valueType = TBoard_Background_Layer
 
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "clear" -> member_clear,
+    "create layer" -> member_create_layer,
+    "set view x" -> member_set_view_x,
+    "set view y" -> member_set_view_y,
+    "view x" -> member_view_x,
+    "view y" -> member_view_y
+  )
+
   /** Never used: Removes all layers from scene and resets the viewport */
   def member_clear = ApiMember(
     name = "clear",
@@ -41,6 +50,7 @@ trait Default_TBoard_Background_Scene extends ALinearCollection {
     paramTypes = List(ApiParam(TNumber), ApiParam(TPicture)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TBoard_Background_Layer,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -78,16 +88,6 @@ trait Default_TBoard_Background_Scene extends ALinearCollection {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "clear" -> member_clear,
-    "create layer" -> member_create_layer,
-    "set view x" -> member_set_view_x,
-    "set view y" -> member_set_view_y,
-    "view x" -> member_view_x,
-    "view y" -> member_view_y
   )
             
 

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,26 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SSocial extends ASingleton {
 
   lazy val typeName = TypeName("Social", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "choose contact" -> member_choose_contact,
+    "choose email" -> member_choose_email,
+    "contacts" -> member_contacts,
+    "create contact" -> member_create_contact,
+    "create message" -> member_create_message,
+    "create place" -> member_create_place,
+    "link email" -> member_link_email,
+    "link phone number" -> member_link_phone_number,
+    "save contact" -> member_save_contact,
+    "save email" -> member_save_email,
+    "search appointments" -> member_search_appointments,
+    "search contacts" -> member_search_contacts,
+    "search places nearby" -> member_search_places_nearby,
+    "search" -> member_search,
+    "send email" -> member_send_email,
+    "send sms" -> member_send_sms
+  )
+
   /** Rarely used: Chooses a contact from the contact list */
   def member_choose_contact = ApiMember(
     name = "choose contact",
@@ -154,6 +173,7 @@ trait Default_SSocial extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -163,27 +183,8 @@ trait Default_SSocial extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "choose contact" -> member_choose_contact,
-    "choose email" -> member_choose_email,
-    "contacts" -> member_contacts,
-    "create contact" -> member_create_contact,
-    "create message" -> member_create_message,
-    "create place" -> member_create_place,
-    "link email" -> member_link_email,
-    "link phone number" -> member_link_phone_number,
-    "save contact" -> member_save_contact,
-    "save email" -> member_save_email,
-    "search appointments" -> member_search_appointments,
-    "search contacts" -> member_search_contacts,
-    "search places nearby" -> member_search_places_nearby,
-    "search" -> member_search,
-    "send email" -> member_send_email,
-    "send sms" -> member_send_sms
   )
             
 

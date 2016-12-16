@@ -21,13 +21,30 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SBazaar extends ASingleton {
 
   lazy val typeName = TypeName("Bazaar", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "ast of" -> member_ast_of,
+    "current user" -> member_current_user,
+    "leaderboard score" -> member_leaderboard_score,
+    "merge3" -> member_merge3,
+    "open leaderboard" -> member_open_leaderboard,
+    "open review" -> member_open_review,
+    "open" -> member_open,
+    "pick script" -> member_pick_script,
+    "post leaderboard score" -> member_post_leaderboard_score,
+    "post leaderboard to wall" -> member_post_leaderboard_to_wall,
+    "save ast" -> member_save_ast,
+    "script id" -> member_script_id,
+    "user of" -> member_user_of
+  )
+
   /** Never used: Returns the Abstract Syntax Tree JSON object for specified script */
   def member_ast_of = ApiMember(
     name = "ast of",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TJson_Object,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -37,6 +54,7 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TUser,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -46,6 +64,8 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +84,7 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -91,6 +112,7 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -100,6 +122,8 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(ApiParam(TNumber)),
     thisType = ApiParam(this,isMutated=true),
     returnType = TNothing,
+    pausesInterpreter = true,
+    isAsync = true,
     semantics = DefaultSemantics
   )
 
@@ -109,6 +133,7 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -118,6 +143,7 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(ApiParam(TString), ApiParam(TJson_Object)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -136,24 +162,8 @@ trait Default_SBazaar extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TUser,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "ast of" -> member_ast_of,
-    "current user" -> member_current_user,
-    "leaderboard score" -> member_leaderboard_score,
-    "merge3" -> member_merge3,
-    "open leaderboard" -> member_open_leaderboard,
-    "open review" -> member_open_review,
-    "open" -> member_open,
-    "pick script" -> member_pick_script,
-    "post leaderboard score" -> member_post_leaderboard_score,
-    "post leaderboard to wall" -> member_post_leaderboard_to_wall,
-    "save ast" -> member_save_ast,
-    "script id" -> member_script_id,
-    "user of" -> member_user_of
   )
             
 

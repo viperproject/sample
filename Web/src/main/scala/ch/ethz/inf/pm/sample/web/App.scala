@@ -13,7 +13,7 @@ import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner, MethodAnalysisResult, WeightedGraphAnalysisResult}
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner, MethodAnalysisResult, LabeledGraphAnalysisResult}
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, WeightedGraph}
 
 import scala.language.existentials
@@ -33,6 +33,13 @@ import scala.language.existentials
   */
 abstract class App extends ScalatraServlet {
 
+  /** The currently active runner using which analyses are performed.
+    * Can be changed from the web interface and defaults to the first one.
+    */
+  var analysisRunnerOption: Option[AnalysisRunner[_ <: State[_]]] = None
+  /** The currently active analysis results that the user can inspect. */
+  var resultsOption: Option[List[AnalysisResult]] = None
+
   /** Provides all test files that the user can choose to analyze. */
   def fileProvider: TestFileProvider
 
@@ -44,14 +51,6 @@ abstract class App extends ScalatraServlet {
 
   /** URL prefix */
   def prefix: String
-
-  /** The currently active runner using which analyses are performed.
-    * Can be changed from the web interface and defaults to the first one.
-    */
-  var analysisRunnerOption: Option[AnalysisRunner[_ <: State[_]]] = None
-
-  /** The currently active analysis results that the user can inspect. */
-  var resultsOption: Option[List[AnalysisResult]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
@@ -103,8 +102,8 @@ abstract class App extends ScalatraServlet {
         result match {
           case m:MethodAnalysisResult[_] =>
             html.CFGState(m)(this)
-          case w:WeightedGraphAnalysisResult[_,_] =>
-            html.WeightedGraphResult(w)(this)
+          case w: LabeledGraphAnalysisResult[_, _] =>
+            html.LabeledGraphResult(w)(this)
           case _ => redirect("/"+prefix+"/")
         }
       case None => redirect("/"+prefix+"/")
@@ -182,6 +181,10 @@ class SilApp extends App {
   * Be sure to add Apron to the native library path in IntelliJ's run config.
   */
 object App {
+  def main(args: Array[String]) {
+    launch()
+  }
+
   def launch() = {
     val context = new WebAppContext()
     context setContextPath "/"
@@ -193,9 +196,5 @@ object App {
     server.setHandler(context)
     server.start()
     server.join()
-  }
-
-  def main(args: Array[String]) {
-    launch()
   }
 }

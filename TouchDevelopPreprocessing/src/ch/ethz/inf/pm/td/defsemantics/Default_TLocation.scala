@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.td.defsemantics
 
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, ApiParam, DefaultSemantics}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -21,7 +21,20 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TLocation extends AAny {
 
   lazy val typeName = TypeName("Location")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "altitude" -> member_altitude,
+    "course" -> member_course,
+    "distance" -> member_distance,
+    "hor accuracy" -> member_hor_accuracy,
+    "latitude" -> member_latitude,
+    "longitude" -> member_longitude,
+    "share" -> member_share,
+    "speed" -> member_speed,
+    "to string" -> member_to_string,
+    "vert accuracy" -> member_vert_accuracy
+  )
+
   /** Rarely used: Gets the altitude of the coordinate */
   def member_altitude = ApiMember(
     name = "altitude",
@@ -76,12 +89,13 @@ trait Default_TLocation extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares the location (email, sms, social or &#39;&#39; to pick from a list) */
+  /** Rarely used: Shares the location (email, sms, social or  to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString), ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -112,20 +126,6 @@ trait Default_TLocation extends AAny {
     semantics = DefaultSemantics
   )
 
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "altitude" -> member_altitude,
-    "course" -> member_course,
-    "distance" -> member_distance,
-    "hor accuracy" -> member_hor_accuracy,
-    "latitude" -> member_latitude,
-    "longitude" -> member_longitude,
-    "share" -> member_share,
-    "speed" -> member_speed,
-    "to string" -> member_to_string,
-    "vert accuracy" -> member_vert_accuracy
-  )
-            
 
 }
           

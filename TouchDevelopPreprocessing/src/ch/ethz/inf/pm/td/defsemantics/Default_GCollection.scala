@@ -20,14 +20,39 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GCollection extends AMutableLinearCollection {
 
-  def TT:AAny
-           
-
   lazy val typeName = TypeName("Collection", List(TT.typeName))
+
+  def TT: AAny
           
   def keyType = TNumber
 
   def valueType = TT
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "avg of" -> member_avg_of,
+    "avg" -> member_avg,
+    "continuation" -> member_continuation,
+    "first" -> member_first,
+    "join" -> member_join,
+    "last" -> member_last,
+    "map to" -> member_map_to,
+    "max of" -> member_max_of,
+    "max" -> member_max,
+    "min of" -> member_min_of,
+    "min" -> member_min,
+    "ordered by string" -> member_ordered_by_string,
+    "ordered by" -> member_ordered_by,
+    "pick entry" -> member_pick_entry,
+    "set continuation" -> member_set_continuation,
+    "slice" -> member_slice,
+    "sort by date" -> member_sort_by_date,
+    "sort by distance" -> member_sort_by_distance,
+    "sorted" -> member_sorted,
+    "sum of" -> member_sum_of,
+    "sum" -> member_sum,
+    "take" -> member_take,
+    "where" -> member_where
+  )
 
   /** Never used: Computes the average of the key of the elements in the collection */
   def member_avg_of = ApiMember(
@@ -152,6 +177,7 @@ trait Default_GCollection extends AMutableLinearCollection {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TT,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -234,33 +260,6 @@ trait Default_GCollection extends AMutableLinearCollection {
     thisType = ApiParam(this),
     returnType = GCollection(TT),
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "avg of" -> member_avg_of,
-    "avg" -> member_avg,
-    "continuation" -> member_continuation,
-    "first" -> member_first,
-    "join" -> member_join,
-    "last" -> member_last,
-    "map to" -> member_map_to,
-    "max of" -> member_max_of,
-    "max" -> member_max,
-    "min of" -> member_min_of,
-    "min" -> member_min,
-    "ordered by string" -> member_ordered_by_string,
-    "ordered by" -> member_ordered_by,
-    "pick entry" -> member_pick_entry,
-    "set continuation" -> member_set_continuation,
-    "slice" -> member_slice,
-    "sort by date" -> member_sort_by_date,
-    "sort by distance" -> member_sort_by_distance,
-    "sorted" -> member_sorted,
-    "sum of" -> member_sum_of,
-    "sum" -> member_sum,
-    "take" -> member_take,
-    "where" -> member_where
   )
             
 

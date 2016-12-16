@@ -4,11 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package ch.ethz.inf.pm.td.cloud
+package ch.ethz.inf.pm.td.output
 
-import java.io.{File, FileWriter, PrintWriter}
-
-import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
+import ch.ethz.inf.pm.sample.oorepresentation.LabeledGraph
 
 /**
   *
@@ -18,34 +16,39 @@ import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
   */
 object DumpGraph {
 
-  /** Returns a string to a file visualizing the given graph structure */
-  def apply[Node,Weight,Partition](
-      graphName: String,
-      graph: WeightedGraph[Node,Weight],
-      renderer: GraphRenderer[Node,Weight]
+  def dumpToFile[Node <: S, Weight <: T, S, T](
+      name: String,
+      graph: LabeledGraph[Node, Weight]
   ): String = {
 
-    val nodeMap = graph.nodes.zipWithIndex.toMap
+    FileSystemExporter.export(name + ".html", getString(graph))
+
+  }
+
+  /** Returns a string to a file visualizing the given graph structure */
+  def getString[Node <: S, Weight <: T, S, T](
+      graph: LabeledGraph[Node, Weight]
+  ): String = {
+
+    val nodeMap = graph.nodes.zipWithIndex.toMap[S, Int]
 
     val nodeStr = (graph.nodes.zipWithIndex map { case (node,id) =>
-      val name = renderer.name(node).replace("'", "\"")
-      val clazz = renderer.clazz(node)
-      val partition = renderer.partitioning(node).map { x => ", parent: '"+nodeMap(x)+"'" }.getOrElse("")
+      val name = graph.getNodeLabel(node).replace("'", "\"")
+      val clazz = graph.getNodeClass(node)
+      val partition = graph.getPartition(node).map { x => ", parent: '" + nodeMap(x) + "'" }.getOrElse("")
       s"{ data: { id: '$id', name: '$name' $partition }, classes: '$clazz' }"
     }).mkString(",\n")
 
     val edgeStr = (graph.edges map { case (source,target,weight) =>
-      val label = weight.map(renderer.label).getOrElse("")
+      val label = weight.map(graph.getEdgeLabel).getOrElse("")
       val id = source + "to" + target + label
       s"{ data: { id: '$id', source: '$source', target: '$target', label: '$label' }, classes: '$label' }"
     }).mkString(",\n")
 
-    dumpHTMLFile(graphName,
       s"""
          |<!DOCTYPE html>
          |<html>
          |<head>
-         |<link href='style.css' rel='stylesheet' />
          |<meta charset=utf-8 />
          |<meta name='viewport' content='user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui'>
          |<title>Sessions</title>
@@ -159,53 +162,7 @@ object DumpGraph {
          |
          |</body>
          |</html>
-    """.stripMargin)
-
-  }
-
-  private def dumpHTMLFile(name: String, s: String): String = {
-
-    val exportPath = "/tmp"
-    val fileName = exportPath + File.separator + name + ".html"
-
-    val dir = new File(exportPath)
-
-    if (dir.isDirectory || dir.mkdir()) {
-
-      val file = new File(fileName)
-      var fw: FileWriter = null
-      var pw: PrintWriter = null
-
-      try {
-
-        fw = new FileWriter(file, false)
-        pw = new PrintWriter(fw)
-
-        pw.println(s)
-
-      } finally {
-
-        if (pw != null) pw.close()
-        if (fw != null) fw.close()
-
-      }
-
-    } else {
-      throw new Exception("Failed to create output directory")
-    }
-
-    fileName
-  }
-
-  trait GraphRenderer[Node, Weight] {
-
-    def clazz(node: Node): String
-
-    def name(node: Node): String
-
-    def label(value: Weight): String
-
-    def partitioning(value: Node): Option[Node]
+    """.stripMargin
 
   }
 

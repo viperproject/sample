@@ -21,7 +21,17 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_SPhone extends ASingleton {
 
   lazy val typeName = TypeName("Phone", isSingleton = true)
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "choose address" -> member_choose_address,
+    "choose phone number" -> member_choose_phone_number,
+    "dial phone number" -> member_dial_phone_number,
+    "power source" -> member_power_source,
+    "save contact" -> member_save_contact,
+    "save phone number" -> member_save_phone_number,
+    "vibrate" -> member_vibrate
+  )
+
   /** Rarely used: Chooses an address from the contacts */
   def member_choose_address = ApiMember(
     name = "choose address",
@@ -46,6 +56,7 @@ trait Default_SPhone extends ASingleton {
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -55,6 +66,7 @@ trait Default_SPhone extends ASingleton {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TString,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -83,17 +95,6 @@ trait Default_SPhone extends ASingleton {
     thisType = ApiParam(this),
     returnType = TNothing,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "choose address" -> member_choose_address,
-    "choose phone number" -> member_choose_phone_number,
-    "dial phone number" -> member_dial_phone_number,
-    "power source" -> member_power_source,
-    "save contact" -> member_save_contact,
-    "save phone number" -> member_save_phone_number,
-    "vibrate" -> member_vibrate
   )
             
 

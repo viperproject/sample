@@ -20,12 +20,13 @@ import ch.ethz.inf.pm.td.semantics._
 
 trait Default_GAtomic_Action1 extends AAction {
 
-  def TT:AAny
-
   lazy val typeName = TypeName("Atomic Action1", List(TT.typeName))
-          
-  override def actionArguments = List(ApiParam(TT))
+
+  def TT: AAny
+
+  override def actionArguments: List[ApiParam] = List(ApiParam(TT))
   override def actionReturnValue: AAny = TNothing
+
 
 }
           

@@ -5,7 +5,7 @@
  */
 package ch.ethz.inf.pm.sample.test
 
-import ch.ethz.inf.pm.td.cloud.boundedgraph._
+import ch.ethz.inf.pm.td.cloud.eventgraph._
 import org.scalatest.{FunSuite, Matchers}
 
 class BoundedEventGraphEncoderTest extends FunSuite with Matchers {

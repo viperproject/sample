@@ -8,11 +8,12 @@ package ch.ethz.inf.pm.td.tools
 
 import java.io.{File, PrintWriter}
 
+import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi.WebASTImporter
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
-import net.liftweb.json._
+import net.liftweb.json.{JDouble, _}
 
 /**
   * Parses the new JSON based API description an generates semantic templates
@@ -23,7 +24,7 @@ object GenerateSemanticTemplates {
   val API_URL = "https://www.touchdevelop.com/api/language/apis"
   val GEN_DIR = "TouchDevelopPreprocessing/gen/"
 
-  def argListToString(l: List[String]) = {
+  def argListToString(l: List[String]): String = {
     l.map({
       x: String => x.replace(" ", "_")
     }).mkString(",")
@@ -48,7 +49,7 @@ object GenerateSemanticTemplates {
       ")"
   }
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
 
     val json =
       if (args.isEmpty) parse(fetchFile(API_URL))
@@ -116,6 +117,7 @@ object GenerateSemanticTemplates {
       var keyType: Option[String] = None
       var valueType: Option[String] = None
       var actionArgs: List[String] = Nil
+      var actionReturnValue: String = "TNothing"
       className match {
         case "TSongs" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TSong")
         case "TPictures" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPicture")
@@ -137,19 +139,19 @@ object GenerateSemanticTemplates {
         case "TJson_Builder" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TJson_Builder")
         case "TString_Map" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TString")
         case "TNumber_Map" => superClass = "AMap"; keyType = Some("TNumber"); valueType = Some("TNumber")
-        case "TLink_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLink")
-        case "TMatrix" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
-        case "TBoard" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
-        case "TNumber_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
-        case "TMessage_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TMessage")
-        case "TSprite_Set" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
-        case "TPlace_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TPlace")
-        case "TString_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TString")
-        case "TLocation_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLocation")
-        case "GCollection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TT")
+        case "TLink_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TLink")
+        case "TMatrix" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TBoard" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TSprite")
+        case "TNumber_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TMessage_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TMessage")
+        case "TSprite_Set" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TSprite")
+        case "TPlace_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TPlace")
+        case "TString_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TString")
+        case "TLocation_Collection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TLocation")
+        case "GCollection" => superClass = "AMutableLinearCollection"; keyType = Some("TNumber"); valueType = Some("TT")
         case "GAction1" => superClass = "AAction"; actionArgs = List("TT")
         case "GAtomic_Action1" => superClass = "AAction"; actionArgs = List("TT")
-        case "TAction" => superClass = "AAction"; actionArgs = List()
+        case "TAction" => superClass = "AAction"; actionArgs = Nil
         case "TBoolean_Action" => superClass = "AAction"; actionArgs = List("TBoolean_Action")
         case "TJson_Action" => superClass = "AAction"; actionArgs = List("TJson_Action")
         case "TCollection_Message_Action" => superClass = "AAction"; actionArgs = List("GCollection(TMessage)")
@@ -160,12 +162,12 @@ object GenerateSemanticTemplates {
         case "TSprite_Set_Action" => superClass = "AAction"; actionArgs = List("TSprite_Set")
         case "TText_Action" => superClass = "AAction"; actionArgs = List("TString")
         case "TWeb_Response_Action" => superClass = "AAction"; actionArgs = List("TWeb_Response")
-        case "GComparison" => ??? // update to have superclass AAction
-        case "GConverter" => ??? // update to have superclass AAction
-        case "GNumber_Converter" => ??? // update to have superclass AAction
-        case "GPredicate" => ??? // update to have superclass AAction
-        case "GString_Converter" => ??? // update to have superclass AAction
-        case "TAtomic_Action" => ??? // update to have superclass AAction
+        case "GComparison" => superClass = "AAction"; actionArgs = List("TElt", "TElt"); actionReturnValue = "TNumber"
+        case "GConverter" => superClass = "AAction"; actionArgs = List("TFrom"); actionReturnValue = "TTo"
+        case "GNumber_Converter" => superClass = "AAction"; actionArgs = List("TElt"); actionReturnValue = "TNumber"
+        case "GPredicate" => superClass = "AAction"; actionArgs = List("TElt"); actionReturnValue = "TBoolean"
+        case "GString_Converter" => superClass = "AAction"; actionArgs = List("TElt"); actionReturnValue = "TString"
+        case "TAtomic_Action" => superClass = "AAction"; actionArgs = Nil
         case _ => ()
       }
 
@@ -176,7 +178,7 @@ object GenerateSemanticTemplates {
         case "ALinearCollection" => filter = filter ++ Set("count", "copy", "to json", "from json", "at", "random", "rand")
         case "AMap" => filter = filter ++ Set("count", "copy", "to json", "from json", "at", "set at", "set many",
           "remove", "clear", "keys")
-        case "AMutable_Collection" => filter = filter ++ Set("count", "copy", "to json", "from json", "at", "random", "rand", "set at",
+        case "AMutableLinearCollection" => filter = filter ++ Set("count", "copy", "to json", "from json", "at", "random", "rand", "set at",
           "remove", "add", "add many", "clear", "index of", "insert at", "remove", "remove at", "reverse",
           "sort", "contains")
         case _ => ()
@@ -218,14 +220,19 @@ object GenerateSemanticTemplates {
       try {
 
         p.println(
-          s"""
+          s"""/*
+             | * This Source Code Form is subject to the terms of the Mozilla Public
+             | * License, v. 2.0. If a copy of the MPL was not distributed with this
+             | * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+             | */
+             |
              |package ch.ethz.inf.pm.td.defsemantics
              |
-            |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+             |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
              |import ch.ethz.inf.pm.td.parser.TypeName
              |import ch.ethz.inf.pm.td.semantics._
              |
-            |/**
+             |/**
              | * Specifies the abstract semantics of $name
              | *
              | * $help
@@ -233,15 +240,26 @@ object GenerateSemanticTemplates {
              | * @author Lucas Brutschy
              | */
              |
-            |$abstractDecl
+             |$abstractDecl
              |
-            |  lazy val typeName = $scalaTypeName
+             |  lazy val typeName = $scalaTypeName
           """.stripMargin
         )
 
         if (keyType.isDefined) p.println("  def keyType = " + keyType.get + "\n")
         if (valueType.isDefined) p.println("  def valueType = " + valueType.get + "\n")
-        if (superClass == "AAction") p.println("  def actionArguments = List(" + actionArgs.map("ApiParam(" + _ + ")").mkString(",") + ")\n")
+
+        if (superClass == "AAction") {
+
+          if (actionArgs.isEmpty) {
+            p.println("  override def actionArguments: List[ApiParam] = Nil")
+          } else {
+            p.println("  override def actionArguments: List[ApiParam] = List(" + actionArgs.map("ApiParam(" + _ + ")").mkString(",") + ")")
+          }
+          p.println("  override def actionReturnValue: AAny = " + actionReturnValue + "\n")
+
+        }
+
 
         // ============================================================
         // PRINT DECLARATIONS.
@@ -255,6 +273,30 @@ object GenerateSemanticTemplates {
           val JString(propHelp) = property \ "help"
           val JString(propJsName) = property \ "jsName"
           val JInt(usageCount) = property \ "usage_count"
+          val infixPriority =
+            property \ "infixPriority" match {
+              case JDouble(x) => x
+              case JInt(x) => x.toDouble
+              case _ => throw TouchException("Unexpected value")
+            }
+          val pausesInterpreter =
+            property \ "pausesInterpreter" match {
+              case JNothing => false
+              case JBool(x) => x
+              case _ => throw TouchException("Unexpected value")
+            }
+          val isAsync =
+            property \ "isAsync" match {
+              case JNothing => false
+              case JBool(x) => x
+              case _ => throw TouchException("Unexpected value")
+            }
+          val runOnInvalid =
+            property \ "runOnInvalid" match {
+              case JNothing => false
+              case JBool(x) => x
+              case _ => throw TouchException("Unexpected value")
+            }
           val JString(resultTyp) = property \ "result" \ "type"
 
           if (!filter.contains(propName)) {
@@ -306,15 +348,21 @@ object GenerateSemanticTemplates {
               "Very frequently used"
             }
 
+            // optional parameters
+            val str1 = if (pausesInterpreter) s"\n    pausesInterpreter = $pausesInterpreter," else ""
+            val str2 = if (isAsync) s"\n    isAsync = $isAsync," else ""
+            val str3 = if (infixPriority != 0) s"\n    infixPriority = $infixPriority," else ""
+            val str4 = if (runOnInvalid) s"\n    runOnInvalid = $runOnInvalid," else ""
+
             p.println(s"""  /** $countText: $propHelp */""")
             p.println(
               s"""  def $propFieldName = ApiMember(
-                  |    name = "$propName",
-                  |    paramTypes = List($parameters),
-                  |    thisType = $thisType,
-                  |    returnType = $ret,
-                  |    semantics = $semantics
-                  |  )""".stripMargin + "\n")
+                 |    name = "$propName",
+                 |    paramTypes = List($parameters),
+                 |    thisType = $thisType,
+                 |    returnType = $ret,$str1$str2$str3$str4
+                 |    semantics = $semantics
+                 |  )""".stripMargin + "\n")
             Some(s""""$propName" -> $propFieldName""")
 
           } else None
@@ -354,11 +402,11 @@ object GenerateSemanticTemplates {
           s"""
              |package ch.ethz.inf.pm.td.semantics
              |
-            |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+             |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
              |import ch.ethz.inf.pm.td.parser.TypeName
              |import ch.ethz.inf.pm.td.defsemantics.Default_$className
              |
-            |/**
+             |/**
              | * Customizes the abstract semantics of $name
              | *
              | * $help

@@ -21,7 +21,34 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TMessage extends AAny {
 
   lazy val typeName = TypeName("Message")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "from" -> member_from,
+    "id" -> member_id,
+    "link" -> member_link,
+    "location" -> member_location,
+    "media link" -> member_media_link,
+    "message" -> member_message,
+    "picture link" -> member_picture_link,
+    "set from" -> member_set_from,
+    "set id" -> member_set_id,
+    "set link" -> member_set_link,
+    "set location" -> member_set_location,
+    "set media link" -> member_set_media_link,
+    "set message" -> member_set_message,
+    "set picture link" -> member_set_picture_link,
+    "set source" -> member_set_source,
+    "set time" -> member_set_time,
+    "set title" -> member_set_title,
+    "set to" -> member_set_to,
+    "share" -> member_share,
+    "source" -> member_source,
+    "time" -> member_time,
+    "title" -> member_title,
+    "to" -> member_to,
+    "values" -> member_values
+  )
+
   /** Rarely used: Gets the author */
   def member_from = ApiMember(
     name = "from",
@@ -184,12 +211,13 @@ trait Default_TMessage extends AAny {
     semantics = DefaultSemantics
   )
 
-  /** Rarely used: Shares this message (email, sms, facebook, social or &#39;&#39; to pick from a list) */
+  /** Rarely used: Shares this message (email, sms, facebook, social or '' to pick from a list) */
   def member_share = ApiMember(
     name = "share",
     paramTypes = List(ApiParam(TString)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -236,34 +264,6 @@ trait Default_TMessage extends AAny {
     thisType = ApiParam(this),
     returnType = TString_Map,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "from" -> member_from,
-    "id" -> member_id,
-    "link" -> member_link,
-    "location" -> member_location,
-    "media link" -> member_media_link,
-    "message" -> member_message,
-    "picture link" -> member_picture_link,
-    "set from" -> member_set_from,
-    "set id" -> member_set_id,
-    "set link" -> member_set_link,
-    "set location" -> member_set_location,
-    "set media link" -> member_set_media_link,
-    "set message" -> member_set_message,
-    "set picture link" -> member_set_picture_link,
-    "set source" -> member_set_source,
-    "set time" -> member_set_time,
-    "set title" -> member_set_title,
-    "set to" -> member_set_to,
-    "share" -> member_share,
-    "source" -> member_source,
-    "time" -> member_time,
-    "title" -> member_title,
-    "to" -> member_to,
-    "values" -> member_values
   )
             
 

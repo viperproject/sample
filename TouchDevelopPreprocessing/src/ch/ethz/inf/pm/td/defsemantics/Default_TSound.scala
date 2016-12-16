@@ -21,13 +21,30 @@ import ch.ethz.inf.pm.td.semantics._
 trait Default_TSound extends AAny {
 
   lazy val typeName = TypeName("Sound")
-          
+
+  override def declarations: Map[String, ApiMember] = super.declarations ++ Map(
+    "duration" -> member_duration,
+    "pan" -> member_pan,
+    "pause" -> member_pause,
+    "pitch" -> member_pitch,
+    "play special" -> member_play_special,
+    "play" -> member_play,
+    "resume" -> member_resume,
+    "set pan" -> member_set_pan,
+    "set pitch" -> member_set_pitch,
+    "set volume" -> member_set_volume,
+    "state" -> member_state,
+    "stop" -> member_stop,
+    "volume" -> member_volume
+  )
+
   /** Sometimes used: Gets the duration in seconds. */
   def member_duration = ApiMember(
     name = "duration",
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNumber,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -64,6 +81,7 @@ trait Default_TSound extends AAny {
     paramTypes = List(ApiParam(TNumber), ApiParam(TNumber), ApiParam(TNumber)),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -73,6 +91,7 @@ trait Default_TSound extends AAny {
     paramTypes = List(),
     thisType = ApiParam(this),
     returnType = TNothing,
+    pausesInterpreter = true,
     semantics = DefaultSemantics
   )
 
@@ -137,23 +156,6 @@ trait Default_TSound extends AAny {
     thisType = ApiParam(this),
     returnType = TNumber,
     semantics = DefaultSemantics
-  )
-
-
-  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
-    "duration" -> member_duration,
-    "pan" -> member_pan,
-    "pause" -> member_pause,
-    "pitch" -> member_pitch,
-    "play special" -> member_play_special,
-    "play" -> member_play,
-    "resume" -> member_resume,
-    "set pan" -> member_set_pan,
-    "set pitch" -> member_set_pitch,
-    "set volume" -> member_set_volume,
-    "state" -> member_state,
-    "stop" -> member_stop,
-    "volume" -> member_volume
   )
             
 
