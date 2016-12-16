@@ -62,7 +62,7 @@ object SetDescription {
           case _: RootElement => true
           case _ => false
         }.map {
-          case RootElement(root) => sil.Implies(sil.NeCmp(DefaultSampleConverter.convert(root), sil.NullLit()())(), sil.AnySetContains(DefaultSampleConverter.convert(root), set.localVar)())()
+          case RootElement(root) => sil.AnySetContains(DefaultSampleConverter.convert(root), set.localVar)()
         }
         val fields = abstractExpressions.filter {
           case _: AddField => true
@@ -70,9 +70,9 @@ object SetDescription {
         }.map {
           case AddField(field) =>
             val fieldAccess = sil.FieldAccess(quantifiedVariable.localVar, sil.Field(field, sil.Ref)())()
-            sil.CondExp(sil.NeCmp(fieldAccess, sil.NullLit()())(), sil.AnySetContains(fieldAccess, set.localVar)(), sil.TrueLit()())()
+            sil.AnySetContains(fieldAccess, set.localVar)()
         }
-        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), sil.Implies(sil.AnySetContains(quantifiedVariable.localVar, set.localVar)(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()))())())()
+        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), sil.Implies(sil.And(sil.NeCmp(quantifiedVariable.localVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariable.localVar, set.localVar)())(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()))())())()
       }
     }
 

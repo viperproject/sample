@@ -243,6 +243,47 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     )
   }
 
+  /** Inhales permissions.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param acc The permission to inhale
+    * @return The abstract state after inhaling the permission
+    */
+  override def inhale(acc: Expression): QuantifiedPermissionsState = this
+
+  /** Exhales permissions.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param acc The permission to exhale
+    * @return The abstract state after exhaling the permission
+    */
+  override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
+    case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
+      null
+  }
+//    println(acc)
+//    this
+//    val receiver = obj match {
+//      case FieldExpression(_, `field`, rec) => rec
+//      case _ => throw new IllegalStateException()
+//    }
+//    val key = (currentPP, receiver)
+//    val newPermissions =
+//      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
+//      else permissions
+//    var newExpressions = expressions.transform {
+//      case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
+//    }
+//    newExpressions =
+//      if (!newExpressions.contains(key)) newExpressions + (key -> InnerSetDescription(receiver))
+//      else newExpressions + (key -> newExpressions(key).lub(InnerSetDescription(receiver)))
+//    copy(
+//      permissions = newPermissions,
+//      expressions = newExpressions
+//    }
+
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
     * This is particularly important to eventually partition a state following the specified directives.
@@ -401,24 +442,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after assuming that the expression holds
     */
   override def assume(cond: Expression): QuantifiedPermissionsState = this
-
-  /** Inhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to inhale
-    * @return The abstract state after inhaling the permission
-    */
-  override def inhale(acc: Expression): QuantifiedPermissionsState = this
-
-  /** Exhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to exhale
-    * @return The abstract state after exhaling the permission
-    */
-  override def exhale(acc: Expression): QuantifiedPermissionsState = this
 
   /** Creates a variable given a `VariableIdentifier`.
     *
