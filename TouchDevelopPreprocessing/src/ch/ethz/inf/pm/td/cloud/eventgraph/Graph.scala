@@ -3,9 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package ch.ethz.inf.pm.td.cloud.boundedgraph
+package ch.ethz.inf.pm.td.cloud.eventgraph
 
-import ch.ethz.inf.pm.td.cloud.boundedgraph.Encoder.EventArgumentNames
+import ch.ethz.inf.pm.sample.oorepresentation.LabeledGraph
+import ch.ethz.inf.pm.td.cloud.eventgraph.Encoder.EventArgumentNames
 import com.novus.salat.annotations.Salat
 import com.novus.salat.{TypeHintStrategy, _}
 
@@ -40,7 +41,7 @@ object Graph {
 
 }
 
-import ch.ethz.inf.pm.td.cloud.boundedgraph.Graph._
+import ch.ethz.inf.pm.td.cloud.eventgraph.Graph._
 
 case class Graph(
     events: List[Event],
@@ -58,6 +59,48 @@ case class Graph(
 
   def toJSON: String = {
     grater[Graph].toPrettyJSON(this)
+  }
+
+  def toLabeledGraph: LabeledGraph[String, String] = {
+
+    val pg = new LabeledGraph[String, String]()
+
+    transactions.foreach {
+      x =>
+        val node = TransactionNames.make(x)
+        pg.addNode(node)
+        pg.setNodeLabel(node, x.toString)
+        pg.setNodeClass(node, "coral")
+    }
+
+    events.foreach {
+      x =>
+        val node = x.id
+        pg.addNode(node)
+        pg.setNodeLabel(node, node + " (" + pg.getNodeLabel(node) + ")")
+        eventMap.get(node).foreach {
+          x =>
+            val txn = TransactionNames.make(x.txn)
+            pg.addPartitioning(node, txn)
+        }
+        pg.setNodeClass(node, "blue")
+    }
+
+    pg
+  }
+
+}
+
+object TransactionNames {
+
+  def make(r: TransactionID): String =
+    "txn_" + r
+
+  def isName(a: String): Boolean =
+    a.startsWith("txn_")
+
+  def deconstruct(str: String): TransactionID = {
+    str.stripPrefix("txn_")
   }
 
 }

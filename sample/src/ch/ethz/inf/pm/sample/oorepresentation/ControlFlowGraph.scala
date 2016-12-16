@@ -6,9 +6,8 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.{SystemParameters, _}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution.CFGState
 
 
@@ -43,22 +42,6 @@ trait WeightedGraph[Node, Weight] {
     nodes = remove(nodes, index)
   }
 
-  private def remove[T1](list: List[T1], index: Int): List[T1] = list match {
-    case x :: x1 if index != 0 => x :: remove(x1, index - 1)
-    case x :: x1 if index == 0 => remove(x1, index - 1)
-    case Nil => Nil
-  }
-
-  /**
-   * Add a node to the current graph
-   *
-   * @param node the node to be added
-   * @return the index of the inserted node
-   */
-  def addNode(node: Node): Int = {
-    nodes = nodes ::: node :: Nil; nodes.lastIndexOf(node)
-  }
-
   /**
    * Add a node to the current graph iff it is not yet in the graph. Otherwise, it returns the index
    * of the existing node.
@@ -84,15 +67,6 @@ trait WeightedGraph[Node, Weight] {
   }
 
   /**
-   * Add an edge to the current graph
-   *
-   * @param from the node from which the edge starts
-   * @param to the node to which point the edge
-   * @param weight the weight of the edge or None if this edge is not linked to a weight
-   */
-  def addEdge(from: Int, to: Int, weight: Option[Weight]): Unit = edges = edges.+((from, to, weight))
-
-  /**
    * Return the node ids without sorting edges
    *
    * @return the leaves of the graph
@@ -110,14 +84,6 @@ trait WeightedGraph[Node, Weight] {
       if (!notLeafs.contains(i))
         result = result + i
     result
-  }
-
-  def entryEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
-    for (e@(from, to, _) <- edges if to == nodeIndex) yield e
-  }
-
-  def exitEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
-    for (e@(from, to, _) <- edges if from == nodeIndex) yield e
   }
 
   def initialBlockInLoop(index: Int): Boolean = {
@@ -153,6 +119,32 @@ trait WeightedGraph[Node, Weight] {
     result
   }
 
+  protected def nodeToString(node: Node) = node.toString
+
+  def entryNodesToString(i: Int): String = {
+    val preds = for ((from, _, weight) <- entryEdges(i))
+      yield from + weightToString(weight)
+
+    preds mkString ", "
+  }
+
+  def exitNodesToString(i: Int): String = {
+    val succ = for ((_, to, weight) <- exitEdges(i))
+      yield to + weightToString(weight)
+
+    succ mkString ", "
+  }
+
+  def exitEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
+    for (e@(from, to, _) <- edges if from == nodeIndex) yield e
+  }
+
+  private def weightToString(weight: Option[Weight]): String = weight match {
+    case None => ""
+    case null => ""
+    case Some(x) => "(" + x.toString + ")"
+  }
+
   /**
    * It adds a node containing the given statements to the control flow graph.
    * It adds an edge from each entry point to the fresh node (related with the given condition).
@@ -165,6 +157,26 @@ trait WeightedGraph[Node, Weight] {
     index
   }
 
+  /**
+    * Add a node to the current graph
+    *
+    * @param node the node to be added
+    * @return the index of the inserted node
+    */
+  def addNode(node: Node): Int = {
+    nodes = nodes ::: node :: Nil;
+    nodes.lastIndexOf(node)
+  }
+
+  /**
+    * Add an edge to the current graph
+    *
+    * @param from   the node from which the edge starts
+    * @param to     the node to which point the edge
+    * @param weight the weight of the edge or None if this edge is not linked to a weight
+    */
+  def addEdge(from: Int, to: Int, weight: Option[Weight]): Unit = edges = edges.+((from, to, weight))
+
   def getDirectSuccessors(nodeIndex: Int): Set[Int] = {
     for ((from, to, _) <- exitEdges(nodeIndex)) yield to
   }
@@ -173,29 +185,55 @@ trait WeightedGraph[Node, Weight] {
     for ((from, to, _) <- entryEdges(nodeIndex)) yield from
   }
 
-
-
-  protected def nodeToString(node: Node) = node.toString
-
-  private def weightToString(weight: Option[Weight]): String = weight match {
-    case None => ""
-    case null => ""
-    case Some(x) => "(" + x.toString + ")"
+  def entryEdges(nodeIndex: Int): Set[(Int, Int, Option[Weight])] = {
+    for (e@(from, to, _) <- edges if to == nodeIndex) yield e
   }
 
-  def entryNodesToString(i: Int): String = {
-    val preds = for ((from, _, weight) <- entryEdges(i))
-      yield from + weightToString(weight)
+  private def remove[T1](list: List[T1], index: Int): List[T1] = list match {
+    case x :: x1 if index != 0 => x :: remove(x1, index - 1)
+    case x :: x1 if index == 0 => remove(x1, index - 1)
+    case Nil => Nil
+  }
+}
 
-    preds mkString ", "
+
+case class LabeledGraph[Node, Weight]() extends WeightedGraph[Node, Weight] {
+
+  private var nodeClasses = Map.empty[Node, String]
+  private var nodeLabels = Map.empty[Node, String]
+  private var edgeLabels = Map.empty[Weight, String]
+  private var partitioning = Map.empty[Node, Node]
+
+  def setNodeLabel(a: Node, b: String): Unit = {
+    nodeLabels = nodeLabels + (a -> b)
   }
 
-  def exitNodesToString(i: Int): String = {
-    val succ = for ((_, to, weight) <- exitEdges(i))
-    yield to + weightToString(weight)
-
-    succ mkString ", "
+  def getNodeLabel(a: Node): String = {
+    nodeLabels.getOrElse(a, "")
   }
+
+  def setEdgeLabel(a: Weight, b: String): Unit = {
+    edgeLabels = edgeLabels + (a -> b)
+  }
+
+  def getEdgeLabel(a: Weight): String = {
+    edgeLabels.getOrElse(a, "")
+  }
+
+  def setNodeClass(a: Node, b: String): Unit = {
+    nodeClasses = nodeClasses + (a -> b)
+  }
+
+  def getNodeClass(a: Node): String = {
+    nodeClasses.getOrElse(a, "")
+  }
+
+  def addPartitioning(value: Node, target: Node): Unit =
+    partitioning = partitioning + (value -> target)
+
+  def getPartition(value: Node): Option[Node] =
+    partitioning.get(value)
+
 }
 
 /**
@@ -232,8 +270,6 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
-  override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)
-
   override def addNode(st: scala.collection.immutable.List[Statement]) = super.addNode(st)
 
   override def toSingleLineString(): String = {
@@ -246,9 +282,9 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   override def getChildren: List[Statement] = nodes.flatten
 
-  def getBasicBlockStatements(index: Int): List[Statement] = nodes(index)
-
   def statementAt(blockIdx: Int, stmtIdx: Int): Statement = getBasicBlockStatements(blockIdx)(stmtIdx)
+
+  def getBasicBlockStatements(index: Int): List[Statement] = nodes(index)
 
   /**
    * Check if a basic block has a conditional expression as the last statement.
@@ -267,6 +303,8 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     allConditional
   }
 
+  override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)
+
 }
 
 class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val state: S) extends CFGState[S] with WeightedGraph[List[S], Boolean]{
@@ -282,8 +320,6 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     this.nodes = cfgEx.nodes // TODO: Implement later
   }
 
-  override protected def nodeToString(node: List[S]) = if (node != null) ToStringUtilities.listToNewLineRepresentation[S](node) else "BOTTOM"
-
   def glb(left: ControlFlowGraphExecution[S], right: ControlFlowGraphExecution[S]): ControlFlowGraphExecution[S] = {
     if (!left.cfg.equals(right.cfg))
       throw new CFGSemanticException("It is not possible to compute the glb of the analysis of two different control flow graphs")
@@ -297,17 +333,6 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
         result.addNode(this.glbOnListOfStates(left.nodes.apply(i), right.nodes.apply(i)))
     }
     result
-  }
-
-  private def glbOnListOfStates(left: List[S], right: List[S]): List[S] = left match {
-    case x :: xs => right match {
-      case y :: ys => x.glb(y) :: this.glbOnListOfStates(xs, ys)
-      case Nil => x :: this.glbOnListOfStates(xs, Nil); //throw new CFGSemanticException("I cannot make the glb of lists of different length")
-    }
-    case Nil => right match {
-      case Nil => Nil
-      case y :: ys => y :: this.glbOnListOfStates(ys, Nil); //throw new CFGSemanticException("I cannot make the glb of lists of different length")
-    }
   }
 
   def definiteBackwardSemantics(exitState: S): ControlFlowGraphExecution[S] =
@@ -328,6 +353,11 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
       }
     }
     result
+  }
+
+  private def getExecution(i: Int): List[S] = {
+    if (i >= 0 && i < nodes.size) nodes.apply(i)
+    else null
   }
 
   def entryState(): S = nodes.head.head
@@ -352,83 +382,6 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   }
 
   def backwardSemantics(exitState: S): ControlFlowGraphExecution[S] = ???
-
-  private def computeEntryState(current: ControlFlowGraphExecution[S], index: Int, it: Int): S = {
-    var result: S = state.bottom()
-
-    // Join incoming states
-    for ((from, to, weight) <- cfg.edges) {
-      if (to equals index) {
-
-        // Try to see if we have already computed the given block...
-        val pointedBy: List[S] = current.getExecution(from)
-
-        // ..and if not we take the results of the previous iteration
-        if (pointedBy != Nil) {
-          val state =
-            if (weight.isEmpty) pointedBy.last
-            else if (weight.get) pointedBy.last.testTrue()
-            else pointedBy.last.testFalse()
-          result = result.lub(state)
-        }
-
-      }
-    }
-
-    // Widen with previous result
-    if (current.getExecution(index).nonEmpty) {
-
-      val previousEntry = current.getExecution(index).head
-      if (it > SystemParameters.wideningLimit)
-        // Widening is not necessarily a commutative operator
-        // The state from the latest iteration should be the second operand
-        result = previousEntry.widening(result)
-      else
-        result = previousEntry.lub(result)
-
-    }
-
-    result
-  }
-
-  private def getExecution(i: Int): List[S] = {
-    if (i >= 0 && i < nodes.size) nodes.apply(i)
-    else null
-  }
-
-  private def getList[T](size: Int, el: T): List[T] = size match {
-    case 0 => Nil
-    case _ => el :: getList(size - 1, el)
-  }
-
-  private def forwardBlockSemantics(entryState: S, block: List[Statement]): List[S] = block match {
-    case x :: xs =>
-      val modifiedState = entryState.before(identifyingPP(x))
-      val resultingState = x.forwardSemantics(modifiedState)
-      modifiedState :: forwardBlockSemantics(resultingState, xs)
-    case Nil => entryState :: Nil
-  }
-
-  private implicit val programPointOrdering = new Ordering[ProgramPoint] {
-    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.toString.compare(p2.toString)
-  }
-
-  /**
-   * Returns a program point uniquely identifying a single statement as used in
-   * the block semantics (!). The computation finds the leftmost involved program
-   * point.
-   *
-   * @param s A statement as used in the block semantics
-   * @return The leftmost involved program point
-   */
-  private def identifyingPP(s: Statement): ProgramPoint = s match {
-    case Assignment(pp, l, r) => (pp :: identifyingPP(l) :: identifyingPP(r) :: Nil).min
-    case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
-    case VariableDeclaration(pp, v, _, r) =>
-      List(Some(pp), Some(identifyingPP(v)), r.map(identifyingPP)).flatten.min
-    case FieldAccess(pp, obj, _, _) => List(pp, identifyingPP(obj)).min
-    case _ => s.getPC()
-  }
 
   def lessEqual(right: ControlFlowGraphExecution[S]): Boolean = lessEqualOnLists[List[S]](this.nodes, right.nodes, checkBlockLessEqual)
 
@@ -456,16 +409,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     result
   }
 
-  private def lubListListStates(left: List[List[S]], right: List[List[S]]): List[List[S]] = {
-    upperBoundsOnLists[List[S]](left, right, lubListStates)
-  }
-
-  private def lubListStates(left: List[S], right: List[S]): List[S] = {
-    upperBoundsOnLists[S](left, right, lubOnStates)
-  }
-
-  private def lubOnStates(left: S, right: S): S = {
-    left.lub(right)
+  private implicit val programPointOrdering = new Ordering[ProgramPoint] {
+    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.toString.compare(p2.toString)
   }
 
   def widening(right: ControlFlowGraphExecution[S]): ControlFlowGraphExecution[S] = {
@@ -528,6 +473,99 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
   def setStatesOfBlock(blockIdx: Int, states: List[S]): Unit =
     setNode(blockIdx, states)
+
+  override protected def nodeToString(node: List[S]) = if (node != null) ToStringUtilities.listToNewLineRepresentation[S](node) else "BOTTOM"
+
+  private def glbOnListOfStates(left: List[S], right: List[S]): List[S] = left match {
+    case x :: xs => right match {
+      case y :: ys => x.glb(y) :: this.glbOnListOfStates(xs, ys)
+      case Nil => x :: this.glbOnListOfStates(xs, Nil); //throw new CFGSemanticException("I cannot make the glb of lists of different length")
+    }
+    case Nil => right match {
+      case Nil => Nil
+      case y :: ys => y :: this.glbOnListOfStates(ys, Nil); //throw new CFGSemanticException("I cannot make the glb of lists of different length")
+    }
+  }
+
+  private def computeEntryState(current: ControlFlowGraphExecution[S], index: Int, it: Int): S = {
+    var result: S = state.bottom()
+
+    // Join incoming states
+    for ((from, to, weight) <- cfg.edges) {
+      if (to equals index) {
+
+        // Try to see if we have already computed the given block...
+        val pointedBy: List[S] = current.getExecution(from)
+
+        // ..and if not we take the results of the previous iteration
+        if (pointedBy != Nil) {
+          val state =
+            if (weight.isEmpty) pointedBy.last
+            else if (weight.get) pointedBy.last.testTrue()
+            else pointedBy.last.testFalse()
+          result = result.lub(state)
+        }
+
+      }
+    }
+
+    // Widen with previous result
+    if (current.getExecution(index).nonEmpty) {
+
+      val previousEntry = current.getExecution(index).head
+      if (it > SystemParameters.wideningLimit)
+      // Widening is not necessarily a commutative operator
+      // The state from the latest iteration should be the second operand
+        result = previousEntry.widening(result)
+      else
+        result = previousEntry.lub(result)
+
+    }
+
+    result
+  }
+
+  private def getList[T](size: Int, el: T): List[T] = size match {
+    case 0 => Nil
+    case _ => el :: getList(size - 1, el)
+  }
+
+  private def forwardBlockSemantics(entryState: S, block: List[Statement]): List[S] = block match {
+    case x :: xs =>
+      val modifiedState = entryState.before(identifyingPP(x))
+      val resultingState = x.forwardSemantics(modifiedState)
+      modifiedState :: forwardBlockSemantics(resultingState, xs)
+    case Nil => entryState :: Nil
+  }
+
+  /**
+    * Returns a program point uniquely identifying a single statement as used in
+    * the block semantics (!). The computation finds the leftmost involved program
+    * point.
+    *
+    * @param s A statement as used in the block semantics
+    * @return The leftmost involved program point
+    */
+  private def identifyingPP(s: Statement): ProgramPoint = s match {
+    case Assignment(pp, l, r) => (pp :: identifyingPP(l) :: identifyingPP(r) :: Nil).min
+    case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
+    case VariableDeclaration(pp, v, _, r) =>
+      List(Some(pp), Some(identifyingPP(v)), r.map(identifyingPP)).flatten.min
+    case FieldAccess(pp, obj, _, _) => List(pp, identifyingPP(obj)).min
+    case _ => s.getPC()
+  }
+
+  private def lubListListStates(left: List[List[S]], right: List[List[S]]): List[List[S]] = {
+    upperBoundsOnLists[List[S]](left, right, lubListStates)
+  }
+
+  private def lubListStates(left: List[S], right: List[S]): List[S] = {
+    upperBoundsOnLists[S](left, right, lubOnStates)
+  }
+
+  private def lubOnStates(left: S, right: S): S = {
+    left.lub(right)
+  }
 }
 
 class CFGSemanticException(message: String) extends Exception(message)

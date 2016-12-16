@@ -3,9 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package ch.ethz.inf.pm.td.cloud.boundedgraph
+package ch.ethz.inf.pm.td.cloud.eventgraph
 
-import ch.ethz.inf.pm.td.cloud.boundedgraph.Graph._
+import ch.ethz.inf.pm.td.cloud.eventgraph.Graph._
 
 case class SystemSpecification (
 

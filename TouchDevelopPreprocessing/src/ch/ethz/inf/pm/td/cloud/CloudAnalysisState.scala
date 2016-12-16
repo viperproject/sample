@@ -7,81 +7,49 @@
 package ch.ethz.inf.pm.td.cloud
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{State, _}
 import ch.ethz.inf.pm.sample.execution.NodeWithState
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, WeightedGraph}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchEntryStateBuilder}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.{CloudEnabledModifier, TouchCompiler}
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, TouchStateInterface}
-import ch.ethz.inf.pm.td.semantics.{SCloud_Data, SData, SRecords, TString}
-
-import scala.collection.mutable
-
-///**
-//  * Check if something is bottom. Might be due to unreachable code.
-//  */
-//case class AbstractEventGraphProperty() extends SingleStatementProperty with Visitor {
-//
-//  def visitor = this
-//
-//  /**
-//    * Check the property over a single state
-//    *
-//    * @param state     the abstract state
-//    * @param statement the statement that was executed after the given abstract state
-//    * @param printer   the output collector that has to be used to signal warning, validate properties, or inferred contracts
-//    */
-//  override def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector): Unit = {
-//
-//    statement match {
-//      case MethodCall(pp,method,parametricTypes,parameters,returnedType) =>
-//
-//    }
-//
-//  }
-//
-//}
+import ch.ethz.inf.pm.td.semantics._
 
 /**
   * @author Lucas Brutschy
   */
 object CloudAnalysisState {
 
-  private var invProgramOrder: Map[AbstractEvent, SetDomain.Default[AbstractEvent]] = Map.empty
-
-  import EdgeLabel._
-  private var localInvariants: Map[AbstractEvent, _] = Map.empty
-  private var arguments: Map[AbstractEvent, List[ExpressionSet]] = Map.empty
+  private var programOrder: Map[(AbstractEvent, AbstractEvent), _] = Map.empty
   private var stringToEvent: Map[String, AbstractEvent] = Map.empty
+  private var transactions: Map[ProgramPoint, Set[AbstractEvent]] = Map.empty
+  private var curTransaction: ProgramPoint = DummyProgramPoint
 
   def reset(): Unit = {
-    localInvariants = Map.empty
-    invProgramOrder = Map.empty
-    arguments = Map.empty
+    programOrder = Map.empty
     stringToEvent = Map.empty
+    transactions = Map.empty
   }
 
-  def toWeightedGraph[S <: State[S]]: WeightedGraph[NodeWithState[S], EdgeLabel] = {
 
-    localInvariants = localInvariants + (InitialEvent ->
-      TouchEntryStateBuilder(TouchAnalysisParameters.get).topState.bottom().asInstanceOf[S]
-      )
+  def toEventGraph[S <: State[S]]: eventgraph.Graph = {
 
-    val map = mutable.Map.empty[AbstractEvent, Int]
-    val graph = new GeneralEventGraph[S]
+    import eventgraph._
 
-    for ((aE, s) <- localInvariants) {
-      val i = graph.addNode(AbstractEventWithState(aE, s.asInstanceOf[S]))
-      map += (aE -> i)
-    }
+    Graph(
+      events =
+        stringToEvent.values.collect { case ProgramPointEvent(pp, obj, method) =>
+          Event(pp.toString, curTransaction.toString, method)
+        }.toList,
+      system = TouchDevelopSystemSpecification.spec,
+      programOrder =
+        programOrder.map {
+          case ((src, target), state) =>
+            Edge(src.id, target.id, True) // TODO: Constraint
+        }.toList
+    )
 
-    for ((a, bs) <- invProgramOrder; b <- bs.toSetOrFail) {
-      if (a != InitialEvent)
-        graph.addEdge(map(b), map(a), Some(EdgeLabel.ProgramOrder))
-    }
-
-    graph
   }
 
   def record[S <: State[S]](operator: String,
@@ -160,38 +128,12 @@ object CloudAnalysisState {
     }
   }
 
-  //  def toBoundedGraph[S <: State[S]]: boundedgraph.Graph = {
-  //
-  //    import boundedgraph._
-  //
-  //    var events = Set.empty[Event]
-  //    for ()
-  //
-  //
-  //
-  //
-  //
-  //    Graph(
-  //      events =
-  //        stringToEvent.values.map { x =>
-  //          Event(x.id,x.id,
-  //        },
-  //      system = TouchDevelopSystemSpecification,
-  //      programOrder =
-  //        invProgramOrder.values.map { x =>
-  //          x =>
-  //
-  //        }
-  //    )
-  //
-  //  }
-
   private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath: String, operator: String, parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
 
-    val cloudData = Singleton(SCloud_Data)(pp)
+    val helpers = Singleton(SHelpers)(pp)
 
     val constants =
-      Field[S](cloudData, SCloud_Data.field_last_operation)(state, pp)._2 match {
+      Field[S](helpers, SHelpers.field_last_operation)(state, pp)._2 match {
         case s: SetDomain.Default.Top[Expression] =>
           SetDomain.Default.Bottom[Constant]()
         case s: SetDomain.Default.Bottom[Expression] =>
@@ -210,6 +152,7 @@ object CloudAnalysisState {
 
     val event = ProgramPointEvent(pp, cloudPath, operator)
     stringToEvent = stringToEvent + (event.id -> event)
+    transactions = transactions + (curTransaction -> (transactions.getOrElse(curTransaction, Set.empty) + event))
 
     val events =
       constants.map {
@@ -219,48 +162,34 @@ object CloudAnalysisState {
           InitialEvent
       }
 
-    invProgramOrder = invProgramOrder +
-      (event -> (invProgramOrder.getOrElse(event, SetDomain.Default.Bottom[AbstractEvent]()) lub events))
-
     // Map all actual parameters to their formal parameters
     val assignedState: S =
-    (this0 :: parameters).zipWithIndex.foldLeft(state) {
-      case (s, (expr, i)) =>
-        val formalArgument = ExpressionSet(VariableIdentifier("arg" + i)(expr.typ, pp))
-        s.createVariable(formalArgument, expr.typ, pp).assignVariable(formalArgument, expr)
-    }
-
-    // Prune everything we do not care about.
-    val prunedState: S =
-    assignedState.pruneVariables {
-      x => !x.name.startsWith("arg")
-    }
+      (this0 :: parameters).zipWithIndex.foldLeft(state) {
+        case (s, (expr, i)) =>
+          val field = SHelpers.getCloudArgumentField(event.id, expr.typ.asInstanceOf[AAny], i)
+          AssignField[S](helpers, field, expr)(s, pp)
+      }
 
     // Update the stored local invariant
-    val newState: S =
-    localInvariants.get(event) match {
-      case Some(oldState) => oldState.asInstanceOf[S].lub(prunedState)
-      case None => prunedState
-    }
-    localInvariants += (event -> newState)
+    if (!events.isTop) {
+      for (predecessor <- events.toSetOrFail) {
+        val prunedState: S =
+          assignedState.pruneVariables {
+            x => !x.name.startsWith("cloudarg_" + event.id) || !x.name.startsWith("cloudarg_" + predecessor.id)
+          }
+        programOrder = programOrder +
+          ((predecessor, event) -> (programOrder.get(predecessor, event).map(_.asInstanceOf[S]).getOrElse(state.bottom()) lub prunedState))
 
-    val args = this0 :: parameters
-
-    arguments.get(event) match {
-      case Some(x) =>
-        assert(x.length == args.length)
-        arguments += (event -> x.zip(args).map { x: (ExpressionSet, ExpressionSet) => x._1 lub x._2 })
-      case None =>
-        arguments += (event -> args)
+      }
     }
 
     // Update state to include current relation
     val res =
-    AssignField[S](
-      Singleton(SCloud_Data)(pp),
-      SCloud_Data.field_last_operation,
-      toRichExpression(Constant(pp.toString, TString, pp))
-    )(state, pp)
+      AssignField[S](
+        helpers,
+        SHelpers.field_last_operation,
+        toRichExpression(Constant(pp.toString, TString, pp))
+      )(assignedState, pp)
 
     res
   }
@@ -280,29 +209,18 @@ object CloudAnalysisState {
     *
     */
   def recordTransactionBoundary(pp: ProgramPoint): Unit = {
-    println("hit transaction boundary at " + pp)
+    curTransaction = pp
   }
 
   override def toString: String = {
-    "==Graph==\n" +
-      (for ((aE, preds) <- invProgramOrder; pred <- preds.toSetOrFail) yield {
-        pred + "->" + aE
-      }).mkString(",") +
-      "\n==Invariants==\n" +
-      (for ((aE, inv) <- localInvariants) yield {
-        aE + ":" + inv
-      }).mkString(",") +
-      "\n==Argument==\n" +
-      (for ((aE, arg) <- arguments) yield {
-        aE + ":" + arg
-      }).mkString(",")
+    (for (((a, b), inv) <- programOrder) yield {
+      a + "->" + b + ":" + inv
+    }).mkString(",")
   }
 
   trait AbstractEvent {
     def id: String
   }
-
-  class GeneralEventGraph[S <: State[S]] extends WeightedGraph[NodeWithState[S], EdgeLabel]
 
   case class AbstractEventWithState[S <: State[S]](aE: AbstractEvent,
       state: S) extends NodeWithState[S] {
@@ -310,19 +228,19 @@ object CloudAnalysisState {
   }
 
   case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, obj: String, method: String) extends AbstractEvent {
+
     val id: String = pp.toString
 
     override def toString: String = method
+
   }
+
   case object InitialEvent extends AbstractEvent {
+
     val id = ""
 
     override def toString: String = "Init"
+
   }
 
-}
-
-object EdgeLabel extends Enumeration {
-  type EdgeLabel = Value
-  val ProgramOrder, Arbitration, Dependency, AntiDependency = Value
 }

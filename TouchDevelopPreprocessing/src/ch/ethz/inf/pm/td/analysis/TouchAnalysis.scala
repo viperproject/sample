@@ -294,9 +294,6 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     var cur = s
     for (methodDeclaration <- compiler.events) {
 
-      if (TouchAnalysisParameters.get.enableCloudAnalysis) {
-        CloudAnalysisState.recordTransactionBoundary(methodDeclaration.programpoint)
-      }
 
       cur = cur.lub(analyzeMethod(methodDeclaration, s))
     }
@@ -306,6 +303,10 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
 
   private def analyzeMethod[S <: State[S]](callTarget: MethodDeclaration, entryState: S): S = {
+
+    if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+      CloudAnalysisState.recordTransactionBoundary(callTarget.programpoint)
+    }
 
     val exitState = MethodSummaries.collect[S](callTarget.programpoint, callTarget, entryState, Nil)
 

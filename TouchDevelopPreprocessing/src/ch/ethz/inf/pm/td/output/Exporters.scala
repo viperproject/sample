@@ -27,7 +27,7 @@ object Exporters {
       //TSVExporter,
       //JSONExporter,
       //MongoExporter,
-      WeightedGraphExporter
+      LabeledGraphExporter
     )
 
   var statusExporters: ListSet[StatusExporter] =

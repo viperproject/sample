@@ -7,15 +7,14 @@
 package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, WeightedGraphAnalysisResult}
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, LabeledGraphAnalysisResult}
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.output.DumpGraph.SimpleGraphRenderer
 
-object WeightedGraphExporter extends ResultExporter {
+object LabeledGraphExporter extends ResultExporter {
 
   def exportResults(compiler: TouchCompiler, results: List[AnalysisResult]) {
     results.foreach {
-      case x: WeightedGraphAnalysisResult[_, _] =>
+      case x: LabeledGraphAnalysisResult[_, _] =>
 
         val file = FileSystemExporter.export(compiler.mainID + "." + x.shortName + ".html", makeGraph(x))
         SystemParameters.progressOutput.put("Exported graph " + x.name + " for id " + compiler.mainID + " to " + file.toString)
@@ -24,11 +23,10 @@ object WeightedGraphExporter extends ResultExporter {
     }
   }
 
-  def makeGraph(result: WeightedGraphAnalysisResult[_, _]): String = {
+  def makeGraph(result: LabeledGraphAnalysisResult[_, _]): String = {
 
     DumpGraph.getString(
-      result.graph,
-      SimpleGraphRenderer
+      result.graph
     )
 
   }

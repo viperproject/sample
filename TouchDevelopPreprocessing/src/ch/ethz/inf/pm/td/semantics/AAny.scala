@@ -29,6 +29,20 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
   def representedTouchFields: Set[ApiField] = representedFields.map(_.asInstanceOf[ApiField])
 
+  override def representedFields: Set[Identifier] =
+    if (TouchAnalysisParameters.get.libraryFieldPruning &&
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
+      val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
+      val typFields = possibleFields -- mutedFields
+      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
+    } else {
+      possibleFields -- mutedFields
+    }
+
+  def mutedFields: Set[ApiField] = Set.empty
+
+  def possibleFields: Set[Identifier] = Set.empty
+
   /**
     * Backward semantics are empty for all native function for now
     */
@@ -169,59 +183,45 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
 
         mutedFieldResult match {
           case Some(res) => res
-          case None =>
-            getDeclaration(method) match {
-              case Some(res) =>
-
-                if (res.isAsync && TouchAnalysisParameters.get.enableCloudAnalysis) {
-
-                  println("hit async function " + res.name)
-                  CloudAnalysisState.recordTransactionBoundary(pp)
-
-                }
-
-                res.semantics.forwardSemantics(this0, res, parameters)
-              case None =>
-
-                if (SystemParameters.DEBUG) {
-                  if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
-                    println("Looks like library fragment analysis missed " + this0.typ + "->" + method)
-                  }
-                }
-                //                // Try implicit conversion to Ref
-                //                if (!this.isInstanceOf[GRef]) {
-                //                  val refType = GRef(this)
-                //                  refType.getDeclaration(method) match {
-                //                    case Some(x) =>
-                //                      x.semantics.forwardSemantics[S](this0,x,parameters)
-                //                    case None =>
-                //                      Unimplemented[S](this.toString + "." + method, returnedType)
-                //                  }
-                //
-                //                } else {
-                Unimplemented[S](this.toString + "." + method, returnedType)
-              //                }
-
-            }
+          case None => findDeclaration(this0, parameters, method, returnedType)
 
         }
     }
 
   }
 
-  override def representedFields: Set[Identifier] =
-    if (TouchAnalysisParameters.get.libraryFieldPruning &&
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.nonEmpty) {
-      val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-      val typFields = possibleFields -- mutedFields
-      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName) })
-    } else {
-      possibleFields -- mutedFields
+  private def findDeclaration[S <: State[S]](this0: RichExpressionSet, parameters: List[ExpressionSet], method: String,
+      returnedType: TouchType)(implicit state: S, pp: ProgramPoint): S = {
+
+
+    getDeclaration(method) match {
+      case Some(res) =>
+
+        val s =
+          res.semantics.forwardSemantics[S](this0, res, parameters)
+
+        if (res.isAsync) {
+          // == This is a asynchronous function -- we might execute events
+          if (TouchAnalysisParameters.get.enableCloudAnalysis) {
+            CloudAnalysisState.recordTransactionBoundary(pp)
+          }
+          MethodSummaries.collectEventLoop[S](s, pp)
+        } else {
+          s
+        }
+
+      case None =>
+
+        if (SystemParameters.DEBUG) {
+          if ((this0.typ.possibleFields -- representedFields).exists(_.getName == method)) {
+            println("Looks like library fragment analysis missed " + this0.typ + "->" + method)
+          }
+        }
+
+        Unimplemented[S](this.toString + "." + method, returnedType)
+
     }
-
-  def mutedFields: Set[ApiField] = Set.empty
-
-  def possibleFields: Set[Identifier] = Set.empty
+  }
 
   def getDeclaration(s: String): Option[ApiMember] = declarations.get(s)
 

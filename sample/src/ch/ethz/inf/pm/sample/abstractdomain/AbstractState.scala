@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.HeapIdSetFunctionalLifting
 
@@ -228,19 +229,17 @@ object ExpressionSetFactory {
 }
 
 case class ExpressionSet(
-                          initialTyp: Type,
+    typ: Type,
                           s: SetDomain.Default[Expression] = SetDomain.Default.Bottom())
   extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
-  def expressions = _2
+  def expressions: Default[Expression] = _2
 
   override def factory(): ExpressionSet = new ExpressionSet(typ.top(),s.top())
 
-  def typ = _1
-
   def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
 
-  def ids = s match {
+  def ids: IdentifierSet = s match {
     case SetDomain.Default.Bottom() => IdentifierSet.Bottom
     case SetDomain.Default.Top() => IdentifierSet.Top
     case SetDomain.Default.Inner(x) => Lattice.bigLub(x.map(_.ids))
@@ -252,18 +251,12 @@ case class ExpressionSet(
     new ExpressionSet(typ, v2)
   }
 
-  def _1 = initialTyp
-
-  def _2 = s
-
   def add(expr: ExpressionSet): ExpressionSet = {
     var set = this._2
     for (exprVal <- expr.toSetOrFail) set = set.+(exprVal)
     val typ = this._1.glb(expr.typ)
     new ExpressionSet(typ, set)
   }
-
-  def toSetOrFail = this._2.toSetOrFail
 
   def not(): ExpressionSet = {
     var result:SetDomain.Default[Expression] = this._2.bottom()
@@ -272,7 +265,13 @@ case class ExpressionSet(
     new ExpressionSet(typ, result)
   }
 
+  def toSetOrFail: Set[Expression] = this._2.toSetOrFail
+
+  def _2: SetDomain.Default[Expression] = s
+
   override def toString: String = "Type " + _1.toString + ": " + _2.toString
+
+  def _1: Type = typ
 
   def merge(r: Replacement): ExpressionSet = this._2 match {
     case SetDomain.Default.Bottom() => this
@@ -350,15 +349,15 @@ I <: HeapIdentifier[I]](
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N, H, I]] {
 
-  def _2 = expr
+  def _2: ExpressionSet = expr
 
   def getStringOfId(id: Identifier): String = domain.getStringOfId(id)
 
-  def getSemanticDomain = domain.semantic
+  def getSemanticDomain: N = domain.semantic
 
-  def getHeapDomain = domain.heap
+  def getHeapDomain: H = domain.heap
 
-  def before(pp: ProgramPoint) = this
+  def before(pp: ProgramPoint): AbstractState[N, H, I] = this
 
   def createObject(typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
 
@@ -397,8 +396,6 @@ I <: HeapIdentifier[I]](
     val (newDomain, _) = domain.createVariableForArgument(variable, typ, Nil)
     factory(newDomain, expr)
   }
-
-  def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
 
   def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
     left match {
@@ -465,17 +462,6 @@ I <: HeapIdentifier[I]](
       }
     }
     result
-  }
-
-  override def lub(other: AbstractState[N, H, I]): AbstractState[N, H, I] = lubWithReplacement(other)._1
-
-  override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
-    if (isBottom) return (other, new Replacement())
-    if (other.isBottom) return (this, new Replacement())
-    val (d, rep) = domain.lubWithReplacement(other.domain)
-    val s = expr.lub(other.expr)
-    val result = factory(d, s.merge(rep))
-    (result, rep)
   }
 
   def removeVariable(varExpr: VariableIdentifier): AbstractState[N, H, I] = {
@@ -555,6 +541,8 @@ I <: HeapIdentifier[I]](
     factory(result, new ExpressionSet(typ).add(heapId))
   }
 
+  def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
+
   def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if (isBottom) return this
     var result: AbstractState[N, H, I] = bottom()
@@ -566,6 +554,17 @@ I <: HeapIdentifier[I]](
       result = result.lub(state)
     }
     result
+  }
+
+  override def lub(other: AbstractState[N, H, I]): AbstractState[N, H, I] = lubWithReplacement(other)._1
+
+  override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
+    if (isBottom) return (other, new Replacement())
+    if (other.isBottom) return (this, new Replacement())
+    val (d, rep) = domain.lubWithReplacement(other.domain)
+    val s = expr.lub(other.expr)
+    val result = factory(d, s.merge(rep))
+    (result, rep)
   }
 
   def setVariableToTop(varExpr: Expression): AbstractState[N, H, I] = {
@@ -597,7 +596,7 @@ I <: HeapIdentifier[I]](
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr)
 
-  def _1 = domain
+  def _1: HeapAndAnotherDomain[N, H, I] = domain
 
   /**
    * Removes all variables satisfying filter
@@ -661,6 +660,6 @@ I <: HeapIdentifier[I]](
     (result, rep)
   }
 
-  override def ids = domain.ids lub expr.ids
+  override def ids: IdentifierSet = domain.ids lub expr.ids
 
 }

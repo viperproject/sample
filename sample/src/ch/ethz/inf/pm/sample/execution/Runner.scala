@@ -64,7 +64,7 @@ trait NodeWithState[S <: State[S]] {
 
 }
 
-case class WeightedGraphAnalysisResult[S, W](name: String, shortName: String, graph: WeightedGraph[S, W]) extends AnalysisResult {
+case class LabeledGraphAnalysisResult[S, W](name: String, shortName: String, graph: LabeledGraph[S, W]) extends AnalysisResult {
   override def displayName: String = name
 }
 

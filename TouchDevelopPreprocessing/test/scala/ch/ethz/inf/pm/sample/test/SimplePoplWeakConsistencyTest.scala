@@ -84,9 +84,11 @@ class SimplePoplWeakConsistencyTest extends FunSuite {
   //  test("Contest Voting (etww)") {
   //    runAnalysis("td://etww")
   //  }
+
   //  test("Color Line (uvlma)") {
   //    runAnalysis("td://uvlma")
   //  }
+
   //  test("unique poll (wbuei)") {
   //    runAnalysis("td://wbuei")
   //  }

@@ -20,7 +20,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, WeightedGraph}
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
-import ch.ethz.inf.pm.td.cloud.{CloudAnalysisState, EdgeLabel}
+import ch.ethz.inf.pm.td.cloud.CloudAnalysisState
 import ch.ethz.inf.pm.td.cloud.CloudAnalysisState.AbstractEventWithState
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain.TouchState.CollectingDomain
@@ -155,7 +155,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
       (analyzer.analyze(Nil, entryState) map { x => MethodAnalysisResult[S](x._2, x._3.asInstanceOf[TrackingCFGState[S]]) })
 
     if (TouchAnalysisParameters.get.enableCloudAnalysis) {
-      results = WeightedGraphAnalysisResult("Abstract Event Graph", "aeg", CloudAnalysisState.toWeightedGraph) :: results
+      results = LabeledGraphAnalysisResult("Abstract Event Graph", "aeg", CloudAnalysisState.toEventGraph[S].toLabeledGraph) :: results
     }
 
     results = results ::: Reporter.messages.toList

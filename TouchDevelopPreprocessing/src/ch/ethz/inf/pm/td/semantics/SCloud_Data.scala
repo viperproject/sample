@@ -6,10 +6,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TopInitializer}
-import ch.ethz.inf.pm.td.compiler.{TouchType, ValidPureSemantics}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, TouchType, ValidPureSemantics}
 import ch.ethz.inf.pm.td.defsemantics.Default_SCloud_Data
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -24,9 +24,7 @@ import RichNativeSemantics._
 
 object SCloud_Data extends Default_SCloud_Data {
 
-  override lazy val member_connection_status = super.member_connection_status.copy(semantics = ValidPureSemantics)
-
-  lazy val field_last_operation = ApiField("*last operation", TString)
+  override lazy val member_connection_status: ApiMember = super.member_connection_status.copy(semantics = ValidPureSemantics)
 
   /** Gets the just-me session, in which cloud data is shared between devices by the same user. */
   lazy val field_just_me_session = ApiField("just me session", TCloud_Session, TopInitializer)
@@ -47,7 +45,7 @@ object SCloud_Data extends Default_SCloud_Data {
   /** Returns a boolean indicating whether cloud synchronization is enabled for the current session */
   lazy val field_sync_enabled = ApiField("sync enabled", TBoolean)
 
-  override def possibleFields = super.possibleFields ++ List(field_current_session, field_last_operation,
+  override def possibleFields: Set[Identifier] = super.possibleFields ++ List(field_current_session,
     field_everyone_session, field_sync_enabled, field_just_me_session, field_last_session, field_participant_number)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet],

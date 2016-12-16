@@ -4,14 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package ch.ethz.inf.pm.td.cloud.boundedgraph
-
-import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.td.cloud.CloudAnalysisState.GeneralEventGraph
+package ch.ethz.inf.pm.td.cloud.eventgraph
 
 object Unfolder {
-
-  def unfold[S <: State[S]](f: GeneralEventGraph[S]): Graph = ???
 
 }
 
