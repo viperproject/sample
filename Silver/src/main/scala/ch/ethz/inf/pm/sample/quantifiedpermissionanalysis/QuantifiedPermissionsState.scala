@@ -268,7 +268,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
       val key = (currentPP, receiver)
       val newPermissions =
-        if (!visited.contains(currentPP)) permissions.add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
+        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
       val newExpressions = expressions + (key -> expressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(receiver)))
       copy(
@@ -276,26 +276,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         expressions = newExpressions
       )
   }
-//    println(acc)
-//    this
-//    val receiver = obj match {
-//      case FieldExpression(_, `field`, rec) => rec
-//      case _ => throw new IllegalStateException()
-//    }
-//    val key = (currentPP, receiver)
-//    val newPermissions =
-//      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
-//      else permissions
-//    var newExpressions = expressions.transform {
-//      case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
-//    }
-//    newExpressions =
-//      if (!newExpressions.contains(key)) newExpressions + (key -> InnerSetDescription(receiver))
-//      else newExpressions + (key -> newExpressions(key).lub(InnerSetDescription(receiver)))
-//    copy(
-//      permissions = newPermissions,
-//      expressions = newExpressions
-//    }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
@@ -454,7 +434,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds
     */
-  override def assume(cond: Expression): QuantifiedPermissionsState = this
+  override def assume(cond: Expression): QuantifiedPermissionsState = {
+    println(cond)
+    this
+  }
 
   /** Creates a variable given a `VariableIdentifier`.
     *

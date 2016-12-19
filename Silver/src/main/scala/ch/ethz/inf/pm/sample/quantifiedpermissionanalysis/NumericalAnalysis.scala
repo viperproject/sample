@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
@@ -137,8 +138,20 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds*/
-  override def assume(cond: Expression): T = {
-    copy(numDom = numDom.assume(cond))
+  override def assume(cond: Expression): T = cond match {
+    case _: Constant =>
+      this
+    case _ =>
+      val newCond = cond.transform {
+        case BinaryArithmeticExpression(_: FieldExpression, _, _, BoolType) | BinaryArithmeticExpression(_, _: FieldExpression, _, BoolType) =>
+          Constant("true")
+        case e => e
+      }
+      val newNumDom = numDom.assume(newCond)
+      //if numDom can't handle an expression it returns bottom
+      //it's better to keep the knowledge we already have and pass it on.
+      if (newNumDom.isBottom) num
+      else newNumDom
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.

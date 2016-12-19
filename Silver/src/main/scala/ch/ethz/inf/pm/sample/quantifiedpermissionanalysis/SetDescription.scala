@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, RefType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
 import viper.silver.{ast => sil}
 
@@ -92,6 +92,7 @@ object SetDescription {
     }
 
     private def blubb_(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
+      case ConditionalExpression(cond, left, right, typ) => ConditionalExpression(blubb_(field, receiver, right, cond), blubb_(field, receiver, right, left), blubb_(field, receiver, right, right), typ)
       case fieldExpr@FieldExpression(typ, `field`, rec) =>
         if (receiver.equals(rec)) right
         else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
@@ -147,27 +148,12 @@ object SetDescription {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 
-    //    override def update: InnerSetDescription = {
-    //      val newAbstractExpressions: mutable.Set[SetElementDescriptor] = mutable.Set() ++ abstractExpressions
-    //      val newConcreteExpressions: mutable.Map[Expression, Set[Expression]] = mutable.Map()
-    //      concreteExpressions.foreach {
-    //        case (expr, mapsTo) =>
-    //            newConcreteExpressions.put(expr, Set(expr))
-    //            mapsTo.foreach {
-    //              e =>
-    //                newConcreteExpressions.put(e, Set(e))
-    //                newAbstractExpressions.union(extractRules(e))
-    //            }
-    //        }
-    //      copy(concreteExpressions = newConcreteExpressions.toMap, abstractExpressions = newAbstractExpressions.toSet)
-    //    }
-
     private def extractRules(expr: Expression): Set[SetElementDescriptor] = expr match {
+      case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
       case functionCall: FunctionCallExpression => Set(RootElement(functionCall))
     }
-
 
     /** Returns true if and only if `this` is less than or equal to `other`.
       *
