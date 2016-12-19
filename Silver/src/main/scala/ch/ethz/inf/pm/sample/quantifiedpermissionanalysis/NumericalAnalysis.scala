@@ -69,7 +69,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
           case _: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
           case _ => numDom.assign(x, right)
         }
-        if(newNumDom.isBottom){
+        if (newNumDom.isBottom){
           newNumDom = numDom.removeVariable(x).createVariable(x)
         }
         this.copy(numDom = newNumDom)
@@ -113,12 +113,6 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     copy(expr = ExpressionSet(varExpr), numDom = numDom.removeVariable(varExpr))
   }
 
-  def createAccessPathIdentifier(id: Identifier, fieldId: VariableIdentifier): AccessPathIdentifier = {
-    var accPath: List[Identifier] = Nil
-    accPath = id :: accPath
-    AccessPathIdentifier(accPath :+ fieldId)
-  }
-
   /** Accesses a field of an object.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -132,7 +126,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     obj match {
       case obj: Identifier =>
         val fieldId = VariableIdentifier(field)(typ, currentPP)
-        this.copy(expr = ExpressionSet(createAccessPathIdentifier(obj, fieldId)))
+        this.copy(expr = ExpressionSet(AccessPathIdentifier((obj :: Nil) :+ fieldId)))
       case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
     }
   }

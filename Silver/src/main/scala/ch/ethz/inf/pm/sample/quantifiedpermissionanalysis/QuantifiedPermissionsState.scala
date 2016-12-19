@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverSpecification
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, RefType, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.BlockType.{BlockType, Default}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
@@ -170,8 +170,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = x match {
     case left: VariableIdentifier =>
-      val newExpressions = expressions.transform {
-        case (_, setDescription) => setDescription.transformAssignVariable(left, right)
+      val newExpressions = left.typ match {
+        case _: RefType => expressions.transform {
+          case (_, setDescription) => setDescription.transformAssignVariable(left, right)
+        }
+        case IntType => expressions
+        case _ => throw new IllegalStateException()
       }
       copy(
         expressions = newExpressions
@@ -197,12 +201,15 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
       else permissions
-    var newExpressions = expressions.transform {
-      case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
+    var newExpressions = right.typ match {
+      case _: RefType =>
+        expressions.transform {
+          case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
+        }
+      case IntType => expressions
+      case _ => throw new IllegalStateException()
     }
-    newExpressions =
-      if (!newExpressions.contains(key)) newExpressions + (key -> InnerSetDescription(receiver))
-      else newExpressions + (key -> newExpressions(key).lub(InnerSetDescription(receiver)))
+    newExpressions = newExpressions + (key -> newExpressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(receiver)))
     copy(
       permissions = newPermissions,
       expressions = newExpressions
@@ -233,9 +240,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
       else permissions
-    val newExpressions =
-      if (!expressions.contains(key)) expressions + (key -> InnerSetDescription(obj))
-      else expressions + (key -> expressions(key).lub(InnerSetDescription(obj)))
+    val newExpressions = expressions + (key -> expressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(obj)))
     copy(
       expr = ExpressionSet(FieldExpression(typ, field, obj)),
       permissions = newPermissions,
@@ -261,7 +266,15 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
-      null
+      val key = (currentPP, receiver)
+      val newPermissions =
+        if (!visited.contains(currentPP)) permissions.add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
+        else permissions
+      val newExpressions = expressions + (key -> expressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(receiver)))
+      copy(
+        permissions = newPermissions,
+        expressions = newExpressions
+      )
   }
 //    println(acc)
 //    this

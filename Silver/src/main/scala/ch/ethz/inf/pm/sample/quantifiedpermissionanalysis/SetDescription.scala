@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, RefType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
 import viper.silver.{ast => sil}
 
@@ -91,8 +91,17 @@ object SetDescription {
       case _ => Set(expr)
     }
 
+    private def blubb_(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
+      case fieldExpr@FieldExpression(typ, `field`, rec) =>
+        if (receiver.equals(rec)) right
+        else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
+      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, blubb_(field, receiver, right, rec))
+      case FunctionCallExpression(typ, functionName, params, pp) => FunctionCallExpression(typ, functionName, params.map(param => blubb_(field, receiver, right, param)), pp)
+      case _ => expr
+    }
+
     override def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = {
-      val newConcreteExpressions = concreteExpressions.flatMap(expr => blubb(field, receiver, right, expr))
+      val newConcreteExpressions = concreteExpressions.map(expr => blubb_(field, receiver, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
