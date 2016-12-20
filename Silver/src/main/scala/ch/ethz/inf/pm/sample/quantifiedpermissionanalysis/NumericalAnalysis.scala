@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
@@ -63,19 +63,17 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param x     The assigned variable
     * @param right The assigned expression
     * @return The abstract state after the assignment*/
-  override def assignVariable(x: Expression, right: Expression): T = {
-    x match {
-      case x: VariableIdentifier =>
-        var newNumDom: N = right match {
-          case _: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
-          case _ => numDom.assign(x, right)
-        }
-        if (newNumDom.isBottom){
-          newNumDom = numDom.removeVariable(x).createVariable(x)
-        }
-        this.copy(numDom = newNumDom)
-      case _ => this
-    }
+  override def assignVariable(x: Expression, right: Expression): T = x match {
+    case x: VariableIdentifier =>
+      var newNumDom: N = right match {
+        case _: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
+        case _ => numDom.assign(x, right)
+      }
+      if (newNumDom.isBottom){
+        newNumDom = numDom.removeVariable(x).createVariable(x)
+      }
+      this.copy(numDom = newNumDom)
+    case _ => this
   }
 
   /** Assigns an expression to a field of an object.
@@ -128,7 +126,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
       case obj: Identifier =>
         val fieldId = VariableIdentifier(field)(typ, currentPP)
         this.copy(expr = ExpressionSet(AccessPathIdentifier((obj :: Nil) :+ fieldId)))
-      case _ => throw new IllegalArgumentException("A field access must occur via an AccessPathIdentifier")
+      case _ => this
     }
   }
 
@@ -143,15 +141,13 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
       this
     case _ =>
       val newCond = cond.transform {
-        case BinaryArithmeticExpression(_: FieldExpression, _, _, BoolType) | BinaryArithmeticExpression(_, _: FieldExpression, _, BoolType) =>
+        case BinaryArithmeticExpression(_: FieldExpression, _, _, BoolType) | BinaryArithmeticExpression(_, _: FieldExpression, _, BoolType) | FieldExpression(BoolType, _, _) =>
           Constant("true")
         case e => e
       }
       val newNumDom = numDom.assume(newCond)
-      //if numDom can't handle an expression it returns bottom
-      //it's better to keep the knowledge we already have and pass it on.
-      if (newNumDom.isBottom) num
-      else newNumDom
+      if (newNumDom.isBottom) this
+      else copy(numDom = newNumDom)
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -318,7 +314,7 @@ object NumericalAnalysisState
     */
   case class PolyhedraAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                     expr: ExpressionSet = ExpressionSet(),
-                                    numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+                                    numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom.factory())
     extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
   {
     /**

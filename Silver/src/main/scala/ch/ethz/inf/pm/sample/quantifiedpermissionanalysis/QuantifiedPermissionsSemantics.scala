@@ -50,7 +50,15 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
                                                           typeparameters: List[Type],
                                                           returnedtype: Type,
                                                           programpoint: ProgramPoint,
-                                                          state: S): Option[S] = None
+                                                          state: S): Option[S] = applyBackwardNativeSemantics(
+    thisExpr,
+    operator,
+    parameters,
+    typeparameters,
+    returnedtype,
+    programpoint,
+    state
+  )
 
   override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
                                                            operator: String,

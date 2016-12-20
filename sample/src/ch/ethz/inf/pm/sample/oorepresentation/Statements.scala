@@ -530,11 +530,11 @@ case class MethodCall(
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
     }; //return state
-    if (!body.isInstanceOf[FieldAccess]) return state
-    //TODO: Sometimes it is a variable, check if $this is implicit!
-    val castedStatement = body.asInstanceOf[FieldAccess]
-    val calledMethod = castedStatement.field
-    forwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
+    val (receiver, calledMethod) = body match {
+      case body: FieldAccess => (body.obj, body.field)
+      case body: Variable => (null, body.getName)
+    }
+    forwardAnalyzeMethodCallOnObject[S](receiver, calledMethod, state, getPC())
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
@@ -542,7 +542,7 @@ case class MethodCall(
 
     // Evaluate object and parameters
     var curState = preState
-    curState = obj.forwardSemantics[S](curState)
+    curState = if (obj == null) preState else obj.forwardSemantics[S](curState)
     val objectExpression = curState.expr
     val parameterExpressions = for (parameter <- parameters) yield {
       curState = parameter.forwardSemantics[S](curState)
