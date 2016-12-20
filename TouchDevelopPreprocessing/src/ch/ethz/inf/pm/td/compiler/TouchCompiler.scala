@@ -230,8 +230,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     isInLibraryMode = false
   }
 
-  def generateTopType() {
-    SystemParameters.typ = TNothing.top()
+  def setUpTypes() {
+    SystemParameters.tm = TouchTypeMap
   }
 
   override def allMethods: List[MethodDeclaration] = (mainPublicMethods ++ mainPrivateMethods ++ events).toList

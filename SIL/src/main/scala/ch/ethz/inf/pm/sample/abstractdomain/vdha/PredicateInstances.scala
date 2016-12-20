@@ -118,7 +118,7 @@ case class PredicateInstancesDomain(
 
   def assume(expr: Expression) = expr match {
     case BinaryArithmeticExpression(id: Identifier,
-      state: PredicateInstanceState, ArithmeticOperator.==, _) =>
+    state: PredicateInstanceState, ArithmeticOperator.==) =>
       add(id, get(id).+(state))
     case _ =>
       logger.debug(s"Assuming expression $expr in predicate instances domain " +

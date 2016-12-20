@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-object ExpSimplifier extends Function[Expression, Expression] {
+object ExpSimplifier {
   import ArithmeticOperator.{`+`, `-`, `*`}
 
   /**
@@ -28,28 +28,27 @@ object ExpSimplifier extends Function[Expression, Expression] {
    * @param exp the expression to simplify
    * @return the simplified expression
    */
-  def apply(exp: Expression): Expression =
+  def simplify(exp: Expression): Expression =
     exp.transform({
       // Push negations inward if possible
       case e @ NegatedBooleanExpression(negExp) => negExp match {
         case NegatedBooleanExpression(innerExp) => innerExp
         case Constant("true", typ, pp) => Constant("false", typ, pp)
         case Constant("false", typ, pp) => Constant("true", typ, pp)
-        case BinaryArithmeticExpression(l, r, o, t) =>
-          BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o), t)
-        case ReferenceComparisonExpression(l, r, o, t) =>
-          ReferenceComparisonExpression(l, r, ArithmeticOperator.negate(o), t)
-        case BinaryBooleanExpression(l, r, o, t) =>
+        case BinaryArithmeticExpression(l, r, o) =>
+          BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o))
+        case ReferenceComparisonExpression(l, r, o) =>
+          ReferenceComparisonExpression(l, r, ReferenceOperator.negate(o))
+        case BinaryBooleanExpression(l, r, o) =>
           BinaryBooleanExpression(
             NegatedBooleanExpression(l),
             NegatedBooleanExpression(r),
-            BooleanOperator.negate(o),
-            t)
+            BooleanOperator.negate(o))
         case _ => e
       }
 
       // Boolean expressions
-      case b @ BinaryArithmeticExpression(left, right, op, typ)
+      case b@BinaryArithmeticExpression(left, right, op)
         if left.typ.isBooleanType && right.typ.isBooleanType &&
           (op == ArithmeticOperator.== || op == ArithmeticOperator.!=) =>
         (left, right, op) match {
@@ -66,13 +65,13 @@ object ExpSimplifier extends Function[Expression, Expression] {
         }
 
       // Binary arithmetic expressions
-      case BinaryArithmeticExpression(Constant("0", _, _), right, `+`, typ) => right
-      case BinaryArithmeticExpression(left, Constant("0", _, _), `+`, typ) => left
-      case BinaryArithmeticExpression(left, Constant("0", _, _), `-`, typ) => left
-      case BinaryArithmeticExpression(Constant("1", _, _), right, `*`, typ) => right
-      case BinaryArithmeticExpression(left, Constant("1", _, _), `*`, typ) => left
-      case BinaryArithmeticExpression(c@Constant("0", _, _), _, `*`, typ) => c
-      case BinaryArithmeticExpression(_, c@Constant("0", _, _), `*`, typ) => c
+      case BinaryArithmeticExpression(Constant("0", _, _), right, `+`) => right
+      case BinaryArithmeticExpression(left, Constant("0", _, _), `+`) => left
+      case BinaryArithmeticExpression(left, Constant("0", _, _), `-`) => left
+      case BinaryArithmeticExpression(Constant("1", _, _), right, `*`) => right
+      case BinaryArithmeticExpression(left, Constant("1", _, _), `*`) => left
+      case BinaryArithmeticExpression(c@Constant("0", _, _), _, `*`) => c
+      case BinaryArithmeticExpression(_, c@Constant("0", _, _), `*`) => c
 
       // Everything else
       case e => e
@@ -92,7 +91,7 @@ object ExpPrettyPrinter extends Function[Expression, String] {
    * @return the pretty string representation
    */
   def apply(exp: Expression): String = exp match {
-    case BinaryArithmeticExpression(left, right, op, _) =>
+    case BinaryArithmeticExpression(left, right, op) =>
       this(left) + " " + this(op) + " " + this(right)
     case Constant(value, _, _) => value
     case _ => exp.toString // Fallback

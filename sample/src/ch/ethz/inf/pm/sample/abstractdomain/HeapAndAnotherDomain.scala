@@ -154,7 +154,7 @@ I <: HeapIdentifier[I]](
   }
 
   def assume(expr: Expression): (T, Replacement) = expr match {
-    case BinaryBooleanExpression(_, _, BooleanOperator.&&, _) =>
+    case BinaryBooleanExpression(_, _, BooleanOperator.&&) =>
       val binaryBoolExpr = expr.asInstanceOf[BinaryBooleanExpression]
       val (result, rep1) = this.assume(binaryBoolExpr.left)
       val (result2, rep2) = result.assume(binaryBoolExpr.right)
@@ -163,23 +163,6 @@ I <: HeapIdentifier[I]](
       val (newHeap, r) = heap.assume(expr)
       val newSemantic = semantic.merge(r).assume(expr)
       (factory(newSemantic, newHeap), r)
-  }
-
-  def areEqual(left: Expression, right: Expression): BooleanDomain = {
-    val equalsExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==, null)
-
-    val (leftEqualsRight, _) = this.assume(equalsExpression)
-    val (leftNotEqualsRight, _) = this.assume(NegatedBooleanExpression(equalsExpression))
-
-    if (!leftEqualsRight.lessEqual(this.bottom()) && leftNotEqualsRight.lessEqual(this.bottom())) {
-      // must be equal
-      return BooleanDomain.True
-    } else if (leftEqualsRight.lessEqual(this.bottom())) {
-      // must be not equal
-      return BooleanDomain.False
-    }
-
-    BooleanDomain.Top
   }
 
   def createVariable(variable: Assignable, typ: Type): T = {

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.{BooleanOperator, ArithmeticOperator}
+import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator, ReferenceOperator}
 import viper.silver.{ast => sil}
 import viper.silver.ast.SourcePosition
 
@@ -25,15 +25,15 @@ object DefaultSampleConverter extends SampleConverter {
 
   def convert(e: sample.Expression): sil.Exp = e match {
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
-    case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
+    case sample.BinaryBooleanExpression(left, right, op) => op match {
       case BooleanOperator.`&&` => sil.And(go(left), go(right))()
       case BooleanOperator.`||` => sil.Or(go(left), go(right))()
     }
-    case sample.ReferenceComparisonExpression(left, right, op, typ) => op match {
-      case ArithmeticOperator.`==` => sil.EqCmp(go(left), go(right))()
-      case ArithmeticOperator.`!=` => sil.NeCmp(go(left), go(right))()
+    case sample.ReferenceComparisonExpression(left, right, op) => op match {
+      case ReferenceOperator.`==` => sil.EqCmp(go(left), go(right))()
+      case ReferenceOperator.`!=` => sil.NeCmp(go(left), go(right))()
     }
-    case sample.BinaryArithmeticExpression(left, right, op, typ) => op match {
+    case sample.BinaryArithmeticExpression(left, right, op) => op match {
       case ArithmeticOperator.`+` => sil.Add(go(left), go(right))()
       case ArithmeticOperator.`-` => sil.Sub(go(left), go(right))()
       case ArithmeticOperator.`*` => sil.Mul(go(left), go(right))()

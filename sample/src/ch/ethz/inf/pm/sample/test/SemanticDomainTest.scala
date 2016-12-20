@@ -6,8 +6,9 @@
 
 package ch.ethz.inf.pm.sample.test
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, Expression, SemanticDomain, VariableIdentifier}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyProgramPoint, DummyTypeMap, Type}
 
 /**
   * Implements generic, property-based testing for semantic domains. These check well-formedness properties of lattice
@@ -24,6 +25,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyProgramPoi
   * @author Lucas Brutschy
   */
 trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
+
+  SystemParameters.tm = DummyTypeMap
 
   test("Creating Variables") {
     for (a <- instances) {
@@ -43,13 +46,17 @@ trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
 
   test("Assuming false gives bottom") {
     for (a <- instances) {
-      assert { a.assume(Constant("false",DummyBooleanType)).isBottom }
+      assert {
+        a.assume(Constant("false", SystemParameters.tm.Boolean)).isBottom
+      }
     }
   }
 
   test("Assuming true gives identity") {
     for (a <- instances) {
-      assert { a.assume(Constant("true",DummyBooleanType)) == a }
+      assert {
+        a.assume(Constant("true", SystemParameters.tm.Boolean)) == a
+      }
     }
   }
 
@@ -57,7 +64,6 @@ trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
     for (a1 <- values; a2 <- values) {
       if (a1 != a2) {
         import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
-        implicit val tm = TypeMap()
         implicit val pp = DummyProgramPoint
 
         val x = factory.createVariable(v1).createVariable(v2).assign(v1, a1).assign(v2, a2)

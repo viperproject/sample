@@ -21,14 +21,14 @@ import ch.ethz.inf.pm.sample.SystemParameters
 object DivisionByZero extends Visitor {
   override def label = "DivisionByZero"
 
-  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
+  def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector): Unit = statement match {
     case MethodCall(pp, FieldAccess(pp1, x, "/", typ), parametricTypes, y :: Nil, returnedType) =>
       var state1 = x.forwardSemantics(state)
       state1 = y.forwardSemantics(state1)
       for(divisor <- state1.expr.toSetOrFail) {
         if(! state1.assume(
-          new ExpressionSet(SystemParameters.typ.top()).add(
-            new BinaryArithmeticExpression(divisor, Constant("0"), ArithmeticOperator.==)
+          new ExpressionSet(SystemParameters.tm.Bottom).add(
+            new BinaryArithmeticExpression(divisor, Constant("0", SystemParameters.tm.Int), ArithmeticOperator.==)
             )
            ).lessEqual(state.bottom())) {
           printer.add(WarningProgramPoint(statement.getPC(), "Possible division by 0"))

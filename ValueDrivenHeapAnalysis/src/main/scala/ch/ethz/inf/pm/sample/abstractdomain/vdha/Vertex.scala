@@ -6,10 +6,9 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 
 object VertexConstants {
   val SUMMARY = "sum"
@@ -100,7 +99,7 @@ object NullVertex extends Vertex {
 
   def label = VertexConstants.NULL
 
-  def typ = SystemParameters.typ.bottom()
+  def typ = SystemParameters.tm.Bottom
 
   override def toString = name
 

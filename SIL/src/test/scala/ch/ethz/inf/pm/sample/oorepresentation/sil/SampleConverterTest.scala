@@ -10,8 +10,9 @@ import org.scalatest.{FunSuite, Matchers}
 import org.scalatest.matchers.ShouldMatchers
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.test.SampleTest
 
-class SampleConverterTest extends FunSuite with Matchers {
+class SampleConverterTest extends FunSuite with Matchers with SampleTest {
   val pp = sample.DummyProgramPoint
   val intType = sample.IntType
   val refType = sample.RefType()

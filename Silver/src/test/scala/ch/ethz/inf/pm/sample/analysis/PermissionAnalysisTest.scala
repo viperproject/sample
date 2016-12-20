@@ -10,6 +10,7 @@ import java.nio.file.Path
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution.MethodAnalysisResult
+import ch.ethz.inf.pm.sample.oorepresentation.DummyTypeMap
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis._
@@ -102,6 +103,6 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
   * @author Caterina Urban
   */
 class PermissionAnalysisLatticeTest extends LatticeTest[SimplePermissionAnalysisState] {
-  SystemParameters.typ = DummyRefType
+  SystemParameters.tm = DummyTypeMap
   override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.topState
 }

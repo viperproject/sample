@@ -57,7 +57,7 @@ case class GRef (TT:AAny) extends Default_GRef {
     returnType = TNothing,
     semantics = CloudUpdateWrapper(new ApiMemberSemantics {
       override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
-        If[S](this0 equal String(""), { x: S =>
+        If[S](DeRef[S](this0) equal String(""), { x: S =>
           Assign[S](DeRef[S](this0),parameters.head)
         }, { x: S =>
           Skip[S]

@@ -1,7 +1,13 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType}
 
 trait RelationalNumericalDomainTest[T <: NumericalDomain[T]]
   extends NumericalDomainTest[T] {
@@ -14,10 +20,10 @@ class OctagonsTest
   var once = false
 
   def or(left: Expression, right: Expression): Expression =
-    BinaryBooleanExpression(left, right, BooleanOperator.||, DummyBooleanType)
+    BinaryBooleanExpression(left, right, BooleanOperator.||)
 
   def plus(left: Expression, right: Expression): Expression =
-    BinaryArithmeticExpression(left, right, ArithmeticOperator.+, DummyIntegerType)
+    BinaryArithmeticExpression(left, right, ArithmeticOperator.+)
 
   /**
     * Add more instances to the test suite
@@ -39,26 +45,26 @@ class OctagonsTest
     )
 
   def constant(value: Int): Constant =
-    Constant(value.toString, DummyIntegerType)
+    Constant(value.toString, SystemParameters.tm.Int)
 
   def variable(name: String): Identifier =
-    VariableIdentifier(name)(DummyIntegerType)
+    VariableIdentifier(name)(SystemParameters.tm.Int)
 
   def equal(left: Expression, right: Expression): Expression =
-    BinaryArithmeticExpression(left, right, ArithmeticOperator.==, DummyBooleanType)
+    BinaryArithmeticExpression(left, right, ArithmeticOperator.==)
 
   def inRange(expr: Expression, low: Expression, high: Expression): Expression = {
     and(greaterOrEqual(expr, low), lessOrEqual(expr, high))
   }
 
   def lessOrEqual(left: Expression, right: Expression): Expression =
-    BinaryArithmeticExpression(left, right, ArithmeticOperator.<=, DummyBooleanType)
+    BinaryArithmeticExpression(left, right, ArithmeticOperator.<=)
 
   def greaterOrEqual(left: Expression, right: Expression): Expression =
-    BinaryArithmeticExpression(left, right, ArithmeticOperator.>=, DummyBooleanType)
+    BinaryArithmeticExpression(left, right, ArithmeticOperator.>=)
 
   def and(left: Expression, right: Expression): Expression =
-    BinaryBooleanExpression(left, right, BooleanOperator.&&, DummyBooleanType)
+    BinaryBooleanExpression(left, right, BooleanOperator.&&)
 
   override def factory: IntegerOctagons = IntegerOctagons.Bottom
 }

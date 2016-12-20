@@ -6,16 +6,16 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import ch.ethz.inf.pm.sample.oorepresentation._
-import java.io.{FileReader, BufferedReader}
-import java.nio.file.{Files, Paths}
-import scala.io.Source
-import viper.silver.parser.Parser
-import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.oorepresentation.Type
-import viper.silver.parser.Translator
-import viper.silver.parser.Resolver
+import java.io.{BufferedReader, FileReader}
+import java.nio.file.Files
+
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, _}
+import viper.silver.parser.{Parser, Resolver, Translator}
+import viper.silver.{ast => sil}
+
+import scala.io.Source
 
 class SilCompiler extends Compiler {
   protected var classes: Option[List[ClassDefinition]] = None
@@ -52,7 +52,7 @@ class SilCompiler extends Compiler {
   }
 
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
-    SystemParameters.typ = TopType
+    SystemParameters.tm = SilTypeMap
     program = p
     classes = Some(DefaultSilConverter.convert(p))
     classes.get
@@ -84,8 +84,8 @@ class SilCompiler extends Compiler {
   def getSourceCode(path: String): String =
     getOriginalCode(new BufferedReader(new FileReader(path)))
 
-  def generateTopType(): Unit = {
-    SystemParameters.typ = TopType
+  def setUpTypes(): Unit = {
+    SystemParameters.tm = SilTypeMap
   }
 
   def refType: RefType =
@@ -93,3 +93,12 @@ class SilCompiler extends Compiler {
 
 }
 
+
+object SilTypeMap extends TypeMap {
+  override val Int: Type = IntType
+  override val Float: Type = TopType
+  override val String: Type = TopType
+  override val Boolean: Type = BoolType
+  override val Bottom: Type = BottomType
+  override val Top: Type = TopType
+}

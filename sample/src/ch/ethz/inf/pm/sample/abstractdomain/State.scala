@@ -503,6 +503,7 @@ trait State[S <: State[S]] extends Lattice[S] {
   def undoPruneVariables(unprunedPreState: S, filter: VariableIdentifier => Boolean): S
 
   def ids:IdentifierSet
+
 }
 
 trait StateWithRefiningAnalysisStubs[S <: StateWithRefiningAnalysisStubs[S]] extends SimpleState[S] {
@@ -786,7 +787,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
 
   /** @todo merge with `removeExpression`. */
   def setUnitExpression(): S = {
-    val unitExp = UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
+    val unitExp = UnitExpression(SystemParameters.tm.Top, DummyProgramPoint)
     setExpression(ExpressionSet(unitExp))
   }
 }

@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.DummyTypeMap
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import ch.ethz.inf.pm.sample.test.LatticeTest
@@ -17,6 +18,6 @@ import ch.ethz.inf.pm.sample.test.LatticeTest
   * @author Caterina Urban
   */
 class AliasAnalysisLatticeTest extends LatticeTest[SimpleAliasAnalysisState] {
-  SystemParameters.typ = DummyRefType
+  SystemParameters.tm = DummyTypeMap
   override def factory: SimpleAliasAnalysisState = AliasAnalysisEntryState.topState
 }

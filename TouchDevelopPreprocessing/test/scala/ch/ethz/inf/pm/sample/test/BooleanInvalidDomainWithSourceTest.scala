@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.test
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td.domain.{BooleanInvalidDomainWithSource, InvalidExpression, ValidExpression}
 
@@ -20,6 +21,6 @@ class BooleanInvalidDomainWithSourceTest
     ValidExpression(typ, DummyProgramPoint)
   )
 
-  override lazy val typ = DummyIntegerType
+  override lazy val typ = SystemParameters.tm.Int
   override lazy val factory = BooleanInvalidDomainWithSource()
 }

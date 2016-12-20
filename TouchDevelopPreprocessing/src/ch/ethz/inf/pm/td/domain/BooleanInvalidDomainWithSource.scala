@@ -11,7 +11,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.{AbstractOperator, BinaryBooleanExpr
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.domain.ValiditySet._
-import ch.ethz.inf.pm.td.semantics.TBoolean
 
 
 /**
@@ -85,13 +84,15 @@ case class BooleanInvalidDomainWithSource(map: Map[Identifier, ValiditySet] = Ma
     *
     */
   private def eval(expr: Expression): ValiditySet = expr match {
-    case BinaryArithmeticExpression(_, _, _, _) => Valid
-    case BinaryNondeterministicExpression(_, _, _, _) => Valid
+    case BinaryArithmeticExpression(_, _, _) => Valid
+    case BinaryStringExpression(_, _, _) => Valid
+    case ReferenceComparisonExpression(_, _, _) => Valid
+    case BinaryBooleanExpression(_, _, _) => Valid
+    case BinaryNondeterministicExpression(_, _, _) => Valid
     case AbstractOperator(_, List(_), Nil, AbstractOperatorIdentifiers.stringConcatenation, _) => Valid
     case InvalidExpression(_, str, pp) => Invalid(str, pp)
     case ValidExpression(_, _) => Valid
     case Constant(_, _, _) => Valid
-    case _: BinaryBooleanExpression => Valid
     case _: NegatedBooleanExpression => Valid
     case _: HeapIdentifier => Valid
     case x: Identifier => this.getMustExist(x)
@@ -99,7 +100,7 @@ case class BooleanInvalidDomainWithSource(map: Map[Identifier, ValiditySet] = Ma
   }
 
   override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
-    val s = assume(BinaryArithmeticExpression(variable, expr, ArithmeticOperator.==, TBoolean))
+    val s = assume(BinaryArithmeticExpression(variable, expr, ArithmeticOperator.==))
     s.setToTop(variable)
   }
 
@@ -120,48 +121,68 @@ case class BooleanInvalidDomainWithSource(map: Map[Identifier, ValiditySet] = Ma
   override def assumeSimplified(expr: Expression): BooleanInvalidDomainWithSource = {
     val res = expr match {
 
-      case BinaryArithmeticExpression(a: Expression, b: Expression, ArithmeticOperator.==, _) =>
+      case BinaryStringExpression(a, b, StringOperator.==) =>
+        equal(a, b)
 
-        val left = eval(a)
-        val right = eval(b)
-        if ((left.mustBeValid && right.mustBeInvalid) || (left.mustBeInvalid && right.mustBeValid))
-          return bottom()
-        var cur = this
-        a match {
-          case x: Identifier => cur = cur.add(x, left.onlyIf(right))
-          case _ => ()
-        }
-        b match {
-          case x: Identifier => cur = cur.add(x, right.onlyIf(left))
-          case _ => ()
-        }
-        cur
+      case BinaryStringExpression(a, b, StringOperator.!=) =>
+        unequal(a, b)
 
-      case BinaryArithmeticExpression(a, b, ArithmeticOperator.!=, _) =>
+      case ReferenceComparisonExpression(a, b, ReferenceOperator.==) =>
+        equal(a, b)
 
-        val left = eval(a)
-        val right = eval(b)
-        if (left.mustBeInvalid && right.mustBeInvalid)
-          return bottom()
-        var cur = this
-        if (right.mustBeInvalid && left.canBeInvalid) {
-          a match {
-            case x: Identifier => cur = cur.add(x, left.onlyIf(Valid))
-            case _ => ()
-          }
-        }
-        if (left.mustBeInvalid && right.canBeInvalid) {
-          b match {
-            case x: Identifier => cur = cur.add(x, right.onlyIf(Valid))
-            case _ => ()
-          }
-        }
-        cur
+      case ReferenceComparisonExpression(a, b, ReferenceOperator.!=) =>
+        unequal(a, b)
+
+      case BinaryArithmeticExpression(a, b, ArithmeticOperator.==) =>
+        equal(a, b)
+
+      case BinaryArithmeticExpression(a, b, ArithmeticOperator.!=) =>
+        unequal(a, b)
 
       case _ => this
     }
 
     res
+  }
+
+  private def equal(a: Expression, b: Expression): BooleanInvalidDomainWithSource = {
+
+    val left = eval(a)
+    val right = eval(b)
+    if ((left.mustBeValid && right.mustBeInvalid) || (left.mustBeInvalid && right.mustBeValid))
+      return bottom()
+    var cur = this
+    a match {
+      case x: Identifier => cur = cur.add(x, left.onlyIf(right))
+      case _ => ()
+    }
+    b match {
+      case x: Identifier => cur = cur.add(x, right.onlyIf(left))
+      case _ => ()
+    }
+    cur
+  }
+
+  private def unequal(a: Expression, b: Expression): BooleanInvalidDomainWithSource = {
+
+    val left = eval(a)
+    val right = eval(b)
+    if (left.mustBeInvalid && right.mustBeInvalid)
+      return bottom()
+    var cur = this
+    if (right.mustBeInvalid && left.canBeInvalid) {
+      a match {
+        case x: Identifier => cur = cur.add(x, left.onlyIf(Valid))
+        case _ => ()
+      }
+    }
+    if (left.mustBeInvalid && right.canBeInvalid) {
+      b match {
+        case x: Identifier => cur = cur.add(x, right.onlyIf(Valid))
+        case _ => ()
+      }
+    }
+    cur
   }
 
   override def toString: String = {
@@ -206,7 +227,7 @@ case class BooleanInvalidDomainWithSource(map: Map[Identifier, ValiditySet] = Ma
     */
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = {
     val res: Set[(String, ProgramPoint)] = expr match {
-      case BinaryArithmeticExpression(a: Identifier, InvalidExpression(_, _, _), ArithmeticOperator.==, _) =>
+      case BinaryArithmeticExpression(a: Identifier, InvalidExpression(_, _, _), ArithmeticOperator.==) =>
 
         val left = eval(a)
         left match {

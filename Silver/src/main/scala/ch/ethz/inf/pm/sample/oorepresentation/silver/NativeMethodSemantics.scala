@@ -48,13 +48,13 @@ object ArithmeticAndBooleanNativeMethodSemantics extends NativeMethodSemantics {
       case (IntType, "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "\\" | "%", _ :: Nil) |
            (BoolType, "==" | "!=", _ :: Nil) =>
         val arithmeticOp = ArithmeticOperator.withName(op.replace('\\', '/'))
-        Some(createBinaryExpression(leftExp, parameters.head, arithmeticOp, returnType))
+        Some(createBinaryArithmeticExpression(leftExp, parameters.head, arithmeticOp))
       case (BoolType, "||" | "&&", rightExp :: Nil) =>
-        Some(createBooleanBinaryExpression(leftExp, rightExp, BooleanOperator.withName(op), returnType))
+        Some(createBooleanBinaryExpression(leftExp, rightExp, BooleanOperator.withName(op)))
       case (BoolType, "==>", rightExp :: Nil) =>
-        Some(createBooleanBinaryExpression(createNegatedBooleanExpression(leftExp), rightExp, BooleanOperator.||, returnType))
+        Some(createBooleanBinaryExpression(createNegatedBooleanExpression(leftExp), rightExp, BooleanOperator.||))
       case (RefType(_), "==" | "!=", rightExp :: Nil) =>
-        Some(createReferenceComparisonExpression(leftExp, rightExp, ArithmeticOperator.withName(op), returnType))
+        Some(createReferenceComparisonExpression(leftExp, rightExp, ReferenceOperator.withName(op)))
       case (IntType, "+" | "-", Nil) =>
         Some(createUnaryExpression(leftExp, ArithmeticOperator.withName(op), returnType))
       case (BoolType, "!", Nil) =>

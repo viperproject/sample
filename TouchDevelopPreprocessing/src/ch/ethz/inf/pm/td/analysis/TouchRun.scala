@@ -22,7 +22,7 @@ import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.cloud.CloudAnalysisState
 import ch.ethz.inf.pm.td.cloud.CloudAnalysisState.AbstractEventWithState
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, UnsupportedLanguageFeatureException}
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPointRegistry, TouchTypeMap, UnsupportedLanguageFeatureException}
 import ch.ethz.inf.pm.td.domain.TouchState.CollectingDomain
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -123,11 +123,11 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[TouchEntr
     RequiredLibraryFragmentAnalysis.spottedFields = Set.empty
 
     SystemParameters.compiler = compiler
-    SystemParameters.compiler.generateTopType()
     SystemParameters.analysisOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
     SystemParameters.progressOutput = if (touchParams.silent) new StringCollector() else new StdOutOutput()
 
     SystemParameters.compiler.reset()
+    SystemParameters.compiler.setUpTypes()
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics)
 

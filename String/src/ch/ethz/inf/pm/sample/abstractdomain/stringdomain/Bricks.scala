@@ -416,7 +416,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
 
      expr match {
        // Comparison
-       case BinaryArithmeticExpression(thisExpr,thatExpr,ArithmeticOperator.==,_) =>
+       case BinaryStringExpression(thisExpr, thatExpr, StringOperator.==) =>
          val left = eval(thisExpr)
          val right = eval(thatExpr)
          val glb = left.glb(right)
@@ -433,7 +433,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
            }
 
        // negated comparison
-       case BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.!=, _) =>
+       case BinaryStringExpression(thisExpr, thatExpr, StringOperator.!=) =>
          val left = eval(thisExpr)
          val right = eval(thatExpr)
          (left, right) match {

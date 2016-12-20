@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 import java.io._
 
 import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 import scala.tools.nsc._
@@ -36,7 +37,7 @@ class ScalaCompiler extends Compiler {
           if (m.name.toString.equals(name) && m.arguments.head.size == parameters.size) {
             var ok: Boolean = true
             if (m.arguments.size != 1) throw new ScalaException("Not yet supported")
-            for (i <- 0 until m.arguments.head.size) {
+            for (i <- m.arguments.head.indices) {
               if (!parameters.apply(i).lessEqual(m.arguments.head.apply(i).typ))
                 ok = false
             }
@@ -62,7 +63,7 @@ class ScalaCompiler extends Compiler {
     parsedclasses = Nil
   }
 
-  def generateTopType() {
+  def setUpTypes() {
     val suffix: String = ".scala"
     val file: File = File.createTempFile("Dummy", suffix)
     val className: String = file.getName.substring(0, file.getName.length - suffix.length)
@@ -70,12 +71,12 @@ class ScalaCompiler extends Compiler {
 
     val out: FileWriter = new FileWriter(file)
     out.write(source)
-    out.close
+    out.close()
 
     val classes = compile(Compilable.Path(file.toPath))
 
     if (classes.nonEmpty) {
-      SystemParameters.typ = classes.head.typ.top
+      SystemParameters.tm = ScalaTypeMap(classes.head.typ)
     }
     else {
       throw new Exception("Could not generate type information")
@@ -142,4 +143,16 @@ class ScalaCompiler extends Compiler {
     None
   }
 
+}
+
+case class ScalaTypeMap(topType: Type) extends TypeMap {
+
+  // TODO: Implement this, if scala backend is ever used.
+
+  override val Int: Type = ???
+  override val Float: Type = ???
+  override val String: Type = ???
+  override val Boolean: Type = ???
+  override val Bottom: Type = ???
+  override val Top: Type = ???
 }

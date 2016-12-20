@@ -41,7 +41,7 @@ object CloudAnalysisState {
 
       val helpers = Singleton(SHelpers)(DummyProgramPoint)
       val fields = SHelpers.getCloudArgumentFields(src)(state) ++ SHelpers.getCloudArgumentFields(tgt)(state)
-      val identifiers = fields.flatMap(x => state.getFieldValue(helpers, x.getName, x.typ).ids.getNonTopUnsafe)
+      val identifiers = fields.flatMap(x => state.getFieldValue(helpers, x.getName, x.typ).expr.ids.getNonTopUnsafe)
 
       convert(
         state.asInstanceOf[TouchStateInterface[_]].getConstraints(identifiers),
@@ -77,14 +77,14 @@ object CloudAnalysisState {
       expr match {
         case NegatedBooleanExpression(exp) =>
           Not(convert(exp))
-        case BinaryBooleanExpression(left, right, op, _) =>
+        case BinaryBooleanExpression(left, right, op) =>
           val (l, r) = (convert(left), convert(right))
           op match {
             case BooleanOperator.&& => And(l, r)
             case BooleanOperator.|| => Or(l, r)
             case _ => ???
           }
-        case BinaryArithmeticExpression(left, right, op, _) =>
+        case BinaryArithmeticExpression(left, right, op) =>
           val (l, r) = (convert(left), convert(right))
           op match {
             case ArithmeticOperator.== => Equal(l, r)
@@ -221,9 +221,9 @@ object CloudAnalysisState {
     val events =
       constants.map {
         case Constant(c, _, _) if c.nonEmpty =>
-          stringToEvent(c)
+          Some(stringToEvent(c))
         case Constant(c, _, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
-          InitialEvent
+          None
       }
 
     // Map all actual parameters to their formal parameters
@@ -235,7 +235,6 @@ object CloudAnalysisState {
           AssignField[S](helpers, field, expr)(s, pp)
       }
 
-
     val prunedState: S =
       assignedState.pruneVariables {
         x => x.name != SHelpers.name.toLowerCase
@@ -246,7 +245,7 @@ object CloudAnalysisState {
     // Update the stored local invariant
     if (!events.isTop) {
       invProgramOrder = invProgramOrder +
-        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSetOrFail))
+        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSetOrFail.flatten))
     }
 
     // Update state to include current relation
@@ -322,12 +321,13 @@ object CloudAnalysisState {
 
   }
 
-  case object InitialEvent extends AbstractEvent {
-
-    val id = ""
-
-    override def toString: String = "Init"
-
-  }
+  // TODO: Do we need an initial event?
+  //  case object InitialEvent extends AbstractEvent {
+  //
+  //    val id = "init"
+  //
+  //    override def toString: String = "Init"
+  //
+  //  }
 
 }

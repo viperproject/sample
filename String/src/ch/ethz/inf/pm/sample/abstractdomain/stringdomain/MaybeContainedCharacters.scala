@@ -38,7 +38,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
 
   override def assumeSimplified(expr: Expression): MaybeContainedCharacters = expr match {
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=, _) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -48,7 +48,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=, _) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -58,7 +58,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.<, _) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -68,7 +68,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.<, _) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {

@@ -6,10 +6,10 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
-import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, DummyStringType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
@@ -93,7 +93,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     expr match {
 
       // Comparison
-      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
+      case BinaryStringExpression(a: Expression, b: Expression, StringOperator.==) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -117,7 +117,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
         }
 
       // Negated comparison
-      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.!=, _) =>
+      case BinaryStringExpression(a: Expression, b: Expression, StringOperator.!=) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -149,7 +149,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
       val constants = getPossibleConstants(id)
       if (!constants.isTop) {
         import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
-        implicit val tm = ExpressionFactory.TypeMap()
         implicit val pp = DummyProgramPoint
 
         Some(BigOr(
@@ -260,7 +259,7 @@ object StringKSetDomain {
 
     override def cap: StringKSetDomain = if (value.size > k) top() else this
 
-    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_,DummyStringType)))
+    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_, SystemParameters.tm.String)))
 
   }
 

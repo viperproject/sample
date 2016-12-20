@@ -189,16 +189,16 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     */
   def assume(_cond: Expression): CondHeapGraphSeq[S] = {
     // Push NegatedBooleanExpressions inward if possible
-    val cond = ExpSimplifier(_cond)
+    val cond = ExpSimplifier.simplify(_cond)
 
     val result: CondHeapGraphSeq[S] = cond match {
       case Constant("false", _, _) => CondHeapGraphSeq(Seq())(lattice)
       case Constant("true", _, _) => this
       case VariableIdentifier(_, _)
            | NegatedBooleanExpression(VariableIdentifier(_, _))
-           | BinaryArithmeticExpression(_, _, _, _) =>
+           | BinaryArithmeticExpression(_, _, _) =>
         evalExp(cond).apply().map(_.assume(cond))
-      case BinaryBooleanExpression(l, r, o, t) =>
+      case BinaryBooleanExpression(l, r, o) =>
         val result: CondHeapGraphSeq[S] = o match {
           case BooleanOperator.&& =>
             assume(l).assume(r)
@@ -207,7 +207,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
             CondHeapGraphSeq(assume(l).condHeaps ++ assume(r).condHeaps)(lattice)
         }
         result
-      case ReferenceComparisonExpression(left, right, op, returnTyp) =>
+      case ReferenceComparisonExpression(left, right, op) =>
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
             case (Constant("null", _, _)) => NullVertex
@@ -218,9 +218,9 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
           val rightTarget = targetVertex(right)
 
           op match {
-            case ArithmeticOperator.`==` =>
+            case ReferenceOperator.`==` =>
               if (leftTarget == rightTarget) Seq(condHeap) else Seq()
-            case ArithmeticOperator.`!=` =>
+            case ReferenceOperator.`!=` =>
               if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
           }
         })

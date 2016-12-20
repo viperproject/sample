@@ -63,23 +63,6 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    */
   def assume(expr: Expression): T
 
-  def areEqual(left: Expression, right: Expression): BooleanDomain = {
-    val equalsExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==, null)
-
-    val leftEqualsRight = this.assume(equalsExpression)
-    val leftNotEqualsRight = this.assume(NegatedBooleanExpression(equalsExpression))
-
-    if (!leftEqualsRight.lessEqual(this.bottom()) && leftNotEqualsRight.lessEqual(this.bottom())) {
-      // must be equal
-      return BooleanDomain.True
-    } else if (leftEqualsRight.lessEqual(this.bottom())) {
-      // must be not equal
-      return BooleanDomain.False
-    }
-
-    BooleanDomain.Top
-  }
-
   /**
    * This method creates a variable.
    *
@@ -217,7 +200,7 @@ object SemanticDomain {
     override def ids = IdentifierSet.Bottom
     override def getPossibleConstants(id: Identifier) = SetDomain.Default.Bottom[Constant]()
 
-    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set(Constant("false", DummyBooleanType))
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set(Constant("false", SystemParameters.tm.Boolean))
 
   }
 
@@ -282,6 +265,7 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
  */
 trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
   this: T =>
+
   override def setArgument(variable: Identifier, expr: Expression): T = this.assign(variable, expr)
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {

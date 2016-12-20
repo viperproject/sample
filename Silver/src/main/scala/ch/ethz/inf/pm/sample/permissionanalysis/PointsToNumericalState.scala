@@ -59,11 +59,8 @@ object NullHeapIdentifier extends HeapIdentifier(DummyRefType, DummyProgramPoint
 
 case object DummyRefType extends DummyType {
   def name = "Ref"
-  def isBottom = false
-  def isTop = false
-  def isObject = true
-  def isNumericalType = false
-  def possibleFields: Set[Identifier] = Set.empty
+
+  override def isObject = true
 }
 
 /** Field of an object.
@@ -290,13 +287,13 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
         if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
       // BinaryBooleanExpression
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) =>
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         if (cond.canonical) {
           val num = numDom.assume(cond)
           // return the current state with updated numDom
           if (num.isBottom) this.bottom() else this.copy(numDom = num)
         } else this.assume(left).assume(right)
-      case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) =>
+      case BinaryBooleanExpression(left, right, BooleanOperator.||) =>
         if (cond.canonical) {
           val num = numDom.assume(cond)
           // return the current state with updated numDom
@@ -319,35 +316,31 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
             if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
           // BinaryArithmeticExpression
-          case BinaryArithmeticExpression(left, right, op, typ) =>
-            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+          case BinaryArithmeticExpression(left, right, op) =>
+            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
 
           // BinaryBooleanExpression
-          case BinaryBooleanExpression(left, right, op, typ) =>
+          case BinaryBooleanExpression(left, right, op) =>
             val nleft = NegatedBooleanExpression(left)
             val nright = NegatedBooleanExpression(right)
             val nop = op match {
               case BooleanOperator.&& => BooleanOperator.||
               case BooleanOperator.|| => BooleanOperator.&&
             }
-            this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
+            this.assume(BinaryBooleanExpression(nleft, nright, nop))
 
           // NegatedBooleanExpression
           case NegatedBooleanExpression(exp) => this.assume(exp)
 
           // ReferenceComparisonExpression
-          case ReferenceComparisonExpression(left, right, op, typ) =>
-            val nop = op match {
-              case ArithmeticOperator.== => ArithmeticOperator.!=
-              case ArithmeticOperator.!= => ArithmeticOperator.==
-            }
-            this.assume(ReferenceComparisonExpression(left, right, nop, typ))
+          case ReferenceComparisonExpression(left, right, op) =>
+            this.assume(ReferenceComparisonExpression(left, right, ReferenceOperator.negate(op)))
 
           case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
             + cond.exp.getClass.getSimpleName + " is missing.")
         }
 
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.==) =>
         (left, right) match {
           case (left: Identifier, right: Identifier) =>
             val l = left match {
@@ -423,7 +416,7 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
             } else this.bottom() // return the bottom state
         }
 
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.!=) =>
         (left, right) match {
           case (left: Identifier, right: Identifier) =>
             val l = left match {

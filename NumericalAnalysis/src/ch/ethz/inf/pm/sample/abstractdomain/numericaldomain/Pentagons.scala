@@ -61,12 +61,12 @@ object UpperBoundRelation {
      */
     override def assumeSimplified(expr: Expression): UpperBoundRelation =
       expr match {
-        case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
-          val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-          val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-          val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+        case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=) =>
+          val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>)
+          val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
+          val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||))
           res
-        case BinaryArithmeticExpression(left, right, ArithmeticOperator.==, typ)
+        case BinaryArithmeticExpression(left, right, ArithmeticOperator.==)
           if left.isInstanceOf[Identifier] && right.isInstanceOf[Identifier] =>
           val l = left.asInstanceOf[Identifier]
           val r = left.asInstanceOf[Identifier]

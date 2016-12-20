@@ -801,21 +801,21 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   /** Returns true if the second domain can handle the given identifier. */
   def _2canHandle(id: Identifier): Boolean
 
-  def ids = _1.ids ++ _2.ids
+  override def ids = _1.ids ++ _2.ids
 
-  def setToTop(variable: Identifier): T =
+  override def setToTop(variable: Identifier): T =
     factory(variable, _1.setToTop, _2.setToTop)
 
-  def assign(variable: Identifier, expr: Expression): T =
+  override def assign(variable: Identifier, expr: Expression): T =
     factory(variable, expr, _1.assign, _2.assign)
 
-  def setArgument(variable: Identifier, expr: Expression): T =
+  override def setArgument(variable: Identifier, expr: Expression): T =
     factory(variable, expr, _1.setArgument, _2.setArgument)
 
-  def assume(expr: Expression): T =
+  override def assume(expr: Expression): T =
     factory(expr, _1.assume, _2.assume)
 
-  def merge(r: Replacement): T = {
+  override def merge(r: Replacement): T = {
 
     if (r.isEmpty()) return this
 
@@ -837,7 +837,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
     factory(_1.merge(firstReplacement), _2.merge(secondReplacement))
   }
 
-  def createVariable(variable: Identifier, typ: Type): T =
+  override def createVariable(variable: Identifier, typ: Type): T =
     factory[Identifier](variable, _1.createVariable(_, typ), _2.createVariable(_, typ))
 
   /**

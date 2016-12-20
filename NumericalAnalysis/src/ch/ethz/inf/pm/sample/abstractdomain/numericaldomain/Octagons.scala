@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons.{DoubleDbm, Environment, IntegerDbm, Interval}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, DummyTypeMap, Type}
 
 /** The common super trait of integer octagons and double octagons.
   *
@@ -160,7 +160,7 @@ object Octagons
       if (nonExisting.nonEmpty)
         createVariables(nonExisting).assume(expression)
       else expression match {
-        case BinaryArithmeticExpression(lhs, rhs, op, typ) =>
+        case BinaryArithmeticExpression(lhs, rhs, op) =>
           val left = normalize(lhs)
           val right = normalize(rhs)
           op match {
@@ -368,8 +368,8 @@ object Octagons
       case id: Identifier => Normalized(List(Positive(id)), Interval.Zero)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => normalize(arg)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -normalize(arg)
-      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.+, _) => normalize(lhs) + normalize(rhs)
-      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.-, _) => normalize(lhs) - normalize(rhs)
+      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.+) => normalize(lhs) + normalize(rhs)
+      case BinaryArithmeticExpression(lhs, rhs, ArithmeticOperator.-) => normalize(lhs) - normalize(rhs)
       case _ => Normalized(Nil, evaluate(expr))
     }
 
@@ -387,7 +387,7 @@ object Octagons
       case id: Identifier => evaluate(id)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => evaluate(arg)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -evaluate(arg)
-      case BinaryArithmeticExpression(lhs, rhs, op, _) =>
+      case BinaryArithmeticExpression(lhs, rhs, op) =>
         val left = evaluate(lhs)
         val right = evaluate(rhs)
         op match {
@@ -460,8 +460,8 @@ object Octagons
         case (currConstraints, (idA, idB)) =>
           val sumBounds = dbm.getBounds(env.getNegative(idB), env.getPositive(idA))
           val diffBounds = dbm.getBounds(env.getPositive(idB), env.getPositive(idA))
-          val sum = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.+, DummyIntegerType)
-          val diff = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.-, DummyIntegerType)
+          val sum = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.+)
+          val diff = BinaryArithmeticExpression(idA, idB, ArithmeticOperator.-)
           currConstraints ++ makeConstraints(sum, sumBounds) ++ makeConstraints(diff, diffBounds)
       }
     }
@@ -473,18 +473,18 @@ object Octagons
       if (bounds.low == bounds.high) {
         // return an equality
         val constant = makeConstant(bounds.low)
-        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==, DummyBooleanType))
+        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
       } else {
         // construct lower bound if it is not negative infinity
         val lower = if (bounds.low.isNegInfinity) None else {
           val constant = makeConstant(bounds.low)
-          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=, DummyBooleanType)
+          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=)
           Some(inequality)
         }
         // construct upper bound if it is not positive infinity
         val upper = if (bounds.high.isPosInfinity) None else {
           val constant = makeConstant(bounds.high)
-          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=, DummyBooleanType)
+          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=)
           Some(inequality)
         }
         // return constraints
@@ -1013,7 +1013,7 @@ object Octagons
     /** A helper function that constructs a constant from the given value.
       */
     def makeConstant(value: Double): Expression =
-      Constant(value.toString, DummyIntegerType)
+      Constant(value.toString, SystemParameters.tm.Int)
   }
 
   /**
@@ -1461,7 +1461,7 @@ object IntegerOctagons
       closed.orElse(open).get
 
     override def makeConstant(value: Double): Expression =
-      Constant(value.toInt.toString, DummyIntegerType)
+      Constant(value.toInt.toString, SystemParameters.tm.Int)
 
     override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
@@ -1588,7 +1588,7 @@ object DoubleOctagons {
       closed.orElse(open).get
 
      override def makeConstant(value: Double): Expression =
-       Constant(value.toString, DummyIntegerType)
+       Constant(value.toString, SystemParameters.tm.Int)
 
     override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))

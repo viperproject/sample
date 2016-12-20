@@ -40,7 +40,7 @@ object RichNativeSemantics extends RichExpressionSetImplicits {
   }
 
   def Error[S <: State[S]](expr: RichExpressionSet, message: String)(implicit state: S, pp: ProgramPoint): S = {
-    val errorState = state.assume(expr).setExpression(ExpressionSet(UnitExpression(SystemParameters.typ.top(), pp)))
+    val errorState = state.assume(expr).setExpression(ExpressionSet(UnitExpression(SystemParameters.tm.Top, pp)))
     if (!errorState.isBottom && Reporter.reportingLevels(MessageClass.AssertionViolation) != ReportingLevel.Off) {
       if (isInReportableSection) {
         Reporter.reportAssertionViolation(message, pp, state.explainError(expr))

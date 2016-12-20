@@ -42,6 +42,7 @@ trait AnalysisRunner[S <: State[S]] {
     SystemParameters.isValueDrivenHeapAnalysis = true
     SystemParameters.wideningLimit = 3
     SystemParameters.compiler = compiler
+    SystemParameters.compiler.setUpTypes()
 
     // Set up native methods
     SystemParameters.resetNativeMethodsSemantics()

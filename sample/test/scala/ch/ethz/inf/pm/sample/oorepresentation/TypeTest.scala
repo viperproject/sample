@@ -6,15 +6,17 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import org.scalatest.FunSuite
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.test.SampleTest
 
 case object DummyObjectTypeA extends DummyObjectType {
   def name = "A"
   override def possibleFields = Set(
     VariableIdentifier("a")(DummyObjectTypeA),
     VariableIdentifier("b")(DummyObjectTypeB),
-    VariableIdentifier("i")(DummyIntegerType))
+    VariableIdentifier("i")(SystemParameters.tm.Int))
 }
 
 case object DummyObjectTypeB extends DummyObjectType {
@@ -29,7 +31,7 @@ case object DummyObjectTypeC extends DummyObjectType {
     VariableIdentifier("a")(DummyObjectTypeA))
 }
 
-class TypeTest extends FunSuite {
+class TypeTest extends FunSuite with SampleTest {
   test("Recursively reachable object types") {
     assert(DummyObjectTypeA.reachableObjectTypes ==
       Set(DummyObjectTypeA, DummyObjectTypeB))

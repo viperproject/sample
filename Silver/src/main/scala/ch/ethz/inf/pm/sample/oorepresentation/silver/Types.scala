@@ -26,10 +26,6 @@ abstract class AbstractType(val name: String) extends Type {
 
   def isStatic: Boolean = false
 
-  def arrayElementsType: Option[Type] = None
-
-  def isBottomExcluding(types: Set[Type]): Boolean = false
-
   def possibleFields = Set.empty
 
   def factory() = top()

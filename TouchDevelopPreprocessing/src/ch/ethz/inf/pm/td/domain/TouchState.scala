@@ -307,7 +307,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     cond match {
 
       // This must be first -- Shortcut in simplified version
-      case b@BinaryArithmeticExpression(left, right, op, typ) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
+      case b@BinaryArithmeticExpression(left, right, op) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
         assumeSimplified(b)
 
       // Boolean constants
@@ -315,17 +315,25 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       case Constant("false", _, _) => this.bottom()
       case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
       case NegatedBooleanExpression(Constant("false", _, _)) => this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==, _) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=, _) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=) if a == b =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==, _) =>
-        bottom()
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==, _) =>
-        bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=, _) =>
+      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=, _) =>
+      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.!=) if a == b =>
+        bottom()
+      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.==) if a == b =>
+        this
+      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.!=) if a == b =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=) =>
+        this
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=) =>
         this
 
       // Boolean variables
@@ -340,7 +348,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
         res
 
       // And and Or
-      case BinaryBooleanExpression(left, right, op, _) => op match {
+      case BinaryBooleanExpression(left, right, op) => op match {
         case BooleanOperator.&& =>
           val l = assume(left)
           if (l.isBottom) l
@@ -356,18 +364,28 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
         assume(x)
 
-      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
+      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
         val nl = NegatedBooleanExpression(left)
         val nr = NegatedBooleanExpression(right)
         val nop = op match {
           case BooleanOperator.&& => BooleanOperator.||
           case BooleanOperator.|| => BooleanOperator.&&
         }
-        assume(BinaryBooleanExpression(nl, nr, nop, typ))
+        assume(BinaryBooleanExpression(nl, nr, nop))
 
       // Inverting of operators
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
+        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(ReferenceComparisonExpression(left, right, op)) =>
+        val res = assume(ReferenceComparisonExpression(left, right, ReferenceOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(BinaryStringExpression(left, right, op)) =>
+        val res = assume(BinaryStringExpression(left, right, StringOperator.negate(op)))
         res
 
       // Handling of monomes
@@ -381,9 +399,9 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
   def assumeSimplified(expr: Expression): T = {
 
     expr match {
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.==, _)
-        if left.typ.isObject && left.isInstanceOf[Identifier]
-          && right.typ.isObject && right.isInstanceOf[Identifier] => // TODO: Reference equality?
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.==)
+        if left.isInstanceOf[Identifier]
+          && right.isInstanceOf[Identifier] =>
         if ((forwardMay.getOrElse(left.asInstanceOf[Identifier], Set.empty)
           intersect forwardMay.getOrElse(right.asInstanceOf[Identifier], Set.empty)).isEmpty) {
           bottom()
@@ -571,7 +589,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     *
     * @return The bottom value, that is, a value x that is less or equal than any other value
     */
-  override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom(), isTop = false)
+  override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom())
 
   /**
     * Computes the upper bound of two elements

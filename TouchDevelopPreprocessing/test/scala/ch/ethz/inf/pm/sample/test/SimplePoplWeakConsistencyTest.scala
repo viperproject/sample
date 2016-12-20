@@ -12,9 +12,9 @@ import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchDevelopAnalysis
 import org.scalatest.FunSuite
 
 /**
-  * Created by lucas on 25.08.16.
+  * @author Lucas Brutschy
   */
-class SimplePoplWeakConsistencyTest extends FunSuite {
+class SimplePoplWeakConsistencyTest extends FunSuite with SampleTest {
 
   test("dekker example (Fixed) (fekcblzqer)") {
     runAnalysis("td://fekcblzqer")

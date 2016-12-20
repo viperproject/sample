@@ -8,8 +8,9 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, DummyTypeMap, Type}
 
 /**
  * @author Lucas Brutschy
@@ -24,7 +25,7 @@ trait Apron[T <: Apron[T]]
 
   def manager:apron.Manager
 
-  def factory() = factory(new Abstract1(manager,makeEnvironment(Set.empty)),IdentifierSet.Bottom)
+  def factory(): T = factory(new Abstract1(manager, makeEnvironment(Set.empty)), IdentifierSet.Bottom)
 
   protected def makeEnvironment(ids:Set[Identifier]): Environment =
     if (!isFloatDomain)
@@ -48,12 +49,12 @@ object Apron {
   trait Bottom[T <: Apron[T]] extends NumericalDomain.Relational.Bottom[T] with Apron[T] with SimplifiedMergeDomain.Bottom[T] {
     this:T =>
 
-    override def createVariable(variable: Identifier, typ: Type) = add(Set(variable))
+    override def createVariable(variable: Identifier, typ: Type): T = add(Set(variable))
 
-    override def add(ids:Set[Identifier]) =
+    override def add(ids: Set[Identifier]): T =
       factory(new Abstract1(manager,makeEnvironment(ids)), IdentifierSet.Inner(ids))
 
-    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false",DummyBooleanType))
+    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false", SystemParameters.tm.Boolean))
 
   }
 
@@ -64,7 +65,7 @@ object Apron {
       println("It is typically not a good idea to create general top apron states.")
     }
 
-    override def assumeSimplified(expr: Expression) =
+    override def assumeSimplified(expr: Expression): T =
       expr.ids match {
         case IdentifierSet.Inner(x) =>
           factory(new Abstract1(manager,makeEnvironment(x)),IdentifierSet.Top).assume(expr)
@@ -74,7 +75,7 @@ object Apron {
           bottom()
       }
 
-    override def assign(variable: Identifier, expr: Expression) =
+    override def assign(variable: Identifier, expr: Expression): T =
       expr.ids match {
         case IdentifierSet.Inner(x) =>
           factory(new Abstract1(manager,makeEnvironment(x + variable)),IdentifierSet.Top).assign(variable,expr)
@@ -101,24 +102,24 @@ object Apron {
 
     // COMBINATIONS
 
-    override def glbSameEnvInner(that: X) =
+    override def glbSameEnvInner(that: X): T =
       factory(apronState.meetCopy(manager,that.apronState),ids)
 
-    override def lubSameEnvInner(that: X) =
+    override def lubSameEnvInner(that: X): T =
       factory(apronState.joinCopy(manager,that.apronState),ids)
 
-    override def wideningSameEnvInner(that: X) =
+    override def wideningSameEnvInner(that: X): T =
       factory(apronState.widening(manager,that.apronState),ids)
 
-    override def unifyInner(that: X) =
+    override def unifyInner(that: X): T =
       factory(apronState.unifyCopy(manager,that.apronState),this.ids ++ that.ids)
 
-    override def lessEqualSameEnvInner(that: X) =
+    override def lessEqualSameEnvInner(that: X): Boolean =
       apronState.isIncluded(manager,that.apronState)
 
     // ABSTRACT TRANSFORMERS
 
-    override def assumeSimplified(expr: Expression) = {
+    override def assumeSimplified(expr: Expression): T = {
 
       if (expr.ids.getNonTop exists (!numerical(_))) {
         this
@@ -126,10 +127,10 @@ object Apron {
         expr match {
 
           // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
-          case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
-            val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-            val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-            assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+          case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=) =>
+            val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>)
+            val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
+            assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||))
 
           case _ =>
 
@@ -157,7 +158,7 @@ object Apron {
       }
     }
 
-    override def assign(variable: Identifier, expr: Expression) = {
+    override def assign(variable: Identifier, expr: Expression): T = {
       if (numerical(variable)) {
         if (expr.ids.getNonTop exists (!numerical(_))) {
           setToTop(variable)
@@ -187,7 +188,7 @@ object Apron {
       } else this
     }
 
-    override def setToTop(id: Identifier) = {
+    override def setToTop(id: Identifier): T = {
       if (numerical(id)) {
         if (exists(id)) factory(apronState.forgetCopy(manager, S(id), false), ids)
         else add(Set(id)).setToTop(id)
@@ -196,10 +197,11 @@ object Apron {
 
     // ADDING, REMOVING, EXPANDING AND FOLDING OF DIMENSIONS
 
-    override def removeVariable(id: Identifier) = remove(Set(id))
-    override def createVariable(id: Identifier, typ: Type) = add(Set(id))
+    override def removeVariable(id: Identifier): T = remove(Set(id))
 
-    override def add(idsA: Set[Identifier]) = {
+    override def createVariable(id: Identifier, typ: Type): T = add(Set(id))
+
+    override def add(idsA: Set[Identifier]): T = {
       val newIdsA = filterNonExisting(idsA) filter numerical
       if (newIdsA.nonEmpty) {
         val newEnv = addEnvironment(apronState.getEnvironment,newIdsA)
@@ -207,7 +209,7 @@ object Apron {
       } else this
     }
 
-    override def fold(idsA: Set[Identifier], idB: Identifier) = {
+    override def fold(idsA: Set[Identifier], idB: Identifier): T = {
       if (numerical(idB)) {
         val newIdsA = filterExisting(idsA) filter numerical
         if (!exists(idB) && newIdsA.nonEmpty) {
@@ -219,7 +221,7 @@ object Apron {
 
     private def SA(id: List[Identifier]): Array[String] = id.map(_.getName).toArray
 
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = {
+    override def expand(idA: Identifier, idsB: Set[Identifier]): T = {
       if (numerical(idA)) {
         val newIdsB = filterNonExisting(idsB) filter numerical
         if (exists(idA) && newIdsB.nonEmpty) {
@@ -233,7 +235,7 @@ object Apron {
       } else this
     }
 
-    override def remove(idsA: Set[Identifier]) = {
+    override def remove(idsA: Set[Identifier]): T = {
       val newIdsA = filterExisting(idsA) filter numerical
       if (newIdsA.nonEmpty) {
         val newEnv = apronState.getEnvironment.remove(SA(newIdsA))
@@ -259,7 +261,7 @@ object Apron {
 
     private def SA(id: Identifier): Array[String] = List(id.getName).toArray
 
-    override def rename(idA: Identifier, idB: Identifier) = {
+    override def rename(idA: Identifier, idB: Identifier): T = {
       if (numerical(idA) && numerical(idB)) {
         if (exists(idA) && !exists(idB))
           factory(apronState.renameCopy(manager,SA(idA),SA(idB)),ids.rename(idA,idB))
@@ -268,7 +270,7 @@ object Apron {
       } else this
     }
 
-    override def getConstraints(ids: Set[Identifier]) = {
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
       val translator = ApronInterfaceTranslator()(this)
       (for (id <- ids) yield {
         apronState.toLincons(manager).toList.filter(translator.constraintContains(_, id.getName))
@@ -289,10 +291,10 @@ object Apron {
       "Environment: " + ids + ", Constraints: " + exps.toList.sorted.mkString("; ")
     }
 
-    override def getPossibleConstants(id: Identifier) = {
+    override def getPossibleConstants(id: Identifier): Default[Constant] = {
       val interval = apronState.getBound(manager,id.getName)
       if (interval.inf() == interval.sup()) {
-        SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString, DummyIntegerType)))
+        SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString, SystemParameters.tm.Int)))
       } else {
         SetDomain.Default.Top[Constant]()
       }
@@ -304,12 +306,12 @@ object Apron {
 
     override def top(): Octagons = Octagons.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): Octagons =
       if (apronState.isBottom(manager)) Octagons.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Octagons.Top
       else Octagons.Inner(apronState, ids)
 
-    override def manager = Octagons.manager
+    override def manager: Octagon = Octagons.manager
   }
 
   trait FloatOptOctagons extends Apron[FloatOptOctagons] {
@@ -317,12 +319,12 @@ object Apron {
 
     override def top(): FloatOptOctagons = FloatOptOctagons.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): FloatOptOctagons =
       if (apronState.isBottom(manager)) FloatOptOctagons.Bottom
       else if (ids.isTop && apronState.isTop(manager)) FloatOptOctagons.Top
       else FloatOptOctagons.Inner(apronState, ids)
 
-    override def manager = FloatOptOctagons.manager
+    override def manager: OptOctagon = FloatOptOctagons.manager
 
     override def isFloatDomain = true
   }
@@ -332,12 +334,12 @@ object Apron {
 
     override def top(): OptOctagons = OptOctagons.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): OptOctagons =
       if (apronState.isBottom(manager)) OptOctagons.Bottom
       else if (ids.isTop && apronState.isTop(manager)) OptOctagons.Top
       else OptOctagons.Inner(apronState, ids)
 
-    override def manager = OptOctagons.manager
+    override def manager: OptOctagon = OptOctagons.manager
   }
 
   trait LinearEqualities extends Apron[LinearEqualities] {
@@ -345,12 +347,12 @@ object Apron {
 
     override def top(): LinearEqualities = LinearEqualities.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): LinearEqualities =
       if (apronState.isBottom(manager)) LinearEqualities.Bottom
       else if (ids.isTop && apronState.isTop(manager)) LinearEqualities.Top
       else LinearEqualities.Inner(apronState, ids)
 
-    override def manager = LinearEqualities.manager
+    override def manager: PolkaEq = LinearEqualities.manager
   }
 
   trait Box extends Apron[Box] {
@@ -358,12 +360,12 @@ object Apron {
 
     override def top(): Box = Box.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): Box =
       if (apronState.isBottom(manager)) Box.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Box.Top
       else Box.Inner(apronState, ids)
 
-    override def manager = Box.manager
+    override def manager: Manager = Box.manager
   }
 
   trait StrictPolyhedra extends Apron[StrictPolyhedra] {
@@ -371,12 +373,12 @@ object Apron {
 
     override def top(): StrictPolyhedra = StrictPolyhedra.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): StrictPolyhedra =
       if (apronState.isBottom(manager)) StrictPolyhedra.Bottom
       else if (ids.isTop && apronState.isTop(manager)) StrictPolyhedra.Top
       else StrictPolyhedra.Inner(apronState, ids)
 
-    override def manager = StrictPolyhedra.manager
+    override def manager: Manager = StrictPolyhedra.manager
   }
 
   trait Polyhedra extends Apron[Polyhedra] {
@@ -384,12 +386,12 @@ object Apron {
 
     override def top(): Polyhedra = Polyhedra.Top
 
-    override def factory(apronState: Abstract1, ids: IdentifierSet) =
+    override def factory(apronState: Abstract1, ids: IdentifierSet): Polyhedra =
       if (apronState.isBottom(manager)) Polyhedra.Bottom
       else if (ids.isTop && apronState.isTop(manager)) Polyhedra.Top
       else Polyhedra.Inner(apronState, ids)
 
-    override def manager = Polyhedra.manager
+    override def manager: Manager = Polyhedra.manager
   }
 
   object Octagons {

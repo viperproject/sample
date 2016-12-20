@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.UndirectedGraph
 
@@ -380,7 +381,7 @@ object HeapIdSetDomain {
 
     def ids = IdentifierSet.Bottom
 
-    def typ = DummyBooleanType.top() // TODO: Not well-defined
+    def typ = SystemParameters.tm.Top
 
     override def transform(f: (Expression => Expression)): Expression = this
 
@@ -398,7 +399,7 @@ object HeapIdSetDomain {
 
     def ids = IdentifierSet.Bottom
 
-    def typ = DummyBooleanType.bottom() // TODO: Not well-defined
+    def typ = SystemParameters.tm.Bottom
 
     override def transform(f: (Expression => Expression)): Expression = this
 
@@ -452,7 +453,7 @@ object HeapIdSetDomain {
 
     def ids = IdentifierSet.Inner(this.value.toSet[Identifier])
 
-    def typ = value.foldLeft(DummyBooleanType.bottom())(_ lub _.typ)
+    def typ = value.foldLeft(SystemParameters.tm.Bottom)(_ lub _.typ)
   }
 
   trait MayBe[I <: HeapIdentifier[I]]

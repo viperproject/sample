@@ -193,7 +193,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     val exprright = stateright.expr
     stateright = stateright.removeExpression()
     var result = stateright.setVariableToTop(exprleft)
-    val condition = ExpressionSetFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.typ.top()); //TODO type is wrong
+    val condition = ExpressionSetFactory.createBinaryArithmeticExpression(exprleft, exprright, ArithmeticOperator.==)
     result = result.setExpression(condition)
     result.testTrue().refiningAssignVariable(oldPreState, exprleft, exprright)
   }

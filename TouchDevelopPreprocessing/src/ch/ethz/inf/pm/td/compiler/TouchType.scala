@@ -6,13 +6,13 @@
 
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, TypeMap}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.parser.TypeName
-import ch.ethz.inf.pm.td.semantics.{AAction, AAny, TNothing}
+import ch.ethz.inf.pm.td.semantics._
 
 
 trait TouchType extends Named with Type {
@@ -57,8 +57,6 @@ trait TouchType extends Named with Type {
 
   def lessEqual(other: Type): Boolean = other == this || this.isBottom || other == top()
 
-  def isBottomExcluding(types: Set[Type]): Boolean = isBottom || types.contains(this)
-
   def isObject: Boolean = !isNumericalType && !isStringType
 
   def isNumericalType: Boolean = name == "Number" || name == "Boolean"
@@ -70,7 +68,6 @@ trait TouchType extends Named with Type {
   def isFloatingPointType: Boolean = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
 
   def isStatic: Boolean = isSingleton
-  def arrayElementsType = None
 
 }
 
@@ -296,4 +293,13 @@ object ValidPureSemantics extends ApiMemberSemantics {
 
   }
 
+}
+
+object TouchTypeMap extends TypeMap {
+  override val Int: Type = TNumber
+  override val Float: Type = TNumber
+  override val String: Type = TString
+  override val Boolean: Type = TBoolean
+  override val Bottom: Type = BottomTouchType
+  override val Top: Type = TopTouchType
 }

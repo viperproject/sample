@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.{BufferedReader, FileReader}
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 import java.text.ParseException
 
 import scala.io.Source
@@ -16,6 +16,7 @@ import viper.silver.parser.{FastParser, _}
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
 import ch.ethz.inf.pm.sample.permissionanalysis.SilverSemantics
 import viper.silver.ast.SourcePosition
 import viper.silver.verifier.ParseError
@@ -60,7 +61,7 @@ class SilCompiler extends Compiler {
   }
 
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
-    SystemParameters.typ = TopType
+    SystemParameters.tm = SilverTypeMap
     program = p
     classes = Some(DefaultSilverConverter.convert(p))
     classes.get
@@ -92,8 +93,8 @@ class SilCompiler extends Compiler {
   def getSourceCode(path: String): String =
     getOriginalCode(new BufferedReader(new FileReader(path)))
 
-  def generateTopType(): Unit = {
-    SystemParameters.typ = TopType
+  def setUpTypes(): Unit = {
+    SystemParameters.tm = SilverTypeMap
   }
 
   def refType: RefType =
@@ -101,3 +102,11 @@ class SilCompiler extends Compiler {
 
 }
 
+object SilverTypeMap extends TypeMap {
+  override val Int: Type = IntType
+  override val Float: Type = TopType
+  override val String: Type = TopType
+  override val Boolean: Type = BoolType
+  override val Bottom: Type = BottomType
+  override val Top: Type = TopType
+}

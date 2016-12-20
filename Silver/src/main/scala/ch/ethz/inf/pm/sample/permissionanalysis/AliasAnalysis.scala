@@ -13,9 +13,9 @@ import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, Meth
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisTypes._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
 import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisTypes._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -304,7 +304,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param operator
     * @return
     */
-  def assumeComparison(left: Expression, right: Expression, operator: ArithmeticOperator.Value): Option[T] = {
+  def assumeComparison(left: Expression, right: Expression, operator: ReferenceOperator.Value): Option[T] = {
     // the function used to evaluate an expression
     def evaluate(expression: Expression): (Set[HeapNode], Set[HeapNode]) = expression match {
       case Constant("null", _, _) => (Set.empty, Set(NullNode))
@@ -358,9 +358,9 @@ trait AliasGraph[T <: AliasGraph[T]]
 
     // compute masks for left and right values
     val (leftMask, rightMask) = operator match {
-      case ArithmeticOperator.== =>
+      case ReferenceOperator.== =>
         (rightValues, leftValues)
-      case ArithmeticOperator.!= =>
+      case ReferenceOperator.!= =>
         val left = if (rightValues.size == 1 || isMayAliasGraph) leftValues -- rightValues else leftValues
         val right = if (leftValues.size == 1 || isMayAliasGraph) rightValues -- leftValues else rightValues
         (left, right)
@@ -1367,7 +1367,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace(s"exhale($expression)")
 
     expression match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => exhale(left).exhale(right)
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) => exhale(left).exhale(right)
       case FieldAccessPredicate(location, _, _, _) => location match {
         case AccessPathIdentifier(accessPath) =>
           // TODO: Only assume receivers to be non null if permission is > none
@@ -1404,25 +1404,25 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
       case Constant("false", _, _) => bottom()
       case _: Identifier => this
       case _: BinaryArithmeticExpression => this
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => assume(left).assume(right)
-      case BinaryBooleanExpression(left, right, BooleanOperator.||, _) => assume(left) lub assume(right)
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) => assume(left).assume(right)
+      case BinaryBooleanExpression(left, right, BooleanOperator.||) => assume(left) lub assume(right)
       case negation: NegatedBooleanExpression => negation.exp match {
         case Constant("true", _, _) => bottom()
         case Constant("false", _, _) => this
         case _: Identifier => this
         case _: BinaryArithmeticExpression => this
-        case BinaryBooleanExpression(left, right, operator, typ) =>
+        case BinaryBooleanExpression(left, right, operator) =>
           // negate expression by applying de morgan's law
           val negatedLeft = NegatedBooleanExpression(left)
           val negatedRight = NegatedBooleanExpression(right)
           val negatedOperator = BooleanOperator.negate(operator)
-          val negated = BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator, typ)
+          val negated = BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator)
           assume(negated)
         case NegatedBooleanExpression(doublyNegated) => assume(doublyNegated)
-        case ReferenceComparisonExpression(left, right, operator, typ) =>
+        case ReferenceComparisonExpression(left, right, operator) =>
           // negate expression by negating operator
-          val negatedOperator = ArithmeticOperator.negate(operator)
-          val negated = ReferenceComparisonExpression(left, right, negatedOperator, typ)
+          val negatedOperator = ReferenceOperator.negate(operator)
+          val negated = ReferenceComparisonExpression(left, right, negatedOperator)
           assume(negated)
         case _ => throw new NotImplementedError("An assume implementation is missing.")
       }

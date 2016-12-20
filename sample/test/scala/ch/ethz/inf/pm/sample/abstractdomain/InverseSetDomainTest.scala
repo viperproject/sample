@@ -6,10 +6,11 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import ch.ethz.inf.pm.sample.test.SampleTest
 import org.scalatest.{FunSuite, Matchers}
 
 /** Tests `InverseSetDomain`. */
-class InverseSetDomainTest extends FunSuite with Matchers {
+class InverseSetDomainTest extends FunSuite with Matchers with SampleTest {
   val dom = InvertedSetDomain.Default[Int]()
   val bottom = dom.bottom()
   val top = dom.top()

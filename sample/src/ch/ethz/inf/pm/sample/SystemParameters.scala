@@ -6,9 +6,11 @@
 
 package ch.ethz.inf.pm.sample
 
+import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, Timer}
+
 import scala.util.DynamicVariable
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
@@ -72,7 +74,7 @@ object SystemParameters {
   /**
    * An instance of the current type system
    */
-  var typ: Type = _
+  var tm: TypeMap = _
 
   /**
    * The compiler used to compile the given files
@@ -88,7 +90,7 @@ object SystemParameters {
   def reset() = {
     progressOutput = null
     analysisOutput = null
-    typ = null
+    tm = null
     compiler = null
     property = null
     nativeMethodsSemantics = Nil

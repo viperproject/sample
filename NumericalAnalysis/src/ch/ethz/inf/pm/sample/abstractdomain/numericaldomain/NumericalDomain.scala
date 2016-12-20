@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.DummyBooleanType
 
@@ -21,14 +22,14 @@ object NumericalDomain {
   trait Bottom[T <: NumericalDomain[T]] extends SemanticDomain.Bottom[T] with NumericalDomain[T] {
     this:T =>
 
-    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false",DummyBooleanType))
+    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false", SystemParameters.tm.Boolean))
 
   }
 
   trait Top[T <: NumericalDomain[T]] extends SemanticDomain.Top[T] with NumericalDomain[T] {
     this:T =>
 
-    override def getConstraints(ids: Set[Identifier]) = Set(Constant("true",DummyBooleanType))
+    override def getConstraints(ids: Set[Identifier]) = Set(Constant("true", SystemParameters.tm.Boolean))
 
   }
 

@@ -39,7 +39,7 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
       val params = for (a <- method.arguments.head) yield {
         new ExpressionSet(a.typ)
       }
-      MethodSummaries.collect(method.programpoint, method, AccessCollectingState(SystemParameters.typ.top()), params)
+      MethodSummaries.collect(method.programpoint, method, AccessCollectingState(SystemParameters.tm.Top), params)
 
     }
 
@@ -78,7 +78,7 @@ case class AccessCollectingState(myType: Type)
   extends State[AccessCollectingState]
     with TouchStateInterface[AccessCollectingState] {
 
-  def factory(): AccessCollectingState = AccessCollectingState(SystemParameters.typ.top())
+  def factory(): AccessCollectingState = AccessCollectingState(SystemParameters.tm.Top)
 
   def isTop = myType.isTop
 
@@ -98,7 +98,7 @@ case class AccessCollectingState(myType: Type)
 
   def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
-  def removeExpression(): AccessCollectingState = this.setType(SystemParameters.typ.top())
+  def removeExpression(): AccessCollectingState = this.setType(SystemParameters.tm.Top)
 
   def createObject(typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
 
