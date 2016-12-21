@@ -7,12 +7,10 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, RefType, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.BlockType.{BlockType, Default}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
 import com.typesafe.scalalogging.LazyLogging
@@ -172,11 +170,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = x match {
     case left: VariableIdentifier =>
-      val newExpressions = left.typ match {
-        case _: RefType => expressions.transform {
+      val (newPermissions, newExpressions) = left.typ match {
+        case _: RefType =>
+          (permissions, expressions.transform {
+            case (_, setDescription) => setDescription.transformAssignVariable(left, right)
+          })
+        case IntType => if (!visited.contains(currentPP)) (permissions.trexpressions.transform {
           case (_, setDescription) => setDescription.transformAssignVariable(left, right)
-        }
-        case IntType => expressions
+        } else (permissions, expressions)
         case _ => throw new IllegalStateException()
       }
       copy(

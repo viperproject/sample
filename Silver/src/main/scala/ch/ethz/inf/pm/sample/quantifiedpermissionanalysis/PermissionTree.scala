@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
 import viper.silver.ast.{Exp, PermDiv}
 import viper.silver.{ast => sil}
 
@@ -134,6 +134,12 @@ case class NegatedPermission(arg: Permission) extends Permission {
   def toFractional: (FractionalPermission, Int) = {
     val (argPerm, argRead) = arg.toFractional
     (FractionalPermission(-argPerm.numerator, argPerm.denominator), -argRead)
+  }
+}
+
+object FractionalPermission {
+  def apply(numerator: Expression, denominator: Expression): FractionalPermission = (numerator, denominator) match {
+    case (Constant(num, IntType, _), Constant(denum, IntType, _)) => FractionalPermission(num.toInt, denum.toInt)
   }
 }
 
