@@ -18,8 +18,6 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
   */
 trait SampleTest extends FunSuite with BeforeAndAfter {
 
-  before {
-    SystemParameters.tm = DummyTypeMap
-  }
+  SystemParameters.tm = DummyTypeMap
 
 }
