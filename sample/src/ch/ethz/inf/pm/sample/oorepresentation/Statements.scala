@@ -530,11 +530,17 @@ case class MethodCall(
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
     }; //return state
-    val (receiver, calledMethod) = body match {
-      case body: FieldAccess => (body.obj, body.field)
-      case body: Variable => (null, body.getName)
+    body match {
+      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
+      case body: Variable =>
+        var curState = state
+        val paramExprs = for (parameter <- parameters) yield {
+          curState = parameter.forwardSemantics[S](curState)
+          curState.expr.getSingle.get
+        }
+        curState.setExpression(ExpressionSet(FunctionCallExpression(returnedType, body.getName, paramExprs, pp)))
     }
-    forwardAnalyzeMethodCallOnObject[S](receiver, calledMethod, state, getPC())
+
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
