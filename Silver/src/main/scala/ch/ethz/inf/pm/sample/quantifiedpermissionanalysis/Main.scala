@@ -36,7 +36,6 @@ object Main {
 /** SIL analysis runner that uses the default QuantifiedPermissions analysis. */
 object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[QuantifiedPermissionsState] {
   SystemParameters.isValueDrivenHeapAnalysis = false
-  SystemParameters.typ = TopType
 
   /**
     * Extends a sil.Program with inferred specifications.

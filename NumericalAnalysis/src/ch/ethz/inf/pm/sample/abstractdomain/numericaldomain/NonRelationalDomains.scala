@@ -83,14 +83,14 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
   def eval(expr: Expression): N = {
 
     expr match {
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => eval(left).sum(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => eval(left).multiply(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => eval(left).divide(eval(right))
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => eval(left).subtract(eval(right))
-      case BinaryArithmeticExpression(left, right, op, typ) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
-      case BinaryBooleanExpression(left, right, _, typ) => evalBoolean(expr)
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.+) => eval(left).sum(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.*) => eval(left).multiply(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator./) => eval(left).divide(eval(right))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.-) => eval(left).subtract(eval(right))
+      case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
+      case BinaryBooleanExpression(left, right, _) => evalBoolean(expr)
       case NegatedBooleanExpression(left) => evalBoolean(expr)
-      case BinaryArithmeticExpression(left, right, op, typ) => dom.top()
+      case BinaryArithmeticExpression(left, right, op) => dom.top()
       case c@Constant("true", typ, pp) => dom.evalConstant(1)
       case c@Constant("false", typ, pp) => dom.evalConstant(0)
       case c@Constant(constant, typ, pp) => dom.evalConstant(c)
@@ -113,7 +113,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case Constant("false",_,_) => this.bottom()
       case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
       case NegatedBooleanExpression(Constant("false",_,_)) => this
-      case BinaryArithmeticExpression(Constant(a,_,_),Constant(b,_,_),ArithmeticOperator.==,_) =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) =>
         if (a == b) this else bottom()
 
       // Boolean variables
@@ -128,7 +128,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
         res
 
       // And and Or
-      case BinaryBooleanExpression(left, right, op, _) => op match {
+      case BinaryBooleanExpression(left, right, op) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
         case BooleanOperator.|| =>
           val l = assume(left)
@@ -140,38 +140,38 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       // Double-Negation + De-Morgan
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
         assume(x)
-      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
+      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
         val nl = NegatedBooleanExpression(left)
         val nr = NegatedBooleanExpression(right)
         val nop = op match {
           case BooleanOperator.&& => BooleanOperator.||
           case BooleanOperator.|| => BooleanOperator.&&
         }
-        assume(BinaryBooleanExpression(nl, nr, nop, typ))
+        assume(BinaryBooleanExpression(nl, nr, nop))
 
       // Convert double inequality
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.==, typ)) =>
-        val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-        val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.==)) =>
+        val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>)
+        val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
+        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||))
         res
 
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=, typ) =>
-        val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ)
-        val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ)
-        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||, typ))
+      case BinaryArithmeticExpression(left, right, ArithmeticOperator.!=) =>
+        val newLeft = BinaryArithmeticExpression(left, right, ArithmeticOperator.>)
+        val newRight = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
+        val res = assume(BinaryBooleanExpression(newLeft, newRight, BooleanOperator.||))
         res
 
       // Inverting of operators
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-        val res = assume(BinaryArithmeticExpression(left,right,ArithmeticOperator.negate(op),typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
+        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
         res
 
       // Handling of monomes
       case _ => Normalizer.conditionalExpressionToMonomial(expr) match {
         case None =>
           expr match {
-            case BinaryArithmeticExpression(left, right, op, typ) =>
+            case BinaryArithmeticExpression(left, right, op) =>
               if (!left.typ.isNumericalType || !right.typ.isNumericalType) return this
 
               val l: N = this.eval(left)
@@ -520,7 +520,7 @@ object Sign {
     override def asConstraint(id: Identifier): Option[Expression] =
       Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.==))
 
-    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", DummyIntegerType)))
+    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", SystemParameters.tm.Int)))
 
   }
 
@@ -692,7 +692,7 @@ object IntegerInterval {
 
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString, DummyIntegerType)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)))
       else
         SetDomain.Default.Top()
     }
@@ -861,7 +861,7 @@ object DoubleInterval {
 
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString, DummyIntegerType)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)))
       else
         SetDomain.Default.Top()
     }

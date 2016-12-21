@@ -32,18 +32,13 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
   def functionalFactory(_value: Map[Identifier, CharacterSet] = Map.empty[Identifier, CharacterSet], _isBottom: Boolean = false, _isTop: Boolean = false): MaybeContainedCharacters =
     new MaybeContainedCharacters(_value, _isBottom, _isTop)
 
-  def get(variable: Identifier) = map.get(variable) match {
-    case Some(x) => x;
-    case None => TopCharacterSet
-  }
-
   def setToTop(variable: Identifier): MaybeContainedCharacters = this.add(variable, TopCharacterSet)
 
   def assign(variable: Identifier, expr: Expression): MaybeContainedCharacters = this.add(variable, this.eval(expr))
 
   override def assumeSimplified(expr: Expression): MaybeContainedCharacters = expr match {
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=, _) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -53,7 +48,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=, _) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -63,7 +58,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.<, _) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -73,7 +68,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-         AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.<, _) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
@@ -92,6 +87,11 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
         case _ => this;
       }
     case _ => this;
+  }
+
+  def get(variable: Identifier) = map.get(variable) match {
+    case Some(x) => x;
+    case None => TopCharacterSet
   }
 
   def createVariable(variable: Identifier, typ: Type): MaybeContainedCharacters = this.add(variable, TopCharacterSet)
@@ -117,6 +117,4 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       this.eval(thisExpr);
     case _ => TopCharacterSet
   }
-
-  override def getPossibleConstants(id: Identifier) = ???
 }

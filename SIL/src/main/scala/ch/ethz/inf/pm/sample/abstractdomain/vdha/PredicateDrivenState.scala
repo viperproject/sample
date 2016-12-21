@@ -174,7 +174,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           var newState = edge.state
           if (takenEdge == edge || (edge.target == vertexToUpdate && vertexToUpdate.isInstanceOf[DefiniteHeapVertex])) {
             val edgeLocId = EdgeLocalIdentifier(List(edge.field), predId)
-            val expr = BinaryArithmeticExpression(edgeLocId, state, ArithmeticOperator.==, BoolType)
+            val expr = BinaryArithmeticExpression(edgeLocId, state, ArithmeticOperator.==)
             newState = newState.assume(expr)
           }
           newState

@@ -23,7 +23,7 @@ import org.scalatest.FunSuite
   *
   * @author Lucas Brutschy
   */
-trait LatticeTest[T <: Lattice[T]] extends FunSuite {
+trait LatticeTest[T <: Lattice[T]] extends FunSuite with SampleTest {
 
   /**
     * Creates an instance of T

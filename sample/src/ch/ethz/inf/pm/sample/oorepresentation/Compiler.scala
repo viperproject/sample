@@ -115,7 +115,7 @@ trait Compiler {
     */
   def getSourceCode(path: String): String
 
-  def generateTopType()
+  def setUpTypes()
 
   protected def getOriginalCode(reader: BufferedReader): String = {
     var output = ""

@@ -49,9 +49,9 @@ case class Z3SampleExpressionConverter() extends Z3Prover.ExpressionConverter[Ex
     expr match {
       case NegatedBooleanExpression(exp) =>
         "(not " + convert(exp) + ")"
-      case BinaryBooleanExpression(left, right, op, _) =>
+      case BinaryBooleanExpression(left, right, op) =>
         "(" + convertBO(op) + " " + convert(left) + " " + convert(right) + ")"
-      case BinaryArithmeticExpression(left, right, op, _) =>
+      case BinaryArithmeticExpression(left, right, op) =>
         "(" + convertAO(op) + " " + convert(left) + " " + convert(right) + ")"
       case UnaryArithmeticExpression(left, op, _) =>
         "(" + convertAO(op) + " " + convert(left) + ")"

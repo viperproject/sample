@@ -14,7 +14,7 @@ import org.scalatest.FunSuite
 /**
   * @author Lucas Brutschy
   */
-class BasicWeakConsistencyTest extends FunSuite {
+class BasicWeakConsistencyTest extends FunSuite with SampleTest {
 
   test("We should support basic references") {
     run(

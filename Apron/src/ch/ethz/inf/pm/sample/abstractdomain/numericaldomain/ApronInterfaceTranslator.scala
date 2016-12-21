@@ -7,24 +7,17 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Translates Apron constraints to Sample expressions.
  *
  * @param apronInterface the Apron interface to translate
- * @param resultTransformer the function applied to the resulting expressions,
- *                          DefaultExpSimplifier by default.
- * @param boolType boolean type used to generate boolean expressions
  */
-case class ApronInterfaceTranslator (
-    resultTransformer: (Expression => Expression) = ExpSimplifier,
-    boolType: Type = SystemParameters.typ.top())
-    (val apronInterface: Apron.Inner[_,_]) extends LazyLogging {
+case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends LazyLogging {
 
   /**
    * Translates all Apron constraints in the ApronInterface to a sequence
@@ -87,15 +80,14 @@ case class ApronInterfaceTranslator (
 
     val zero = Constant("0", typ, DummyProgramPoint)
     val result = BinaryArithmeticExpression(
-      left = BinaryArithmeticExpression(leftExps, ArithmeticOperator.`+`, typ, zero),
-      right = BinaryArithmeticExpression(rightExps, ArithmeticOperator.`+`, typ, zero),
-      op = op,
-      returntyp = boolType)
+      left = BinaryArithmeticExpression(leftExps, ArithmeticOperator.`+`, zero),
+      right = BinaryArithmeticExpression(rightExps, ArithmeticOperator.`+`, zero),
+      op = op)
 
     if (typ.isBooleanType && (result.op != ArithmeticOperator.`==` && result.op != ArithmeticOperator.`!=`))
       None // Do not return boolean inequalities for the moment
     else
-      Some(resultTransformer(result))
+      Some(ExpSimplifier.simplify(result))
   }
 
   /**
@@ -106,7 +98,7 @@ case class ApronInterfaceTranslator (
   def translateTerm(t: Linterm1): Expression = {
     val id = resolve(t.getVariable)
     val coeff = Constant(t.coeff.toString, id.typ, id.pp)
-    BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*, id.typ)
+    BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*)
   }
 
   /** Translates an Apron operator to a Sample operator */
@@ -185,14 +177,14 @@ case class ApronInterfaceTranslator (
           case _ => List(new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v))))
         }
       else List(topExpression())
-    case BinaryArithmeticExpression(left, right, op, typ) =>
+    case BinaryArithmeticExpression(left, right, op) =>
       for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
         this.convertArithmeticOperator(op) match {
           case Some(x) => new Texpr1BinNode(x, l, r)
           case None => topExpression()
         }
       }
-    case BinaryBooleanExpression(left, right, op, typ) =>
+    case BinaryBooleanExpression(left, right, op) =>
       for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
         this.convertBooleanOperator(op) match {
           case Some(x) => new Texpr1BinNode(x, l, r)
@@ -229,7 +221,7 @@ case class ApronInterfaceTranslator (
   }
 
   def toTcons1(e: Expression, env: Environment): List[Tcons1] = e match {
-    case BinaryArithmeticExpression(left, right, op, typ) =>
+    case BinaryArithmeticExpression(left, right, op) =>
       var localOp = op
       var localLeft = left
       var localRight = right
@@ -241,7 +233,7 @@ case class ApronInterfaceTranslator (
         case ArithmeticOperator.<= => localLeft = right; localRight = left; localOp = ArithmeticOperator.>=
         case ArithmeticOperator.< => localLeft = right; localRight = left; localOp = ArithmeticOperator.>
       }
-      val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.typ))
+      val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-))
       localOp match {
         case ArithmeticOperator.>= => for (e <- expr1) yield new Tcons1(env, Tcons1.SUPEQ, e)
         case ArithmeticOperator.== => for (e <- expr1) yield new Tcons1(env, Tcons1.EQ, e)
@@ -254,8 +246,8 @@ case class ApronInterfaceTranslator (
             // A > B by A >= B, which can cause massive imprecision. We replace this by A >= B + EPSILON, where
             // EPSILON should be the smallest representable number. (actually, we are generating A - B - EPSILON >= 0)
 
-            val sExpr1 = new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.typ)
-            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.typ, sExpr1.pp), ArithmeticOperator.-, sExpr1.typ)
+            val sExpr1 = new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-)
+            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.typ, sExpr1.pp), ArithmeticOperator.-)
             for (e <- this.toTexpr1Node(sExpr2)) yield {
               new Tcons1(env, Tcons1.SUPEQ, e)
             }
@@ -265,13 +257,13 @@ case class ApronInterfaceTranslator (
           }
 
       }
-    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-      toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ), env)
+    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
+      toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) => toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==, x.typ), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==), env)
     case x: Expression =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=, x.typ), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=), env)
     case _ =>
       logger.debug("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))

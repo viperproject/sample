@@ -116,7 +116,6 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     case ClassDef(mods, name, tparams, Template(parents, self, body)) =>
       val programpoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos)
       val currentType = new ScalaType(program.symbol.tpe)//extractType(program.tpe)
-      SystemParameters.typ=currentType
       val parametricTypes : List[ScalaType] = extractListTypes(tparams)
       val extend : List[ClassIdentifier] = Nil
       val classDef = new ClassDefinition(programpoint, currentType, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, null, null, pack, null)
@@ -519,22 +518,6 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         typ.typeSymbol.name.decode.equals("String")
       }
 
-      def isBottomExcluding(types : Set[oorepresentation.Type]) : Boolean = {
-        for(t <- types)
-          if(this.lessEqual(t))
-            return true
-        //typ.typeSymbol.children returns Empty iff it's not a sealed class, the set of childred otherwise
-        if(typ==null || typ.typeSymbol==null || typ.typeSymbol.children==null) return false
-        typ.typeSymbol.children match {
-          case x if x.equals(Set.empty[Symbol]) => false;
-          case x : Set[Symbol] =>
-            for(childrenType <- x)
-              if(! new ScalaType(childrenType.info).isBottomExcluding(types))
-                return false
-            true;
-        }
-      }
-
       def possibleFields: Set[Identifier] = {
         if(! this.isObject) return Set.empty[Identifier]
         if(this.isTop) return Set.empty[Identifier]; //We suppose that Any does not have fields
@@ -557,10 +540,6 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         result
       }
 
-      def arrayElementsType: Option[oorepresentation.Type] =
-    	  if(typ.toString.length>=5 && typ.toString.substring(0, 5).equals("Array"))
-    	 	  Some(new ScalaType(typ.typeArgs.iterator.next))
-    	  else None
   }
 
 }

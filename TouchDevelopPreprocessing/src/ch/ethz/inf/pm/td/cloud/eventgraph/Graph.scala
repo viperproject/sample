@@ -238,6 +238,14 @@ case class BigAnd(es: List[Expr]) extends ArbOp {
     else True.smt
 }
 
+case class StringConst(str: String) extends Constant {
+  override def smt: String = "\"str\""
+}
+
+case class IntConst(i: Int) extends Constant {
+  override def smt: String = i.toString
+}
+
 case object True extends Constant {
   override def smt: String = "true"
 }

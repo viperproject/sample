@@ -32,22 +32,22 @@ object Normalizer {
    */
   def conditionalExpressionToMonomial(exp: Expression): Option[Monomial] = exp match {
 
-    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
       op match {
         //! l>= r => l < r
-        case ArithmeticOperator.>= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ))
+        case ArithmeticOperator.>= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<))
         //! l <= r => l > r
-        case ArithmeticOperator.<= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>, typ))
+        case ArithmeticOperator.<= => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>))
         //! l > r => l <= r
-        case ArithmeticOperator.> => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<=, typ))
+        case ArithmeticOperator.> => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.<=))
         //! l < r => l >= r
-        case ArithmeticOperator.< => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>=, typ))
+        case ArithmeticOperator.< => conditionalExpressionToMonomial(BinaryArithmeticExpression(left, right, ArithmeticOperator.>=))
 
         //== and != abstracted away
         case _ => None
       }
 
-    case BinaryArithmeticExpression(left, right, op, typ) =>
+    case BinaryArithmeticExpression(left, right, op) =>
       // TODO: Because x != null is treated as arithmetic and it crashes with NumberFormatException (because of null)
       if (left == null || right == null || left.typ == null || right.typ == null ||
         !left.typ.isNumericalType || !right.typ.isNumericalType)
@@ -95,7 +95,7 @@ object Normalizer {
    * @return  None if the given expression cannot be reduced to a linear form, Some(E, c) if it can be reduced to E+c (where E is \sum a_i x_i)
    */
   def arithmeticExpressionToMonomes[I <: HeapIdentifier[I]](exp: Expression): Option[Monomial] = exp match {
-    case BinaryArithmeticExpression(left, right, op, typ) =>
+    case BinaryArithmeticExpression(left, right, op) =>
       val l: Option[Monomial] = arithmeticExpressionToMonomes(left)
       val r: Option[Monomial] = arithmeticExpressionToMonomes(right)
       if (l.isEmpty || r.isEmpty) return None
@@ -186,8 +186,8 @@ object Normalizer {
                 var result: BinaryArithmeticExpression = null
                 for ((coef, id) <- variables) {
                   val coefExp = Constant(coef.toString, exp.typ, exp.pp)
-                  val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ)
-                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ)
+                  val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*)
+                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+)
                 }
                 Some(result)
               case _ =>

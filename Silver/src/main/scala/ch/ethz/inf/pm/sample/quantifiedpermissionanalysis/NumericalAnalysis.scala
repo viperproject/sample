@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
@@ -141,8 +141,8 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
       this
     case _ =>
       val newCond = cond.transform {
-        case BinaryArithmeticExpression(_: FieldExpression, _, _, BoolType) | BinaryArithmeticExpression(_, _: FieldExpression, _, BoolType) | FieldExpression(BoolType, _, _) =>
-          Constant("true")
+        case BinaryArithmeticExpression(_: FieldExpression, _, _) | BinaryArithmeticExpression(_, _: FieldExpression, _) | FieldExpression(BoolType, _, _) =>
+          Constant("true", BoolType)
         case e => e
       }
       val newNumDom = numDom.assume(newCond)

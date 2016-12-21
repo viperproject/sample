@@ -99,9 +99,9 @@ object SilverSemantics extends NativeMethodSemantics {
                                                           state: S): Option[S] = {
     (operator, parameters) match {
       case ("&&", right :: Nil) =>
-        Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&, sample.BoolType)))
+        Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&)))
       case ("==" | "!=" | "<" | "<!" | ">" | ">=", right :: Nil) =>
-        Some(state.setExpression(createBinaryExpression(expression, right, ArithmeticOperator.withName(operator), returnType)))
+        Some(state.setExpression(createBinaryArithmeticExpression(expression, right, ArithmeticOperator.withName(operator))))
       case _ =>
         SilverMethods.values.find(_.toString == operator) match {
           case Some(SilverMethods.access) => Some(state.setExpression(createFieldAccessPredicate(expression, parameters.head, parameters(1), returnType)))

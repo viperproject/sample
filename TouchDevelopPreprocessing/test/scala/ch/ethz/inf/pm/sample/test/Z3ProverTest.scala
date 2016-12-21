@@ -5,14 +5,14 @@
  */
 package ch.ethz.inf.pm.sample.test
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.cloud.{Z3Prover, Z3Sample}
 import org.scalatest.FunSuite
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
-import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, DummyTypeMap}
 
-class Z3ProverTest extends FunSuite {
+class Z3ProverTest extends FunSuite with SampleTest {
 
-  implicit val tm = TypeMap()
   implicit val pp = DummyProgramPoint
 
   test("version") {

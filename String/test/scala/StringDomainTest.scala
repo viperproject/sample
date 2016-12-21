@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyStringType, Type}
@@ -13,7 +14,7 @@ import ch.ethz.inf.pm.sample.test.SemanticDomainTest
   * @author Lucas Brutschy
   */
 trait StringDomainTest[T <: StringDomain[T]] extends SemanticDomainTest[T] {
-  override def typ: Type = DummyStringType
+  override def typ: Type = SystemParameters.tm.String
   override def values = super.values ++ Set(
     Constant("a",typ),
     Constant("bbbbbbbbbbbbbbbbbbbbbb",typ),

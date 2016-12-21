@@ -36,7 +36,7 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
     expr match {
 
       // This must be first -- Shortcut in simplified version
-      case b@BinaryArithmeticExpression(left, right, op, typ) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
+      case b@BinaryArithmeticExpression(left, right, op) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
         assumeSimplified(b)
 
       // Boolean constants
@@ -44,17 +44,17 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
       case Constant("false",_,_) => this.bottom()
       case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
       case NegatedBooleanExpression(Constant("false",_,_)) => this
-      case BinaryArithmeticExpression(Constant(a,_,_),Constant(b,_,_),ArithmeticOperator.==,_) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant(a,_,_),Constant(b,_,_),ArithmeticOperator.!=,_) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=) if a == b =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true",_,_),Constant("false",_,_),ArithmeticOperator.==,_)=>
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==) =>
         bottom()
-      case BinaryArithmeticExpression(Constant("false",_,_),Constant("true",_,_),ArithmeticOperator.==,_) =>
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==) =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true",_,_),Constant("false",_,_),ArithmeticOperator.!=,_) =>
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=) =>
         this
-      case BinaryArithmeticExpression(Constant("false",_,_),Constant("true",_,_),ArithmeticOperator.!=,_) =>
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=) =>
         this
 
       // Boolean variables
@@ -69,7 +69,7 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
         res
 
       // And and Or
-      case BinaryBooleanExpression(left, right, op, _) => op match {
+      case BinaryBooleanExpression(left, right, op) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
         case BooleanOperator.|| =>
           val l = assume(left)
@@ -82,18 +82,28 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
         assume(x)
 
-      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
+      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
         val nl = NegatedBooleanExpression(left)
         val nr = NegatedBooleanExpression(right)
         val nop = op match {
           case BooleanOperator.&& => BooleanOperator.||
           case BooleanOperator.|| => BooleanOperator.&&
         }
-        assume(BinaryBooleanExpression(nl, nr, nop, typ))
+        assume(BinaryBooleanExpression(nl, nr, nop))
 
       // Inverting of operators
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-        val res = assume(BinaryArithmeticExpression(left,right,ArithmeticOperator.negate(op),typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
+        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(ReferenceComparisonExpression(left, right, op)) =>
+        val res = assume(ReferenceComparisonExpression(left, right, ReferenceOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(BinaryStringExpression(left, right, op)) =>
+        val res = assume(BinaryStringExpression(left, right, StringOperator.negate(op)))
         res
 
       // Handling of monomes

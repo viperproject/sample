@@ -18,8 +18,8 @@
 
 package ch.ethz.inf.pm.sample.tracepartitioning
 
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain._
 
 /**
  * Provides the necessary context for a partitioning of a variable.
@@ -81,8 +81,7 @@ trait VariableContext {
 			BinaryBooleanExpression(
 				BinaryArithmeticExpression(context.identifier, context.constant(lower._1), lop),
 				BinaryArithmeticExpression(context.identifier, context.constant(upper._1), rop),
-				BooleanOperator.&&,
-				null
+        BooleanOperator.&&
 			)
 		}
 	}
@@ -100,7 +99,7 @@ trait VariableContext {
 								) extends Restriction(context) {
 
 		override def expression: Expression = {
-			BinaryArithmeticExpression(context.identifier, context.constant(value), ArithmeticOperator.==, null)
+      BinaryArithmeticExpression(context.identifier, context.constant(value), ArithmeticOperator.==)
 		}
 
 	}
@@ -118,7 +117,7 @@ trait VariableContext {
 class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) extends VariableContext {
 	 require(ranges.nonEmpty)
 
-	val top = SystemParameters.typ.top()
+  val top = SystemParameters.tm.Top
 
 	override def identifier: VariableIdentifier = VariableIdentifier(name)(top)
 

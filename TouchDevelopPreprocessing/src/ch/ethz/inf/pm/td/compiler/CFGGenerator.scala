@@ -100,7 +100,6 @@ class CFGGenerator(compiler: TouchCompiler) extends LazyLogging {
     }
     val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, curLibraryStableId, script)
     val typ: Type = typeNameToType(TypeName(curScriptName))
-    SystemParameters.typ = typ
     val modifiers: List[Modifier] = Nil
     val name: ClassIdentifier = TouchClassIdentifier(curScriptName, typ)
     val parametricTypes: List[Type] = Nil

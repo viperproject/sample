@@ -6,6 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import javax.naming.OperationNotSupportedException
+
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 
@@ -23,9 +25,14 @@ object ArithmeticOperator extends Enumeration {
   val > = Value(">")
   val < = Value("<")
 
+  def isArithmetic(op: Value): Boolean = !isComparison(op)
+
   def isComparison(op: Value): Boolean = Set(>=, <=, ==, !=, >, <) contains op
 
-  def isArithmetic(op: Value): Boolean = !isComparison(op)
+  def returnTyp(op: Value, left: Type, right: Type): Type = {
+    if (isComparison(op)) SystemParameters.tm.Boolean
+    else left.lub(right)
+  }
 
   /**
    * Negates the given given arithmetic operator if possible.
@@ -69,6 +76,31 @@ object BooleanOperator extends Enumeration {
   }
 }
 
+/**
+  * Binary operators for comparing references
+  */
+object ReferenceOperator extends Enumeration {
+
+  val == = Value("==")
+  val != = Value("!=")
+
+  /**
+    * Negates the given given reference operator if possible.
+    *
+    * @param op the operator to negate
+    * @throws MatchError if the operator cannot be negated
+    */
+  def negate(op: Value): Value = op match {
+    case `==` => `!=`
+    case `!=` => `==`
+  }
+
+  def returnTyp(op: Value, left: Type, right: Type): Type = {
+    SystemParameters.tm.Boolean
+  }
+
+}
+
 
 /**
  * Abstract operators that can be used to represent any operations on different types of objects, like string concatenation and type casts
@@ -99,6 +131,9 @@ object AbstractOperatorIdentifiers extends Enumeration {
   * @since 0.1
   */
 trait Expression {
+
+  /** Whether the expression does not contain conjunctions, disjunctions or negations. */
+  var canonical: Boolean = false
 
   /** The type of this expression. */
   def typ: Type
@@ -134,23 +169,16 @@ trait Expression {
   /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
 
-  // SHORTHANDS
-  def equal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.==,DummyBooleanType)
-  def unequal(that:Expression):Expression = BinaryArithmeticExpression(this,that,ArithmeticOperator.!=,DummyBooleanType)
-
-  /** Whether the expression does not contain conjunctions, disjunctions or negations. */
-  var canonical:Boolean = false
-
 }
 
 
 /** The negation of an expression. */
 case class NegatedBooleanExpression(exp: Expression) extends Expression {
-  def typ = exp.typ
+  def typ: Type = exp.typ
 
-  def pp = exp.pp
+  def pp: ProgramPoint = exp.pp
 
-  def ids = exp.ids
+  def ids: IdentifierSet = exp.ids
 
   override def toString = s"! $exp"
 
@@ -179,9 +207,9 @@ case class AbstractOperator(
                              op: AbstractOperatorIdentifiers.Value,
                              returntyp: Type) extends Expression {
 
-  def pp = thisExpr.pp
+  def pp: ProgramPoint = thisExpr.pp
 
-  def typ = returntyp
+  def typ: Type = returntyp
 
   def ids: IdentifierSet = thisExpr.ids ++ {
     var result: IdentifierSet = IdentifierSet.Bottom
@@ -193,12 +221,12 @@ case class AbstractOperator(
 
   override def hashCode(): Int = thisExpr.hashCode()
 
-  override def equals(o: Any) = o match {
-    case AbstractOperator(l, p, t, opx, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(opx)
+  override def equals(o: Any): Boolean = o match {
+    case AbstractOperator(l, p, t, opx, _) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(opx)
     case _ => false
   }
 
-  override def toString = thisExpr.toString + "." + op.toString + ToStringUtilities.parametricTypesToString(typeparameters) + "(" + ToStringUtilities.listToString(parameters) + ")"
+  override def toString: String = thisExpr.toString + "." + op.toString + ToStringUtilities.parametricTypesToString(typeparameters) + "(" + ToStringUtilities.listToString(parameters) + ")"
 
   override def transform(f: (Expression => Expression)): Expression =
     f(AbstractOperator(thisExpr.transform(f), parameters.map(_.transform(f)), typeparameters, op, returntyp))
@@ -212,37 +240,51 @@ case class AbstractOperator(
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param returnTyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
 case class BinaryBooleanExpression(
                                     left: Expression,
                                     right: Expression,
-                                    op: BooleanOperator.Value,
-                                    returnTyp: Type = SystemParameters.typ.top()) extends Expression {
+    op: BooleanOperator.Value) extends Expression {
 
-  def pp = left.pp
+  def pp: ProgramPoint = left.pp
 
-  def typ = returnTyp
+  def typ: Type = SystemParameters.tm.Boolean
 
   def ids: IdentifierSet = left.ids ++ right.ids
 
   override def hashCode(): Int = left.hashCode()
 
-  override def equals(o: Any) = o match {
-    case BinaryBooleanExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
+  override def equals(o: Any): Boolean = o match {
+    case BinaryBooleanExpression(l, r, opx) => left.equals(l) && right.equals(r) && op.equals(opx)
     case _ => false
   }
 
-  override def toString = left.toString + op.toString + right.toString
+  override def toString: String = left.toString + op.toString + right.toString
 
   override def transform(f: (Expression => Expression)): Expression =
-    f(BinaryBooleanExpression(left.transform(f), right.transform(f), op, returnTyp))
+    f(BinaryBooleanExpression(left.transform(f), right.transform(f), op))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
 }
+
+
+trait BinaryExpression extends Expression {
+
+  def left: Expression
+
+  def right: Expression
+
+  def ids: IdentifierSet = left.ids ++ right.ids
+
+  def pp: ProgramPoint = left.pp
+
+  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+
+}
+
 
 /**
  * A comparison between reference, that is, left == right or left != right
@@ -250,44 +292,26 @@ case class BinaryBooleanExpression(
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
 case class ReferenceComparisonExpression(
                                           left: Expression,
                                           right: Expression,
-                                          op: ArithmeticOperator.Value,
-                                          returntyp: Type) extends Expression {
+    op: ReferenceOperator.Value) extends BinaryExpression {
 
   require(left.typ.isObject,
     "cannot perform reference comparisons on primitive values")
   require(right.typ.isObject,
     "cannot perform reference comparisons on primitive values")
 
-  // TODO: Maybe introduce a ReferenceOperator enum with just two values
-  require(op == ArithmeticOperator.== || op == ArithmeticOperator.!=,
-    "operator must either be equality or inequality")
-
-  def pp = left.pp
-
-  def typ = returntyp
-
-  def ids = left.ids ++ right.ids
-
-  override def hashCode(): Int = left.hashCode()
-
-  override def equals(o: Any) = o match {
-    case ReferenceComparisonExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
-    case _ => false
-  }
+  def typ: Type = ReferenceOperator.returnTyp(op, left.typ, right.typ)
 
   override def toString = s"$left$op$right"
 
   override def transform(f: (Expression => Expression)): Expression =
     f(copy(left = left.transform(f), right = right.transform(f)))
 
-  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
 }
 
@@ -297,54 +321,39 @@ case class ReferenceComparisonExpression(
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
 case class BinaryArithmeticExpression(
                                        left: Expression,
                                        right: Expression,
-                                       op: ArithmeticOperator.Value,
-                                       returntyp: Type = SystemParameters.typ.top()) extends Expression {
+    op: ArithmeticOperator.Value) extends BinaryExpression {
 
-  def pp = if (left.pp == null) right.pp else left.pp
+  def typ: Type = ArithmeticOperator.returnTyp(op, left.typ, right.typ)
 
-  def typ = returntyp
-
-  def ids = left.ids ++ right.ids
-
-  override def hashCode(): Int = left.hashCode()
-
-  override def equals(o: Any) = o match {
-    case BinaryArithmeticExpression(l, r, opx, ty) => left.equals(l) && right.equals(r) && op.equals(opx)
-    case _ => false
-  }
-
-  override def toString = left.toString + op.toString + right.toString
+  override def toString: String = left.toString + op.toString + right.toString
 
   override def transform(f: (Expression => Expression)): Expression =
-    f(BinaryArithmeticExpression(left.transform(f), right.transform(f), op, returntyp))
-
-  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+    f(BinaryArithmeticExpression(left.transform(f), right.transform(f), op))
 
 }
 
 object BinaryArithmeticExpression {
+
   /**
    * Creates an expression that represents the concatenation
    * of a sequence of expressions with a certain arithmetic operator.
    *
    * @param exps the sequence of expressions to concatenate
    * @param op the arithmetic operator to concatenate the expressions with
-   * @param typ the type of expressions and the resulting expressions
    * @param emptyExp the expression to return if `exps` is empty
    */
   def apply(exps: Iterable[Expression],
             op: ArithmeticOperator.Value,
-            typ: Type,
             emptyExp: Expression): Expression =
     if (exps.isEmpty) emptyExp
-    else exps.reduceLeft(BinaryArithmeticExpression(_, _, op, typ))
+    else exps.reduceLeft(BinaryArithmeticExpression(_, _, op))
+
 }
 
 /**
@@ -358,20 +367,13 @@ object BinaryArithmeticExpression {
  */
 case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, returntyp: Type) extends Expression {
 
-  def pp = left.pp
+  def pp: ProgramPoint = left.pp
 
-  def typ = returntyp
+  def typ: Type = returntyp
 
-  def ids = left.ids
+  def ids: IdentifierSet = left.ids
 
-  override def hashCode(): Int = left.hashCode()
-
-  override def equals(o: Any) = o match {
-    case UnaryArithmeticExpression(l, opx, ty) => left.equals(l) && op.equals(opx)
-    case _ => false
-  }
-
-  override def toString = op.toString + left.toString
+  override def toString: String = op.toString + left.toString
 
   override def transform(f: (Expression => Expression)): Expression =
     f(UnaryArithmeticExpression(left.transform(f), op, returntyp))
@@ -390,7 +392,7 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
  */
 case class Constant(
                      constant: String,
-                     typ: Type = SystemParameters.typ.top(),
+    typ: Type,
                      pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
@@ -398,12 +400,12 @@ case class Constant(
 
   override def hashCode(): Int = constant.hashCode()
 
-  override def equals(o: Any) = o match {
+  override def equals(o: Any): Boolean = o match {
     case Constant(c, t, _) => constant.equals(c) && typ.equals(t)
     case _ => false
   }
 
-  override def toString = constant
+  override def toString: String = constant
 
   override def transform(f: (Expression => Expression)): Expression = f(this)
 
@@ -442,9 +444,9 @@ trait Identifier extends Expression with Assignable {
    */
   def representsSingleVariable: Boolean
 
-  override def toString = getName
+  override def toString: String = getName
 
-  def sanitizedName = getName.replaceAll("[^a-z0-9A-Z]*","")
+  def sanitizedName: String = getName.replaceAll("[^a-z0-9A-Z]*","")
 
   def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
@@ -483,12 +485,12 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
 
   override def hashCode(): Int = pp.hashCode()
 
-  override def equals(o: Any) = o match {
+  override def equals(o: Any): Boolean = o match {
     case ProgramPointScopeIdentifier(oPP) => pp.equals(oPP)
     case _ => false
   }
 
-  override def toString = "@" + pp.toString
+  override def toString: String = "@" + pp.toString
 
 }
 
@@ -505,9 +507,9 @@ case class VariableIdentifier
 
   require(typ != null)
 
-  override def getName = name.toString + scope.toString
+  override def toString: String = getName
 
-  override def toString = getName
+  override def getName: String = name.toString + scope.toString
 
   override def getField = None
 
@@ -532,7 +534,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 
   override def hashCode(): Int = 0
 
-  override def equals(o: Any) = o match {
+  override def equals(o: Any): Boolean = o match {
     case UnitExpression(_, _) => true
     case _ => false
   }
@@ -549,23 +551,23 @@ case class AccessPathIdentifier(path: List[Identifier])
 
   require(path.nonEmpty, "the access path must not be empty")
 
-  def getName = stringPath.mkString(".")
+  def getField = throw new OperationNotSupportedException()
 
-  def getField = ???
-
-  def typ = path.last.typ
-
-  def pp = path.last.pp
+  def pp: ProgramPoint = path.last.pp
 
   def representsSingleVariable: Boolean = true
 
-  override def toString = getName
+  override def toString: String = getName
+
+  def getName: String = stringPath.mkString(".")
 
   def stringPath: List[String] =
     path.map(_.getName)
 
   def objPath: List[String] =
     if (typ.isObject) stringPath else stringPath.dropRight(1)
+
+  def typ: Type = path.last.typ
 }
 
 object AccessPathIdentifier {
@@ -605,33 +607,24 @@ object NondeterministicOperator extends Enumeration {
    */
   val toExcl = Value("toExcl")
 
+  def returnTyp(op: Value, left: Type, right: Type): Type = {
+    left.lub(right)
+  }
 }
 
 /**
  * Represents an expression with a nondeterministic operator.
  *
  * @author Lucas Brutschy
- */
-case class BinaryNondeterministicExpression(left: Expression, right: Expression, op: NondeterministicOperator.Value, returnType: Type) extends Expression {
-  def pp = left.pp
+  */
+case class BinaryNondeterministicExpression(left: Expression, right: Expression, op: NondeterministicOperator.Value) extends BinaryExpression {
 
-  def typ = returnType
+  def typ: Type = NondeterministicOperator.returnTyp(op, left.typ, right.typ)
 
-  def ids = left.ids ++ right.ids
-
-  override def hashCode(): Int = left.hashCode()
-
-  override def equals(o: Any) = o match {
-    case BinaryNondeterministicExpression(l, r, op2, ty) => left.equals(l) && right.equals(r) && op.equals(op2)
-    case _ => false
-  }
-
-  override def toString = left.toString + " " + op.toString + " " + right.toString
+  override def toString: String = left.toString + " " + op.toString + " " + right.toString
 
   override def transform(f: (Expression => Expression)): Expression =
-    f(BinaryNondeterministicExpression(left.transform(f), right.transform(f), op, returnType))
-
-  def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+    f(BinaryNondeterministicExpression(left.transform(f), right.transform(f), op))
 }
 
 // CUSTOM EXPRESSIONS FOR QUANTIFIED PERMISSION ANALYSIS
@@ -763,4 +756,172 @@ case class ConditionalExpression(cond: Expression, left: Expression, right: Expr
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || cond.contains(f) || left.contains(f) || right.contains(f)
+}
+
+
+/**
+  *
+  * Represents equalities/inequalities between strings
+  *
+  * @author Lucas Brutschy
+  *
+  */
+case class BinaryStringExpression(left: Expression, right: Expression, op: StringOperator.Value) extends BinaryExpression {
+
+  assert(left.typ.isStringType)
+  assert(right.typ.isStringType)
+
+  override def typ: Type = SystemParameters.tm.Boolean
+
+  override def transform(f: (Expression) => Expression): Expression = {
+    f(this.copy(left.transform(f), right.transform(f)))
+  }
+
+}
+
+
+object StringOperator extends Enumeration {
+
+  val == = Value("==")
+  val != = Value("!=")
+
+  def negate(op: Value): Value = op match {
+    case `==` => `!=`
+    case `!=` => `==`
+  }
+
+}
+
+trait TypeMap {
+
+  val Int: Type
+
+  val Float: Type
+
+  val String: Type
+
+  val Boolean: Type
+
+  val Bottom: Type
+
+  val Top: Type
+
+}
+
+object ExpressionFactory {
+
+  def BigOr(expressions: List[Expression])(implicit pp: ProgramPoint): Expression = {
+    expressions match {
+      case Nil => True
+      case List(head) => head
+      case he :: tail => he || BigOr(tail)
+    }
+  }
+
+  def BigAnd(expressions: List[Expression])(implicit pp: ProgramPoint): Expression = {
+    expressions match {
+      case Nil => True
+      case List(head) => head
+      case he :: tail => he && BigAnd(tail)
+    }
+  }
+
+  @inline def True(implicit pp: ProgramPoint): Expression =
+    Constant("true", SystemParameters.tm.Boolean, pp)
+
+  @inline def Var(name: String, typ: Type)(implicit pp: ProgramPoint): Expression =
+    VariableIdentifier(name)(typ, pp)
+
+  @inline def IntVar(name: String)(implicit pp: ProgramPoint): Expression =
+    VariableIdentifier(name)(SystemParameters.tm.Int, pp)
+
+  @inline def BoolVar(name: String)(implicit pp: ProgramPoint): Expression =
+    VariableIdentifier(name)(SystemParameters.tm.Boolean, pp)
+
+  @inline def StringVar(name: String)(implicit pp: ProgramPoint): Expression =
+    VariableIdentifier(name)(SystemParameters.tm.String, pp)
+
+  @inline def BinaryNumNum(a: Expression, b: Expression, op: ArithmeticOperator.Value): Expression = {
+    assert(a.typ.isNumericalType && b.typ.isNumericalType)
+    BinaryArithmeticExpression(a, b, op)
+  }
+
+  @inline def BinaryStrBool(a: Expression, b: Expression, op: ArithmeticOperator.Value): Expression = {
+    assert(a.typ.isStringType && b.typ.isStringType)
+    BinaryArithmeticExpression(a, b, op)
+  }
+
+  @inline def BinaryNumBool(a: Expression, b: Expression, op: ArithmeticOperator.Value): Expression = {
+    assert(a.typ.isNumericalType && b.typ.isNumericalType)
+    BinaryArithmeticExpression(a, b, op)
+  }
+
+  @inline def BinaryBoolBool(a: Expression, b: Expression, op: BooleanOperator.Value): Expression = {
+    assert(a.typ.isBooleanType && b.typ.isBooleanType && a.typ == b.typ)
+    BinaryBooleanExpression(a, b, op)
+  }
+
+  @inline def -(expr: Expression): Expression = {
+    UnaryArithmeticExpression(expr, ArithmeticOperator.-, expr.typ)
+  }
+
+  @inline implicit def toRichExpression(e: Expression): RichExpression = RichExpression(e)
+
+  @inline implicit def toExpression(e: RichExpression): Expression = e.expr
+
+  @inline implicit def toRichExpression(e: Int)(implicit pp: ProgramPoint): RichExpression =
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+
+  @inline implicit def toRichExpression(e: String)(implicit pp: ProgramPoint): RichExpression =
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+
+  @inline implicit def toRichExpression(e: Boolean)(implicit pp: ProgramPoint): RichExpression =
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+
+  @inline def not(expr: Expression): Expression = {
+    NegatedBooleanExpression(expr)
+  }
+
+  final case class RichExpression(expr: Expression) {
+
+    @inline def +(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.+)
+
+    @inline def -(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.-)
+
+    @inline def *(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator.*)
+
+    @inline def /(other: RichExpression): RichExpression =
+      BinaryNumNum(this.expr, other.expr, ArithmeticOperator./)
+
+    @inline def <(other: RichExpression): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.<)
+
+    @inline def >(other: RichExpression): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.>)
+
+    @inline def >=(other: RichExpression): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.>=)
+
+    @inline def <=(other: RichExpression): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.<=)
+
+    @inline def equal(other: RichExpression): RichExpression =
+      if (this.expr.typ.isStringType && other.expr.typ.isStringType)
+        BinaryStrBool(this.expr, other.expr, ArithmeticOperator.==)
+      else
+        BinaryNumBool(this.expr, other.expr, ArithmeticOperator.==)
+
+    @inline def unequal(other: RichExpression): RichExpression =
+      BinaryNumBool(this.expr, other.expr, ArithmeticOperator.!=)
+
+    @inline def &&(other: RichExpression): RichExpression =
+      BinaryBoolBool(this.expr, other.expr, BooleanOperator.&&)
+
+    @inline def ||(other: RichExpression): RichExpression =
+      BinaryBoolBool(this.expr, other.expr, BooleanOperator.||)
+
+  }
 }

@@ -175,12 +175,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
           (permissions, expressions.transform {
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
           })
-        case IntType => if (!visited.contains(currentPP)) (permissions.trexpressions.transform {
-          case (_, setDescription) => setDescription.transformAssignVariable(left, right)
-        } else (permissions, expressions)
+        case IntType => if (!visited.contains(currentPP)) (permissions.transformExpressions(e => if (e.equals(left)) right else e), expressions.map {
+          case ((pp, expr), setDescription) => (pp, expr.transform(e => if (e.equals(left)) right else e)) -> setDescription.transformAssignVariable(left, right)
+        }) else (permissions, expressions)
         case _ => throw new IllegalStateException()
       }
       copy(
+        permissions = newPermissions,
         expressions = newExpressions
       )
     case _ => throw new IllegalStateException()

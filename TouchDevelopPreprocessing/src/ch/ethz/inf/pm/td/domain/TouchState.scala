@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.td.domain
 
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
@@ -50,7 +51,25 @@ trait TouchStateInterface[T <: TouchStateInterface[T]] extends State[T] {
 
   def endOfFunctionCleanup(): T = this
 
+  /**
+    *
+    * Returns all possible constant values for an identifier.
+    * Returns top, if we cannot represent the set of constants easily.
+    * Returns bottom, if the state is bottom
+    *
+    * @param id the identifier, should be of primitive type
+    * @return the set of constants, top or bottom.
+    */
   def getPossibleConstants(id: Identifier): SetDomain.Default[Constant]
+
+  /**
+    *
+    * Given a possible set of constraints
+    *
+    * @param ids the list of identifiers which should be addressed
+    * @return a set of expressions that express a statement about th ids. May return "true"
+    */
+  def getConstraints(ids: Set[Identifier]): Set[Expression]
 
   /**
     * For a given IdentifierSet, returns all paths of identifiers that may reach any of the given identifiers
@@ -288,7 +307,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     cond match {
 
       // This must be first -- Shortcut in simplified version
-      case b@BinaryArithmeticExpression(left, right, op, typ) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
+      case b@BinaryArithmeticExpression(left, right, op) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
         assumeSimplified(b)
 
       // Boolean constants
@@ -296,17 +315,25 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       case Constant("false", _, _) => this.bottom()
       case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
       case NegatedBooleanExpression(Constant("false", _, _)) => this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==, _) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=, _) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=) if a == b =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==, _) =>
-        bottom()
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==, _) =>
-        bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=, _) =>
+      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=, _) =>
+      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.!=) if a == b =>
+        bottom()
+      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.==) if a == b =>
+        this
+      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.!=) if a == b =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==) =>
+        bottom()
+      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=) =>
+        this
+      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=) =>
         this
 
       // Boolean variables
@@ -321,7 +348,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
         res
 
       // And and Or
-      case BinaryBooleanExpression(left, right, op, _) => op match {
+      case BinaryBooleanExpression(left, right, op) => op match {
         case BooleanOperator.&& =>
           val l = assume(left)
           if (l.isBottom) l
@@ -337,18 +364,28 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>
         assume(x)
 
-      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) =>
+      case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
         val nl = NegatedBooleanExpression(left)
         val nr = NegatedBooleanExpression(right)
         val nop = op match {
           case BooleanOperator.&& => BooleanOperator.||
           case BooleanOperator.|| => BooleanOperator.&&
         }
-        assume(BinaryBooleanExpression(nl, nr, nop, typ))
+        assume(BinaryBooleanExpression(nl, nr, nop))
 
       // Inverting of operators
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) =>
+        val res = assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(ReferenceComparisonExpression(left, right, op)) =>
+        val res = assume(ReferenceComparisonExpression(left, right, ReferenceOperator.negate(op)))
+        res
+
+      // Inverting of operators
+      case NegatedBooleanExpression(BinaryStringExpression(left, right, op)) =>
+        val res = assume(BinaryStringExpression(left, right, StringOperator.negate(op)))
         res
 
       // Handling of monomes
@@ -362,9 +399,9 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
   def assumeSimplified(expr: Expression): T = {
 
     expr match {
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.==, _)
-        if left.typ.isObject && left.isInstanceOf[Identifier]
-          && right.typ.isObject && right.isInstanceOf[Identifier] => // TODO: Reference equality?
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.==)
+        if left.isInstanceOf[Identifier]
+          && right.isInstanceOf[Identifier] =>
         if ((forwardMay.getOrElse(left.asInstanceOf[Identifier], Set.empty)
           intersect forwardMay.getOrElse(right.asInstanceOf[Identifier], Set.empty)).isEmpty) {
           bottom()
@@ -552,7 +589,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     *
     * @return The bottom value, that is, a value x that is less or equal than any other value
     */
-  override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom(), isTop = false)
+  override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom())
 
   /**
     * Computes the upper bound of two elements
@@ -1167,7 +1204,9 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   }
 
-  override def getPossibleConstants(id: Identifier) = valueState.getPossibleConstants(id)
+  override def getPossibleConstants(id: Identifier): Default[Constant] = valueState.getPossibleConstants(id)
+
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = valueState.getConstraints(ids)
 
   override def reachingIdentifiers(ids: IdentifierSet): IdentifierSet = {
     Lattice.lfp[IdentifierSet](ids, {
@@ -1233,6 +1272,8 @@ object TouchState {
       factory(ids ++ expr.ids)
     }
 
+    def factory(ids: IdentifierSet) = CollectingDomain.Inner(ids)
+
     override def assume(cond: Expression): CollectingDomain = {
       TouchVariablePacking.pack(cond.ids)
       this
@@ -1244,8 +1285,6 @@ object TouchState {
       }
       factory(ids ++ IdentifierSet.Inner(rep.value.flatMap(_._2).toSet))
     }
-
-    def factory(ids: IdentifierSet) = CollectingDomain.Inner(ids)
 
     def factory(id: Identifier) = CollectingDomain.Inner(IdentifierSet.Inner(Set(id)))
 
@@ -1264,8 +1303,7 @@ object TouchState {
       valueState: S,
       expr: ExpressionSet = ExpressionSetFactory.unitExpr,
       isTop: Boolean = false
-  )
-    extends TouchState[S, Default[S]] {
+  ) extends TouchState[S, Default[S]] {
 
     def factory(
         forwardMay: Map[Identifier, Set[HeapIdentifier]] = Map.empty,
@@ -1366,7 +1404,7 @@ object TouchState {
     }
 
     /** We may jump in a loop here - reset stats, pack variables */
-    override def testTrue() = {
+    override def testTrue(): PreAnalysis[S] = {
       val res = super.testTrue()
       expr._2 match {
         case SetDomain.Default.Top() => res
@@ -1377,6 +1415,24 @@ object TouchState {
           res.copyLocal(inLoops = inLoops ++ points, notInLoops = notInLoops -- points)
       }
     }
+
+    /** We may jump out of a loop here - reset stats */
+    override def testFalse(): PreAnalysis[S] = {
+      val res = super.testFalse()
+      expr._2 match {
+        case SetDomain.Default.Top() => res
+        case SetDomain.Default.Bottom() => res
+        case SetDomain.Default.Inner(xs) =>
+          val points = xs.map(_.pp)
+          res.copyLocal(inLoops = inLoops -- points, notInLoops = notInLoops ++ points)
+      }
+    }
+
+    override def lub(other: PreAnalysis[S]): PreAnalysis[S] =
+      super.lub(other).copyLocal(
+        inLoops = (inLoops -- other.notInLoops) ++ (other.inLoops -- notInLoops),
+        notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
+      )
 
     def copyLocal(
         forwardMay: Map[Identifier, Set[HeapIdentifier]] = forwardMay,
@@ -1391,38 +1447,20 @@ object TouchState {
     ): PreAnalysis[S] =
       PreAnalysis(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop, inLoops, notInLoops)
 
-    /** We may jump out of a loop here - reset stats */
-    override def testFalse() = {
-      val res = super.testFalse()
-      expr._2 match {
-        case SetDomain.Default.Top() => res
-        case SetDomain.Default.Bottom() => res
-        case SetDomain.Default.Inner(xs) =>
-          val points = xs.map(_.pp)
-          res.copyLocal(inLoops = inLoops -- points, notInLoops = notInLoops ++ points)
-      }
-    }
-
-    override def lub(other: PreAnalysis[S]) =
-      super.lub(other).copyLocal(
-        inLoops = (inLoops -- other.notInLoops) ++ (other.inLoops -- notInLoops),
-        notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
-      )
-
-    override def widening(other: PreAnalysis[S]) =
+    override def widening(other: PreAnalysis[S]): PreAnalysis[S] =
       super.widening(other).copyLocal(
         inLoops = (inLoops -- other.notInLoops) ++ (other.inLoops -- notInLoops),
         notInLoops = (notInLoops -- other.inLoops) ++ (other.notInLoops -- inLoops)
       )
 
-    override def lessEqual(other: PreAnalysis[S]) =
+    override def lessEqual(other: PreAnalysis[S]): Boolean =
       super.lessEqual(other) && inLoops.subsetOf(other.inLoops) && notInLoops.subsetOf(other.notInLoops)
 
-    override def endOfFunctionCleanup() = {
+    override def endOfFunctionCleanup(): PreAnalysis[S] = {
       copyLocal(inLoops = Set.empty, notInLoops = Set.empty)
     }
 
-    override def ids = {
+    override def ids: IdentifierSet = {
       IdentifierSet.Bottom ++ (forwardMay.keySet ++ forwardMay.values.flatten)
     }
 
@@ -1437,7 +1475,7 @@ object TouchState {
 
       override def wideningInner(other: CollectingDomain.Inner): CollectingDomain = CollectingDomain.Inner(other.ids widening ids)
 
-      override def lessEqualInner(other: CollectingDomain.Inner) = other.ids lessEqual ids
+      override def lessEqualInner(other: CollectingDomain.Inner): Boolean = other.ids lessEqual ids
 
       override def setToTop(variable: Identifier) = CollectingDomain.Inner(ids + variable)
 
@@ -1447,14 +1485,12 @@ object TouchState {
 
       override def getStringOfId(id: Identifier) = ""
 
-      override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top()
-
     }
 
     object Top extends CollectingDomain with SemanticDomain.Top[CollectingDomain]
 
     object Bottom extends CollectingDomain with SemanticDomain.Bottom[CollectingDomain] {
-      override def createVariable(variable: Identifier, typ: Type) = factory(variable)
+      override def createVariable(variable: Identifier, typ: Type): Inner = factory(variable)
     }
 
   }

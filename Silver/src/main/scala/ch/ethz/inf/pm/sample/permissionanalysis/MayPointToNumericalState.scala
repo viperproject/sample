@@ -8,8 +8,8 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.{ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
@@ -240,12 +240,12 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
         val num = numDom.assume(cond)
         if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, typ) => // BinaryBooleanExpression
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) => // BinaryBooleanExpression
         if (cond.canonical) {
           val num = numDom.assume(cond)
           if (num.isBottom) this.bottom() else this.copy(numDom = num)
         } else this.assume(left).assume(right)
-      case BinaryBooleanExpression(left, right, BooleanOperator.||, typ) => // BinaryBooleanExpression
+      case BinaryBooleanExpression(left, right, BooleanOperator.||) => // BinaryBooleanExpression
         if (cond.canonical) {
           val num = numDom.assume(cond)
           if (num.isBottom) this.bottom() else this.copy(numDom = num)
@@ -261,32 +261,28 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
             val num = numDom.assume(cond)
             if (num.isBottom) this.bottom() else this.copy(numDom = num)
 
-          case BinaryArithmeticExpression(left, right, op, typ) => // BinaryArithmeticExpression
-            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ))
+          case BinaryArithmeticExpression(left, right, op) => // BinaryArithmeticExpression
+            this.assume(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)))
 
-          case BinaryBooleanExpression(left, right, op, typ) => // BinaryBooleanExpression
+          case BinaryBooleanExpression(left, right, op) => // BinaryBooleanExpression
             val nleft = NegatedBooleanExpression(left)
             val nright = NegatedBooleanExpression(right)
             val nop = op match {
               case BooleanOperator.&& => BooleanOperator.||
               case BooleanOperator.|| => BooleanOperator.&&
             }
-            this.assume(BinaryBooleanExpression(nleft, nright, nop, typ))
+            this.assume(BinaryBooleanExpression(nleft, nright, nop))
 
           case NegatedBooleanExpression(exp) => this.assume(exp) // NegatedBooleanExpression
 
-          case ReferenceComparisonExpression(left, right, op, typ) => // ReferenceComparisonExpression
-            val nop = op match {
-              case ArithmeticOperator.== => ArithmeticOperator.!=
-              case ArithmeticOperator.!= => ArithmeticOperator.==
-            }
-            this.assume(ReferenceComparisonExpression(left, right, nop, typ))
+          case ReferenceComparisonExpression(left, right, op) => // ReferenceComparisonExpression
+            this.assume(ReferenceComparisonExpression(left, right, ReferenceOperator.negate(op)))
 
           case _ => throw new NotImplementedError("An assumeNegatedBooleanExpression implementation for "
             + cond.exp.getClass.getSimpleName + " is missing.")
         }
 
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.==, typ) =>
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.==) =>
         (left, right) match {
           case (left: Identifier, right: Identifier) =>
             val l = left match {
@@ -356,7 +352,7 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
             } else this.bottom() // return the bottom state
         }
 
-      case ReferenceComparisonExpression(left, right, ArithmeticOperator.!=, typ) =>
+      case ReferenceComparisonExpression(left, right, ReferenceOperator.!=) =>
         (left, right) match {
           case (left: Identifier, right: Identifier) =>
             val l = left match {

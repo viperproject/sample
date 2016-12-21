@@ -144,8 +144,8 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 		else
 			//Possible reference comparison
 			operator match {
-			  case "==" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
-			  case "!=" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
+				case "==" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ReferenceOperator.==, returnedtype);
+				case "!=" => createReferenceComparisonExpression[S](state, thisExpr, parameters, ReferenceOperator.!=, returnedtype);
 			  case _ => None;
 			}
  
@@ -156,12 +156,12 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
     }
  
 	private def createBinaryArithmeticExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
+		case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, x, operator)));
 	    case _ => None
     }
 
-  private def createReferenceComparisonExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createReferenceComparisonExpression(thisExpr, x, operator, returnedtype)));
+	private def createReferenceComparisonExpression[S <: State[S]](state: S, thisExpr: ExpressionSet, parameters: List[ExpressionSet], operator: ReferenceOperator.Value, returnedtype: Type): Option[S] = parameters match {
+		case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createReferenceComparisonExpression(thisExpr, x, operator)));
       case _ => None
     }
 
@@ -182,7 +182,7 @@ object BooleanNativeMethodSemantics extends NativeMethodSemantics {
 	}
 
 	private def createBinaryBooleanExpression[S <: State[S]](state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], operator : BooleanOperator.Value, returnedtype : Type) : Option[S] = parameters match {
-    case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, x, operator, returnedtype)));
+		case x :: Nil => Some(state.setExpression(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, x, operator)));
 	    case _ => None
     }
 

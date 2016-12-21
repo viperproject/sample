@@ -151,8 +151,7 @@ class MethodDeclaration(
         .assume(ExpressionSet(ReferenceComparisonExpression(
         thisVarId,
         Constant("null", ownerType, programpoint),
-        ArithmeticOperator.!=,
-        SystemParameters.typ.top())))
+          ReferenceOperator.!=)))
     }
     result
   }
@@ -273,7 +272,7 @@ trait Type extends Lattice[Type] {
    */
   def possibleFields: Set[Identifier]
 
-  def representedFields = possibleFields
+  def representedFields: Set[Identifier] = possibleFields
 
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
@@ -293,139 +292,8 @@ trait Type extends Lattice[Type] {
     })
   } ensuring(_.forall(_.isObject), "must return only object types")
 
-  /**
-   * If the current type represents an array, it returns the type
-   * of the elements contained in the array, None otherwise. 
-   */
-  def arrayElementsType: Option[Type]
-
-  /**
-   * This method returns `true` iff the current type can be only instance
-   * of one of the given types and none else.
-   * For instance, suppose that:
-   * - the current type cannot be instantiated (e.g. it is an interface in Java of a trait in Scala)
-   * - it cannot be extended by external libraries (e.g. it is declared as sealed in Scala)
-   * - it is extended only by two classes C1 and C2 that cannot be extended
-   *
-   * If <code>types</code>={C1, C2}, then this method returns `true`
-   */
-  def isBottomExcluding(types: Set[Type]): Boolean
 }
 
-/** A dummy type with no proper hierarchy for testing.
-  *
-  * @todo Move to test source folder. However, test cases in other modules
-  *       should still be able to access it.
-  */
-trait DummyType extends Type {
-  def factory() = this
-
-  def top() = this
-
-  def bottom() = this
-
-  def lub(other: Type) = this
-
-  def glb(other: Type) = this
-
-  def widening(other: Type) = this
-
-  def lessEqual(other: Type) = true
-
-  def isFloatingPointType = false
-
-  def isBooleanType = false
-
-  def isStringType = false
-
-  def isStatic = false
-
-  def arrayElementsType = None
-
-  def isBottomExcluding(types: Set[Type]) = true
-}
-
-/** A dummy object type with no proper hierarchy for testing. */
-trait DummyObjectType extends DummyType {
-
-  def isBottom = false
-
-  def isTop = false
-
-  def isObject = true
-
-  def isNumericalType = false
-}
-
-/** A dummy numerical type with no proper hierarchy for testing. */
-case object DummyIntegerType extends DummyType {
-  def name = "Int"
-
-  def isBottom = false
-
-  def isTop = false
-
-  def isObject = false
-
-  def isNumericalType = true
-
-  override def isFloatingPointType = false
-
-  def possibleFields: Set[Identifier] = Set.empty
-}
-
-/** A dummy numerical type with no proper hierarchy for testing. */
-case object DummyFloatType extends DummyType {
-  def name = "Float"
-
-  def isBottom = false
-
-  def isTop = false
-
-  def isObject = false
-
-  def isNumericalType = true
-
-  override def isFloatingPointType = true
-
-  def possibleFields: Set[Identifier] = Set.empty
-}
-
-/** A dummy boolean type with no proper hierarchy for testing. */
-case object DummyBooleanType extends DummyType {
-  def name = "Bool"
-
-  def isBottom = false
-
-  def isTop = false
-
-  def isObject = false
-
-  def isNumericalType = true
-
-  override def isBooleanType = true
-
-  def possibleFields: Set[Identifier] = Set.empty
-}
-
-/** A dummy boolean type with no proper hierarchy for testing. */
-case object DummyStringType extends DummyType {
-  def name = "String"
-
-  def isBottom = false
-
-  def isTop = false
-
-  def isObject = false
-
-  override def isStringType = true
-
-  def isNumericalType = false
-
-  override def isBooleanType = false
-
-  def possibleFields: Set[Identifier] = Set.empty
-}
 
 /**
  * The semantics of the native methods.

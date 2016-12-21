@@ -7,57 +7,72 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.semantics.{TBoolean, TNumber, TString}
+import ch.ethz.inf.pm.td.semantics.TString
 
 case class RichExpressionSet(thisExpr: ExpressionSet) extends RichExpressionSetImplicits {
 
   override def toString:String = thisExpr.toString
 
   def <=(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.<=, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<=))
 
   def >=(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.>=, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>=))
 
   def <(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.<, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<))
 
   def >(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.>, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>))
 
-  def equal(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.==, TBoolean))
+  def equal(thatExpr: RichExpressionSet): RichExpressionSet = {
 
-  def unequal(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.!=, TBoolean))
+    if (this.typ.isStringType && thatExpr.typ.isStringType)
+      RichExpressionSet(ExpressionSetFactory.createBinaryStringExpression(thisExpr, thatExpr, StringOperator.==))
+    else if (this.typ.isNumericalType && thatExpr.typ.isNumericalType)
+      RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.==))
+    else
+      RichExpressionSet(ExpressionSetFactory.createReferenceComparisonExpression(thisExpr, thatExpr, ReferenceOperator.==))
+
+  }
+
+  def unequal(thatExpr: RichExpressionSet): RichExpressionSet = {
+
+    if (this.typ.isStringType && thatExpr.typ.isStringType)
+      RichExpressionSet(ExpressionSetFactory.createBinaryStringExpression(thisExpr, thatExpr, StringOperator.!=))
+    else if (this.typ.isNumericalType && thatExpr.typ.isNumericalType)
+      RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.!=))
+    else
+      RichExpressionSet(ExpressionSetFactory.createReferenceComparisonExpression(thisExpr, thatExpr, ReferenceOperator.!=))
+
+  }
 
   def +(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.+, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.+))
 
   def *(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.*, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.*))
 
   def -(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.-, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.-))
 
   def /(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator./, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createBinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator./))
 
   def or(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.or, thisExpr.typ))
+    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.or))
 
   def ndToIncl(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.toIncl, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.toIncl))
 
   def ndToExcl(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.toExcl, TNumber))
+    RichExpressionSet(ExpressionSetFactory.createNondeterministicBinaryExpression(thisExpr, thatExpr, NondeterministicOperator.toExcl))
 
   def &&(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, thatExpr, BooleanOperator.&&, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, thatExpr, BooleanOperator.&&))
 
   def ||(thatExpr: RichExpressionSet): RichExpressionSet =
-    RichExpressionSet(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, thatExpr, BooleanOperator.||, TBoolean))
+    RichExpressionSet(ExpressionSetFactory.createBooleanBinaryExpression(thisExpr, thatExpr, BooleanOperator.||))
 
   def concat(thatExpr: RichExpressionSet): RichExpressionSet =
     RichExpressionSet(ExpressionSetFactory.createAbstractOperator(thisExpr, List(thatExpr), Nil, AbstractOperatorIdentifiers.stringConcatenation, TString))

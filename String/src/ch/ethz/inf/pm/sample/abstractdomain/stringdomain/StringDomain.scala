@@ -6,11 +6,10 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
-import ch.ethz.inf.pm.sample.ToStringUtilities
-import ch.ethz.inf.pm.sample.abstractdomain.Identifier.FieldIdentifier
+import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.BooleanExpressionSimplifier
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyStringType, Type}
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
@@ -70,16 +69,6 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
   override def backwardAssign(oldPreState: NonrelationalStringDomain[T], variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = this
 
-  private def eval(expr: Expression): T = expr match {
-    case Constant(constant, typ, pp) =>
-      dom.singleton(constant)
-    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) =>
-      eval(left).concat(eval(right))
-    case x: Identifier =>
-      this.get(x)
-    case x: Expression => dom.top()
-  }
-
   /**
    * This is imprecise, but sound
    */
@@ -104,7 +93,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     expr match {
 
       // Comparison
-      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
+      case BinaryStringExpression(a: Expression, b: Expression, StringOperator.==) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -128,7 +117,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
         }
 
       // Negated comparison
-      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.!=, _) =>
+      case BinaryStringExpression(a: Expression, b: Expression, StringOperator.!=) =>
 
         val left = eval(a)
         val right = eval(b)
@@ -148,12 +137,45 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
 
   }
 
-  private def restrict(id:Identifier,a:T): NonrelationalStringDomain[T] = {
-    copy(map = map + (id -> (map.getOrElse(id,dom.bottom()) glb a)))
+  /**
+    * Given a possible set of constraints.
+    * This method is _optional_, not all domains must implement it
+    *
+    * @param ids the list of identifiers which should be addressed
+    * @return a set of expressions that express a statement about th ids. May return "true"
+    */
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
+    (for (id <- ids) yield {
+      val constants = getPossibleConstants(id)
+      if (!constants.isTop) {
+        import ch.ethz.inf.pm.sample.abstractdomain.ExpressionFactory._
+        implicit val pp = DummyProgramPoint
+
+        Some(BigOr(
+          (for (c <- constants.toSetOrFail) yield toExpression(id equal c)).toList
+        ))
+      } else {
+        None
+      }
+    }).flatten
   }
 
   override def getPossibleConstants(id: Identifier) =
     map.getOrElse(id,dom.top()).getPossibleConstants
+
+  private def eval(expr: Expression): T = expr match {
+    case Constant(constant, typ, pp) =>
+      dom.singleton(constant)
+    case AbstractOperator(left, List(right), Nil, AbstractOperatorIdentifiers.stringConcatenation, _) =>
+      eval(left).concat(eval(right))
+    case x: Identifier =>
+      this.get(x)
+    case x: Expression => dom.top()
+  }
+
+  private def restrict(id: Identifier, a: T): NonrelationalStringDomain[T] = {
+    copy(map = map + (id -> (map.getOrElse(id, dom.bottom()) glb a)))
+  }
 }
 
 trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] { this: T =>
@@ -185,8 +207,8 @@ trait StringKSetDomain extends SetDomain.Bounded[String, StringKSetDomain]
 
   val k:Int
 
-  def bottom() = StringKSetDomain.Bottom(k)
   def top() = StringKSetDomain.Top(k)
+
   def factory(v:Set[String]) = if (v.isEmpty) bottom() else StringKSetDomain.Inner(k,v)
 
   def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = (a -- b) lub (b -- a)
@@ -195,6 +217,8 @@ trait StringKSetDomain extends SetDomain.Bounded[String, StringKSetDomain]
     a glb b
 
   def singleton(a: String): StringKSetDomain = bottom().+(a)
+
+  def bottom() = StringKSetDomain.Bottom(k)
 
   def concat(other:StringKSetDomain):StringKSetDomain
 
@@ -235,7 +259,7 @@ object StringKSetDomain {
 
     override def cap: StringKSetDomain = if (value.size > k) top() else this
 
-    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_,DummyStringType)))
+    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_, SystemParameters.tm.String)))
 
   }
 

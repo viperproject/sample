@@ -30,16 +30,6 @@ case class PredicateDefinitionsDomain(
   require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
     "all nested predicate IDs must be known and have a body themselves")
 
-  /** Returns the predicate body associated with a predicate identifier. */
-  def get(key: PredicateIdentifier): PredicateBody =
-    map.getOrElse(key, defaultValue)
-
-  def functionalFactory(
-      value: Map[PredicateIdentifier, PredicateBody],
-      isBottom: Boolean,
-      isTop: Boolean) =
-    PredicateDefinitionsDomain(value, isTop, isBottom, defaultValue)
-
   /** Finds a predicate that is structurally equal to the given predicate,
     * which consists of an identifier as well as its body.
     *
@@ -67,6 +57,12 @@ case class PredicateDefinitionsDomain(
     }))
   }
 
+  def functionalFactory(
+      value: Map[PredicateIdentifier, PredicateBody],
+      isBottom: Boolean,
+      isTop: Boolean) =
+    PredicateDefinitionsDomain(value, isTop, isBottom, defaultValue)
+
   /** Returns the set of set of fields that the predicate with the given ID
     * directly (not mutually) recurses over.
     */
@@ -77,6 +73,10 @@ case class PredicateDefinitionsDomain(
         else None
     }).toSet
   }
+
+  /** Returns the predicate body associated with a predicate identifier. */
+  def get(key: PredicateIdentifier): PredicateBody =
+    map.getOrElse(key, defaultValue)
 
   def merge(predIdMerge: PredicateIdentifierMerge): PredicateDefinitionsDomain = {
     // Nothing to do when there is only one predicate ID in the set
@@ -139,7 +139,6 @@ case class PredicateDefinitionsDomain(
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
-  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = ???
 
   def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (!r.isEmpty())
@@ -147,8 +146,6 @@ case class PredicateDefinitionsDomain(
         "Use custom merge(PredicateIdentifierMerge) instead.")
     this
   }
-
-  override def getPossibleConstants(id: Identifier) = ???
 }
 
 /** Identifies a predicate definition in the analysis.
@@ -185,13 +182,13 @@ final case class PredicateBody(
   with Lattice.Must[PredicateBody]
   with Expression {
 
-  def get(key: Identifier) = map.getOrElse(key, defaultValue)
-
   def addPerm(field: Identifier): PredicateBody =
     add(field, NestedPredicatesDomain().top())
 
   def addPerm(field: Identifier, nestedPredId: PredicateIdentifier): PredicateBody =
     add(field, get(field).+(nestedPredId))
+
+  def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
       value: Map[Identifier, NestedPredicatesDomain],
@@ -287,6 +284,8 @@ final case class NestedPredicatesDomain(wrapped: SetDomain.Default[PredicateIden
     case _ => this
   }
 
+  override def wrapperFactory(wrapped: Default[PredicateIdentifier]): NestedPredicatesDomain = NestedPredicatesDomain(wrapped)
+
   /** Removes all given predicate identifiers from the set. */
   def remove(predIds: Set[PredicateIdentifier]): NestedPredicatesDomain =
     predIds.foldLeft(this)(_.-(_))
@@ -300,8 +299,6 @@ final case class NestedPredicatesDomain(wrapped: SetDomain.Default[PredicateIden
       else None
     case _ => None
   }
-
-  override def wrapperFactory(wrapped: Default[PredicateIdentifier]): NestedPredicatesDomain = NestedPredicatesDomain(wrapped)
 
 }
 

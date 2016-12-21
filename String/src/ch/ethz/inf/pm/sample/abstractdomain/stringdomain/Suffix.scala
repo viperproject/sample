@@ -15,19 +15,10 @@ class SuffixDomain extends Lattice[SuffixDomain] {
   var isTop: Boolean = false
   var stringValue: String = ""
 
-  override def factory(): SuffixDomain = new SuffixDomain()
-
   def top(): SuffixDomain = {
     val result: SuffixDomain = this.factory()
     result.isTop = true
     result.isBottom = false
-    result
-  }
-
-  def bottom(): SuffixDomain = {
-    val result: SuffixDomain = this.factory()
-    result.isBottom = true
-    result.isTop = false
     result
   }
 
@@ -65,11 +56,20 @@ class SuffixDomain extends Lattice[SuffixDomain] {
       bottom()
   }
 
-  def widening(other: SuffixDomain): SuffixDomain =
-    lub(other)
+  def bottom(): SuffixDomain = {
+    val result: SuffixDomain = this.factory()
+    result.isBottom = true
+    result.isTop = false
+    result
+  }
+
+  override def factory(): SuffixDomain = new SuffixDomain()
 
   def lessEqual(r: SuffixDomain): Boolean =
     stringValue.endsWith(r.stringValue)
+
+  def widening(other: SuffixDomain): SuffixDomain =
+    lub(other)
 
   override def toString: String = {
     if (isBottom) "⊥"
@@ -98,13 +98,13 @@ class Suffix (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, Suf
 
   def removeVariable(variable: Identifier): Suffix = this.remove(variable)
 
+  override def getStringOfId(id: Identifier): String = {
+    get(id).toString
+  }
+
   def get(variable: Identifier) = map.get(variable) match {
     case Some(x) => x;
     case None => new SuffixDomain().top();
-  }
-
-  override def getStringOfId(id: Identifier): String = {
-    get(id).toString
   }
 
   private def eval(expr: Expression): SuffixDomain = expr match {
@@ -123,6 +123,4 @@ class Suffix (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, Suf
       new SuffixDomain().top();
     case _ => new SuffixDomain().top();
   }
-
-  override def getPossibleConstants(id: Identifier) = ???
 }

@@ -14,6 +14,8 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.{HeapIdentifier, TouchStateInterface}
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.collection.immutable.Set
+
 
 /**
   * Collects all the fields that are accessed in a program. This can be used to
@@ -37,7 +39,7 @@ object RequiredLibraryFragmentAnalysis extends LazyLogging {
       val params = for (a <- method.arguments.head) yield {
         new ExpressionSet(a.typ)
       }
-      MethodSummaries.collect(method.programpoint, method, AccessCollectingState(SystemParameters.typ.top()), params)
+      MethodSummaries.collect(method.programpoint, method, AccessCollectingState(SystemParameters.tm.Top), params)
 
     }
 
@@ -76,15 +78,11 @@ case class AccessCollectingState(myType: Type)
   extends State[AccessCollectingState]
     with TouchStateInterface[AccessCollectingState] {
 
-  def factory(): AccessCollectingState = AccessCollectingState(SystemParameters.typ.top())
+  def factory(): AccessCollectingState = AccessCollectingState(SystemParameters.tm.Top)
 
   def isTop = myType.isTop
 
   def isBottom = myType.isBottom
-
-  def setType(typ: Type): AccessCollectingState = AccessCollectingState(typ)
-
-  def getType: Type = myType
 
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
     RequiredLibraryFragmentAnalysis.spottedFields =
@@ -96,9 +94,11 @@ case class AccessCollectingState(myType: Type)
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.typ)
 
+  def setType(typ: Type): AccessCollectingState = AccessCollectingState(typ)
+
   def expr: ExpressionSet = ExpressionSet(UnitExpression(myType, null))
 
-  def removeExpression(): AccessCollectingState = this.setType(SystemParameters.typ.top())
+  def removeExpression(): AccessCollectingState = this.setType(SystemParameters.tm.Top)
 
   def createObject(typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
 
@@ -151,6 +151,8 @@ case class AccessCollectingState(myType: Type)
   def lub(other: AccessCollectingState): AccessCollectingState =
     AccessCollectingState(getType.lub(other.getType))
 
+  def getType: Type = myType
+
   def top(): AccessCollectingState = AccessCollectingState(myType.top())
 
   def widening(other: AccessCollectingState): AccessCollectingState =
@@ -176,6 +178,8 @@ case class AccessCollectingState(myType: Type)
   override def merge(r: Replacement): AccessCollectingState = this
 
   override def getPossibleConstants(id: Identifier) = SetDomain.Default.Top[Constant]()
+
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set.empty
 
   override def ids: IdentifierSet = IdentifierSet.Top
 

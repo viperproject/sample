@@ -549,7 +549,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
     acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         // inhale both sides of the conjunction
         exhale(left).exhale(right)
       case FieldAccessPredicate(identifier, numerator, denominator, _) =>
@@ -584,7 +584,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def inhale(acc: Expression): T = {
     logger.trace(s"inhale($acc)")
     acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         inhale(right).inhale(left)
       case FieldAccessPredicate(identifier, numerator, denominator, _) =>
         // get access path
@@ -1362,7 +1362,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
       case _ => Set.empty
     }
-    case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) => framed(left) ++ framed(right)
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&) => framed(left) ++ framed(right)
     case _ => Set.empty
   }
 

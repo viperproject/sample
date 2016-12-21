@@ -6,9 +6,9 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
 import viper.silver.ast.{SourcePosition, Type, TypeVar}
+import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator, ReferenceOperator}
 import viper.silver.{ast => sil}
 
 trait SampleConverter {
@@ -29,42 +29,55 @@ object DefaultSampleConverter extends SampleConverter {
     case sample.FunctionCallExpression(typ, functionName, parameters, _) => sil.FuncLikeApp(Context.functions(functionName), parameters.map(param => go(param)), Map())
     case sample.FieldExpression(typ, field, receiver) => sil.FieldAccess(go(receiver), sil.Field(field, go(typ))())()
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
-    case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
+    case sample.BinaryBooleanExpression(left, right, op) => op match {
       case BooleanOperator.`&&` => sil.And(go(left), go(right))()
       case BooleanOperator.`||` => sil.Or(go(left), go(right))()
     }
-    case sample.ReferenceComparisonExpression(left, right, op, typ) => op match {
+    case sample.ReferenceComparisonExpression(left, right, op) => op match {
+      case ReferenceOperator.`==` => sil.EqCmp(go(left), go(right))()
+      case ReferenceOperator.`!=` => sil.NeCmp(go(left), go(right))()
+    }
+//    case sample.BinaryArithmeticExpression(left, right, op) => {
+//      val (l, r) = (go(left), go(right))
+//      (l.typ, r.typ, op) match {
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`+`) => sil.PermAdd(l, r)()
+//        case (_, _, ArithmeticOperator.`+`) => sil.Add(l, r)()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`-`) => sil.PermSub(l, r)()
+//        case (_, _, ArithmeticOperator.`-`) => sil.Sub(l, r)()
+//        case (sil.Int, sil.Perm, ArithmeticOperator.`*`) => sil.IntPermMul(l, r)()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`*`) => sil.PermMul(l, r)()
+//        case (_, _, ArithmeticOperator.`*`) => sil.Mul(l, r)()
+//        case (sil.Int, sil.Int, ArithmeticOperator.`/`) => typ match {
+//          case IntType => sil.Div(l, r)()
+//          case PermType => sil.FractionalPerm(l, r)()
+//        }
+//        case (sil.Perm, sil.Int, ArithmeticOperator.`/`) => sil.PermDiv(l, r)()
+//        case (_, _, ArithmeticOperator.`%`) => sil.Mod(go(left), go(right))()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`>=`) => sil.PermGeCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`>=`) => sil.GeCmp(l, r)()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`<=`) => sil.PermLeCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`<=`) => sil.LeCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`==`) => sil.EqCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`!=`) => sil.NeCmp(l, r)()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`<`) => sil.PermLtCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`<`) => sil.LtCmp(l, r)()
+//        case (sil.Perm, sil.Perm, ArithmeticOperator.`>`) => sil.PermGtCmp(l, r)()
+//        case (_, _, ArithmeticOperator.`>`) => sil.GtCmp(l, r)()
+//        //case _ => throw new IllegalArgumentException("Type error or unsupported operation in conversion")
+//      }
+//    }
+    case sample.BinaryArithmeticExpression(left, right, op) => op match {
+      case ArithmeticOperator.`+` => sil.Add(go(left), go(right))()
+      case ArithmeticOperator.`-` => sil.Sub(go(left), go(right))()
+      case ArithmeticOperator.`*` => sil.Mul(go(left), go(right))()
+      case ArithmeticOperator.`/` => sil.Div(go(left), go(right))()
+      case ArithmeticOperator.`%` => sil.Mod(go(left), go(right))()
+      case ArithmeticOperator.`>=` => sil.GeCmp(go(left), go(right))()
+      case ArithmeticOperator.`<=` => sil.LeCmp(go(left), go(right))()
       case ArithmeticOperator.`==` => sil.EqCmp(go(left), go(right))()
       case ArithmeticOperator.`!=` => sil.NeCmp(go(left), go(right))()
-    }
-    case sample.BinaryArithmeticExpression(left, right, op, typ) => {
-      val (l, r) = (go(left), go(right))
-      (l.typ, r.typ, op) match {
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`+`) => sil.PermAdd(l, r)()
-        case (_, _, ArithmeticOperator.`+`) => sil.Add(l, r)()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`-`) => sil.PermSub(l, r)()
-        case (_, _, ArithmeticOperator.`-`) => sil.Sub(l, r)()
-        case (sil.Int, sil.Perm, ArithmeticOperator.`*`) => sil.IntPermMul(l, r)()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`*`) => sil.PermMul(l, r)()
-        case (_, _, ArithmeticOperator.`*`) => sil.Mul(l, r)()
-        case (sil.Int, sil.Int, ArithmeticOperator.`/`) => typ match {
-          case IntType => sil.Div(l, r)()
-          case PermType => sil.FractionalPerm(l, r)()
-        }
-        case (sil.Perm, sil.Int, ArithmeticOperator.`/`) => sil.PermDiv(l, r)()
-        case (_, _, ArithmeticOperator.`%`) => sil.Mod(go(left), go(right))()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`>=`) => sil.PermGeCmp(l, r)()
-        case (_, _, ArithmeticOperator.`>=`) => sil.GeCmp(l, r)()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`<=`) => sil.PermLeCmp(l, r)()
-        case (_, _, ArithmeticOperator.`<=`) => sil.LeCmp(l, r)()
-        case (_, _, ArithmeticOperator.`==`) => sil.EqCmp(l, r)()
-        case (_, _, ArithmeticOperator.`!=`) => sil.NeCmp(l, r)()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`<`) => sil.PermLtCmp(l, r)()
-        case (_, _, ArithmeticOperator.`<`) => sil.LtCmp(l, r)()
-        case (sil.Perm, sil.Perm, ArithmeticOperator.`>`) => sil.PermGtCmp(l, r)()
-        case (_, _, ArithmeticOperator.`>`) => sil.GtCmp(l, r)()
-        //case _ => throw new IllegalArgumentException("Type error or unsupported operation in conversion")
-      }
+      case ArithmeticOperator.`<` => sil.LtCmp(go(left), go(right))()
+      case ArithmeticOperator.`>` => sil.GtCmp(go(left), go(right))()
     }
     case sample.UnaryArithmeticExpression(inner, op, typ) => op match {
       case ArithmeticOperator.`+` => go(inner)

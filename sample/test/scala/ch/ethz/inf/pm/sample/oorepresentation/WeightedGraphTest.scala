@@ -6,9 +6,10 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation
 
+import ch.ethz.inf.pm.sample.test.SampleTest
 import org.scalatest.{FunSuite, Matchers}
 
-class WeightedGraphTest extends FunSuite with Matchers {
+class WeightedGraphTest extends FunSuite with Matchers with SampleTest {
 
   type NodeValType = String
   class TestGraph extends WeightedGraph[NodeValType, Nothing]

@@ -63,20 +63,20 @@ case class NonDeterminismWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
         case NondeterministicOperator.toExcl =>
           ndExpr.left match {
             case Constant("neginfty", _, _) => ()
-            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ))
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=))
           }
           ndExpr.right match {
             case Constant("posinfty", _, _) => ()
-            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<, ndExpr.typ))
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<))
           }
         case NondeterministicOperator.toIncl =>
           ndExpr.left match {
             case Constant("neginfty", _, _) => ()
-            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ))
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=))
           }
           ndExpr.right match {
             case Constant("posinfty",_,_) => ()
-            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.typ))
+            case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=))
           }
       }
     }
@@ -93,46 +93,46 @@ case class NonDeterminismWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
 
   private def removeNondeterminism(label: String, expr: Expression): (Expression, List[(Identifier, BinaryNondeterministicExpression)]) = {
     expr match {
-      case BinaryArithmeticExpression(left, right, op, typ) =>
+      case BinaryArithmeticExpression(left, right, op) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        (BinaryArithmeticExpression(expL, expR, op, typ), varL ::: varR)
-      case BinaryBooleanExpression(left, right, op, typ) =>
+        (BinaryArithmeticExpression(expL, expR, op), varL ::: varR)
+      case BinaryBooleanExpression(left, right, op) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        (BinaryBooleanExpression(expL, expR, op, typ), varL ::: varR)
-      case ReferenceComparisonExpression(left, right, op, typ) =>
+        (BinaryBooleanExpression(expL, expR, op), varL ::: varR)
+      case ReferenceComparisonExpression(left, right, op) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        (ReferenceComparisonExpression(expL, expR, op, typ), varL ::: varR)
+        (ReferenceComparisonExpression(expL, expR, op), varL ::: varR)
       case NegatedBooleanExpression(left) =>
         val (expL, varL) = removeNondeterminism(label, left)
         (NegatedBooleanExpression(expL), varL)
       case UnaryArithmeticExpression(left, op, ret) =>
         val (expL, varL) = removeNondeterminism(label, left)
         (UnaryArithmeticExpression(expL, op, ret), varL)
-      case BinaryNondeterministicExpression(left, right, op, returnType) =>
+      case BinaryNondeterministicExpression(left, right, op) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
         val identifier = VariableIdentifier(label)(expr.typ, expr.pp)
-        (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
+        (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op))))
       case x: Expression => (x, Nil)
     }
   }
 
   private def isDeterministicExpr(expr: Expression): Boolean = {
     expr match {
-      case BinaryArithmeticExpression(left, right, op, typ) =>
+      case BinaryArithmeticExpression(left, right, op) =>
         isDeterministicExpr(left) && isDeterministicExpr(right)
-      case BinaryBooleanExpression(left, right, op, typ) =>
+      case BinaryBooleanExpression(left, right, op) =>
         isDeterministicExpr(left) && isDeterministicExpr(right)
-      case ReferenceComparisonExpression(left, right, op, typ) =>
+      case ReferenceComparisonExpression(left, right, op) =>
         isDeterministicExpr(left) && isDeterministicExpr(right)
       case NegatedBooleanExpression(left) =>
         isDeterministicExpr(left)
       case UnaryArithmeticExpression(left, op, ret) =>
         isDeterministicExpr(left)
-      case BinaryNondeterministicExpression(left, right, op, returnType) =>
+      case BinaryNondeterministicExpression(left, right, op) =>
         false
       case x: Expression => true
     }

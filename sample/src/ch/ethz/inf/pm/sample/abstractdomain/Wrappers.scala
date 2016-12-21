@@ -52,10 +52,15 @@ trait InvertedLatticeWrapper[X <: Lattice[X], T <: InvertedLatticeWrapper[X,T]]
   override def isBottom: Boolean = wrapped.isTop
   override def isTop: Boolean = wrapped.isBottom
   override def factory(): T = top()
-  override def bottom(): T = wrapperFactory(wrapped.top())
-  override def widening(other: T): T = wrapperFactory(wrapped glb other.wrapped) // TODO: What?
-  override def lessEqual(r: T): Boolean = r.wrapped lessEqual wrapped
+
   override def top(): T = wrapperFactory(wrapped.bottom())
+
+  override def bottom(): T = wrapperFactory(wrapped.top())
+
+  override def widening(other: T): T = wrapperFactory(wrapped glb other.wrapped) // TODO: What?
+
+  override def lessEqual(r: T): Boolean = r.wrapped lessEqual wrapped
+
   override def lub(other: T): T = wrapperFactory(wrapped glb other.wrapped)
   override def glb(other: T): T = wrapperFactory(wrapped lub other.wrapped)
 
@@ -84,6 +89,8 @@ trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X
   }
 
   override def getPossibleConstants(id: Identifier) = wrapped.getPossibleConstants(id)
+
+  override def getConstraints(ids: Set[Identifier]) = wrapped.getConstraints(ids)
 }
 
 /**

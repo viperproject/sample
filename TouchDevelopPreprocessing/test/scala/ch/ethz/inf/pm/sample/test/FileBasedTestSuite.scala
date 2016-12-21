@@ -12,7 +12,7 @@ import java.util.regex.Pattern
 
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchRun}
+import ch.ethz.inf.pm.td.analysis.TouchRun
 import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchProgramPointRegistry}
 import org.scalatest._
 
@@ -73,7 +73,7 @@ abstract class TouchGuruTestSuite extends AnnotationBasedTestSuite {
   *
   * @author Stefan Heule
   */
-abstract class ResourceBasedTestSuite extends FunSuite {
+abstract class ResourceBasedTestSuite extends FunSuite with SampleTest {
   // Subclasses can extend the test input with further information
   // such as annotations
   type InputType <: TestInput
