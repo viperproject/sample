@@ -6,7 +6,6 @@
 
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
@@ -17,6 +16,7 @@ import ch.ethz.inf.pm.td.transform.Rewriter
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.util.parsing.input.{NoPosition, Position}
 
 
@@ -27,37 +27,37 @@ import scala.util.parsing.input.{NoPosition, Position}
  * Time: 4:21 PM
  *
  */
-
 object CFGGenerator {
-  def handlerIdent(ident: String) = "Closure[" + ident + "]"
 
-  def isHandlerIdent(ident: String) = ident.startsWith("Closure[")
+  def handlerIdent(ident: String): String = "Closure[" + ident + "]"
 
-  def paramIdent(ident: String) = "__param_" + ident
+  def isHandlerIdent(ident: String): Boolean = ident.startsWith("Closure[")
 
-  def isParamIdent(ident: String) = ident.startsWith("__param_")
+  def paramIdent(ident: String): String = "__param_" + ident
 
-  def libraryIdent(ident: String) = "♻" + ident
+  def isParamIdent(ident: String): Boolean = ident.startsWith("__param_")
 
-  def isLibraryIdent(ident: String) = ident.startsWith("♻") && ident.length() > 1
+  def libraryIdent(ident: String): String = "♻" + ident
 
-  def getLibraryName(ident: String) = ident.substring(1)
+  def isLibraryIdent(ident: String): Boolean = ident.startsWith("♻") && ident.length() > 1
 
-  def recordIdent(ident: String) = "⌹" + ident
+  def getLibraryName(ident: String): String = ident.substring(1)
 
-  def isRecordIdent(ident: String) = ident.startsWith("⌹") && ident.length() > 1
+  def recordIdent(ident: String): String = "⌹" + ident
 
-  def getRecordName(ident: String) = ident.substring(1)
+  def isRecordIdent(ident: String): Boolean = ident.startsWith("⌹") && ident.length() > 1
+
+  def getRecordName(ident: String): String = ident.substring(1)
 
   def makeRecordTypeName(ident: String) = TypeName(getRecordName(ident),isUserDefined = true)
 
-  def returnIdent(ident: String) = "__returned_" + ident
+  def returnIdent(ident: String): String = "__returned_" + ident
 
-  def isReturnIdent(ident: String) = ident.startsWith("__returned_")
+  def isReturnIdent(ident: String): Boolean = ident.startsWith("__returned_")
 
-  def isNonDetIdent(ident: String) = ident.startsWith("__nondet")
+  def isNonDetIdent(ident: String): Boolean = ident.startsWith("__nondet")
 
-  def isStmtTempIdent(ident: String) = ident.startsWith("__temp")
+  def isStmtTempIdent(ident: String): Boolean = ident.startsWith("__temp")
 
   def optionalArgumentIdent = "__optional_argument"
 
@@ -69,7 +69,7 @@ object CFGGenerator {
    * @param element aa
    * @return The program point
    */
-  def makeTouchProgramPoint(pubID: String, libraryStableID:String, element: IdPositional) = {
+  def makeTouchProgramPoint(pubID: String, libraryStableID: String, element: IdPositional): SpaceSavingProgramPoint = {
     if (TouchAnalysisParameters.get.includeLibraryStableComponent) {
       TouchProgramPointRegistry.make(pubID, element.pos, libraryStableID :: element.customIdComponents)
     } else {
@@ -552,7 +552,7 @@ trait Named {
 
   override def hashCode: Int = name.hashCode()
 
-  override def toString = name
+  override def toString: String = name
 }
 
 case class TouchException(msg: String, pos: Position = null) extends Exception {
@@ -570,14 +570,14 @@ case class TouchMethodIdentifier(ident: String, isEvent: Boolean, isPrivate: Boo
 }
 
 case class TouchClassIdentifier(name: String, typ: Type) extends Named with ClassIdentifier {
-  def getThisType() = typ
+  def getThisType(): Type = typ
 }
 
 /** Used to speed up the analysis */
 object TouchProgramPointRegistry {
 
-  val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]
-  val revReg = mutable.HashMap.empty[(String,Position,List[String]),(TouchProgramPoint,Int)]
+  val reg: ArrayBuffer[TouchProgramPoint] = mutable.ArrayBuffer.empty[TouchProgramPoint]
+  val revReg: mutable.HashMap[(String, Position, List[String]), (TouchProgramPoint, Int)] = mutable.HashMap.empty[(String, Position, List[String]), (TouchProgramPoint, Int)]
 
   def make(scriptID: String, positional: IdPositional): SpaceSavingProgramPoint = {
     make(scriptID,positional.pos,positional.customIdComponents)
@@ -630,21 +630,21 @@ case class TouchProgramPoint(
     parserPos + customPos
   }
 
-  override def toString = {
+  override def toString: String = {
     val fullPos = fullPosString
     s"PP($scriptID:$fullPos)"
   }
 
-  override def description = {
+  override def description: String = {
     val fullPos = fullPosString
     s"in script $scriptID at node $fullPos"
   }
 }
 
 case class TouchSingletonProgramPoint(name: String) extends ProgramPoint {
-  override def toString = "Init(" + name + ")"
+  override def toString: String = "Init(" + name + ")"
 
-  override def description = "at initialization of singleton " + name
+  override def description: String = "at initialization of singleton " + name
 }
 
 /**
@@ -673,9 +673,9 @@ object DeepeningProgramPoint {
 }
 
 case class DeepeningProgramPoint(pp: ProgramPoint, path: List[String]) extends ProgramPoint {
-  override def toString = pp + "(" + path.mkString(",") + ")"
+  override def toString: String = pp + "(" + path.mkString(",") + ")"
 
-  override def description = pp + " at initialization path " + path.mkString(",")
+  override def description: String = pp + " at initialization path " + path.mkString(",")
 }
 
 /**

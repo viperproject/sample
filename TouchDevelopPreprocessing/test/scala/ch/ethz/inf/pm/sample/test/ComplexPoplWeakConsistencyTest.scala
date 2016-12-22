@@ -16,6 +16,9 @@ import org.scalatest.FunSuite
   */
 class ComplexPoplWeakConsistencyTest extends FunSuite with SampleTest {
 
+  //  test("Color Line (ulvma)") {
+  //    runAnalysis("td://ulvma")
+  //  }
   //  test("sky locale (Fixed) (pmzxrhbsrv)") {
   //    runAnalysis("td://pmzxrhbsrv")
   //  }

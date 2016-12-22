@@ -10,6 +10,8 @@ import ch.ethz.inf.pm.td.cloud.eventgraph.Encoder.EventArgumentNames
 import com.novus.salat.annotations.Salat
 import com.novus.salat.{TypeHintStrategy, _}
 
+import scala.collection.mutable
+
 object Graph {
 
   type OperationID = String
@@ -64,26 +66,34 @@ case class Graph(
   def toLabeledGraph: LabeledGraph[String, String] = {
 
     val pg = new LabeledGraph[String, String]()
+    val nodeMap: mutable.Map[String, Int] = mutable.HashMap[String, Int]()
 
     transactions.foreach {
       x =>
         val node = TransactionNames.make(x)
         pg.addNode(node)
-        pg.setNodeLabel(node, x.toString)
-        pg.setNodeClass(node, "coral")
+        pg.setNodeLabel(node, node.toString)
+        pg.setNodeClass(node, "blue")
     }
 
     events.foreach {
       x =>
         val node = x.id
-        pg.addNode(node)
-        pg.setNodeLabel(node, node + " (" + pg.getNodeLabel(node) + ")")
+        nodeMap += (node -> pg.addNode(node))
+        pg.setNodeLabel(node, x.operationID)
         eventMap.get(node).foreach {
           x =>
             val txn = TransactionNames.make(x.txn)
             pg.addPartitioning(node, txn)
         }
-        pg.setNodeClass(node, "blue")
+        pg.setNodeClass(node, "coral")
+    }
+
+    programOrder.foreach {
+      x =>
+        val weight = x.constraint.smt
+        pg.addEdge(nodeMap(x.sourceID), nodeMap(x.targetID), Some(weight))
+        pg.setEdgeLabel(weight, weight)
     }
 
     pg
@@ -239,7 +249,7 @@ case class BigAnd(es: List[Expr]) extends ArbOp {
 }
 
 case class StringConst(str: String) extends Constant {
-  override def smt: String = "\"str\""
+  override def smt: String = "\"" + str + "\""
 }
 
 case class IntConst(i: Int) extends Constant {
