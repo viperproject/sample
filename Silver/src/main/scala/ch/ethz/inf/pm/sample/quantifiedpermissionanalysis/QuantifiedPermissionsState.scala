@@ -10,7 +10,6 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, RefType, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.BlockType.{BlockType, Default}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
 import com.typesafe.scalalogging.LazyLogging
@@ -42,7 +41,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       expr: ExpressionSet = ExpressionSet(),
                                       visited: Set[ProgramPoint] = Set(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
-                                      blockType: BlockType = Default,
                                       permissions: PermissionRecords = PermissionRecords(),
                                       expressions: Map[(ProgramPoint, Expression), SetDescription] = Map()
                                       )
@@ -79,10 +77,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            expr: ExpressionSet = expr,
            visited: Set[ProgramPoint] = visited,
            currentPP: ProgramPoint = currentPP,
-           blockType: BlockType = blockType,
            permissions: PermissionRecords = permissions,
            expressions: Map[(ProgramPoint, Expression), SetDescription] = expressions) =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, blockType, permissions, expressions)
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, expressions)
 
   /** Removes the current expression.
     *
@@ -96,8 +93,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after changing the current expression with the given one
     */
   override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = copy(expr = expr)
-
-  def setBlockType(blockType: BlockType): QuantifiedPermissionsState = copy(blockType = blockType)
 
   /** Computes the least upper bound of two elements.
     *
@@ -176,7 +171,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
           })
         case IntType => if (!visited.contains(currentPP)) (permissions.transformExpressions(e => if (e.equals(left)) right else e), expressions.map {
-          case ((pp, expr), setDescription) => (pp, expr.transform(e => if (e.equals(left)) right else e)) -> setDescription.transformAssignVariable(left, right)
+          case ((pp, keyExpr), setDescription) => (pp, keyExpr.transform(e => if (e.equals(left)) right else e)) -> setDescription.transformAssignVariable(left, right)
         }) else (permissions, expressions)
         case _ => throw new IllegalStateException()
       }
