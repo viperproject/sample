@@ -28,8 +28,8 @@ object CloudAnalysisState {
 
   def reset(): Unit = {
     localInvariants = Map.empty
-    invProgramOrder = Map.empty
-    stringToEvent = Map.empty
+    invProgramOrder = Map(InitialEvent -> Set.empty)
+    stringToEvent = Map(InitialEvent.id -> InitialEvent)
     curTransaction = DummyProgramPoint
   }
 
@@ -48,20 +48,60 @@ object CloudAnalysisState {
         src, tgt)
     }
 
+    val events =
+      stringToEvent.values.map {
+        case InitialEvent =>
+          Event(InitialEvent.id, InitialEvent.id, "entry")
+        case ProgramPointEvent(pp, obj, method, txn) =>
+          println(obj + " --> " + method)
+          Event(pp.toString, txn.toString, obj + "." + method)
+      }.toList
+
     Graph(
-      events =
-        stringToEvent.values.collect { case ProgramPointEvent(pp, obj, method, txn) =>
-          Event(pp.toString, txn.toString, method)
-        }.toList,
-      system = TouchDevelopSystemSpecification.spec,
+      events = events,
+      system =
+        SystemSpecification(
+
+
+          operations = List(
+
+
+          ),
+
+          // Must specify commutativity between all operations.
+          // You can leave out pairs where both operations are
+          // queries, or the first operation has a larger (alphabetical)
+          // ID than the second (due to symmetry)
+          commutativitySpecs = Map(
+
+
+          ),
+
+          // Must specify absorption between all updates
+          absorptionSpecs = Map(
+
+
+          )
+
+        ),
       programOrder =
         invProgramOrder.flatMap {
-          case (src, targets) =>
+          case (tgt, sources) =>
 
-            val state = localInvariants(src).asInstanceOf[S]
+            for (src <- sources) yield {
+              (src, tgt) match {
 
-            for (target <- targets) yield {
-              Edge(src.id, target.id, extractConstraints(state, src.id, target.id))
+                case (ProgramPointEvent(_, obj1, _, _), ProgramPointEvent(_, obj2, _, _)) =>
+
+                  val state = localInvariants(tgt).asInstanceOf[S]
+                  Edge(src.id, tgt.id, extractConstraints(state, src.id, tgt.id))
+
+                case _ =>
+
+                  Edge(src.id, tgt.id, True)
+
+              }
+
             }
 
         }.toList
@@ -129,16 +169,23 @@ object CloudAnalysisState {
 
       for (p <- parameters) {
         for (r <- cloudPaths(curState, p)) {
-          curState = recordOperation(p, r, "◈get", Nil, curState, pp)
+          curState = recordOperation(p, r, "get", Nil, curState, pp)
         }
       }
 
-      if (isEscapingOperation(operator)) {
-        for (r <- cloudPaths(curState, this0)) {
-          curState = recordOperation(this0, r, operator, Nil, curState, pp)
-        }
-      }
+      toCloudOperator(operator) match {
 
+        case None =>
+
+          ()
+
+        case Some(op) =>
+
+          for (r <- cloudPaths(curState, this0)) {
+            curState = recordOperation(this0, r, op, Nil, curState, pp)
+          }
+
+      }
       curState
 
     } else state
@@ -180,20 +227,21 @@ object CloudAnalysisState {
     }.filter(_.nonEmpty).mkString(".")
   }
 
-  private def isEscapingOperation(operator: String): Boolean = {
+  private def toCloudOperator(operator: String): Option[String] = {
     operator match {
-      case ":=" => true
-      case "◈confirmed" => true
-      case "◈get" => true
-      case "=" => true
-      case "post to wall" => true
-      case "clear fields" => true
-      case "equals" => true
-      case _ => false
+      case ":=" => Some("set")
+      case "◈confirmed" => Some("fence")
+      case "◈get" => Some("get")
+      case "=" => Some("get")
+      case "post to wall" => Some("get")
+      case "clear fields" => Some("clear")
+      case "equals" => Some("get")
+      case _ => None
     }
   }
 
-  private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath: String, operator: String, parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
+  private def recordOperation[S <: State[S]](this0: ExpressionSet, cloudPath: String, operator: String,
+      parameters: List[ExpressionSet], state: S, pp: ProgramPoint): S = {
 
     val helpers = Singleton(SHelpers)(pp)
 
@@ -221,9 +269,9 @@ object CloudAnalysisState {
     val events =
       constants.map {
         case Constant(c, _, _) if c.nonEmpty =>
-          Some(stringToEvent(c))
+          stringToEvent(c)
         case Constant(c, _, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
-          None
+          InitialEvent
       }
 
     // Map all actual parameters to their formal parameters
@@ -231,7 +279,7 @@ object CloudAnalysisState {
       (this0 :: parameters).zipWithIndex.foldLeft(state) {
         case (s, (expr, i)) =>
           val field = SHelpers.getCloudArgumentField(event.id, expr.typ.asInstanceOf[AAny],
-            CloudArgumentFieldNames.make(event.id, expr.typ, i))
+            CloudArgumentFieldNames.make(event.id, expr.typ, i + 1))
           AssignField[S](helpers, field, expr)(s, pp)
       }
 
@@ -239,13 +287,14 @@ object CloudAnalysisState {
       assignedState.pruneVariables {
         x => x.name != SHelpers.name.toLowerCase
       }
+
     localInvariants = localInvariants +
       (event -> (localInvariants.get(event).map(_.asInstanceOf[S]).getOrElse(state.bottom()) lub prunedState))
 
     // Update the stored local invariant
     if (!events.isTop) {
       invProgramOrder = invProgramOrder +
-        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSetOrFail.flatten))
+        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSetOrFail))
     }
 
     // Update state to include current relation
@@ -297,7 +346,8 @@ object CloudAnalysisState {
     override def toString: String = aE.toString
   }
 
-  case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, obj: String, method: String, txn: ProgramPoint) extends AbstractEvent {
+  case class ProgramPointEvent[S <: State[S]](pp: ProgramPoint, obj: String, method: String, txn: ProgramPoint)
+    extends AbstractEvent {
 
     val id: String = pp.toString
 
@@ -321,13 +371,12 @@ object CloudAnalysisState {
 
   }
 
-  // TODO: Do we need an initial event?
-  //  case object InitialEvent extends AbstractEvent {
-  //
-  //    val id = "init"
-  //
-  //    override def toString: String = "Init"
-  //
-  //  }
+  case object InitialEvent extends AbstractEvent {
+
+    val id = "init"
+
+    override def toString: String = "Init"
+
+  }
 
 }
