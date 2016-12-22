@@ -332,10 +332,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The modified list of formal arguments*/
   override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
-    if (permissions.exists((arg) => arg._2.exists(tree => tree match {
+    if (permissions.exists((arg) => arg._2.exists {
       case PermissionLeaf(_, _: SymbolicReadPermission) => true
       case _ => false
-    }))) {
+    })) {
       val rdAmount = Context.getRdAmountVariable
       if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
     }
@@ -364,10 +364,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
-    if (permissions.exists((arg) => arg._2.exists(tree => tree match {
+    if (permissions.exists((arg) => arg._2.exists {
       case PermissionLeaf(_, _: SymbolicReadPermission) => true
       case _ => false
-    }))) {
+    })) {
       val rdAmount = Context.getRdAmountVariable.localVar
       val readPaths = permissions.flatMap { case (_, tree) => tree.getReadPaths }.toSet
       if (readPaths.nonEmpty) {
