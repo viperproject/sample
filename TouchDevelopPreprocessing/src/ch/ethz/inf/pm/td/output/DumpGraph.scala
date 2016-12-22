@@ -42,7 +42,7 @@ object DumpGraph {
     val edgeStr = (graph.edges map { case (source,target,weight) =>
       val label = weight.map(graph.getEdgeLabel).getOrElse("")
       val id = source + "to" + target + label
-      s"{ data: { id: '$id', source: '$source', target: '$target', label: '$label' }, classes: '$label' }"
+      s"{ data: { id: '$id', source: '$source', target: '$target', label: '$label' }, classes: 'edge' }"
     }).mkString(",\n")
 
       s"""
@@ -67,6 +67,8 @@ object DumpGraph {
          |</style>
          |<script src='http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js'></script>
          |<script src='http://cytoscape.github.io/cytoscape.js/api/cytoscape.js-latest/cytoscape.min.js'></script>
+         |<script src="https://cdn.rawgit.com/cpettitt/dagre/v0.7.4/dist/dagre.min.js"></script>
+         |<script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-dagre/1.1.2/cytoscape-dagre.js"></script>
          |<script>
          |
          |$$(function(){ // on dom ready
@@ -81,16 +83,16 @@ object DumpGraph {
          |        'content': 'data(name)',
          |        'text-valign': 'center',
          |        'text-halign': 'center',
-         |        'background-color': 'lightgray'
+         |        'background-color': 'lightgray',
+         |        'width': 'label',
+         |        'height': 'label',
+         |        'padding': '5px',
+         |        'shape': 'roundrectangle'
          |      }
          |    },
          |    {
          |      selector: '$$node > node',
          |      css: {
-         |        'padding-top': '3px',
-         |        'padding-left': '10px',
-         |        'padding-bottom': '3px',
-         |        'padding-right': '10px',
          |        'text-valign': 'top',
          |        'text-halign': 'center'
          |      }
@@ -103,7 +105,8 @@ object DumpGraph {
          |        'line-color': 'black',
          |        'target-arrow-color': 'black',
          |        'source-arrow-color': 'black',
-         |        'content': 'data(label)'
+         |        'content': 'data(label)',
+         |        'curve-style': 'bezier'
          |      }
          |    },
          |    {
@@ -143,13 +146,16 @@ object DumpGraph {
          |    ]
          |  },
          |
-         |  layout: {
-         |    name: 'grid',
-         |    position: function(node) {
-         |      return { row:node.data('row'), column:node.data('column') };
-         |    },
-         |    padding: 1
-         |  }
+         |	layout: {
+         |		name: 'dagre'
+         |	}
+         |  //layout: {
+         |  //  name: 'grid',
+         |  //  position: function(node) {
+         |  //    return { row:node.data('row'), column:node.data('column') };
+         |  //  },
+         |  //  padding: 1
+         |  //}
          |});
          |
          |}); // on dom ready

@@ -9,12 +9,15 @@ package ch.ethz.inf.pm.sample.test
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.reporting.{SampleError, SampleInfo}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchDevelopAnalysisRunner}
+import ch.ethz.inf.pm.td.output.Exporters
 import org.scalatest.FunSuite
 
 /**
   * @author Lucas Brutschy
   */
 class SimplePoplWeakConsistencyTest extends FunSuite with SampleTest {
+
+  Exporters.jobID = "popl"
 
   test("dekker example (Fixed) (fekcblzqer)") {
     runAnalysis("td://fekcblzqer")
@@ -81,23 +84,20 @@ class SimplePoplWeakConsistencyTest extends FunSuite with SampleTest {
     ))
   }
 
-  //  test("Contest Voting (etww)") {
-  //    runAnalysis("td://etww")
-  //  }
+  test("Contest Voting (etww)") {
+    runAnalysis("td://etww")
+  }
 
-  //  test("Color Line (uvlma)") {
-  //    runAnalysis("td://uvlma")
-  //  }
-
-  //  test("unique poll (wbuei)") {
-  //    runAnalysis("td://wbuei")
-  //  }
+  test("unique poll (wbuei)") {
+    runAnalysis("td://wbuei")
+  }
 
   // Replace from Google Docs:
   //   +(\w+)\t([^\n]*)
   //  test("$2 ($1)") {\n    runAnalysis("td://$1")\n  }
 
   def runAnalysis(id: String, expectedErrors: Set[(String, String)] = Set.empty): Unit = {
+
     val original = TouchAnalysisParameters.get
     TouchAnalysisParameters.set(
       TouchAnalysisParameters.get.copy(
