@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
-import viper.silver.ast.{Exp, PermDiv}
+import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
 
 /**
@@ -43,7 +43,7 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
   override def undoLastRead = EmptyPermissionTree
   def getReadPaths: Set[(FractionalPermission, Int)] = permission match {
     case NegatedPermission(arg) => arg.getReadPerm match {
-      case (FractionalPermission(num, denom), read) => Set((FractionalPermission(-num, denom), read))
+      case (FractionalPermission(num, denom), read) => Set((FractionalPermission.createReduced(-num, denom), read))
     }
     case other => Set(other.getReadPerm)
   }
@@ -67,9 +67,9 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
     case PermissionList(perms) => PermissionList(perms.init)
   }
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(tree => tree.foreach(f))
-  def getReadPaths: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(tree => tree.getReadPaths).reduceLeft {
+  def getReadPaths: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(tree => tree.getReadPaths).reduceLeft[(FractionalPermission, Int)] {
     case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
-      (FractionalPermission(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
+      (FractionalPermission.createReduced(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
   })
 }
 
@@ -80,7 +80,7 @@ case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || arg.exists(f)
   def foreach(f: (Expression => Unit)): Unit = arg.foreach(f)
   def getReadPaths: Set[(FractionalPermission, Int)] = arg.getReadPaths.map {
-    case (FractionalPermission(num, denom), read) => (FractionalPermission(-num, denom), -read)
+    case (FractionalPermission(num, denom), read) => (FractionalPermission.createReduced(-num, denom), -read)
   }
 }
 
@@ -131,20 +131,32 @@ case class NegatedPermission(arg: Permission) extends Permission {
   def toSilExpression: sil.Exp = sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression)()
   override def transform(f: (Expression => Expression)) = NegatedPermission(arg.transform(f))
   def getReadPerm: (FractionalPermission, Int) = arg.getReadPerm match {
-    case (FractionalPermission(num, denom), r) => (FractionalPermission(-num, denom), -r)
+    case (FractionalPermission(num, denom), r) => (FractionalPermission.createReduced(-num, denom), -r)
   }
 }
 
 object FractionalPermission {
+  private def gcd(a: Int, b: Int): Int = b match {
+    case 0 => a.abs
+    case _ => gcd(b, a % b)
+  }
+  def createReduced(numerator: Int, denominator: Int): FractionalPermission = {
+    val divisor = gcd(numerator, denominator)
+    new FractionalPermission(numerator / divisor, denominator / divisor)
+  }
   def apply(numerator: Expression, denominator: Expression): FractionalPermission = (numerator, denominator) match {
-    case (Constant(num, IntType, _), Constant(denom, IntType, _)) => FractionalPermission(num.toInt, denom.toInt)
+    case (Constant(num, IntType, _), Constant(denom, IntType, _)) => FractionalPermission.createReduced(num.toInt, denom.toInt)
   }
 }
 
 case class FractionalPermission(numerator: Int, denominator: Int) extends Permission {
-  override def toSilExpression: PermDiv = sil.PermDiv(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
+  if (denominator < 1) throw new IllegalArgumentException("Denominator of a fractional permission must be greater than 0!")
+  override def toSilExpression: sil.FractionalPerm = sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
   override def transform(f: (Expression => Expression)): FractionalPermission = this
   def getReadPerm: (FractionalPermission, Int) = (this, 0)
+  def <(other: FractionalPermission) = other match {
+    case FractionalPermission(otherNumerator, otherDenominator) => numerator * otherDenominator < denominator * otherNumerator
+  }
 }
 
 case class SymbolicReadPermission(toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar, getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)) extends Permission

@@ -332,9 +332,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The modified list of formal arguments*/
   override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
-    Context.rdAmountVariable match {
-      case Some(rdAmount) => if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
-      case None =>
+    if (permissions.exists((arg) => arg._2.exists(tree => tree match {
+      case PermissionLeaf(_, _: SymbolicReadPermission) => true
+      case _ => false
+    }))) {
+      val rdAmount = Context.getRdAmountVariable
+      if (!newFormalArguments.contains(rdAmount)) newFormalArguments = newFormalArguments :+ rdAmount
     }
     expressions.foreach {
       case (key, setDescription: InnerSetDescription) =>
@@ -343,6 +346,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     newFormalArguments
   }
+
+  private def getMaxRdValue(permAmount: FractionalPermission, readAmount: Int): FractionalPermission = permAmount match {
+    case FractionalPermission(numerator, denominator) =>
+      if (readAmount == 0) FractionalPermission(1, 1)
+      else FractionalPermission(denominator - numerator, denominator * readAmount)
+  }
+
+  private def getMaxRdValueTupled = (getMaxRdValue _).tupled
 
   /**
     * Modifies the list of preconditions using information stored in the current
@@ -353,9 +364,19 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newPreconditions = existing
-    Context.rdAmountVariable match {
-      case Some(rdAmount) => newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount.localVar)(), sil.PermLtCmp(rdAmount.localVar, WritePerm)())()
-      case None =>
+    if (permissions.exists((arg) => arg._2.exists(tree => tree match {
+      case PermissionLeaf(_, _: SymbolicReadPermission) => true
+      case _ => false
+    }))) {
+      val rdAmount = Context.getRdAmountVariable.localVar
+      val readPaths = permissions.flatMap { case (_, tree) => tree.getReadPaths }.toSet
+      if (readPaths.nonEmpty) {
+        var min = getMaxRdValue(readPaths.head._1, readPaths.head._2)
+        readPaths.foreach { cur => if (getMaxRdValueTupled(cur) < min) min = getMaxRdValueTupled(cur) }
+        newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount)(), sil.PermLtCmp(rdAmount, sil.FractionalPerm(sil.IntLit(min.numerator)(), sil.IntLit(min.denominator)())())())()
+      } else {
+        newPreconditions = newPreconditions :+ sil.And(sil.PermLtCmp(ZeroPerm, rdAmount)(), sil.PermLtCmp(rdAmount, WritePerm)())()
+      }
     }
     permissions.foreach { case (fieldName, permissionTree) =>
       val quantifiedVariableDecl = Context.getQuantifiedVarDecl
