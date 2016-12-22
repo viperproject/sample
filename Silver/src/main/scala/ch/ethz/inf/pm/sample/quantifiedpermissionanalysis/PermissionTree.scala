@@ -31,7 +31,7 @@ trait PermissionTree {
   def exists(f: (PermissionTree => Boolean)): Boolean
   def foreach(f: (Expression => Unit)): Unit
   def undoLastRead: PermissionTree = throw new UnsupportedOperationException("This permission tree does not support undo!")
-  def getMaxPermission: (FractionalPermission, Int)
+  def getReadPaths: Set[(FractionalPermission, Int)]
 }
 
 case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission) extends PermissionTree {
@@ -41,7 +41,12 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
   override def undoLastRead = EmptyPermissionTree
-  def getMaxPermission: (FractionalPermission, Int) = permission.toFractional
+  def getReadPaths: Set[(FractionalPermission, Int)] = permission match {
+    case NegatedPermission(arg) => arg.getReadPerm match {
+      case (FractionalPermission(num, denom), read) => Set((FractionalPermission(-num, denom), read))
+    }
+    case other => Set(other.getReadPerm)
+  }
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
@@ -62,10 +67,10 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
     case PermissionList(perms) => PermissionList(perms.init)
   }
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(tree => tree.foreach(f))
-  def getMaxPermission: (FractionalPermission, Int) =
-    permissions.map(perm => perm.getMaxPermission).reduce[(FractionalPermission, Int)] {
-      case ((FractionalPermission(num1, denom1), read1), (FractionalPermission(num2, denom2), read2)) => (FractionalPermission(num1 * denom2 + num2 * denom1, denom1 * denom2), read1 + read2)
-    }
+  def getReadPaths: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(tree => tree.getReadPaths).reduceLeft {
+    case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
+      (FractionalPermission(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
+  })
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
@@ -74,7 +79,7 @@ case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
   def transform(f: (Expression => Expression)) = NegativePermissionTree(arg.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || arg.exists(f)
   def foreach(f: (Expression => Unit)): Unit = arg.foreach(f)
-  def getMaxPermission: (FractionalPermission, Int) = arg.getMaxPermission match {
+  def getReadPaths: Set[(FractionalPermission, Int)] = arg.getReadPaths.map {
     case (FractionalPermission(num, denom), read) => (FractionalPermission(-num, denom), -read)
   }
 }
@@ -89,10 +94,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
     left.foreach(f)
     right.foreach(f)
   }
-  def getMaxPermission: (FractionalPermission, Int) = (left.getMaxPermission, right.getMaxPermission) match {
-    case ((left@FractionalPermission(num1, denom1), read1), (right@FractionalPermission(num2, denom2), read2)) =>
-      (if (num1 * denom2 > num2 * denom1) left else right, if (read1 > read2) read1 else read2)
-  }
+  def getReadPaths: Set[(FractionalPermission, Int)] = left.getReadPaths ++ right.getReadPaths
 }
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
@@ -106,10 +108,7 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
     left.foreach(f)
     right.foreach(f)
   }
-  def getMaxPermission: (FractionalPermission, Int) = (left.getMaxPermission, right.getMaxPermission) match {
-    case ((left@FractionalPermission(num1, denom1), read1), (right@FractionalPermission(num2, denom2), read2)) =>
-      (if (num1 * denom2 > num2 * denom1) left else right, if (read1 > read2) read1 else read2)
-  }
+  def getReadPaths: Set[(FractionalPermission, Int)] = left.getReadPaths ++ right.getReadPaths
 }
 
 object EmptyPermissionTree extends PermissionTree {
@@ -119,44 +118,43 @@ object EmptyPermissionTree extends PermissionTree {
   override def transform(f: (Expression) => Expression): PermissionTree = this
   override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = {}
-  def getMaxPermission: (FractionalPermission, Int) = (FractionalPermission(0, 0), 0)
+  def getReadPaths: Set[(FractionalPermission, Int)] = Set()
 }
 
 trait Permission {
   def toSilExpression: sil.Exp
   def transform(f: (Expression => Expression)): Permission = this
-  def toFractional: (FractionalPermission, Int)
+  def getReadPerm: (FractionalPermission, Int)
 }
 
 case class NegatedPermission(arg: Permission) extends Permission {
   def toSilExpression: sil.Exp = sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression)()
   override def transform(f: (Expression => Expression)) = NegatedPermission(arg.transform(f))
-  def toFractional: (FractionalPermission, Int) = {
-    val (argPerm, argRead) = arg.toFractional
-    (FractionalPermission(-argPerm.numerator, argPerm.denominator), -argRead)
+  def getReadPerm: (FractionalPermission, Int) = arg.getReadPerm match {
+    case (FractionalPermission(num, denom), r) => (FractionalPermission(-num, denom), -r)
   }
 }
 
 object FractionalPermission {
   def apply(numerator: Expression, denominator: Expression): FractionalPermission = (numerator, denominator) match {
-    case (Constant(num, IntType, _), Constant(denum, IntType, _)) => FractionalPermission(num.toInt, denum.toInt)
+    case (Constant(num, IntType, _), Constant(denom, IntType, _)) => FractionalPermission(num.toInt, denom.toInt)
   }
 }
 
 case class FractionalPermission(numerator: Int, denominator: Int) extends Permission {
   override def toSilExpression: PermDiv = sil.PermDiv(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
   override def transform(f: (Expression => Expression)): FractionalPermission = this
-  def toFractional: (FractionalPermission, Int) = (this, 0)
+  def getReadPerm: (FractionalPermission, Int) = (this, 0)
 }
 
-case class SymbolicReadPermission(toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar, toFractional: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)) extends Permission
+case class SymbolicReadPermission(toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar, getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)) extends Permission
 
 object WritePermission extends Permission {
   override def toSilExpression: Exp = sil.FullPerm()()
-  def toFractional: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
+  def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
 }
 
 object ZeroPermission extends Permission {
   override def toSilExpression: Exp = sil.NoPerm()()
-  def toFractional: (FractionalPermission, Int) = (FractionalPermission(0, 1), 0)
+  def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 0)
 }
