@@ -102,7 +102,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
             mutable.SortedSet(cfg.getDirectPredecessors(currentId).head)(ordering) ++ (blocksToProcessIds -- cfg.getDirectPredecessors(currentId))
           case 0 => blocksToProcessIds
         }
-        iterationAtBlock = iterationAtBlock + (currentId -> (currentCount + 1))
+        iterationAtBlock += currentId -> (currentCount + 1)
       }
     }
     cfgState
