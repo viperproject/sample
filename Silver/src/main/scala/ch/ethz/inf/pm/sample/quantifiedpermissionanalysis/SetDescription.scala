@@ -76,9 +76,9 @@ object SetDescription {
       }
     }
 
-    private def blubb2(paramSets: Seq[Set[Expression]]): Set[Seq[Expression]] = {
+    private def expand(paramSets: Seq[Set[Expression]]): Set[Seq[Expression]] = {
       if (paramSets.isEmpty) Set(Seq())
-      else blubb2(paramSets.init).flatMap(seq => paramSets.last.map(expr => seq :+ expr))
+      else expand(paramSets.init).flatMap(seq => paramSets.last.map(expr => seq :+ expr))
     }
 
     private def blubb(field: String, receiver: Expression, right: Expression, expr: Expression): Set[Expression] = expr match {
@@ -87,7 +87,7 @@ object SetDescription {
         else Set(expr, right) ++ blubb(field, receiver, right, rec).map(newReceiver => FieldExpression(right.typ, field, newReceiver))
       case FieldExpression(_, otherField, rec) => blubb(field, receiver, right, rec).map(newReceiver => FieldExpression(right.typ, otherField, newReceiver))
       case FunctionCallExpression(typ, functionName, params, pp) =>
-        blubb2(params.map(param => blubb(field, receiver, right, param))).map(newParams => FunctionCallExpression(typ, functionName, newParams, pp))
+        expand(params.map(param => blubb(field, receiver, right, param))).map(newParams => FunctionCallExpression(typ, functionName, newParams, pp))
       case _ => Set(expr)
     }
 

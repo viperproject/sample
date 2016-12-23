@@ -534,11 +534,11 @@ case class MethodCall(
       case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
       case body: Variable =>
         var curState = state
-        val paramExprs = for (parameter <- parameters) yield {
+        val parameterExpressions = for (parameter <- parameters) yield {
           curState = parameter.forwardSemantics[S](curState)
-          curState.expr.getSingle.get
+          curState.expr
         }
-        curState.setExpression(ExpressionSet(FunctionCallExpression(returnedType, body.getName, paramExprs, pp)))
+        curState.setExpression(ExpressionSetFactory.createFunctionCallExpression(returnedType, body.getName, parameterExpressions, pp))
     }
 
   }
