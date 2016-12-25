@@ -540,7 +540,6 @@ case class MethodCall(
         }
         curState.setExpression(ExpressionSetFactory.createFunctionCallExpression(returnedType, body.getName, parameterExpressions, pp))
     }
-
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,

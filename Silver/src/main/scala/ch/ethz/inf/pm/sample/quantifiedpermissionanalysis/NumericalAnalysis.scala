@@ -50,9 +50,9 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the creation of the argument*/
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = {
     if (typ.isObject) {
-      this.copy(expr = ExpressionSet(x), numDom = numDom.createVariable(x, typ))
+      copy(expr = ExpressionSet(x), numDom = numDom.createVariable(x, typ))
     } else {
-      this.copy(numDom = numDom.createVariable(x, typ))
+      copy(numDom = numDom.createVariable(x, typ))
     }
   }
 
@@ -72,8 +72,8 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
       if (newNumDom.isBottom){
         newNumDom = numDom.removeVariable(x).createVariable(x)
       }
-      this.copy(numDom = newNumDom)
-    case _ => this
+      copy(numDom = newNumDom)
+    case _ => throw new IllegalStateException()
   }
 
   /** Assigns an expression to a field of an object.
@@ -125,7 +125,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     obj match {
       case obj: Identifier =>
         val fieldId = VariableIdentifier(field)(typ, currentPP)
-        this.copy(expr = ExpressionSet(AccessPathIdentifier((obj :: Nil) :+ fieldId)))
+        copy(expr = ExpressionSet(AccessPathIdentifier((obj :: Nil) :+ fieldId)))
       case _ => this
     }
   }
@@ -179,7 +179,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the evaluation of the constant, that is, the
     *         state that contains an expression representing this constant*/
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    this.copy(expr = ExpressionSet(Constant(value, typ, pp)))
+    copy(expr = ExpressionSet(Constant(value, typ, pp)))
   }
 
   /** Gets the value of a variable.
@@ -188,7 +188,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state obtained after accessing the variable, that is, the state that contains
     *         as expression the symbolic representation of the value of the given variable*/
   override def getVariableValue(id: Identifier): T = {
-    this.copy(expr = ExpressionSet(id))
+    copy(expr = ExpressionSet(id))
   }
 
   /** Performs abstract garbage collection. */
@@ -207,7 +207,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @return The abstract state after removing the current expression*/
   override def removeExpression(): T = {
-    this.copy(expr = ExpressionSet())
+    copy(expr = ExpressionSet())
   }
 
   /** Assigns an expression to an argument.
@@ -225,7 +225,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param expr The current expression
     * @return The abstract state after changing the current expression with the given one*/
   override def setExpression(expr: ExpressionSet): T = {
-    this.copy(expr = expr)
+    copy(expr = expr)
   }
 
   /** Throws an exception.

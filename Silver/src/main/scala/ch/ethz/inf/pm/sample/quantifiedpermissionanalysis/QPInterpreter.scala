@@ -91,17 +91,7 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
       val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
       if (!currentState.lessEqual(oldState)) {
         backwardExecuteBlock(currentState, currentId, currentCount, cfgState)
-        val entryEdges = cfg.entryEdges(currentId)
-        blocksToProcessIds = entryEdges.size match {
-          case 2 =>
-            val ((fromLoopBody, _, _), (fromRest, _, _)) =
-              if (blocksLastInLoop.contains(entryEdges.head._1)) (entryEdges.head, entryEdges.last)
-              else (entryEdges.last, entryEdges.head)
-            mutable.SortedSet(fromLoopBody, fromRest)(ordering) ++ (blocksToProcessIds -- Set(fromLoopBody, fromRest))
-          case 1 =>
-            mutable.SortedSet(cfg.getDirectPredecessors(currentId).head)(ordering) ++ (blocksToProcessIds -- cfg.getDirectPredecessors(currentId))
-          case 0 => blocksToProcessIds
-        }
+        blocksToProcessIds ++= cfg.getDirectPredecessors(currentId)
         iterationAtBlock += currentId -> (currentCount + 1)
       }
     }

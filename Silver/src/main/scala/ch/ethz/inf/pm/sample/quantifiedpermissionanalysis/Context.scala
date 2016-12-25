@@ -17,7 +17,8 @@ import viper.silver.{ast => sil}
 import scala.collection._
 
 /**
-  * Created by severin on 29.10.16.
+  * @author Severin Münger
+  *         Added on 29/10/16.
   */
 object Context {
 
@@ -213,7 +214,7 @@ object Context {
     * @tparam T The type of the numerical analysis.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
+  def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): NumericalAnalysisState[N, T] =
     numericalInfo.get.preStateAt(position(pp)).asInstanceOf[T]
 
   /**
@@ -223,7 +224,7 @@ object Context {
     * @tparam T The type fo the numerical analysis.
     * @return The state of the alias analysis after the given program point.
     */
-  def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): T =
+  def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): NumericalAnalysisState[N, T] =
     numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
 
   /**
@@ -256,44 +257,17 @@ object ZeroPerm extends sil.NoPerm()()
 object WritePerm extends sil.FullPerm()()
 
 object ReadPermission extends Expression {
-  /** The type of this expression. */
   override def typ: Type = PermType
-
-  /** Point in the program where this expression is located. */
   override def pp: ProgramPoint = DummyProgramPoint
-
-  /** All identifiers that are part of this expression. */
   override def ids: IdentifierSet = IdentifierSet.Bottom
-
-  /** Runs f on the expression and all sub-expressions
-    *
-    * This also replaces identifiers inside heap ID sets.
-    *
-    * @param f the transformer
-    * @return the transformed expression*/
   override def transform(f: (Expression) => Expression): Expression = f(this)
-
-  /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this)
 }
 
 case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
-  /** The type of this expression. */
   override def typ: Type = RefType()
-
-  /** All identifiers that are part of this expression. */
   override def ids: IdentifierSet = expr.ids
-
-  /** Runs f on the expression and all sub-expressions
-    *
-    * This also replaces identifiers inside heap ID sets.
-    *
-    * @param f the transformer
-    * @return the transformed expression*/
   override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
-
-  /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
-
   def key: (ProgramPoint, Expression) = (pp, expr)
 }

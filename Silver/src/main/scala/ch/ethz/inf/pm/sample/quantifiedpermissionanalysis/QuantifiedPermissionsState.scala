@@ -7,8 +7,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, RefType, SilverSpecification}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
@@ -192,6 +193,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
+    println(Context.preNumericalInfo(currentPP).numDom.getConstraints(Set(VariableIdentifier("i")(IntType))))
     val receiver = obj match {
       case FieldExpression(_, `field`, rec) => rec
       case _ => throw new IllegalStateException()
@@ -432,6 +434,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         if (!setDescription.isFinite)
           newInvariants = newInvariants :+ setDescription.toSetDefinition(Context.getQuantifiedVarDecl, Context.getSetFor(key))
     }
+    val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom
+    val constraints = numDom.getConstraints(numDom.ids.getNonTop)
+    if (constraints.nonEmpty) newInvariants = newInvariants :+ numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
     newInvariants
   }
 
