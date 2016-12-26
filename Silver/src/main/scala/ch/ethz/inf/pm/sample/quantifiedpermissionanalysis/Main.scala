@@ -6,13 +6,13 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodDeclaration}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.OctagonAnalysisState
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.Program
@@ -24,7 +24,7 @@ import scala.collection.mutable
   *         Added on 19/10/16.
   */
 object Main {
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
 
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
@@ -49,11 +49,11 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
-                                      numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
+                                      numericalEntryStateBuilder: NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState],
                                       entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState])
   extends Analysis[QuantifiedPermissionsState] with LazyLogging {
 
-  var loopHeads = Set[Int]()
+  var loopHeads: Set[Int] = Set[Int]()
 
   def preprocessGraph(cfg: ControlFlowGraph): mutable.LinkedHashSet[Int] = {
     val (loopHeads, flowOrder) = findLoops(ForwardInterpreter.startBlockId, cfg, Set())
@@ -100,12 +100,12 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     val numericalAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = numericalEntryStateBuilder.build(method)
-      val interpreter = TrackingForwardInterpreter[PolyhedraAnalysisState](entryState)
-      val cfgState: TrackingCFGState[PolyhedraAnalysisState] = interpreter.forwardExecute(method.body, entryState)
-      MethodAnalysisResult[PolyhedraAnalysisState](method, cfgState)
+      val interpreter = TrackingForwardInterpreter[OctagonAnalysisState](entryState)
+      val cfgState: TrackingCFGState[OctagonAnalysisState] = interpreter.forwardExecute(method.body, entryState)
+      MethodAnalysisResult[OctagonAnalysisState](method, cfgState)
     }
 
-    Context.setNumericalInfo[Apron.Polyhedra, PolyhedraAnalysisState](numericalAnalysisResult.cfgState)
+    Context.setNumericalInfo[IntegerOctagons, OctagonAnalysisState](numericalAnalysisResult.cfgState)
 
     val quantifiedPermissionAnalysisResult2 = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder2.build(method)

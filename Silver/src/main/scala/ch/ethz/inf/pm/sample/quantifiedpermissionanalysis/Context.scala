@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{PermType, RefType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import viper.silver.{ast => sil}
@@ -265,7 +265,7 @@ object ReadPermission extends Expression {
 }
 
 case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
-  override def typ: Type = RefType()
+  override def typ: Type = expr.typ
   override def ids: IdentifierSet = expr.ids
   override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)

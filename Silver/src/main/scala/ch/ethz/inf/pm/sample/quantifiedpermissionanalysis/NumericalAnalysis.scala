@@ -7,11 +7,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, NumericalDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.OctagonAnalysisState
 
 /**
   * @author Severin Münger
@@ -327,6 +327,17 @@ object NumericalAnalysisState
                       numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =
       PolyhedraAnalysisState(currentPP, expr, numDom)
   }
+
+  case class OctagonAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
+                                  expr: ExpressionSet = ExpressionSet(),
+                                  numDom: IntegerOctagons = IntegerOctagons.Bottom.factory())
+    extends NumericalAnalysisState[IntegerOctagons, OctagonAnalysisState]
+  {
+    override def copy(currentPP: ProgramPoint = currentPP,
+                      expr: ExpressionSet = expr,
+                      numDom: IntegerOctagons = numDom): OctagonAnalysisState =
+      OctagonAnalysisState(currentPP, expr, numDom)
+  }
 }
 
 trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
@@ -339,7 +350,7 @@ trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnaly
 }
 
 object NumericalAnalysisEntryState
-  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState]
+  extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState]
 {
-  override def topState: PolyhedraAnalysisState = PolyhedraAnalysisState()
+  override def topState: OctagonAnalysisState = OctagonAnalysisState()
 }
