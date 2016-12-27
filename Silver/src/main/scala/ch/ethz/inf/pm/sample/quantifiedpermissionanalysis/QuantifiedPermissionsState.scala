@@ -193,7 +193,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
-    println(Context.preNumericalInfo(currentPP).numDom.getConstraints(Set(VariableIdentifier("i")(IntType))))
     val receiver = obj match {
       case FieldExpression(_, `field`, rec) => rec
       case _ => throw new IllegalStateException()

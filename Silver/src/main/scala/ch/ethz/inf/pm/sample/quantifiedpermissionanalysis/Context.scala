@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import viper.silver.{ast => sil}
@@ -44,7 +44,7 @@ object Context {
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
-      sets.put(key, sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(sil.Ref))())
+      sets.put(key, sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))())
     sets(key)
   }
 
