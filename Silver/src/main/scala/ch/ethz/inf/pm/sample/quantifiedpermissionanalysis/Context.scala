@@ -54,8 +54,8 @@ object Context {
     case FunctionCallExpression(_, functionName, _, _) => functionName
   }
 
-  def setProgram(prog: sil.Program): Unit = {
-    this.program = prog
+  def setProgram(program: sil.Program): Unit = {
+    this.program = program
     initContext
   }
 
@@ -128,7 +128,7 @@ object Context {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
       val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(),
-        Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), VarX, ZeroPerm)())
+        Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)())
       )()
       boundaryFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))

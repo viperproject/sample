@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
 import viper.silver.{ast => sil}
@@ -76,33 +77,18 @@ object SetDescription {
       }
     }
 
-    private def expand(paramSets: Seq[Set[Expression]]): Set[Seq[Expression]] = {
-      if (paramSets.isEmpty) Set(Seq())
-      else expand(paramSets.init).flatMap(seq => paramSets.last.map(expr => seq :+ expr))
-    }
-
-    private def blubb(field: String, receiver: Expression, right: Expression, expr: Expression): Set[Expression] = expr match {
-      case FieldExpression(_, `field`, rec) =>
-        if (receiver.equals(rec)) Set(right)
-        else Set(expr, right) ++ blubb(field, receiver, right, rec).map(newReceiver => FieldExpression(right.typ, field, newReceiver))
-      case FieldExpression(_, otherField, rec) => blubb(field, receiver, right, rec).map(newReceiver => FieldExpression(right.typ, otherField, newReceiver))
-      case FunctionCallExpression(typ, functionName, params, pp) =>
-        expand(params.map(param => blubb(field, receiver, right, param))).map(newParams => FunctionCallExpression(typ, functionName, newParams, pp))
-      case _ => Set(expr)
-    }
-
-    private def blubb_(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
-      case ConditionalExpression(cond, left, right, typ) => ConditionalExpression(blubb_(field, receiver, right, cond), blubb_(field, receiver, right, left), blubb_(field, receiver, right, right), typ)
-      case fieldExpr@FieldExpression(typ, `field`, rec) =>
+    private def transformAssignmentRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
+      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformAssignmentRecursively(field, receiver, elseExpr, cond), transformAssignmentRecursively(field, receiver, elseExpr, thenExpr), transformAssignmentRecursively(field, receiver, elseExpr, elseExpr), typ)
+      case fieldExpr@FieldExpression(_, `field`, rec) =>
         if (receiver.equals(rec)) right
         else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
-      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, blubb_(field, receiver, right, rec))
-      case FunctionCallExpression(typ, functionName, params, pp) => FunctionCallExpression(typ, functionName, params.map(param => blubb_(field, receiver, right, param)), pp)
+      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformAssignmentRecursively(field, receiver, right, rec))
+      case FunctionCallExpression(typ, functionName, params, pp) => FunctionCallExpression(typ, functionName, params.map(param => transformAssignmentRecursively(field, receiver, right, param)), pp)
       case _ => expr
     }
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => blubb_(field, receiver, right, expr))
+      val newConcreteExpressions = concreteExpressions.map(expr => transformAssignmentRecursively(field, receiver, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
@@ -152,7 +138,7 @@ object SetDescription {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
-      case functionCall: FunctionCallExpression => Set(RootElement(functionCall))
+      case FunctionCallExpression(typ, functionName, parameters, pp) => Set(Function(functionName, typ, pp, parameters.map(param => (param.typ, pp, param))))
     }
 
     /** Returns true if and only if `this` is less than or equal to `other`.
@@ -208,3 +194,5 @@ trait SetElementDescriptor
 case class RootElement(expr: Expression) extends SetElementDescriptor
 
 case class AddField(field: String) extends SetElementDescriptor
+
+case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends SetElementDescriptor
