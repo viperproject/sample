@@ -444,9 +444,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param pp  The point of the program that creates the object
     * @return The abstract state after the creation of the object
     */
-  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    this
-  }
+  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
 
   /** Assumes that a boolean expression holds.
     *
@@ -455,9 +453,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds
     */
-  override def assume(cond: Expression): QuantifiedPermissionsState = {
-    this
-  }
+  override def assume(cond: Expression): QuantifiedPermissionsState = this
 
   /** Creates a variable given a `VariableIdentifier`.
     *
