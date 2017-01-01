@@ -99,7 +99,7 @@ object SetDescription {
           case None =>
         }
         fields.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
-          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), exp)()
+          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.AnySetContains(quantifiedVariableForFields.localVar, set)(), exp)())()
           case None =>
         }
         conjuncts ++= functions
