@@ -150,6 +150,12 @@ object Octagons
       factory(env, newClosed, newOpen)
     }
 
+    def narrowingSameEnvInner(other: Inner[S, T]): S = {
+      val newClosed = None
+      val newOpen = Some(openDbm.narrowing(other.closedDbm))
+      factory(env, newClosed, newOpen)
+    }
+
     override def lessEqualSameEnvInner(other: Inner[S, T]): Boolean =
       closedDbm.lessThan(other.closedDbm)
 
@@ -613,6 +619,11 @@ object Octagons
     def widening(other: S): S = {
       require(dim == other.dim)
       factory(dim, arr.zip(other.arr).map(p => if (p._1 >= p._2) p._1 else Infinity))
+    }
+
+    def narrowing(other: S): S = {
+      require(dim == other.dim)
+      factory(dim, arr.zip(other.arr).map(p => if (p._1 == Infinity) p._2 else p._1))
     }
 
     def lessThan(other: S): Boolean = {
@@ -1389,6 +1400,10 @@ sealed trait IntegerOctagons
   override def top(): IntegerOctagons = IntegerOctagons.Top
 
   override def bottom(): IntegerOctagons = IntegerOctagons.Bottom
+
+  def narrowing(other: IntegerOctagons): IntegerOctagons
+
+  def narrowingSameEnv(other: IntegerOctagons): IntegerOctagons
 }
 
 object IntegerOctagons
@@ -1485,6 +1500,24 @@ object IntegerOctagons
       */
     override protected def divide(left: Interval, right: Interval): Interval =
       (left / right).truncate()
+
+    override def narrowing(that: IntegerOctagons): IntegerOctagons = {
+      if (this.ids == that.ids) narrowingSameEnv(that)
+      else {
+        val common = that.ids glb this.ids
+        val diffThis = this.remove(common)
+        val diffThat = that.remove(common)
+        val extendedThis = this.unify(diffThat)
+        val extendedThat = that.unify(diffThis)
+        extendedThis.wideningSameEnv(extendedThat)
+      }
+    }
+
+    override def narrowingSameEnv(other: IntegerOctagons): IntegerOctagons = other match {
+      case Top => this
+      case Bottom => other
+      case inner: Inner => narrowingSameEnvInner(inner)
+    }
   }
 
   /** The top element of the integer octagon domain.
@@ -1493,7 +1526,12 @@ object IntegerOctagons
     */
   object Top
     extends IntegerOctagons
-      with Octagons.Top[IntegerOctagons]
+      with Octagons.Top[IntegerOctagons] {
+
+    override def narrowing(other: IntegerOctagons): IntegerOctagons = other
+
+    override def narrowingSameEnv(other: IntegerOctagons): IntegerOctagons = other
+  }
 
   /** The bottom element of the integer octagon domain.
     *
@@ -1501,7 +1539,13 @@ object IntegerOctagons
     */
   object Bottom
     extends IntegerOctagons
-      with Octagons.Bottom[IntegerOctagons]
+      with Octagons.Bottom[IntegerOctagons] {
+
+    override def narrowing(other: IntegerOctagons): IntegerOctagons = this
+
+    override def narrowingSameEnv(other: IntegerOctagons): IntegerOctagons = this
+
+  }
 }
 
 /** An element of the double octagon domain.
