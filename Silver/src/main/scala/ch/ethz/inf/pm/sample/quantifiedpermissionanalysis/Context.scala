@@ -34,7 +34,7 @@ object Context {
 
   var boundaryFunction: Option[sil.Function] = None
 
-  var quantifiedVariable: Option[sil.LocalVarDecl] = None
+  var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
 
   var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
@@ -67,7 +67,7 @@ object Context {
     clearAliases()
     clearNumericalInfo()
     rdAmountVariable = None
-    quantifiedVariable = None
+    quantifiedVariables = Map()
     sets.clear()
   }
 
@@ -135,12 +135,31 @@ object Context {
       fun
   }
 
-  def getQuantifiedVarDecl: sil.LocalVarDecl = quantifiedVariable match {
-    case Some(existingQuantifiedVarDecl) => existingQuantifiedVarDecl
-    case None =>
-      val varDecl = sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), sil.Ref)()
-      quantifiedVariable = Some(varDecl)
-      varDecl
+  def getQuantifiedVarDecl(typ: sil.Type, exclude: Set[sil.LocalVarDecl] = Set()): sil.LocalVarDecl = {
+    if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).isEmpty)
+      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
+    (quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).head
+  }
+
+  def getQuantifiedVarDeclsForType(typ: sil.Type, number: Int, exclude: Set[sil.LocalVarDecl] = Set()): Seq[sil.LocalVarDecl] = {
+    if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).size < number)
+      quantifiedVariables += typ -> Seq()
+    for (_ <- 0 to Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
+      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
+    (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
+  }
+
+  def getQuantifiedVarDecls(f: sil.FuncLike, exclude: Set[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
+    val quantifiedVars = f.formalArgs.foldLeft[Map[sil.Type, Int]](Map())((map, varDecl) => map + (varDecl.typ -> (map.getOrElse(varDecl.typ, 0) + 1))).map {
+      case (typ, count) => typ -> getQuantifiedVarDeclsForType(typ, count, exclude)
+    }
+    val counts: mutable.Map[sil.Type, Int] = mutable.Map()
+    f.formalArgs.map {
+      case sil.LocalVarDecl(_, typ) =>
+        val index = counts.getOrElse(typ, 0)
+        counts(typ) = index + 1
+        quantifiedVars(typ)(index)
+    }
   }
 
   /**

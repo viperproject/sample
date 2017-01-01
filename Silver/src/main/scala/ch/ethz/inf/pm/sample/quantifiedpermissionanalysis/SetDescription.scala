@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, InnerSetDescription, Top}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, Top}
 import viper.silver.{ast => sil}
 
 /**
@@ -22,16 +22,18 @@ object SetDescription {
   case object Bottom extends SetDescription with Lattice.Bottom[SetDescription]
 
   object InnerSetDescription {
-    def apply(initExpression: Expression) = new InnerSetDescription(initExpression)
+    def apply(pp: ProgramPoint, initExpression: Expression) = new InnerSetDescription(pp, initExpression)
   }
 
-  case class InnerSetDescription(widened: Boolean = false, concreteExpressions: Set[Expression] = Set()) extends SetDescription {
+  case class InnerSetDescription(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set()) extends SetDescription {
 
-    def this(initExpression: Expression) = this(concreteExpressions = Set(initExpression))
+    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set(initExpression))
+
+    override def silverType: sil.Type = DefaultSampleConverter.convert(key._2.typ)
 
     override def copy(widened: Boolean = widened,
              concreteExpressions: Set[Expression] = concreteExpressions
-            ): InnerSetDescription = InnerSetDescription(widened, concreteExpressions)
+            ): InnerSetDescription = InnerSetDescription(key, widened, concreteExpressions)
 
     override def isFinite: Boolean = {
       !widened || !abstractExpressions.exists {
@@ -40,7 +42,14 @@ object SetDescription {
       }
     }
 
-    override def toSilExpression(quantifiedVariable: sil.LocalVar, set: sil.LocalVarDecl): sil.Exp = {
+    /**
+      * Generates an expression that checks whether a given quantified variable is contained in the set represented by
+      * this description.
+      *
+      * @param quantifiedVariable The quantified variable to compare against.
+      * @return A silver expression that checks whether the given quantified variable is in the set.
+      */
+    override def toSilExpression(quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
       if (isFinite)
         concreteExpressions.map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
@@ -53,27 +62,48 @@ object SetDescription {
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
-        sil.AnySetContains(quantifiedVariable, set.localVar)()
+        sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    override def toSetDefinition(quantifiedVariable: sil.LocalVarDecl, set: sil.LocalVarDecl): sil.Exp = {
+    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = {
+      val set = Context.getSetFor(key).localVar
       if (isFinite) null
       else {
-        val roots = abstractExpressions.filter {
-          case _: RootElement => true
-          case _ => false
-        }.map {
-          case RootElement(root) => sil.AnySetContains(DefaultSampleConverter.convert(root), set.localVar)()
-        }
-        val fields = abstractExpressions.filter {
-          case _: AddField => true
-          case _ => false
-        }.map {
+        var roots: Set[sil.AnySetContains] = Set()
+        var fields: Set[sil.AnySetContains] = Set()
+        var functions: Set[sil.Exp] = Set()
+        val quantifiedVariableForFields = Context.getQuantifiedVarDecl(silverType)
+        abstractExpressions.foreach {
+          case RootElement(root) => roots += sil.AnySetContains(DefaultSampleConverter.convert(root), set)()
           case AddField(field) =>
-            val fieldAccess = sil.FieldAccess(quantifiedVariable.localVar, sil.Field(field, sil.Ref)())()
-            sil.AnySetContains(fieldAccess, set.localVar)()
+            fields += sil.AnySetContains(sil.FieldAccess(quantifiedVariableForFields.localVar, sil.Field(field, sil.Ref)())(), set)()
+          case Function(functionName, _, _, argKeys) =>
+            val function = Context.functions(functionName)
+            var args: Seq[sil.LocalVarDecl] = Seq()
+            var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
+            function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, argPP, argExpr)) =>
+              val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
+              args :+= arg
+              impliesLeftConjuncts :+= expressions((argPP, argExpr)).toSilExpression(arg.localVar)
+              if (formalArg.typ.equals(sil.Ref))
+                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
+            }
+            val funcApp = sil.FuncLikeApp(function, args.map(arg => arg.localVar), Map())
+            val setContains = sil.AnySetContains(funcApp, set)()
+            val implies = sil.Implies(impliesLeftConjuncts.reduce((left, right) => sil.And(left, right)()), setContains)()
+            functions += sil.Forall(args, Seq(), implies)()
         }
-        sil.And(roots.reduce[sil.Exp]((left, right) => sil.And(left, right)()), sil.Forall(Seq(quantifiedVariable), Seq(), sil.Implies(sil.And(sil.NeCmp(quantifiedVariable.localVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariable.localVar, set.localVar)())(), fields.reduce[sil.Exp]((left, right) => sil.And(left, right)()))())())()
+        var conjuncts: Seq[sil.Exp] = Seq()
+        roots.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
+          case Some(exp) => conjuncts :+= exp
+          case None =>
+        }
+        fields.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
+          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), exp)()
+          case None =>
+        }
+        conjuncts ++= functions
+        conjuncts.reduce((left, right) => sil.And(left, right)())
       }
     }
 
@@ -106,7 +136,7 @@ object SetDescription {
     override def lub(other: SetDescription): SetDescription = other match {
       case Top => Top
       case Bottom => this
-      case InnerSetDescription(widened_, concreteExpressions_) =>
+      case InnerSetDescription(_, widened_, concreteExpressions_) =>
         copy(
           widened = widened || widened_,
           concreteExpressions = concreteExpressions ++ concreteExpressions_
@@ -170,7 +200,10 @@ object SetDescription {
 }
 
 trait SetDescription extends Lattice[SetDescription] {
-  override def factory() = InnerSetDescription()
+
+  def silverType: sil.Type = throw new UnsupportedOperationException
+
+  override def factory(): SetDescription = copy()
 
   override def top() = Top
 
@@ -182,11 +215,18 @@ trait SetDescription extends Lattice[SetDescription] {
 
   def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = this
 
-  def toSilExpression(quantifiedVariable: sil.LocalVar, set: sil.LocalVarDecl): sil.Exp = throw new UnsupportedOperationException
+  /**
+    * Generates an expression that checks whether a given quantified variable is contained in the set represented by
+    * this description.
+    *
+    * @param quantifiedVariable The quantified variable to compare against.
+    * @return A silver expression that checks whether the given quantified variable is in the set.
+    */
+  def toSilExpression(quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = throw new UnsupportedOperationException
 
   def isFinite: Boolean = false
 
-  def toSetDefinition(quantifiedVariable: sil.LocalVarDecl, set: sil.LocalVarDecl): sil.Exp = throw new UnsupportedOperationException
+  def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = throw new UnsupportedOperationException
 }
 
 trait SetElementDescriptor

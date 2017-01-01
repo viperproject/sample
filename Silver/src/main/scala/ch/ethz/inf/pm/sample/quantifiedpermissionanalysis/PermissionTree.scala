@@ -18,7 +18,7 @@ import viper.silver.{ast => sil}
   */
 
 trait PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp
   def add(other: PermissionTree): PermissionTree = other match {
     case leaf: PermissionLeaf => PermissionList(Seq(leaf, this))
     case PermissionList(list) => PermissionList(list :+ this)
@@ -35,8 +35,8 @@ trait PermissionTree {
 }
 
 case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission) extends PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp =
-    sil.CondExp(expressions(receiver.key).toSilExpression(quantifiedVariable, Context.getSetFor(receiver.key)), permission.toSilExpression, sil.NoPerm()())()
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
+    sil.CondExp(expressions(receiver.key).toSilExpression(), permission.toSilExpression, sil.NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
@@ -50,10 +50,10 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp =
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
     permissions.foldLeft[Option[sil.Exp]](None)((rest, permTree) => rest match {
-      case None => Some(permTree.toSilExpression(expressions, quantifiedVariable))
-      case Some(silExpression) => Some(sil.PermAdd(silExpression, permTree.toSilExpression(expressions, quantifiedVariable))())
+      case None => Some(permTree.toSilExpression(expressions))
+      case Some(silExpression) => Some(sil.PermAdd(silExpression, permTree.toSilExpression(expressions))())
     }).get
   override def add(other: PermissionTree): PermissionTree =
     other match {
@@ -74,8 +74,8 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
 }
 
 case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp =
-    sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression(expressions, quantifiedVariable))()
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
+    sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression(expressions))()
   def transform(f: (Expression => Expression)) = NegativePermissionTree(arg.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || arg.exists(f)
   def foreach(f: (Expression => Unit)): Unit = arg.foreach(f)
@@ -85,8 +85,8 @@ case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp =
-    sil.CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(expressions, quantifiedVariable), right.toSilExpression(expressions, quantifiedVariable))()
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
+    sil.CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(expressions), right.toSilExpression(expressions))()
   def transform(f: (Expression => Expression)) = Condition(cond.transform(f), left.transform(f), right.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
   def foreach(f: (Expression => Unit)): Unit = {
@@ -99,8 +99,8 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
   extends PermissionTree {
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp =
-    sil.FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(expressions, quantifiedVariable), right.toSilExpression(expressions, quantifiedVariable)))()
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
+    sil.FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(expressions), right.toSilExpression(expressions)))()
   def transform(f: (Expression => Expression)) = Maximum(left.transform(f), right.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
   override def undoLastRead: PermissionTree = right
@@ -114,7 +114,7 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
 object EmptyPermissionTree extends PermissionTree {
   override def add(other: PermissionTree): PermissionTree = other
   override def max(other: PermissionTree): PermissionTree = other
-  override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
+  override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = ZeroPerm
   override def transform(f: (Expression) => Expression): PermissionTree = this
   override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = {}
@@ -154,7 +154,7 @@ case class FractionalPermission(numerator: Int, denominator: Int) extends Permis
   override def toSilExpression: sil.FractionalPerm = sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
   override def transform(f: (Expression => Expression)): FractionalPermission = this
   def getReadPerm: (FractionalPermission, Int) = (this, 0)
-  def <(other: FractionalPermission) = other match {
+  def <(other: FractionalPermission): Boolean = other match {
     case FractionalPermission(otherNumerator, otherDenominator) => numerator * otherDenominator < denominator * otherNumerator
   }
 }
