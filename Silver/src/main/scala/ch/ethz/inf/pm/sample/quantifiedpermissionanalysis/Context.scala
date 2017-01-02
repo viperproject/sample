@@ -51,7 +51,7 @@ object Context {
   private def extractSetName(expr: Expression): String = expr match {
     case FieldExpression(_, field, rec) => extractSetName(rec) + "_" + field
     case VariableIdentifier(name, _) => name
-    case FunctionCallExpression(_, functionName, _, _) => functionName
+    case FunctionCallExpression(functionName, _, _, _) => functionName
   }
 
   def setProgram(program: sil.Program): Unit = {
@@ -145,7 +145,7 @@ object Context {
     if (!quantifiedVariables.contains(typ))
       quantifiedVariables += typ -> Seq()
     for (_ <- 0 to Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables(typ) :+= sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)()
+      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
 

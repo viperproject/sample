@@ -7,8 +7,9 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.SetElementDescriptor.{AddField, Function, RootElement}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, Top}
 import viper.silver.{ast => sil}
 
@@ -17,6 +18,17 @@ import viper.silver.{ast => sil}
   *         Added on 03.12.16.
   */
 object SetDescription {
+
+  trait SetElementDescriptor
+
+  object SetElementDescriptor {
+    case class RootElement(expr: Expression) extends SetElementDescriptor
+
+    case class AddField(field: String) extends SetElementDescriptor
+
+    case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends SetElementDescriptor
+  }
+
   case object Top extends SetDescription with Lattice.Top[SetDescription]
 
   case object Bottom extends SetDescription with Lattice.Bottom[SetDescription]
@@ -201,11 +213,3 @@ trait SetDescription extends Lattice[SetDescription] {
 
   def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = throw new UnsupportedOperationException
 }
-
-trait SetElementDescriptor
-
-case class RootElement(expr: Expression) extends SetElementDescriptor
-
-case class AddField(field: String) extends SetElementDescriptor
-
-case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends SetElementDescriptor
