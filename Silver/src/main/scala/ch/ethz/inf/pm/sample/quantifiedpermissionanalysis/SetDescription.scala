@@ -25,7 +25,9 @@ object SetDescription {
     def apply(pp: ProgramPoint, initExpression: Expression) = new InnerSetDescription(pp, initExpression)
   }
 
-  case class InnerSetDescription(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set()) extends SetDescription {
+  case class InnerSetDescription(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+    extends SetDescription
+    with Lattice.Inner[SetDescription, InnerSetDescription] {
 
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set(initExpression))
 
@@ -129,39 +131,6 @@ object SetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    /** Computes the least upper bound of two elements.
-      *
-      * @param other The other value
-      * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
-      *         and less than or equal to any other upper bound of the two arguments
-      */
-    override def lub(other: SetDescription): SetDescription = other match {
-      case Top => Top
-      case Bottom => this
-      case InnerSetDescription(_, widened_, concreteExpressions_) =>
-        copy(
-          widened = widened || widened_,
-          concreteExpressions = concreteExpressions ++ concreteExpressions_
-        )
-    }
-
-    /** Computes the greatest lower bound of two elements.
-      *
-      * @param other The other value
-      * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
-      *         and greater than or equal to any other lower bound of the two arguments
-      */
-    override def glb(other: SetDescription): SetDescription = throw new UnsupportedOperationException()
-
-    /** Computes the widening of two elements.
-      *
-      * @param other The new value
-      * @return The widening of `this` and `other`
-      */
-    override def widening(other: SetDescription): SetDescription = {
-      lub(other).copy(widened = true)
-    }
-
     def abstractExpressions: Set[SetElementDescriptor] = {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
@@ -187,17 +156,19 @@ object SetDescription {
       case _ => throw new IllegalStateException()
     }
 
-    /** Checks whether the given domain element is equivalent to bottom.
-      *
-      * @return bottom
-      */
-    override def isBottom: Boolean = false
+    override def lubInner(other: InnerSetDescription): SetDescription =
+      copy(
+        widened = widened || other.widened,
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+      )
 
-    /** Checks whether the given domain element is equivalent to top.
-      *
-      * @return bottom
-      */
-    override def isTop: Boolean = false
+    override def glbInner(other: InnerSetDescription): SetDescription = throw new UnsupportedOperationException()
+
+    override def wideningInner(other: InnerSetDescription): SetDescription = lub(other).copy(widened = true)
+
+    override def lessEqualInner(other: InnerSetDescription): Boolean =
+      abstractExpressions.subsetOf(other.abstractExpressions) &&
+        ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
   }
 }
 
