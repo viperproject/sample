@@ -85,7 +85,7 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
             val right = implies.right
             Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))).asInstanceOf[S])
           case None =>
-            Some(state.setExpression(ExpressionSetFactory.createFunctionCallExpression(returnedtype, operator, parameters, programpoint)).asInstanceOf[S])
+            Some(state.setExpression(ExpressionSetFactory.createFunctionCallExpression(operator, parameters, returnedtype, programpoint)).asInstanceOf[S])
           case _ => None
         }
       case _ => None

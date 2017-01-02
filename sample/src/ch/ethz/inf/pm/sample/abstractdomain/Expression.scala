@@ -653,29 +653,6 @@ case class ForallExpression(leftCond: Expression, right: Expression, quantifiedV
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || leftCond.contains(f) || right.contains(f)
 }
 
-case class FunctionCallExpression(typ: Type,
-                                  functionName: String,
-                                  parameters: Seq[Expression] = List(),
-                                  pp: ProgramPoint = DummyProgramPoint)
-  extends Expression {
-
-  /** All identifiers that are part of this expression. */
-  override def ids: IdentifierSet = parameters.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
-
-  /** Runs f on the expression and all sub-expressions
-    *
-    * This also replaces identifiers inside heap ID sets.
-    *
-    * @param f the transformer
-    * @return the transformed expression
-    */
-  override def transform(f: (Expression) => Expression): Expression =
-  f(FunctionCallExpression(typ, functionName, parameters.map(param => param.transform(f)), pp))
-
-  /** Checks if function f evaluates to true for any sub-expression. */
-  override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
-}
-
 case class FieldExpression(typ: Type, field: String, receiver: Expression) extends Expression {
 
   /** Point in the program where this expression is located. */
@@ -779,6 +756,24 @@ case class BinaryStringExpression(left: Expression, right: Expression, op: Strin
 
 }
 
+/**
+  * An expression that represents a function call.
+  *
+  * @param functionName The name of the called function.
+  * @param parameters   A (possibly empty) sequence of expressions corresponding to the passed parameters in the function call.
+  * @param typ          The return type of the function.
+  * @param pp           The program point identifying the location of the function call.
+  * @author Severin Münger
+  */
+case class FunctionCallExpression(functionName: String, parameters: Seq[Expression] = Seq(), typ: Type, pp: ProgramPoint = DummyProgramPoint)
+  extends Expression {
+
+  override def ids: IdentifierSet = parameters.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
+
+  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(functionName, parameters.map(param => param.transform(f)), typ, pp))
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
+}
 
 object StringOperator extends Enumeration {
 

@@ -538,7 +538,7 @@ case class MethodCall(
           curState = parameter.forwardSemantics[S](curState)
           curState.expr
         }
-        curState.setExpression(ExpressionSetFactory.createFunctionCallExpression(returnedType, body.getName, parameterExpressions, pp))
+        curState.setExpression(ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp))
     }
   }
 

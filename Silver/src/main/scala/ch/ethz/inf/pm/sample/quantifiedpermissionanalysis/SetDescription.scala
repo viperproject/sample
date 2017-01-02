@@ -58,7 +58,7 @@ object SetDescription {
               Context.fieldAccessFunctions.put(field, fun)
               Context.auxiliaryFunctions.put(fun.name, fun)
             }
-            FunctionCallExpression(typ, Context.fieldAccessFunctions(field).name, Seq(receiver))
+            FunctionCallExpression(Context.fieldAccessFunctions(field).name, Seq(receiver), typ)
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
@@ -113,7 +113,7 @@ object SetDescription {
         if (receiver.equals(rec)) right
         else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
       case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformAssignmentRecursively(field, receiver, right, rec))
-      case FunctionCallExpression(typ, functionName, params, pp) => FunctionCallExpression(typ, functionName, params.map(param => transformAssignmentRecursively(field, receiver, right, param)), pp)
+      case FunctionCallExpression(functionName, params, typ, pp) => FunctionCallExpression(functionName, params.map(param => transformAssignmentRecursively(field, receiver, right, param)), typ, pp)
       case _ => expr
     }
 
@@ -168,7 +168,7 @@ object SetDescription {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
-      case FunctionCallExpression(typ, functionName, parameters, pp) => Set(Function(functionName, typ, pp, parameters.map(param => (param.typ, pp, param))))
+      case FunctionCallExpression(functionName, parameters, typ, pp) => Set(Function(functionName, typ, pp, parameters.map(param => (param.typ, pp, param))))
     }
 
     /** Returns true if and only if `this` is less than or equal to `other`.
