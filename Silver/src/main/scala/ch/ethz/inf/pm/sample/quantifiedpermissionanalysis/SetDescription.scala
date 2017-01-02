@@ -35,10 +35,11 @@ object SetDescription {
              concreteExpressions: Set[Expression] = concreteExpressions
             ): InnerSetDescription = InnerSetDescription(key, widened, concreteExpressions)
 
-    override def isFinite: Boolean = {
-      !widened || !abstractExpressions.exists {
-        case _: AddField => true
-        case _ => false
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription]): Boolean = {
+      !widened || abstractExpressions.forall {
+        case _: AddField => false
+        case Function(_, _, _, parameters) => parameters.forall { case (_, pp, expr) => expressions((pp, expr)).isFinite(expressions) }
+        case _ => true
       }
     }
 
@@ -49,8 +50,8 @@ object SetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
-      if (isFinite)
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
+      if (isFinite(expressions))
         concreteExpressions.map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
             if (!Context.fieldAccessFunctions.contains(field)) {
@@ -67,7 +68,7 @@ object SetDescription {
 
     override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = {
       val set = Context.getSetFor(key).localVar
-      if (isFinite) null
+      if (isFinite(expressions)) null
       else {
         var roots: Set[sil.AnySetContains] = Set()
         var fields: Set[sil.AnySetContains] = Set()
@@ -84,9 +85,10 @@ object SetDescription {
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, argPP, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
-              impliesLeftConjuncts :+= expressions((argPP, argExpr)).toSilExpression(arg.localVar)
-              if (formalArg.typ.equals(sil.Ref))
-                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
+              impliesLeftConjuncts :+= expressions((argPP, argExpr)).toSilExpression(expressions, arg.localVar)
+                // TODO: do we want to include this restriction? Consequence: Not necessarily sound anymore!
+//              if (formalArg.typ.equals(sil.Ref))
+//                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
             }
             val funcApp = sil.FuncLikeApp(function, args.map(arg => arg.localVar), Map())
             val setContains = sil.AnySetContains(funcApp, set)()
@@ -222,9 +224,9 @@ trait SetDescription extends Lattice[SetDescription] {
     * @param quantifiedVariable The quantified variable to compare against.
     * @return A silver expression that checks whether the given quantified variable is in the set.
     */
-  def toSilExpression(quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = throw new UnsupportedOperationException
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = throw new UnsupportedOperationException
 
-  def isFinite: Boolean = false
+  def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription]): Boolean = false
 
   def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = throw new UnsupportedOperationException
 }

@@ -339,7 +339,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     expressions.foreach {
       case (key, setDescription: InnerSetDescription) =>
-        if (!setDescription.isFinite && !newFormalArguments.contains(Context.getSetFor(key)))
+        if (!setDescription.isFinite(expressions) && !newFormalArguments.contains(Context.getSetFor(key)))
           newFormalArguments = newFormalArguments :+ Context.getSetFor(key)
     }
     newFormalArguments
@@ -394,7 +394,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     expressions.foreach {
       case (_, setDescription: InnerSetDescription) =>
-        if (!setDescription.isFinite)
+        if (!setDescription.isFinite(expressions))
           newPreconditions = newPreconditions :+ setDescription.toSetDefinition(expressions)
     }
     newPreconditions
@@ -427,7 +427,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     expressions.foreach {
       case (_, setDescription: InnerSetDescription) =>
-        if (!setDescription.isFinite)
+        if (!setDescription.isFinite(expressions))
           newInvariants = newInvariants :+ setDescription.toSetDefinition(expressions)
     }
     val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom

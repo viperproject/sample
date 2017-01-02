@@ -36,7 +36,7 @@ trait PermissionTree {
 
 case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission) extends PermissionTree {
   def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp =
-    sil.CondExp(expressions(receiver.key).toSilExpression(), permission.toSilExpression, sil.NoPerm()())()
+    sil.CondExp(expressions(receiver.key).toSilExpression(expressions), permission.toSilExpression, sil.NoPerm()())()
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
