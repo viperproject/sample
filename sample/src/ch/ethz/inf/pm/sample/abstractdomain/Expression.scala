@@ -687,6 +687,24 @@ case class BinaryStringExpression(left: Expression, right: Expression, op: Strin
 
 }
 
+/**
+  * An expression that represents a function call.
+  *
+  * @param functionName The name of the called function.
+  * @param parameters   A (possibly empty) sequence of expressions corresponding to the passed parameters in the function call.
+  * @param typ          The return type of the function.
+  * @param pp           The program point identifying the location of the function call.
+  * @author Severin Münger
+  */
+case class FunctionCallExpression(functionName: String, parameters: Seq[Expression] = Seq(), typ: Type, pp: ProgramPoint = DummyProgramPoint)
+  extends Expression {
+
+  override def ids: IdentifierSet = parameters.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
+
+  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(functionName, parameters.map(param => param.transform(f)), typ, pp))
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
+}
 
 object StringOperator extends Enumeration {
 

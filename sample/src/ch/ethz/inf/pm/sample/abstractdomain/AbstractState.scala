@@ -15,6 +15,17 @@ object ExpressionSetFactory {
 
   lazy val unitExpr = ExpressionSet(UnitExpression(SystemParameters.tm.Top, DummyProgramPoint))
 
+  private def expand(parameterExpressions: Seq[ExpressionSet]): Set[Seq[Expression]] = {
+    if (parameterExpressions.isEmpty) Set(Seq())
+    else expand(parameterExpressions.init).flatMap(seq => parameterExpressions.last.s.toSetOrFail.map(expr => seq :+ expr))
+  }
+
+  def createFunctionCallExpression(functionName: String, parameterExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
+    ExpressionSet((for (params <- expand(parameterExpressions)) yield {
+      FunctionCallExpression(functionName, params, typ, pp)
+    }).toSeq)
+  }
+
   def createVariable(variable: Variable, ty: Type, pp: ProgramPoint): ExpressionSet = {
     var result = new ExpressionSet(ty)
     result = result.add(VariableIdentifier(variable.getName, variable.id.scope)(ty, pp))
