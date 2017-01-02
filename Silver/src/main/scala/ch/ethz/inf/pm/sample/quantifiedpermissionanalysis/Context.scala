@@ -142,10 +142,10 @@ object Context {
   }
 
   def getQuantifiedVarDeclsForType(typ: sil.Type, number: Int, exclude: Set[sil.LocalVarDecl] = Set()): Seq[sil.LocalVarDecl] = {
-    if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).size < number)
+    if (!quantifiedVariables.contains(typ))
       quantifiedVariables += typ -> Seq()
     for (_ <- 0 to Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
+      quantifiedVariables(typ) :+= sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)()
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
 
