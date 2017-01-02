@@ -9,47 +9,92 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.SetElementDescriptor.{AddField, Function, RootElement}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.{Bottom, Top}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import viper.silver.{ast => sil}
 
 /**
   * @author Severin Münger
   *         Added on 03.12.16.
   */
+sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
+
+  this: S =>
+
+  def silverType: sil.Type
+
+  def transformAssignField(receiver: Expression, field: String, right: Expression): S = this
+
+  def transformAssignVariable(left: VariableIdentifier, right: Expression): S = this
+
+  /**
+    * Generates an expression that checks whether a given quantified variable is contained in the set represented by
+    * this description.
+    *
+    * @param quantifiedVariable The quantified variable to compare against.
+    * @return A silver expression that checks whether the given quantified variable is in the set.
+    */
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = throw new UnsupportedOperationException
+
+  def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = false
+
+  def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): sil.Exp = throw new UnsupportedOperationException
+}
+
 object SetDescription {
 
-  trait SetElementDescriptor
-
-  object SetElementDescriptor {
-    case class RootElement(expr: Expression) extends SetElementDescriptor
-
-    case class AddField(field: String) extends SetElementDescriptor
-
-    case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends SetElementDescriptor
+  sealed trait Top[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Top[S] {
+    this: S =>
   }
 
-  case object Top extends SetDescription with Lattice.Top[SetDescription]
-
-  case object Bottom extends SetDescription with Lattice.Bottom[SetDescription]
-
-  object InnerSetDescription {
-    def apply(pp: ProgramPoint, initExpression: Expression) = new InnerSetDescription(pp, initExpression)
+  sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
+    this: S =>
   }
 
-  case class InnerSetDescription(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
-    extends SetDescription
-    with Lattice.Inner[SetDescription, InnerSetDescription] {
+  sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
+    this: S =>
+  }
+}
+
+sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescription] {
+
+  def silverType: sil.Type = sil.Ref
+
+  override def factory(): ReferenceSetDescription = top()
+
+  override def top() = ReferenceSetDescription.Top
+
+  override def bottom() = ReferenceSetDescription.Bottom
+}
+
+object ReferenceSetDescription {
+
+  trait ReferenceSetElementDescriptor
+
+  object ReferenceSetElementDescriptor {
+    case class RootElement(expr: Expression) extends ReferenceSetElementDescriptor
+
+    case class AddField(field: String) extends ReferenceSetElementDescriptor
+
+    case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends ReferenceSetElementDescriptor
+  }
+
+  case object Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription]
+
+  case object Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
+
+  object Inner {
+    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
+  }
+
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+    extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
 
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set(initExpression))
 
-    override def silverType: sil.Type = DefaultSampleConverter.convert(key._2.typ)
+    def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner =
+      Inner(key, widened, concreteExpressions)
 
-    override def copy(widened: Boolean = widened,
-             concreteExpressions: Set[Expression] = concreteExpressions
-            ): InnerSetDescription = InnerSetDescription(key, widened, concreteExpressions)
-
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription]): Boolean = {
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = {
       !widened || abstractExpressions.forall {
         case _: AddField => false
         case Function(_, _, _, parameters) => parameters.forall { case (_, pp, expr) => expressions((pp, expr)).isFinite(expressions) }
@@ -64,7 +109,7 @@ object SetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
       if (isFinite(expressions))
         concreteExpressions.map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
@@ -80,7 +125,7 @@ object SetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = {
+    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): sil.Exp = {
       val set = Context.getSetFor(key).localVar
       if (isFinite(expressions)) null
       else {
@@ -133,83 +178,39 @@ object SetDescription {
       case _ => expr
     }
 
-    override def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = {
+    override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = {
       val newConcreteExpressions = concreteExpressions.map(expr => transformAssignmentRecursively(field, receiver, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    override def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = {
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = {
       val newConcreteExpressions = concreteExpressions.map(expr => expr.transform(e => if (e.equals(left)) right else e))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    def abstractExpressions: Set[SetElementDescriptor] = {
+    def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 
-    private def extractRules(expr: Expression): Set[SetElementDescriptor] = expr match {
+    private def extractRules(expr: Expression): Set[ReferenceSetElementDescriptor] = expr match {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
       case FunctionCallExpression(functionName, parameters, typ, pp) => Set(Function(functionName, typ, pp, parameters.map(param => (param.typ, pp, param))))
     }
 
-    /** Returns true if and only if `this` is less than or equal to `other`.
-      *
-      * @param other The value to compare
-      * @return true if and only if `this` is less than or equal to `other`
-      */
-    override def lessEqual(other: SetDescription): Boolean = other match {
-      case Top => true
-      case Bottom => false
-      case other: InnerSetDescription =>
-        (abstractExpressions.subsetOf(other.abstractExpressions)
-          && ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions)))
-      case _ => throw new IllegalStateException()
-    }
-
-    override def lubInner(other: InnerSetDescription): SetDescription =
+    override def lubInner(other: Inner): Inner =
       copy(
         widened = widened || other.widened,
         concreteExpressions = concreteExpressions ++ other.concreteExpressions
       )
 
-    override def glbInner(other: InnerSetDescription): SetDescription = throw new UnsupportedOperationException()
+    override def glbInner(other: Inner): Inner = throw new UnsupportedOperationException()
 
-    override def wideningInner(other: InnerSetDescription): SetDescription = lub(other).copy(widened = true)
+    override def wideningInner(other: Inner): Inner = lubInner(other).copy(widened = true)
 
-    override def lessEqualInner(other: InnerSetDescription): Boolean =
+    override def lessEqualInner(other: Inner): Boolean =
       abstractExpressions.subsetOf(other.abstractExpressions) &&
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
   }
-}
-
-trait SetDescription extends Lattice[SetDescription] {
-
-  def silverType: sil.Type = throw new UnsupportedOperationException
-
-  override def factory(): SetDescription = copy()
-
-  override def top() = Top
-
-  override def bottom() = Bottom
-
-  def copy(widened: Boolean = false, concreteExpressions: Set[Expression] = Set()): SetDescription = this
-
-  def transformAssignField(receiver: Expression, field: String, right: Expression): SetDescription = this
-
-  def transformAssignVariable(left: VariableIdentifier, right: Expression): SetDescription = this
-
-  /**
-    * Generates an expression that checks whether a given quantified variable is contained in the set represented by
-    * this description.
-    *
-    * @param quantifiedVariable The quantified variable to compare against.
-    * @return A silver expression that checks whether the given quantified variable is in the set.
-    */
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = throw new UnsupportedOperationException
-
-  def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription]): Boolean = false
-
-  def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription]): sil.Exp = throw new UnsupportedOperationException
 }

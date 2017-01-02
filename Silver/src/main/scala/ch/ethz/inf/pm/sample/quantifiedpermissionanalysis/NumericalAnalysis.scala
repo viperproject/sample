@@ -29,6 +29,8 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
 
   def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
 
+  override def command(cmd: Command): T = this
+
   /** Creates a variable given a `VariableIdentifier`.
     *
     * Implementations can already assume that this state is non-bottom.

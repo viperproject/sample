@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.SetDescription.InnerSetDescription
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -43,7 +42,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       visited: Set[ProgramPoint] = Set(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
                                       permissions: PermissionRecords = PermissionRecords(),
-                                      expressions: Map[(ProgramPoint, Expression), SetDescription] = Map()
+                                      expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
@@ -76,7 +75,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            visited: Set[ProgramPoint] = visited,
            currentPP: ProgramPoint = currentPP,
            permissions: PermissionRecords = permissions,
-           expressions: Map[(ProgramPoint, Expression), SetDescription] = expressions) =
+           expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = expressions) =
     QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, expressions)
 
   /** Removes the current expression.
@@ -108,7 +107,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case (_, true) => other.permissions
         case (false, false) => permissions.lub(other.permissions)
       }
-      val newExpressions = expressions ++ other.expressions.transform {
+      val newExpressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = expressions ++ other.expressions.transform {
         case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
       }
       copy(
@@ -127,7 +126,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case (_, true) => other.permissions
         case (false, false) => permissions.cond(cond.getSingle.get, other.permissions)
       }
-      val newExpressions = expressions ++ other.expressions.transform {
+      val newExpressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = expressions ++ other.expressions.transform {
         case (key, expressionCollection) => if (expressions.contains(key)) expressions(key).lub(expressionCollection) else expressionCollection
       }
       copy(
@@ -147,7 +146,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     (this, other) match {
       case (Bottom, _) => true
       case (_, Bottom) => false
-      case (_, _) => expressions.forall { case (key, setDescription) => setDescription.lessEqual(other.expressions.getOrElse(key, SetDescription.Bottom)) }
+      case (_, _) => expressions.forall { case (key, setDescription) => setDescription.lessEqual(other.expressions.getOrElse(key, ReferenceSetDescription.Bottom)) }
     }
   }
 
@@ -163,7 +162,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = x match {
     case left: VariableIdentifier =>
-      val (newPermissions, newExpressions) = left.typ match {
+      val (newPermissions, newExpressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]) = left.typ match {
         case _: RefType =>
           (permissions, expressions.transform {
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
@@ -198,7 +197,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
       else permissions
-    var newExpressions = right.typ match {
+    var newExpressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = right.typ match {
       case _: RefType =>
         expressions.transform {
           case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
@@ -206,7 +205,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case IntType => expressions
       case _ => throw new IllegalStateException()
     }
-    newExpressions = newExpressions + (key -> newExpressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(currentPP, receiver)))
+    newExpressions = newExpressions + (key -> newExpressions.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, receiver)))
     copy(
       permissions = newPermissions,
       expressions = newExpressions
@@ -237,7 +236,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
       else permissions
-    val newExpressions = expressions + (key -> expressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(currentPP, obj)))
+    val newExpressions = expressions + (key -> expressions.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, obj)))
     copy(
       expr = ExpressionSet(FieldExpression(typ, field, obj)),
       permissions = newPermissions,
@@ -267,7 +266,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
-      val newExpressions = expressions + (key -> expressions.getOrElse(key, SetDescription.Bottom).lub(InnerSetDescription(currentPP, receiver)))
+      val newExpressions = expressions + (key -> expressions.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, receiver)))
       copy(
         permissions = newPermissions,
         expressions = newExpressions
@@ -338,9 +337,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       if (!newFormalArguments.contains(rdAmount)) newFormalArguments :+= rdAmount
     }
     expressions.foreach {
-      case (key, setDescription: InnerSetDescription) =>
+      case (key, setDescription: ReferenceSetDescription.Inner) =>
         if (!setDescription.isFinite(expressions) && !newFormalArguments.contains(Context.getSetFor(key)))
           newFormalArguments :+= Context.getSetFor(key)
+      case _ => throw new IllegalStateException()
     }
     newFormalArguments
   }
@@ -393,9 +393,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
     expressions.foreach {
-      case (_, setDescription: InnerSetDescription) =>
+      case (_, setDescription: ReferenceSetDescription.Inner) =>
         if (!setDescription.isFinite(expressions))
           newPreconditions :+= setDescription.toSetDefinition(expressions)
+      case _ => throw new IllegalStateException()
     }
     newPreconditions
   }
@@ -426,9 +427,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         newInvariants :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
     expressions.foreach {
-      case (_, setDescription: InnerSetDescription) =>
+      case (_, setDescription: ReferenceSetDescription.Inner) =>
         if (!setDescription.isFinite(expressions))
           newInvariants :+= setDescription.toSetDefinition(expressions)
+      case _ => throw new IllegalStateException()
     }
     val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
