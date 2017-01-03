@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
@@ -213,4 +214,56 @@ object ReferenceSetDescription {
       abstractExpressions.subsetOf(other.abstractExpressions) &&
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
   }
+}
+
+sealed trait IntegerSetDescription[N <: NumericalDomain[N]] extends SetDescription[IntegerSetDescription[N]] {
+
+  def silverType: sil.Type = sil.Int
+
+  def factory(numDom: N): IntegerSetDescription[N]
+}
+
+object IntegerSetDescription {
+
+  sealed trait Top[N <: NumericalDomain[N]] extends IntegerSetDescription[N] with SetDescription.Top[IntegerSetDescription[N]]
+
+  sealed trait Bottom[N <: NumericalDomain[N]] extends IntegerSetDescription[N] with SetDescription.Bottom[IntegerSetDescription[N]]
+
+  sealed trait Inner[N <: NumericalDomain[N], T <: Inner[N, T]] extends IntegerSetDescription[N] with SetDescription.Inner[IntegerSetDescription[N], T] {
+    def numDom: N
+  }
+}
+
+sealed trait OctagonIntegerSetDescription extends IntegerSetDescription[IntegerOctagons] {
+
+  override def factory(): OctagonIntegerSetDescription = top()
+
+  override def factory(numDom: IntegerOctagons) = numDom match {
+    case IntegerOctagons.Bottom => bottom()
+    case IntegerOctagons.Top => top()
+    case _: IntegerOctagons.Inner => OctagonIntegerSetDescription.Inner(numDom)
+  }
+
+  override def top(): OctagonIntegerSetDescription = OctagonIntegerSetDescription.Top
+
+  override def bottom(): OctagonIntegerSetDescription = OctagonIntegerSetDescription.Bottom
+}
+
+object OctagonIntegerSetDescription {
+
+  case object Top extends OctagonIntegerSetDescription with IntegerSetDescription.Top[IntegerOctagons]
+
+  case object Bottom extends OctagonIntegerSetDescription with IntegerSetDescription.Bottom[IntegerOctagons]
+
+  case class Inner(numDom: IntegerOctagons) extends OctagonIntegerSetDescription with IntegerSetDescription.Inner[IntegerOctagons, Inner] {
+
+    override def lubInner(other: Inner): IntegerSetDescription[IntegerOctagons] = Inner(numDom lub other.numDom)
+
+    override def glbInner(other: Inner): IntegerSetDescription[IntegerOctagons] = Inner(numDom glb other.numDom)
+
+    override def wideningInner(other: Inner): IntegerSetDescription[IntegerOctagons] = Inner(numDom widening other.numDom)
+
+    override def lessEqualInner(other: Inner): Boolean = numDom.lessEqual(other.numDom)
+  }
+
 }
