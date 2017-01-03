@@ -1339,12 +1339,14 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   }
 
   override def command(cmd: Command): T = cmd match {
-    case InhaleCommand(expression) => inhale(expression.getSingle.get)
-    case ExhaleCommand(expression) => exhale(expression.getSingle.get)
-    case PreconditionCommand(condition) => command(InhaleCommand(condition))
-    case PostconditionCommand(condition) => command(ExhaleCommand(condition))
-    case InvariantCommand(condition) => command(ExhaleCommand(condition)).command(InhaleCommand(condition))
-    case _ => super.command(cmd)
+    case _: SilverCommand => cmd match {
+      case InhaleCommand(expression) => inhale(expression.getSingle.get)
+      case ExhaleCommand(expression) => exhale(expression.getSingle.get)
+      case PreconditionCommand(condition) => command(InhaleCommand(condition))
+      case PostconditionCommand(condition) => command(ExhaleCommand(condition))
+      case InvariantCommand(condition) => command(ExhaleCommand(condition)).command(InhaleCommand(condition))
+    }
+    case _ => this // ignore all non silver commands
   }
 
   /** Inhales the given expression.

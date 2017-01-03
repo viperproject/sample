@@ -158,7 +158,7 @@ case class ExpressionSet(
 
   override def factory(): ExpressionSet = new ExpressionSet(typ.top(),s.top())
 
-  def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
+  override def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
 
   def ids: IdentifierSet = s match {
     case SetDomain.Default.Bottom() => IdentifierSet.Bottom
@@ -181,9 +181,9 @@ case class ExpressionSet(
 
   def toSetOrFail: Set[Expression] = this._2.toSetOrFail
 
-  def _2: SetDomain.Default[Expression] = s
+  override def _2: SetDomain.Default[Expression] = s
 
-  def _1: Type = typ
+  override def _1: Type = typ
 
   def not(): ExpressionSet = {
     var result:SetDomain.Default[Expression] = this._2.bottom()
@@ -270,7 +270,7 @@ I <: HeapIdentifier[I]](
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N, H, I]] {
 
-  def _2: ExpressionSet = expr
+  override def _2: ExpressionSet = expr
 
   def getStringOfId(id: Identifier): String = domain.getStringOfId(id)
 
@@ -278,9 +278,11 @@ I <: HeapIdentifier[I]](
 
   def getHeapDomain: H = domain.heap
 
-  def before(pp: ProgramPoint): AbstractState[N, H, I] = this
+  override def before(pp: ProgramPoint): AbstractState[N, H, I] = this
 
-  def createObject(typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
+  override def command(cmd: Command): AbstractState[N, H, I] = ???
+
+  override def createObject(typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
 
     if (isBottom) return this
 
@@ -305,15 +307,15 @@ I <: HeapIdentifier[I]](
     factory(value, expr)
   }
 
-  def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
     factory(domain.createVariable(variable, typ), expr)
 
-  def createVariableForArgument(variable: VariableIdentifier, typ: Type): AbstractState[N, H, I] = {
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): AbstractState[N, H, I] = {
     val (newDomain, _) = domain.createVariableForArgument(variable, typ, Nil)
     factory(newDomain, expr)
   }
 
-  def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
+  override def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
     left match {
       case variable: Assignable =>
         factory(domain.assign(variable, right), expr)
@@ -324,7 +326,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def assignField(obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
+  override def assignField(obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
     obj match {
       case variable: Identifier =>
         factory(domain.assignField(variable, field, right, right.typ, variable.pp), expr)
@@ -335,7 +337,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def refiningAssignField(oldPreState: AbstractState[N, H, I], obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
+  override def refiningAssignField(oldPreState: AbstractState[N, H, I], obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
     obj match {
       case variable: Identifier =>
         factory(domain.backwardAssignField(oldPreState.domain, variable, field, right, right.typ, variable.pp), expr).setUnitExpression()
@@ -347,7 +349,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def refiningAssignVariable(oldPreState: AbstractState[N, H, I], lhs: Expression,
+  override def refiningAssignVariable(oldPreState: AbstractState[N, H, I], lhs: Expression,
                              rhs: Expression): AbstractState[N, H, I] = {
     lhs match {
       case variable: Assignable => factory(domain.backwardAssign(oldPreState.domain, variable, rhs), expr)
@@ -380,7 +382,7 @@ I <: HeapIdentifier[I]](
     result
   }
 
-  def removeVariable(varExpr: VariableIdentifier): AbstractState[N, H, I] = {
+  override def removeVariable(varExpr: VariableIdentifier): AbstractState[N, H, I] = {
     factory(domain.removeVariable(varExpr), expr)
   }
 
@@ -424,32 +426,32 @@ I <: HeapIdentifier[I]](
     (result, rep)
   }
 
-  def throws(throwed: ExpressionSet): AbstractState[N, H, I] = throw new NotImplementedError
+  override def throws(throwed: ExpressionSet): AbstractState[N, H, I] = throw new NotImplementedError
 
-  def evalConstant(value: String, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
     if (isBottom) return this
     setExpression(ExpressionSet(Constant(value, typ, pp)))
   }
 
-  def setExpression(value: ExpressionSet): AbstractState[N, H, I] = {
+  override def setExpression(value: ExpressionSet): AbstractState[N, H, I] = {
     if (isBottom) return this
     factory(domain, value)
   }
 
-  def getVariableValue(id: Identifier): AbstractState[N, H, I] = {
+  override def getVariableValue(id: Identifier): AbstractState[N, H, I] = {
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
-  def removeExpression(): AbstractState[N, H, I] = {
+  override def removeExpression(): AbstractState[N, H, I] = {
     if (isBottom) return factory(domain, expr.bottom())
     factory(domain, ExpressionSetFactory.unitExpr)
   }
 
-  def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
+  override def factory(a: HeapAndAnotherDomain[N, H, I], b: ExpressionSet) = AbstractState(a, b)
 
-  def refiningGetVariableValue(id: Identifier): AbstractState[N, H, I] = {
+  override def refiningGetVariableValue(id: Identifier): AbstractState[N, H, I] = {
     if (isBottom) return this
     val state = factory(domain, removeExpression().expr)
     factory(state.domain, ExpressionSet(id.asInstanceOf[Expression]))
@@ -460,7 +462,7 @@ I <: HeapIdentifier[I]](
     variable.typ
   }
 
-  def getFieldValue(obj: Expression, field: String, typ: Type): AbstractState[N, H, I] = {
+  override def getFieldValue(obj: Expression, field: String, typ: Type): AbstractState[N, H, I] = {
     val (heapId, newHeap, rep) = obj match {
       case obj: Assignable =>
         domain.heap.getFieldIdentifier(obj, field, typ, obj.pp)
@@ -475,7 +477,7 @@ I <: HeapIdentifier[I]](
     factory(result, new ExpressionSet(typ).add(heapId))
   }
 
-  def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
+  override def refiningGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if (isBottom) return this
     var result: AbstractState[N, H, I] = bottom()
     for (exprVal <- obj.toSetOrFail) {
@@ -488,7 +490,7 @@ I <: HeapIdentifier[I]](
     result
   }
 
-  def setVariableToTop(varExpr: Expression): AbstractState[N, H, I] = {
+  override def setVariableToTop(varExpr: Expression): AbstractState[N, H, I] = {
     varExpr match {
       case variable: Assignable =>
         factory(domain.setToTop(variable), expr)
@@ -500,7 +502,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def assume(cond: Expression): AbstractState[N, H, I] = {
+  override def assume(cond: Expression): AbstractState[N, H, I] = {
     val (dom, replacement) = domain.assume(cond)
     factory(dom, expr.merge(replacement))
   }
@@ -517,12 +519,12 @@ I <: HeapIdentifier[I]](
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr)
 
-  def _1: HeapAndAnotherDomain[N, H, I] = domain
+  override def _1: HeapAndAnotherDomain[N, H, I] = domain
 
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = {
+  override def pruneVariables(filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = {
 
     var curState = domain
     for (id <- domain.ids.asInstanceOf[IdentifierSet.Inner].value) {
@@ -558,7 +560,7 @@ I <: HeapIdentifier[I]](
   /**
    * Performs abstract garbage collection
    */
-  def pruneUnreachableHeap(): AbstractState[N, H, I] = ???
+  override def pruneUnreachableHeap(): AbstractState[N, H, I] = ???
 
   override def glb(other: AbstractState[N, H, I]): AbstractState[N, H, I] = glbWithReplacement(other)._1
 
@@ -582,5 +584,4 @@ I <: HeapIdentifier[I]](
   }
 
   override def ids: IdentifierSet = domain.ids lub expr.ids
-
 }
