@@ -290,3 +290,9 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   def key: (ProgramPoint, Expression) = (pp, expr)
 }
+
+case class FunctionCallDescription(functionName: String, parameters: Seq[(Type, Expression)], typ: Type, pp: ProgramPoint) extends Expression {
+  override def ids: IdentifierSet = IdentifierSet.Bottom
+  override def transform(f: (Expression) => Expression): Expression = f(this)
+  override def contains(f: (Expression) => Boolean): Boolean = f(this)
+}

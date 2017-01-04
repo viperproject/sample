@@ -211,7 +211,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case IntType => refSets
       case _ => throw new IllegalStateException()
     }
-    newRefSets = newRefSets + (key -> newRefSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, receiver)))
+    newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
     copy(
       permissions = newPermissions,
       refSets = newRefSets
@@ -238,16 +238,23 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
-    val key = (currentPP, obj)
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
       else permissions
-    val newRefSets = refSets + (key -> refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, obj)))
+    val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
     copy(
       expr = ExpressionSet(FieldExpression(typ, field, obj)),
       permissions = newPermissions,
       refSets = newRefSets
     )
+  }
+
+  private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
+    case FunctionCallExpression(_, parameters, _, _) =>
+      Map[(ProgramPoint, Expression), ReferenceSetDescription]() +
+        ((currentPP, expr) -> ReferenceSetDescription.Inner(currentPP, expr)) ++
+        parameters.flatMap(param => extractExpressionDescriptions(param))
+    case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr)))
   }
 
   /** Inhales permissions.
@@ -483,6 +490,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the creation of the argument
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = this
+
+  override def command(cmd: Command) = this
 
   // STUBS
 

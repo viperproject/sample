@@ -139,17 +139,19 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds*/
   override def assume(cond: Expression): T = cond match {
-    case _: Constant =>
-      this
-    case _ =>
+    case _: BinaryArithmeticExpression =>
       val newCond = cond.transform {
-        case BinaryArithmeticExpression(_: FieldExpression, _, _) | BinaryArithmeticExpression(_, _: FieldExpression, _) | FieldExpression(BoolType, _, _) =>
+        case BinaryArithmeticExpression(_: FieldExpression, _, _) |
+             BinaryArithmeticExpression(_, _: FieldExpression, _) |
+             FieldExpression(BoolType, _, _) |
+             _: ReferenceComparisonExpression =>
           Constant("true", BoolType)
         case e => e
       }
       val newNumDom = numDom.assume(newCond)
       if (newNumDom.isBottom) this
       else copy(numDom = newNumDom)
+    case _ => this
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.

@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import viper.silver.ast.{Exp, LocalVar}
@@ -101,7 +101,10 @@ object ReferenceSetDescription {
   case object Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
 
   object Inner {
-    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
+    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression.transform {
+      case FunctionCallExpression(functionName, params, typ, functionPP) => FunctionCallDescription(functionName, params.map(param => (param.typ, param)), typ, functionPP)
+      case other => other
+    })
   }
 
   case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
@@ -111,10 +114,23 @@ object ReferenceSetDescription {
 
     def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner = Inner(key, widened, concreteExpressions)
 
+    private def isFinite(expr: Expression, numericalInfo: IntegerOctagons): Boolean = {
+      val quantifiedVar = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
+      val tempNum = numericalInfo.assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
+      tempNum.getPossibleConstants(quantifiedVar) match {
+        case set if set.isBottom => throw new IllegalStateException()
+        case set if set.isTop => false
+        case _ => true
+      }
+    }
+
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = {
       !widened || abstractExpressions.forall {
         case _: AddField => false
-        case Function(_, _, _, parameters) => parameters.forall { case (_, pp, expr) => expressions((pp, expr)).isFinite(expressions) }
+        case Function(_, _, _, parameters) => parameters.forall {
+          case (_: RefType, pp, expr) => expressions((pp, expr)).isFinite(expressions)
+          case (IntType, pp, expr) => isFinite(expr, Context.postNumericalInfo(pp).numDom)
+        }
         case _ => true
       }
     }
@@ -227,7 +243,7 @@ object ReferenceSetDescription {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
-      case FunctionCallExpression(functionName, parameters, typ, pp) => Set(Function(functionName, typ, pp, parameters.map(param => (param.typ, pp, param))))
+      case FunctionCallDescription(functionName, parameters, returnType, pp) => Set(Function(functionName, returnType, pp, parameters.map { case (typ, argExpr) => (typ, pp, argExpr) } ))
     }
 
     override def lubInner(other: Inner): Inner =
