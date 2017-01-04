@@ -181,6 +181,8 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
       isTop: Boolean = false
   ): T
 
+  override def command(cmd: Command): T = ???
+
   /** Creates a variable given a `VariableIdentifier`.
     * Implementations can already assume that this state is non-bottom.
     */

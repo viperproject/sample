@@ -84,6 +84,8 @@ case class AccessCollectingState(myType: Type)
 
   def isBottom = myType.isBottom
 
+  override def command(cmd: Command): AccessCollectingState = ???
+
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
     RequiredLibraryFragmentAnalysis.spottedFields =
       RequiredLibraryFragmentAnalysis.spottedFields +
