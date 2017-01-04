@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, RefType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DomType, IntType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import viper.silver.ast.{Exp, LocalVar}
@@ -35,7 +35,7 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
     * @param quantifiedVariable The quantified variable to compare against.
     * @return A silver expression that checks whether the given quantified variable is in the set.
     */
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp
 
   def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
@@ -49,7 +49,7 @@ object SetDescription {
 
     override def toSetDefinition(state: QuantifiedPermissionsState): Exp = sil.TrueLit()()
 
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
   }
@@ -59,7 +59,7 @@ object SetDescription {
 
     override def toSetDefinition(state: QuantifiedPermissionsState): Exp = throw new UnsupportedOperationException()
 
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
   }
@@ -135,6 +135,35 @@ object ReferenceSetDescription {
       }
     }
 
+    private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[Expression] = setDescription match {
+      case Inner(_, _, expressions) =>
+        expressions.flatMap(expr => expr match {
+          case FunctionCallDescription(functionName, parameters, typ, pp) =>
+            expandFunction(state, parameters.map { case (t, e) => (t, pp, e) }).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
+          case _ => Set(expr)
+        })
+      case _ => throw new IllegalArgumentException()
+    }
+
+    private def expand(state: QuantifiedPermissionsState, key: (ProgramPoint, Expression)): Set[Expression] = {
+      println(state.refSets.keys)
+      println(key)
+      expand(state, state.refSets(key))
+    }
+
+    private def expandFunction(state: QuantifiedPermissionsState, parameters: Seq[(Type, ProgramPoint, Expression)]): Set[Seq[Expression]] = {
+      val changingVars = state.changingVars
+      if (parameters.isEmpty) Set(Seq())
+      else expandFunction(state, parameters.init).flatMap(seq => parameters.last match {
+        case (_: RefType | _: DomType, pp, expr) =>
+          expand(state, (pp, expr)).map(expr => seq :+ expr)
+        case (IntType, pp, expr) =>
+          val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).localVar.name)(IntType)
+          val expressionToAssume = BinaryArithmeticExpression(quantifiedVariable, expr, ArithmeticOperator.==)
+          Context.postNumericalInfo(pp).numDom.assume(expressionToAssume).removeVariables(changingVars).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
+      })
+    }
+
     /**
       * Generates an expression that checks whether a given quantified variable is contained in the set represented by
       * this description.
@@ -142,9 +171,10 @@ object ReferenceSetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
+      val expressions = state.refSets
       if (isFinite(expressions))
-        concreteExpressions.map (expr => expr.transform {
+        expand(state, this).map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
             if (!Context.fieldAccessFunctions.contains(field)) {
               val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
@@ -176,12 +206,12 @@ object ReferenceSetDescription {
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
             val numericalInfo: IntegerOctagons = Context.postNumericalInfo(pp).numDom
-            function.formalArgs.zip(argKeys).foreach { case (formalArg, (typ, argPP, argExpr)) =>
+            function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, argPP, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
               formalArg.typ match {
                 case sil.Ref =>
-                  impliesLeftConjuncts :+= expressions((argPP, argExpr)).toSilExpression(expressions, arg.localVar)
+                  impliesLeftConjuncts :+= expressions((argPP, argExpr)).toSilExpression(state, arg.localVar)
                   // TODO: do we want to include this restriction? Consequence: Not necessarily sound anymore!
                   //              if (formalArg.typ.equals(sil.Ref))
                   //                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
@@ -235,7 +265,7 @@ object ReferenceSetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
+    private def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 

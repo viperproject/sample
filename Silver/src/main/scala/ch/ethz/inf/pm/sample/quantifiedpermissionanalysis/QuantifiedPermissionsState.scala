@@ -199,7 +199,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldExpression(_, `field`, rec) => rec
       case _ => throw new IllegalStateException()
     }
-    val key = (currentPP, receiver)
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
       else permissions
@@ -251,9 +250,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
     case FunctionCallExpression(_, parameters, _, _) =>
-      Map[(ProgramPoint, Expression), ReferenceSetDescription]() +
-        ((currentPP, expr) -> ReferenceSetDescription.Inner(currentPP, expr)) ++
-        parameters.flatMap(param => extractExpressionDescriptions(param))
+      parameters.map {
+        case param: RefType => extractExpressionDescriptions(param)
+        case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param)
+        case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
+      }.reduce((left, right) => left ++ right) +
+      ((currentPP, expr) -> ReferenceSetDescription.Inner(currentPP, expr))
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr)))
   }
 
@@ -393,7 +395,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
       val quantifiedVariable = quantifiedVariableDecl.localVar
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(refSets))())()
+      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this))())()
       val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
       newPreconditions :+= forall
     }
@@ -427,7 +429,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
       val quantifiedVariable = quantifiedVariableDecl.localVar
       val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(refSets))())()
+      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this))())()
       val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
       newInvariants :+= forall
     }

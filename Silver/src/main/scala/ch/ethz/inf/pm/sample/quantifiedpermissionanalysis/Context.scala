@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
@@ -230,21 +229,19 @@ object Context {
     * Returns the state of the numerical analysis before the given program point.
     *
     * @param pp The program point.
-    * @tparam T The type of the numerical analysis.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): NumericalAnalysisState[N, T] =
-    numericalInfo.get.preStateAt(position(pp)).asInstanceOf[T]
+  def preNumericalInfo(pp: ProgramPoint): OctagonAnalysisState =
+    numericalInfo.get.preStateAt(position(pp))
 
   /**
     * Returns the state of the alias analysis after the given program point.
     *
     * @param pp The program point.
-    * @tparam T The type fo the numerical analysis.
     * @return The state of the alias analysis after the given program point.
     */
-  def postNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](pp: ProgramPoint): NumericalAnalysisState[N, T] =
-    numericalInfo.get.postStateAt(position(pp)).asInstanceOf[T]
+  def postNumericalInfo(pp: ProgramPoint): OctagonAnalysisState =
+    numericalInfo.get.postStateAt(position(pp))
 
   /**
     * Returns the cfg position corresponding to the given program point.
