@@ -105,7 +105,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
       MethodAnalysisResult[OctagonAnalysisState](method, cfgState)
     }
 
-    Context.setNumericalInfo[IntegerOctagons, OctagonAnalysisState](numericalAnalysisResult.cfgState)
+    Context.setNumericalInfo(numericalAnalysisResult.cfgState)
 
     val quantifiedPermissionAnalysisResult2 = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder2.build(method)

@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.OctagonAnalysisState
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -170,7 +171,7 @@ object Context {
   /**
     * Stores the result of the numerical analysis.
     */
-  private var numericalInfo: Option[TrackingCFGState[_ <: NumericalAnalysisState[_ <: NumericalDomain[_], _]]] = None
+  private var numericalInfo: Option[TrackingCFGState[OctagonAnalysisState]] = None
 
   /**
     * Sets the result of the alias analysis.
@@ -213,9 +214,8 @@ object Context {
     * Sets the result of the numerical analysis.
     *
     * @param numericalInfo The result of the numerical analysis to set.
-    * @tparam T The type of the numerical analysis.
     */
-  def setNumericalInfo[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]](numericalInfo: TrackingCFGState[T]): Unit = {
+  def setNumericalInfo(numericalInfo: TrackingCFGState[OctagonAnalysisState]): Unit = {
     this.numericalInfo = Some(numericalInfo)
   }
 

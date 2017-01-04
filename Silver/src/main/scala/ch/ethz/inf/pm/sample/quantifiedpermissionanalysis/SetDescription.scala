@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import viper.silver.ast.{Exp, LocalVar}
@@ -35,11 +35,11 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
     * @param quantifiedVariable The quantified variable to compare against.
     * @return A silver expression that checks whether the given quantified variable is in the set.
     */
-  def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp
+  def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp
 
-  def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean
+  def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
-  def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): sil.Exp
+  def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp
 }
 
 object SetDescription {
@@ -47,21 +47,21 @@ object SetDescription {
   sealed trait Top[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Top[S] {
     this: S =>
 
-    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Exp = sil.TrueLit()()
+    override def toSetDefinition(state: QuantifiedPermissionsState): Exp = sil.TrueLit()()
 
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = false
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
   }
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
     this: S =>
 
-    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Exp = throw new UnsupportedOperationException()
+    override def toSetDefinition(state: QuantifiedPermissionsState): Exp = throw new UnsupportedOperationException()
 
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = throw new UnsupportedOperationException()
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
   }
 
   sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
@@ -79,9 +79,9 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   override def bottom() = ReferenceSetDescription.Bottom
 
-  override def transformAssignField(receiver: Expression, field: String, right: Expression) = this
+  override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
 
-  override def transformAssignVariable(left: VariableIdentifier, right: Expression) = this
+  override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
 }
 
 object ReferenceSetDescription {
@@ -111,7 +111,7 @@ object ReferenceSetDescription {
 
     def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner = Inner(key, widened, concreteExpressions)
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = {
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = {
       !widened || abstractExpressions.forall {
         case _: AddField => false
         case Function(_, _, _, parameters) => parameters.forall { case (_, pp, expr) => expressions((pp, expr)).isFinite(expressions) }
@@ -126,7 +126,7 @@ object ReferenceSetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
       if (isFinite(expressions))
         concreteExpressions.map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
@@ -142,7 +142,8 @@ object ReferenceSetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): sil.Exp = {
+    override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
+      val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
       val set = Context.getSetFor(key).localVar
       if (isFinite(expressions)) null
       else {
@@ -158,7 +159,7 @@ object ReferenceSetDescription {
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
-            val numericalInfo: NumericalDomain[_] = Context.postNumericalInfo(pp).numDom
+            val numericalInfo: IntegerOctagons = Context.postNumericalInfo(pp).numDom
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (typ, argPP, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
@@ -169,7 +170,13 @@ object ReferenceSetDescription {
                   //              if (formalArg.typ.equals(sil.Ref))
                   //                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
                 case sil.Int =>
-                  impliesLeftConjuncts :+= numericalInfo.getConstraints(Set())
+                  val variableIdentifier = VariableIdentifier(arg.name)(IntType)
+                  val expressionToAssume = BinaryArithmeticExpression(variableIdentifier, argExpr, ArithmeticOperator.==)
+                  val tempNumericalInfo = numericalInfo.assume(expressionToAssume).removeVariables(state.changingVars)
+                  tempNumericalInfo.getConstraints(Set(variableIdentifier)).map(expr => DefaultSampleConverter.convert(expr)).reduceOption((left, right) => sil.And(left, right)()) match {
+                    case Some(exp) => impliesLeftConjuncts :+= exp
+                    case None =>
+                  }
                 case _ => throw new IllegalStateException()
               }
             }
@@ -265,7 +272,7 @@ sealed trait OctagonIntegerSetDescription extends IntegerSetDescription[IntegerO
 
   override def factory(): OctagonIntegerSetDescription = top()
 
-  override def factory(numDom: IntegerOctagons) = numDom match {
+  override def factory(numDom: IntegerOctagons): OctagonIntegerSetDescription = numDom match {
     case IntegerOctagons.Bottom => bottom()
     case IntegerOctagons.Top => top()
     case _: IntegerOctagons.Inner => OctagonIntegerSetDescription.Inner(numDom)
@@ -308,11 +315,11 @@ object OctagonIntegerSetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), SetDescription[_]], quantifiedVariable: LocalVar): Exp = ???
+    override def toSilExpression(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription], quantifiedVariable: LocalVar): Exp = ???
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Boolean = ???
+    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = ???
 
-    override def toSetDefinition(expressions: Map[(ProgramPoint, Expression), SetDescription[_]]): Exp = ???
+    override def toSetDefinition(state: QuantifiedPermissionsState): Exp = ???
   }
 
 }

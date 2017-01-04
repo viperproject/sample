@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
@@ -42,8 +42,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       visited: Set[ProgramPoint] = Set(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
                                       permissions: PermissionRecords = PermissionRecords(),
-                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map(),
-                                      intSets: Map[(ProgramPoint, Expression), OctagonIntegerSetDescription] = Map()
+                                      changingVars: Set[Identifier] = Set(),
+                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
@@ -76,9 +76,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            visited: Set[ProgramPoint] = visited,
            currentPP: ProgramPoint = currentPP,
            permissions: PermissionRecords = permissions,
-           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets,
-           intSets: Map[(ProgramPoint, Expression), OctagonIntegerSetDescription] = intSets) =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, refSets, intSets)
+           changingVars: Set[Identifier] = changingVars,
+           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets) =
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, refSets)
 
   /** Removes the current expression.
     *
@@ -135,6 +135,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         expr = expr lub other.expr,
         visited = visited ++ other.visited,
         permissions = newPermissions,
+        changingVars = changingVars ++ other.changingVars,
         refSets = newRefSets
       )
   }
@@ -148,7 +149,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     (this, other) match {
       case (Bottom, _) => true
       case (_, Bottom) => false
-      case (_, _) => refSets.forall { case (key, setDescription) => setDescription.lessEqual(other.refSets.getOrElse(key, ReferenceSetDescription.Bottom)) }
+      case (_, _) =>
+        refSets.forall { case (key, setDescription) => setDescription.lessEqual(other.refSets.getOrElse(key, ReferenceSetDescription.Bottom)) } &&
+        changingVars.subsetOf(other.changingVars)
     }
   }
 
@@ -176,6 +179,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       }
       copy(
         permissions = newPermissions,
+        changingVars = changingVars + left,
         refSets = newRefSets
       )
     case _ => throw new IllegalStateException()
@@ -397,7 +401,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     refSets.foreach {
       case (_, setDescription: ReferenceSetDescription.Inner) =>
         if (!setDescription.isFinite(refSets))
-          newPreconditions :+= setDescription.toSetDefinition(refSets)
+          newPreconditions :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }
     newPreconditions
@@ -431,10 +435,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     refSets.foreach {
       case (_, setDescription: ReferenceSetDescription.Inner) =>
         if (!setDescription.isFinite(refSets))
-          newInvariants :+= setDescription.toSetDefinition(refSets)
+          newInvariants :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }
-    val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom
+    val numDom: IntegerOctagons = Context.postNumericalInfo(currentPP).numDom
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
     newInvariants
