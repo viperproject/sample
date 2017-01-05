@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.execution.EntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
@@ -240,7 +240,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj.transform {
-        case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
+        case FunctionCallExpression(functionName, parameters, returnType, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), returnType, currentPP)
         case other => other
       }), SymbolicReadPermission())
       else permissions
@@ -454,7 +454,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
           newInvariants :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }
-    val numDom: Apron.Polyhedra = Context.postNumericalInfo(currentPP).numDom
+    val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
     newInvariants

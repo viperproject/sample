@@ -6,13 +6,11 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.Program
@@ -45,11 +43,11 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
     tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, NumericalAnalysisEntryState, QuantifiedPermissionsEntryStateBuilder)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, Context.numericalStateBuilder, QuantifiedPermissionsEntryStateBuilder)
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
-                                      numericalEntryStateBuilder: NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState],
+                                      numericalEntryStateBuilder: Context.NumericalStateBuilderType,
                                       entryStateBuilder2: EntryStateBuilder[QuantifiedPermissionsState])
   extends Analysis[QuantifiedPermissionsState] with LazyLogging {
 
@@ -100,9 +98,9 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     val numericalAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = numericalEntryStateBuilder.build(method)
-      val interpreter = TrackingForwardInterpreter[PolyhedraAnalysisState](entryState)
-      val cfgState: TrackingCFGState[PolyhedraAnalysisState] = interpreter.forwardExecute(method.body, entryState)
-      MethodAnalysisResult[PolyhedraAnalysisState](method, cfgState)
+      val interpreter = TrackingForwardInterpreter[Context.NumericalStateType](entryState)
+      val cfgState: TrackingCFGState[Context.NumericalStateType] = interpreter.forwardExecute(method.body, entryState)
+      MethodAnalysisResult[Context.NumericalStateType](method, cfgState)
     }
 
     Context.setNumericalInfo(numericalAnalysisResult.cfgState)

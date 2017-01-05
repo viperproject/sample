@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DomType, IntType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
@@ -113,7 +112,7 @@ object ReferenceSetDescription {
 
     private def pp: ProgramPoint = key._1
 
-    private def isFinite(expr: Expression, numericalInfo: Apron.Polyhedra): Boolean = {
+    private def isFinite(expr: Expression, numericalInfo: Context.NumType): Boolean = {
       val quantifiedVar = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
       val tempNum = numericalInfo.createVariable(quantifiedVar).assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
       tempNum.getPossibleConstants(quantifiedVar) match {
@@ -208,7 +207,7 @@ object ReferenceSetDescription {
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
-            val numericalInfo: Apron.Polyhedra = Context.postNumericalInfo(pp).numDom
+            val numericalInfo: Context.NumType = Context.postNumericalInfo(pp).numDom
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, _, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg

@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
 
 /**
   * @author Severin Münger
@@ -353,8 +353,14 @@ trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnaly
   }
 }
 
-object NumericalAnalysisEntryState
-  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState]
-{
+object PolyhedraAnalysisEntryState
+  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState] {
+
   override def topState: PolyhedraAnalysisState = PolyhedraAnalysisState()
+}
+
+object OctagonAnalysisEntryState
+  extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState] {
+
+  override def topState: OctagonAnalysisState = OctagonAnalysisState()
 }

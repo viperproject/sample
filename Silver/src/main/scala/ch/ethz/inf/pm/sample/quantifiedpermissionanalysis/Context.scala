@@ -7,11 +7,12 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons}
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -21,6 +22,22 @@ import scala.collection._
   *         Added on 29/10/16.
   */
 object Context {
+
+  type NumType = Apron.Polyhedra
+
+  type NumericalStateType = PolyhedraAnalysisState
+
+  type NumericalStateBuilderType = PolyhedraAnalysisEntryState.type
+
+  val numericalStateBuilder = PolyhedraAnalysisEntryState
+
+//  type NumType = IntegerOctagons
+//
+//  type NumericalStateType = OctagonAnalysisState
+//
+//  type NumericalStateBuilderType = OctagonAnalysisEntryState.type
+//
+//  val numericalStateBuilder = OctagonAnalysisEntryState
 
   var program: sil.Program = _
 
@@ -171,7 +188,7 @@ object Context {
   /**
     * Stores the result of the numerical analysis.
     */
-  private var numericalInfo: Option[TrackingCFGState[PolyhedraAnalysisState]] = None
+  private var numericalInfo: Option[TrackingCFGState[NumericalStateType]] = None
 
   /**
     * Sets the result of the alias analysis.
@@ -215,7 +232,7 @@ object Context {
     *
     * @param numericalInfo The result of the numerical analysis to set.
     */
-  def setNumericalInfo(numericalInfo: TrackingCFGState[PolyhedraAnalysisState]): Unit = {
+  def setNumericalInfo(numericalInfo: TrackingCFGState[NumericalStateType]): Unit = {
     this.numericalInfo = Some(numericalInfo)
   }
 
@@ -232,7 +249,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo(pp: ProgramPoint): PolyhedraAnalysisState =
+  def preNumericalInfo(pp: ProgramPoint): NumericalStateType =
     numericalInfo.get.preStateAt(position(pp))
 
   /**
@@ -241,7 +258,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the alias analysis after the given program point.
     */
-  def postNumericalInfo(pp: ProgramPoint): PolyhedraAnalysisState =
+  def postNumericalInfo(pp: ProgramPoint): NumericalStateType =
     numericalInfo.get.postStateAt(position(pp))
 
   /**
