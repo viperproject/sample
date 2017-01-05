@@ -277,11 +277,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
-      val key = (currentPP, receiver)
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
-      val newRefSets = refSets + (key -> refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(ReferenceSetDescription.Inner(currentPP, receiver)))
+      val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
       copy(
         permissions = newPermissions,
         refSets = newRefSets

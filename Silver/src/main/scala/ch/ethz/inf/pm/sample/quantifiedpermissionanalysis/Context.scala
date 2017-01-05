@@ -52,6 +52,7 @@ object Context {
     case FieldExpression(_, field, rec) => extractSetName(rec) + "_" + field
     case VariableIdentifier(name, _) => name
     case FunctionCallExpression(functionName, _, _, _) => functionName
+    case FunctionCallDescription(functionName, _, _, _) => functionName
   }
 
   def setProgram(program: sil.Program): Unit = {
