@@ -367,6 +367,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     newFormalArguments
   }
 
+  private def toSilPerm(perm: FractionalPermission): sil.PermExp = perm match {
+    case FractionalPermission(1, 1) => sil.FullPerm()()
+    case FractionalPermission(0, _) => sil.NoPerm()()
+    case FractionalPermission(numerator, denominator) => sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
+  }
+
   private def getMaxRdValue(permAmount: FractionalPermission, readAmount: Int): FractionalPermission = permAmount match {
     case FractionalPermission(numerator, denominator) =>
       if (readAmount == 0) FractionalPermission(1, 1)
@@ -393,7 +399,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       if (readPaths.nonEmpty) {
         var min = getMaxRdValue(readPaths.head._1, readPaths.head._2)
         readPaths.foreach { cur => if (getMaxRdValueTupled(cur) < min) min = getMaxRdValueTupled(cur) }
-        newPreconditions :+= sil.And(sil.PermLtCmp(ZeroPerm, rdAmount)(), sil.PermLtCmp(rdAmount, sil.FractionalPerm(sil.IntLit(min.numerator)(), sil.IntLit(min.denominator)())())())()
+        newPreconditions :+= sil.And(sil.PermLtCmp(ZeroPerm, rdAmount)(), sil.PermLtCmp(rdAmount, toSilPerm(min))())()
       } else {
         newPreconditions :+= sil.And(sil.PermLtCmp(ZeroPerm, rdAmount)(), sil.PermLtCmp(rdAmount, WritePerm)())()
       }

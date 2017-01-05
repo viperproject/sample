@@ -7,12 +7,12 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -84,7 +84,13 @@ object Context {
   def clearMethodSpecificInfo(): Unit = {
     clearAliases()
     clearNumericalInfo()
-    rdAmountVariable = None
+    rdAmountVariable match {
+      case Some(varDecl) =>
+        identifiers -= varDecl.name
+        rdAmountVariable = None
+      case None =>
+    }
+    identifiers --= quantifiedVariables.values.flatten.map(varDecl => varDecl.name)
     quantifiedVariables = Map()
     sets.clear()
   }
@@ -194,10 +200,9 @@ object Context {
     * Sets the result of the alias analysis.
     *
     * @param aliases The result of the alias analysis to set.
-    * @tparam A The type of the alias analysis.
     */
-  def setAliases[A <: AliasAnalysisState[A]](aliases: TrackingCFGState[A]): Unit = {
-    this.aliases = Some(aliases)
+  def setAliases(aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]): Unit = {
+    this.aliases = aliases
   }
 
   /**

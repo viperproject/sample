@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraph, MethodDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
-import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
+import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast.Program
@@ -87,14 +87,20 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.setProgram(DefaultSilverConverter.prog)
 
-//    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-//      val entryState = aliasAnalysisBuilder.build(method)
-//      val interpreter = TrackingForwardInterpreter[SimpleAliasAnalysisState](entryState)
-//      val cfgState = interpreter.forwardExecute(method.body, entryState)
-//      MethodAnalysisResult(method, cfgState)
-//    }
-//
-//    Context.setAliases(aliasAnalysisResult.cfgState)
+    // TODO: just catching the exception is a hack, better perform a search through the program if there exists a field access with a function as receiver
+    val aliasAnalysisResult: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]] =
+      try {
+        Some(SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
+          val entryState = aliasAnalysisBuilder.build(method)
+          val interpreter = TrackingForwardInterpreter[SimpleAliasAnalysisState](entryState)
+          val cfgState = interpreter.forwardExecute(method.body, entryState)
+          MethodAnalysisResult(method, cfgState)
+        }.cfgState)
+      } catch {
+        case _: IllegalArgumentException => None
+      }
+
+    Context.setAliases(aliasAnalysisResult)
 
     val numericalAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = numericalEntryStateBuilder.build(method)
