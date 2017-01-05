@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DomType, IntType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
@@ -116,11 +116,11 @@ object ReferenceSetDescription {
 
     private def pp: ProgramPoint = key._1
 
-    private def isFinite(expr: Expression, numericalInfo: IntegerOctagons): Boolean = {
+    private def isFinite(expr: Expression, numericalInfo: Apron.Polyhedra): Boolean = {
       val quantifiedVar = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
-      val tempNum = numericalInfo.assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
+      val tempNum = numericalInfo.createVariable(quantifiedVar).assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
       tempNum.getPossibleConstants(quantifiedVar) match {
-        case set if set.isBottom => throw new IllegalStateException()
+        case set if set.isBottom => false
         case set if set.isTop => false
         case _ => true
       }
@@ -166,7 +166,7 @@ object ReferenceSetDescription {
         case (IntType, _, expr) =>
           val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).localVar.name)(IntType)
           val expressionToAssume = BinaryArithmeticExpression(quantifiedVariable, expr, ArithmeticOperator.==)
-          Context.postNumericalInfo(pp).numDom.assume(expressionToAssume).removeVariables(changingVars).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
+          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(changingVars).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
       })
     }
 
@@ -211,7 +211,7 @@ object ReferenceSetDescription {
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
-            val numericalInfo: IntegerOctagons = Context.postNumericalInfo(pp).numDom
+            val numericalInfo: Apron.Polyhedra = Context.postNumericalInfo(pp).numDom
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, _, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
@@ -224,7 +224,7 @@ object ReferenceSetDescription {
                 case sil.Int =>
                   val variableIdentifier = VariableIdentifier(arg.name)(IntType)
                   val expressionToAssume = BinaryArithmeticExpression(variableIdentifier, argExpr, ArithmeticOperator.==)
-                  val tempNumericalInfo = numericalInfo.assume(expressionToAssume).removeVariables(state.changingVars)
+                  val tempNumericalInfo = numericalInfo.createVariable(variableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars)
                   tempNumericalInfo.getConstraints(Set(variableIdentifier)).map(expr => DefaultSampleConverter.convert(expr)).reduceOption((left, right) => sil.And(left, right)()) match {
                     case Some(exp) => impliesLeftConjuncts :+= exp
                     case None =>

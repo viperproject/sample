@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.OctagonAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -171,7 +171,7 @@ object Context {
   /**
     * Stores the result of the numerical analysis.
     */
-  private var numericalInfo: Option[TrackingCFGState[OctagonAnalysisState]] = None
+  private var numericalInfo: Option[TrackingCFGState[PolyhedraAnalysisState]] = None
 
   /**
     * Sets the result of the alias analysis.
@@ -215,7 +215,7 @@ object Context {
     *
     * @param numericalInfo The result of the numerical analysis to set.
     */
-  def setNumericalInfo(numericalInfo: TrackingCFGState[OctagonAnalysisState]): Unit = {
+  def setNumericalInfo(numericalInfo: TrackingCFGState[PolyhedraAnalysisState]): Unit = {
     this.numericalInfo = Some(numericalInfo)
   }
 
@@ -232,7 +232,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo(pp: ProgramPoint): OctagonAnalysisState =
+  def preNumericalInfo(pp: ProgramPoint): PolyhedraAnalysisState =
     numericalInfo.get.preStateAt(position(pp))
 
   /**
@@ -241,7 +241,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the alias analysis after the given program point.
     */
-  def postNumericalInfo(pp: ProgramPoint): OctagonAnalysisState =
+  def postNumericalInfo(pp: ProgramPoint): PolyhedraAnalysisState =
     numericalInfo.get.postStateAt(position(pp))
 
   /**
