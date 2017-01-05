@@ -101,10 +101,7 @@ object ReferenceSetDescription {
   case object Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
 
   object Inner {
-    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression.transform {
-      case FunctionCallExpression(functionName, params, typ, _) => FunctionCallDescription(functionName, params.map(param => (param.typ, param)), typ, pp)
-      case other => other
-    })
+    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
   case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())

@@ -168,13 +168,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = x match {
     case left: VariableIdentifier =>
       val (newPermissions, newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription]) = left.typ match {
-        case _: RefType =>
+        case IntType => (permissions, refSets)
+        case _: RefType | _: DomType =>
           (permissions, refSets.transform {
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
           })
-        case IntType => if (!visited.contains(currentPP)) (permissions.transformExpressions(e => if (e.equals(left)) right else e), refSets.map {
-          case ((pp, keyExpr), setDescription) => (pp, keyExpr.transform(e => if (e.equals(left)) right else e)) -> setDescription.transformAssignVariable(left, right)
-        }) else (permissions, refSets)
         case _ => throw new IllegalStateException()
       }
       copy(
@@ -200,7 +198,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case _ => throw new IllegalStateException()
     }
     val newPermissions =
-      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
+      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver.transform {
+        case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
+        case other => other
+      }), WritePermission)
       else permissions
     var newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = right.typ match {
       case _: RefType =>
@@ -238,7 +239,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     val newPermissions =
-      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
+      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj.transform {
+        case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
+        case other => other
+      }), SymbolicReadPermission())
       else permissions
     val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
     copy(
@@ -249,13 +253,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   }
 
   private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
-    case FunctionCallExpression(_, parameters, _, _) =>
+    case FunctionCallExpression(functionName, parameters, typ, _) =>
+      val desc = FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
       parameters.map {
         case param: RefType => extractExpressionDescriptions(param)
         case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
       }.reduce((left, right) => left ++ right) +
-      ((currentPP, expr) -> ReferenceSetDescription.Inner(currentPP, expr))
+      ((currentPP, desc) -> ReferenceSetDescription.Inner(currentPP, desc))
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr)))
   }
 
@@ -278,7 +283,10 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
       val newPermissions =
-        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
+        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver.transform {
+          case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
+          case other => other
+        }), FractionalPermission(num, denom))
         else permissions
       val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
       copy(
