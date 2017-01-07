@@ -54,8 +54,6 @@ trait ValueDrivenHeapState[
     abstractHeap.isBottom || generalValState.lessEqual(generalValState.bottom())
   }
 
-  override def command(cmd: Command): T = ???
-
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     if (variable.typ.isObject) {
       // Initialize references variables to null such that the heap is not
@@ -321,6 +319,7 @@ trait ValueDrivenHeapState[
    * @param rightPaths sequence of edges that correspond to paths of RHS
    *                   of the assignment
    * @return the set of edges that represent the reference assignment
+   *
    * @author Milos Novacek
    */
   private def referencePathAssignmentEdges(

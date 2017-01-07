@@ -89,13 +89,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
     (this /: TracePartitioning.get[D](p))((s, d) => s.apply(d))
   }
 
-  /** Executes the given command.
-    *
-    * @param cmd The command to execute.
-    * @return The abstract state after the execution of the given command.
-    */
-  override def command(cmd: Command): PartitionedState[D] = ???
-
   /**
    * Applies a directive if it is either a merging or the if the current depth
    * does allow further partitionings.
