@@ -103,9 +103,9 @@ object Context {
     identifiers ++= program.domains.map(domain => domain.name)
     identifiers ++= program.functions.map(function => function.name)
     identifiers ++= program.predicates.map(predicates => predicates.name)
-    identifiers ++= program.domains.flatMap(domain => domain._axioms.map(axiom => axiom.name) ++ domain._functions.map(function => function.name))
+    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(axiom => axiom.name) ++ domain.functions.map(function => function.name))
     programFunctions ++= program.functions.map(function => (function.name, function))
-    programFunctions ++= program.domains.flatMap(domain => domain._functions.map(function => (function.name, function)))
+    programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
   }
 
   private def createNewUniqueIdentifier(name: String) = {
