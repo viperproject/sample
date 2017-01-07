@@ -23,7 +23,6 @@ trait PermissionTree {
     case PermissionList(list) => PermissionList(list :+ this)
     case _ => PermissionList(Seq(other, this))
   }
-  def sub(other: PermissionTree): PermissionTree = add(NegativePermissionTree(other))
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
   def condition(cond: Expression, elsePermissions: PermissionTree) = Condition(cond, this, elsePermissions)
   def transform(f: (Expression => Expression)): PermissionTree
@@ -70,17 +69,6 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
     case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
       (FractionalPermission.createReduced(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
   })
-}
-
-case class NegativePermissionTree(arg: PermissionTree) extends PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp =
-    sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression(state))()
-  def transform(f: (Expression => Expression)) = NegativePermissionTree(arg.transform(f))
-  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || arg.exists(f)
-  def foreach(f: (Expression => Unit)): Unit = arg.foreach(f)
-  def getReadPaths: Set[(FractionalPermission, Int)] = arg.getReadPaths.map {
-    case (FractionalPermission(num, denom), read) => (FractionalPermission.createReduced(-num, denom), -read)
-  }
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {

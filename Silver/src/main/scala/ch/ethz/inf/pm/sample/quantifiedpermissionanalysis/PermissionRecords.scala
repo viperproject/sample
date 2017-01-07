@@ -34,7 +34,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
 
   def sub(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
     copy(withDefault(field).transform {
-      case (`field`, tree) => tree.sub(PermissionLeaf(receiver, permission))
+      case (`field`, tree) => tree.add(PermissionLeaf(receiver, NegatedPermission(permission)))
       case (_, other) => other
     })
 
