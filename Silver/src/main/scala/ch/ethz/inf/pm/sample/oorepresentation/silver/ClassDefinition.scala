@@ -6,59 +6,54 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.{oorepresentation => rep}
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.execution.SampleCfg
+import ch.ethz.inf.pm.sample.oorepresentation._
+import viper.silver.cfg._
 
-/**
- * Method declaration that supports out-parameters.
- * The only difference is that it uses `createVariable` instead of
- * `createVariableForArgument` for the out-parameters.
- *
- * @todo Integrate it into the official Sample base class.
- */
-class MethodDeclWithOutParams(
-    override val programpoint: rep.ProgramPoint,
-    override val ownerType: rep.Type,
-    override val modifiers: List[rep.Modifier],
-    override val name: MethodIdentifier,
-    override val parametricType: List[Type],
-    override val arguments: List[List[VariableDeclaration]],
-    override val returnType: Type,
-    override val body: ControlFlowGraph,
-    override val precond: Statement,
-    override val postcond: Statement,
-    override val classDef: ClassDefinition)
-  extends sample.MethodDeclaration(
-    programpoint,
-    ownerType,
-    modifiers,
-    name,
-    parametricType,
-    arguments,
-    returnType,
-    body,
-    precond,
-    postcond,
-    classDef) {
+case class SilverIdentifier(name: String)
 
-  override def initializeArgument[S <: State[S]](state: S): S = {
-    var result = state
-    // Create a variable for each formal in-parameter
-    for (variable <- arguments.head) {
-      result = variable.variable.forwardSemantics[S](result)
-      val varExpr = result.expr
-      result = result.removeExpression()
-      result = result.createVariableForArgument(varExpr, variable.typ)
+class SilverProgramDeclaration(val fields: Seq[FieldDeclaration],
+                               val functions: Seq[SilverFunctionDeclaration],
+                               val methods: Seq[SilverMethodDeclaration])
+
+class SilverFunctionDeclaration(val programPoint: ProgramPoint,
+                                val name: SilverIdentifier,
+                                val parameters: List[VariableDeclaration],
+                                val returnType: Type,
+                                val body: Statement)
+
+class SilverMethodDeclaration(val programPoint: ProgramPoint,
+                              val name: SilverIdentifier,
+                              val parameters: List[VariableDeclaration],
+                              val returnType: Type,
+                              val body: SampleCfg) {
+  /**
+    * Returns the precondition of the method.
+    *
+    * @return The precondition of the method.
+    */
+  def precondition(): Seq[Statement] = body.entry match {
+    case PreconditionBlock(pres) => pres
+    case _ => Seq.empty
+  }
+
+  /**
+    * Returns the postcondition of the method.
+    *
+    * @return The postcondition of the method.
+    */
+  def postcondition(): Seq[Statement] = body.exit match {
+    case PostconditionBlock(posts) => posts
+    case _ => Seq.empty
+  }
+
+  def initializeArgument[S <: State[S]](state: S): S = {
+    // create a variable for each parameter
+    parameters.foldLeft(state) { case (state, parameter) =>
+      val result = parameter.variable.forwardSemantics(state)
+      val expression = result.expr
+      result.removeExpression().createVariableForArgument(expression, parameter.typ)
     }
-    // Create a variable for each formal out-parameter
-    for (variable <- arguments(1)) {
-      result = variable.variable.forwardSemantics[S](result)
-      val varExpr = result.expr
-      result = result.removeExpression()
-      result = result.createVariable(varExpr, variable.typ, programpoint)
-    }
-
-    result
   }
 }

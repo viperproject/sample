@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import viper.silver.ast.Position
 import viper.silver.{ast => sil}
 
 /** Sample `ProgramPoint` that wraps a SIL `Position`. */

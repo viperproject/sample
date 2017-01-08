@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph, ProgramPointUtils}
+import ch.ethz.inf.pm.sample.oorepresentation.{CfgLocation, ControlFlowGraph, ProgramPointUtils}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -104,7 +104,7 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] with LazyLogging 
 
     val blockStatements = cfgState.cfg.getBasicBlockStatements(currentBlockId)
     var previousState = resultingStates.head
-    for ((statement, statementIndex) <- blockStatements.zipWithIndex)  {
+    for ((statement, _) <- blockStatements.zipWithIndex)  {
       // Need to call this to make trace partitioning possible
       val tempState = previousState.before(ProgramPointUtils.identifyingPP(statement))
       val transformedState = statement.forwardSemantics(tempState)
