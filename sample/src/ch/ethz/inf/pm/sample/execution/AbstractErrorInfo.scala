@@ -7,6 +7,6 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, MethodDeclaration, ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{CfgLocation, MethodDeclaration, ProgramPoint}
 
-case class AbstractErrorInfo[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration, errorExpr: ExpressionSet, state: S, errorState: S, cfgPosition: CFGPosition)
+case class AbstractErrorInfo[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration, errorExpr: ExpressionSet, state: S, errorState: S, cfgPosition: CfgLocation)

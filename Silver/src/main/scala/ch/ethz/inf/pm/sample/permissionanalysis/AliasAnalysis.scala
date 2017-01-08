@@ -9,9 +9,10 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.{Analysis, ForwardEntryStateBuilder, MethodAnalysisResult, SimpleForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
 import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
@@ -19,25 +20,25 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisTypes._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
-object Dummy
-{
-  def main(args: Array[String]): Unit = {
-    val m1 = Map(1 -> "a", 2 -> "b")
-    val m2 = m1 + (1 -> "c")
-    val m3 = m1.updated(1, "c")
-    println(m2(1))
-    // outputs "c"
-    println(m3(1))
-    // outputs "c"
-  }
+case object DummyRefType extends DummyType {
+  def name = "Ref"
+
+  def isBottom = false
+
+  def isTop = false
+
+  def isObject = true
+
+  def isNumericalType = false
+
+  def possibleFields: Set[Identifier] = Set.empty
 }
 
 /** Various type shortcuts.
   *
   * @author Jerome Dohrau
   */
-object AliasAnalysisTypes
-{
+object AliasAnalysisTypes {
   type AccessPath = List[Identifier]
 
   type Path = List[String]
@@ -64,8 +65,7 @@ object AliasAnalysisTypes
 case class HeapNode(name: String,
                     typ: Type = DummyRefType,
                     pp: ProgramPoint = DummyProgramPoint)
-  extends Identifier
-{
+  extends Identifier {
   /** Returns the name of the identifier.
     *
     * @return The name of the identifier.
@@ -92,13 +92,12 @@ case class HeapNode(name: String,
   override def hashCode(): Int = name.hashCode
 }
 
-object HeapNode
-{
+object HeapNode {
+
   /** The unique wildcard node.
     */
   object WildcardNode
-    extends HeapNode("*")
-  {
+    extends HeapNode("*") {
     /** Returns true if the identifier represents exactly one variable.
       *
       * @return True if the identifier represents exactly one variable.
@@ -121,8 +120,7 @@ object HeapNode
   /** The unique unknown node.
     */
   object UnknownNode
-    extends HeapNode("?")
-  {
+    extends HeapNode("?") {
     /** Returns true if the identifier represents exactly one variable.
       *
       * @return True if the identifier represents exactly one variable.
@@ -133,8 +131,7 @@ object HeapNode
   /** The unique null node.
     */
   object NullNode
-    extends HeapNode("null")
-  {
+    extends HeapNode("null") {
     /** Returns true if the identifier represents exactly one variable.
       *
       * @return True if the identifier represents exactly one variable.
@@ -146,6 +143,7 @@ object HeapNode
     */
   object NewNode
     extends HeapNode("new")
+
 }
 
 /** A graph representing alias information.
@@ -153,8 +151,7 @@ object HeapNode
   * @author Caterina Urban
   * @author Jerome Dohrau
   */
-trait AliasGraph[T <: AliasGraph[T]]
-{
+trait AliasGraph[T <: AliasGraph[T]] {
   this: T =>
 
   /** Returns the store that maps variables to sets of heap nodes.
@@ -270,7 +267,7 @@ trait AliasGraph[T <: AliasGraph[T]]
 
   /** Adds a node with the given name to the heap.
     *
-    * @param name   The name of the node.
+    * @param name The name of the node.
     * @return The alias graph with the node added
     */
   def addNode(name: String): T = {
@@ -401,8 +398,8 @@ trait AliasGraph[T <: AliasGraph[T]]
             // update state
             copy(store = newStore, heap = newHeap)
           } else {
-              val newStore = store + (variable -> values)
-              copy(store = newStore)
+            val newStore = store + (variable -> values)
+            copy(store = newStore)
           }
         case AccessPathIdentifier(path) =>
           val receivers = evaluateReceiver(path.map(_.getName))
@@ -474,11 +471,11 @@ trait AliasGraph[T <: AliasGraph[T]]
 
     val (finalGraph, _) = fields.foldLeft(materializeVariable(variable)) {
       case ((graph, receivers), field) =>
-      receivers.foldLeft((graph, Set.empty[HeapNode])) {
-        case ((currGraph, currValues), receiver) =>
-          val (newGraph, newValues) = currGraph.materializeField(receiver, field)
-          (newGraph, currValues ++ newValues)
-      }
+        receivers.foldLeft((graph, Set.empty[HeapNode])) {
+          case ((currGraph, currValues), receiver) =>
+            val (newGraph, newValues) = currGraph.materializeField(receiver, field)
+            (newGraph, currValues ++ newValues)
+        }
     }
 
     finalGraph
@@ -584,9 +581,10 @@ trait AliasGraph[T <: AliasGraph[T]]
     while (reachable.size > oldSize) {
       oldSize = reachable.size
       reachable = reachable ++ reachable.foldLeft(Set.empty[HeapNode]) {
-        (set, node) => set ++ heap.getOrElse(node, Map.empty).foldLeft(Set.empty[HeapNode])  {
-          (set, entry) => set ++ entry._2
-        }
+        (set, node) =>
+          set ++ heap.getOrElse(node, Map.empty).foldLeft(Set.empty[HeapNode]) {
+            (set, entry) => set ++ entry._2
+          }
       }
     }
     // remove all unreachable heap nodes
@@ -640,7 +638,7 @@ trait AliasGraph[T <: AliasGraph[T]]
     * @param path      The path.
     * @return The set of values.
     */
-  def evaluateLast(receivers: Set[HeapNode], path: Path) : Set[HeapNode] = {
+  def evaluateLast(receivers: Set[HeapNode], path: Path): Set[HeapNode] = {
     if (path.length <= 1) receivers
     else {
       // evaluate last field access
@@ -760,8 +758,8 @@ trait AliasGraph[T <: AliasGraph[T]]
            heap: Heap = heap): T
 }
 
-object AliasGraph
-{
+object AliasGraph {
+
   /** A graph representing may alias information.
     *
     * @param store           The store.
@@ -775,8 +773,7 @@ object AliasGraph
                            fields: Set[String] = Set.empty,
                            currentPP: ProgramPoint = DummyProgramPoint,
                            materialization: Boolean = true)
-    extends AliasGraph[MayAliasGraph]
-  {
+    extends AliasGraph[MayAliasGraph] {
     /** Returns true if the given access paths may / must alias (depending on
       * whether this is a may or must alias graph).
       *
@@ -790,9 +787,13 @@ object AliasGraph
         if ((eval contains WildcardNode) || !(eval contains UnknownNode)) eval
         else copy(materialization = true).materialize(path).evaluatePath(path)
       }
+
       def firstEval = evaluate(first) - NullNode
+
       def secondEval = evaluate(second) - NullNode
+
       def intersection = firstEval & secondEval
+
       intersection.nonEmpty || (firstEval contains WildcardNode) || (secondEval contains WildcardNode)
     }
 
@@ -856,7 +857,7 @@ object AliasGraph
         fields.foldLeft(FieldMap()) { (map, field) =>
           (map1.get(field), map2.get(field)) match {
             case (None, _) => map
-            case (_, None )=> map
+            case (_, None) => map
             case (Some(values1), Some(values2)) => map + (field -> (values1 & values2))
           }
         }
@@ -948,8 +949,7 @@ object AliasGraph
                             fields: Set[String] = Set.empty,
                             currentPP: ProgramPoint = DummyProgramPoint,
                             materialization: Boolean = true)
-    extends AliasGraph[MustAliasGraph]
-  {
+    extends AliasGraph[MustAliasGraph] {
     /** Returns true if the given access paths may / must alias (depending on
       * whether this is a may or must alias graph).
       *
@@ -985,6 +985,7 @@ object AliasGraph
           }
         }
       }
+
       // combine stores
       val newStore = combine(store, other.store)
 
@@ -1104,6 +1105,7 @@ object AliasGraph
                       heap: Heap): MustAliasGraph =
       MustAliasGraph(store, heap, fields, currentPP, materialization)
   }
+
 }
 
 /**
@@ -1113,9 +1115,9 @@ object AliasGraph
   */
 trait AliasAnalysisState[T <: AliasAnalysisState[T]]
   extends SimpleState[T]
+    with SilverState[T]
     with StateWithRefiningAnalysisStubs[T]
-    with LazyLogging
-{
+    with LazyLogging {
   this: T =>
 
   /** Returns the current program point.
@@ -1338,21 +1340,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     copy(may = newMay, must = newMust)
   }
 
-  override def command(cmd: Command): T = cmd match {
-    case InhaleCommand(expression) => inhale(expression.getSingle.get)
-    case ExhaleCommand(expression) => exhale(expression.getSingle.get)
-    case PreconditionCommand(condition) => command(InhaleCommand(condition))
-    case PostconditionCommand(condition) => command(ExhaleCommand(condition))
-    case InvariantCommand(condition) => command(ExhaleCommand(condition)).command(InhaleCommand(condition))
-    case _ => super.command(cmd)
-  }
-
   /** Inhales the given expression.
     *
     * @param expression The expression to inhale.
     * @return The alias analysis state with the given expression inhaled.
     */
-  def inhale(expression: Expression): T ={
+  def inhale(expression: Expression): T = {
     logger.trace(s"inhale($expression)")
 
     assume(expression)
@@ -1601,7 +1594,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
 
   /** Assigns an expression to an argument.
     *
-    * @param argument     The assigned argument
+    * @param argument   The assigned argument
     * @param expression The expression to be assigned
     * @return The abstract state after the assignment
     */
@@ -1638,7 +1631,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * @param expression The current expression
     * @return The alias analysis state with the updated current expression.
     */
-  override def setExpression(expression: ExpressionSet): T =  copy(result = expression)
+  override def setExpression(expression: ExpressionSet): T = copy(result = expression)
 
   /** Removes the current expression.
     *
@@ -1687,12 +1680,12 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     * materialization flag, result, may alias graph, must alias graph, top flag,
     * and bottom flag if the corresponding arguments are defined.
     *
-    * @param currentPP       The new current program point.
-    * @param result          The new result.
-    * @param may             The new may alias graph.
-    * @param must            The new must alias graph.
-    * @param isTop           The new top flag.
-    * @param isBottom        The new bottom flag.
+    * @param currentPP The new current program point.
+    * @param result    The new result.
+    * @param may       The new may alias graph.
+    * @param must      The new must alias graph.
+    * @param isTop     The new top flag.
+    * @param isBottom  The new bottom flag.
     * @return The updated copy of the alias analysis state.
     */
   def copy(currentPP: ProgramPoint = currentPP,
@@ -1703,16 +1696,16 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
            isBottom: Boolean = isBottom): T
 }
 
-object AliasAnalysisState
-{
+object AliasAnalysisState {
+
   /** The default implementation of the alias analysis state.
     *
-    * @param currentPP       The current program point.
-    * @param result          The result.
-    * @param may             The may alias graph.
-    * @param must            The must alias graph.
-    * @param isTop           The top flag.
-    * @param isBottom        The bottom flag.
+    * @param currentPP The current program point.
+    * @param result    The result.
+    * @param may       The may alias graph.
+    * @param must      The must alias graph.
+    * @param isTop     The top flag.
+    * @param isBottom  The bottom flag.
     */
   case class SimpleAliasAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                       result: ExpressionSet = ExpressionSet(),
@@ -1720,18 +1713,17 @@ object AliasAnalysisState
                                       must: MustAliasGraph = MustAliasGraph(),
                                       isTop: Boolean = false,
                                       isBottom: Boolean = false)
-  extends AliasAnalysisState[SimpleAliasAnalysisState]
-  {
+    extends AliasAnalysisState[SimpleAliasAnalysisState] {
     /** Copies the alias analysis state but updates fields, current program point,
       * materialization flag, result, may alias graph, must alias graph, top flag,
       * and bottom flag if the corresponding arguments are defined.
       *
-      * @param currentPP       The new current program point.
-      * @param result          The new result.
-      * @param may             The new may alias graph.
-      * @param must            The new must alias graph.
-      * @param isTop           The new top flag.
-      * @param isBottom        The new bottom flag.
+      * @param currentPP The new current program point.
+      * @param result    The new result.
+      * @param may       The new may alias graph.
+      * @param must      The new must alias graph.
+      * @param isTop     The new top flag.
+      * @param isBottom  The new bottom flag.
       * @return The updated copy of the alias analysis state.
       */
     override def copy(currentPP: ProgramPoint,
@@ -1742,6 +1734,7 @@ object AliasAnalysisState
                       isBottom: Boolean): SimpleAliasAnalysisState =
       SimpleAliasAnalysisState(currentPP, result, may, must, isTop, isBottom)
   }
+
 }
 
 /** An entry state builder of the alias analysis.
@@ -1750,18 +1743,17 @@ object AliasAnalysisState
   * @author Jerome Dohrau
   */
 trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
-  extends ForwardEntryStateBuilder[T]
-{
-  override def build(method: MethodDeclaration): T = {
+  extends SilverEntryStateBuilder[T] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
     // retrieve the set of fields declared in the program
-    val fields = method.classDef.fields
+    val fields = program.fields
       .filter(_.typ.isObject)
       .map(_.variable.toString)
       .toSet
 
     val may = MayAliasGraph().initialize(fields)
     val must = MustAliasGraph().initialize(fields)
-    val initial = topState.copy(may = may, must = must)
+    val initial = top.copy(may = may, must = must)
 
     method.initializeArgument(initial)
   }
@@ -1773,9 +1765,8 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
   * @author Jerome Dohrau
   */
 object AliasAnalysisEntryState
-  extends AliasAnalysisStateBuilder[SimpleAliasAnalysisState]
-{
-  override def topState: SimpleAliasAnalysisState = SimpleAliasAnalysisState()
+  extends AliasAnalysisStateBuilder[SimpleAliasAnalysisState] {
+  override def top: SimpleAliasAnalysisState = SimpleAliasAnalysisState()
 }
 
 /** An alias analysis runner.
@@ -1784,8 +1775,7 @@ object AliasAnalysisEntryState
   * @author Jerome Dohrau
   */
 trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
-  extends SilverAnalysisRunner[T]
-{
+  extends SilverAnalysisRunner[T] {
   /** Runs the analysis on the Silver program whose name is passed as first
     * argument and reports errors and warnings.
     *
@@ -1797,45 +1787,13 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
+    val results = run(Compilable.Path(path)).collect { case x => x }
 
+    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    val cfgStates = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    for ((method, graph) <- cfgStates) {
+    for ((method, cfgResult) <- cfgResults) {
       println("******************* " + method + "\n")
-      // printing the entry state of the control-flow graph
-      println(graph.entryState())
-
-      // blocks withing the control-flow graph
-      val blocks = graph.cfg.nodes
-
-      // withing each block...
-      var i = 0
-      for (statements <- blocks) {
-        if (statements.isEmpty) {
-          // post-states of each statement
-          val states = graph.blockStates(i).last
-          for (s <- states) {
-            println("\n******************* \n")
-            println(s)
-          }
-        } else {
-          // printing the block pre-state
-          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
-          println(graph.blockStates(i).last.head)
-          // post-states of each statement
-          val states = graph.blockStates(i).last.drop(1)
-          // print statements and corresponding post-states
-          for ((c: Statement, s) <- statements zip states) {
-            println("\n******************* " + c + "\n")
-            println(s)
-          }
-        }
-        i = i + 1
-      }
-
-      println("\n******************* \n")
-      println(graph.exitState()) // printing the exit state of the control-flow graph
+      cfgResult.print()
     }
   }
 
@@ -1848,9 +1806,8 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
   * @author Jerome Dohrau
   */
 object AliasAnalysis
-  extends AliasAnalysisRunner[SimpleAliasAnalysisState]
-{
-  override val analysis: Analysis[SimpleAliasAnalysisState] = SimpleForwardAnalysis[SimpleAliasAnalysisState](AliasAnalysisEntryState)
+  extends AliasAnalysisRunner[SimpleAliasAnalysisState] {
+  override val analysis: SilverAnalysis[SimpleAliasAnalysisState] = SimpleSilverForwardAnalysis[SimpleAliasAnalysisState](AliasAnalysisEntryState)
 
   override def toString: String = "Alias Analysis"
 }

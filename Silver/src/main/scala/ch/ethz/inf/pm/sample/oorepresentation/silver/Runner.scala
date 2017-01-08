@@ -8,25 +8,77 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import java.io.{File, PrintWriter}
 
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner, MethodAnalysisResult}
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.silicon.Silicon
 
-/** Analysis runner for Silver programs. */
-trait SilverAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
-  val compiler = new SilCompiler()
+import scala.collection.mutable
 
-  override def prepareContext() = {
-    super.prepareContext()
-    SystemParameters.isValueDrivenHeapAnalysis = false
+//import viper.silicon.Silicon
+
+trait AbstractAnalysisRunner[S <: State[S]] {
+  val compiler: SilverCompiler
+
+  val analysis: SilverAnalysis[S]
+
+  def program: SilverProgramDeclaration = compiler.program
+
+  /**
+    * Returns the sequence of functions to analyze. By default these are all
+    * functions.
+    *
+    * @return The sequence of functions to analyze.
+    */
+  def functionsToAnalyze: Seq[SilverFunctionDeclaration] = compiler.allFunctions
+
+  /**
+    * Returns the sequence of methods to analyze. By default these are all
+    * methods.
+    *
+    * @return The sequence of methods to analyze.
+    */
+  def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
+
+  def run(compilable: Compilable): Map[SilverIdentifier, CfgResult[S]] = {
+    compiler.compile(compilable)
+    _run()
   }
 
+  protected def prepareContext(): Unit = {
+    SystemParameters.analysisOutput = new StringCollector
+    SystemParameters.progressOutput = new StringCollector
+    SystemParameters.resetOutput()
+
+    SystemParameters.wideningLimit = 3
+    //SystemParameters.compiler = compiler
+
+    SystemParameters.resetNativeMethodsSemantics()
+    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
+  }
+
+  protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+    prepareContext()
+    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
+    //functionsToAnalyze.foreach(function => result.put(function.name, analysis.analyze(function))  )
+    methodsToAnalyze.foreach(method => result.put(method.name, analysis.analyze(program, method)))
+    result.toMap
+  }
+
+  def main(args: Array[String]): Unit = {
+    run(Compilable.Path(new File(args(0)).toPath))
+  }
+}
+
+/** Analysis runner for Silver programs. */
+trait SilverAnalysisRunner[S <: State[S]]
+  extends AbstractAnalysisRunner[S] {
+  val compiler = new SilverCompiler()
+
   /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): List[AnalysisResult] = {
+  def run(program: sil.Program): Map[SilverIdentifier, CfgResult[S]] = {
     compiler.compileProgram(program)
     _run()
   }
@@ -37,10 +89,14 @@ trait SilverAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
-    for (e <- Reporter.assertionViolations) { println(e) } // error report
+    for (e <- Reporter.assertionViolations) {
+      println(e)
+    } // error report
     println()
     if (Reporter.genericWarnings.isEmpty) println("No warnings")
-    for (w <- Reporter.genericWarnings) { println(w) } // warning report
+    for (w <- Reporter.genericWarnings) {
+      println(w)
+    } // warning report
   }
 }
 
@@ -53,9 +109,9 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
 
   /** Extends a Silver program whose name is passed as first argument with specifications inferred by the analysis. */
   def extend(args: Array[String]): sil.Program = {
-    val results: List[MethodAnalysisResult[S]] = run(Compilable.Path(new File(args(0)).toPath)).collect{case x:MethodAnalysisResult[S] => x} // run the analysis
+    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
     // extend the Silver program with inferred permission
-    extendProgram(DefaultSilverConverter.prog,results)
+    extendProgram(DefaultSilverConverter.prog, results)
   }
 
   /** Exports a Silver program extended with inferred specifications. */
@@ -65,11 +121,12 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     // create a file with the extended program
     val outName = args(0).split('.')(0) + "X.sil"
     val pw = new PrintWriter(new File(outName))
-    pw.write(program.toString); pw.close
+    pw.write(program.toString);
+    pw.close
   }
 
   /** Verifies a Silver program extended with inferred specifications using the Viper symbolic execution backend. */
-  def verify(args: Array[String]): Unit = {
+  /*def verify(args: Array[String]): Unit = {
     val program = extend(args) // extend the program with permission inferred by the analysis
     // verified the extended program with Silicon
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
@@ -78,20 +135,24 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     silicon.start()
     val result: viper.silver.verifier.VerificationResult = silicon.verify(program)
     println("\n***********************\n* Verification Result * " + result + "\n***********************")
-  }
+  }*/
 
   override def main(args: Array[String]) {
     // run the analysis
-    val results: List[MethodAnalysisResult[S]] = run(Compilable.Path(new File(args(0)).toPath)).collect{case x:MethodAnalysisResult[S] => x}
-    val extended = extendProgram(DefaultSilverConverter.prog,results)
+    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath))
+    val extended = extendProgram(DefaultSilverConverter.prog, results)
 
     // report errors and warnings
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
-    for (e <- Reporter.assertionViolations) { println(e) } // error report
+    for (e <- Reporter.assertionViolations) {
+      println(e)
+    } // error report
     println()
     if (Reporter.genericWarnings.isEmpty) println("No warnings")
-    for (w <- Reporter.genericWarnings) { println(w) } // warning report
+    for (w <- Reporter.genericWarnings) {
+      println(w)
+    } // warning report
 
     // report extended program
     println("\n********************\n* Extended Program *\n********************\n\n" + extended)
@@ -101,15 +162,16 @@ trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
     //cw.write(DefaultSilverConverter.prog.toString); cw.close
     val outName = args(0).split('.')(0) + "X.sil"
     val ow = new PrintWriter(new File(outName))
-    ow.write(extended.toString); ow.close
+    ow.write(extended.toString);
+    ow.close
 
     // verify the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+    /*val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
     silicon.parseCommandLine(Seq("dummy.sil"))
     silicon.config.initialize { case _ => silicon.config.initialized = true }
     silicon.start()
     val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
-    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
+    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)*/
   }
 
   override def toString = "Specification Inference"

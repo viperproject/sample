@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph}
+import ch.ethz.inf.pm.sample.oorepresentation.{CfgLocation, ControlFlowGraph}
 
 /** Constructs `DefaultCFGState` objects from `ControlFlowGraph`s. */
 case class DefaultCFGStateFactory[S <: State[S]](stateFactory: S)

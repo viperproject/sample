@@ -50,6 +50,20 @@ case class PostconditionCommand(condition: ExpressionSet) extends SilverCommand
   */
 case class InvariantCommand(condition: ExpressionSet) extends SilverCommand
 
+/**
+  * A command issued whenever a loop is entered.
+  *
+  * @author Jerome Dohrau
+  */
+case class EnterLoopCommand() extends SilverCommand
+
+/**
+  * A command issued whenever a loop is left.
+  *
+  * @author Jerome Dohrau
+  */
+case class LeaveLoopCommand() extends SilverCommand
+
 /** Object adding Inhale/Exhale semantics.
   *
   * @author Caterina Urban, Jerome Dohrau
@@ -70,23 +84,23 @@ object SilverSemantics extends NativeMethodSemantics {
     *         None if the semantics of the method call is not defined
     */
   override def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet,
-      operator: String,
-      parameters: List[ExpressionSet],
-      typeParameters: List[Type],
-      returnType: Type,
-      programPoint: ProgramPoint,
-      state: S): Option[S] =
+                                                           operator: String,
+                                                           parameters: List[ExpressionSet],
+                                                           typeParameters: List[Type],
+                                                           returnType: Type,
+                                                           programPoint: ProgramPoint,
+                                                           state: S): Option[S] =
     applyForwardNativeSemantics[S](thisExpr, operator, parameters, typeParameters, returnType, programPoint, state)
 
   /**
     * It defines the forward semantics of native method calls
     *
-    * @param expression the expression representing the object on whom the method is called
-    * @param operator the string of the called method
-    * @param parameters the parameters of the called method
+    * @param expression     the expression representing the object on whom the method is called
+    * @param operator       the string of the called method
+    * @param parameters     the parameters of the called method
     * @param typeParameters the list of type generics
-    * @param returnType the type of the returned value
-    * @param state the abstract state in which the method call is evaluated
+    * @param returnType     the type of the returned value
+    * @param state          the abstract state in which the method call is evaluated
     * @return the abstract state obtained after the forward evaluation of the native method call,
     *         None if the semantics of the method call is not defined
     */
@@ -108,9 +122,6 @@ object SilverSemantics extends NativeMethodSemantics {
           case Some(SilverMethods.permission) => Some(state.setExpression(createCurrentPermission(expression, returnType)))
           case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(expression)))
           case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(expression)))
-          case Some(SilverMethods.precondition) => Some(state.command(PreconditionCommand(expression)))
-          case Some(SilverMethods.postcondition) => Some(state.command(PostconditionCommand(expression)))
-          case Some(SilverMethods.invariant) => Some(state.command(InvariantCommand(expression)))
           case Some(method) => throw new UnsupportedOperationException(s"Unexpected method: $method")
           case None => None
         }

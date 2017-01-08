@@ -18,5 +18,5 @@ import ch.ethz.inf.pm.sample.test.LatticeTest
   */
 class AliasAnalysisLatticeTest extends LatticeTest[SimpleAliasAnalysisState] {
   SystemParameters.typ = DummyRefType
-  override def factory: SimpleAliasAnalysisState = AliasAnalysisEntryState.topState
+  override def factory: SimpleAliasAnalysisState = AliasAnalysisEntryState.top
 }

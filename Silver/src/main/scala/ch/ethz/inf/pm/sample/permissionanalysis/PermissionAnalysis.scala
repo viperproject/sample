@@ -9,9 +9,8 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters, execution}
 import ch.ethz.inf.pm.sample.execution.{Analysis, _}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
@@ -19,6 +18,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePe
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.cfg._
 import viper.silver.{ast => sil}
 
 /**
@@ -26,8 +26,7 @@ import viper.silver.{ast => sil}
   *
   * @author Jerome Dohrau
   */
-object PermissionAnalysisTypes
-{
+object PermissionAnalysisTypes {
   type AccessPath = AliasAnalysisTypes.AccessPath
 
   type Tuple = (AccessPath, Permission)
@@ -40,8 +39,7 @@ object PermissionAnalysisTypes
   * @author Jerome Dohrau
   */
 trait Permission
-  extends Lattice[Permission]
-{
+  extends Lattice[Permission] {
   override def factory(): Permission = top()
 
   override def top(): Permission = Permission.Top
@@ -152,8 +150,7 @@ object Permission {
     * @param read        The counter for the read permission.
     */
   case class Fractional(numerator: Int, denominator: Int, read: Int)
-    extends Permission
-  {
+    extends Permission {
     override def isBottom: Boolean = false
 
     override def isTop: Boolean = false
@@ -215,8 +212,7 @@ object Permission {
   * @param children   maps fields (identifiers) to subtrees
   */
 case class PermissionTree(permission: Permission = Permission.none,
-                          children: Map[Identifier, PermissionTree] = Map.empty)
-{
+                          children: Map[Identifier, PermissionTree] = Map.empty) {
   /** Is true if this tree contains no permission.
     */
   lazy val isEmpty: Boolean =
@@ -244,7 +240,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     PermissionTree(newPermission, newChildren)
   }
 
-  /**  Returns the greatest lower bound of this permission tree and the other permission tree.
+  /** Returns the greatest lower bound of this permission tree and the other permission tree.
     *
     * @param other The other permission tree.
     */
@@ -311,7 +307,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
   }
 
-  /**  Extracts the subtree at the specified path and returns the remainder of
+  /** Extracts the subtree at the specified path and returns the remainder of
     * the tree as well as the extracted subtree.
     *
     * @param path The path to the subtree to be extracted.
@@ -423,10 +419,11 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SimpleState[T] with SilverSpecification
+  extends SimpleState[T]
+    with SilverState[T]
+    with SilverSpecification
     with StateWithRefiningAnalysisStubs[T]
-    with LazyLogging
-{
+    with LazyLogging {
   this: T =>
 
   // current program point
@@ -456,9 +453,9 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
   private def tuples(f: (AccessPath, PermissionTree) => Permission): Tuples =
-    fold(List.empty[Tuple]){
+    fold(List.empty[Tuple]) {
       case (list, (path, tree)) => (path, f(path, tree)) :: list
-    }.filter{
+    }.filter {
       case (path, permission) => path.length > 1 && permission.isSome
     }
 
@@ -546,7 +543,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @param acc The permission to exhale.
     * @return The abstract state after exhaling the permission.
     */
-  private def exhale(acc: Expression): T = {
+  def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
@@ -581,7 +578,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @param acc The permission to inhale.
     * @return The abstract state after inhaling the permission.
     */
-  private def inhale(acc: Expression): T = {
+  def inhale(acc: Expression): T = {
     logger.trace(s"inhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&, _) =>
@@ -736,7 +733,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
           // get access paths corresponding to rhs
           val rightPath = path(right)
 
-          val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
+          val accessPaths = paths.sortBy(-_.length)
+          // process long paths before short ones
           val assigned =
             if (rightPath.isEmpty) assign(leftPath, rightPath)
             else accessPaths.foldLeft(this) {
@@ -884,22 +882,22 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // and also include trees that are either in this.permissions or
     // other.permissions (but not both)
     val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-      else if (isBottom) other.permissions
-      else if (other.isBottom) permissions
-      else permissions.foldLeft(other.permissions) {
-        case (map, (id, tree)) => map.get(id) match {
-          case Some(existing) => map + (id -> (tree widening existing))
-          case None => map + (id -> tree)
-        }
+    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+    else if (isBottom) other.permissions
+    else if (other.isBottom) permissions
+    else permissions.foldLeft(other.permissions) {
+      case (map, (id, tree)) => map.get(id) match {
+        case Some(existing) => map + (id -> (tree widening existing))
+        case None => map + (id -> tree)
       }
+    }
     // propagate specifications and arguments
     val newSpecification = (specification, other.specification) match {
-        case (Left(a), Left(b)) => if (b.nonEmpty) Left(b) else Left(a)
-        case (Left(a), _) => Left(a)
-        case (_, Left(b)) => Left(b)
-        case (Right(a), Right(b)) => Right(a ++ b)
-      }
+      case (Left(a), Left(b)) => if (b.nonEmpty) Left(b) else Left(a)
+      case (Left(a), _) => Left(a)
+      case (_, Left(b)) => Left(b)
+      case (Right(a), Right(b)) => Right(a ++ b)
+    }
     val newArguments = if (other.arguments.nonEmpty) other.arguments else arguments
     // create new state
     copy(
@@ -957,15 +955,15 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // include trees that are either in this.permissions or other.permissions
     // (but not both)
     val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-      else if (isBottom) other.permissions
-      else if (other.isBottom) permissions
-      else permissions.foldLeft(other.permissions) {
-        case (map, (id, tree)) => map.get(id) match {
-          case Some(existing) => map + (id -> (tree lub existing))
-          case None => map + (id -> tree)
-        }
+    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+    else if (isBottom) other.permissions
+    else if (other.isBottom) permissions
+    else permissions.foldLeft(other.permissions) {
+      case (map, (id, tree)) => map.get(id) match {
+        case Some(existing) => map + (id -> (tree lub existing))
+        case None => map + (id -> tree)
       }
+    }
     // propagate specifications and arguments
     val newSpecification = (specification, other.specification) match {
       case (Left(a), Left(b)) => if (a.nonEmpty) Left(a) else Left(b)
@@ -973,7 +971,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       case (_, Left(b)) => Left(b)
       case (Right(a), Right(b)) => Right(a ++ b)
     }
-      //if (specification.nonEmpty) specification else other.specification
+    //if (specification.nonEmpty) specification else other.specification
     val newArguments = if (arguments.nonEmpty) arguments else other.arguments
     // create new state
     copy(
@@ -1008,15 +1006,15 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // compute variable-vise glb of permission trees. that is, compute glb for
     // all trees that are in this.permissions and other.permissions
     val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-      else if (isTop) other.permissions
-      else if (other.isTop) permissions
-      else permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
-        case (map, (id, tree)) => other.permissions.get(id) match {
-          case Some(existing) => map + (id -> (tree glb existing))
-          case None => map
-        }
+    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+    else if (isTop) other.permissions
+    else if (other.isTop) permissions
+    else permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
+      case (map, (id, tree)) => other.permissions.get(id) match {
+        case Some(existing) => map + (id -> (tree glb existing))
+        case None => map
       }
+    }
     // propagate specifications and arguments
     val newSpecification = (specification, other.specification) match {
       case (Left(a), Left(b)) => if (a.nonEmpty) Left(a) else Left(b)
@@ -1109,7 +1107,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   private def access(path: AccessPath, permission: Permission): T = {
     if (path.length < 2)
-      // in this case no permission is needed
+    // in this case no permission is needed
       this
     else {
       // build permission tree for the wanted permission
@@ -1193,7 +1191,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         val treeR = permissions.get(rcvR)
         val (newL, extracted) = treeL.get.extract(fldL)
         val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
-        copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
+        copy(permissions = permissions + (rcvL -> newL, rcvR -> newR))
       }
     }
   }
@@ -1376,7 +1374,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   }
 
   private def setPostcondition(existing: Expression): T = {
-    val tuples = this.tuples{ case (_, tree) =>
+    val tuples = this.tuples { case (_, tree) =>
       if (tree.permission.isNone && tree.nonEmpty) Permission.read
       else Permission.none
     }
@@ -1435,7 +1433,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def toString: String = s"PermissionAnalysisState(" +
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
-      val strings = tuples{ case (_, tree) => tree.permission }
+      val strings = tuples { case (_, tree) => tree.permission }
         .filter(_._2.isSome)
         .map { case (path, permission) =>
           path.map(_.toString).reduce(_ + "." + _) + " " + permission
@@ -1453,8 +1451,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
 }
 
-object PermissionAnalysisState
-{
+object PermissionAnalysisState {
+
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
@@ -1463,8 +1461,7 @@ object PermissionAnalysisState
                                            arguments: Seq[sil.LocalVarDecl] = Seq.empty,
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
-    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-  {
+    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
     override def copy(currentPP: ProgramPoint,
                       fields: Set[(String, Type)],
                       result: ExpressionSet,
@@ -1475,122 +1472,82 @@ object PermissionAnalysisState
                       isTop: Boolean): SimplePermissionAnalysisState =
       SimplePermissionAnalysisState(currentPP, fields, result, permissions, specification, arguments, isBottom, isTop)
   }
+
 }
 
 trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends BackwardEntryStateBuilder[T]
-{
-  override def build(method: MethodDeclaration): T = {
+  extends SilverEntryStateBuilder[T] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
     // retrieve the set of fields declared in the program
-    val fields = method.classDef.fields
+    val fields = program.fields
       .map(field => (field.variable.toString, field.typ))
       .toSet
 
-    val initial = topState.copy(fields = fields)
+    val initial = top.copy(fields = fields)
 
     method.initializeArgument(initial)
   }
 }
 
 object PermissionAnalysisEntryState
-  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override def topState: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
+  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  override def top: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
 case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-(aliasAnalysisBuilder: AliasAnalysisStateBuilder[A],
+(aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
  permissionAnalysisStateBuilder: PermissionAnalysisStateBuilder[A, T])
-  extends execution.Analysis[T]
-{
-  override def analyze(method: MethodDeclaration): MethodAnalysisResult[T] = {
+  extends SilverAnalysis[T] {
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
     // first phase: alias analysis
-    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = aliasAnalysisBuilder.build(method)
-      val interpreter = TrackingForwardInterpreter[A](entryState)
-      val cfgState = interpreter.forwardExecute(method.body, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
+    val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
+    val aliasInterpreter = FinalResultForwardInterpreter[A]()
+    val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
 
     // add result of alias analysis to context
-    Context.setAliases(aliasAnalysisResult.cfgState)
+    Context.setAliases(aliasResult)
 
     // second phase: permission analysis
-    val permissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = permissionAnalysisStateBuilder.build(method)
-      val interpreter = TrackingBackwardInterpreter[T](entryState)
-      val cfgState = interpreter.backwardExecute(method.body, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
+    val permissionEntry = permissionAnalysisStateBuilder.build(program, method)
+    val permissionInterpreter = FinalResultBackwardInterpreter[T]()
+    val permissionResult = permissionInterpreter.execute(method.body, permissionEntry)
 
     // remove result of alias analysis from the context
     Context.clearAliases()
 
     // return result of the permission analysis
-    permissionAnalysisResult
+    permissionResult
   }
 }
 
 trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverAnalysisRunner[T]
-{
+  extends SilverAnalysisRunner[T] {
   override def main(arguments: Array[String]) {
     // check whether there is a first argument (the path to the file)
     if (arguments.isEmpty) throw new IllegalArgumentException("No file specified")
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
+    val results = run(Compilable.Path(path)).collect { case x => x }
 
+    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    // map of method names to control flow graphs
-    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    for ((m, g) <- methodNameToCfgState) {
-      println("******************* " + m + "\n")
-
-      println(g.exitState()) // printing the entry state of the control-flow graph
-
-      val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
-      // withing each block...
-      var i = 0
-      for (stmts: List[Statement] <- blocks) {
-        if (stmts.isEmpty) {
-          val states: List[T] = g.blockStates(i).last // post-states of each statement
-          for (s <- states) {
-            println("\n******************* \n")
-            println(s)
-          }
-        } else {
-          // printing the block pre-state
-          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
-          println(g.blockStates(i).last.head)
-          val states: List[T] = g.blockStates(i).last.drop(1) // post-states of each statement
-          // print statements and corresponding post-states
-          for ((c: Statement, s) <- stmts zip states) {
-            println("\n******************* " + c + "\n")
-            println(s)
-          }
-        }
-        i = i + 1
-      }
-
-      println("\n******************* \n")
-      println(g.entryState()) // printing the exit state of the control-flow graph
+    for ((method, cfgResult) <- cfgResults) {
+      println("******************* " + method + "\n")
+      cfgResult.print()
     }
   }
 }
 
 object DebugPermissionInference
-  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverInferenceRunner[T]
 
 object PermissionInference
-  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }

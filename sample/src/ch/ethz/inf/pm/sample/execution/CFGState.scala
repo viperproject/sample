@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph}
+import ch.ethz.inf.pm.sample.oorepresentation.{CfgLocation, ControlFlowGraph}
 
 /**
  * Holds all the states associated with a ControlFlowGraph, that is the
@@ -36,6 +36,7 @@ trait CFGState[S <: State[S]] {
 }
 
 /** Constructs `CFGState` objects from `ControlFlowGraph`s.
+ *
   * @todo should just have a method `make` and add methods `top` and `bottom`
   *       to `CFGState` instead. Requires immutability of `CFGState` first.
   */
@@ -56,12 +57,12 @@ trait CFGStateFactory[S <: State[S], C <: CFGState[S]] {
   */
 abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
 
-  def preStateAt(pos: CFGPosition): S = {
+  def preStateAt(pos: CfgLocation): S = {
     val states = statesOfBlock(pos.blockIdx)
     states(pos.stmtIdx)
   }
 
-  def postStateAt(pos: CFGPosition): S = {
+  def postStateAt(pos: CfgLocation): S = {
     val states = statesOfBlock(pos.blockIdx)
     states(pos.stmtIdx+1)
   }

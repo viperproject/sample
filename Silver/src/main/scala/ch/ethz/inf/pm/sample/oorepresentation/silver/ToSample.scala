@@ -6,12 +6,12 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.oorepresentation.TaggedProgramPoint
+import ch.ethz.inf.pm.sample.execution.SampleCfg
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
 import scala.language.reflectiveCalls
-import scala.collection.mutable
 
 /** Object enumerating methods to handle permissions and specifications (i.e.
   * preconditions, postconditions and invariants).
@@ -24,34 +24,31 @@ object SilverMethods extends Enumeration {
   val permission = Value(Constants.GhostSymbolPrefix + "permission")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
-  val precondition = Value(Constants.GhostSymbolPrefix + "precondition")
-  val postcondition = Value(Constants.GhostSymbolPrefix + "postcondition")
-  val invariant = Value(Constants.GhostSymbolPrefix + "invariant")
 }
 
 trait SilverConverter {
   /**
     * Converts a whole Silver program to a list of Sample class definition.
     */
-  def convert(program: sil.Program): List[sample.ClassDefinition]
+  def convert(program: sil.Program): SilverProgramDeclaration
 
   /**
-    *  Converts a SIL function to a Sample method declaration.
+    * Converts a SIL function to a Sample method declaration.
     */
-  def convert(function: sil.Function): sample.MethodDeclaration
+  def convert(function: sil.Function): SilverFunctionDeclaration
 
   /**
     * Converts a SIL method to a Sample method declaration.
     */
-  def convert(method: sil.Method): sample.MethodDeclaration
+  def convert(method: sil.Method): SilverMethodDeclaration
 
   /**
-    *  Converts a SIL field to a Sample field declaration.
+    * Converts a SIL field to a Sample field declaration.
     */
   def convert(field: sil.Field): sample.FieldDeclaration
 
   /**
-    *  Converts a SIL local variable to a Sample variable declaration.
+    * Converts a SIL local variable to a Sample variable declaration.
     */
   def convert(localVarDecl: sil.LocalVarDecl): sample.VariableDeclaration
 
@@ -81,10 +78,9 @@ trait SilverConverter {
 
 object DefaultSilverConverter extends SilverConverter with LazyLogging {
   var refType: sample.RefType = sample.RefType()
-  var classDef: sample.ClassDefinition = _
   var prog: sil.Program = _
 
-  def convert(p: sil.Program): List[sample.ClassDefinition] = {
+  def convert(p: sil.Program): SilverProgramDeclaration = {
     // Chicken-egg problem: To build the reference type,
     // we need its list of fields and to build the list of fields
     // (possibly reference fields), we need the reference type.
@@ -92,107 +88,30 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     refType.fields = p.fields.map(makeVariableIdentifier).toSet
     prog = p
 
-    classDef = new sample.ClassDefinition(
-      programpoint = go(p.pos),
-      typ = refType,
-      modifiers = Nil,
-      name = sample.ClassIdentifier(refType),
-      parametricTypes = Nil,
-      extend = Nil,
-      fields = Nil,
-      methods = Nil,
-      pack = sample.PackageIdentifier,
-      inv = sample.Constant("true", sample.BoolType, go(p.pos)))
-
-    // Only translate the methods and fields once we have the ClassDefinition
-    classDef.fields = p.fields.map(go).toList
-    classDef.methods = p.functions.map(go).toList ++ p.methods.map(go).toList
-
-    classDef :: Nil
-  }
-
-  def convert(f: sil.Function): sample.MethodDeclaration = {
-    val resultVar = makeVariable(f.pos, f.typ, Constants.ResultVariableName)
-    val resultVarDecl = sample.VariableDeclaration(go(f.pos), resultVar, go(f.typ))
-    new MethodDeclWithOutParams(
-      programpoint = go(f.pos),
-      ownerType = refType,
-      modifiers = sample.StaticModifier :: sample.PureModifier :: Nil,
-      name = sample.MethodIdentifier(f.name),
-      parametricType = Nil,
-      arguments = f.formalArgs.map(go).toList :: List(resultVarDecl) :: Nil,
-      returnType = go(f.result.typ),
-      body = f.body match {
-        case None => // the function has no body
-          val cfg = new sample.ControlFlowGraph(go(f.pos))
-          cfg.addNode(resultVar :: Nil); cfg
-        case Some(_) => // the function has a body
-          val cfg = new sample.ControlFlowGraph(go(f.pos))
-          val resultAssign = sample.Assignment(go(f.pos), resultVar, right = go(f.body.get))
-          cfg.addNode(resultAssign :: resultVar :: Nil); cfg
-      },
-      precond = makeConjunction(f.pres),
-      postcond = makeConjunction(f.posts),
-      classDef
+    val program = new SilverProgramDeclaration(
+      fields = p.fields.map(go).toList,
+      functions = p.functions.map(go).toList,
+      methods = p.methods.map(go).toList
     )
+
+    program
   }
 
-  def convert(m: sil.Method): sample.MethodDeclaration = {
-    require(!m.body.existsDefined({ case g: sil.Goto => true }),
-      "methods must not contain goto statements")
+  def convert(f: sil.Function): SilverFunctionDeclaration = {
+    ???
+  }
 
-    new MethodDeclWithOutParams(
-      programpoint = go(m.pos),
-      ownerType = refType,
-      modifiers = sample.StaticModifier :: Nil,
-      name = sample.MethodIdentifier(m.name),
-      parametricType = Nil,
-      // SIL methods may return multiple values, so we model them as out-parameters.
-      // The first list of parameters are in-parameters, the second list
-      // are out-parameters (return values).
-      arguments = m.formalArgs.map(go).toList :: m.formalReturns.map(go).toList :: Nil,
-      // Method calls in SIL cannot occur in expressions, so it is fine to use
+  def convert(method: sil.Method): SilverMethodDeclaration =
+    new SilverMethodDeclaration(
+      programPoint = go(method.pos),
+      name = SilverIdentifier(method.name),
+      parameters = method.formalArgs.map(go).toList ++ method.formalReturns.map(go).toList,
+      // Method calls in Silver cannot occur in expressions, so it is fine to use
       // the return type 'null'. Depending on how the semantics is implemented,
       // it might also make sense not to use the return type for functions either.
       returnType = null,
-      body = {
-
-        val cfg = new sample.ControlFlowGraph(go(m.pos))
-
-        // put precondition into a separate block
-        val prePp = if (m.pres.isEmpty) TaggedProgramPoint(go(m.pos),"precondition") else go(m.pres.head.pos)
-        val pre = makeNativeMethodCall(
-          pos = prePp,
-          name = SilverMethods.precondition.toString,
-          args = Seq(makeConjunction(m.pres)),
-          returnType = sample.TopType)
-        val preBlock = cfg.addNode(pre :: Nil)
-
-        // put local variable declarations into a separate block
-        val varBlock = cfg.addNode(m.locals.map(go).toList)
-        cfg.addEdge(preBlock, varBlock, None)
-
-        // build cfg of body
-        val bodyBlock = convertCfg(m.body.toCfg)(cfg)
-        cfg.addEdge(varBlock, bodyBlock, None)
-
-        // put postcondition into a separate block
-        val leaves = cfg.getLeavesIds
-        val postPp = if(m.posts.isEmpty) TaggedProgramPoint(go(m.pos), "postcondition") else go(m.posts.head.pos)
-        val post = makeNativeMethodCall(
-          pos = postPp,
-          name = SilverMethods.postcondition.toString,
-          args = Seq(makeConjunction(m.posts)),
-          returnType = sample.TopType)
-        val postBlock = cfg.addNode(post :: Nil)
-        leaves.foreach(cfg.addEdge(_, postBlock, None))
-
-        cfg
-      },
-      precond = makeConjunction(m.pres),
-      postcond = makeConjunction(m.posts),
-      classDef = classDef)
-  }
+      body = method.toCfg().map[SampleCfg, Statement, Statement](SampleCfg())(go, go)
+    )
 
   def convert(f: sil.Field): sample.FieldDeclaration =
     new sample.FieldDeclaration(go(f.pos), modifiers = Nil,
@@ -210,7 +129,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case sil.Bool => sample.BoolType
     case sil.Int => sample.IntType
     case sil.Ref => refType
-    case sil.DomainType(name,_) => sample.DomType(name)
+    case sil.DomainType(name, _) => sample.DomType(name)
 
     // Stubs
     case sil.Perm |
@@ -220,7 +139,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
          sil.MultisetType(_) =>
       sample.TopType
   }
-
 
 
   def convert(s: sil.Stmt): Seq[sample.Statement] = s match {
@@ -293,12 +211,12 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val empty = sample.EmptyStatement(go(s.pos))
       Seq(empty)
 
-    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) =>
+    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_) =>
       ???
 
     case sil.Goto(_) |
          sil.If(_, _, _) |
-         sil.Label(_) |
+         sil.Label(_, _) |
          sil.While(_, _, _, _) =>
       sys.error(s"unexpected statement $s (should not be part of the CFG)")
   }
@@ -365,10 +283,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.PermType)
 
     case sil.CurrentPerm(loc: sil.Exp) => makeNativeMethodCall(
-        pos = go(e.pos),
-        name = SilverMethods.permission.toString,
-        args = go(loc) :: Nil,
-        returnType = sample.PermType)
+      pos = go(e.pos),
+      name = SilverMethods.permission.toString,
+      args = go(loc) :: Nil,
+      returnType = sample.PermType)
 
     // SeqExp (e.g., data : Seq[Int]) are smashed into summary variables (e.g., data : Int)
     // their length (e.g., |data|) is treated as another unbounded variable
@@ -376,8 +294,8 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case e: sil.SeqLength => // sequence length, e.g., |this.data|
       makeVariable(e.pos, e.typ, e.toString)
-    case sil.SeqIndex(sil.FieldAccess(rcv, field),_) => // sequence access, e.g., this.data[i]
-      sample.FieldAccess(go(e.pos),go(rcv),field.name,go(field.typ))
+    case sil.SeqIndex(sil.FieldAccess(rcv, field), _) => // sequence access, e.g., this.data[i]
+      sample.FieldAccess(go(e.pos), go(rcv), field.name, go(field.typ))
     case e: sil.SeqExp => throw new NotImplementedError("A sil.SeqExp conversion is missing!")
 
     // Stubs
@@ -399,15 +317,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
          sil.ExplicitSet(_) => ???
   }
 
-  /**
-   * Converts a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
-    *
-    * @param b the SIL block
-   * @param cfg the Sample CFG to extend
-   * @param indices maps already translated SIL blocks to Sample CFG node indices
-   * @return the Sample CFG node index corresponding to the SIL block
-   */
-  private def convertCfg(b: sil.Block)(
+  /*private def convertCfg(b: sil.Block)(
     implicit cfg: sample.ControlFlowGraph,
     indices: mutable.Map[sil.Block, Int] = mutable.Map.empty): Int = {
     if (indices.contains(b)) indices(b)
@@ -466,7 +376,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       }
       index
     }
-  }
+  }*/
 
   /** Flattens a SIL conjunction into a sequence of expressions.
     *
@@ -482,22 +392,22 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   /**
-   * Converts a conjunction of boolean SIL expressions to a Statement.
+    * Converts a conjunction of boolean SIL expressions to a Statement.
     *
     * @param conj sequence of boolean SIL expressions
-   * @return true if the list of SIL expressions is empty
-   */
+    * @return true if the list of SIL expressions is empty
+    */
   private def makeConjunction(conj: Seq[sil.Exp]): sample.Statement = go(conj match {
     case Nil => sil.TrueLit()()
     case _ => conj.reduceRight((x, y) => sil.And(x, y)(x.pos))
   })
 
   /**
-   * Creates a new Sample variable.
-   * Use structural subtyping for the parameter because `Field` and
-   * `LocalVarDecl` declare the `name` field independently.
-   * Alternatively, one could add a trait `Named` to them.
-   */
+    * Creates a new Sample variable.
+    * Use structural subtyping for the parameter because `Field` and
+    * `LocalVarDecl` declare the `name` field independently.
+    * Alternatively, one could add a trait `Named` to them.
+    */
   private type Named = {def name: String}
   private type LocalVarOrField = sil.Node with sil.Typed with sil.Positioned with Named
 
@@ -511,10 +421,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     sample.Variable(go(pos), sample.VariableIdentifier(name)(go(typ), go(pos)))
 
   private def makeNativeMethodCall(
-      pos: sample.ProgramPoint,
-      name: String,
-      args: Seq[sample.Statement],
-      returnType: sample.Type): sample.Statement = {
+                                    pos: sample.ProgramPoint,
+                                    name: String,
+                                    args: Seq[sample.Statement],
+                                    returnType: sample.Type): sample.Statement = {
     sample.MethodCall(pos,
       method = sample.FieldAccess(pos, args.head, name, null),
       parametricTypes = Nil,

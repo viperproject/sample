@@ -204,7 +204,7 @@ trait WeightedGraph[Node, Weight] {
  * @param blockIdx index of block in which the statement occurs
  * @param stmtIdx the index within the block
  */
-case class CFGPosition(blockIdx: Int, stmtIdx: Int)
+case class CfgLocation(blockIdx: Int, stmtIdx: Int)
 
 /**
  * This class represents a control flow graph, i.e. a weighted graph where
