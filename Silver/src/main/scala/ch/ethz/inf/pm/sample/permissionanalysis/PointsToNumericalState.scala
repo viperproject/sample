@@ -539,8 +539,6 @@ trait PointsToNumericalState[T <: NumericalDomain[T], S <: PointsToNumericalStat
     this.copy(expr,fields,refToObjmap,objFieldToObjmap,num,currentPP)
   }
 
-  override def command(cmd: Command): S = ???
-
   def copy(exprSet: ExpressionSet = exprSet,
            fieldSet: Set[(Type, String)] = fieldSet,
            refToObj: Map[VariableIdentifier, Set[HeapIdentifier]] = refToObj,

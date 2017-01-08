@@ -317,7 +317,7 @@ trait State[S <: State[S]] extends Lattice[S] {
     * @param cmd The command to execute.
     * @return The abstract state after the execution of the given command.
     */
-  def command(cmd: Command): S
+  def command(cmd: Command): S = throw new UnsupportedOperationException(s"Unknown command: $cmd")
 
   /** Creates an object
     *

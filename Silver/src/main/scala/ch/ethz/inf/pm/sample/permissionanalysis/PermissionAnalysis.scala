@@ -524,20 +524,18 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def command(cmd: Command): T = {
     logger.trace(s"command($cmd)")
     cmd match {
-      case _: SilverCommand => cmd match {
-        case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(inhale)))
-        case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(exhale)))
-        case PreconditionCommand(condition) =>
-          val expression = condition.getSingle.get
-          inhale(expression).setPrecondition(expression)
-        case PostconditionCommand(condition) =>
-          val expression = condition.getSingle.get
-          exhale(expression).setPostcondition(expression)
-        case InvariantCommand(condition) =>
-          val expression = condition.getSingle.get
-          inhale(expression).setInvariant(expression).exhale(expression)
-      }
-      case _ => this // ignore all non-silver commands
+      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(inhale)))
+      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(exhale)))
+      case PreconditionCommand(condition) =>
+        val expression = condition.getSingle.get
+        inhale(expression).setPrecondition(expression)
+      case PostconditionCommand(condition) =>
+        val expression = condition.getSingle.get
+        exhale(expression).setPostcondition(expression)
+      case InvariantCommand(condition) =>
+        val expression = condition.getSingle.get
+        inhale(expression).setInvariant(expression).exhale(expression)
+      case _ => super.command(cmd)
     }
   }
 

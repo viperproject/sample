@@ -464,8 +464,6 @@ trait MayPointToNumericalState[T <: NumericalDomain[T], S <: MayPointToNumerical
     this.copy(fields,currentPP,true,temp,expr,refToObj,objToObj,num)
   }
 
-  override def command(cmd: Command): S = ???
-
   def copy(fieldSet: Set[(Type, String)] = fieldSet,
            currentPP: ProgramPoint = currentPP,
            flag: Boolean = flag,
