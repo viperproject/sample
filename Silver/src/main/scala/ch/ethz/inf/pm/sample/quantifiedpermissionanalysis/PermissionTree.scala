@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
 import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
@@ -17,12 +18,15 @@ import viper.silver.{ast => sil}
   */
 
 trait PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
   def add(other: PermissionTree): PermissionTree = other match {
     case leaf: PermissionLeaf => PermissionList(Seq(leaf, this))
     case PermissionList(list) => PermissionList(list :+ this)
     case _ => PermissionList(Seq(other, this))
   }
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner]
   def max(other: PermissionTree): PermissionTree = Maximum(other, this)
   def condition(cond: Expression, elsePermissions: PermissionTree) = Condition(cond, this, elsePermissions)
   def transform(f: (Expression => Expression)): PermissionTree
@@ -33,8 +37,14 @@ trait PermissionTree {
 }
 
 case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission) extends PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp =
-    sil.CondExp(state.refSets(receiver.key).toSilExpression(state), permission.toSilExpression, sil.NoPerm()())()
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
+    sil.CondExp(state.refSets(receiver.key).toSilExpression(state, quantifiedVar), permission.toSilExpression, sil.NoPerm()())()
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
+    sil.CondExp(state.refSets(receiver.key).toParameterQuantification(state, quantifiedVariable), permission.toSilExpression, sil.NoPerm()())()
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
+    expressions(receiver.key).canBeExpressedByIntegerQuantification(expressions)
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
+    Set(expressions(receiver.key).asInstanceOf[ReferenceSetDescription.Inner])
   def transform(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
@@ -48,11 +58,20 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
 }
 
 case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp =
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     permissions.foldLeft[Option[sil.Exp]](None)((rest, permTree) => rest match {
-      case None => Some(permTree.toSilExpression(state))
-      case Some(silExpression) => Some(sil.PermAdd(silExpression, permTree.toSilExpression(state))())
+      case None => Some(permTree.toSilExpression(state, quantifiedVar))
+      case Some(silExpression) => Some(sil.PermAdd(silExpression, permTree.toSilExpression(state, quantifiedVar))())
     }).get
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
+    permissions.foldLeft[Option[sil.Exp]](None)((rest, permTree) => rest match {
+      case None => Some(permTree.toParameterQuantification(state, quantifiedVariable))
+      case Some(silExpression) => Some(sil.PermAdd(silExpression, permTree.toParameterQuantification(state, quantifiedVariable))())
+    }).get
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
+    permissions.forall(tree => tree.canBeExpressedByIntegerQuantification(expressions))
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
+    permissions.toSet.flatMap((p: PermissionTree) => p.getSetDescriptions(expressions))
   override def add(other: PermissionTree): PermissionTree =
     other match {
       case PermissionList(otherPermissions) => PermissionList(otherPermissions ++ permissions)
@@ -72,8 +91,14 @@ case class PermissionList(permissions: Seq[PermissionTree]) extends PermissionTr
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp =
-    sil.CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(state), right.toSilExpression(state))()
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
+    sil.CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(state, quantifiedVar), right.toSilExpression(state, quantifiedVar))()
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
+    sil.CondExp(DefaultSampleConverter.convert(cond), left.toParameterQuantification(state, quantifiedVariable), right.toParameterQuantification(state, quantifiedVariable))()
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
+    left.canBeExpressedByIntegerQuantification(expressions) && right.canBeExpressedByIntegerQuantification(expressions)
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
+    left.getSetDescriptions(expressions) ++ right.getSetDescriptions(expressions)
   def transform(f: (Expression => Expression)) = Condition(cond.transform(f), left.transform(f), right.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
   def foreach(f: (Expression => Unit)): Unit = {
@@ -86,8 +111,14 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
 
 case class Maximum(left: PermissionTree, right: PermissionTree)
   extends PermissionTree {
-  def toSilExpression(state: QuantifiedPermissionsState): sil.Exp =
-    sil.FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(state), right.toSilExpression(state)))()
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
+    sil.FuncApp(Context.getMaxFunction, Seq(left.toSilExpression(state, quantifiedVar), right.toSilExpression(state, quantifiedVar)))()
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
+    sil.FuncApp(Context.getMaxFunction, Seq(left.toParameterQuantification(state, quantifiedVariable), right.toParameterQuantification(state, quantifiedVariable)))()
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
+    left.canBeExpressedByIntegerQuantification(expressions) && right.canBeExpressedByIntegerQuantification(expressions)
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
+    left.getSetDescriptions(expressions) ++ right.getSetDescriptions(expressions)
   def transform(f: (Expression => Expression)) = Maximum(left.transform(f), right.transform(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
   override def undoLastRead: PermissionTree = right
@@ -101,7 +132,10 @@ case class Maximum(left: PermissionTree, right: PermissionTree)
 object EmptyPermissionTree extends PermissionTree {
   override def add(other: PermissionTree): PermissionTree = other
   override def max(other: PermissionTree): PermissionTree = other
-  override def toSilExpression(state: QuantifiedPermissionsState): sil.Exp = ZeroPerm
+  override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = true
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = Set()
   override def transform(f: (Expression) => Expression): PermissionTree = this
   override def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = {}

@@ -198,10 +198,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case _ => throw new IllegalStateException()
     }
     val newPermissions =
-      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver.transform {
-        case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
-        case other => other
-      }), WritePermission)
+      if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
       else permissions
     var newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = right.typ match {
       case _: RefType =>
@@ -239,10 +236,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     val newPermissions =
-      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj.transform {
-        case FunctionCallExpression(functionName, parameters, returnType, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), returnType, currentPP)
-        case other => other
-      }), SymbolicReadPermission())
+      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
       else permissions
     val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
     copy(
@@ -253,14 +247,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   }
 
   private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
-    case FunctionCallExpression(functionName, parameters, typ, _) =>
-      val desc = FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
+    case functionCall@FunctionCallExpression(_, parameters, _, _) =>
       parameters.map {
         case param: RefType => extractExpressionDescriptions(param)
         case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
       }.reduce((left, right) => left ++ right) +
-      ((currentPP, desc) -> ReferenceSetDescription.Inner(currentPP, desc))
+      ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall))
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr)))
   }
 
@@ -283,10 +276,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
       val newPermissions =
-        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver.transform {
-          case FunctionCallExpression(functionName, parameters, typ, _) => FunctionCallDescription(functionName, parameters.map(param => (param.typ, param)), typ, currentPP)
-          case other => other
-        }), FractionalPermission(num, denom))
+        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
       val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
       copy(
@@ -405,12 +395,34 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       }
     }
     permissions.foreach { case (fieldName, permissionTree) =>
-      val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
-      val quantifiedVariable = quantifiedVariableDecl.localVar
-      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this))())()
-      val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-      newPreconditions :+= forall
+      if (permissionTree.canBeExpressedByIntegerQuantification(refSets) && {
+        val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
+        val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
+        concreteExpressions.forall {
+          case FunctionCallExpression(functionName, parameters, _, _) =>
+            functionName == elem.functionName && parameters.zip(elem.parameters).forall {
+              case (left, right) => left.typ != IntType || left.equals(right)
+            }
+        }
+      }) {
+        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
+        val quantifiedVariable = quantifiedVariableDecl.localVar
+        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head.transform {
+          case e: Expression if e.typ == IntType => VariableIdentifier(quantifiedVariable.name)(IntType)
+          case other => other
+        }
+        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toParameterQuantification(this, quantifiedVariable))())()
+        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+        newPreconditions :+= forall
+      } else {
+        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
+        val quantifiedVariable = quantifiedVariableDecl.localVar
+        val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, Context.program.findField(fieldName))()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this, quantifiedVariable))())()
+        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+        newPreconditions :+= forall
+      }
     }
     Context.fieldAccessFunctions.foreach {
       case (fieldName, function) =>
@@ -422,7 +434,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     refSets.foreach {
       case (_, setDescription: ReferenceSetDescription.Inner) =>
-        if (!setDescription.isFinite(refSets))
+        if (!setDescription.isFinite(refSets) && !setDescription.canBeExpressedByIntegerQuantification(refSets))
           newPreconditions :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }
@@ -439,12 +451,34 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
     var newInvariants = existing
     permissions.foreach { case (fieldName, permissionTree) =>
-      val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
-      val quantifiedVariable = quantifiedVariableDecl.localVar
-      val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, sil.Field(fieldName, sil.Ref)())()
-      val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this))())()
-      val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-      newInvariants :+= forall
+      if (permissionTree.canBeExpressedByIntegerQuantification(refSets) && {
+        val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
+        val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
+        concreteExpressions.forall {
+          case FunctionCallExpression(functionName, parameters, _, _) =>
+            functionName == elem.functionName && parameters.zip(elem.parameters).forall {
+              case (left, right) => left.typ != IntType || left.equals(right)
+            }
+        }
+      }) {
+        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
+        val quantifiedVariable = quantifiedVariableDecl.localVar
+        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head.transform {
+          case e: Expression if e.typ == IntType => VariableIdentifier(quantifiedVariable.name)(IntType)
+          case other => other
+        }
+        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toParameterQuantification(this, quantifiedVariable))())()
+        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+        newInvariants :+= forall
+      } else {
+        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
+        val quantifiedVariable = quantifiedVariableDecl.localVar
+        val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, Context.program.findField(fieldName))()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(this, quantifiedVariable))())()
+        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+        newInvariants :+= forall
+      }
     }
     Context.fieldAccessFunctions.foreach {
       case (fieldName, function) =>
@@ -456,7 +490,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
     refSets.foreach {
       case (_, setDescription: ReferenceSetDescription.Inner) =>
-        if (!setDescription.isFinite(refSets))
+        if (!setDescription.isFinite(refSets) && !setDescription.canBeExpressedByIntegerQuantification(refSets))
           newInvariants :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }

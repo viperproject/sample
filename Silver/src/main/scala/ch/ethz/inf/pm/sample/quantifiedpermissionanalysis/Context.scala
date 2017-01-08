@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
@@ -23,7 +23,7 @@ import scala.collection._
   */
 object Context {
 
-  type NumType = Apron.Polyhedra
+  type NumericalDomainType = Apron.Polyhedra
 
   type NumericalStateType = PolyhedraAnalysisState
 
@@ -69,7 +69,6 @@ object Context {
     case FieldExpression(_, field, rec) => extractSetName(rec) + "_" + field
     case VariableIdentifier(name, _) => name
     case FunctionCallExpression(functionName, _, _, _) => functionName
-    case FunctionCallDescription(functionName, _, _, _) => functionName
   }
 
   def setProgram(program: sil.Program): Unit = {
@@ -123,11 +122,11 @@ object Context {
     identifier
   }
 
-  def createNewUniqueVarIdentifier(name: String = "_var"): String = createNewUniqueIdentifier(name)
+  private def createNewUniqueVarIdentifier(name: String = "_var"): String = createNewUniqueIdentifier(name)
 
   def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
 
-  def createNewUniqueSetIdentifier(name: String = "_set"): String = createNewUniqueIdentifier(name)
+  private def createNewUniqueSetIdentifier(name: String = "_set"): String = createNewUniqueIdentifier(name)
 
   def getRdAmountVariable: sil.LocalVarDecl = rdAmountVariable match {
     case Some(existingRdAmountVar) => existingRdAmountVar
@@ -161,30 +160,21 @@ object Context {
 
   def getQuantifiedVarDecl(typ: sil.Type, exclude: Set[sil.LocalVarDecl] = Set()): sil.LocalVarDecl = {
     if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).isEmpty)
-      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
+      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
     (quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).head
   }
 
   def getQuantifiedVarDeclsForType(typ: sil.Type, number: Int, exclude: Set[sil.LocalVarDecl] = Set()): Seq[sil.LocalVarDecl] = {
+    println(quantifiedVariables + ", " + number + ", exclude: " + exclude)
     if (!quantifiedVariables.contains(typ))
       quantifiedVariables += typ -> Seq()
-    for (_ <- 0 to Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("x"), typ)())
+    for (_ <- 0 until Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
+      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
+    println(quantifiedVariables)
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
 
-  def getQuantifiedVarDecls(f: sil.FuncLike, exclude: Set[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
-    val quantifiedVars = f.formalArgs.foldLeft[Map[sil.Type, Int]](Map())((map, varDecl) => map + (varDecl.typ -> (map.getOrElse(varDecl.typ, 0) + 1))).map {
-      case (typ, count) => typ -> getQuantifiedVarDeclsForType(typ, count, exclude)
-    }
-    val counts: mutable.Map[sil.Type, Int] = mutable.Map()
-    f.formalArgs.map {
-      case sil.LocalVarDecl(_, typ) =>
-        val index = counts.getOrElse(typ, 0)
-        counts(typ) = index + 1
-        quantifiedVars(typ)(index)
-    }
-  }
+  private def getTypeName(typ: sil.Type): String = DefaultSilverConverter.convert(typ).name
 
   /**
     * Stores the result of the alias analysis.
@@ -309,10 +299,4 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
   override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   def key: (ProgramPoint, Expression) = (pp, expr)
-}
-
-case class FunctionCallDescription(functionName: String, parameters: Seq[(Type, Expression)], typ: Type, pp: ProgramPoint) extends Expression {
-  override def ids: IdentifierSet = IdentifierSet.Bottom
-  override def transform(f: (Expression) => Expression): Expression = f(this)
-  override def contains(f: (Expression) => Boolean): Boolean = f(this)
 }

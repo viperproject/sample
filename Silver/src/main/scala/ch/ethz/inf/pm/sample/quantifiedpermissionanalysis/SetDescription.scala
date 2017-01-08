@@ -34,9 +34,15 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
     * @param quantifiedVariable The quantified variable to compare against.
     * @return A silver expression that checks whether the given quantified variable is in the set.
     */
-  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
+
+  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
 
   def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
+
+  def isOneElement: Boolean
+
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
   def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp
 }
@@ -51,6 +57,12 @@ object SetDescription {
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
+
+    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
+
+    override def isOneElement = false
+
+    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
   }
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
@@ -61,6 +73,12 @@ object SetDescription {
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
+
+    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
+
+    override def isOneElement = throw new UnsupportedOperationException()
+
+    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
   }
 
   sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
@@ -112,7 +130,15 @@ object ReferenceSetDescription {
 
     private def pp: ProgramPoint = key._1
 
-    private def isFinite(expr: Expression, numericalInfo: Context.NumType): Boolean = {
+    private def isFunctionExprFinite(function: Function, expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = function match {
+      case Function(_, _, _, parameters) => parameters.forall {
+        case (_: RefType, _, expr) => expressions((pp, expr)).isFinite(expressions)
+        case (_: DomType, _, expr) => expressions((pp, expr)).isFinite(expressions)
+        case (IntType, _, expr) => isIntegerExprFinite(expr, Context.postNumericalInfo(pp).numDom)
+      }
+    }
+
+    private def isIntegerExprFinite(expr: Expression, numericalInfo: Context.NumericalDomainType): Boolean = {
       val quantifiedVar = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
       val tempNum = numericalInfo.createVariable(quantifiedVar).assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
       tempNum.getPossibleConstants(quantifiedVar) match {
@@ -124,30 +150,38 @@ object ReferenceSetDescription {
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = {
       (!widened && abstractExpressions.forall {
-        case Function(_, _, _, parameters) => parameters.forall {
-          case (_: RefType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-          case (_: DomType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-          case (IntType, _, expr) => isFinite(expr, Context.postNumericalInfo(pp).numDom)
-        }
+        case function: Function => isFunctionExprFinite(function, expressions)
         case _ => true
       }) || abstractExpressions.forall {
         case _: AddField => false
-        case Function(_, _, _, parameters) => parameters.forall {
-          case (_: RefType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-          case (_: DomType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-          case (IntType, _, expr) => isFinite(expr, Context.postNumericalInfo(pp).numDom)
-        }
+        case function: Function => isFunctionExprFinite(function, expressions)
         case _ => true
       }
     }
 
+    override def isOneElement: Boolean = !widened && concreteExpressions.size == 1 && abstractExpressions.forall {
+      case _: Function => false
+      case _ => true
+    }
+
+    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = !widened && abstractExpressions.forall {
+      case Function(functionName, _, _, parameters) => parameters.count {
+        case (IntType, _, _) => true
+        case _ => false
+      } == 1 && parameters.forall {
+        case (IntType, _, expr) => ProgramUtils.isFunctionInjective(Context.functions(functionName), expr, Context.postNumericalInfo(pp).numDom)
+        case (_, pp, expr) => expressions((pp, expr)).isOneElement
+      }
+      case _ => false
+    }
+
     private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[Expression] = setDescription match {
-      case Inner(_, _, expressions) =>
-        expressions.flatMap(expr => expr match {
-          case FunctionCallDescription(functionName, parameters, typ, _) =>
-            expandFunction(state, parameters.map { case (t, e) => (t, pp, e) }).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
-          case _ => Set(expr)
-        })
+      case Inner(_, _, concreteExprs) =>
+        concreteExprs.flatMap {
+          case FunctionCallExpression(functionName, parameters, typ, _) =>
+            expandFunction(state, parameters.map(param => (param.typ, pp, param))).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
+          case other => Set(other)
+        }
       case _ => throw new IllegalArgumentException()
     }
 
@@ -166,6 +200,28 @@ object ReferenceSetDescription {
       })
     }
 
+    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
+      concreteExpressions.foldLeft[Option[sil.Exp]](None) {
+        case (None, FunctionCallExpression(_, parameters, _, _)) =>
+          parameters.foldLeft[Option[sil.Exp]](None) {
+            case (None, e) if e.typ == IntType =>
+              val numericalInfo = Context.postNumericalInfo(pp).numDom
+              val quantifiedVariableIdentifier = VariableIdentifier(quantifiedVariable.name)(IntType)
+              val expressionToAssume = BinaryArithmeticExpression(quantifiedVariableIdentifier, e, ArithmeticOperator.==)
+              numericalInfo.createVariable(quantifiedVariableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars).getConstraints(Set(quantifiedVariableIdentifier)).map(constraint => DefaultSampleConverter.convert(constraint)).reduceOption((left, right) => sil.And(left, right)()) match {
+                case Some(expr) => Some(expr)
+                case None => Some(sil.TrueLit()())
+              }
+            case (Some(_), e) if e.typ == IntType => throw new IllegalStateException("Encountered two or more int arguments")
+            case _ => None
+          }
+        case _ => throw new IllegalStateException()
+      } match {
+        case Some(exp) => exp
+        case _ => throw new IllegalStateException()
+      }
+    }
+
     /**
       * Generates an expression that checks whether a given quantified variable is contained in the set represented by
       * this description.
@@ -173,9 +229,8 @@ object ReferenceSetDescription {
       * @param quantifiedVariable The quantified variable to compare against.
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
-    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar = Context.getQuantifiedVarDecl(silverType).localVar): sil.Exp = {
-      val expressions = state.refSets
-      if (isFinite(expressions))
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
+      if (isFinite(state.refSets))
         expand(state, this).map (expr => expr.transform {
           case FieldExpression(typ, field, receiver) =>
             if (!Context.fieldAccessFunctions.contains(field)) {
@@ -193,7 +248,7 @@ object ReferenceSetDescription {
     override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
       val set = Context.getSetFor(key).localVar
-      if (isFinite(expressions)) null
+      if (isFinite(expressions) || canBeExpressedByIntegerQuantification(expressions)) null
       else {
         var roots: Set[sil.AnySetContains] = Set()
         var fields: Set[sil.AnySetContains] = Set()
@@ -207,7 +262,7 @@ object ReferenceSetDescription {
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
-            val numericalInfo: Context.NumType = Context.postNumericalInfo(pp).numDom
+            val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, _, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
@@ -248,12 +303,18 @@ object ReferenceSetDescription {
     }
 
     private def transformAssignmentRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
-      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformAssignmentRecursively(field, receiver, elseExpr, cond), transformAssignmentRecursively(field, receiver, elseExpr, thenExpr), transformAssignmentRecursively(field, receiver, elseExpr, elseExpr), typ)
+      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformAssignmentRecursively(field, receiver, right, cond), transformAssignmentRecursively(field, receiver, right, thenExpr), transformAssignmentRecursively(field, receiver, right, elseExpr), typ)
       case fieldExpr@FieldExpression(_, `field`, rec) =>
         if (receiver.equals(rec)) right
         else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
       case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformAssignmentRecursively(field, receiver, right, rec))
-      case FunctionCallExpression(functionName, params, typ, _) => FunctionCallExpression(functionName, params.map(param => transformAssignmentRecursively(field, receiver, right, param)), typ, pp)
+      case _ => expr
+    }
+
+    private def transformVariableAssignmentRecursively(left: VariableIdentifier, right: Expression, expr: Expression): Expression = expr match {
+      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformVariableAssignmentRecursively(left, right, cond), transformVariableAssignmentRecursively(left, right, thenExpr), transformVariableAssignmentRecursively(left, right, elseExpr), typ)
+      case FieldExpression(typ, field, rec) => FieldExpression(typ, field, transformVariableAssignmentRecursively(left, right, rec))
+      case `left` => right
       case _ => expr
     }
 
@@ -263,7 +324,7 @@ object ReferenceSetDescription {
     }
 
     override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => expr.transform(e => if (e.equals(left)) right else e))
+      val newConcreteExpressions = concreteExpressions.map(expr => transformVariableAssignmentRecursively(left, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
@@ -275,7 +336,7 @@ object ReferenceSetDescription {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
-      case FunctionCallDescription(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map { case (typ, argExpr) => (typ, pp, argExpr) } ))
+      case FunctionCallExpression(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map(expr => (expr.typ, pp, expr))))
     }
 
     override def lubInner(other: Inner): Inner =
