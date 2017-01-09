@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
 import ch.ethz.inf.pm.sample.permissionanalysis._
@@ -119,36 +119,21 @@ trait SilverForwardInterpreter[S <: State[S]]
           case PreconditionBlock(preconditions) =>
             // process preconditions
             preconditions.foldLeft(entry) { (predecessor, precondition) =>
-              // evaluate precondition expression
-              val evaluated = precondition.forwardSemantics(predecessor)
-              val expression = evaluated.expr
-              // issue precondition command
-              val successor = evaluated.command(PreconditionCommand(expression))
-
+              val successor = executeCommand(PreconditionCommand, precondition, predecessor)
               states.append(successor)
               successor
             }
           case PostconditionBlock(postconditions) =>
             // process postconditions
             postconditions.foldLeft(entry) { (predecessor, postcondition) =>
-              // evaluate postcondition expression
-              val evaluated = postcondition.forwardSemantics(predecessor)
-              val expression = evaluated.expr
-              // issue postcondition command
-              val successor = evaluated.command(PostconditionCommand(expression))
-
+              val successor = executeCommand(PostconditionCommand, postcondition, predecessor)
               states.append(successor)
               successor
             }
           case LoopHeadBlock(invariants, statements) =>
             // process invariants
             val intermediate = invariants.foldLeft(entry) { (predecessor, invariant) =>
-              // evaluate invariant expression
-              val evaluated = invariant.forwardSemantics(predecessor)
-              val expression = evaluated.expr
-              // issue invariant command
-              val successor = evaluated.command(InvariantCommand(expression))
-
+              val successor = executeCommand(InvariantCommand, invariant, predecessor)
               states.append(successor)
               successor
             }
@@ -176,12 +161,23 @@ trait SilverForwardInterpreter[S <: State[S]]
   }
 
   private def executeStatement(statement: Statement, state: S): S = {
-    val temp = state.before(ProgramPointUtils.identifyingPP(statement))
-    val transformed = statement.forwardSemantics(temp)
-    logger.trace(temp.toString)
+    val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
+    val successor = statement.forwardSemantics(predecessor)
+    logger.trace(predecessor.toString)
     logger.trace(statement.toString)
-    logger.trace(transformed.toString)
-    transformed
+    logger.trace(successor.toString)
+    successor
+  }
+
+  private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
+    val predecessor = state.before(ProgramPointUtils.identifyingPP(argument))
+    val evaluated = argument.forwardSemantics(predecessor)
+    val expression = evaluated.expr
+    val successor = evaluated.command(command(expression))
+    logger.trace(predecessor.toString)
+    logger.trace(argument.toString)
+    logger.trace(successor.toString)
+    successor
   }
 }
 
@@ -256,24 +252,14 @@ trait SilverBackwardInterpreter[S <: State[S]]
           case PreconditionBlock(preconditions) =>
             // process preconditions
             preconditions.foldRight(exit) { (precondition, successor) =>
-              // evaluate precondition expression
-              val evaluated = precondition.backwardSemantics(successor)
-              val expression = evaluated.expr
-              // issue precondition command
-              val predecessor = evaluated.command(PreconditionCommand(expression))
-
+              val predecessor = executeCommand(PreconditionCommand, precondition, successor)
               states.append(predecessor)
               predecessor
             }
           case PostconditionBlock(postconditions) =>
             // process postconditions
             postconditions.foldRight(exit) { (postcondition, successor) =>
-              // evaluate postcondition expression
-              val evaluated = postcondition.backwardSemantics(successor)
-              val expression = evaluated.expr
-              // issue postcondition command
-              val predecessor = evaluated.command(PostconditionCommand(expression))
-
+              val predecessor = executeCommand(PostconditionCommand, postcondition, successor)
               states.append(predecessor)
               predecessor
             }
@@ -286,12 +272,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             }
             // process invariants
             invariants.foldRight(intermediate) { (invariant, successor) =>
-              // evaluate invariant command
-              val evaluated = invariant.backwardSemantics(successor)
-              val expression = evaluated.expr
-              // issue invariant command
-              val predecessor = evaluated.command(InvariantCommand(expression))
-
+              val predecessor = executeCommand(InvariantCommand, invariant, successor)
               states.append(predecessor)
               predecessor
             }
@@ -313,12 +294,23 @@ trait SilverBackwardInterpreter[S <: State[S]]
   }
 
   private def executeStatement(statement: Statement, state: S): S = {
-    val temp = state.before(ProgramPointUtils.identifyingPP(statement))
-    val transformed = statement.backwardSemantics(temp)
-    logger.trace(temp.toString)
+    val successor = state.before(ProgramPointUtils.identifyingPP(statement))
+    val predecessor = statement.backwardSemantics(successor)
+    logger.trace(successor.toString)
     logger.trace(statement.toString)
-    logger.trace(transformed.toString)
-    transformed
+    logger.trace(predecessor.toString)
+    predecessor
+  }
+
+  private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
+    val successor = state.before(ProgramPointUtils.identifyingPP(argument))
+    val evaluated = argument.backwardSemantics(successor)
+    val expression = evaluated.expr
+    val predecessor = evaluated.command(command(expression))
+    logger.trace(successor.toString)
+    logger.trace(argument.toString)
+    logger.trace(predecessor.toString)
+    predecessor
   }
 }
 
