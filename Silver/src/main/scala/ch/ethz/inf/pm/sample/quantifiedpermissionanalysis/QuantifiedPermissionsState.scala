@@ -43,6 +43,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       currentPP: ProgramPoint = DummyProgramPoint,
                                       permissions: PermissionRecords = PermissionRecords(),
                                       changingVars: Set[Identifier] = Set(),
+                                      declaredBelowVars: Set[Identifier] = Set(),
                                       refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map()
                                       )
   extends SimplePermissionState[QuantifiedPermissionsState]
@@ -77,8 +78,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            currentPP: ProgramPoint = currentPP,
            permissions: PermissionRecords = permissions,
            changingVars: Set[Identifier] = changingVars,
+           declaredBelowVars: Set[Identifier] = declaredBelowVars,
            refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets) =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, refSets)
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets)
 
   /** Removes the current expression.
     *
@@ -116,6 +118,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         expr = expr lub other.expr,
         visited = visited ++ other.visited,
         permissions = newPermissions,
+        changingVars = changingVars ++ other.changingVars,
+        declaredBelowVars = declaredBelowVars ++ other.declaredBelowVars,
         refSets = newRefSets
       )
   }
@@ -136,6 +140,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         visited = visited ++ other.visited,
         permissions = newPermissions,
         changingVars = changingVars ++ other.changingVars,
+        declaredBelowVars = declaredBelowVars ++ other.declaredBelowVars,
         refSets = newRefSets
       )
   }
@@ -222,7 +227,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param varExpr The variable to be removed
     * @return The abstract state obtained after removing the variable
     */
-  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = copy(expr = ExpressionSet(varExpr))
+  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = {
+    copy(
+      expr = ExpressionSet(varExpr),
+      declaredBelowVars = declaredBelowVars + varExpr
+    )}
 
   /** Accesses a field of an object.
     *
@@ -494,7 +503,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
           newInvariants :+= setDescription.toSetDefinition(this)
       case _ => throw new IllegalStateException()
     }
-    val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom
+    val numDom: NumericalDomain[_] = Context.postNumericalInfo(currentPP).numDom.removeVariables(declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
     newInvariants

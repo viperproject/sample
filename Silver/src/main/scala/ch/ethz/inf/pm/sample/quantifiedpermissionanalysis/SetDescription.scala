@@ -188,7 +188,7 @@ object ReferenceSetDescription {
     private def expand(state: QuantifiedPermissionsState, key: (ProgramPoint, Expression)): Set[Expression] = expand(state, state.refSets(key))
 
     private def expandFunction(state: QuantifiedPermissionsState, parameters: Seq[(Type, ProgramPoint, Expression)]): Set[Seq[Expression]] = {
-      val changingVars = state.changingVars
+      val variablesToRemove = state.changingVars ++ state.declaredBelowVars
       if (parameters.isEmpty) Set(Seq())
       else expandFunction(state, parameters.init).flatMap(seq => parameters.last match {
         case (_: RefType | _: DomType, _, expr) =>
@@ -196,7 +196,7 @@ object ReferenceSetDescription {
         case (IntType, _, expr) =>
           val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).localVar.name)(IntType)
           val expressionToAssume = BinaryArithmeticExpression(quantifiedVariable, expr, ArithmeticOperator.==)
-          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(changingVars).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
+          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
       })
     }
 
@@ -208,7 +208,29 @@ object ReferenceSetDescription {
               val numericalInfo = Context.postNumericalInfo(pp).numDom
               val quantifiedVariableIdentifier = VariableIdentifier(quantifiedVariable.name)(IntType)
               val expressionToAssume = BinaryArithmeticExpression(quantifiedVariableIdentifier, e, ArithmeticOperator.==)
-              numericalInfo.createVariable(quantifiedVariableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars).getConstraints(Set(quantifiedVariableIdentifier)).map(constraint => DefaultSampleConverter.convert(constraint)).reduceOption((left, right) => sil.And(left, right)()) match {
+              numericalInfo
+                .createVariable(quantifiedVariableIdentifier)
+                .assume(expressionToAssume)
+                .removeVariables(state.changingVars ++ state.declaredBelowVars)
+                .getConstraints(Set(quantifiedVariableIdentifier))
+                .map(constraint => constraint.transform {
+                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
+                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<)
+                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<=) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>=)
+                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>)
+                  case other => other
+                })
+                .toSeq
+                .sorted (new Ordering[Expression] {
+                  override def compare(x: Expression, y: Expression): Int = (x, y) match {
+                    case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
+                    case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
+                    case _ => 0
+                  }
+                })
+                .map(constraint => DefaultSampleConverter.convert(constraint))
+                .reduceLeftOption((left, right) => sil.And(left, right)())
+              match {
                 case Some(expr) => Some(expr)
                 case None => Some(sil.TrueLit()())
               }
@@ -275,7 +297,7 @@ object ReferenceSetDescription {
                 case sil.Int =>
                   val variableIdentifier = VariableIdentifier(arg.name)(IntType)
                   val expressionToAssume = BinaryArithmeticExpression(variableIdentifier, argExpr, ArithmeticOperator.==)
-                  val tempNumericalInfo = numericalInfo.createVariable(variableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars)
+                  val tempNumericalInfo = numericalInfo.createVariable(variableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars ++ state.declaredBelowVars)
                   tempNumericalInfo.getConstraints(Set(variableIdentifier)).map(expr => DefaultSampleConverter.convert(expr)).reduceOption((left, right) => sil.And(left, right)()) match {
                     case Some(exp) => impliesLeftConjuncts :+= exp
                     case None =>
