@@ -326,29 +326,31 @@ object ReferenceSetDescription {
       }
     }
 
-    private def transformAssignmentRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
-      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformAssignmentRecursively(field, receiver, right, cond), transformAssignmentRecursively(field, receiver, right, thenExpr), transformAssignmentRecursively(field, receiver, right, elseExpr), typ)
-      case fieldExpr@FieldExpression(_, `field`, rec) =>
+    private def transformFieldAssignRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
+      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformFieldAssignRecursively(field, receiver, right, cond), transformFieldAssignRecursively(field, receiver, right, thenExpr), transformFieldAssignRecursively(field, receiver, right, elseExpr), typ)
+      case FieldExpression(typ, `field`, rec) =>
         if (receiver.equals(rec)) right
-        else ConditionalExpression(BinaryArithmeticExpression(receiver, rec, ArithmeticOperator.==), right, fieldExpr, right.typ)
-      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformAssignmentRecursively(field, receiver, right, rec))
+        else ConditionalExpression(BinaryArithmeticExpression(rec, receiver, ArithmeticOperator.==), right, FieldExpression(typ, field, transformFieldAssignRecursively(field, receiver, right, rec)), right.typ)
+      case BinaryArithmeticExpression(l, r, op) => BinaryArithmeticExpression(transformFieldAssignRecursively(field, receiver, right, l), transformFieldAssignRecursively(field, receiver, right, r), op)
+      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformFieldAssignRecursively(field, receiver, right, rec))
       case _ => expr
     }
 
-    private def transformVariableAssignmentRecursively(left: VariableIdentifier, right: Expression, expr: Expression): Expression = expr match {
-      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformVariableAssignmentRecursively(left, right, cond), transformVariableAssignmentRecursively(left, right, thenExpr), transformVariableAssignmentRecursively(left, right, elseExpr), typ)
-      case FieldExpression(typ, field, rec) => FieldExpression(typ, field, transformVariableAssignmentRecursively(left, right, rec))
-      case `left` => right
+    private def transformVariableAssignRecursively(left: VariableIdentifier, right: Expression, expr: Expression): Expression = expr match {
+      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformVariableAssignRecursively(left, right, cond), transformVariableAssignRecursively(left, right, thenExpr), transformVariableAssignRecursively(left, right, elseExpr), typ)
+      case FieldExpression(typ, field, rec) => FieldExpression(typ, field, transformVariableAssignRecursively(left, right, rec))
+      case BinaryArithmeticExpression(l, r, op) => BinaryArithmeticExpression(transformVariableAssignRecursively(left, right, l), transformVariableAssignRecursively(left, right, r), op)
+      case varId: VariableIdentifier if varId.equals(left) => right
       case _ => expr
     }
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => transformAssignmentRecursively(field, receiver, right, expr))
+      val newConcreteExpressions = concreteExpressions.map(expr => transformFieldAssignRecursively(field, receiver, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
     override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => transformVariableAssignmentRecursively(left, right, expr))
+      val newConcreteExpressions = concreteExpressions.map(expr => transformVariableAssignRecursively(left, right, expr))
       copy(concreteExpressions = newConcreteExpressions)
     }
 
