@@ -92,10 +92,6 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   override def factory(): ReferenceSetDescription = top()
 
-  override def top() = ReferenceSetDescription.Top
-
-  override def bottom() = ReferenceSetDescription.Bottom
-
   override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
 
   override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
@@ -113,20 +109,20 @@ object ReferenceSetDescription {
     case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends ReferenceSetElementDescriptor
   }
 
-  case object Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription]
+  sealed trait Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription]
 
-  case object Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
+  sealed trait Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
 
-  object Inner {
-    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
-  }
-
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+  sealed trait Inner
     extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
 
-    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set(initExpression))
+    def key: (ProgramPoint, Expression)
 
-    def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner = Inner(key, widened, concreteExpressions)
+    def widened: Boolean
+
+    def concreteExpressions: Set[Expression]
+
+    def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner
 
     private def pp: ProgramPoint = key._1
 
@@ -354,7 +350,7 @@ object ReferenceSetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    private def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
+    protected def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 
@@ -364,22 +360,92 @@ object ReferenceSetDescription {
       case id: VariableIdentifier => Set(RootElement(id))
       case FunctionCallExpression(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map(expr => (expr.typ, pp, expr))))
     }
+  }
+}
 
-    override def lubInner(other: Inner): Inner =
+sealed trait NegativeReferenceSetDescription extends ReferenceSetDescription {
+
+  override def top() = NegativeReferenceSetDescription.Top
+
+  override def bottom() = NegativeReferenceSetDescription.Bottom
+}
+
+object NegativeReferenceSetDescription {
+
+  case object Top extends ReferenceSetDescription.Top with NegativeReferenceSetDescription
+
+  case object Bottom extends ReferenceSetDescription.Bottom with NegativeReferenceSetDescription
+
+  object Inner {
+    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
+  }
+
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+      extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
+    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
+    (initExpression))
+
+    override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
+
+    override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
         concreteExpressions = concreteExpressions ++ other.concreteExpressions
       )
 
-    override def glbInner(other: Inner): Inner =
+    override def glbInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
         concreteExpressions = concreteExpressions & other.concreteExpressions
       )
 
-    override def wideningInner(other: Inner): Inner = lubInner(other).copy(widened = true)
+    override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)
 
-    override def lessEqualInner(other: Inner): Boolean =
+    override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
+      abstractExpressions.subsetOf(other.abstractExpressions) &&
+        ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
+  }
+}
+
+sealed trait PositiveReferenceSetDescription extends ReferenceSetDescription {
+
+  override def top() = PositiveReferenceSetDescription.Top
+
+  override def bottom() = PositiveReferenceSetDescription.Bottom
+}
+
+object PositiveReferenceSetDescription {
+
+  case object Top extends ReferenceSetDescription.Top with PositiveReferenceSetDescription
+
+  case object Bottom extends ReferenceSetDescription.Bottom with PositiveReferenceSetDescription
+
+  object Inner {
+    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
+  }
+
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+    extends ReferenceSetDescription.Inner with PositiveReferenceSetDescription {
+    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
+    (initExpression))
+
+    override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
+
+    override def lubInner(other: ReferenceSetDescription.Inner): Inner =
+      copy(
+        widened = widened || other.widened,
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+      )
+
+    override def glbInner(other: ReferenceSetDescription.Inner): Inner =
+      copy(
+        widened = widened && other.widened,
+        concreteExpressions = concreteExpressions & other.concreteExpressions
+      )
+
+    override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)
+
+    override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       abstractExpressions.subsetOf(other.abstractExpressions) &&
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
   }
