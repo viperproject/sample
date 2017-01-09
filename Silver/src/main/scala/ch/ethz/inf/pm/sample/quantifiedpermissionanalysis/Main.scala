@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast.Program
+import viper.silver.ast.{Method, Program}
 
 import scala.collection.mutable
 
@@ -23,7 +23,6 @@ import scala.collection.mutable
   */
 object Main {
   def main(args: Array[String]): Unit = {
-
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
     SystemParameters.wideningLimit = 10
@@ -41,6 +40,12 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Quantif
   override def extendProgram(prog: Program, results: List[MethodAnalysisResult[QuantifiedPermissionsState]]): Program = {
     val tempProg = super.extendProgram(prog, results)
     tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
+  }
+
+  override def extendMethod(method: Method, cfgState: AbstractCFGState[QuantifiedPermissionsState]): Method = {
+    Context.loadAliasesForMethod(method.name)
+    Context.loadNumericalInfoForMethod(method.name)
+    super.extendMethod(method, cfgState)
   }
 
   val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, Context.numericalStateBuilder, QuantifiedPermissionsEntryStateBuilder)
@@ -100,7 +105,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
         case _: IllegalArgumentException => None
       }
 
-    Context.setAliases(aliasAnalysisResult)
+    Context.setAliases(method.name.toString, aliasAnalysisResult)
 
     val numericalAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = numericalEntryStateBuilder.build(method)
@@ -109,7 +114,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
       MethodAnalysisResult[Context.NumericalStateType](method, cfgState)
     }
 
-    Context.setNumericalInfo(numericalAnalysisResult.cfgState)
+    Context.setNumericalInfo(method.name.toString, numericalAnalysisResult.cfgState)
 
     val quantifiedPermissionAnalysisResult2 = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder2.build(method)

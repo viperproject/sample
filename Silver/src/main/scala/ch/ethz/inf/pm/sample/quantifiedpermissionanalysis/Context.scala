@@ -59,6 +59,20 @@ object Context {
 
   val sets: mutable.Map[(ProgramPoint, Expression), sil.LocalVarDecl] = mutable.Map()
 
+  private var aliasesPerMethod: Map[String, Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]] = Map()
+
+  private var numericalInfoPerMethod: Map[String, Option[TrackingCFGState[NumericalStateType]]] = Map()
+
+  /**
+    * Stores the result of the alias analysis.
+    */
+  private var aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]] = None
+
+  /**
+    * Stores the result of the numerical analysis.
+    */
+  private var numericalInfo: Option[TrackingCFGState[NumericalStateType]] = None
+
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
       sets.put(key, sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))())
@@ -81,8 +95,6 @@ object Context {
   }
 
   def clearMethodSpecificInfo(): Unit = {
-    clearAliases()
-    clearNumericalInfo()
     rdAmountVariable match {
       case Some(varDecl) =>
         identifiers -= varDecl.name
@@ -175,30 +187,15 @@ object Context {
   private def getTypeName(typ: sil.Type): String = DefaultSilverConverter.convert(typ).name
 
   /**
-    * Stores the result of the alias analysis.
-    */
-  private var aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]] = None
-
-  /**
-    * Stores the result of the numerical analysis.
-    */
-  private var numericalInfo: Option[TrackingCFGState[NumericalStateType]] = None
-
-  /**
     * Sets the result of the alias analysis.
     *
     * @param aliases The result of the alias analysis to set.
     */
-  def setAliases(aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]): Unit = {
-    this.aliases = aliases
+  def setAliases(method: String, aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]): Unit = {
+    aliasesPerMethod += method -> aliases
   }
 
-  /**
-    * Clears the result of the alias analysis.
-    */
-  def clearAliases(): Unit = {
-    this.aliases = None
-  }
+  def loadAliasesForMethod(method: String): Unit = aliases = aliasesPerMethod(method)
 
   /**
     * Returns the state of the alias analysis before the given program point.
@@ -208,7 +205,7 @@ object Context {
     * @return The state of the alias analysis before the given program point.
     */
   def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-  aliases.get.preStateAt(position(pp)).asInstanceOf[A]
+    aliases.get.preStateAt(position(pp)).asInstanceOf[A]
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -218,23 +215,18 @@ object Context {
     * @return The state of the alias analysis after the given program point.
     */
   def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-  aliases.get.postStateAt(position(pp)).asInstanceOf[A]
+    aliases.get.postStateAt(position(pp)).asInstanceOf[A]
 
   /**
     * Sets the result of the numerical analysis.
     *
     * @param numericalInfo The result of the numerical analysis to set.
     */
-  def setNumericalInfo(numericalInfo: TrackingCFGState[NumericalStateType]): Unit = {
-    this.numericalInfo = Some(numericalInfo)
+  def setNumericalInfo(method: String, numericalInfo: TrackingCFGState[NumericalStateType]): Unit = {
+    numericalInfoPerMethod += method -> Some(numericalInfo)
   }
 
-  /**
-    * Clears the result of the numerical analysis.
-    */
-  def clearNumericalInfo(): Unit = {
-    this.numericalInfo = None
-  }
+  def loadNumericalInfoForMethod(method: String): Unit = numericalInfo = numericalInfoPerMethod(method)
 
   /**
     * Returns the state of the numerical analysis before the given program point.

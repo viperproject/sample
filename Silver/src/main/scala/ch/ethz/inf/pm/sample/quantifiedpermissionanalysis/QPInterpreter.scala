@@ -81,8 +81,9 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
                 case ((_, toFalse, Some(false)), (_, toTrue, Some(true))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
                 case _ => throw new IllegalStateException()
               }
-            // val tempCurrentState =  trueState.lub(falseState)
-            // val states = computeExpressions(tempCurrentState, currentId, cfgState)
+             val tempCurrentState =  trueState.lub(falseState)
+             val states = computeExpressions(tempCurrentState, currentId, cfgState)
+            println(states.init.last.expr)
             // trueState.lub(falseState, states.init.last.expr)
             trueState.lub(falseState)
           case _ => throw new IllegalStateException()
@@ -114,9 +115,9 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, id: Int, count: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
     var newStates = ListBuffer[QuantifiedPermissionsState]()
-    val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(id)
+    val statements: List[Statement] = cfgState.cfg.getBasicBlockStatements(id)
     var nextState: QuantifiedPermissionsState = exitState
-    for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
+    for ((stmt: Statement, _: Int) <- statements.zipWithIndex.reverse) {
       newStates = nextState +: newStates
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
