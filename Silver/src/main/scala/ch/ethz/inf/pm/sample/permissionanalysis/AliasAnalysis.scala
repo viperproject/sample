@@ -21,17 +21,17 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
 case object DummyRefType extends DummyType {
-  def name = "Ref"
+  override def name = "Ref"
 
-  def isBottom = false
+  override def isBottom = false
 
-  def isTop = false
+  override def isTop = false
 
-  def isObject = true
+  override def isObject = true
 
-  def isNumericalType = false
+  override def isNumericalType = false
 
-  def possibleFields: Set[Identifier] = Set.empty
+  override def possibleFields: Set[Identifier] = Set.empty
 }
 
 /** Various type shortcuts.

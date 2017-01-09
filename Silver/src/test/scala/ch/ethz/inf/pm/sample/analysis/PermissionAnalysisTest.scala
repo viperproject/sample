@@ -98,6 +98,5 @@ class PermissionAnalysisTest extends SilSuite {
   * @author Caterina Urban
   */
 class PermissionAnalysisLatticeTest extends LatticeTest[SimplePermissionAnalysisState] {
-  SystemParameters.typ = DummyRefType
   override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.top
 }
