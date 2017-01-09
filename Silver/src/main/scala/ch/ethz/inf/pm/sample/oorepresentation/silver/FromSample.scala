@@ -26,7 +26,7 @@ object DefaultSampleConverter extends SampleConverter {
 
   def convert(e: sample.Expression): sil.Exp = e match {
     case sample.ConditionalExpression(cond, left, right, _) => sil.CondExp(go(cond), go(left), go(right))()
-    case sample.FunctionCallExpression(typ, functionName, parameters, _) => sil.FuncLikeApp(Context.functions(functionName), parameters.map(param => go(param)), Map())
+    case sample.FunctionCallExpression(functionName, parameters, _, _) => sil.FuncLikeApp(Context.functions(functionName), parameters.map(param => go(param)), Map())
     case sample.FieldExpression(typ, field, receiver) => sil.FieldAccess(go(receiver), sil.Field(field, go(typ))())()
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op) => op match {

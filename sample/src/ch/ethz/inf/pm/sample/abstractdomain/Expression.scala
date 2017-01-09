@@ -261,7 +261,7 @@ case class BinaryBooleanExpression(
     case _ => false
   }
 
-  override def toString: String = left.toString + op.toString + right.toString
+  override def toString: String = "(" + left.toString + op.toString + right.toString + ")"
 
   override def transform(f: (Expression => Expression)): Expression =
     f(BinaryBooleanExpression(left.transform(f), right.transform(f), op))

@@ -169,7 +169,7 @@ object ReferenceSetDescription {
         case (IntType, _, _) => true
         case _ => false
       } == 1 && parameters.forall {
-        case (IntType, _, expr) => ProgramUtils.isFunctionInjective(Context.functions(functionName), expr, Context.postNumericalInfo(pp).numDom)
+        case (IntType, _, expr) => Utils.isFunctionInjective(Context.functions(functionName), expr, Context.postNumericalInfo(pp).numDom)
         case (_, pp, expr) => expressions((pp, expr)).isOneElement
       }
       case _ => false

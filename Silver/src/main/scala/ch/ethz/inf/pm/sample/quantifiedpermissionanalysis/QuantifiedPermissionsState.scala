@@ -124,23 +124,23 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       )
   }
 
-  def lub(other: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, other) match {
-    case (false, _, _) | (_, Bottom, _) | (_, _, Bottom) => lub(other)
-    case (_, _, _) =>
-      val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
+  def lub(falseState: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, falseState) match {
+    case (false, _, _) | (_, Bottom, _) | (_, _, Bottom) => lub(falseState)
+    case _ =>
+      val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
         case (true, _) => permissions
-        case (_, true) => other.permissions
-        case (false, false) => permissions.cond(cond.getSingle.get, other.permissions)
+        case (_, true) => falseState.permissions
+        case (false, false) => permissions.cond(cond.getSingle.get, falseState.permissions)
       }
-      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets ++ other.refSets.transform {
+      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets ++ falseState.refSets.transform {
         case (key, expressionCollection) => if (refSets.contains(key)) refSets(key).lub(expressionCollection) else expressionCollection
       }
       copy(
-        expr = expr lub other.expr,
-        visited = visited ++ other.visited,
+        expr = expr lub falseState.expr,
+        visited = visited ++ falseState.visited,
         permissions = newPermissions,
-        changingVars = changingVars ++ other.changingVars,
-        declaredBelowVars = declaredBelowVars ++ other.declaredBelowVars,
+        changingVars = changingVars ++ falseState.changingVars,
+        declaredBelowVars = declaredBelowVars ++ falseState.declaredBelowVars,
         refSets = newRefSets
       )
   }

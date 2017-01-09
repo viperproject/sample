@@ -81,12 +81,10 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
                 case ((_, toFalse, Some(false)), (_, toTrue, Some(true))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
                 case _ => throw new IllegalStateException()
               }
-             val tempCurrentState =  trueState.lub(falseState)
-             val states = computeExpressions(tempCurrentState, currentId, cfgState)
-            println(states.init.last.expr)
-            // trueState.lub(falseState, states.init.last.expr)
-            trueState.lub(falseState)
-          case _ => throw new IllegalStateException()
+            // 'Dummy' execution of current block to get branch condition
+            val states = computeExpressions(trueState.lub(falseState), currentId, cfgState)
+            trueState.lub(falseState, states.init.last.expr)
+          case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(currentId)
       val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
