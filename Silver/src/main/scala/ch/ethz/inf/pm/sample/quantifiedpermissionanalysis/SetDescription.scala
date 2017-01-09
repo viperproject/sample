@@ -214,6 +214,7 @@ object ReferenceSetDescription {
                 .removeVariables(state.changingVars ++ state.declaredBelowVars)
                 .getConstraints(Set(quantifiedVariableIdentifier))
                 .map(constraint => constraint.transform {
+                  // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
                   case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
                   case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<)
                   case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<=) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>=)
@@ -222,6 +223,7 @@ object ReferenceSetDescription {
                 })
                 .toSeq
                 .sorted (new Ordering[Expression] {
+                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10]
                   override def compare(x: Expression, y: Expression): Int = (x, y) match {
                     case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
                     case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
