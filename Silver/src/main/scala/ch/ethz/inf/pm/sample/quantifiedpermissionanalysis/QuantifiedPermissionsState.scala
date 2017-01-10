@@ -155,7 +155,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case (Bottom, _) => true
       case (_, Bottom) => false
       case (_, _) =>
-        refSets.forall { case (key, setDescription) => setDescription.lessEqual(other.refSets.getOrElse(key, ReferenceSetDescription.Bottom)) } &&
+        refSets.forall { case (key, elem) => elem.lessEqual(other.refSets.getOrElse(key, elem.bottom())) } &&
         changingVars.subsetOf(other.changingVars)
     }
   }
@@ -213,7 +213,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case IntType => refSets
       case _ => throw new IllegalStateException()
     }
-    newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
+    newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, elem.bottom()).lub(elem))
     copy(
       permissions = newPermissions,
       refSets = newRefSets
@@ -247,7 +247,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
       else permissions
-    val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
+    val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
     copy(
       expr = ExpressionSet(FieldExpression(typ, field, obj)),
       permissions = newPermissions,
@@ -255,15 +255,15 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     )
   }
 
-  private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
+  private def extractExpressionDescriptions(expr: Expression, positive: Boolean = true): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
     case functionCall@FunctionCallExpression(_, parameters, _, _) =>
       parameters.map {
-        case param: RefType => extractExpressionDescriptions(param)
-        case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param)
+        case param: RefType => extractExpressionDescriptions(param, positive)
+        case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param, positive)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
       }.reduce((left, right) => left ++ right) +
-      ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall))
-    case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr)))
+      ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall, positive))
+    case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr, positive)))
   }
 
   /** Inhales permissions.
@@ -278,7 +278,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.undoLastRead(field).sub(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
-      val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
+      val newRefSets = refSets ++ extractExpressionDescriptions(receiver, positive = false).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
       copy(
         permissions = newPermissions,
         refSets = newRefSets
@@ -297,7 +297,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
-      val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, ReferenceSetDescription.Bottom).lub(elem))
+      val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
       copy(
         permissions = newPermissions,
         refSets = newRefSets

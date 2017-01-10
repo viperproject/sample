@@ -92,9 +92,13 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   override def factory(): ReferenceSetDescription = top()
 
+  def inner(pp: ProgramPoint, initExpression: Expression): ReferenceSetDescription.Inner
+
   override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
 
   override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
+
+  def isEquivalentDescription(other: ReferenceSetDescription): Boolean
 }
 
 object ReferenceSetDescription {
@@ -109,12 +113,21 @@ object ReferenceSetDescription {
     case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends ReferenceSetElementDescriptor
   }
 
-  sealed trait Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription]
+  object Inner {
+    def apply(pp: ProgramPoint, initExpr: Expression, positive: Boolean): ReferenceSetDescription.Inner =
+      if (positive) PositiveReferenceSetDescription.Inner(pp, initExpr)
+      else NegativeReferenceSetDescription.Inner(pp, initExpr)
+  }
 
-  sealed trait Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription]
+  sealed trait Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription] {
+    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == top()
+  }
 
-  sealed trait Inner
-    extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
+  sealed trait Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription] {
+    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == bottom()
+  }
+
+  sealed trait Inner extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
 
     def key: (ProgramPoint, Expression)
 
@@ -123,6 +136,8 @@ object ReferenceSetDescription {
     def concreteExpressions: Set[Expression]
 
     def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner
+
+    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
     private def pp: ProgramPoint = key._1
 
@@ -172,8 +187,8 @@ object ReferenceSetDescription {
     }
 
     private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[Expression] = setDescription match {
-      case Inner(_, _, concreteExprs) =>
-        concreteExprs.flatMap {
+      case inner: Inner =>
+        inner.concreteExpressions.flatMap {
           case FunctionCallExpression(functionName, parameters, typ, _) =>
             expandFunction(state, parameters.map(param => (param.typ, pp, param))).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
           case other => Set(other)
@@ -350,7 +365,7 @@ object ReferenceSetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    protected def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
+    final def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
       concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
     }
 
@@ -368,6 +383,8 @@ sealed trait NegativeReferenceSetDescription extends ReferenceSetDescription {
   override def top() = NegativeReferenceSetDescription.Top
 
   override def bottom() = NegativeReferenceSetDescription.Bottom
+
+  override def inner(pp: ProgramPoint, initExpr: Expression) = NegativeReferenceSetDescription.Inner(pp, initExpr)
 }
 
 object NegativeReferenceSetDescription {
@@ -387,23 +404,26 @@ object NegativeReferenceSetDescription {
 
     override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
 
-    override def lubInner(other: ReferenceSetDescription.Inner): Inner =
-      copy(
-        widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions
-      )
+    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
+      other.isInstanceOf[NegativeReferenceSetDescription] && super.isEquivalentDescription(other)
 
-    override def glbInner(other: ReferenceSetDescription.Inner): Inner =
+    override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
         concreteExpressions = concreteExpressions & other.concreteExpressions
       )
 
-    override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)
+    override def glbInner(other: ReferenceSetDescription.Inner): Inner =
+      copy(
+        widened = widened || other.widened,
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+      )
+
+    override def wideningInner(other: ReferenceSetDescription.Inner): Inner = glbInner(other).copy(widened = true)
 
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
-      abstractExpressions.subsetOf(other.abstractExpressions) &&
-        ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
+      other.abstractExpressions.subsetOf(abstractExpressions) &&
+        ((widened && other.widened) || other.concreteExpressions.subsetOf(concreteExpressions))
   }
 }
 
@@ -412,6 +432,8 @@ sealed trait PositiveReferenceSetDescription extends ReferenceSetDescription {
   override def top() = PositiveReferenceSetDescription.Top
 
   override def bottom() = PositiveReferenceSetDescription.Bottom
+
+  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveReferenceSetDescription.Inner(pp, initExpr)
 }
 
 object PositiveReferenceSetDescription {
@@ -430,6 +452,9 @@ object PositiveReferenceSetDescription {
     (initExpression))
 
     override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
+
+    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
+      other.isInstanceOf[PositiveReferenceSetDescription] && super.isEquivalentDescription(other)
 
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
