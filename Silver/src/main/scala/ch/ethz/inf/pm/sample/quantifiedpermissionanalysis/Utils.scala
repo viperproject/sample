@@ -18,6 +18,15 @@ import viper.silver.{ast => sil}
   */
 object Utils {
 
+  def lcm(a: Int, b: Int) = a * b / gcd(a, b)
+
+  def lcm(numbers: TraversableOnce[Int]): Int = numbers.reduce(lcm)
+
+  def gcd(a: Int, b: Int): Int = b match {
+    case 0 => a.abs
+    case _ => gcd(b, a % b)
+  }
+
   def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: Context.NumericalDomainType, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)

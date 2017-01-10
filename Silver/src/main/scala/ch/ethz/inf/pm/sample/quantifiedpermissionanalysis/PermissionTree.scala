@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
 
@@ -157,10 +158,6 @@ case class NegatedPermission(arg: Permission) extends Permission {
 }
 
 object FractionalPermission {
-  private def gcd(a: Int, b: Int): Int = b match {
-    case 0 => a.abs
-    case _ => gcd(b, a % b)
-  }
   def createReduced(numerator: Int, denominator: Int): FractionalPermission = {
     val divisor = gcd(numerator, denominator)
     new FractionalPermission(numerator / divisor, denominator / divisor)

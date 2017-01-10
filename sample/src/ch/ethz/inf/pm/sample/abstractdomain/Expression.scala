@@ -169,6 +169,8 @@ trait Expression {
   /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
 
+  def foreach(f: (Expression => Unit)): Unit = transform(expr => { f(expr); expr })
+
 }
 
 
