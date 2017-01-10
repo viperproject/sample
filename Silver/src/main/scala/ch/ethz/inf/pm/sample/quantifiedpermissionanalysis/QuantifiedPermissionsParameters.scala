@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState
   */
 object QuantifiedPermissionsParameters {
 
-  val applyIntegerQuantification = true
+  val applyIntegerQuantificationWherePossible = true
 
   val useHeapAnalysis = true
 

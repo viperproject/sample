@@ -175,7 +175,7 @@ object ReferenceSetDescription {
       case _ => true
     }
 
-    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = !widened && abstractExpressions.forall {
+    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = QuantifiedPermissionsParameters.applyIntegerQuantificationWherePossible && !widened && abstractExpressions.forall {
       case Function(functionName, _, _, parameters) => parameters.count {
         case (IntType, _, _) => true
         case _ => false
