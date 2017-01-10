@@ -48,8 +48,22 @@ object Utils {
     }
   }
 
+  def toNNF(expr: Expression): Expression = expr.transform {
+    case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
+      BinaryBooleanExpression(NegatedBooleanExpression(left), NegatedBooleanExpression(right), BooleanOperator.negate(op))
+    case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
+    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op)) if ArithmeticOperator.isComparison(op) => BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op))
+    case other => other
+  }.transform {
+    case BinaryBooleanExpression(left, right, _) if left == right => left
+    case other => other
+  } match {
+    case transformed if transformed.equals(expr) => transformed
+    case transformed => toNNF(transformed)
+  }
+
   private def toCNF(expr: Expression): Expression = expr.transform {
-    case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op@(BooleanOperator.&& | BooleanOperator.||))) =>
+    case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
       BinaryBooleanExpression(NegatedBooleanExpression(left), NegatedBooleanExpression(right), BooleanOperator.negate(op))
     case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
     case other => other
