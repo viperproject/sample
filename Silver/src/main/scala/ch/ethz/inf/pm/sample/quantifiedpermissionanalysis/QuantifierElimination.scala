@@ -29,7 +29,7 @@ object QuantifierElimination {
     val lcmReplaced = replaceLCM(variable, collected)
     println(lcmReplaced)
     val equivalentFormula = constructEquivalence(variable, lcmReplaced)
-
+    println(equivalentFormula)
     equivalentFormula
   }
 
@@ -147,6 +147,15 @@ case class LessThanWithVariableRight(left: Expression, right: VariableIdentifier
   override def toString: String = left.toString + ArithmeticOperator.<.toString + right.toString
 }
 
+case class Divides(left: Int, right: VariableIdentifier) extends Expression {
+  override def typ: Type = BoolType
+  override def pp: ProgramPoint = right.pp
+  override def ids: IdentifierSet = right.ids
+  override def transform(f: (Expression) => Expression): Expression = f(this)
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || f(right)
+  def toModuloExpr: BinaryArithmeticExpression = equ(modulo(right, Constant(left.toString, IntType)), const(0))
+}
+
 object ExpressionBuilder {
   val one = Constant("1", IntType)
 
@@ -161,6 +170,8 @@ object ExpressionBuilder {
   def minus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.-)
 
   def mult(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.*)
+
+  def modulo(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.%)
 
   def lt(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
 
