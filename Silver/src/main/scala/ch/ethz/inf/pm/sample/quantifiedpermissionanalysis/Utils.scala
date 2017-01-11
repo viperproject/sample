@@ -98,6 +98,24 @@ object Utils {
 
   def toCNFConjuncts(expr: Expression): Set[Expression] = flattenCNF(toCNF(expr))
 
+  def simplifyExpression(expr: Expression): Expression = expr.transform {
+    case BinaryBooleanExpression(`trueConst`, other, BooleanOperator.&&) => other
+    case BinaryBooleanExpression(other, `trueConst`, BooleanOperator.&&) => other
+    case BinaryBooleanExpression(`falseConst`, _, BooleanOperator.&&) | BinaryBooleanExpression(_, `falseConst`, BooleanOperator.&&) => falseConst
+    case BinaryBooleanExpression(`falseConst`, other, BooleanOperator.||) => other
+    case BinaryBooleanExpression(other, `falseConst`, BooleanOperator.||) => other
+    case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
+    case other => other
+  }
+
+  val zeroConst = Constant("0", IntType)
+
+  val oneConst = Constant("1", IntType)
+
+  val trueConst = Constant("true", BoolType)
+
+  val falseConst = Constant("false", BoolType)
+
 }
 
 object Main2 {

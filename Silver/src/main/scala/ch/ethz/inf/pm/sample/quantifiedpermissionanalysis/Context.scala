@@ -119,7 +119,7 @@ object Context {
     programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
   }
 
-  private def createNewUniqueIdentifier(name: String) = {
+  private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true) = {
     var identifier: String = ""
     if (identifiers.contains(name)) {
       var count = 0
@@ -130,11 +130,12 @@ object Context {
     } else {
       identifier = name
     }
-    identifiers += identifier
+    if (markAsTaken)
+      identifiers += identifier
     identifier
   }
 
-  private def createNewUniqueVarIdentifier(name: String = "_var"): String = createNewUniqueIdentifier(name)
+  def createNewUniqueVarIdentifier(name: String = "_var", markAsTaken: Boolean = true): String = createNewUniqueIdentifier(name, markAsTaken)
 
   def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
 

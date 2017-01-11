@@ -26,9 +26,9 @@ object QuantifierElimination {
     println(tzEquivalentFormula)
     val collected = collectVariable(variable, tzEquivalentFormula)
     println(collected)
-    val lcmReplaced = replaceLCM(variable, collected)
+    val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
     println(lcmReplaced)
-    val equivalentFormula = constructEquivalence(variable, lcmReplaced)
+    val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println(equivalentFormula)
     equivalentFormula
   }
@@ -38,6 +38,10 @@ object QuantifierElimination {
 
   // Step 2
   private def toTzEquivalentFormula(expr: Expression): Expression = expr.transform {
+    case BinaryArithmeticExpression(BinaryArithmeticExpression(left: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.==) => Divides(const.toInt, left)
+    case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(left: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.%), ArithmeticOperator.==) => Divides(const.toInt, left)
+    case BinaryArithmeticExpression(BinaryArithmeticExpression(left: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.!=) => NotDivides(const.toInt, left)
+    case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(left: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.%), ArithmeticOperator.!=) => NotDivides(const.toInt, left)
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.==) => and(lt(left, plusOne(right)), lt(right, plusOne(left)))
     case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.!=)) => and(lt(left, plusOne(right)), lt(right, plusOne(left)))
     case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, ArithmeticOperator.==)) => or(lt(left, right), lt(right, left))
@@ -86,7 +90,7 @@ object QuantifierElimination {
   private case object ConstPlaceholder
 
   // Step 4
-  private def replaceLCM(variable: VariableIdentifier, expr: Expression): Expression = {
+  private def replaceLCM(variable: VariableIdentifier, expr: Expression): (Expression, VariableIdentifier) = {
     var numbers: Set[Int] = Set()
     expr.foreach {
       case VariableIdentifierWithFactor(_, `variable`) => throw new IllegalStateException()
@@ -95,29 +99,70 @@ object QuantifierElimination {
       case _ =>
     }
     val leastCommonMultiple = lcm(numbers)
-    println(leastCommonMultiple)
-    val transformer: (Int) => ((Expression) => Expression) = (hPrime) => {
+    val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
       case VariableIdentifierWithFactor(h, variableIdentifier) => VariableIdentifierWithFactor(h * hPrime, variableIdentifier)
       case Constant(const, IntType, pp) => Constant((const.toInt * hPrime).toString, IntType, pp)
       case other => other
     }
-    expr.transform {
+    val freshVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("fresh", markAsTaken = false))(IntType)
+    val replacedLCM = expr.transform {
+      case VariableIdentifierWithFactor(_, `variable`) => throw new IllegalStateException()
       case LessThanWithVariableLeft(VariableIdentifierWithFactor(factor, `variable`), right) =>
-        val h = leastCommonMultiple / factor
-        LessThanWithVariableLeft(VariableIdentifierWithFactor(leastCommonMultiple, variable), right.transform(transformer(h)))
+        val hPrime = leastCommonMultiple / factor
+        LessThanWithVariableLeft(VariableIdentifierWithFactor(1, freshVariable), right.transform(coefficientMultiplier(hPrime)))
       case LessThanWithVariableRight(left, VariableIdentifierWithFactor(factor, `variable`)) =>
         val h = leastCommonMultiple / factor
-        LessThanWithVariableRight(left.transform(transformer(h)), VariableIdentifierWithFactor(leastCommonMultiple, variable))
+        LessThanWithVariableRight(left.transform(coefficientMultiplier(h)), VariableIdentifierWithFactor(1, freshVariable))
       case other => other
     }
+    if (leastCommonMultiple != 1) (and(replacedLCM, Divides(leastCommonMultiple, freshVariable)), freshVariable)
+    else (replacedLCM, freshVariable)
   }
 
-
-
   // Step 5
-  private def constructEquivalence(variable: VariableIdentifier, expr: Expression) = expr
+  private def constructEquivalence(freshVariable: VariableIdentifier, expr: Expression): Expression = {
+    val leftProjection = simplifyExpression(leftInfiniteProjection(freshVariable, expr))
+    val d = delta(freshVariable, expr)
+    val B = getBs(freshVariable, expr)
+    simplifyExpression(((1 to d).map(j => leftProjection.transform {
+      case LessThanWithVariableRight(_, VariableIdentifierWithFactor(1, `freshVariable`)) |
+           LessThanWithVariableLeft(VariableIdentifierWithFactor(1, `freshVariable`), _) => throw new IllegalStateException()
+      case Divides(n, `freshVariable`) => Divides(n, const(j))
+      case NotDivides(n, `freshVariable`) => NotDivides(n, const(j))
+      case other => other
+    }) ++ (1 to d).flatMap(j => B.map(b => expr.transform {
+      case LessThanWithVariableRight(left, VariableIdentifierWithFactor(1, `freshVariable`)) => lt(left, plus(b, const(j)))
+      case LessThanWithVariableLeft(VariableIdentifierWithFactor(1, `freshVariable`), right) => lt(plus(b, const(j)), right)
+      case Divides(n, `freshVariable`) => Divides(n, plus(b, const(j)))
+      case NotDivides(n, `freshVariable`) => NotDivides(n, plus(b, const(j)))
+      case other => other
+    }))).reduce(or))
+  }
 
-  private def leftInfiniteProjection(variable: VariableIdentifier, expr: Expression) = expr
+  private def delta(freshVariable: VariableIdentifier, expr: Expression): Int = {
+    var numbers: Set[Int] = Set()
+    expr.foreach {
+      case div: DivideExpression => numbers += div.left
+      case _ =>
+    }
+    if (numbers.isEmpty) 1 else lcm(numbers)
+  }
+
+  private def getBs(freshVariable: VariableIdentifier, expr: Expression): Set[Expression] = {
+    var bs: Set[Expression] = Set()
+    expr.foreach {
+      case LessThanWithVariableRight(left, VariableIdentifierWithFactor(1, `freshVariable`)) => bs += left
+      case LessThanWithVariableRight(VariableIdentifierWithFactor(1, `freshVariable`), right) => bs += right
+      case _ =>
+    }
+    bs
+  }
+
+  private def leftInfiniteProjection(variable: VariableIdentifier, expr: Expression): Expression = expr.transform {
+    case LessThanWithVariableLeft(VariableIdentifierWithFactor(1, `variable`), _) => trueConst
+    case LessThanWithVariableRight(_, VariableIdentifierWithFactor(1, `variable`)) => falseConst
+    case other => other
+  }
 
 }
 
@@ -147,23 +192,33 @@ case class LessThanWithVariableRight(left: Expression, right: VariableIdentifier
   override def toString: String = left.toString + ArithmeticOperator.<.toString + right.toString
 }
 
-case class Divides(left: Int, right: VariableIdentifier) extends Expression {
+sealed trait DivideExpression extends Expression {
+  def left: Int
+  def right: Expression
   override def typ: Type = BoolType
   override def pp: ProgramPoint = right.pp
   override def ids: IdentifierSet = right.ids
   override def transform(f: (Expression) => Expression): Expression = f(this)
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || f(right)
+  override def toString: String = toModuloExpr.toString
+  def toModuloExpr: BinaryArithmeticExpression
+}
+
+case class Divides(left: Int, right: Expression) extends DivideExpression {
   def toModuloExpr: BinaryArithmeticExpression = equ(modulo(right, Constant(left.toString, IntType)), const(0))
 }
 
+case class NotDivides(left: Int, right: Expression) extends DivideExpression {
+  def toModuloExpr: BinaryArithmeticExpression = neq(modulo(right, Constant(left.toString, IntType)), const(0))
+}
+
 object ExpressionBuilder {
-  val one = Constant("1", IntType)
 
   def const(c: Int): Constant = Constant(c.toString, IntType)
 
   def plus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.+)
 
-  def plusOne(expr: Expression): BinaryArithmeticExpression = plus(expr, one)
+  def plusOne(expr: Expression): BinaryArithmeticExpression = plus(expr, oneConst)
 
   def neg(arg: Expression): UnaryArithmeticExpression = UnaryArithmeticExpression(arg, ArithmeticOperator.-, IntType)
 
@@ -182,6 +237,10 @@ object ExpressionBuilder {
   def or(left: Expression, right: Expression): BinaryBooleanExpression = BinaryBooleanExpression(left, right, BooleanOperator.||)
 
   def equ(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==)
+
+  def neq(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.!=)
+
+  def not(arg: Expression): NegatedBooleanExpression = NegatedBooleanExpression(arg)
 }
 
 object Main3 {
@@ -189,6 +248,6 @@ object Main3 {
     val a = VariableIdentifier("A")(IntType)
     val b = VariableIdentifier("B")(IntType)
     val c = VariableIdentifier("C")(IntType)
-    QuantifierElimination.eliminate(b, and(equ(a, mult(const(2), b)), and(leq(const(0), b), leq(b, c))))
+    QuantifierElimination.eliminate(b, and(equ(a, b), not(and(leq(const(0), b), leq(b, c)))))
   }
 }
