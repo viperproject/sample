@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.ast.Exp
 import viper.silver.{ast => sil}
@@ -163,7 +163,7 @@ object FractionalPermission {
     new FractionalPermission(numerator / divisor, denominator / divisor)
   }
   def apply(numerator: Expression, denominator: Expression): FractionalPermission = (numerator, denominator) match {
-    case (Constant(num, IntType, _), Constant(denom, IntType, _)) => FractionalPermission.createReduced(num.toInt, denom.toInt)
+    case (Constant(num, IntType | PermType, _), Constant(denom, IntType | PermType, _)) => FractionalPermission.createReduced(num.toInt, denom.toInt)
   }
 }
 
