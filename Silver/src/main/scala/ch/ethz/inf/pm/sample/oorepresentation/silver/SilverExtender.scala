@@ -7,178 +7,152 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult, EdgePosition}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPointUtils
-import viper.silver.cfg.{ConditionalEdge, LoopHeadBlock, StatementBlock}
+import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult}
 import viper.silver.{ast => sil}
 
 /**
-  * Silver Specification
+  * Silver specification.
   *
-  * @author Caterina Urban
+  * @tparam T The type of the specifications.
   * @author Jerome Dohrau
+  * @author Caterina Urban
   */
-trait SilverSpecification {
-  /** Modifies the list of formal arguments using information stored in the
-    * current state.
-    *
-    * @param existing The list of existing formal arguments.
-    * @return The modified list of formal arguments
-    */
-  def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = existing
-
+trait SilverSpecification[T] {
   /**
-    * Modifies the list of preconditions using information stored in the current
-    * state.
+    * Returns the inferred specifications.
     *
-    * @param existing The list of existing preconditions.
-    * @return The modified list of preconditions.
+    * @return The inferred specifications.
     */
-  def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
-
-  /**
-    * Modifies the list of invariants using information stored in the current
-    * state.
-    *
-    * @param existing The list of existing invariants.
-    * @return The modified list of invariants.
-    */
-  def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
-
-  /**
-    * Modifies the list of postconditions using information stored in the
-    * current state.
-    *
-    * @param existing The list of existing postconditions.
-    * @return The modified list of postconditions.
-    */
-  def postconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = existing
-
-  /**
-    * Modifies the list of fields of a new statement using information stored in
-    * the current state.
-    *
-    * @param existing The list of existing fields.
-    * @return The modified list of fields.
-    */
-  def fields(existing: Seq[sil.Field]): Seq[sil.Field] = existing
+  def specifications: T
 }
 
 /**
-  * Silver Program Extender
   *
-  * @author Caterina Urban
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
   * @author Jerome Dohrau
+  * @author Caterina Urban
   */
-trait SilverExtender[S <: State[S] with SilverSpecification] {
+trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
   /**
-    * Extends a sil.Program with inferred specifications.
-    **/
-  def extendProgram(prog: sil.Program, results: Map[SilverIdentifier, CfgResult[S]]): sil.Program = {
-    // map of method names to control flow graphs
-    //val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    // extending program methods
-    val extMethods = prog.methods.map(
-      method => results.get(SilverIdentifier(method.name)) match {
+    * Modifies the list of preconditions using the given specifications.
+    *
+    * @param existing       The list of existing preconditions.
+    * @param specifications The specifications.
+    * @return The modified list of preconditions.
+    */
+  def preconditions(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of postcondition using the given specifications.
+    *
+    * @param existing       The list of existing postconditions.
+    * @param specifications The specifications.
+    * @return The modified list of postconditions.
+    */
+  def postconditions(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of invariants using the given specifications.
+    *
+    * @param existing       The list of existing invariants.
+    * @param specifications The specifications.
+    * @return The modified list of postconditions.
+    */
+  def invariants(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of fields of a new statement using the given
+    * specification.
+    *
+    * @param existing      The existing list of fields.
+    * @param specification The specification.
+    * @return The modified list of fields.
+    */
+  def fields(existing: Seq[sil.Field], specification: T): Seq[sil.Field]
+
+  /**
+    * Extends the given program using the given results of the analysis.
+    *
+    * @param program    The program to extend.
+    * @param cfgResults The result of the analysis.
+    * @return The
+    */
+  def extendProgram(program: sil.Program, cfgResults: Map[SilverIdentifier, CfgResult[S]]): sil.Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      cfgResults.get(SilverIdentifier(method.name)) match {
         case Some(cfgResult) => extendMethod(method, cfgResult)
         case None => method
       }
-    )
-    // building the extended program
-    prog.copy(methods = extMethods)(prog.pos, prog.info)
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info)
   }
 
   /**
-    * Extends a sil.Method with inferred specifications.
-    **/
+    * Extends the given method using the given result of the analysis.
+    *
+    * @param method    The method to extend.
+    * @param cfgResult The result of the analysis.
+    * @return The extended program.
+    */
   def extendMethod(method: sil.Method, cfgResult: CfgResult[S]): sil.Method = {
-    // retrieve the result of the analysis at the method entry and exit
-    val entry = cfgResult.entryState()
-    val exit = cfgResult.exitState()
 
-    // update the formal arguments, precondition, postcondition and method body
-    val entryArgs = entry.formalArguments(method.formalArgs)
-    val exitArgs = exit.formalArguments(method.formalArgs)
-    val formalArguments = collectFormalArguments(method.body, exitArgs, cfgResult)
-    var precondition = entry.preconditions(method.pres)
-    val body = extendStmt(method.body, cfgResult)
-    val postcondition = exit.postconditions(method.posts)
+    val entrySpecifications = cfgResult.entryState().specifications
+    val exitSpecifications = cfgResult.exitState().specifications
 
-    // TODO: get rid of this hack
-    val paramExists = formalArguments.exists {
-      case sil.LocalVarDecl(name, _) => name == "read"
-      case _ => false
-    }
-    val condExists = precondition.exists {
-      case sil.PermGtCmp(_, _) => true
-      case _ => false
-    }
-    if (paramExists && !condExists) {
-      val read = sil.LocalVar("read")(sil.Perm)
-      val cond = Seq(sil.And(sil.PermGtCmp(read, sil.NoPerm()())(), sil.PermLtCmp(read, sil.FullPerm()())())())
-      precondition = cond ++ precondition
-    }
+    val extendedPreconditions = preconditions(method.pres, entrySpecifications)
+    val extendedPostconditions = postconditions(method.posts, exitSpecifications)
+    val extendedBody = extendStatement(method.body, cfgResult)
 
-    // return updated method
-    method.copy(formalArgs = formalArguments, _pres = precondition, _body = body, _posts = postcondition)(method.pos, method.info)
+    // TODO: Handle arguments.
+
+    // return extended method
+    method.copy(
+      _pres = extendedPreconditions,
+      _posts = extendedPostconditions
+    )(method.pos, method.info)
   }
 
   /**
-    * Extends a sil.Stmt with inferred specifications.
-    **/
-  def extendStmt(stmt: sil.Stmt, cfgResult: CfgResult[S]): sil.Stmt = stmt match {
-
-    case stmt: sil.Constraining =>
-      sil.Constraining(vars = stmt.vars, body = extendStmt(stmt.body, cfgResult))(stmt.pos, stmt.info)
-
-    case stmt: sil.If =>
-      val thn = extendStmt(stmt.thn, cfgResult)
-      val els = extendStmt(stmt.els, cfgResult)
-      sil.If(cond = stmt.cond, thn = thn, els = els)(stmt.pos, stmt.info)
-
-    case stmt: sil.NewStmt =>
-      // retrieve the result of the analysis at the new statement
-      // TODO: this and others
-      val position = getPosition(stmt, cfgResult)
-      val pre = cfgResult.preStateAt(position)
-      // update the new statement
-      val fields = pre.fields(stmt.fields)
-      sil.NewStmt(stmt.lhs, fields)(stmt.pos, stmt.info)
-
-    case stmt: sil.Seqn =>
-      val seq: Seq[sil.Stmt] = stmt.ss.foldRight(Seq[sil.Stmt]())(
-        (s: sil.Stmt, ss: Seq[sil.Stmt]) => ss.+:(extendStmt(s, cfgResult))
-      )
-      sil.Seqn(seq)(stmt.pos, stmt.info)
-
-    case loop: sil.While =>
-      // retrieve the result of the analysis at the loop head
+    * Extends the given statement using the given result of the analysis.
+    *
+    * @param statement The statement to extend.
+    * @param cfgResult The result of the analysis.
+    * @return The extended statement.
+    */
+  def extendStatement(statement: sil.Stmt, cfgResult: CfgResult[S]): sil.Stmt = statement match {
+    case sil.Seqn(originalStatements) =>
+      // recursively extend all statements of the sequence
+      val extendedStatements = originalStatements.map(statement => extendStatement(statement, cfgResult))
+      sil.Seqn(extendedStatements)(statement.pos, statement.info)
+    case sil.If(condition, originalThen, originalElse) =>
+      // recursively extend then and else branch of if statement
+      val extendedThen = extendStatement(originalThen, cfgResult)
+      val extendedElse = extendStatement(originalElse, cfgResult)
+      sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
+    case loop@sil.While(condition, originalInvariants, locals, originalBody) =>
+      // get specifications
       val position = getLoopPosition(loop, cfgResult)
-      val pre = cfgResult.preStateAt(position)
-      // update the method loop invariants
-      val invariants = pre.invariants(loop.invs)
-      sil.While(loop.cond, invs = invariants, loop.locals, body = extendStmt(loop.body, cfgResult))(loop.pos, loop.info)
-
-    case _ => stmt
+      val specifications = cfgResult.preStateAt(position).specifications
+      // extend while loop
+      val extendedInvariants = invariants(originalInvariants, specifications)
+      val extendedBody = extendStatement(originalBody, cfgResult)
+      sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
+    case sil.NewStmt(lhs, originalFields) =>
+      // get specifications
+      val position = getPosition(statement, cfgResult)
+      val specifications = cfgResult.preStateAt(position).specifications
+      // extend new statement
+      val extendedFields = fields(originalFields, specifications)
+      sil.NewStmt(lhs, extendedFields)(statement.pos, statement.info)
+    case sil.Constraining(vars, originalBody) =>
+      // recursively extend body of constraining statement
+      val extendedBody = extendStatement(originalBody, cfgResult)
+      sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
   }
-
-  def collectFormalArguments(stmt: sil.Stmt,
-                             args: Seq[sil.LocalVarDecl],
-                             cfgResult: CfgResult[S]): Seq[sil.LocalVarDecl] =
-    stmt match {
-      case stmt: sil.Seqn =>
-        stmt.ss.foldLeft(args) { case (currArgs, currStmt) =>
-          collectFormalArguments(currStmt, currArgs, cfgResult)
-        }
-      case loop: sil.While =>
-        // retrieve the block index and the statement index within the block of the loop head
-        val position = getLoopPosition(loop, cfgResult)
-        val pre: S = cfgResult.preStateAt(position)
-        //cfgResult.preStateAt(BlockPosition(position.block, 0))
-        val whileArgs = pre.formalArguments(args)
-        collectFormalArguments(loop.body, whileArgs, cfgResult)
-      case _ => args
-    }
 
   def getPosition(statement: sil.Stmt, cfgResult: CfgResult[S]): CfgPosition = {
     val cfg = cfgResult.cfg
@@ -193,4 +167,3 @@ trait SilverExtender[S <: State[S] with SilverSpecification] {
     BlockPosition(pos.edge.source, 0)
   }
 }
-

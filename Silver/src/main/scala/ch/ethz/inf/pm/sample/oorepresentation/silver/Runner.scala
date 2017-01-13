@@ -103,9 +103,11 @@ trait SilverAnalysisRunner[S <: State[S]]
 /** Specification Inference for Silver Programs.
   *
   * @author Caterina Urban
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
   */
-trait SilverInferenceRunner[S <: State[S] with SilverSpecification]
-  extends SilverAnalysisRunner[S] with SilverExtender[S] {
+trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
+  extends SilverAnalysisRunner[S] with SilverExtender[T, S] {
 
   /** Extends a Silver program whose name is passed as first argument with specifications inferred by the analysis. */
   def extend(args: Array[String]): sil.Program = {
