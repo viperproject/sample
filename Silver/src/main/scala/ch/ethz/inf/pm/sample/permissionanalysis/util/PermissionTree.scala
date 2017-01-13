@@ -110,6 +110,16 @@ case class PermissionTree(permission: Permission = Permission.none,
     }
   }
 
+  /**
+    * Removes the subtree corresponding to child with the given identifier.
+    *
+    * @param id The identifier of the child to remove.
+    * @return The permission tree with the subtree removed.
+    */
+  def remove(id: Identifier): PermissionTree = {
+    PermissionTree(permission, children - id)
+  }
+
   /** Extracts the subtree at the specified path and returns the remainder of
     * the tree as well as the extracted subtree.
     *

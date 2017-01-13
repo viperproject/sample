@@ -82,8 +82,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   // result of the previous statement
   def result: ExpressionSet
 
-  // permission trees for all variables
-  def permissions: Map[Identifier, PermissionTree]
+  // permission tree
+  def permissions: PermissionTree
 
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases[A](currentPP)
@@ -239,7 +239,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
-    copy(permissions = permissions - variable)
+    copy(permissions = permissions.remove(variable))
   }
 
   /** Assigns an expression to a variable.
@@ -428,7 +428,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def bottom(): T = {
     logger.trace("bottom")
     copy(result = result.bottom(),
-      permissions = Map.empty,
+      permissions = PermissionTree(),
       isBottom = true,
       isTop = false)
   }
@@ -443,20 +443,12 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is top or bottom
     val newBottom = isBottom && other.isBottom
     val newTop = isTop || other.isTop
-    // compute variable-wise widening of permission trees. that is, compute
-    // widening for all trees that are in this.permissions and other.permissions
-    // and also include trees that are either in this.permissions or
-    // other.permissions (but not both)
-    val newPermissions =
-    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-    else if (isBottom) other.permissions
-    else if (other.isBottom) permissions
-    else permissions.foldLeft(other.permissions) {
-      case (map, (id, tree)) => map.get(id) match {
-        case Some(existing) => map + (id -> (tree widening existing))
-        case None => map + (id -> tree)
-      }
-    }
+    // compute new permission tree
+    val newPermissions: PermissionTree =
+      if (newBottom || newTop) PermissionTree()
+      else if (isBottom) other.permissions
+      else if (other.isBottom) permissions
+      else permissions widening other.permissions
 
     // TODO: Propagate specifications
 
@@ -477,13 +469,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // handle cases involving bottom and top
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
-    // compute whether this needs less permissions than other
-    else permissions.forall {
-      case (id, tree) => other.permissions.get(id) match {
-        case Some(existing) => tree lessEqual existing
-        case None => tree lessEqual PermissionTree()
-      }
-    }
+    else permissions lessEqual other.permissions
   }
 
   /** Returns the top value of the lattice.
@@ -493,7 +479,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def top(): T = {
     logger.trace("top")
     copy(result = result.top(),
-      permissions = Map.empty,
+      permissions = PermissionTree(),
       isBottom = false,
       isTop = true)
   }
@@ -509,20 +495,12 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is top or bottom
     val newBottom = isBottom && other.isBottom
     val newTop = isTop || other.isTop
-    // compute variable-wise lub of permission trees. that is, compute lub for
-    // all trees that are in this.permissions and other.permissions and also
-    // include trees that are either in this.permissions or other.permissions
-    // (but not both)
+    // compute new permission tree
     val newPermissions =
-    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-    else if (isBottom) other.permissions
-    else if (other.isBottom) permissions
-    else permissions.foldLeft(other.permissions) {
-      case (map, (id, tree)) => map.get(id) match {
-        case Some(existing) => map + (id -> (tree lub existing))
-        case None => map + (id -> tree)
-      }
-    }
+      if (newBottom || newTop) PermissionTree()
+      else if (isBottom) other.permissions
+      else if (other.isBottom) permissions
+      else permissions lub other.permissions
     // create new state
     copy(
       isBottom = newBottom,
@@ -551,18 +529,13 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is bottom or top
     val newBottom = isBottom || other.isBottom
     val newTop = isTop && other.isTop
-    // compute variable-vise glb of permission trees. that is, compute glb for
-    // all trees that are in this.permissions and other.permissions
+    // compute new permission tree
     val newPermissions =
-    if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
-    else if (isTop) other.permissions
-    else if (other.isTop) permissions
-    else permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
-      case (map, (id, tree)) => other.permissions.get(id) match {
-        case Some(existing) => map + (id -> (tree glb existing))
-        case None => map
-      }
-    }
+      if (newBottom || newTop) PermissionTree()
+      else if (isTop) other.permissions
+      else if (other.isTop) permissions
+      else permissions glb other.permissions
+
     // TODO: propagate specifications
 
     // create new state
@@ -658,19 +631,11 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
       this
     else {
       // build permission tree for the wanted permission
-      val (variable :: first :: rest) = path
       val want = permission minus collect(path)
-      val subtree = rest.foldRight(PermissionTree(want)) {
+      val tree = path.foldRight(PermissionTree(want)) {
         case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
       }
-      val tree = PermissionTree(children = Map(first -> subtree))
-
-      // add new permission tree to permissions
-      val updated = permissions.get(variable) match {
-        case Some(existing) => existing lub tree
-        case None => tree
-      }
-      copy(permissions = permissions + (variable -> updated))
+      copy(permissions = permissions lub tree)
     }
   }
 
@@ -691,34 +656,16 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
   private def assign(left: AccessPath, right: AccessPath): T = {
     if (left.isEmpty || right.isEmpty) this
-    else {
-      // split lhs and rhs into pairs of receivers and fields
-      val (rcvL :: fldL) = left
-      val (rcvR :: fldR) = right
-
-      // get permission trees for lhs
-      val treeL = permissions.get(rcvL)
-
-      if (treeL.isEmpty) this // there are no access paths to modify
-      else if (rcvR.isInstanceOf[NewObject]) {
-        // extract permission that are needed for the new object
-        val (newL, extracted) = treeL.get.extract(fldL)
-        // update permissions
-        // TODO: Set specifications
-        copy(permissions = permissions + (rcvL -> newL))
-      } else if (rcvL == rcvR) {
-        // handle case where rcvL == rcvR
-        val (temp, extracted) = treeL.get.extract(fldL)
-        val newL = temp.implant(fldR, extracted)
-        copy(permissions = permissions + (rcvL -> newL))
-      } else {
-        // handle case where rcvL != rcvR
-        // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
-        val treeR = permissions.get(rcvR)
-        val (newL, extracted) = treeL.get.extract(fldL)
-        val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
-        copy(permissions = permissions + (rcvL -> newL, rcvR -> newR))
-      }
+    else if (right.head.isInstanceOf[NewObject]) {
+      // extract permission needed for the new object
+      val (newPermissions, extracted) = permissions.extract(left)
+      // TODO: Set specifications
+      // update state
+      copy(permissions = newPermissions)
+    } else {
+      val (temp, extracted) = permissions.extract(left)
+      val newPermissions = temp.implant(right, extracted)
+      copy(permissions = newPermissions)
     }
   }
 
@@ -762,22 +709,16 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @param f The function to be applied to all permissions.
     */
-  def map(f: (AccessPath, PermissionTree) => Permission): T = {
-    val newPermissions = permissions.map {
-      case (id, tree) => (id, tree.map(List(id), f))
-    }
-    copy(permissions = newPermissions)
-  }
+  def map(f: (AccessPath, PermissionTree) => Permission): T =
+    copy(permissions = permissions.map(Nil, f))
 
   def fold[R](z: R)(f: (R, (AccessPath, PermissionTree)) => R): R =
-    permissions.foldLeft(z) { case (res, (id, tree)) =>
-      tree.fold(res)(List(id), f)
-    }
+    permissions.fold(z)(Nil, f)
 
   def copy(currentPP: ProgramPoint = currentPP,
            fields: Set[(String, Type)] = fields,
            result: ExpressionSet = result,
-           permissions: Map[Identifier, PermissionTree] = permissions,
+           permissions: PermissionTree = permissions,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
@@ -801,17 +742,18 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 }
 
 object PermissionAnalysisState {
+
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
-                                           permissions: Map[Identifier, PermissionTree] = Map.empty,
+                                           permissions: PermissionTree = PermissionTree(),
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
     extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
     override def copy(currentPP: ProgramPoint,
                       fields: Set[(String, Type)],
                       result: ExpressionSet,
-                      permissions: Map[Identifier, PermissionTree],
+                      permissions: PermissionTree,
                       isBottom: Boolean,
                       isTop: Boolean): SimplePermissionAnalysisState =
       SimplePermissionAnalysisState(currentPP, fields, result, permissions, isBottom, isTop)
