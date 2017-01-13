@@ -25,6 +25,8 @@ object QuantifiedPermissionsParameters {
 
   val includeBranchConditions = true
 
+  val useQESimplifications = true
+
   type NumericalDomainType = Apron.Polyhedra
 
   type NumericalStateType = PolyhedraAnalysisState

@@ -21,13 +21,13 @@ object QuantifierElimination {
   def eliminate(variable: VariableIdentifier, expr: Expression): Expression = {
     println("original: " + expr)
     val formulaNNF = toNNF(expr)
-    println("NNF: " + formulaNNF)
+    println(s"F1[$variable] (NNF): " + formulaNNF)
     val tzEquivalentFormula = toTzEquivalentFormula(formulaNNF)
-    println("tzEquivalentFormula: " + tzEquivalentFormula)
+    println(s"F2[$variable] (tzEquivalentFormula): " + tzEquivalentFormula)
     val collected = collectVariable(variable, tzEquivalentFormula)
-    println("collected: " + collected)
+    println(s"F3[$variable] (collected): " + collected)
     val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
-    println("lcmReplaced: " + lcmReplaced)
+    println(s"F4[$variable] (lcmReplaced): " + lcmReplaced)
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println("RESULT: " + equivalentFormula)
     equivalentFormula
@@ -107,7 +107,8 @@ object QuantifierElimination {
     val leftProjection = leftInfiniteProjection(freshVariable, expr)
     val d = delta(freshVariable, expr)
     val B = getBs(freshVariable, expr)
-    simplifyExpression(removeSpecialExprs(((1 to d).map(j => leftProjection.transform {
+    println(s"F-∞[.] (left infinite projection): "+ leftProjection)
+    removeSpecialExprs(((1 to d).map(j => leftProjection.transform {
       case LessThanWithVariableRight(_, VariableIdentifierWithFactor(1, `freshVariable`)) |
            LessThanWithVariableLeft(VariableIdentifierWithFactor(1, `freshVariable`), _) => throw new IllegalStateException()
       case Divides(n, `freshVariable`) => Divides(n, const(j))
@@ -119,7 +120,10 @@ object QuantifierElimination {
       case Divides(n, `freshVariable`) => Divides(n, plus(b, const(j)))
       case NotDivides(n, `freshVariable`) => NotDivides(n, plus(b, const(j)))
       case other => other
-    }))).reduce(or)))
+    }))).reduce(or)) match {
+      case result if QuantifiedPermissionsParameters.useQESimplifications => simplifyExpression(result)
+      case result => result
+    }
   }
 
   private def delta(freshVariable: VariableIdentifier, expr: Expression): Int = {
