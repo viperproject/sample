@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
-import ch.ethz.inf.pm.sample.permissionanalysis.util.{Permission, PermissionTree}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
 import com.typesafe.scalalogging.LazyLogging
 
 /**

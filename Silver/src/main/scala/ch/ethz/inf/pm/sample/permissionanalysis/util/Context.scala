@@ -4,10 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package ch.ethz.inf.pm.sample.permissionanalysis
+package ch.ethz.inf.pm.sample.permissionanalysis.util
 
-import ch.ethz.inf.pm.sample.execution.{CfgResult, TrackingCFGState}
-import ch.ethz.inf.pm.sample.oorepresentation.{CfgLocation, ProgramPoint}
+import ch.ethz.inf.pm.sample.execution.CfgResult
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 
 /**
   * A context object for the permission inference that stores the result of the
