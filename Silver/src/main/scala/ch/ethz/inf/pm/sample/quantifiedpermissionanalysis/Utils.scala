@@ -186,6 +186,8 @@ object Utils {
     case BinaryBooleanExpression(`falseConst`, other, BooleanOperator.||) => other
     case BinaryBooleanExpression(other, `falseConst`, BooleanOperator.||) => other
     case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
+    case BinaryBooleanExpression(left, right, op) if left == right => left
+    case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => const(toComparisonOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => const(toArithmeticOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(`oneConst`, other, ArithmeticOperator.*) => other
