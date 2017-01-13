@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.{ast => sil}
 
 import scala.collection.Seq
@@ -106,13 +107,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case (Bottom, _) => other
     case (_, Bottom) => this
     case (_, _) =>
+      println("WARNING: performing non-trivial lub without condition")
       val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
         case (true, _) => permissions
         case (_, true) => other.permissions
         case (false, false) => permissions.lub(other.permissions)
       }
       val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets ++ other.refSets.transform {
-        case (key, expressionCollection) => if (refSets.contains(key)) refSets(key).lub(expressionCollection) else expressionCollection
+        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection)
       }
       copy(
         expr = expr lub other.expr,
@@ -125,16 +127,28 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   }
 
   def lub(falseState: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, falseState) match {
-    case (false, _, _) | (_, Bottom, _) | (_, _, Bottom) => lub(falseState)
-    case _ =>
+    case (false, _, _) => lub(falseState)
+    case (true, Bottom, _) => falseState
+    case (true, _, Bottom) => this
+    case (true, _, _) =>
+      val condSingle = cond.getSingle.get
       val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
         case (true, _) => permissions
         case (_, true) => falseState.permissions
-        case (false, false) => permissions.cond(cond.getSingle.get, falseState.permissions)
+        case (false, false) => permissions.lub(condSingle, falseState.permissions)
+      }
+      val condCNF = Utils.toCNFConjuncts(condSingle).filter {
+        case ReferenceComparisonExpression(`nullConst`, _, _) => true
+        case ReferenceComparisonExpression(_, `nullConst`, _) => true
+        case _ => false
+      }.map {
+        case ReferenceComparisonExpression(`nullConst`, right, op) => ReferenceComparisonExpression(right, nullConst, op)
+        case other => other
       }
       val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets ++ falseState.refSets.transform {
-        case (key, expressionCollection) => if (refSets.contains(key)) refSets(key).lub(expressionCollection) else expressionCollection
+        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection)
       }
+      println(newRefSets)
       copy(
         expr = expr lub falseState.expr,
         visited = visited ++ falseState.visited,

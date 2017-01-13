@@ -90,6 +90,8 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   def silverType: sil.Type = sil.Ref
 
+  def isNullProhibited: Boolean
+
   override def factory(): ReferenceSetDescription = top()
 
   def inner(pp: ProgramPoint, initExpression: Expression): ReferenceSetDescription.Inner
@@ -135,7 +137,9 @@ object ReferenceSetDescription {
 
     def concreteExpressions: Set[Expression]
 
-    def copy(widened: Boolean = widened, concreteExpressions: Set[Expression] = concreteExpressions): Inner
+    def copy(widened: Boolean = widened,
+             concreteExpressions: Set[Expression] = concreteExpressions,
+             isNullProhibited: Boolean = isNullProhibited): Inner
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
@@ -224,6 +228,7 @@ object ReferenceSetDescription {
                 .assume(expressionToAssume)
                 .removeVariables(state.changingVars ++ state.declaredBelowVars)
                 .getConstraints(Set(quantifiedVariableIdentifier))
+                .toSeq
                 .map(constraint => constraint.transform {
                   // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
                   case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
@@ -232,9 +237,8 @@ object ReferenceSetDescription {
                   case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>)
                   case other => other
                 })
-                .toSeq
                 .sorted (new Ordering[Expression] {
-                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10]
+                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10] which looks like an interval and thus more intuitive
                   override def compare(x: Expression, y: Expression): Int = (x, y) match {
                     case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
                     case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
@@ -277,7 +281,10 @@ object ReferenceSetDescription {
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
-        sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
+        sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)() match {
+          case contains if isNullProhibited => sil.And(contains, sil.NeCmp(Context.getSetFor(key).localVar, sil.NullLit()())())()
+          case contains => contains
+        }
     }
 
     override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
@@ -329,7 +336,7 @@ object ReferenceSetDescription {
           case None =>
         }
         fields.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
-          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.AnySetContains(quantifiedVariableForFields.localVar, set)(), exp)())()
+          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.And(sil.NeCmp(quantifiedVariableForFields.localVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFields.localVar, set)())(), exp)())()
           case None =>
         }
         conjuncts ++= functions
@@ -389,20 +396,27 @@ sealed trait NegativeReferenceSetDescription extends ReferenceSetDescription {
 
 object NegativeReferenceSetDescription {
 
-  case object Top extends ReferenceSetDescription.Top with NegativeReferenceSetDescription
+  case object Top extends ReferenceSetDescription.Top with NegativeReferenceSetDescription {
+    override def isNullProhibited = false
+  }
 
-  case object Bottom extends ReferenceSetDescription.Bottom with NegativeReferenceSetDescription
+  case object Bottom extends ReferenceSetDescription.Bottom with NegativeReferenceSetDescription {
+    override def isNullProhibited = true
+  }
 
   object Inner {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set(), isNullProhibited: Boolean = false)
       extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
     (initExpression))
 
-    override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
+    override def copy(widened: Boolean = widened,
+                      concreteExpressions: Set[Expression] = concreteExpressions,
+                      isNullProhibited: Boolean = isNullProhibited): Inner =
+      Inner(key, widened, concreteExpressions, isNullProhibited)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[NegativeReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -410,13 +424,15 @@ object NegativeReferenceSetDescription {
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
-        concreteExpressions = concreteExpressions & other.concreteExpressions
+        concreteExpressions = concreteExpressions & other.concreteExpressions,
+        isNullProhibited = isNullProhibited || other.isNullProhibited
       )
 
     override def glbInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions,
+        isNullProhibited = isNullProhibited && other.isNullProhibited
       )
 
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = glbInner(other).copy(widened = true)
@@ -438,20 +454,28 @@ sealed trait PositiveReferenceSetDescription extends ReferenceSetDescription {
 
 object PositiveReferenceSetDescription {
 
-  case object Top extends ReferenceSetDescription.Top with PositiveReferenceSetDescription
+  case object Top extends ReferenceSetDescription.Top with PositiveReferenceSetDescription {
+    override def isNullProhibited = true
+  }
 
-  case object Bottom extends ReferenceSetDescription.Bottom with PositiveReferenceSetDescription
+  case object Bottom extends ReferenceSetDescription.Bottom with PositiveReferenceSetDescription {
+    override def isNullProhibited = false
+  }
 
   object Inner {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set())
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set(), isNullProhibited: Boolean = false)
     extends ReferenceSetDescription.Inner with PositiveReferenceSetDescription {
+
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
     (initExpression))
 
-    override def copy(widened: Boolean, concreteExpressions: Set[Expression]): Inner = Inner(key, widened, concreteExpressions)
+    override def copy(widened: Boolean,
+                      concreteExpressions: Set[Expression],
+                      isNullProhibited: Boolean = isNullProhibited): Inner =
+      Inner(key, widened, concreteExpressions, isNullProhibited)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[PositiveReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -459,13 +483,15 @@ object PositiveReferenceSetDescription {
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions,
+        isNullProhibited = isNullProhibited && other.isNullProhibited
       )
 
     override def glbInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
-        concreteExpressions = concreteExpressions & other.concreteExpressions
+        concreteExpressions = concreteExpressions & other.concreteExpressions,
+        isNullProhibited = isNullProhibited || other.isNullProhibited
       )
 
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)
