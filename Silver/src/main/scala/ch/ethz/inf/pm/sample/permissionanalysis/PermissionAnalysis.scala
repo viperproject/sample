@@ -85,6 +85,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   // permission tree
   def permissions: PermissionTree
 
+  def inferred: PermissionTree
+
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases[A](currentPP)
 
@@ -429,6 +431,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     logger.trace("bottom")
     copy(result = result.bottom(),
       permissions = PermissionTree(),
+      inferred = PermissionTree(),
       isBottom = true,
       isTop = false)
   }
@@ -480,6 +483,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     logger.trace("top")
     copy(result = result.top(),
       permissions = PermissionTree(),
+      inferred = PermissionTree(),
       isBottom = false,
       isTop = true)
   }
@@ -550,7 +554,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @return The inferred specifications.
     */
-  override def specifications: PermissionTree = ???
+  override def specifications: PermissionTree = inferred
 
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR INFERENCE
@@ -659,9 +663,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     else if (right.head.isInstanceOf[NewObject]) {
       // extract permission needed for the new object
       val (newPermissions, extracted) = permissions.extract(left)
-      // TODO: Set specifications
-      // update state
-      copy(permissions = newPermissions)
+      copy(permissions = newPermissions, inferred = extracted)
     } else {
       val (temp, extracted) = permissions.extract(left)
       val newPermissions = temp.implant(right, extracted)
@@ -719,6 +721,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
            fields: Set[(String, Type)] = fields,
            result: ExpressionSet = result,
            permissions: PermissionTree = permissions,
+           inferred: PermissionTree = inferred,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
@@ -747,6 +750,7 @@ object PermissionAnalysisState {
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
                                            permissions: PermissionTree = PermissionTree(),
+                                           inferred: PermissionTree = PermissionTree(),
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
     extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
@@ -754,9 +758,10 @@ object PermissionAnalysisState {
                       fields: Set[(String, Type)],
                       result: ExpressionSet,
                       permissions: PermissionTree,
+                      inferred: PermissionTree,
                       isBottom: Boolean,
                       isTop: Boolean): SimplePermissionAnalysisState =
-      SimplePermissionAnalysisState(currentPP, fields, result, permissions, isBottom, isTop)
+      SimplePermissionAnalysisState(currentPP, fields, result, permissions, inferred, isBottom, isTop)
   }
 
 }
