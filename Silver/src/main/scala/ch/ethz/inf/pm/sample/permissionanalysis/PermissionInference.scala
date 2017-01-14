@@ -11,47 +11,51 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverInferenceRunner
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.util.PermissionTree
+import viper.silver.ast.{Exp, Field}
 import viper.silver.{ast => sil}
 
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverInferenceRunner[PermissionTree, T] {
   /**
-    * Modifies the list of preconditions using the given specifications.
+    * Modifies the list of preconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing preconditions.
-    * @param specifications The specifications.
+    * @param existing The list of existing preconditions.
+    * @param state    The state providing the specifications.
     * @return The modified list of preconditions.
     */
-  override def preconditions(existing: Seq[sil.Exp], specifications: PermissionTree): Seq[sil.Exp] = ???
+  override def preconditions(existing: Seq[Exp], state: T): Seq[Exp] = ???
 
   /**
-    * Modifies the list of postcondition using the given specifications.
+    * Modifies the list of postconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing postconditions.
-    * @param specifications The specifications.
+    * @param existing The list of existing postconditions.
+    * @param state    The state providing the specifications.
     * @return The modified list of postconditions.
     */
-  override def postconditions(existing: Seq[sil.Exp], specifications: PermissionTree): Seq[sil.Exp] = ???
+  override def postconditions(existing: Seq[Exp], state: T): Seq[Exp] = ???
 
   /**
-    * Modifies the list of invariants using the given specifications.
+    * Modifies the list of postconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing invariants.
-    * @param specifications The specifications.
+    * @param existing The list of existing invariants.
+    * @param state    The state providing the specifications.
     * @return The modified list of postconditions.
     */
-  override def invariants(existing: Seq[sil.Exp], specifications: PermissionTree): Seq[sil.Exp] = ???
+  override def invariants(existing: Seq[Exp], state: T): Seq[Exp] = ???
 
   /**
-    * Modifies the list of fields of a new statement using the given
-    * specification.
+    * Modifies the list of fields of a new statement using specifications
+    * provided by the given field.
     *
-    * @param existing      The existing list of fields.
-    * @param specification The specification.
+    * @param existing The existing list of fields.
+    * @param state    The state providing the specifications.
     * @return The modified list of fields.
     */
-  override def fields(existing: Seq[sil.Field], specification: PermissionTree): Seq[sil.Field] = ???
+  override def fields(existing: Seq[Field], state: T): Seq[Field] = ???
 }
 
 object PermissionInference
