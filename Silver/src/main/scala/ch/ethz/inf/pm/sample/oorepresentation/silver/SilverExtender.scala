@@ -35,41 +35,44 @@ trait SilverSpecification[T] {
   */
 trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
   /**
-    * Modifies the list of preconditions using the given specifications.
+    * Modifies the list of preconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing preconditions.
-    * @param specifications The specifications.
+    * @param existing The list of existing preconditions.
+    * @param state    The state providing the specifications.
     * @return The modified list of preconditions.
     */
-  def preconditions(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+  def preconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
 
   /**
-    * Modifies the list of postcondition using the given specifications.
+    * Modifies the list of postconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing postconditions.
-    * @param specifications The specifications.
+    * @param existing The list of existing postconditions.
+    * @param state    The state providing the specifications.
     * @return The modified list of postconditions.
     */
-  def postconditions(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+  def postconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
 
   /**
-    * Modifies the list of invariants using the given specifications.
+    * Modifies the list of postconditions using the specifications provided by
+    * the given state.
     *
-    * @param existing       The list of existing invariants.
-    * @param specifications The specifications.
+    * @param existing The list of existing invariants.
+    * @param state    The state providing the specifications.
     * @return The modified list of postconditions.
     */
-  def invariants(existing: Seq[sil.Exp], specifications: T): Seq[sil.Exp]
+  def invariants(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
 
   /**
-    * Modifies the list of fields of a new statement using the given
-    * specification.
+    * Modifies the list of fields of a new statement using specifications
+    * provided by the given field.
     *
-    * @param existing      The existing list of fields.
-    * @param specification The specification.
+    * @param existing The existing list of fields.
+    * @param state    The state providing the specifications.
     * @return The modified list of fields.
     */
-  def fields(existing: Seq[sil.Field], specification: T): Seq[sil.Field]
+  def fields(existing: Seq[sil.Field], state: S): Seq[sil.Field]
 
   /**
     * Extends the given program using the given results of the analysis.
@@ -100,11 +103,11 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     */
   def extendMethod(method: sil.Method, cfgResult: CfgResult[S]): sil.Method = {
 
-    val entrySpecifications = cfgResult.entryState().specifications
-    val exitSpecifications = cfgResult.exitState().specifications
+    val entryState = cfgResult.entryState()
+    val exitState = cfgResult.exitState()
 
-    val extendedPreconditions = preconditions(method.pres, entrySpecifications)
-    val extendedPostconditions = postconditions(method.posts, exitSpecifications)
+    val extendedPreconditions = preconditions(method.pres, entryState)
+    val extendedPostconditions = postconditions(method.posts, exitState)
     val extendedBody = extendStatement(method.body, cfgResult)
 
     // TODO: Handle arguments.
@@ -134,19 +137,19 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       val extendedElse = extendStatement(originalElse, cfgResult)
       sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
     case loop@sil.While(condition, originalInvariants, locals, originalBody) =>
-      // get specifications
+      // get state that holds the specifications
       val position = getLoopPosition(loop, cfgResult)
-      val specifications = cfgResult.preStateAt(position).specifications
+      val state = cfgResult.preStateAt(position)
       // extend while loop
-      val extendedInvariants = invariants(originalInvariants, specifications)
+      val extendedInvariants = invariants(originalInvariants, state)
       val extendedBody = extendStatement(originalBody, cfgResult)
       sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
     case sil.NewStmt(lhs, originalFields) =>
-      // get specifications
+      // get state that holds the specifications
       val position = getPosition(statement, cfgResult)
-      val specifications = cfgResult.preStateAt(position).specifications
+      val state = cfgResult.preStateAt(position)
       // extend new statement
-      val extendedFields = fields(originalFields, specifications)
+      val extendedFields = fields(originalFields, state)
       sil.NewStmt(lhs, extendedFields)(statement.pos, statement.info)
     case sil.Constraining(vars, originalBody) =>
       // recursively extend body of constraining statement
