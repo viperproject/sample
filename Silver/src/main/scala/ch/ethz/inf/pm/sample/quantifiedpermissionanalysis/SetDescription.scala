@@ -27,6 +27,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def transformAssignVariable(left: VariableIdentifier, right: Expression): S
 
+  def transformCondition(cond: Expression): S
+
   /**
     * Generates an expression that checks whether a given quantified variable is contained in the set represented by
     * this description.
@@ -100,6 +102,8 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
 
+  override def transformCondition(cond: Expression): ReferenceSetDescription = this
+
   def isEquivalentDescription(other: ReferenceSetDescription): Boolean
 }
 
@@ -135,11 +139,12 @@ object ReferenceSetDescription {
 
     def widened: Boolean
 
-    def concreteExpressions: Set[Expression]
+    def concreteExpressions: Set[(Expression, Boolean)]
 
     def copy(widened: Boolean = widened,
-             concreteExpressions: Set[Expression] = concreteExpressions,
-             isNullProhibited: Boolean = isNullProhibited): Inner
+             concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner
+
+    override def isNullProhibited: Boolean = concreteExpressions.forall { case (_, b) => b }
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
@@ -193,9 +198,9 @@ object ReferenceSetDescription {
     private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[Expression] = setDescription match {
       case inner: Inner =>
         inner.concreteExpressions.flatMap {
-          case FunctionCallExpression(functionName, parameters, typ, _) =>
+          case (FunctionCallExpression(functionName, parameters, typ, _), _) =>
             expandFunction(state, parameters.map(param => (param.typ, pp, param))).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
-          case other => Set(other)
+          case (other, _) => Set(other)
         }
       case _ => throw new IllegalArgumentException()
     }
@@ -217,7 +222,7 @@ object ReferenceSetDescription {
 
     override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       concreteExpressions.foldLeft[Option[sil.Exp]](None) {
-        case (None, FunctionCallExpression(_, parameters, _, _)) =>
+        case (None, (FunctionCallExpression(_, parameters, _, _), _)) =>
           parameters.foldLeft[Option[sil.Exp]](None) {
             case (None, e) if e.typ == IntType =>
               val numericalInfo = Context.postNumericalInfo(pp).numDom
@@ -282,7 +287,7 @@ object ReferenceSetDescription {
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)() match {
-          case contains if isNullProhibited => sil.And(contains, sil.NeCmp(Context.getSetFor(key).localVar, sil.NullLit()())())()
+          case contains if isNullProhibited => sil.And(contains, sil.NeCmp(quantifiedVariable, sil.NullLit()())())()
           case contains => contains
         }
     }
@@ -363,17 +368,41 @@ object ReferenceSetDescription {
     }
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => transformFieldAssignRecursively(field, receiver, right, expr))
+      val newConcreteExpressions = concreteExpressions.map { case (expr, b) => (transformFieldAssignRecursively(field, receiver, right, expr), b) }
       copy(concreteExpressions = newConcreteExpressions)
     }
 
     override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = {
-      val newConcreteExpressions = concreteExpressions.map(expr => transformVariableAssignRecursively(left, right, expr))
+      val newConcreteExpressions = concreteExpressions.map { case (expr, b) => (transformVariableAssignRecursively(left, right, expr), b) }
+      copy(concreteExpressions = newConcreteExpressions)
+    }
+
+    override def transformCondition(cond: Expression): ReferenceSetDescription = {
+      val condCNF = Utils.toCNFConjuncts(cond).filter {
+        case ReferenceComparisonExpression(Constant("null", _, _), _, _) => true
+        case ReferenceComparisonExpression(_, Constant("null", _, _), _) => true
+        case _ => false
+      }.map {
+        case ReferenceComparisonExpression(n@Constant("null", _, _), right, op) => ReferenceComparisonExpression(right, n, op)
+        case other => other
+      }
+      val newConcreteExpressions: Set[(Expression, Boolean)] = concreteExpressions.map {
+        case (expr, b) if !b =>
+          if (condCNF.exists {
+            case ReferenceComparisonExpression(`expr`, Constant("null", _, _), ReferenceOperator.!=) => true
+            case _ => false
+          }) (expr, true)
+          else (expr, b)
+        case other => other
+      }
+      println(cond)
+      println(condCNF)
+      println(newConcreteExpressions)
       copy(concreteExpressions = newConcreteExpressions)
     }
 
     final def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
-      concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression))
+      concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression._1))
     }
 
     private def extractRules(expr: Expression): Set[ReferenceSetElementDescriptor] = expr match {
@@ -408,15 +437,13 @@ object NegativeReferenceSetDescription {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set(), isNullProhibited: Boolean = false)
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
       extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
-    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
-    (initExpression))
+    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
 
     override def copy(widened: Boolean = widened,
-                      concreteExpressions: Set[Expression] = concreteExpressions,
-                      isNullProhibited: Boolean = isNullProhibited): Inner =
-      Inner(key, widened, concreteExpressions, isNullProhibited)
+                      concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
+      Inner(key, widened, concreteExpressions)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[NegativeReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -424,15 +451,13 @@ object NegativeReferenceSetDescription {
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
-        concreteExpressions = concreteExpressions & other.concreteExpressions,
-        isNullProhibited = isNullProhibited || other.isNullProhibited
+        concreteExpressions = concreteExpressions & other.concreteExpressions
       )
 
     override def glbInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions,
-        isNullProhibited = isNullProhibited && other.isNullProhibited
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions
       )
 
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = glbInner(other).copy(widened = true)
@@ -466,16 +491,14 @@ object PositiveReferenceSetDescription {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[Expression] = Set(), isNullProhibited: Boolean = false)
+  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
     extends ReferenceSetDescription.Inner with PositiveReferenceSetDescription {
 
-    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set
-    (initExpression))
+    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
 
     override def copy(widened: Boolean,
-                      concreteExpressions: Set[Expression],
-                      isNullProhibited: Boolean = isNullProhibited): Inner =
-      Inner(key, widened, concreteExpressions, isNullProhibited)
+                      concreteExpressions: Set[(Expression, Boolean)]): Inner =
+      Inner(key, widened, concreteExpressions)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[PositiveReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -483,15 +506,13 @@ object PositiveReferenceSetDescription {
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions,
-        isNullProhibited = isNullProhibited && other.isNullProhibited
+        concreteExpressions = concreteExpressions ++ other.concreteExpressions
       )
 
     override def glbInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened && other.widened,
-        concreteExpressions = concreteExpressions & other.concreteExpressions,
-        isNullProhibited = isNullProhibited || other.isNullProhibited
+        concreteExpressions = concreteExpressions & other.concreteExpressions
       )
 
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)

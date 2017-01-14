@@ -232,8 +232,6 @@ object Utils {
 
   val falseConst = Constant("false", BoolType)
 
-  val nullConst = Constant("null", RefType())
-
   object ExpressionBuilder {
 
     def const(c: Int): Constant = Constant(c.toString, IntType)

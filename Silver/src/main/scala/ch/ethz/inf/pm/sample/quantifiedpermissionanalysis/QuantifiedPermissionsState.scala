@@ -107,7 +107,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case (Bottom, _) => other
     case (_, Bottom) => this
     case (_, _) =>
-      println("WARNING: performing non-trivial lub without condition")
       val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
         case (true, _) => permissions
         case (_, true) => other.permissions
@@ -127,7 +126,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
   }
 
   def lub(falseState: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, falseState) match {
-    case (false, _, _) => lub(falseState)
+    case (false, _, _) => throw new IllegalArgumentException()
     case (true, Bottom, _) => falseState
     case (true, _, Bottom) => this
     case (true, _, _) =>
@@ -137,18 +136,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case (_, true) => falseState.permissions
         case (false, false) => permissions.lub(condSingle, falseState.permissions)
       }
-      val condCNF = Utils.toCNFConjuncts(condSingle).filter {
-        case ReferenceComparisonExpression(`nullConst`, _, _) => true
-        case ReferenceComparisonExpression(_, `nullConst`, _) => true
-        case _ => false
-      }.map {
-        case ReferenceComparisonExpression(`nullConst`, right, op) => ReferenceComparisonExpression(right, nullConst, op)
-        case other => other
+      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(condSingle) } ++ falseState.refSets.transform {
+        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(NegatedBooleanExpression(condSingle)))
       }
-      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets ++ falseState.refSets.transform {
-        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection)
-      }
-      println(newRefSets)
       copy(
         expr = expr lub falseState.expr,
         visited = visited ++ falseState.visited,
@@ -432,15 +422,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
         val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
         concreteExpressions.forall {
-          case FunctionCallExpression(functionName, parameters, _, _) =>
+          case (FunctionCallExpression(functionName, parameters, _, _), _) =>
             functionName == elem.functionName && parameters.zip(elem.parameters).forall {
               case (left, right) => left.typ != IntType || left.equals(right)
             }
+          case _ => throw new IllegalStateException()
         }
       }) {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
         val quantifiedVariable = quantifiedVariableDecl.localVar
-        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head.transform {
+        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head._1.transform {
           case e: Expression if e.typ == IntType => VariableIdentifier(quantifiedVariable.name)(IntType)
           case other => other
         }
@@ -488,15 +479,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
         val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
         concreteExpressions.forall {
-          case FunctionCallExpression(functionName, parameters, _, _) =>
+          case (FunctionCallExpression(functionName, parameters, _, _), _) =>
             functionName == elem.functionName && parameters.zip(elem.parameters).forall {
               case (left, right) => left.typ != IntType || left.equals(right)
             }
+          case _ => throw new IllegalStateException()
         }
       }) {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
         val quantifiedVariable = quantifiedVariableDecl.localVar
-        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head.transform {
+        val fieldAccessReceiver = permissionTree.getSetDescriptions(refSets).head.concreteExpressions.head._1.transform {
           case e: Expression if e.typ == IntType => VariableIdentifier(quantifiedVariable.name)(IntType)
           case other => other
         }
