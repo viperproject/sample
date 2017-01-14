@@ -115,7 +115,8 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     // return extended method
     method.copy(
       _pres = extendedPreconditions,
-      _posts = extendedPostconditions
+      _posts = extendedPostconditions,
+      _body = extendedBody
     )(method.pos, method.info)
   }
 
@@ -155,6 +156,9 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       // recursively extend body of constraining statement
       val extendedBody = extendStatement(originalBody, cfgResult)
       sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
+    case _ =>
+      // do nothing
+      statement
   }
 
   def getPosition(statement: sil.Stmt, cfgResult: CfgResult[S]): CfgPosition = {
