@@ -38,7 +38,7 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
     */
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
 
-  def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
+  def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
 
   def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
@@ -60,7 +60,7 @@ object SetDescription {
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
 
-    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
+    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
     override def isOneElement = false
 
@@ -76,7 +76,7 @@ object SetDescription {
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
 
-    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
+    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
     override def isOneElement = throw new UnsupportedOperationException()
 
@@ -148,23 +148,12 @@ object ReferenceSetDescription {
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
-    private def pp: ProgramPoint = key._1
+    protected def pp: ProgramPoint = key._1
 
     private def isFunctionExprFinite(function: Function, expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = function match {
       case Function(_, _, _, parameters) => parameters.forall {
-        case (_: RefType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-        case (_: DomType, _, expr) => expressions((pp, expr)).isFinite(expressions)
-        case (IntType, _, expr) => isIntegerExprFinite(expr, Context.postNumericalInfo(pp).numDom)
-      }
-    }
-
-    private def isIntegerExprFinite(expr: Expression, numericalInfo: Context.NumericalDomainType): Boolean = {
-      val quantifiedVar = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
-      val tempNum = numericalInfo.createVariable(quantifiedVar).assume(BinaryArithmeticExpression(quantifiedVar, expr, ArithmeticOperator.==))
-      tempNum.getPossibleConstants(quantifiedVar) match {
-        case set if set.isBottom => false
-        case set if set.isTop => false
-        case _ => true
+        case ((_: RefType) | (_: DomType), _, expr) => expressions((pp, expr)).isFinite(expressions)
+        case (IntType, _, _) => false
       }
     }
 
@@ -220,19 +209,13 @@ object ReferenceSetDescription {
       })
     }
 
-    override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
+    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       concreteExpressions.foldLeft[Option[sil.Exp]](None) {
         case (None, (FunctionCallExpression(_, parameters, _, _), _)) =>
           parameters.foldLeft[Option[sil.Exp]](None) {
             case (None, e) if e.typ == IntType =>
-              val numericalInfo = Context.postNumericalInfo(pp).numDom
               val quantifiedVariableIdentifier = VariableIdentifier(quantifiedVariable.name)(IntType)
-              val expressionToAssume = BinaryArithmeticExpression(quantifiedVariableIdentifier, e, ArithmeticOperator.==)
-              numericalInfo
-                .createVariable(quantifiedVariableIdentifier)
-                .assume(expressionToAssume)
-                .removeVariables(state.changingVars ++ state.declaredBelowVars)
-                .getConstraints(Set(quantifiedVariableIdentifier))
+              Utils.toCNFConjuncts(forget(quantifiedVariableIdentifier, e))
                 .toSeq
                 .map(constraint => constraint.transform {
                   // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
@@ -259,10 +242,10 @@ object ReferenceSetDescription {
             case (Some(_), e) if e.typ == IntType => throw new IllegalStateException("Encountered two or more int arguments")
             case _ => None
           }
-        case _ => throw new IllegalStateException()
+        case _ => throw new IllegalStateException("Encountered a concrete expression that is no function call! Integer quantification can only be applied for functions.")
       } match {
         case Some(exp) => exp
-        case _ => throw new IllegalStateException()
+        case _ => throw new IllegalStateException("Integer quantification can only be applied if there is at least one int argument!")
       }
     }
 
@@ -288,6 +271,8 @@ object ReferenceSetDescription {
       else
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
+
+    def forget(variable: VariableIdentifier, exprToForget: Expression): Expression
 
     override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
@@ -315,7 +300,6 @@ object ReferenceSetDescription {
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
             var impliesLeftConjuncts: Seq[sil.Exp] = Seq()
-            val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
             function.formalArgs.zip(argKeys).foreach { case (formalArg, (_, _, argExpr)) =>
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
@@ -325,14 +309,7 @@ object ReferenceSetDescription {
                   // TODO: do we want to include this restriction? Consequence: Not necessarily sound anymore!
                   //              if (formalArg.typ.equals(sil.Ref))
                   //                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
-                case sil.Int =>
-                  val variableIdentifier = VariableIdentifier(arg.name)(IntType)
-                  val expressionToAssume = BinaryArithmeticExpression(variableIdentifier, argExpr, ArithmeticOperator.==)
-                  val tempNumericalInfo = numericalInfo.createVariable(variableIdentifier).assume(expressionToAssume).removeVariables(state.changingVars ++ state.declaredBelowVars)
-                  tempNumericalInfo.getConstraints(Set(variableIdentifier)).map(expr => DefaultSampleConverter.convert(expr)).reduceOption((left, right) => sil.And(left, right)()) match {
-                    case Some(exp) => impliesLeftConjuncts :+= exp
-                    case None =>
-                  }
+                case sil.Int => DefaultSampleConverter.convert(forget(VariableIdentifier(arg.name)(IntType), argExpr))
                 case _ => throw new IllegalStateException()
               }
             }
@@ -403,9 +380,6 @@ object ReferenceSetDescription {
           else (expr, b)
         case other => other
       }
-      println(cond)
-      println(condCNF)
-      println(newConcreteExpressions)
       copy(concreteExpressions = newConcreteExpressions)
     }
 
@@ -473,6 +447,13 @@ object NegativeReferenceSetDescription {
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       other.abstractExpressions.subsetOf(abstractExpressions) &&
         ((widened && other.widened) || other.concreteExpressions.subsetOf(concreteExpressions))
+
+    override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
+      val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
+      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
+      val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+      QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
+    }
   }
 }
 
@@ -528,5 +509,12 @@ object PositiveReferenceSetDescription {
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       abstractExpressions.subsetOf(other.abstractExpressions) &&
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
+
+    override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
+      val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
+      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
+      val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+      QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
+    }
   }
 }

@@ -18,6 +18,12 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
   */
 object QuantifierElimination {
 
+  def eliminate(variable: VariableIdentifier, conjuncts: Set[Expression]): Set[Expression] = toCNFConjuncts(eliminate(Set(variable), conjuncts.reduce(and)))
+
+  def eliminate(variables: Set[VariableIdentifier], conjuncts: Set[Expression]): Set[Expression] = toCNFConjuncts(eliminate(variables, conjuncts.reduce(and)))
+
+  def eliminate(variables: Set[VariableIdentifier], expr: Expression): Expression = variables.foldLeft(expr)((expr, variable) => eliminate(variable, expr))
+
   def eliminate(variable: VariableIdentifier, expr: Expression): Expression = {
     println("original: " + expr)
     val formulaNNF = toNNF(expr)
@@ -66,10 +72,12 @@ object QuantifierElimination {
         case (ConstPlaceholder, value) => const(value)
       }
       val varFactor = collectedVariables.getOrElse(variable, 0)
-      if (varFactor >= 0)
+      if (varFactor > 0)
         LessThanWithVariableLeft(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus))
-      else
+      else if (varFactor < 0)
         LessThanWithVariableRight((collectedVariables - variable).map(mapping).reduce(plus), VariableIdentifierWithFactor(-varFactor, variable))
+      else
+        expr
   }
 
   // Step 4
@@ -81,7 +89,7 @@ object QuantifierElimination {
       case LessThanWithVariableRight(_, VariableIdentifierWithFactor(factor, `variable`)) => numbers += factor.abs
       case _ =>
     }
-    val leastCommonMultiple = lcm(numbers)
+    val leastCommonMultiple = if (numbers.isEmpty) 1 else lcm(numbers)
     val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
       case VariableIdentifierWithFactor(h, variableIdentifier) => VariableIdentifierWithFactor(h * hPrime, variableIdentifier)
       case Constant(const, IntType, pp) => Constant((const.toInt * hPrime).toString, IntType, pp)
@@ -139,7 +147,6 @@ object QuantifierElimination {
     var bs: Set[Expression] = Set()
     expr.foreach {
       case LessThanWithVariableRight(left, VariableIdentifierWithFactor(1, `freshVariable`)) => bs += left
-      case LessThanWithVariableRight(VariableIdentifierWithFactor(1, `freshVariable`), right) => bs += right
       case _ =>
     }
     bs
@@ -167,7 +174,11 @@ case class VariableIdentifierWithFactor(factor: Int, variableIdentifier: Variabl
   override def transform(f: (Expression) => Expression): Expression = f(this)
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || f(variableIdentifier)
   def toMultExpression: BinaryArithmeticExpression = mult(const(factor), variableIdentifier)
-  override def toString: String = toMultExpression.toString
+  override def toString: String = factor match {
+    case 1 => variableIdentifier.toString
+    case -1 => variableIdentifier.toString
+    case _ => toMultExpression.toString
+  }
 }
 
 sealed trait LessThan extends BinaryExpression {
@@ -214,6 +225,9 @@ object Main3 {
     val a = VariableIdentifier("A")(IntType)
     val b = VariableIdentifier("B")(IntType)
     val c = VariableIdentifier("C")(IntType)
-    QuantifierElimination.eliminate(b, and(equ(a, b), not(and(leq(const(0), b), leq(b, c)))))
+    val d = VariableIdentifier("D")(IntType)
+    //    QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
+    val elim = QuantifierElimination.eliminate(Set(a), not(and(neq(b, a), and(leq(const(0), a), leq(a, const(10))))))
+    println(toNNF(NegatedBooleanExpression(elim)))
   }
 }

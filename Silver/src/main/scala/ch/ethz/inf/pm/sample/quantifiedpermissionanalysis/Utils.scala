@@ -92,13 +92,13 @@ object Utils {
     case transformed => toCNF(transformed)
   }
 
-  private def flattenCNF(expr: Expression): Set[Expression] = expr match {
+  def splitToConjuncts(expr: Expression): Set[Expression] = expr match {
     case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
-      flattenCNF(left) ++ flattenCNF(right)
+      splitToConjuncts(left) ++ splitToConjuncts(right)
     case cnfExpr => Set(cnfExpr)
   }
 
-  def toCNFConjuncts(expr: Expression): Set[Expression] = flattenCNF(toCNF(expr))
+  def toCNFConjuncts(expr: Expression): Set[Expression] = splitToConjuncts(toCNF(expr))
 
   def collect(expr: Expression): Map[Any, Int] = expr match {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.+) => binOp(collect(left), collect(right), _ + _)

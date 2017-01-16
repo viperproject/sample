@@ -161,11 +161,9 @@ object Context {
   }
 
   def getBoundaryFunction: sil.Function = boundaryFunction match {
-    case Some(existingMaxFunction) => existingMaxFunction
+    case Some(existingBoundaryFunction) => existingBoundaryFunction
     case None =>
-      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(),
-        Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)())
-      )()
+      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(), Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)()))()
       boundaryFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))
       fun

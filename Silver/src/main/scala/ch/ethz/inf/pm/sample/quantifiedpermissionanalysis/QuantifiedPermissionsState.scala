@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.{ast => sil}
 
 import scala.collection.Seq
@@ -420,7 +419,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     permissions.foreach { case (fieldName, permissionTree) =>
       if (permissionTree.canBeExpressedByIntegerQuantification(refSets) && {
         val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
-        val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
+        val elem: FunctionCallExpression = concreteExpressions.head._1.asInstanceOf[FunctionCallExpression]
         concreteExpressions.forall {
           case (FunctionCallExpression(functionName, parameters, _, _), _) =>
             functionName == elem.functionName && parameters.zip(elem.parameters).forall {
@@ -477,7 +476,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     permissions.foreach { case (fieldName, permissionTree) =>
       if (permissionTree.canBeExpressedByIntegerQuantification(refSets) && {
         val concreteExpressions = permissionTree.getSetDescriptions(refSets).flatMap(set => set.concreteExpressions)
-        val elem: FunctionCallExpression = concreteExpressions.head.asInstanceOf[FunctionCallExpression]
+        val elem: FunctionCallExpression = concreteExpressions.head._1.asInstanceOf[FunctionCallExpression]
         concreteExpressions.forall {
           case (FunctionCallExpression(functionName, parameters, _, _), _) =>
             functionName == elem.functionName && parameters.zip(elem.parameters).forall {
