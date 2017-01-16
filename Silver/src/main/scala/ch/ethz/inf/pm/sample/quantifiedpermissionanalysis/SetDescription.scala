@@ -286,10 +286,7 @@ object ReferenceSetDescription {
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
-        sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)() match {
-          case contains if isNullProhibited => sil.And(contains, sil.NeCmp(quantifiedVariable, sil.NullLit()())())()
-          case contains => contains
-        }
+        sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
     override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
@@ -297,14 +294,23 @@ object ReferenceSetDescription {
       val set = Context.getSetFor(key).localVar
       if (isFinite(expressions) || canBeExpressedByIntegerQuantification(expressions)) null
       else {
-        var roots: Set[sil.AnySetContains] = Set()
-        var fields: Set[sil.AnySetContains] = Set()
+        var roots: Set[sil.Exp] = Set()
+        var fields: Set[sil.Exp] = Set()
         var functions: Set[sil.Exp] = Set()
         val quantifiedVariableForFields = Context.getQuantifiedVarDecl(silverType)
         abstractExpressions.foreach {
-          case RootElement(root) => roots += sil.AnySetContains(DefaultSampleConverter.convert(root), set)()
+          case RootElement(root) =>
+            val silRoot = DefaultSampleConverter.convert(root)
+            roots += (sil.AnySetContains(silRoot, set)() match {
+              case contains if isNullProhibited => sil.Implies(sil.NeCmp(silRoot, sil.NullLit()())(), contains)()
+              case contains => contains
+            })
           case AddField(field) =>
-            fields += sil.AnySetContains(sil.FieldAccess(quantifiedVariableForFields.localVar, sil.Field(field, sil.Ref)())(), set)()
+            val fieldAccess = sil.FieldAccess(quantifiedVariableForFields.localVar, sil.Field(field, sil.Ref)())()
+            fields += (sil.AnySetContains(fieldAccess, set)() match {
+              case contains if isNullProhibited => sil.Implies(sil.NeCmp(fieldAccess, sil.NullLit()())(), contains)()
+              case contains => contains
+            })
           case Function(functionName, _, _, argKeys) =>
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
@@ -332,6 +338,8 @@ object ReferenceSetDescription {
             }
             val funcApp = sil.FuncLikeApp(function, args.map(arg => arg.localVar), Map())
             val setContains = sil.AnySetContains(funcApp, set)()
+            if (isNullProhibited)
+              impliesLeftConjuncts :+= sil.NeCmp(funcApp, sil.NullLit()())()
             val implies = sil.Implies(impliesLeftConjuncts.reduce((left, right) => sil.And(left, right)()), setContains)()
             functions += sil.Forall(args, Seq(), implies)()
         }
@@ -341,7 +349,7 @@ object ReferenceSetDescription {
           case None =>
         }
         fields.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
-          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.And(sil.NeCmp(quantifiedVariableForFields.localVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFields.localVar, set)())(), exp)())()
+          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.AnySetContains(quantifiedVariableForFields.localVar, set)(), exp)())()
           case None =>
         }
         conjuncts ++= functions
