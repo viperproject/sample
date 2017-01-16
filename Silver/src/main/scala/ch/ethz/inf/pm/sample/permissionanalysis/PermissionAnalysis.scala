@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
@@ -103,6 +104,37 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     }.filter {
       case (path, permission) => path.length > 1 && permission.isSome
     }
+
+
+  /**
+    * Processes the given precondition.
+    *
+    * @param expression The expression representing the precondition.
+    * @return The state after processing the given precondition.
+    */
+  override def precondition(expression: Expression): T =
+    inhale(expression).saveSpecifications()
+
+  /**
+    * Processes the given postcondition.
+    *
+    * @param expression The expression representing the postcondition.
+    * @return The state after processing the postcondition.
+    */
+  override def postcondition(expression: Expression): T =
+    exhale(expression).saveSpecifications()
+
+
+  /**
+    * Processes the given invariant.
+    *
+    * @param expression The expression representing the invariant.
+    * @return The state after processing the invariant.
+    */
+  override def invariant(expression: Expression): T = {
+    val exhaled = exhale(expression)
+    setSpecifications(exhaled.permissions)
+  }
 
   /** Exhales permissions.
     *
@@ -559,6 +591,12 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR INFERENCE
    */
+
+  private def saveSpecifications(): T =
+    copy(inferred = permissions)
+
+  private def setSpecifications(specifications: PermissionTree): T =
+    copy(inferred = specifications)
 
   /** Extracts the path from an expression.
     *
