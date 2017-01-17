@@ -41,12 +41,12 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     extendSpecifications(existing, state)
 
   /**
-    * Modifies the list of postconditions using the specifications provided by
+    * Modifies the list of invariants using the specifications provided by
     * the given state.
     *
     * @param existing The list of existing invariants.
     * @param state    The state providing the specifications.
-    * @return The modified list of postconditions.
+    * @return The modified list of invariants.
     */
   override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
     extendSpecifications(existing, state)
