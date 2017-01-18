@@ -753,10 +753,10 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @param f The function to be applied to all permissions.
     */
   def map(f: (AccessPath, PermissionTree) => Permission): T =
-    copy(permissions = permissions.map(Nil)(f))
+    copy(permissions = permissions.map()(f))
 
   def fold[R](z: R)(f: (R, (AccessPath, PermissionTree)) => R): R =
-    permissions.fold(z, Nil)(f)
+    permissions.fold(z)(f)
 
   def copy(currentPP: ProgramPoint = currentPP,
            fields: Set[(String, Type)] = fields,

@@ -7,17 +7,52 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.SilverAnalysis
+import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverInferenceRunner
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Permission, PermissionTree}
+import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverInferenceRunner[PermissionTree, T] {
+  /**
+    * The flag indicating whether there is a read permission mentioned in the
+    * specifications.
+    */
+  private var read: Boolean = false
+
+  /**
+    * Extends the given method using the given result of the analysis.
+    *
+    * @param method    The method to extend.
+    * @param cfgResult The result of the analysis.
+    * @return The extended program.
+    */
+  override def extendMethod(method: Method, cfgResult: CfgResult[T]): Method = {
+    // reset read flag and extend method
+    read = false
+    val extended = super.extendMethod(method, cfgResult)
+
+    if (read) {
+      // add read permission to arguments
+      val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
+      val arguments = (extended.formalArgs ++ argument).distinct
+      // add constraint for read permission to precondition
+      val variable = sil.LocalVar("read")(sil.Perm)
+      val condition = Seq(sil.And(sil.PermGtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
+      val preconditions = condition ++ extended.pres
+      // update method
+      extended.copy(
+        _pres = preconditions,
+        formalArgs = arguments
+      )(extended.pos, extended.info)
+    } else extended
+  }
+
   /**
     * Modifies the list of preconditions using the specifications provided by
     * the given state.
@@ -86,6 +121,15 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     val inferredSpecifications = state.specifications
     val (existingSpecifications, unknown) = extractSpecifications(existing, state)
     val specifications = inferredSpecifications plus existingSpecifications
+
+    read = read || specifications.fold(false) {
+      case (result, (_, tree)) =>
+        result || (tree.permission match {
+          case Fractional(_, _, read) => read > 0
+          case _ => false
+        })
+    }
+
     createSilverSpecifications(specifications, state) ++ unknown
   }
 
@@ -151,7 +195,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A list of Silver specifications.
     */
   private def createSilverSpecifications(specifications: PermissionTree, state: T): Seq[sil.Exp] = {
-    val framed = specifications.map(Nil) { case (_, tree) =>
+    val framed = specifications.map() { case (_, tree) =>
       val permission = tree.permission
       if (permission.isSome || tree.isEmpty) permission
       else Permission.read

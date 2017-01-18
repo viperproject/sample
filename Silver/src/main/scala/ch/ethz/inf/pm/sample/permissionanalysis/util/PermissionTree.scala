@@ -198,7 +198,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * @return The list of location-permission tuples stored in the permission
     *         tree.
     */
-  def tuples(): Tuples = fold(List.empty[Tuple], Nil) {
+  def tuples(): Tuples = fold(List.empty[Tuple]) {
     case (list, (path, tree)) => list :+ (path, tree.permission)
   }.filter {
     case (location, permission) => location.length > 1 && permission.isSome
@@ -212,7 +212,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     * @param path The current access path.
     * @param f    The function to apply to all permissions in the tree.
     */
-  def map(path: AccessPath)(f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
+  def map(path: AccessPath = Nil)(f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
     val newPermission = f(path, this)
     val newChildren = children.map {
       case (id, tree) => (id, tree.map(path :+ id)(f))
@@ -220,7 +220,7 @@ case class PermissionTree(permission: Permission = Permission.none,
     PermissionTree(newPermission, newChildren)
   }
 
-  def fold[R](z: R, path: AccessPath)(f: (R, (AccessPath, PermissionTree)) => R): R =
+  def fold[R](z: R, path: AccessPath = Nil)(f: (R, (AccessPath, PermissionTree)) => R): R =
     children.foldLeft(f(z, (path, this))) { case (res, (id, child)) =>
       child.fold(res, path :+ id)(f)
     }

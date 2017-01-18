@@ -7,13 +7,14 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult}
+import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult, SampleCfg}
 import viper.silver.{ast => sil}
 
 /**
-  * Silver specification.
+  * A trait used to mix into a states in order to provide inferred
+  * specifications for the program extender.
   *
-  * @tparam T The type of the specifications.
+  * @tparam T The type of the inferred specifications.
   * @author Jerome Dohrau
   * @author Caterina Urban
   */
@@ -27,53 +28,14 @@ trait SilverSpecification[T] {
 }
 
 /**
+  * A program extender that modifies a program using inferred specifications.
   *
-  * @tparam T The type of the specification.
+  * @tparam T The type of the inferred specification.
   * @tparam S The type of the state.
   * @author Jerome Dohrau
   * @author Caterina Urban
   */
 trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
-  /**
-    * Modifies the list of preconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing preconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of preconditions.
-    */
-  def preconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
-
-  /**
-    * Modifies the list of postconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing postconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of postconditions.
-    */
-  def postconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
-
-  /**
-    * Modifies the list of invariants using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing invariants.
-    * @param state    The state providing the specifications.
-    * @return The modified list of invariants.
-    */
-  def invariants(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
-
-  /**
-    * Modifies the list of fields of a new statement using specifications
-    * provided by the given field.
-    *
-    * @param existing The existing list of fields.
-    * @param state    The state providing the specifications.
-    * @return The modified list of fields.
-    */
-  def fields(existing: Seq[sil.Field], state: S): Seq[sil.Field]
-
   /**
     * Extends the given program using the given results of the analysis.
     *
@@ -139,7 +101,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
     case loop@sil.While(condition, originalInvariants, locals, originalBody) =>
       // get state that holds the specifications
-      val position = getLoopPosition(loop, cfgResult)
+      val position = getLoopPosition(loop, cfgResult.cfg)
       val state = cfgResult.preStateAt(position)
       // extend while loop
       val extendedInvariants = invariants(originalInvariants, state)
@@ -147,7 +109,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
     case sil.NewStmt(lhs, originalFields) =>
       // get state that holds the specifications
-      val position = getPosition(statement, cfgResult)
+      val position = getPosition(statement, cfgResult.cfg)
       val state = cfgResult.preStateAt(position)
       // extend new statement
       val extendedFields = fields(originalFields, state)
@@ -161,14 +123,76 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       statement
   }
 
-  def getPosition(statement: sil.Stmt, cfgResult: CfgResult[S]): CfgPosition = {
-    val cfg = cfgResult.cfg
+  /* ------------------------------------------------------------------------- *
+   * Abstract Methods
+   */
+
+  /**
+    * Modifies the list of preconditions using the specifications provided by
+    * the given state.
+    *
+    * @param existing The list of existing preconditions.
+    * @param state    The state providing the specifications.
+    * @return The modified list of preconditions.
+    */
+  def preconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of postconditions using the specifications provided by
+    * the given state.
+    *
+    * @param existing The list of existing postconditions.
+    * @param state    The state providing the specifications.
+    * @return The modified list of postconditions.
+    */
+  def postconditions(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of invariants using the specifications provided by
+    * the given state.
+    *
+    * @param existing The list of existing invariants.
+    * @param state    The state providing the specifications.
+    * @return The modified list of invariants.
+    */
+  def invariants(existing: Seq[sil.Exp], state: S): Seq[sil.Exp]
+
+  /**
+    * Modifies the list of fields of a new statement using specifications
+    * provided by the given field.
+    *
+    * @param existing The existing list of fields.
+    * @param state    The state providing the specifications.
+    * @return The modified list of fields.
+    */
+  def fields(existing: Seq[sil.Field], state: S): Seq[sil.Field]
+
+  /* ------------------------------------------------------------------------- *
+   * Helper Functions
+   */
+
+  /**
+    * Returns the position of the given statement in the given control flow
+    * graph.
+    *
+    * @param statement The statement.
+    * @param cfg       The control flow graph.
+    * @return The position of the given statement in the given control flow
+    *         graph.
+    */
+  private def getPosition(statement: sil.Stmt, cfg: SampleCfg): CfgPosition = {
     val pp = DefaultSilverConverter.convert(statement.pos)
     cfg.getPosition(pp)
   }
 
-  def getLoopPosition(loop: sil.While, cfgResult: CfgResult[S]): CfgPosition = {
-    val cfg = cfgResult.cfg
+  /**
+    * Returns the position of the given loop in the given control flow graph.
+    *
+    * @param loop The loop.
+    * @param cfg  The control flow graph.
+    * @return The position of the given loop in the given control flow graph.
+    */
+  private def getLoopPosition(loop: sil.While, cfg: SampleCfg): CfgPosition = {
     val pp = DefaultSilverConverter.convert(loop.cond.pos)
     val pos = cfg.getEdgePosition(pp)
     BlockPosition(pos.edge.source, 0)
