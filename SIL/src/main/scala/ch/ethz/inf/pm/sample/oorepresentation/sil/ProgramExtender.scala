@@ -12,7 +12,7 @@ import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.{MethodAnalysisResult, AbstractCFGState}
-import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
+import ch.ethz.inf.pm.sample.oorepresentation.CfgLocation
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 
 case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
@@ -97,7 +97,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
 
     for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
       for ((stmt, stmtIdx) <- block.zipWithIndex) {
-        val cfgPosition = CFGPosition(blockIdx, stmtIdx)
+        val cfgPosition = CfgLocation(blockIdx, stmtIdx)
         val preState = cfgState.preStateAt(cfgPosition)
         val collector = GhostOpCollector[S]()
         val preStateWithCollector = preState.subscribe(collector)
@@ -111,7 +111,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
       if (block.nonEmpty) {
         val lastStmt = block.last
         val lastStmtIdx = block.size - 1
-        val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
+        val cfgPosition = CfgLocation(blockIdx, lastStmtIdx)
         val postState = cfgState.postStateAt(cfgPosition)
         val collector = GhostOpCollector[S]()
         val postStateWithCollector = postState.subscribe(collector)
@@ -150,7 +150,7 @@ case class ProgramExtender[S <: Apron[S]]() extends LazyLogging {
         val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
           case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
             case (stmt, stmtIdx) =>
-              if (stmt.getPC() == pp) Some(CFGPosition(blockIdx, stmtIdx))
+              if (stmt.getPC() == pp) Some(CfgLocation(blockIdx, stmtIdx))
               else None
           })
         })

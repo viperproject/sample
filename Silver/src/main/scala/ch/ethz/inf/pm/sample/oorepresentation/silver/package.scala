@@ -44,7 +44,8 @@ package object silver {
     type ProgramPoint = rep.ProgramPoint
     type Type = rep.Type
     type ClassDefinition = rep.ClassDefinition
-    type MethodDeclaration = rep.MethodDeclaration
+    type FunctionDeclaration = rep.silver.SilverFunctionDeclaration
+    type MethodDeclaration = rep.silver.SilverMethodDeclaration
     type FieldDeclaration = rep.FieldDeclaration
     type Statement = rep.Statement
     type ControlFlowGraph = rep.ControlFlowGraph
@@ -76,7 +77,7 @@ package object silver {
     val WrappedProgramPoint = rep.silver.WrappedProgramPoint
     val PackageIdentifier = rep.DummyPackageIdentifier
     val ClassIdentifier = rep.DummyClassIdentifier
-    val MethodIdentifier = rep.DummyMethodIdentifier
+    val MethodIdentifier = rep.silver.SilverIdentifier
   }
 
 }

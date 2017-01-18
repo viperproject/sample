@@ -9,383 +9,27 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters, execution}
-import ch.ethz.inf.pm.sample.execution.{Analysis, _}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverInferenceRunner, SilverSpecification}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
-import ch.ethz.inf.pm.sample.permissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
-import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.{ast => sil}
 
 /**
   * Various type shortcuts.
   *
   * @author Jerome Dohrau
   */
-object PermissionAnalysisTypes
-{
+object PermissionAnalysisTypes {
   type AccessPath = AliasAnalysisTypes.AccessPath
 
   type Tuple = (AccessPath, Permission)
 
   type Tuples = List[Tuple]
-}
-
-/** Represents a permission.
-  *
-  * @author Jerome Dohrau
-  */
-trait Permission
-  extends Lattice[Permission]
-{
-  override def factory(): Permission = top()
-
-  override def top(): Permission = Permission.Top
-
-  override def bottom(): Permission = Permission.Bottom
-
-  override def lub(other: Permission): Permission =
-    if (this lessEqual other) other
-    else if (other lessEqual this) this
-    else top()
-
-  override def glb(other: Permission): Permission =
-    if (this lessEqual other) this
-    else if (other lessEqual this) other
-    else bottom()
-
-  override def widening(other: Permission): Permission =
-    if (other lessEqual this) this
-    else top()
-
-  /** Returns the sum of this permission and the other permission.
-    *
-    * @param other The permission to be added.
-    */
-  def plus(other: Permission): Permission
-
-  /** Returns the difference of this permission and the other permission.
-    *
-    * @param other The permission to be subtracted.
-    */
-  def minus(other: Permission): Permission
-
-  /** Returns whether the amount of the permission is strictly greater than zero.
-    */
-  def isSome: Boolean
-
-  /** Returns whether the amount of the permission is at most zero.
-    */
-  def isNone: Boolean
-
-  /**
-    * Returns true if the permission is infeasible, i.e., the amount is at most
-    * one.
-    *
-    * @return True if the permission is infeasible.
-    */
-  def isInfeasible: Boolean
-}
-
-object Permission {
-  /** Returns no permission.
-    */
-  def none: Permission = fractional(0, 1)
-
-  /** Returns a read permission.
-    */
-  def read: Permission = fractional(0, 1, 1)
-
-  /** Returns a write permission.
-    */
-  def write: Permission = fractional(1, 1)
-
-  /** Returns a permission that is the sum of a fractional permission and a read
-    * permission
-    *
-    * @param numerator   The numerator of the fractional part.
-    * @param denominator The denominator of the fractional part.
-    * @param read        The counter for the read permission.
-    */
-  def fractional(numerator: Int, denominator: Int, read: Int = 0): Permission = {
-    val div = gcd(numerator, denominator)
-    Fractional(numerator / div, denominator / div, read)
-  }
-
-  case object Top extends Permission with Lattice.Top[Permission] {
-    override def plus(other: Permission): Permission = top()
-
-    override def minus(other: Permission): Permission = top()
-
-    override def isSome: Boolean = true
-
-    override def isNone: Boolean = false
-
-    override def isInfeasible: Boolean = true
-  }
-
-  case object Bottom extends Permission with Lattice.Bottom[Permission] {
-    override def plus(other: Permission): Permission =
-      if (other.isTop) top()
-      else bottom()
-
-    override def minus(other: Permission): Permission =
-      if (other.isBottom) top()
-      else bottom()
-
-    override def isSome: Boolean = false
-
-    override def isNone: Boolean = true
-
-    override def isInfeasible: Boolean = false
-  }
-
-  /** A permission that is the sum of a fractional permission and a read
-    * permission
-    *
-    * @param numerator   The numerator of the fractional part.
-    * @param denominator The denominator of the fractional part.
-    * @param read        The counter for the read permission.
-    */
-  case class Fractional(numerator: Int, denominator: Int, read: Int)
-    extends Permission
-  {
-    override def isBottom: Boolean = false
-
-    override def isTop: Boolean = false
-
-    override def lessEqual(other: Permission): Boolean = other match {
-      case Top => true
-      case Bottom => false
-      case Fractional(oNumerator, oDenominator, oRead) =>
-        val x = numerator * oDenominator
-        val y = denominator * oNumerator
-        x < y || (x == y && read <= oRead)
-    }
-
-    override def plus(other: Permission): Permission = other match {
-      case Top => top()
-      case Bottom => bottom()
-      case Fractional(oNumerator, oDenominator, oRead) =>
-        val newNumerator = numerator * oDenominator + denominator * oNumerator
-        val newDenominator = denominator * oDenominator
-        val newRead = read | oRead
-        fractional(newNumerator, newDenominator, newRead)
-    }
-
-    override def minus(other: Permission): Permission = other match {
-      case Top => bottom()
-      case Bottom => top()
-      case Fractional(oNumerator, oDenominator, oRead) =>
-        val newNumerator = numerator * oDenominator - denominator * oNumerator
-        val newDenominator = denominator * oDenominator
-        val newRead = read - oRead
-        fractional(newNumerator, newDenominator, newRead)
-    }
-
-    override def isSome: Boolean =
-      amount > 0 || (amount == 0 && 0 < read)
-
-    override def isNone: Boolean =
-      amount < 0 || (amount == 0 && read <= 0)
-
-    override def isInfeasible: Boolean =
-      amount > 1 || (amount == 1 && read > 0)
-
-    def amount: Double =
-      numerator.toDouble / denominator
-  }
-
-  /** Computes the greatest common divisor of the two specified integers.
-    *
-    * @param a The first integer.
-    * @param b The second integer.
-    */
-  private def gcd(a: Int, b: Int): Int =
-    if (b == 0) a.abs
-    else gcd(b, a % b)
-}
-
-/**
-  * @param permission amount of permission for the root of the tree
-  * @param children   maps fields (identifiers) to subtrees
-  */
-case class PermissionTree(permission: Permission = Permission.none,
-                          children: Map[Identifier, PermissionTree] = Map.empty)
-{
-  /** Is true if this tree contains no permission.
-    */
-  lazy val isEmpty: Boolean =
-    permission.isNone && children.forall { case (_, child) => child.isEmpty }
-
-  /** Is true if this tree contains some permission.
-    */
-  lazy val nonEmpty: Boolean =
-    !isEmpty
-
-  /** Returns the least upper bound of this permission tree and the other permission tree.
-    *
-    * @param other The other permission tree.
-    */
-  def lub(other: PermissionTree): PermissionTree = {
-    // compute lub of permissions
-    val newPermission = permission lub other.permission
-    // compute child-wise lub of subtrees
-    val newChildren = children.foldLeft(other.children) {
-      case (map, (id, subtree)) => map.get(id) match {
-        case Some(existing) => map + (id -> (subtree lub existing))
-        case None => map + (id -> subtree)
-      }
-    }
-    PermissionTree(newPermission, newChildren)
-  }
-
-  /**  Returns the greatest lower bound of this permission tree and the other permission tree.
-    *
-    * @param other The other permission tree.
-    */
-  def glb(other: PermissionTree): PermissionTree = {
-    // computer glb of permissions
-    val newPermission = permission glb other.permission
-    // compute child-wise glb of subtrees
-    val newChildren = children.foldLeft(Map.empty[Identifier, PermissionTree]) {
-      case (map, (id, subtree)) => other.children.get(id) match {
-        case Some(existing) => map + (id -> (subtree glb existing))
-        case None => map
-      }
-    }
-    PermissionTree(newPermission, newChildren)
-  }
-
-  /** Returns the widening of this and the other permission tree.
-    *
-    * @param other The other permission tree.
-    * @return The widening of this and the other permission tree.
-    */
-  def widening(other: PermissionTree): PermissionTree = {
-    // TODO: Implement me properly. Currently this is only a point-wise widening
-    // compute widening of permissions
-    val newPermission = permission widening other.permission
-    // compute child-wise widening of subtrees
-    val newChildren = children.foldLeft(other.children) {
-      case (map, (id, subtree)) => map.get(id) match {
-        case Some(existing) => map + (id -> (subtree widening existing))
-        case None => map + (id -> subtree)
-      }
-    }
-    PermissionTree(newPermission, newChildren)
-  }
-
-  /** Returns whether the amount of permission of this permission tree is less
-    * than or equal to the amount of permission  of the other tree.
-    *
-    * @param other The other permission.
-    */
-  def lessEqual(other: PermissionTree): Boolean = {
-    if (permission lessEqual other.permission) {
-      // check for all subtrees whether other has a corresponding subtree that has at least as much permission
-      children.forall {
-        case (id, subtree) => other.children.get(id) match {
-          case Some(existing) => subtree lessEqual existing
-          case None => false
-        }
-
-      }
-    } else false // permission is larger
-  }
-
-  /** Returns the amount of permission for the given access path.
-    *
-    * @param path The access path.
-    * @return The amount of permission for the given access path.
-    */
-  def get(path: AccessPath): Permission = {
-    if (path.isEmpty) permission
-    else children.get(path.head) match {
-      case Some(child) => child.get(path.tail)
-      case None => Permission.none
-    }
-  }
-
-  /**  Extracts the subtree at the specified path and returns the remainder of
-    * the tree as well as the extracted subtree.
-    *
-    * @param path The path to the subtree to be extracted.
-    * @return A tuple containing the remainder of the tree and the extracted
-    *         subtree.
-    */
-  def extract(path: AccessPath): (PermissionTree, PermissionTree) = {
-    if (path.isEmpty) {
-      // base case: extract the entire subtree
-      val remainder = PermissionTree(permission)
-      val extracted = PermissionTree(Permission.none, children)
-      (remainder, extracted)
-    } else {
-      // recursively extract subtree from child corresponding to head of path
-      val id = path.head
-      children.get(id) match {
-        case Some(child) =>
-          val (updated, extracted) = child.extract(path.tail)
-          val remainder = PermissionTree(permission, children + (id -> updated))
-          (remainder, extracted)
-        case None => (this, PermissionTree()) // there is nothing to extract
-      }
-    }
-  }
-
-  /** Implants the specified permission tree at the specified path. If there is
-    * already a non-empty subtree at that path the least upper bound is
-    * computed.
-    *
-    * @param path  The tree to be implanted.
-    * @param other The path to the place where the permission tree is to be
-    *              implanted.
-    * @return This permission tree with the other permission tree implanted.
-    */
-  def implant(path: AccessPath, other: PermissionTree): PermissionTree = {
-    if (path.isEmpty) {
-      // base case: implant other at root
-      this lub other
-    } else {
-      // recursively implant other into subtree corresponding to head of path
-      val id = path.head
-      val updated = children.get(id) match {
-        case Some(child) => child.implant(path.tail, other)
-        case None =>
-          // the path does not exist in the tree,
-          // thus, we create it and implant te tree there
-          path.tail.foldRight(other) {
-            case (id, subtree) => PermissionTree(children = Map(id -> subtree))
-          }
-      }
-      PermissionTree(permission, children + (id -> updated))
-    }
-  }
-
-  /** Applies the specified function to all permissions stored in the tree. The
-    * function takes as arguments the current access path and the permission to
-    * be modified. At the root of the tree the path is assumed to be the
-    * the variable the tree corresponds to.
-    *
-    * @param path The current access path.
-    * @param f    The function to apply to all permissions in the tree.
-    */
-  def map(path: AccessPath, f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
-    val newPermission = f(path, this)
-    val newChildren = children.map {
-      case (id, tree) => (id, tree.map(path :+ id, f))
-    }
-    PermissionTree(newPermission, newChildren)
-  }
-
-  def fold[R](z: R)(path: AccessPath, f: (R, (AccessPath, PermissionTree)) => R): R =
-    children.foldLeft(f(z, (path, this))) { case (res, (id, child)) =>
-      child.fold(res)(path :+ id, f)
-    }
 }
 
 /** Used to represent new objects in access paths.
@@ -423,10 +67,11 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SimpleState[T] with SilverSpecification
+  extends SimpleState[T]
+    with SilverState[T]
+    with SilverSpecification[PermissionTree]
     with StateWithRefiningAnalysisStubs[T]
-    with LazyLogging
-{
+    with LazyLogging {
   this: T =>
 
   // current program point
@@ -438,12 +83,10 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   // result of the previous statement
   def result: ExpressionSet
 
-  // permission trees for all variables
-  def permissions: Map[Identifier, PermissionTree]
+  // permission tree
+  def permissions: PermissionTree
 
-  def specification: Either[Seq[sil.Exp], Set[sil.Field]]
-
-  def arguments: Seq[sil.LocalVarDecl]
+  def inferred: Option[PermissionTree]
 
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases[A](currentPP)
@@ -456,87 +99,42 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
   private def tuples(f: (AccessPath, PermissionTree) => Permission): Tuples =
-    fold(List.empty[Tuple]){
+    fold(List.empty[Tuple]) {
       case (list, (path, tree)) => (path, f(path, tree)) :: list
-    }.filter{
+    }.filter {
       case (path, permission) => path.length > 1 && permission.isSome
     }
 
-  /** Modifies the list of formal arguments using information stored in the
-    * current state.
-    *
-    * @param existing The list of existing formal arguments.
-    * @return The modified list of formal arguments
-    */
-  override def formalArguments(existing: Seq[sil.LocalVarDecl]): Seq[sil.LocalVarDecl] = {
-    val readExists = existing.exists { case sil.LocalVarDecl(name, _) => name == "read" }
-    if (!readExists)
-      existing ++ arguments
-    else
-      existing
-  }
-
-  /** Modifies the list of preconditions using information stored in the current
-    * state.
-    *
-    * @param existing The list of existing preconditions.
-    * @return The modified list of preconditions.
-    */
-  override def preconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
-
-  /** Modifies the list of invariants using information stored in the current
-    * state.
-    *
-    * @param existing The list of existing invariants.
-    * @return The modified list of invariants.
-    */
-  override def invariants(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
-
-  /** Modifies the list of postconditions using information stored in the
-    * current state.
-    *
-    * @param existing The list of existing postconditions.
-    * @return The modified list of postconditions.
-    */
-  override def postconditions(existing: Seq[sil.Exp]): Seq[sil.Exp] = getSpecification(existing)
 
   /**
-    * Modifies the list of fields of a new statement using information stored in
-    * the current state.
+    * Processes the given precondition.
     *
-    * @param existing The list of existing fields.
-    * @return The modified list of fields.
+    * @param expression The expression representing the precondition.
+    * @return The state after processing the given precondition.
     */
-  override def fields(existing: Seq[sil.Field]): Seq[sil.Field] = {
-    val inferred = specification match {
-      case Left(_) => Seq.empty[sil.Field]
-      case Right(fields) => fields.toSeq
-    }
+  override def precondition(expression: Expression): T =
+    inhale(expression).saveSpecifications()
 
-    for (field <- existing intersect inferred) {
-      val message = s"There might be insufficient permission for the field ${field.name}"
-      Reporter.reportGenericWarning(message, currentPP)
-    }
+  /**
+    * Processes the given postcondition.
+    *
+    * @param expression The expression representing the postcondition.
+    * @return The state after processing the postcondition.
+    */
+  override def postcondition(expression: Expression): T =
+    exhale(expression).saveSpecifications()
 
-    (existing ++ inferred).distinct
-  }
 
-  override def command(cmd: Command): T = {
-    logger.trace(s"command($cmd)")
-    cmd match {
-      case InhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(inhale)))
-      case ExhaleCommand(expression) => unlessBottom(expression, Lattice.bigLub(expression.toSetOrFail.map(exhale)))
-      case PreconditionCommand(condition) =>
-        val expression = condition.getSingle.get
-        inhale(expression).setPrecondition(expression)
-      case PostconditionCommand(condition) =>
-        val expression = condition.getSingle.get
-        exhale(expression).setPostcondition(expression)
-      case InvariantCommand(condition) =>
-        val expression = condition.getSingle.get
-        inhale(expression).setInvariant(expression).exhale(expression)
-      case _ => super.command(cmd)
-    }
+  /**
+    * Processes the given invariant.
+    *
+    * @param expression The expression representing the invariant.
+    * @return The state after processing the invariant.
+    */
+  override def invariant(expression: Expression): T = {
+    // TODO: "assert" invariant rather than exhale it.
+    val exhaled = exhale(expression)
+    setSpecifications(exhaled.permissions)
   }
 
   /** Exhales permissions.
@@ -546,7 +144,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @param acc The permission to exhale.
     * @return The abstract state after exhaling the permission.
     */
-  private def exhale(acc: Expression): T = {
+  def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
@@ -581,7 +179,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @param acc The permission to inhale.
     * @return The abstract state after inhaling the permission.
     */
-  private def inhale(acc: Expression): T = {
+  def inhale(acc: Expression): T = {
     logger.trace(s"inhale($acc)")
     acc match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
@@ -676,7 +274,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace("createVariable")
-    copy(permissions = permissions - variable)
+    copy(permissions = permissions.remove(variable))
   }
 
   /** Assigns an expression to a variable.
@@ -736,7 +334,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
           // get access paths corresponding to rhs
           val rightPath = path(right)
 
-          val accessPaths = paths.sortBy(-_.length) // process long paths before short ones
+          val accessPaths = paths.sortBy(-_.length)
+          // process long paths before short ones
           val assigned =
             if (rightPath.isEmpty) assign(leftPath, rightPath)
             else accessPaths.foldLeft(this) {
@@ -864,7 +463,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def bottom(): T = {
     logger.trace("bottom")
     copy(result = result.bottom(),
-      permissions = Map.empty,
+      permissions = PermissionTree(),
+      inferred = None,
       isBottom = true,
       isTop = false)
   }
@@ -879,35 +479,20 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is top or bottom
     val newBottom = isBottom && other.isBottom
     val newTop = isTop || other.isTop
-    // compute variable-wise widening of permission trees. that is, compute
-    // widening for all trees that are in this.permissions and other.permissions
-    // and also include trees that are either in this.permissions or
-    // other.permissions (but not both)
-    val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+    // compute new permission tree
+    val newPermissions: PermissionTree =
+      if (newBottom || newTop) PermissionTree()
       else if (isBottom) other.permissions
       else if (other.isBottom) permissions
-      else permissions.foldLeft(other.permissions) {
-        case (map, (id, tree)) => map.get(id) match {
-          case Some(existing) => map + (id -> (tree widening existing))
-          case None => map + (id -> tree)
-        }
-      }
-    // propagate specifications and arguments
-    val newSpecification = (specification, other.specification) match {
-        case (Left(a), Left(b)) => if (b.nonEmpty) Left(b) else Left(a)
-        case (Left(a), _) => Left(a)
-        case (_, Left(b)) => Left(b)
-        case (Right(a), Right(b)) => Right(a ++ b)
-      }
-    val newArguments = if (other.arguments.nonEmpty) other.arguments else arguments
+      else permissions widening other.permissions
+
+    // TODO: Propagate specifications
+
     // create new state
     copy(
       isBottom = newBottom,
       isTop = newTop,
-      permissions = newPermissions,
-      specification = newSpecification, ///.distinct),
-      arguments = newArguments.distinct)
+      permissions = newPermissions)
   }
 
   /** Returns true if and only if `this` is less than or equal to `other`.
@@ -920,13 +505,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // handle cases involving bottom and top
     if (isBottom || other.isTop) true
     else if (other.isBottom || isTop) false
-    // compute whether this needs less permissions than other
-    else permissions.forall {
-      case (id, tree) => other.permissions.get(id) match {
-        case Some(existing) => tree lessEqual existing
-        case None => tree lessEqual PermissionTree()
-      }
-    }
+    else permissions lessEqual other.permissions
   }
 
   /** Returns the top value of the lattice.
@@ -936,7 +515,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def top(): T = {
     logger.trace("top")
     copy(result = result.top(),
-      permissions = Map.empty,
+      permissions = PermissionTree(),
+      inferred = None,
       isBottom = false,
       isTop = true)
   }
@@ -952,36 +532,17 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is top or bottom
     val newBottom = isBottom && other.isBottom
     val newTop = isTop || other.isTop
-    // compute variable-wise lub of permission trees. that is, compute lub for
-    // all trees that are in this.permissions and other.permissions and also
-    // include trees that are either in this.permissions or other.permissions
-    // (but not both)
+    // compute new permission tree
     val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+      if (newBottom || newTop) PermissionTree()
       else if (isBottom) other.permissions
       else if (other.isBottom) permissions
-      else permissions.foldLeft(other.permissions) {
-        case (map, (id, tree)) => map.get(id) match {
-          case Some(existing) => map + (id -> (tree lub existing))
-          case None => map + (id -> tree)
-        }
-      }
-    // propagate specifications and arguments
-    val newSpecification = (specification, other.specification) match {
-      case (Left(a), Left(b)) => if (a.nonEmpty) Left(a) else Left(b)
-      case (Left(a), _) => Left(a)
-      case (_, Left(b)) => Left(b)
-      case (Right(a), Right(b)) => Right(a ++ b)
-    }
-      //if (specification.nonEmpty) specification else other.specification
-    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+      else permissions lub other.permissions
     // create new state
     copy(
       isBottom = newBottom,
       isTop = newTop,
-      permissions = newPermissions,
-      specification = newSpecification,
-      arguments = newArguments.distinct)
+      permissions = newPermissions)
   }
 
   /** Returns a new instance of the lattice.
@@ -1005,38 +566,42 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     // check whether new state is bottom or top
     val newBottom = isBottom || other.isBottom
     val newTop = isTop && other.isTop
-    // compute variable-vise glb of permission trees. that is, compute glb for
-    // all trees that are in this.permissions and other.permissions
+    // compute new permission tree
     val newPermissions =
-      if (newBottom || newTop) Map.empty[Identifier, PermissionTree]
+      if (newBottom || newTop) PermissionTree()
       else if (isTop) other.permissions
       else if (other.isTop) permissions
-      else permissions.foldLeft(Map.empty[Identifier, PermissionTree]) {
-        case (map, (id, tree)) => other.permissions.get(id) match {
-          case Some(existing) => map + (id -> (tree glb existing))
-          case None => map
-        }
-      }
-    // propagate specifications and arguments
-    val newSpecification = (specification, other.specification) match {
-      case (Left(a), Left(b)) => if (a.nonEmpty) Left(a) else Left(b)
-      case (Left(a), _) => Left(a)
-      case (_, Left(b)) => Left(b)
-      case (Right(a), Right(b)) => Right(a & b)
-    }
-    val newArguments = if (arguments.nonEmpty) arguments else other.arguments
+      else permissions glb other.permissions
+
+    // TODO: propagate specifications
+
     // create new state
     copy(
       isBottom = newBottom,
       isTop = newTop,
-      permissions = newPermissions,
-      specification = newSpecification,
-      arguments = newArguments)
+      permissions = newPermissions)
   }
+
+  /**
+    * Returns the inferred specifications.
+    *
+    * @return The inferred specifications.
+    */
+  override def specifications: PermissionTree =
+    inferred.getOrElse(permissions)
 
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR INFERENCE
    */
+
+  private def saveSpecifications(): T =
+    copy(inferred = Some(permissions))
+
+  private def setSpecifications(specifications: PermissionTree): T =
+    copy(inferred = Some(specifications))
+
+  private def forgetSpecifications(): T =
+    copy(inferred = None)
 
   /** Extracts the path from an expression.
     *
@@ -1109,23 +674,13 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   private def access(path: AccessPath, permission: Permission): T = {
     if (path.length < 2)
-      // in this case no permission is needed
+    // in this case no permission is needed
       this
     else {
       // build permission tree for the wanted permission
-      val (variable :: first :: rest) = path
       val want = permission minus collect(path)
-      val subtree = rest.foldRight(PermissionTree(want)) {
-        case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
-      }
-      val tree = PermissionTree(children = Map(first -> subtree))
-
-      // add new permission tree to permissions
-      val updated = permissions.get(variable) match {
-        case Some(existing) => existing lub tree
-        case None => tree
-      }
-      copy(permissions = permissions + (variable -> updated))
+      val tree = PermissionTree(path, want)
+      copy(permissions = permissions lub tree)
     }
   }
 
@@ -1146,55 +701,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
   private def assign(left: AccessPath, right: AccessPath): T = {
     if (left.isEmpty || right.isEmpty) this
-    else {
-      // split lhs and rhs into pairs of receivers and fields
-      val (rcvL :: fldL) = left
-      val (rcvR :: fldR) = right
-
-      // get permission trees for lhs
-      val treeL = permissions.get(rcvL)
-
-      if (treeL.isEmpty) this // there are no access paths to modify
-      else if (rcvR.isInstanceOf[NewObject]) {
-        // extract permission that are needed for the new object
-        val (newL, extracted) = treeL.get.extract(fldL)
-        val specification = extracted.fold(Set.empty[sil.Field])(left, {
-          case (res, (path, tree)) => path match {
-            case (_ :: Nil) =>
-              res
-            case (_ :: field :: Nil) =>
-              val permission = tree.permission
-              if (permission.isNone && tree.isEmpty) res
-              else {
-                if (permission.isInfeasible) {
-                  val message = s"There might be insufficient permission for ${path.mkString(".")}"
-                  Reporter.reportGenericWarning(message, currentPP)
-                }
-                res ++ Set(silverField(field))
-              }
-            case _ =>
-              if (tree.nonEmpty) {
-                val message = s"Inferred permission for ${path.mkString(".")}"
-                Reporter.reportGenericWarning(message, currentPP)
-              }
-              res
-          }
-        })
-        // update permissions
-        copy(permissions = permissions + (rcvL -> newL), specification = Right(specification))
-      } else if (rcvL == rcvR) {
-        // handle case where rcvL == rcvR
-        val (temp, extracted) = treeL.get.extract(fldL)
-        val newL = temp.implant(fldR, extracted)
-        copy(permissions = permissions + (rcvL -> newL))
-      } else {
-        // handle case where rcvL != rcvR
-        // for instance access path a.f.f becomes b.g.f if we assign a.f := b.g
-        val treeR = permissions.get(rcvR)
-        val (newL, extracted) = treeL.get.extract(fldL)
-        val newR = treeR.getOrElse(PermissionTree()).implant(fldR, extracted)
-        copy(permissions = permissions +(rcvL -> newL, rcvR -> newR))
-      }
+    else if (right.head.isInstanceOf[NewObject]) {
+      // extract permission needed for the new object
+      val (newPermissions, extracted) = permissions.extract(left)
+      copy(permissions = newPermissions, inferred = Some(extracted))
+    } else {
+      val (temp, extracted) = permissions.extract(left)
+      val newPermissions = temp.implant(right, extracted)
+      copy(permissions = newPermissions)
     }
   }
 
@@ -1231,179 +745,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     else aliases.pathsMustAlias(first.init, second.init) && first.last == second.last
 
   /* ------------------------------------------------------------------------- *
-   * HELPER FUNCTIONS FOR SPECIFICATION
-   */
-
-  private def length(expression: sil.Exp): Int = expression match {
-    case sil.FieldAccessPredicate(location, _) => length(location)
-    case sil.FieldAccess(receiver, _) => length(receiver) + 1
-    case _ => 1
-  }
-
-  private def getSpecification(existing: Seq[sil.Exp]): Seq[sil.Exp] = {
-    val (permissions, unknowns) = extractPermissions(existing)
-    val newPermissions = specification match {
-      case Left(list) => (list ++ permissions).sortBy(length)
-      case Right(_) => permissions.sortBy(length)
-    }
-    newPermissions ++ unknowns
-  }
-
-  /** Extracts all permissions (field access predicates) from the given sequence
-    * of expressions and returns two sequences, where the first one contains all
-    * permissions and the second one contains all other expressions.
-    *
-    * @param expressions The sequence of expressions to process.
-    * @return A sequence containing all permissions and a sequence containing
-    *         all other expressions.
-    */
-  private def extractPermissions(expressions: Seq[sil.Exp]): (Seq[sil.Exp], Seq[sil.Exp]) =
-    expressions.foldLeft((Seq.empty[sil.Exp], Seq.empty[sil.Exp])) {
-      case ((p, u), curr) =>
-        val (currP, currU) = extractPermissions(curr)
-        (p ++ currP, u ++ currU)
-    }
-
-  /** Extracts all permissions (field access predicates) from the given
-    * expressions and returns two sequences, where the first one contains all
-    * permissions and the second one contains all other (sub) expressions.
-    *
-    * @param expression The expression to process.
-    * @return A sequence containing all permissions and a sequence containing
-    *         all other (sub) expressions.
-    */
-  private def extractPermissions(expression: sil.Exp): (Seq[sil.Exp], Seq[sil.Exp]) =
-    expression match {
-      case sil.And(left, right) =>
-        val (leftP, leftU) = extractPermissions(left)
-        val (rightP, rightU) = extractPermissions(right)
-        (leftP ++ rightP, leftU ++ rightU)
-      case permission: sil.FieldAccessPredicate => (Seq(permission), Seq.empty)
-      case unknown => (Seq.empty, Seq(unknown))
-
-    }
-
-  /** Returns a silver field access corresponding to the given access path.
-    *
-    * @param path The access path.
-    * @return A silver field access.
-    */
-  private def silverFieldAccess(path: AccessPath): sil.FieldAccess = {
-    val receiver =
-      if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
-      else silverFieldAccess(path.init)
-    val name = path.last.getName
-    val typ = silverType(name)
-    sil.FieldAccess(receiver, sil.Field(name, typ)())()
-  }
-
-  /**
-    * Returns a silver field corresponding to the field with the given name.
-    *
-    * @param name The name of the field.
-    * @return A silver field.
-    */
-  private def silverField(name: Identifier): sil.Field = {
-    val typ = silverType(name.getName)
-    sil.Field(name.getName, typ)()
-  }
-
-  /** Returns a silver field access predicate corresponding to the given access
-    * path and permission.
-    *
-    * @param path       The access path.
-    * @param permission The permission.
-    * @return A silver field access predicate.
-    */
-  private def silverFieldAccessPredicate(path: AccessPath, permission: Permission): sil.Exp = {
-    val location = silverFieldAccess(path)
-    permission match {
-      case Permission.Top =>
-        sil.FalseLit()()
-      case Fractional(numerator, denominator, read) =>
-        val amount = if (read > 0) {
-          val variable = if (read == 1) sil.LocalVar("read")(sil.Perm)
-          else sil.PermMul(sil.IntLit(read)(), sil.LocalVar("read")(sil.Perm))()
-          if (numerator == 0) variable
-          else if (numerator == denominator) sil.PermAdd(sil.FullPerm()(), variable)()
-          else sil.PermAdd(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())(), variable)()
-        } else {
-          if (numerator == 0) sil.NoPerm()()
-          else if (numerator == denominator) sil.FullPerm()()
-          else sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
-        }
-        sil.FieldAccessPredicate(location, amount)()
-    }
-  }
-
-  /**
-    * Returns a silver type corresponding to the type of the field with the
-    * given name.
-    *
-    * @param name The name of the field.
-    * @return A silver type.
-    */
-  private def silverType(name: String): sil.Type = {
-    fields.find(_._1 == name).get match {
-      case (_, t) if t.isObject => sil.Ref
-      case (_, t) if t.isNumericalType => sil.Int
-      case (_, t) if t.isBooleanType => sil.Bool
-    }
-  }
-
-  /** Returns the set of access paths (as strings) that are framed by the given
-    * expression.
-    *
-    * @param expression The expression.
-    * @return The set of access paths (as strings).
-    */
-  private def framed(expression: Expression): Set[String] = expression match {
-    case FieldAccessPredicate(id, n, _, _) => n match {
-      case Constant(value, _, _) if value.toInt > 0 => Set(id.toString)
-      case _ => Set.empty
-    }
-    case BinaryBooleanExpression(left, right, BooleanOperator.&&) => framed(left) ++ framed(right)
-    case _ => Set.empty
-  }
-
-  private def setPrecondition(existing: Expression): T = {
-    val set = framed(existing)
-    val tuples = this.tuples { case (path, tree) =>
-      if (tree.permission.isNone && tree.nonEmpty && !set.contains(path.mkString("."))) Permission.read
-      else tree.permission
-    }
-    setSpecification(tuples)
-  }
-
-  private def setPostcondition(existing: Expression): T = {
-    val tuples = this.tuples{ case (_, tree) =>
-      if (tree.permission.isNone && tree.nonEmpty) Permission.read
-      else Permission.none
-    }
-    setSpecification(tuples)
-  }
-
-  private def setInvariant(existing: Expression): T =
-    setPrecondition(existing)
-
-  private def setSpecification(tuples: Tuples): T = {
-    val reading = tuples.exists {
-      case (_, Fractional(_, _, read)) => read > 0
-      case _ => false
-    }
-
-    val prefix = if (reading) {
-      val read = sil.LocalVar("read")(sil.Perm)
-      Seq(sil.PermGtCmp(read, sil.NoPerm()())())
-    } else Seq.empty
-    val specification = prefix ++ tuples
-      //.filter { case (path, permission) => permission.isSome }
-      .map { case (path, permission) => silverFieldAccessPredicate(path, permission) }
-    val arguments = if (reading) Seq(sil.LocalVarDecl("read", sil.Perm)()) else Seq.empty
-    copy(specification = Left(specification), arguments = arguments)
-  }
-
-  /* ------------------------------------------------------------------------- *
    * GENERAL HELPER FUNCTIONS
    */
 
@@ -1411,40 +752,31 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @param f The function to be applied to all permissions.
     */
-  def map(f: (AccessPath, PermissionTree) => Permission): T = {
-    val newPermissions = permissions.map {
-      case (id, tree) => (id, tree.map(List(id), f))
-    }
-    copy(permissions = newPermissions)
-  }
+  def map(f: (AccessPath, PermissionTree) => Permission): T =
+    copy(permissions = permissions.map()(f))
 
   def fold[R](z: R)(f: (R, (AccessPath, PermissionTree)) => R): R =
-    permissions.foldLeft(z) { case (res, (id, tree)) =>
-      tree.fold(res)(List(id), f)
-    }
+    permissions.fold(z)(f)
 
   def copy(currentPP: ProgramPoint = currentPP,
            fields: Set[(String, Type)] = fields,
            result: ExpressionSet = result,
-           permissions: Map[Identifier, PermissionTree] = permissions,
-           specification: Either[Seq[sil.Exp], Set[sil.Field]] = specification,
-           arguments: Seq[sil.LocalVarDecl] = arguments,
+           permissions: PermissionTree = permissions,
+           inferred: Option[PermissionTree] = None,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
   override def toString: String = s"PermissionAnalysisState(" +
     s"\n\tresult: $result" +
     s"\n\tpermissions: ${
-      val strings = tuples{ case (_, tree) => tree.permission }
-        .filter(_._2.isSome)
+      val strings = permissions
+        .tuples()
         .map { case (path, permission) =>
           path.map(_.toString).reduce(_ + "." + _) + " " + permission
         }
       if (strings.isEmpty) "none"
       else strings.reduce(_ + ", " + _)
     }" +
-    s"\n\tspec: $specification" +
-    s"\n\targs: $arguments" +
     s"\n\tisBottom: $isBottom" +
     s"\n\tisTop: $isTop" +
     s"\n)"
@@ -1453,144 +785,94 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
 }
 
-object PermissionAnalysisState
-{
+object PermissionAnalysisState {
+
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
-                                           permissions: Map[Identifier, PermissionTree] = Map.empty,
-                                           specification: Either[Seq[sil.Exp], Set[sil.Field]] = Left(Seq.empty),
-                                           arguments: Seq[sil.LocalVarDecl] = Seq.empty,
+                                           permissions: PermissionTree = PermissionTree(),
+                                           inferred: Option[PermissionTree] = None,
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
-    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-  {
+    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
     override def copy(currentPP: ProgramPoint,
                       fields: Set[(String, Type)],
                       result: ExpressionSet,
-                      permissions: Map[Identifier, PermissionTree],
-                      specification: Either[Seq[sil.Exp], Set[sil.Field]],
-                      arguments: Seq[sil.LocalVarDecl],
+                      permissions: PermissionTree,
+                      inferred: Option[PermissionTree],
                       isBottom: Boolean,
                       isTop: Boolean): SimplePermissionAnalysisState =
-      SimplePermissionAnalysisState(currentPP, fields, result, permissions, specification, arguments, isBottom, isTop)
+      SimplePermissionAnalysisState(currentPP, fields, result, permissions, inferred, isBottom, isTop)
   }
+
 }
 
 trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends BackwardEntryStateBuilder[T]
-{
-  override def build(method: MethodDeclaration): T = {
+  extends SilverEntryStateBuilder[T] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
     // retrieve the set of fields declared in the program
-    val fields = method.classDef.fields
+    val fields = program.fields
       .map(field => (field.variable.toString, field.typ))
       .toSet
 
-    val initial = topState.copy(fields = fields)
+    val initial = top.copy(fields = fields)
 
     method.initializeArgument(initial)
   }
 }
 
 object PermissionAnalysisEntryState
-  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override def topState: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
+  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  override def top: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
 case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-(aliasAnalysisBuilder: AliasAnalysisStateBuilder[A],
+(aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
  permissionAnalysisStateBuilder: PermissionAnalysisStateBuilder[A, T])
-  extends execution.Analysis[T]
-{
-  override def analyze(method: MethodDeclaration): MethodAnalysisResult[T] = {
+  extends SilverAnalysis[T] {
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
     // first phase: alias analysis
-    val aliasAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = aliasAnalysisBuilder.build(method)
-      val interpreter = TrackingForwardInterpreter[A](entryState)
-      val cfgState = interpreter.forwardExecute(method.body, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
+    val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
+    val aliasInterpreter = FinalResultForwardInterpreter[A]()
+    val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
 
     // add result of alias analysis to context
-    Context.setAliases(aliasAnalysisResult.cfgState)
+    Context.setAliases(aliasResult)
 
     // second phase: permission analysis
-    val permissionAnalysisResult = SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = permissionAnalysisStateBuilder.build(method)
-      val interpreter = TrackingBackwardInterpreter[T](entryState)
-      val cfgState = interpreter.backwardExecute(method.body, entryState)
-      MethodAnalysisResult(method, cfgState)
-    }
+    val permissionEntry = permissionAnalysisStateBuilder.build(program, method)
+    val permissionInterpreter = FinalResultBackwardInterpreter[T]()
+    val permissionResult = permissionInterpreter.execute(method.body, permissionEntry)
 
     // remove result of alias analysis from the context
     Context.clearAliases()
 
     // return result of the permission analysis
-    permissionAnalysisResult
+    permissionResult
   }
 }
 
 trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverAnalysisRunner[T]
-{
+  extends SilverAnalysisRunner[T] {
   override def main(arguments: Array[String]) {
     // check whether there is a first argument (the path to the file)
     if (arguments.isEmpty) throw new IllegalArgumentException("No file specified")
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(Compilable.Path(path)).collect{ case x: MethodAnalysisResult[T] => x }
+    val results = run(Compilable.Path(path)).collect { case x => x }
 
+    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    // map of method names to control flow graphs
-    val methodNameToCfgState = results.map(result => result.method.name.toString -> result.cfgState).toMap
-    for ((m, g) <- methodNameToCfgState) {
-      println("******************* " + m + "\n")
-
-      println(g.exitState()) // printing the entry state of the control-flow graph
-
-      val blocks: List[List[Statement]] = g.cfg.nodes // blocks withing the control-flow graph
-      // withing each block...
-      var i = 0
-      for (stmts: List[Statement] <- blocks) {
-        if (stmts.isEmpty) {
-          val states: List[T] = g.blockStates(i).last // post-states of each statement
-          for (s <- states) {
-            println("\n******************* \n")
-            println(s)
-          }
-        } else {
-          // printing the block pre-state
-          println("\n+++++++++++++++++++ BLOCK " + i + "+++++++++++++++++++\n")
-          println(g.blockStates(i).last.head)
-          val states: List[T] = g.blockStates(i).last.drop(1) // post-states of each statement
-          // print statements and corresponding post-states
-          for ((c: Statement, s) <- stmts zip states) {
-            println("\n******************* " + c + "\n")
-            println(s)
-          }
-        }
-        i = i + 1
-      }
-
-      println("\n******************* \n")
-      println(g.entryState()) // printing the exit state of the control-flow graph
+    for ((method, cfgResult) <- cfgResults) {
+      println("******************* " + method + "\n")
+      cfgResult.print()
     }
   }
 }
 
 object DebugPermissionInference
-  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
 }
 
-trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverInferenceRunner[T]
-
-object PermissionInference
-  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState]
-{
-  override val analysis: Analysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
-}

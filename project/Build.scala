@@ -12,7 +12,7 @@ object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
     base = file(".")) aggregate(core, numerical, apron, touchdevelop,
-    scalapreproc, partitioning, string, valuedrivenheap, sil, silver, web)
+    scalapreproc, partitioning, string, valuedrivenheap, sil, silver, viper, web)
 
   lazy val core = Project(
     id = "sample-core",
@@ -52,7 +52,11 @@ object SampleBuild extends Build {
 
   lazy val silver = Project(
     id = "sample-silver",
-    base = file("Silver")) dependsOn(core, numerical, apron)
+    base = file("Silver")) dependsOn(core, numerical, apron, viper)
+
+  lazy val viper = RootProject(
+    file("../silver-cfg/")
+  )
 
   lazy val web = Project(
     id = "sample-web",
