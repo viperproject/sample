@@ -80,17 +80,11 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
         else exitEdges.size match {
           case 1 => cfgResult.getStates(cfg.outEdges(currentBlock).head.target).head
           case 2 =>
-            // TODO: With the new CFG this became very hacky, we can probably improve this...
-            val (edge1, edge2) = (exitEdges.head.kind match {
-              case Kind.In => (exitEdges.head, exitEdges.last)
-              case _ => (exitEdges.last, exitEdges.head)
-            }) match {
-              case (one, two) => (one.asInstanceOf[ConditionalEdge[Statement, Statement]], two.asInstanceOf[ConditionalEdge[Statement, Statement]])
-            }
+            // TODO: With the new CFG this became very hacky, can this be solved more properly?
+            val (edge1, edge2) =  (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
-            val tempState = edge1.condition.backwardSemantics(state1.lub(state2))
-            val cond = tempState.expr
-            val pp = tempState.currentPP
+            val cond = edge1.condition.backwardSemantics(state1.lub(state2)).expr
+            val pp = edge1.condition.getPC()
             state1.lub(state2, cond).before(pp).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }

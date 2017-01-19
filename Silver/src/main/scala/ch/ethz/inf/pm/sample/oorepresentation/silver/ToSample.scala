@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.execution.SampleCfg
 import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint}
 import com.typesafe.scalalogging.LazyLogging
@@ -142,6 +143,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
 
   def convert(s: sil.Stmt): Seq[sample.Statement] = s match {
+    case sil.LocalVarDeclStmt(decl) =>
+      val declaration = sample.VariableDeclaration(go(s.pos), sample.Variable(go(s.pos), VariableIdentifier(decl.name)(go(decl.typ))), go(decl.typ))
+      Seq(declaration)
+
     case sil.LocalVarAssign(lhs, rhs) =>
       val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
       Seq(assignment)
