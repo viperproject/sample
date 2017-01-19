@@ -7,9 +7,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.cfg.{ConditionalEdge, Kind, LoopHeadBlock, StatementBlock}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -18,104 +20,92 @@ import scala.collection.mutable.ListBuffer
   * @author Severin Münger
   *         Added on 29.11.16.
   */
-trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLogging {
+final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
 
-  var blocksLastInLoop: Set[Int] = Set()
-  var nestingLevels: Map[Int, Int] = Map()
-  var sequenceNumbers: Map[Int, Int] = Map()
+  var blocksLastInLoop: Set[SampleBlock] = Set()
+  var nestingLevels: Map[SampleBlock, Int] = Map()
+  var sequenceNumbers: Map[SampleBlock, Int] = Map()
   var currentSequenceNumbers: Map[Int, Int] = Map()
 
-  def determineBlockTypes(cfg: ControlFlowGraph, nestingLevel: Int = 0, blockIndex: Int = ForwardInterpreter.startBlockId, visited: Set[Int] = Set()): Boolean = {
-    if (visited.contains(blockIndex)) {
-      blocksLastInLoop += blockIndex
+  def determineBlockTypes(cfg: SampleCfg, block: SampleBlock, nestingLevel: Int = 0, visited: Set[SampleBlock] = Set()): Boolean = {
+    if (visited.contains(block)) {
+      blocksLastInLoop += block
       true
     } else {
-      nestingLevels += blockIndex -> nestingLevel
+      nestingLevels += block -> nestingLevel
       val sequenceNumber = currentSequenceNumbers.getOrElse(nestingLevel, -1) + 1
-      sequenceNumbers += blockIndex -> sequenceNumber
+      sequenceNumbers += block -> sequenceNumber
       currentSequenceNumbers += nestingLevel -> sequenceNumber
-      val exitEdges = cfg.exitEdges(blockIndex)
+      val exitEdges = cfg.outEdges(block)
       exitEdges.size match {
-        case 2 =>
-          val ((_, toTrue, _), (_, toFalse, _)) = exitEdges.head match {
-            case (_, _, Some(true)) => (exitEdges.head, exitEdges.last)
-            case (_, _, Some(false)) => (exitEdges.last, exitEdges.head)
-            case _ => throw new IllegalStateException()
-          }
-          if (cfg.initialBlockInLoop(blockIndex)) {
-            determineBlockTypes(cfg, nestingLevel + 1, toTrue, visited + blockIndex)
-            determineBlockTypes(cfg, nestingLevel, toFalse, visited + blockIndex)
-          } else {
-            determineBlockTypes(cfg, nestingLevel + 1, toTrue, visited + blockIndex)
-            determineBlockTypes(cfg, nestingLevel + 1, toFalse, visited + blockIndex)
-          }
-        case 1 =>
-          val successor = cfg.getDirectSuccessors(blockIndex).head
-          determineBlockTypes(cfg, if (nestingLevel > 0 && cfg.entryEdges(successor).size > 1) nestingLevel - 1 else nestingLevel, successor, visited + blockIndex)
         case 0 =>
           false
+        case 1 =>
+          val successor = cfg.successors(block).head
+          determineBlockTypes(cfg, successor, if (nestingLevel > 0 && cfg.inEdges(successor).size > 1) nestingLevel - 1 else nestingLevel, visited + block)
+        case 2 =>
+          val (trueEdge, falseEdge) = exitEdges.head.kind match {
+            case Kind.In => (exitEdges.head, exitEdges.last)
+            case _ => (exitEdges.last, exitEdges.head)
+          }
+          val (toTrue, toFalse) = (trueEdge.target, falseEdge.target)
+          determineBlockTypes(cfg, toTrue, nestingLevel + 1, visited + block)
+          if (block.isInstanceOf[LoopHeadBlock[_, _]]) determineBlockTypes(cfg, toFalse, nestingLevel, visited + block)
+          else determineBlockTypes(cfg, toFalse, nestingLevel + 1, visited + block)
       }
     }
   }
 
-  def backwardExecute(cfg: ControlFlowGraph, finalState: QuantifiedPermissionsState): TrackingCFGState[QuantifiedPermissionsState] = {
-    determineBlockTypes(cfg)
-    val cfgStateFactory = TrackingCFGStateFactory[QuantifiedPermissionsState](finalState)
-    val cfgState = cfgStateFactory.allBottom(cfg)
-    val leavesIds: Set[Int] = cfg.getLeavesIds
-    val ordering: Ordering[Int] = Ordering.by(blockIndex => (-nestingLevels(blockIndex), -sequenceNumbers(blockIndex)))
-    var blocksToProcessIds: mutable.SortedSet[Int] = mutable.SortedSet[Int]()(ordering) ++ leavesIds
-    var iterationAtBlock = Map[Int, Int]()
+  override protected def initializeResult(cfg: SampleCfg, state: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
+    val cfgResult = FinalCfgResult[QuantifiedPermissionsState](cfg)
+    cfgResult.initialize(state)
+    cfgResult
+  }
+
+  override def execute(cfg: SampleCfg, initial: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = backwardExecute(cfg, initial)
+
+  def backwardExecute(cfg: SampleCfg, finalState: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
+    determineBlockTypes(cfg, cfg.entry)
+    val bottom = finalState.bottom()
+    val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
+    val ordering: Ordering[SampleBlock] = Ordering.by(block => (-nestingLevels(block), -sequenceNumbers(block)))
+    var blocksToProcessIds: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit)(ordering)
+    var iterationAtBlock = Map[SampleBlock, Int]()
     while (blocksToProcessIds.nonEmpty) {
-      val currentId: Int = blocksToProcessIds.head; blocksToProcessIds.remove(currentId)
-      val currentCount: Int = iterationAtBlock.getOrElse(currentId, 0)
-      val exitEdges = cfg.exitEdges(currentId)
+      val currentBlock: SampleBlock = blocksToProcessIds.head; blocksToProcessIds.remove(currentBlock)
+      val currentCount: Int = iterationAtBlock.getOrElse(currentBlock, 0)
+      val exitEdges = cfg.outEdges(currentBlock)
       val currentState: QuantifiedPermissionsState =
-        if (leavesIds.contains(currentId)) finalState
+        if (cfg.exit == currentBlock) finalState
         else exitEdges.size match {
-          case 1 => cfgState.statesOfBlock(cfg.exitEdges(currentId).head._2).head
+          case 1 => cfgResult.getStates(cfg.outEdges(currentBlock).head.target).head
           case 2 =>
-            val (trueState, falseState) =
-              (exitEdges.head, exitEdges.last) match {
-                case ((_, toTrue, Some(true)), (_, toFalse, Some(false))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
-                case ((_, toFalse, Some(false)), (_, toTrue, Some(true))) => (cfgState.statesOfBlock(toTrue).head, cfgState.statesOfBlock(toFalse).head)
-                case _ => throw new IllegalStateException()
-              }
-            // 'Dummy' execution of current block to get branch condition
-            val states = computeExpressions(trueState.lub(falseState), currentId, cfgState)
-            trueState.lub(falseState, states.init.last.expr)
+            val (edge1, edge2) = (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
+            val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
+            val cond = edge1.condition.forwardSemantics(state1.lub(state2)).expr
+            state1.lub(state2, cond)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
-      val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(currentId)
-      val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) cfgState.stateFactory.bottom() else blockStates.last
+      val blockStates = cfgResult.getStates(currentBlock)
+      val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) finalState else blockStates.last
       if (!currentState.lessEqual(oldState)) {
-        backwardExecuteBlock(currentState, currentId, currentCount, cfgState)
-        blocksToProcessIds ++= cfg.getDirectPredecessors(currentId)
-        iterationAtBlock += currentId -> (currentCount + 1)
+        backwardExecuteBlock(currentState, currentBlock, currentCount, cfgResult)
+        blocksToProcessIds ++= cfg.predecessors(currentBlock)
+        iterationAtBlock += currentBlock -> (currentCount + 1)
       }
     }
-    cfgState
+    cfgResult
   }
 
-  private def computeExpressions(exitState: QuantifiedPermissionsState, id: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): List[QuantifiedPermissionsState] = {
+  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgState: CfgResult[QuantifiedPermissionsState]): Unit = {
     var newStates = ListBuffer[QuantifiedPermissionsState]()
-    val stmts: List[Statement] = cfgState.cfg.getBasicBlockStatements(id)
+    val stmts: Seq[Statement] = block match {
+      case StatementBlock(statements) => statements
+      case LoopHeadBlock(invariants, statements) => invariants ++ statements
+      case _ => Seq()
+    }
     var nextState: QuantifiedPermissionsState = exitState
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
-      newStates = nextState +: newStates
-      val pp = ProgramPointUtils.identifyingPP(stmt)
-      val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
-      nextState = prevState
-    }
-    newStates = nextState +: newStates
-    newStates.toList
-  }
-
-  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, id: Int, count: Int, cfgState: TrackingCFGState[QuantifiedPermissionsState]): Unit = {
-    var newStates = ListBuffer[QuantifiedPermissionsState]()
-    val statements: List[Statement] = cfgState.cfg.getBasicBlockStatements(id)
-    var nextState: QuantifiedPermissionsState = exitState
-    for ((stmt: Statement, _: Int) <- statements.zipWithIndex.reverse) {
       newStates = nextState +: newStates
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
@@ -124,19 +114,14 @@ trait QPInterpreter extends Interpreter[QuantifiedPermissionsState] with LazyLog
 //      logger.info(prevState.toString)
       nextState = prevState
     }
-    if (cfgState.cfg.exitEdges(id).size > 1 && count > SystemParameters.wideningLimit) {
-      val blockStates: List[QuantifiedPermissionsState] = cfgState.statesOfBlock(id)
+    if (cfgState.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
+      val blockStates: Seq[QuantifiedPermissionsState] = cfgState.getStates(block)
       nextState = blockStates.head widening nextState
       newStates = nextState +: newStates
     } else {
       newStates = nextState +: newStates
     }
-    cfgState.setStatesOfBlock(id, newStates.toList)
+    cfgState.setStates(block, newStates.toList)
   }
 
-}
-
-case class TrackingQPInterpreter(stateFactory: QuantifiedPermissionsState) extends QPInterpreter {
-  type C = TrackingCFGState[QuantifiedPermissionsState]
-  val cfgStateFactory: CFGStateFactory[QuantifiedPermissionsState, TrackingCFGState[QuantifiedPermissionsState]] = TrackingCFGStateFactory[QuantifiedPermissionsState](stateFactory)
 }

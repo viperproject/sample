@@ -8,9 +8,9 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
-import ch.ethz.inf.pm.sample.execution.ForwardEntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodDeclaration, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.execution.SilverEntryStateBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
 
 /**
@@ -345,10 +345,9 @@ object NumericalAnalysisState
 }
 
 trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
-  extends ForwardEntryStateBuilder[T]
-{
-  override def build(method: MethodDeclaration): T = {
-    val initial = topState.copy()
+  extends SilverEntryStateBuilder[T] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
+    val initial = top.copy()
     method.initializeArgument(initial)
   }
 }
@@ -356,11 +355,11 @@ trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnaly
 object PolyhedraAnalysisEntryState
   extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState] {
 
-  override def topState: PolyhedraAnalysisState = PolyhedraAnalysisState()
+  override def top: PolyhedraAnalysisState = PolyhedraAnalysisState()
 }
 
 object OctagonAnalysisEntryState
   extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState] {
 
-  override def topState: OctagonAnalysisState = OctagonAnalysisState()
+  override def top: OctagonAnalysisState = OctagonAnalysisState()
 }

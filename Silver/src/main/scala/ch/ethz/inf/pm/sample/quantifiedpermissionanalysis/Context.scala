@@ -8,9 +8,9 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.TrackingCFGState
+import ch.ethz.inf.pm.sample.execution.{CfgResult, TrackingCFGState}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, PermType}
-import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 import viper.silver.{ast => sil}
@@ -59,19 +59,19 @@ object Context {
 
   val sets: mutable.Map[(ProgramPoint, Expression), sil.LocalVarDecl] = mutable.Map()
 
-  private var aliasesPerMethod: Map[String, Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]] = Map()
+  private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_]]]] = Map()
 
-  private var numericalInfoPerMethod: Map[String, Option[TrackingCFGState[NumericalStateType]]] = Map()
+  private var numericalInfoPerMethod: Map[String, Option[CfgResult[NumericalStateType]]] = Map()
 
   /**
     * Stores the result of the alias analysis.
     */
-  private var aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]] = None
+  private var aliases: Option[CfgResult[_ <: AliasAnalysisState[_]]] = None
 
   /**
     * Stores the result of the numerical analysis.
     */
-  private var numericalInfo: Option[TrackingCFGState[NumericalStateType]] = None
+  private var numericalInfo: Option[CfgResult[NumericalStateType]] = None
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
@@ -190,7 +190,7 @@ object Context {
     *
     * @param aliases The result of the alias analysis to set.
     */
-  def setAliases(method: String, aliases: Option[TrackingCFGState[_ <: AliasAnalysisState[_]]]): Unit = {
+  def setAliases(method: String, aliases: Option[CfgResult[_ <: AliasAnalysisState[_]]]): Unit = {
     aliasesPerMethod += method -> aliases
   }
 
@@ -204,7 +204,7 @@ object Context {
     * @return The state of the alias analysis before the given program point.
     */
   def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.preStateAt(position(pp)).asInstanceOf[A]
+    aliases.get.preStateAt(pp).asInstanceOf[A]
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -214,14 +214,14 @@ object Context {
     * @return The state of the alias analysis after the given program point.
     */
   def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.postStateAt(position(pp)).asInstanceOf[A]
+    aliases.get.postStateAt(pp).asInstanceOf[A]
 
   /**
     * Sets the result of the numerical analysis.
     *
     * @param numericalInfo The result of the numerical analysis to set.
     */
-  def setNumericalInfo(method: String, numericalInfo: TrackingCFGState[NumericalStateType]): Unit = {
+  def setNumericalInfo(method: String, numericalInfo: CfgResult[NumericalStateType]): Unit = {
     numericalInfoPerMethod += method -> Some(numericalInfo)
   }
 
@@ -234,7 +234,7 @@ object Context {
     * @return The state of the numerical analysis before the given program point.
     */
   def preNumericalInfo(pp: ProgramPoint): NumericalStateType =
-    numericalInfo.get.preStateAt(position(pp))
+    numericalInfo.get.preStateAt(pp)
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -243,23 +243,7 @@ object Context {
     * @return The state of the alias analysis after the given program point.
     */
   def postNumericalInfo(pp: ProgramPoint): NumericalStateType =
-    numericalInfo.get.postStateAt(position(pp))
-
-  /**
-    * Returns the cfg position corresponding to the given program point.
-    *
-    * @param pp The program point.
-    * @return The cfg position corresponding to the given program point.
-    */
-  private def position(pp: ProgramPoint): CFGPosition = {
-    val cfg = numericalInfo.get.cfg
-    val positions = for {
-      (block, i) <- cfg.nodes.zipWithIndex
-      (statement, j) <- block.zipWithIndex
-      if statement.getPC() == pp
-    } yield CFGPosition(i, j)
-    if (positions.nonEmpty) positions.head else null
-  }
+    numericalInfo.get.postStateAt(pp)
 }
 
 object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()

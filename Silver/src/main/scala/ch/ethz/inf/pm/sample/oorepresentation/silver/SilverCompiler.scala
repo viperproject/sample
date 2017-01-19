@@ -74,8 +74,7 @@ class SilverCompiler {
   def allMethods: Seq[SilverMethodDeclaration] =
     program.methods
 
-  def getNativeMethodsSemantics =
-    ArithmeticAndBooleanNativeMethodSemantics :: RichNativeMethodSemantics :: QuantifiedPermissionMethodSemantics :: SilverSemantics :: Nil
+  def getNativeMethodSemantics: List[NativeMethodSemantics] = ArithmeticAndBooleanNativeMethodSemantics :: RichNativeMethodSemantics :: QuantifiedPermissionMethodSemantics :: SilverSemantics :: Nil
 
 }
 

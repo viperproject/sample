@@ -10,6 +10,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult, SampleCfg}
 import viper.silver.{ast => sil}
 
+import scala.collection.Seq
+
 /**
   * A trait used to mix into a states in order to provide inferred
   * specifications for the program extender.
@@ -166,6 +168,15 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @return The modified list of fields.
     */
   def fields(existing: Seq[sil.Field], state: S): Seq[sil.Field]
+
+  /**
+    * Modifies the list of formal arguments using information stored in the
+    * current state.
+    *
+    * @param existing The list of existing formal arguments.
+    * @return The modified list of formal arguments
+    */
+  def formalArguments(existing: Seq[sil.LocalVarDecl], state: S): Seq[sil.LocalVarDecl]
 
   /* ------------------------------------------------------------------------- *
    * Helper Functions

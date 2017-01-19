@@ -216,7 +216,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case sil.Goto(_) |
          sil.If(_, _, _) |
-         sil.Label(_, _) |
+         _: sil.Label |
          sil.While(_, _, _, _) =>
       sys.error(s"unexpected statement $s (should not be part of the CFG)")
   }

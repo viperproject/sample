@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePe
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Permission, PermissionTree}
-import viper.silver.ast.Method
+import viper.silver.ast.{LocalVarDecl, Method}
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
@@ -85,6 +85,8 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     */
   override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
     extendSpecifications(existing, state)
+
+  override def formalArguments(existing: Seq[LocalVarDecl], state: T) = existing
 
   /**
     * Modifies the list of fields of a new statement using specifications

@@ -7,11 +7,10 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType, RefType}
-import ch.ethz.inf.pm.sample.permissionanalysis.DummyRefType
-import viper.silicon.Silicon
-import viper.silver.verifier.Success
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import viper.silicon.Silicon
+import viper.silver.verifier.VerificationResult
 import viper.silver.{ast => sil}
 
 /**
@@ -49,14 +48,15 @@ object Utils {
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
     println(newProgram)
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.config.initialize { case _ => silicon.config.initialized = true }
-    silicon.start()
-    silicon.verify(newProgram) match {
-      case Success => true
-      case _ => false
-    }
+//    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+//    silicon.parseCommandLine(Seq("dummy.sil"))
+//    silicon.config.initialize { case _ => silicon.config.initialized = true }
+//    silicon.start()
+//    silicon.verify(newProgram) match {
+//      case Success => true
+//      case _ => false
+//    }
+    false
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {
@@ -187,7 +187,7 @@ object Utils {
     case BinaryBooleanExpression(`falseConst`, other, BooleanOperator.||) => other
     case BinaryBooleanExpression(other, `falseConst`, BooleanOperator.||) => other
     case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
-    case BinaryBooleanExpression(left, right, op) if left == right => left
+    case BinaryBooleanExpression(left, right, _) if left == right => left
     case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => const(toComparisonOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => const(toArithmeticOp(op)(left.toInt, right.toInt))
