@@ -113,7 +113,6 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
       case PostconditionBlock(posts) => posts
       case PreconditionBlock(pres) => pres
     }
-    println(s"BLOCK: $block, $stmts")
     var nextState: QuantifiedPermissionsState = exitState
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
       newStates = nextState +: newStates
@@ -131,7 +130,6 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     } else {
       newStates = nextState +: newStates
     }
-    println(newStates.map(state => state.currentPP))
     cfgResult.setStates(block, newStates.toList)
   }
 

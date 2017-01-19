@@ -200,7 +200,6 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           newInvariants :+= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
     }
-    println(state)
     val numDom: NumericalDomain[_] = Context.postNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
@@ -305,7 +304,6 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     val quantifiedPermissionsInterpreter = new QPInterpreter
     val quantifiedPermissionsResult = quantifiedPermissionsInterpreter.execute(method.body, quantifiedPermissionsEntry)
 
-    quantifiedPermissionsResult.print()
     quantifiedPermissionsResult
   }
 }
