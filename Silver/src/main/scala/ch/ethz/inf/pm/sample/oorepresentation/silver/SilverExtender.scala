@@ -70,6 +70,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     val entryState = cfgResult.entryState()
     val exitState = cfgResult.exitState()
 
+    val extendedFormalArgs = formalArguments(method.formalArgs, entryState)
     val extendedPreconditions = preconditions(method.pres, entryState)
     val extendedPostconditions = postconditions(method.posts, exitState)
     val extendedBody = extendStatement(method.body, cfgResult)
@@ -78,6 +79,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
 
     // return extended method
     method.copy(
+      formalArgs = extendedFormalArgs,
       _pres = extendedPreconditions,
       _posts = extendedPostconditions,
       _body = extendedBody

@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.cfg.{ConditionalEdge, Kind, LoopHeadBlock, StatementBlock}
+import viper.silver.cfg._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -80,10 +80,18 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
         else exitEdges.size match {
           case 1 => cfgResult.getStates(cfg.outEdges(currentBlock).head.target).head
           case 2 =>
-            val (edge1, edge2) = (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
+            // TODO: With the new CFG this became very hacky, we can probably improve this...
+            val (edge1, edge2) = (exitEdges.head.kind match {
+              case Kind.In => (exitEdges.head, exitEdges.last)
+              case _ => (exitEdges.last, exitEdges.head)
+            }) match {
+              case (one, two) => (one.asInstanceOf[ConditionalEdge[Statement, Statement]], two.asInstanceOf[ConditionalEdge[Statement, Statement]])
+            }
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
-            val cond = edge1.condition.forwardSemantics(state1.lub(state2)).expr
-            state1.lub(state2, cond)
+            val tempState = edge1.condition.backwardSemantics(state1.lub(state2))
+            val cond = tempState.expr
+            val pp = tempState.currentPP
+            state1.lub(state2, cond).before(pp).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates = cfgResult.getStates(currentBlock)
@@ -97,13 +105,15 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     cfgResult
   }
 
-  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgState: CfgResult[QuantifiedPermissionsState]): Unit = {
+  private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgResult: CfgResult[QuantifiedPermissionsState]): Unit = {
     var newStates = ListBuffer[QuantifiedPermissionsState]()
     val stmts: Seq[Statement] = block match {
       case StatementBlock(statements) => statements
       case LoopHeadBlock(invariants, statements) => invariants ++ statements
-      case _ => Seq()
+      case PostconditionBlock(posts) => posts
+      case PreconditionBlock(pres) => pres
     }
+    println(s"BLOCK: $block, $stmts")
     var nextState: QuantifiedPermissionsState = exitState
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
       newStates = nextState +: newStates
@@ -114,14 +124,15 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
 //      logger.info(prevState.toString)
       nextState = prevState
     }
-    if (cfgState.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
-      val blockStates: Seq[QuantifiedPermissionsState] = cfgState.getStates(block)
+    if (cfgResult.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
+      val blockStates: Seq[QuantifiedPermissionsState] = cfgResult.getStates(block)
       nextState = blockStates.head widening nextState
       newStates = nextState +: newStates
     } else {
       newStates = nextState +: newStates
     }
-    cfgState.setStates(block, newStates.toList)
+    println(newStates.map(state => state.currentPP))
+    cfgResult.setStates(block, newStates.toList)
   }
 
 }
