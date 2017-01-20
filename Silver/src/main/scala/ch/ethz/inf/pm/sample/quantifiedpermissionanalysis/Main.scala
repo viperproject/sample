@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, StdOutOutput, SystemParameters}
+import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -78,7 +78,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
       case _ => false
     })) {
       val rdAmount = Context.getRdAmountVariable.localVar
-      val readPaths = state.permissions.flatMap { case (_, tree) => tree.getReadPaths }.toSet
+      val readPaths = state.permissions.flatMap { case (_, tree) => tree.getReadAmounts }.toSet
       if (readPaths.nonEmpty) {
         var min = getMaxRdValue(readPaths.head._1, readPaths.head._2)
         readPaths.foreach { cur => if (getMaxRdValueTupled(cur) < min) min = getMaxRdValueTupled(cur) }
@@ -106,7 +106,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           case other => other
         }
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toParameterQuantification(state, quantifiedVariable))())()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))())()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newPreconditions :+= forall
       } else {
@@ -174,7 +174,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           case other => other
         }
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toParameterQuantification(state, quantifiedVariable))())()
+        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))())()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newInvariants :+= forall
       } else {
