@@ -72,7 +72,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
   override def preconditions(existing: Seq[sil.Exp], state: QuantifiedPermissionsState): Seq[sil.Exp] = {
     var newPreconditions = existing
     if (state.permissions.exists((arg) => arg._2.exists {
-      case PermissionLeaf(_, _: SymbolicReadPermission) => true
+      case PermissionLeaf(_, SymbolicReadPermission) => true
       case _ => false
     })) {
       val rdAmount = Context.getRdAmountVariable.localVar
@@ -224,7 +224,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
   override def formalArguments(existing: Seq[sil.LocalVarDecl], state: QuantifiedPermissionsState): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
     if (state.permissions.exists((arg) => arg._2.exists {
-      case PermissionLeaf(_, _: SymbolicReadPermission) => true
+      case PermissionLeaf(_, SymbolicReadPermission) => true
       case _ => false
     })) {
       val rdAmount = Context.getRdAmountVariable

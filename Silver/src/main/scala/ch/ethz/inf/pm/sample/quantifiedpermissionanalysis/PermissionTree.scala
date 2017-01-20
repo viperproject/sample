@@ -143,10 +143,6 @@ case class PermissionAddition(permissions: Seq[PermissionTree]) extends Permissi
   override def sub(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(PermissionLeaf(receiver, NegativePermission(permission)) +: permissions)
   def transform(f: (Expression => Expression)) = PermissionAddition(permissions.map(_.transform(f)))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
-//  override def undoLastRead: PermissionTree = this match {
-//    case PermissionAddition(_ :: Nil) => EmptyPermissionTree
-//    case PermissionAddition(perms) => PermissionAddition(perms.init)
-//  }
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
   def getReadAmounts: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(_.getReadAmounts).reduceLeft[(FractionalPermission, Int)] {
     case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
@@ -190,7 +186,7 @@ case class Maximum(permissions: Seq[PermissionTree])
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
   override def max(other: PermissionTree): PermissionTree = Maximum(other +: permissions)
   override def undoLastRead: PermissionTree = permissions match {
-    case PermissionLeaf(_, _: SymbolicReadPermission) :: rest => Maximum(rest)
+    case PermissionLeaf(_, SymbolicReadPermission) :: rest => Maximum(rest)
     case _ => throw new IllegalStateException("To undo a read, the last max'ed permission to this tree has to be a symbolic read permission!")
   }
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
@@ -249,9 +245,12 @@ case class FractionalPermission(numerator: Int, denominator: Int) extends Simple
   }
 }
 
-case class SymbolicReadPermission(toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar, getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)) extends Permission
+case object SymbolicReadPermission extends SimplePermission {
+  override def toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar
+  def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)
+}
 
-object WritePermission extends SimplePermission {
+case object WritePermission extends SimplePermission {
   override def toSilExpression: sil.Exp = sil.FullPerm()()
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
 }

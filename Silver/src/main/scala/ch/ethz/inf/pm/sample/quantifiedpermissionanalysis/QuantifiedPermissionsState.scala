@@ -229,7 +229,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
     val newPermissions =
-      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission())
+      if (!visited.contains(currentPP)) permissions.max(field, ExpressionDescription(currentPP, obj), SymbolicReadPermission)
       else permissions
     val newRefSets = refSets ++ extractExpressionDescriptions(obj).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
     copy(
