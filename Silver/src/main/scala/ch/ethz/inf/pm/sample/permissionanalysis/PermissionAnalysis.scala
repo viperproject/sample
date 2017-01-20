@@ -98,14 +98,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   lazy val paths: List[AccessPath] =
     fold(List.empty[AccessPath]) { case (list, (path, _)) => path :: list }
 
-  private def tuples(f: (AccessPath, PermissionTree) => Permission): Tuples =
-    fold(List.empty[Tuple]) {
-      case (list, (path, tree)) => (path, f(path, tree)) :: list
-    }.filter {
-      case (path, permission) => path.length > 1 && permission.isSome
-    }
-
-
   /**
     * Processes the given precondition.
     *
@@ -786,7 +778,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 }
 
 object PermissionAnalysisState {
-
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
@@ -804,7 +795,6 @@ object PermissionAnalysisState {
                       isTop: Boolean): SimplePermissionAnalysisState =
       SimplePermissionAnalysisState(currentPP, fields, result, permissions, inferred, isBottom, isTop)
   }
-
 }
 
 trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
