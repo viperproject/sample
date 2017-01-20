@@ -215,30 +215,31 @@ object ReferenceSetDescription {
           parameters.foldLeft[Option[sil.Exp]](None) {
             case (None, e) if e.typ == IntType =>
               val quantifiedVariableIdentifier = VariableIdentifier(quantifiedVariable.name)(IntType)
-              Utils.toCNFConjuncts(forget(quantifiedVariableIdentifier, e))
-                .toSeq
-                .map(constraint => constraint.transform {
-                  // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
-                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
-                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<)
-                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<=) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>=)
-                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>)
-                  case other => other
-                })
-                .sorted (new Ordering[Expression] {
-                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10] which looks like an interval and thus more intuitive
-                  override def compare(x: Expression, y: Expression): Int = (x, y) match {
-                    case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
-                    case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
-                    case _ => 0
-                  }
-                })
-                .map(constraint => DefaultSampleConverter.convert(constraint))
-                .reduceLeftOption((left, right) => sil.And(left, right)())
-              match {
-                case Some(expr) => Some(expr)
-                case None => Some(sil.TrueLit()())
-              }
+//              Utils.toCNFConjuncts(forget(quantifiedVariableIdentifier, e))
+//                .toSeq
+//                .map(constraint => constraint.transform {
+//                  // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
+//                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
+//                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<)
+//                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<=) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>=)
+//                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>)
+//                  case other => other
+//                })
+//                .sorted (new Ordering[Expression] {
+//                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10] which looks like an interval and thus more intuitive
+//                  override def compare(x: Expression, y: Expression): Int = (x, y) match {
+//                    case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
+//                    case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
+//                    case _ => 0
+//                  }
+//                })
+//                .map(constraint => DefaultSampleConverter.convert(constraint))
+//                .reduceLeftOption((left, right) => sil.And(left, right)())
+//              match {
+//                case Some(expr) => Some(expr)
+//                case None => Some(sil.TrueLit()())
+//              }
+              Some(DefaultSampleConverter.convert(forget(quantifiedVariableIdentifier, e)))
             case (Some(_), e) if e.typ == IntType => throw new IllegalStateException("Encountered two or more int arguments")
             case _ => None
           }
