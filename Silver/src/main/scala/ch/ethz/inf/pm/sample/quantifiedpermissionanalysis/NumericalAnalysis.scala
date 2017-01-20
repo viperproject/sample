@@ -76,11 +76,11 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
       if (newNumDom.isBottom){
         newNumDom = newNumDom.removeVariable(x).createVariable(x)
       }
-      val after = copy(numDom = newNumDom)
-      println(s"left: $x, right: $right, before: $numDom, after: $newNumDom")
-      after
+      copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
   }
+
+  override def toString = numDom.toString
 
   /** Assigns an expression to a field of an object.
     *

@@ -270,8 +270,6 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.setNumericalInfo(method.name.name.toString, numericalResult)
 
-    numericalResult.print()
-
     val quantifiedPermissionsEntry = QuantifiedPermissionsState()
     val quantifiedPermissionsInterpreter = new QPInterpreter
     val quantifiedPermissionsResult = quantifiedPermissionsInterpreter.execute(method.body, quantifiedPermissionsEntry)
