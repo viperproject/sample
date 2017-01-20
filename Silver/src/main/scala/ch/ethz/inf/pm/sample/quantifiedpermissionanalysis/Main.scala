@@ -9,15 +9,12 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
-
-import scala.collection.mutable
 
 /**
   * @author Severin Münger
@@ -246,36 +243,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
                                       numericalAnalysisBuilder: Context.NumericalStateBuilderType)
   extends SilverAnalysis[QuantifiedPermissionsState] with LazyLogging {
 
-  var loopHeads: Set[Int] = Set[Int]()
-
-  def preprocessGraph(cfg: ControlFlowGraph): mutable.LinkedHashSet[Int] = {
-    val (loopHeads, flowOrder) = findLoops(ForwardInterpreter.startBlockId, cfg, Set())
-    this.loopHeads = loopHeads
-    flowOrder
-  }
-
-  def findLoops(currentNode: Int, cfg: ControlFlowGraph, visited: Set[Int]): (Set[Int], mutable.LinkedHashSet[Int]) = {
-    if (visited.contains(currentNode)) {
-      return (Set[Int](currentNode), mutable.LinkedHashSet[Int]())
-    }
-    val successors: List[Int] = cfg.exitEdges(currentNode).toList.sortWith {
-      case ((_, _, Some(false)), _) => true
-      case _ => false
-    }.map(edge => edge._2)
-    var loopHeads = Set[Int]()
-    var flowOrder = mutable.LinkedHashSet[Int]()
-    for (nextNode <- successors) {
-      val (lNodes, fOrder) = findLoops(nextNode, cfg, visited + currentNode)
-      loopHeads = loopHeads ++ lNodes
-      flowOrder = flowOrder ++ fOrder
-    }
-    flowOrder += currentNode
-    (loopHeads, flowOrder)
-  }
-
   def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[QuantifiedPermissionsState] = {
-
-    loopHeads = Set[Int]()
 
     Context.clearMethodSpecificInfo()
 
@@ -289,7 +257,9 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
         val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
         Some(aliasResult)
       } catch {
-        case _: IllegalArgumentException => None
+        case _: IllegalArgumentException =>
+          println("Warning: Heap analysis failed!")
+          None
       }
 
     Context.setAliases(method.name.name.toString, aliasAnalysisResult)

@@ -196,16 +196,10 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
   }
 
   /** Performs abstract garbage collection. */
-  override def pruneUnreachableHeap(): T = {
-    // Nothing to do here
-    this
-  }
+  override def pruneUnreachableHeap(): T = throw new UnsupportedOperationException()
 
   /** Removes all variables satisfying filter. */
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = {
-    // Nothing to do here
-    this
-  }
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = throw new UnsupportedOperationException()
 
   /** Removes the current expression.
     *
@@ -219,10 +213,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param x     The assigned argument
     * @param right The expression to be assigned
     * @return The abstract state after the assignment*/
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = {
-    // Nothing to do here
-    this
-  }
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): T = throw new UnsupportedOperationException()
 
   /** Sets the current expression.
     *
@@ -238,7 +229,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the thrown*/
   override def throws(t: ExpressionSet): T = throw new UnsupportedOperationException()
 
-  override def ids: IdentifierSet = throw new UnsupportedOperationException()
+  override def ids: IdentifierSet = numDom.ids
 
   /** Returns a new instance of the lattice.
     *
@@ -312,20 +303,11 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
 
 object NumericalAnalysisState
 {
-  /** The default implementation of the alias analysis state.
-    *
-    * @param numDom           The numerical domain lattice element.
-    */
   case class PolyhedraAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                     expr: ExpressionSet = ExpressionSet(),
                                     numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom.factory())
     extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
   {
-    /**
-      *
-      * @param numDom           The numerical domain lattice element.
-      * @return The updated copy of the alias analysis state.
-      */
     override def copy(currentPP: ProgramPoint = currentPP,
                       expr: ExpressionSet = expr,
                       numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =

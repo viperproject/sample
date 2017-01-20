@@ -26,8 +26,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       permissions: PermissionRecords = PermissionRecords(),
                                       changingVars: Set[Identifier] = Set(),
                                       declaredBelowVars: Set[Identifier] = Set(),
-                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map()
-                                      )
+                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification[Any]

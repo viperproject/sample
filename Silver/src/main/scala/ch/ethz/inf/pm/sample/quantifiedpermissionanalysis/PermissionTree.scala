@@ -127,6 +127,7 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     case other => Set(other.getReadPerm)
   }
   override def simplify: PermissionTree = this
+  override def undoLastRead: PermissionTree = EmptyPermissionTree
 }
 
 case class PermissionAddition(permissions: Seq[PermissionTree]) extends PermissionTree {

@@ -53,7 +53,7 @@ object Utils {
 //      case Success => true
 //      case _ => false
 //    }
-    false
+    true
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {
