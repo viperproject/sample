@@ -67,14 +67,18 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = x match {
     case x: VariableIdentifier =>
-      var newNumDom: N = right match {
-        case _: AccessPathIdentifier => numDom.removeVariable(x).createVariable(x)
-        case _ => numDom.assign(x, right)
+      // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
+      var newNumDom = if (!numDom.ids.contains(x)) numDom.createVariable(x) else numDom
+      newNumDom = right match {
+        case _: AccessPathIdentifier => newNumDom.removeVariable(x).createVariable(x)
+        case _ => newNumDom.assign(x, right)
       }
       if (newNumDom.isBottom){
-        newNumDom = numDom.removeVariable(x).createVariable(x)
+        newNumDom = newNumDom.removeVariable(x).createVariable(x)
       }
-      copy(numDom = newNumDom)
+      val after = copy(numDom = newNumDom)
+      println(s"left: $x, right: $right, before: $numDom, after: $newNumDom")
+      after
     case _ => throw new IllegalStateException()
   }
 
@@ -140,6 +144,17 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after assuming that the expression holds*/
   override def assume(cond: Expression): T = cond match {
     case _: BinaryArithmeticExpression =>
+      val ids = cond.ids.toSetOrFail.filter {
+        case _: VariableIdentifier => true
+        case _ => false
+      }
+      var newNumDom = numDom
+      // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
+      ids.foreach {
+        case id: VariableIdentifier =>
+          if (!newNumDom.ids.contains(id))
+            newNumDom = newNumDom.createVariable(id)
+      }
       val newCond = cond.transform {
         case BinaryArithmeticExpression(_: FieldExpression, _, _) |
              BinaryArithmeticExpression(_, _: FieldExpression, _) |
@@ -148,10 +163,10 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
           Constant("true", BoolType)
         case e => e
       }
-      val newNumDom = numDom.assume(newCond)
+      newNumDom = newNumDom.assume(newCond)
       if (newNumDom.isBottom) this
       else copy(numDom = newNumDom)
-    case _ => this
+    case _ => copy(numDom = numDom.assume(cond))
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -329,8 +344,7 @@ object NumericalAnalysisState
 trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
   extends SilverEntryStateBuilder[T] {
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
-    val initial = top.copy()
-    method.initializeArgument(initial)
+    top.copy()
   }
 }
 
