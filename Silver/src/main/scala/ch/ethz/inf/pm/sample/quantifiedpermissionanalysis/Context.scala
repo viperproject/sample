@@ -7,12 +7,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.execution.{CfgResult, TrackingCFGState}
+import ch.ethz.inf.pm.sample.execution.CfgResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -22,22 +21,6 @@ import scala.collection._
   *         Added on 29/10/16.
   */
 object Context {
-
-  type NumericalDomainType = Apron.Polyhedra
-
-  type NumericalStateType = PolyhedraAnalysisState
-
-  type NumericalStateBuilderType = PolyhedraAnalysisEntryState.type
-
-  val numericalStateBuilder = PolyhedraAnalysisEntryState
-
-//  type NumType = IntegerOctagons
-//
-//  type NumericalStateType = OctagonAnalysisState
-//
-//  type NumericalStateBuilderType = OctagonAnalysisEntryState.type
-//
-//  val numericalStateBuilder = OctagonAnalysisEntryState
 
   var program: sil.Program = _
 

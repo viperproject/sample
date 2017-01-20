@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.{ast => sil}
 
 /**
@@ -26,7 +27,7 @@ object Utils {
     case _ => gcd(b, a % b)
   }
 
-  def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: Context.NumericalDomainType, program: sil.Program = Context.program): Boolean = {
+  def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: NumericalDomainType, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)
     val formalArgs = function.formalArgs.filter(formalArg => formalArg.typ != sil.Int) ++ intDecls

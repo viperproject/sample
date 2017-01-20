@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -44,7 +45,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     super.extendMethod(method, cfgResult)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, Context.numericalStateBuilder)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, numericalStateBuilder)
 
   private def toSilPerm(perm: FractionalPermission): sil.PermExp = perm match {
     case FractionalPermission(1, 1) => sil.FullPerm()()
@@ -240,7 +241,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
 }
 
 case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
-                                      numericalAnalysisBuilder: Context.NumericalStateBuilderType)
+                                      numericalAnalysisBuilder: NumericalStateBuilderType)
   extends SilverAnalysis[QuantifiedPermissionsState] with LazyLogging {
 
   def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[QuantifiedPermissionsState] = {
@@ -265,7 +266,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     Context.setAliases(method.name.name.toString, aliasAnalysisResult)
 
     val numericalEntry = numericalAnalysisBuilder.build(program, method)
-    val numericalInterpreter = FinalResultForwardInterpreter[Context.NumericalStateType]()
+    val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
     val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
 
     Context.setNumericalInfo(method.name.name.toString, numericalResult)

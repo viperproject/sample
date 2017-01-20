@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DomType, IntType, RefType}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
@@ -450,7 +451,7 @@ object NegativeReferenceSetDescription {
         ((widened && other.widened) || other.concreteExpressions.subsetOf(concreteExpressions))
 
     override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
-      val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
+      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
       val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
       val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
       QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
@@ -512,7 +513,7 @@ object PositiveReferenceSetDescription {
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
 
     override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
-      val numericalInfo: Context.NumericalDomainType = Context.postNumericalInfo(pp).numDom
+      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
       val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
       val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
       QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
