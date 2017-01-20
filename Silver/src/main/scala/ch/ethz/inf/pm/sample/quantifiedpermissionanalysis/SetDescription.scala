@@ -497,7 +497,10 @@ object PositiveReferenceSetDescription {
     override def lubInner(other: ReferenceSetDescription.Inner): Inner =
       copy(
         widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions
+        concreteExpressions = (concreteExpressions ++ other.concreteExpressions).filter {
+          case (expr, true) => !concreteExpressions.contains((expr, false)) && !other.concreteExpressions.contains((expr, false))
+          case _ => true
+        }
       )
 
     override def glbInner(other: ReferenceSetDescription.Inner): Inner =
