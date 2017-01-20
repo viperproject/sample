@@ -11,7 +11,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.Inner
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
 /**
@@ -37,8 +36,8 @@ trait PermissionTree {
 }
 
 case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTree {
-  override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: LocalVar): Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
-  override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toParameterQuantification(state, quantifiedVariable)))()
+  override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
+  override def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toParameterQuantification(state, quantifiedVariable)))()
   override def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = child.canBeExpressedByIntegerQuantification(expressions)
   override def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[Inner] = child.getSetDescriptions(expressions)
   override def transform(f: (Expression) => Expression): PermissionTree = ZeroBoundedPermissionTree(child.transform(f))
@@ -192,11 +191,11 @@ case class FractionalPermission(numerator: Int, denominator: Int) extends Simple
 case class SymbolicReadPermission(toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar, getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)) extends Permission
 
 object WritePermission extends SimplePermission {
-  override def toSilExpression: Exp = sil.FullPerm()()
+  override def toSilExpression: sil.Exp = sil.FullPerm()()
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
 }
 
 object ZeroPermission extends SimplePermission {
-  override def toSilExpression: Exp = sil.NoPerm()()
+  override def toSilExpression: sil.Exp = sil.NoPerm()()
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 0)
 }
