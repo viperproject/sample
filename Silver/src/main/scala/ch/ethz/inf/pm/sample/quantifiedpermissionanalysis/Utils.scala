@@ -9,8 +9,6 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
-import viper.silicon.Silicon
-import viper.silver.verifier.VerificationResult
 import viper.silver.{ast => sil}
 
 /**
@@ -47,7 +45,6 @@ object Utils {
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
-    println(newProgram)
 //    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
 //    silicon.parseCommandLine(Seq("dummy.sil"))
 //    silicon.config.initialize { case _ => silicon.config.initialized = true }

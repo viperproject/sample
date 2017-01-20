@@ -25,7 +25,7 @@ trait PermissionTree {
   def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(Seq(PermissionLeaf(receiver, permission), this))
   def sub(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(Seq(PermissionLeaf(receiver, NegativePermission(permission)), this))
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner]
-  def max(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = Maximum(Seq(PermissionLeaf(receiver, permission), this))
+  def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
   def condition(cond: Expression, elsePermissions: PermissionTree) = Condition(cond, this, elsePermissions)
   def transform(f: (Expression => Expression)): PermissionTree
   def exists(f: (PermissionTree => Boolean)): Boolean
@@ -133,7 +133,7 @@ case class Maximum(permissions: Seq[PermissionTree])
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = permissions.map(permission => permission.getSetDescriptions(expressions)).reduce(_ ++ _)
   def transform(f: (Expression => Expression)) = Maximum(permissions.map(permission => permission.transform(f)))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
-  override def max(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = Maximum(PermissionLeaf(receiver, permission) +: permissions)
+  override def max(other: PermissionTree): PermissionTree = Maximum(other +: permissions)
   override def undoLastRead: PermissionTree = if (permissions.size == 2) permissions.last else Maximum(permissions.tail)
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
   def getReadPaths: Set[(FractionalPermission, Int)] = permissions.map(_.getReadPaths).reduce(_ ++ _)
@@ -143,7 +143,7 @@ case class Maximum(permissions: Seq[PermissionTree])
 object EmptyPermissionTree extends PermissionTree {
   override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionLeaf(receiver, permission)
   override def sub(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionLeaf(receiver, NegativePermission(permission))
-  override def max(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionLeaf(receiver, permission)
+  override def max(other: PermissionTree): PermissionTree = other
   override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
   def toParameterQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = true
