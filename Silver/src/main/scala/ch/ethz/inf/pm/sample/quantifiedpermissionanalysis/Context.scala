@@ -71,13 +71,13 @@ object Context {
   def setProgram(program: sil.Program): Unit = {
     this.program = program
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
-    identifiers ++= program.fields.map(field => field.name)
-    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
-    identifiers ++= program.methods.map(method => method.name)
-    identifiers ++= program.domains.map(domain => domain.name)
-    identifiers ++= program.functions.map(function => function.name)
-    identifiers ++= program.predicates.map(predicates => predicates.name)
-    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(axiom => axiom.name) ++ domain.functions.map(function => function.name))
+    identifiers ++= program.fields.map(_.name)
+    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(_.name)
+    identifiers ++= program.methods.map(_.name)
+    identifiers ++= program.domains.map(_.name)
+    identifiers ++= program.functions.map(_.name)
+    identifiers ++= program.predicates.map(_.name)
+    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(_.name) ++ domain.functions.map(_.name))
     programFunctions ++= program.functions.map(function => (function.name, function))
     programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
   }
@@ -93,7 +93,7 @@ object Context {
         rdAmountVariable = None
       case None =>
     }
-    identifiers --= quantifiedVariables.values.flatten.map(varDecl => varDecl.name)
+    identifiers --= quantifiedVariables.values.flatten.map(_.name)
     quantifiedVariables = Map()
     sets = Map()
   }

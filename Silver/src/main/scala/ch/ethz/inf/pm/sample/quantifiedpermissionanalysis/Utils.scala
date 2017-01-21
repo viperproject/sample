@@ -39,8 +39,8 @@ object Utils {
     val constraints2 = numericalInfo.createVariable(i2Id).assume(expressionToAssume2).removeVariables(numericalInfo.ids.getNonTop).getConstraints(Set(i2Id))
     val precondition =
       (Seq(sil.NeCmp(i1.localVar, i2.localVar)()) ++
-      constraints1.map(expr => DefaultSampleConverter.convert(expr)) ++
-      constraints2.map(expr => DefaultSampleConverter.convert(expr))).reduceLeft((left, right) => sil.And(left, right)())
+      constraints1.map(DefaultSampleConverter.convert) ++
+      constraints2.map(DefaultSampleConverter.convert)).reduceLeft(sil.And(_, _)())
     val postcondition = sil.NeCmp(
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()

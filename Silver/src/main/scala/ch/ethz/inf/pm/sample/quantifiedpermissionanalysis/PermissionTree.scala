@@ -93,6 +93,16 @@ trait PermissionTree {
   def simplify: PermissionTree
 }
 
+trait SequencePermissionTree extends PermissionTree {
+  def permissions: Seq[PermissionTree]
+  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
+  def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
+  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
+    permissions.forall(_.canBeExpressedByIntegerQuantification(expressions))
+  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
+    permissions.toSet.flatMap((p: PermissionTree) => p.getSetDescriptions(expressions))
+}
+
 case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTree {
   override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
   override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toIntegerQuantification(state, quantifiedVariable)))()
@@ -130,25 +140,19 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
   override def undoLastRead: PermissionTree = EmptyPermissionTree
 }
 
-case class PermissionAddition(permissions: Seq[PermissionTree]) extends PermissionTree {
+case class PermissionAddition(permissions: Seq[PermissionTree]) extends SequencePermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     permissions.map(_.toSilExpression(state, quantifiedVar)).reduce((left, right) => sil.PermAdd(left, right)())
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     permissions.map(_.toIntegerQuantification(state, quantifiedVariable)).reduce((left, right) => sil.PermAdd(left, right)())
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
-    permissions.forall(_.canBeExpressedByIntegerQuantification(expressions))
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
-    permissions.toSet.flatMap((p: PermissionTree) => p.getSetDescriptions(expressions))
   override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(PermissionLeaf(receiver, permission) +: permissions)
   override def sub(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(PermissionLeaf(receiver, NegativePermission(permission)) +: permissions)
   def transform(f: (Expression => Expression)) = PermissionAddition(permissions.map(_.transform(f)))
-  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
-  def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
+  override def simplify: PermissionTree = PermissionAddition(permissions.map(_.simplify))
   def getReadAmounts: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(_.getReadAmounts).reduceLeft[(FractionalPermission, Int)] {
     case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
       (FractionalPermission.createReduced(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
   })
-  override def simplify: PermissionTree = PermissionAddition(permissions.map(_.simplify))
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
@@ -174,22 +178,17 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
   }
 }
 
-case class Maximum(permissions: Seq[PermissionTree])
-  extends PermissionTree {
+case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     permissions.map(_.toSilExpression(state, quantifiedVar)).reduce((left, right) => sil.FuncApp(Context.getMaxFunction, Seq(left, right))())
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     permissions.map(_.toIntegerQuantification(state, quantifiedVariable)).reduce((left, right) => sil.FuncApp(Context.getMaxFunction, Seq(left, right))())
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = permissions.forall(_.canBeExpressedByIntegerQuantification(expressions))
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = permissions.map(_.getSetDescriptions(expressions)).reduce(_ ++ _)
   def transform(f: (Expression => Expression)) = Maximum(permissions.map(_.transform(f)))
-  def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
   override def max(other: PermissionTree): PermissionTree = Maximum(other +: permissions)
   override def undoLastRead: PermissionTree = permissions match {
     case PermissionLeaf(_, SymbolicReadPermission) :: rest => Maximum(rest)
     case _ => throw new IllegalStateException("To undo a read, the last max'ed permission to this tree has to be a symbolic read permission!")
   }
-  def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
   def getReadAmounts: Set[(FractionalPermission, Int)] = permissions.map(_.getReadAmounts).reduce(_ ++ _)
   def simplify: PermissionTree = Maximum(permissions.distinct.flatMap {
     case Maximum(otherPerms) => otherPerms

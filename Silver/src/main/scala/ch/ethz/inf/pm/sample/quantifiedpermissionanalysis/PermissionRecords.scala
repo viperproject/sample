@@ -53,12 +53,6 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   def undoLastRead(field: String): PermissionRecords =
     copy(permissions.updated(field, permissions(field).undoLastRead))
 
-  def transformExpressions(f: (Expression => Expression)): PermissionRecords =
-    copy(permissions.transform { case (_, permissionTree) => permissionTree.transform(f) })
-
-  def existsPermissionTree(f: (PermissionTree => Boolean)): Boolean =
-    permissions.exists { case (_, permissionTree) => permissionTree.exists(f) }
-
   override def +[B1 >: PermissionTree](kv: (String, B1)): Map[String, B1] = permissions + kv
 
   def +(kv: (String, PermissionTree)): PermissionRecords = PermissionRecords(permissions + kv)

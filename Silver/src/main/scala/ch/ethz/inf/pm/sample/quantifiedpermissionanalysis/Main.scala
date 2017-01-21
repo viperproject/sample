@@ -223,7 +223,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     */
   override def formalArguments(existing: Seq[sil.LocalVarDecl], state: QuantifiedPermissionsState): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
-    if (state.permissions.exists((arg) => arg._2.exists {
+    if (state.permissions.exists(_._2.exists {
       case PermissionLeaf(_, SymbolicReadPermission) => true
       case _ => false
     })) {
