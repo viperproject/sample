@@ -45,7 +45,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     super.extendMethod(method, cfgResult)
   }
 
-  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState, numericalStateBuilder)
+  val analysis = ForwardAndBackwardAnalysis(AliasAnalysisEntryState)
 
   private def toSilPerm(perm: FractionalPermission): sil.PermExp = perm match {
     case FractionalPermission(1, 1) => sil.FullPerm()()
@@ -240,8 +240,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
   }
 }
 
-case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState],
-                                      numericalAnalysisBuilder: NumericalStateBuilderType)
+case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBuilder[SimpleAliasAnalysisState])
   extends SilverAnalysis[QuantifiedPermissionsState] with LazyLogging {
 
   def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[QuantifiedPermissionsState] = {
@@ -265,7 +264,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.setAliases(method.name.name.toString, aliasAnalysisResult)
 
-    val numericalEntry = numericalAnalysisBuilder.build(program, method)
+    val numericalEntry = numericalStateBuilder.build(program, method)
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
     val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
 

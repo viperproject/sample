@@ -11,6 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, Do
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder
 import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
@@ -274,7 +275,16 @@ object ReferenceSetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    def forget(variable: VariableIdentifier, exprToForget: Expression): Expression
+    def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
+      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
+      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
+      if (useQE) {
+        val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+        QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(ExpressionBuilder.and))
+      } else {
+        numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail).getConstraints(Set(variable)).reduce(ExpressionBuilder.and)
+      }
+    }
 
     override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
@@ -449,13 +459,6 @@ object NegativeReferenceSetDescription {
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       other.abstractExpressions.subsetOf(abstractExpressions) &&
         ((widened && other.widened) || other.concreteExpressions.subsetOf(concreteExpressions))
-
-    override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
-      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
-      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-      val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-      QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
-    }
   }
 }
 
@@ -514,12 +517,5 @@ object PositiveReferenceSetDescription {
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       abstractExpressions.subsetOf(other.abstractExpressions) &&
         ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
-
-    override def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
-      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
-      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-      val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-      QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(Utils.ExpressionBuilder.and))
-    }
   }
 }

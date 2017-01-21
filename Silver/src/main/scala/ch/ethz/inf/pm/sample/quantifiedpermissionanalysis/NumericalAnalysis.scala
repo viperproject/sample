@@ -80,7 +80,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     case _ => throw new IllegalStateException()
   }
 
-  override def toString = numDom.toString
+  override def toString: String = numDom.toString
 
   /** Assigns an expression to a field of an object.
     *
@@ -142,31 +142,32 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds*/
-  override def assume(cond: Expression): T = cond match {
-    case _: BinaryArithmeticExpression =>
-      val ids = cond.ids.toSetOrFail.filter {
-        case _: VariableIdentifier => true
-        case _ => false
-      }
-      var newNumDom = numDom
-      // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-      ids.foreach {
-        case id: VariableIdentifier =>
-          if (!newNumDom.ids.contains(id))
-            newNumDom = newNumDom.createVariable(id)
-      }
-      val newCond = cond.transform {
-        case BinaryArithmeticExpression(_: FieldExpression, _, _) |
-             BinaryArithmeticExpression(_, _: FieldExpression, _) |
-             FieldExpression(BoolType, _, _) |
-             _: ReferenceComparisonExpression =>
-          Constant("true", BoolType)
-        case e => e
-      }
-      newNumDom = newNumDom.assume(newCond)
-      if (newNumDom.isBottom) this
-      else copy(numDom = newNumDom)
-    case _ => copy(numDom = numDom.assume(cond))
+  override def assume(cond: Expression): T = {
+    val condCNFConjuncts = Utils.toCNFConjuncts(cond.transform {
+      case BinaryArithmeticExpression(_: FieldExpression, _, _) |
+           BinaryArithmeticExpression(_, _: FieldExpression, _) |
+           FieldExpression(BoolType, _, _) |
+           _: ReferenceComparisonExpression =>
+        Constant("true", BoolType)
+      case e => e
+    })
+    var newNumDom = numDom
+    condCNFConjuncts.foreach {
+      case conjunct: BinaryArithmeticExpression =>
+        val ids = conjunct.ids.toSetOrFail.filter {
+          case _: VariableIdentifier => true
+          case _ => false
+        }
+        // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
+        ids.foreach {
+          case id: VariableIdentifier =>
+            if (!newNumDom.ids.contains(id))
+              newNumDom = newNumDom.createVariable(id)
+        }
+        newNumDom = newNumDom.assume(conjunct)
+      case _ =>
+    }
+    copy(numDom = newNumDom)
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.

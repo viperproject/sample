@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.OctagonAnalysisState
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
 
 /**
   * @author Severin Münger
@@ -25,6 +25,8 @@ object QuantifiedPermissionsParameters {
 
   val includeBranchConditions = true
 
+  val useQE = false
+
   val useQESimplifications = true
 
   /**
@@ -32,20 +34,16 @@ object QuantifiedPermissionsParameters {
     * the natively supported IntegerOctagon domain for the numerical analysis.
     */
 
-//  type NumericalDomainType = Apron.Polyhedra
+  type NumericalDomainType = Apron.Polyhedra
+
+  type NumericalStateType = PolyhedraAnalysisState
+
+  val numericalStateBuilder = PolyhedraAnalysisEntryState
+
+//    type NumericalDomainType = IntegerOctagons
 //
-//  type NumericalStateType = PolyhedraAnalysisState
+//    type NumericalStateType = OctagonAnalysisState
 //
-//  type NumericalStateBuilderType = PolyhedraAnalysisEntryState.type
-//
-//  val numericalStateBuilder = PolyhedraAnalysisEntryState
-
-    type NumericalDomainType = IntegerOctagons
-
-    type NumericalStateType = OctagonAnalysisState
-
-    type NumericalStateBuilderType = OctagonAnalysisEntryState.type
-
-    val numericalStateBuilder = OctagonAnalysisEntryState
+//    val numericalStateBuilder = OctagonAnalysisEntryState
 
 }
