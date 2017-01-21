@@ -24,11 +24,11 @@ object Context {
 
   var program: sil.Program = _
 
-  val identifiers: mutable.Set[String] = mutable.Set()
+  var identifiers: Set[String] = Set()
 
-  val auxiliaryFunctions: mutable.Map[String, sil.Function] = mutable.Map()
+  var auxiliaryFunctions: Map[String, sil.Function] = Map()
 
-  val programFunctions: mutable.Map[String, sil.FuncLike] = mutable.Map()
+  var programFunctions: Map[String, sil.FuncLike] = Map()
 
   var maxFunction: Option[sil.Function] = None
 
@@ -38,9 +38,9 @@ object Context {
 
   var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
-  val fieldAccessFunctions: mutable.Map[String, sil.Function] = mutable.Map()
+  var fieldAccessFunctions: Map[String, sil.Function] = Map()
 
-  val sets: mutable.Map[(ProgramPoint, Expression), sil.LocalVarDecl] = mutable.Map()
+  private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
   private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_]]]] = Map()
 
@@ -58,7 +58,7 @@ object Context {
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
-      sets.put(key, sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))())
+      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
     sets(key)
   }
 
@@ -70,7 +70,16 @@ object Context {
 
   def setProgram(program: sil.Program): Unit = {
     this.program = program
-    initContext
+    // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
+    identifiers ++= program.fields.map(field => field.name)
+    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
+    identifiers ++= program.methods.map(method => method.name)
+    identifiers ++= program.domains.map(domain => domain.name)
+    identifiers ++= program.functions.map(function => function.name)
+    identifiers ++= program.predicates.map(predicates => predicates.name)
+    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(axiom => axiom.name) ++ domain.functions.map(function => function.name))
+    programFunctions ++= program.functions.map(function => (function.name, function))
+    programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
   }
 
   def functions(name: String): sil.FuncLike = {
@@ -86,20 +95,7 @@ object Context {
     }
     identifiers --= quantifiedVariables.values.flatten.map(varDecl => varDecl.name)
     quantifiedVariables = Map()
-    sets.clear()
-  }
-
-  private def initContext = {
-    // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
-    identifiers ++= program.fields.map(field => field.name)
-    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(varDecl => varDecl.name)
-    identifiers ++= program.methods.map(method => method.name)
-    identifiers ++= program.domains.map(domain => domain.name)
-    identifiers ++= program.functions.map(function => function.name)
-    identifiers ++= program.predicates.map(predicates => predicates.name)
-    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(axiom => axiom.name) ++ domain.functions.map(function => function.name))
-    programFunctions ++= program.functions.map(function => (function.name, function))
-    programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
+    sets = Map()
   }
 
   private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true) = {
@@ -240,14 +236,6 @@ object VarY extends sil.LocalVar("y")(sil.Perm)
 object ZeroPerm extends sil.NoPerm()()
 
 object WritePerm extends sil.FullPerm()()
-
-object ReadPermission extends Expression {
-  override def typ: Type = PermType
-  override def pp: ProgramPoint = DummyProgramPoint
-  override def ids: IdentifierSet = IdentifierSet.Bottom
-  override def transform(f: (Expression) => Expression): Expression = f(this)
-  override def contains(f: (Expression) => Boolean): Boolean = f(this)
-}
 
 case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
   override def typ: Type = expr.typ

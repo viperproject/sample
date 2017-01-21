@@ -264,8 +264,8 @@ object ReferenceSetDescription {
           case FieldExpression(typ, field, receiver) =>
             if (!Context.fieldAccessFunctions.contains(field)) {
               val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
-              Context.fieldAccessFunctions.put(field, fun)
-              Context.auxiliaryFunctions.put(fun.name, fun)
+              Context.fieldAccessFunctions += field -> fun
+              Context.auxiliaryFunctions += fun.name -> fun
             }
             FunctionCallExpression(Context.fieldAccessFunctions(field).name, Seq(receiver), typ)
           case other => other
