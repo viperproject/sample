@@ -8,12 +8,11 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.carbon.CarbonVerifier
-import viper.silicon.Silicon
-import viper.silver.{ast => sil}
 import viper.silver.verifier.Success
+import viper.silver.{ast => sil}
 
 /**
   * @author Severin Münger
@@ -199,6 +198,7 @@ object Utils {
     case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
     case BinaryBooleanExpression(left, right, _) if left == right => left
     case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
+    case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => const(toComparisonOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => const(toArithmeticOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(`oneConst`, other, ArithmeticOperator.*) => other
