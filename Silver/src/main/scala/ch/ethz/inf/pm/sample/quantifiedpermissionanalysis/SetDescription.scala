@@ -181,7 +181,7 @@ object ReferenceSetDescription {
       case _ => true
     }
 
-    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = QuantifiedPermissionsParameters.applyIntegerQuantificationWherePossible && !widened && abstractExpressions.forall {
+    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = QuantifiedPermissionsParameters.useIntegerQuantification && !widened && abstractExpressions.forall {
       case Function(functionName, _, _, parameters) => parameters.count {
         case (IntType, _, _) => true
         case _ => false
@@ -466,7 +466,7 @@ object NegativeReferenceSetDescription {
 
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       other.abstractExpressions.subsetOf(abstractExpressions) &&
-        ((widened && other.widened) || other.concreteExpressions.subsetOf(concreteExpressions))
+        (widened || other.concreteExpressions.subsetOf(concreteExpressions))
   }
 }
 
@@ -524,6 +524,6 @@ object PositiveReferenceSetDescription {
 
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
       abstractExpressions.subsetOf(other.abstractExpressions) &&
-        ((widened && other.widened) || concreteExpressions.subsetOf(other.concreteExpressions))
+        (other.widened || concreteExpressions.subsetOf(other.concreteExpressions))
   }
 }

@@ -155,7 +155,7 @@ object Utils {
 
   def getCollected(expr: Expression): Expression = expr.transform {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => BinaryArithmeticExpression(collectAndToExpr(left), collectAndToExpr(right), ArithmeticOperator.%)
-    case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
+    case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if left.typ == IntType && right.typ == IntType && ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
       val collectedNotNull = binOp(collect(left), collect(right), _ - _).filter {
         case (_, 0) => false
         case _ => true

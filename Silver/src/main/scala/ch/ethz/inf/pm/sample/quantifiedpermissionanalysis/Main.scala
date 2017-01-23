@@ -124,12 +124,12 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
         newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
-    state.refSets.foreach {
-      case (_, setDescription: ReferenceSetDescription.Inner) =>
+    state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
+      case setDescription: ReferenceSetDescription.Inner =>
         if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
           newPreconditions :+= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
-    }
+    })
     newPreconditions
   }
 
@@ -192,12 +192,12 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
         newInvariants :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
-    state.refSets.foreach {
-      case (_, setDescription: ReferenceSetDescription.Inner) =>
+    state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
+      case setDescription: ReferenceSetDescription.Inner =>
         if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
           newInvariants :+= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
-    }
+    })
     val numDom: NumericalDomain[_] = Context.postNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
@@ -231,9 +231,9 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
       if (!newFormalArguments.contains(rdAmount)) newFormalArguments :+= rdAmount
     }
     state.refSets.foreach {
-      case (key, setDescription: ReferenceSetDescription.Inner) =>
-        if (!setDescription.isFinite(state.refSets) && !newFormalArguments.contains(Context.getSetFor(key)))
-          newFormalArguments :+= Context.getSetFor(key)
+      case (_, setDescription: ReferenceSetDescription.Inner) =>
+        if (!setDescription.isFinite(state.refSets) && !newFormalArguments.contains(Context.getSetFor(setDescription.key)))
+          newFormalArguments :+= Context.getSetFor(setDescription.key)
       case _ => throw new IllegalStateException()
     }
     newFormalArguments

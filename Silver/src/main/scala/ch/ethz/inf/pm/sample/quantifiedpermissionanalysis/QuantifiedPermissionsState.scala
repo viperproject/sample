@@ -60,8 +60,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            permissions: PermissionRecords = permissions,
            changingVars: Set[Identifier] = changingVars,
            declaredBelowVars: Set[Identifier] = declaredBelowVars,
-           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets) =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets)
+           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets): QuantifiedPermissionsState =
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets) match {
+      case newState if QuantifiedPermissionsParameters.useSetSimplifications && newState.canBeMerged => newState.mergeSetDescriptions
+      case newState => newState
+    }
 
   /** Removes the current expression.
     *
@@ -144,6 +147,22 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
   }
 
+  private def canBeMerged: Boolean = refSets.foldLeft(Map[(ProgramPoint, Expression), ReferenceSetDescription]()) {
+    case (collected, entry@(key, setDescription)) => collected + (collected.find(_._2.isEquivalentDescription(setDescription)) match {
+      case Some((_, result)) => key -> result
+      case None => entry
+    })
+  } != refSets
+
+  private def mergeSetDescriptions: QuantifiedPermissionsState = {
+    copy(refSets = refSets.foldLeft(Map[(ProgramPoint, Expression), ReferenceSetDescription]()) {
+      case (collected, entry@(key, setDescription)) => collected + (collected.find(_._2.isEquivalentDescription(setDescription)) match {
+        case Some((_, result)) => key -> result
+        case None => entry
+      })
+    })
+  }
+
   // ABSTRACT TRANSFORMERS
 
   /** Assigns an expression to a variable.
@@ -156,16 +175,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = x match {
     case left: VariableIdentifier =>
-      val (newPermissions, newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription]) = left.typ match {
-        case IntType => (permissions, refSets)
+      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = left.typ match {
         case _: RefType | _: DomType =>
-          (permissions, refSets.transform {
+          refSets.transform {
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
-          })
-        case _ => throw new IllegalStateException()
+          }
+        case IntType => refSets
       }
       copy(
-        permissions = newPermissions,
         changingVars = changingVars + left,
         refSets = newRefSets
       )
@@ -190,12 +207,12 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       if (!visited.contains(currentPP)) permissions.undoLastRead(field).max(field, ExpressionDescription(currentPP, receiver), WritePermission)
       else permissions
     var newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = right.typ match {
-      case _: RefType =>
+      case _: RefType | _: DomType =>
         refSets.transform {
           case (_, setDescription) => setDescription.transformAssignField(receiver, field, right)
         }
       case IntType => refSets
-      case _ => throw new IllegalStateException()
+      case _ => refSets
     }
     newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, elem.bottom()).lub(elem))
     copy(
@@ -245,7 +262,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case param: RefType => extractExpressionDescriptions(param, positive)
         case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param, positive)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
-      }.reduce((left, right) => left ++ right) +
+      }.reduce(_ ++ _) +
       ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall, positive))
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr, positive)))
   }
