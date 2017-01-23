@@ -20,6 +20,11 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
     else permissions
 
+  def simplify: PermissionRecords =
+    copy(permissions = permissions.transform {
+      case (_, tree) => tree.simplify
+    })
+
   def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
     copy(elsePermissions ++ permissions.transform { case (field, tree) =>
       if (elsePermissions.contains(field)) tree.max(elsePermissions(field))

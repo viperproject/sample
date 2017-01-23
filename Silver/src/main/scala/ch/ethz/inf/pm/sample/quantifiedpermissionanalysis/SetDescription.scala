@@ -49,6 +49,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
   def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp
+
+  def simplify: S
 }
 
 object SetDescription {
@@ -67,6 +69,8 @@ object SetDescription {
     override def isOneElement = false
 
     def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
+
+    def simplify: S = this
   }
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
@@ -83,6 +87,8 @@ object SetDescription {
     override def isOneElement = throw new UnsupportedOperationException()
 
     def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
+
+    def simplify: S = this
   }
 
   sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
@@ -405,6 +411,8 @@ object ReferenceSetDescription {
       case id: VariableIdentifier => Set(RootElement(id))
       case FunctionCallExpression(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map(expr => (expr.typ, pp, expr))))
     }
+
+    def simplify: Inner = copy(concreteExpressions = concreteExpressions.map { case (expr, b) => (Utils.simplifyExpression(expr), b) })
   }
 }
 

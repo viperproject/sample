@@ -189,6 +189,13 @@ object Utils {
     case other => other
   }
 
+  /**
+    * Produces an equivalent expression that is potentially simplified. E.g. this method simplifies constant expressions
+    * like '1 > 0' to 'true' and it also eliminates identity operations. e.g 'x + 0' will be replaced by 'x'.
+    *
+    * @param expr The expression to simplify.
+    * @return An equivalent expression that is potentially simpler than the original one.
+    */
   def simplifyExpression(expr: Expression): Expression = getCollected(expr).transform {
     case BinaryBooleanExpression(`trueConst`, other, BooleanOperator.&&) => other
     case BinaryBooleanExpression(other, `trueConst`, BooleanOperator.&&) => other
@@ -198,6 +205,8 @@ object Utils {
     case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
     case BinaryBooleanExpression(left, right, _) if left == right => left
     case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
+    case ConditionalExpression(`trueConst`, left, _, _) => left
+    case ConditionalExpression(`falseConst`, _, right, _) => right
     case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => const(toComparisonOp(op)(left.toInt, right.toInt))
     case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => const(toArithmeticOp(op)(left.toInt, right.toInt))

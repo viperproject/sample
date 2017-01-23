@@ -96,11 +96,14 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
         iterationAtBlock += currentBlock -> (currentCount + 1)
       }
     }
+    if (QuantifiedPermissionsParameters.useExpressionsSimplifications) {
+      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplify, refSets = state.refSets.mapValues(_.simplify)))))
+    }
     cfgResult
   }
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgResult: CfgResult[QuantifiedPermissionsState]): Unit = {
-    var newStates = ListBuffer[QuantifiedPermissionsState]()
+    val newStates = ListBuffer[QuantifiedPermissionsState]()
     val stmts: Seq[Statement] = block match {
       case StatementBlock(statements) => statements
       case LoopHeadBlock(invariants, statements) => invariants ++ statements
@@ -109,7 +112,7 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     }
     var nextState: QuantifiedPermissionsState = exitState
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
-      newStates = nextState +: newStates
+      newStates.prepend(nextState)
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
 //      logger.info(nextState.toString)
@@ -120,10 +123,8 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     if (cfgResult.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
       val blockStates: Seq[QuantifiedPermissionsState] = cfgResult.getStates(block)
       nextState = blockStates.head widening nextState
-      newStates = nextState +: newStates
-    } else {
-      newStates = nextState +: newStates
     }
+    newStates.prepend(nextState)
     cfgResult.setStates(block, newStates.toList)
   }
 
