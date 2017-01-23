@@ -104,14 +104,14 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           case other => other
         }
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))())()
+        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newPreconditions :+= forall
       } else {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
         val quantifiedVariable = quantifiedVariableDecl.localVar
         val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(state, quantifiedVariable))())()
+        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(state, quantifiedVariable))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newPreconditions :+= forall
       }
@@ -172,14 +172,14 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           case other => other
         }
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))())()
+        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newInvariants :+= forall
       } else {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
         val quantifiedVariable = quantifiedVariableDecl.localVar
         val fieldAccess = viper.silver.ast.FieldAccess(quantifiedVariable, Context.program.findField(fieldName))()
-        val implies = sil.Implies(sil.TrueLit()(), sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(state, quantifiedVariable))())()
+        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toSilExpression(state, quantifiedVariable))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newInvariants :+= forall
       }

@@ -190,10 +190,16 @@ case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionT
     case _ => throw new IllegalStateException("To undo a read, the last max'ed permission to this tree has to be a symbolic read permission!")
   }
   def getReadAmounts: Set[(FractionalPermission, Int)] = permissions.map(_.getReadAmounts).reduce(_ ++ _)
-  def simplify: PermissionTree = Maximum(permissions.distinct.map(_.simplify).flatMap {
-    case Maximum(otherPerms) => otherPerms
-    case other => Seq(other)
-  })
+  def simplify: PermissionTree = (permissions match {
+    case singleElement :: Nil => singleElement.simplify
+    case _ => Maximum(permissions.distinct.map(_.simplify).flatMap {
+      case Maximum(otherPerms) => otherPerms
+      case other => Seq(other)
+    })
+  }) match {
+    case simplified if simplified == this => this
+    case simplified => simplified.simplify
+  }
 }
 
 case object EmptyPermissionTree extends PermissionTree {
