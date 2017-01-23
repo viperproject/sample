@@ -180,6 +180,10 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
           Permission.write
         case sil.FractionalPerm(sil.IntLit(numerator), sil.IntLit(denominator)) =>
           Permission.fractional(numerator.toInt, denominator.toInt)
+        case sil.LocalVar(name) if name == "read" =>
+          Permission.read
+        case sil.PermAdd(left, right) =>
+          permissionAmount(left) plus permissionAmount(right)
       }
 
       val path = accessPath(location)
