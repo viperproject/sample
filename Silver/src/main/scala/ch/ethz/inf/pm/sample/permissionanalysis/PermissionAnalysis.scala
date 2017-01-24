@@ -196,8 +196,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @return The state after entering the loop.
     */
   override def enterLoop(): T = {
-    // TODO: Pop permission tree from the stack and join it with the new head.
-    this
+    val first :: second :: rest = stack
+    copy(stack = (first lub second) :: rest)
   }
 
   /**
@@ -205,10 +205,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @return The state after leaving the loop.
     */
-  override def leaveLoop(): T = {
-    // TODO: Push empty permission tree onto stack.
-    this
-  }
+  override def leaveLoop(): T =
+    copy(stack = PermissionTree() :: stack)
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -781,21 +779,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
-  override def toString: String = s"PermissionAnalysisState(" +
-    s"\n\tresult: $result" +
-    s"\n\tpermissions: ${
-      // TODO: Print all trees on the stack
-      val strings = stack.head
-        .tuples()
-        .map { case (path, permission) =>
-          path.map(_.toString).reduce(_ + "." + _) + " " + permission
-        }
-      if (strings.isEmpty) "none"
-      else strings.reduce(_ + ", " + _)
-    }" +
-    s"\n\tisBottom: $isBottom" +
-    s"\n\tisTop: $isTop" +
-    s"\n)"
+
+  override def toString: String =
+    if (isTop) "⊤"
+    else if (isBottom) "⊥"
+    else {
+      s"inferred:\n ${inferred.getOrElse("none")}\n" +
+      s"stack:\n${stack.zipWithIndex.map { case (permissions, level) => s" $level: $permissions" }.mkString("\n")}"
+    }
 
   override def ids = IdentifierSet.Top
 

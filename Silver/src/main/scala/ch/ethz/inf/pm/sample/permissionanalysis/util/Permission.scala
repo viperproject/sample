@@ -99,6 +99,8 @@ object Permission {
     override def isNone: Boolean = false
 
     override def isInfeasible: Boolean = true
+
+    override def toString: String = "⊤"
   }
 
   case object Bottom extends Permission with Lattice.Bottom[Permission] {
@@ -115,6 +117,8 @@ object Permission {
     override def isNone: Boolean = true
 
     override def isInfeasible: Boolean = false
+
+    override def toString: String = "⊥"
   }
 
   /** A permission that is the sum of a fractional permission and a read
@@ -170,6 +174,19 @@ object Permission {
 
     def amount: Double =
       numerator.toDouble / denominator
+
+    override def toString: String = {
+      if (read == 0) {
+        if (numerator == 0) "none"
+        else if (numerator == denominator) "write"
+        else s"$numerator / $denominator"
+      } else {
+        val suffix = if (read == 1) "read" else s"$read * read"
+        if (numerator == 0) suffix
+        else if (numerator == denominator) s"write + $suffix"
+        else s"$numerator / $denominator + $suffix"
+      }
+    }
   }
 
   /** Computes the greatest common divisor of the two specified integers.
