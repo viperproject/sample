@@ -196,8 +196,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @return The state after entering the loop.
     */
   override def enterLoop(): T = {
-    // TODO: Pop permission tree from the stack and join it with the new head.
-    this
+    val first :: second :: rest = stack
+    copy(stack = (first lub second) :: rest)
   }
 
   /**
@@ -205,10 +205,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     *
     * @return The state after leaving the loop.
     */
-  override def leaveLoop(): T = {
-    // TODO: Push empty permission tree onto stack.
-    this
-  }
+  override def leaveLoop(): T =
+    copy(stack = PermissionTree() :: stack)
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
