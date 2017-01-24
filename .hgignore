@@ -15,7 +15,6 @@ apron.sbt
 tmp/
 
 *.o
-*.h
 *.a
 *.so
 
