@@ -201,7 +201,7 @@ case class PermissionTree(permission: Permission = Permission.none,
   def tuples(): Tuples = fold(List.empty[Tuple]) {
     case (list, (path, tree)) => list :+ (path, tree.permission)
   }.filter {
-    case (location, permission) => location.length > 1 && permission.isSome
+    case (location, permission) => location.nonEmpty && permission.isSome
   }
 
   /** Applies the specified function to all permissions stored in the tree. The

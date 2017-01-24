@@ -206,8 +206,10 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       if (permission.isSome || tree.isEmpty) permission
       else Permission.read
     }
-    framed.tuples().map {
-      case (location, permission) => createSilverFieldAccessPredicate(location, permission, state)
+    framed.tuples().flatMap {
+      case (location, permission) if location.length >= 2 =>
+        Some(createSilverFieldAccessPredicate(location, permission, state))
+      case _ => None
     }
   }
 
