@@ -224,6 +224,9 @@ case class PermissionTree(permission: Permission = Permission.none,
     children.foldLeft(f(z, (path, this))) { case (res, (id, child)) =>
       child.fold(res, path :+ id)(f)
     }
+
+  override def toString: String =
+    tuples().map { case (location, amount) => s"(${location.mkString(".")}, $amount)" }.mkString(", ")
 }
 
 object PermissionTree {
