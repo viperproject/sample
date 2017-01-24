@@ -781,21 +781,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
-  override def toString: String = s"PermissionAnalysisState(" +
-    s"\n\tresult: $result" +
-    s"\n\tpermissions: ${
-      // TODO: Print all trees on the stack
-      val strings = stack.head
-        .tuples()
-        .map { case (path, permission) =>
-          path.map(_.toString).reduce(_ + "." + _) + " " + permission
-        }
-      if (strings.isEmpty) "none"
-      else strings.reduce(_ + ", " + _)
-    }" +
-    s"\n\tisBottom: $isBottom" +
-    s"\n\tisTop: $isTop" +
-    s"\n)"
+
+  override def toString: String =
+    if (isTop) "⊤"
+    else if (isBottom) "⊥"
+    else {
+      s"inferred:\n ${inferred.getOrElse("none")}\n" +
+      s"stack:\n${stack.zipWithIndex.map { case (permissions, level) => s" $level: $permissions" }.mkString("\n")}"
+    }
 
   override def ids = IdentifierSet.Top
 
