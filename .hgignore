@@ -19,10 +19,10 @@ tmp/
 *.a
 *.so
 
-NumericalAnalysis/apron/japron/apron.jar
-NumericalAnalysis/apron/japron/gmp.jar
-NumericalAnalysis/apron/octagons/octtestD
-NumericalAnalysis/apron/octagons/octtestMPQ
+Apron/apron/japron/apron.jar
+Apron/apron/japron/gmp.jar
+Apron/apron/octagons/octtestD
+Apron/apron/octagons/octtestMPQ
 
 X.sil
 *.class
