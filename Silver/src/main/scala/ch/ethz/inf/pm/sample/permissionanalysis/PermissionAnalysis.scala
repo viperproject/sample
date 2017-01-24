@@ -775,7 +775,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
            fields: Set[(String, Type)] = fields,
            result: ExpressionSet = result,
            stack: List[PermissionTree] = stack,
-           inferred: Option[PermissionTree] = None,
+           inferred: Option[PermissionTree] = inferred,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
