@@ -9,8 +9,6 @@ Test/test/TouchDevelop/cache
 .idea_modules
 out/
 
-apron.sbt
-
 # Folder with temporary files created by Silicon
 tmp/
 
