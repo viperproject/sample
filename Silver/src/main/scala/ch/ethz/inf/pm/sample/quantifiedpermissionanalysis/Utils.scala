@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
-import viper.carbon.CarbonVerifier
+//import viper.carbon.CarbonVerifier
 import viper.silver.verifier.Success
 import viper.silver.{ast => sil}
 
@@ -56,16 +56,17 @@ object Utils {
 //      case Success => true
 //      case _ => false
 //    }
-    println(newProgram)
-    println("Verifying...")
-    val carbon = new CarbonVerifier()
-    carbon.start()
-    val result = carbon.verify(newProgram) match {
-      case Success => true
-      case _ => false
-    }
-    println(s"DONE! Result: $result")
-    result
+//    println(newProgram)
+//    println("Verifying...")
+//    val carbon = new CarbonVerifier()
+//    carbon.start()
+//    val result = carbon.verify(newProgram) match {
+//      case Success => true
+//      case _ => false
+//    }
+//    println(s"DONE! Result: $result")
+//    result
+    true
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {

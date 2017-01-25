@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.carbon.CarbonVerifier
+//import viper.carbon.CarbonVerifier
 import viper.silicon.Silicon
 
 import scala.collection.mutable
@@ -170,12 +170,12 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     ow.close()
 
     // verify the extended program with Silicon
-//    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-//    silicon.parseCommandLine(Seq("dummy.sil"))
-//    silicon.config.initialize { case _ => silicon.config.initialized = true }
-//    silicon.start()
-//    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
-//    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
+    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+    silicon.parseCommandLine(Seq("dummy.sil"))
+    silicon.config.initialize { case _ => silicon.config.initialized = true }
+    silicon.start()
+    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
+    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
 
     // verify the extended program with Carbon
 //    val carbon = CarbonVerifier()
