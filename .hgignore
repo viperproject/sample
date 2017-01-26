@@ -12,6 +12,7 @@ out/
 # Folder with temporary files created by Silicon
 tmp/
 
+*.h
 *.o
 *.a
 *.so
