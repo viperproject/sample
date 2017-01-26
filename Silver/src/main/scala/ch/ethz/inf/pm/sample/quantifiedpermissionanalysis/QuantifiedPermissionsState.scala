@@ -132,6 +132,27 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       )
   }
 
+  /** Computes the greatest lower bound of two elements.
+    *
+    * @param other The other value
+    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
+    *         and greater than or equal to any other lower bound of the two arguments
+    */
+  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = (this, other) match {
+    case (Bottom, _) | (_, Bottom) => Bottom
+    case (Top, _) => other
+    case (_, Top) => this
+    case (_, _) =>
+      copy(
+        expr = expr glb other.expr,
+        visited = visited ++ other.visited,
+        permissions = permissions,
+        changingVars = changingVars & other.changingVars,
+        declaredBelowVars = declaredBelowVars & other.declaredBelowVars,
+        refSets = refSets
+      )
+  }
+
   /** Returns true if and only if `this` is less than or equal to `other`.
     *
     * @param other The value to compare
@@ -139,8 +160,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def lessEqual(other: QuantifiedPermissionsState): Boolean = {
     (this, other) match {
-      case (Bottom, _) => true
-      case (_, Bottom) => false
+      case (Bottom, _) | (_, Top) => true
+      case (_, Bottom) | (Top, _) => false
       case (_, _) =>
         refSets.forall { case (key, elem) => elem.lessEqual(other.refSets.getOrElse(key, elem.bottom())) } &&
         changingVars.subsetOf(other.changingVars)
@@ -418,14 +439,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the assignment
     */
   override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = throw new UnsupportedOperationException
-
-  /** Computes the greatest lower bound of two elements.
-    *
-    * @param other The other value
-    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
-    *         and greater than or equal to any other lower bound of the two arguments
-    */
-  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = throw new UnsupportedOperationException
 
   /** Forgets the value of a variable.
     *

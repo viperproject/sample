@@ -1,0 +1,6 @@
+field f: Ref
+
+method test(r: Ref)
+{
+  exhale acc(r.f, 1 / 2)
+}
