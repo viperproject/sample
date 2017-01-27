@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
 /**
   * @author Severin Münger

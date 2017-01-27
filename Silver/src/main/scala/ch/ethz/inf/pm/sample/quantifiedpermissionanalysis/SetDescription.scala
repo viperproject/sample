@@ -243,7 +243,7 @@ object ReferenceSetDescription {
 //                .map(constraint => DefaultSampleConverter.convert(constraint))
 //                .reduceLeftOption((left, right) => sil.And(left, right)())
 //              match {
-//                case Some(expr) => Some(expr)
+//                case some: Some[_] => some
 //                case None => Some(sil.TrueLit()())
 //              }
               Some(DefaultSampleConverter.convert(forget(quantifiedVariableIdentifier, e)))
