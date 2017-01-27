@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import viper.silicon.Silicon
 //import viper.carbon.CarbonVerifier
 import viper.silver.verifier.Success
 import viper.silver.{ast => sil}
@@ -48,25 +49,14 @@ object Utils {
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
-//    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-//    silicon.parseCommandLine(Seq("dummy.sil"))
-//    silicon.config.initialize { case _ => silicon.config.initialized = true }
-//    silicon.start()
-//    silicon.verify(newProgram) match {
-//      case Success => true
-//      case _ => false
-//    }
-//    println(newProgram)
-//    println("Verifying...")
-//    val carbon = new CarbonVerifier()
-//    carbon.start()
-//    val result = carbon.verify(newProgram) match {
-//      case Success => true
-//      case _ => false
-//    }
-//    println(s"DONE! Result: $result")
-//    result
-    true
+    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+    silicon.parseCommandLine(Seq("dummy.sil"))
+    silicon.config.initialize { case _ => silicon.config.initialized = true }
+    silicon.start()
+    silicon.verify(newProgram) match {
+      case Success => true
+      case _ => false
+    }
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {
