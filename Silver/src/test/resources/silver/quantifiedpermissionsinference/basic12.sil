@@ -1,0 +1,10 @@
+method basic(head: Ref, other: Ref)
+{
+    var x: Ref := head
+    while (x != null) {
+        exhale acc(x.next, 1 / 2)
+        x := x.next
+    }
+}
+
+field next: Ref

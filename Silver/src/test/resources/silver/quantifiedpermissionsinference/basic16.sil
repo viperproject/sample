@@ -1,0 +1,28 @@
+method basic(arr: Array, bound: Int)
+{
+    var i: Int := bound
+    while (i < 10) {
+        if (i % 2 == 0) {
+            i := i + 4
+        } else {
+            i := i + 8
+        }
+        loc(arr, i).val := i
+    }
+}
+
+field val: Int
+
+domain Array {
+	function loc(a: Array, i: Int): Ref
+	function length(a: Array): Int
+	function ref_to_array(ref: Ref): Array
+	function ref_to_index(ref: Ref): Int
+
+	axiom all_diff {
+		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
+	}
+	axiom length_nonneg {
+		forall a:Array :: length(a) >= 0
+	}
+}

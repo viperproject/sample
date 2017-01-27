@@ -1,0 +1,10 @@
+method basic(foo: Ref, bar: Ref)
+{
+	if (foo != null) {
+		foo.next := bar
+	} else {
+		bar.next := foo
+	}
+}
+
+field next: Ref

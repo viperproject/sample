@@ -1,0 +1,9 @@
+field next: Ref
+
+method basic(root: Ref)
+{
+    var x: Ref := root
+    while (x != null) {
+        x := x.next.next
+    }
+}

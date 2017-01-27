@@ -1,0 +1,14 @@
+field left: Ref
+field right: Ref
+field next: Ref
+
+method basic(root: Ref)
+{
+    var x: Ref := root
+    var i: Int := 0
+    while (x.left != null)
+    {
+        x := x.next
+        i := i + 1
+    }
+}
