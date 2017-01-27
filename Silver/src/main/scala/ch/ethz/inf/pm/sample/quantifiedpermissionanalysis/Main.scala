@@ -127,7 +127,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
         if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
-          newPreconditions :+= setDescription.toSetDefinition(state)
+          newPreconditions ++= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
     })
     newPreconditions
@@ -195,7 +195,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
         if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
-          newInvariants :+= setDescription.toSetDefinition(state)
+          newInvariants ++= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
     })
     val numDom: NumericalDomain[_] = Context.postNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)

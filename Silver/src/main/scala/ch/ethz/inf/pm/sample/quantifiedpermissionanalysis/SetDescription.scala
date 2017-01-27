@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder
-import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
 /**
@@ -48,7 +47,7 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
-  def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp
+  def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp]
 
   def simplify: S
 }
@@ -58,9 +57,9 @@ object SetDescription {
   sealed trait Top[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Top[S] {
     this: S =>
 
-    override def toSetDefinition(state: QuantifiedPermissionsState): Exp = sil.TrueLit()()
+    override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = Seq(sil.TrueLit()())
 
-    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = sil.TrueLit()()
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
 
@@ -76,9 +75,9 @@ object SetDescription {
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
     this: S =>
 
-    override def toSetDefinition(state: QuantifiedPermissionsState): Exp = throw new UnsupportedOperationException()
+    override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = throw new UnsupportedOperationException()
 
-    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = throw new UnsupportedOperationException()
+    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
 
@@ -292,28 +291,32 @@ object ReferenceSetDescription {
       }
     }
 
-    override def toSetDefinition(state: QuantifiedPermissionsState): sil.Exp = {
+    override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
       val set = Context.getSetFor(key).localVar
       if (isFinite(expressions) || canBeExpressedByIntegerQuantification(expressions)) null
       else {
-        var roots: Set[sil.Exp] = Set()
-        var fields: Set[sil.Exp] = Set()
-        var functions: Set[sil.Exp] = Set()
+        var roots: Seq[sil.Exp] = Seq()
+        var fields: Seq[sil.Exp] = Seq()
+        var functions: Seq[sil.Exp] = Seq()
         val quantifiedVariableForFields = Context.getQuantifiedVarDecl(silverType)
+        val quantifiedVariableForFieldsVar = Context.getQuantifiedVarDecl(silverType).localVar
         abstractExpressions.foreach {
           case RootElement(root) =>
             val silRoot = DefaultSampleConverter.convert(root)
-            roots += (sil.AnySetContains(silRoot, set)() match {
+            roots :+= (sil.AnySetContains(silRoot, set)() match {
               case contains if isNullProhibited => sil.Implies(sil.NeCmp(silRoot, sil.NullLit()())(), contains)()
               case contains => contains
             })
           case AddField(field) =>
-            val fieldAccess = sil.FieldAccess(quantifiedVariableForFields.localVar, sil.Field(field, sil.Ref)())()
-            fields += (sil.AnySetContains(fieldAccess, set)() match {
-              case contains if isNullProhibited => sil.Implies(sil.NeCmp(fieldAccess, sil.NullLit()())(), contains)()
-              case contains => contains
-            })
+            val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, sil.Ref)())()
+            val and = sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFieldsVar, set)())()
+            val left = and match {
+              case _ if isNullProhibited => sil.And(and, sil.NeCmp(fieldAccess, sil.NullLit()())())()
+              case _ => and
+            }
+            val forall = sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(left, sil.AnySetContains(fieldAccess, set)())())()
+            fields :+= forall
           case Function(functionName, _, _, argKeys) =>
             val function = Context.functions(functionName)
             var args: Seq[sil.LocalVarDecl] = Seq()
@@ -336,19 +339,9 @@ object ReferenceSetDescription {
             if (isNullProhibited)
               impliesLeftConjuncts :+= sil.NeCmp(funcApp, sil.NullLit()())()
             val implies = sil.Implies(impliesLeftConjuncts.reduce((left, right) => sil.And(left, right)()), setContains)()
-            functions += sil.Forall(args, Seq(), implies)()
+            functions :+= sil.Forall(args, Seq(), implies)()
         }
-        var conjuncts: Seq[sil.Exp] = Seq()
-        roots.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
-          case Some(exp) => conjuncts :+= exp
-          case None =>
-        }
-        fields.reduceOption[sil.Exp]((left, right) => sil.And(left, right)()) match {
-          case Some(exp) => conjuncts :+= sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(sil.AnySetContains(quantifiedVariableForFields.localVar, set)(), exp)())()
-          case None =>
-        }
-        conjuncts ++= functions
-        conjuncts.reduce((left, right) => sil.And(left, right)())
+        roots ++ fields ++ functions
       }
     }
 
@@ -465,7 +458,7 @@ object NegativeReferenceSetDescription {
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = glbInner(other).copy(widened = true)
 
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
-      other.abstractExpressions.subsetOf(abstractExpressions) &&
+      other.abstractExpressions.subsetOf(abstractExpressions) && (!isNullProhibited || other.isNullProhibited) &&
         (widened || other.concreteExpressions.subsetOf(concreteExpressions))
   }
 }
@@ -523,7 +516,7 @@ object PositiveReferenceSetDescription {
     override def wideningInner(other: ReferenceSetDescription.Inner): Inner = lubInner(other).copy(widened = true)
 
     override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
-      abstractExpressions.subsetOf(other.abstractExpressions) &&
+      abstractExpressions.subsetOf(other.abstractExpressions) && (isNullProhibited || !other.isNullProhibited) &&
         (other.widened || concreteExpressions.subsetOf(other.concreteExpressions))
   }
 }

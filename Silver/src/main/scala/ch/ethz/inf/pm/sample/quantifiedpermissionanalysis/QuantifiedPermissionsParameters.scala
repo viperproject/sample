@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.PolyhedraAnalysisState
 
 /**
   * @author Severin Münger
@@ -28,6 +28,8 @@ object QuantifiedPermissionsParameters {
   val useQE = false
 
   val useQESimplifications = true
+
+  val addReceiverNullCheckInSetDefinition = true
 
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
