@@ -86,10 +86,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         and less than or equal to any other upper bound of the two arguments
     */
   override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = (this, other) match {
-    case (Bottom, Bottom) => Bottom
-    case (Bottom, _) => other
-    case (_, Bottom) => this
-    case (_, _) =>
+    case (Bottom, _) | (_, Top) => other
+    case (_, Bottom) | (Top, _) => this
+    case _ =>
       val newPermissions = (other.visited.subsetOf(visited), visited.subsetOf(other.visited)) match {
         case (true, _) => permissions
         case (_, true) => other.permissions
@@ -110,8 +109,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   def lub(falseState: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, falseState) match {
     case (false, _, _) => throw new IllegalArgumentException()
-    case (true, Bottom, _) => falseState
-    case (true, _, Bottom) => this
+    case (true, Bottom, _) | (true, _, Top) => falseState
+    case (true, _, Bottom) | (true, Top, _) => this
     case (true, _, _) =>
       val condSingle = cond.getSingle.get
       val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
@@ -142,7 +141,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case (Bottom, _) | (_, Bottom) => Bottom
     case (Top, _) => other
     case (_, Top) => this
-    case (_, _) =>
+    case _ =>
       copy(
         expr = expr glb other.expr,
         visited = visited ++ other.visited,
@@ -360,17 +359,20 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param other The new value
     * @return The widening of `this` and `other`
     */
-  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
-    copy(
-      visited = visited ++ other.visited,
-      refSets = refSets ++ other.refSets.transform {
-        case (key, setDescription) =>
-          if (refSets.contains(key))
-            if (setDescription.lessEqual(refSets(key))) refSets(key).lub(setDescription)
-            else refSets(key).widening(setDescription)
-          else setDescription
-      }
-    )
+  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = (this, other) match {
+    case (Top, _) | (_, Bottom) => this
+    case (Bottom, _) | (_, Top) => other
+    case _ =>
+      copy(
+        visited = visited ++ other.visited,
+        refSets = refSets ++ other.refSets.transform {
+          case (key, setDescription) =>
+            if (refSets.contains(key))
+              if (setDescription.lessEqual(refSets(key))) refSets(key).lub(setDescription)
+              else refSets(key).widening(setDescription)
+            else setDescription
+        }
+      )
   }
 
   // DO NOTHING ON THESE OPERATIONS
