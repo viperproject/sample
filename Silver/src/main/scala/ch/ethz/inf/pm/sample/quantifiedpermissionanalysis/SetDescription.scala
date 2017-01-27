@@ -310,7 +310,9 @@ object ReferenceSetDescription {
             })
           case AddField(field) =>
             val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, sil.Ref)())()
-            val and = sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFieldsVar, set)())()
+            val and =
+              if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFieldsVar, set)())()
+              else sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             val left = and match {
               case _ if isNullProhibited => sil.And(and, sil.NeCmp(fieldAccess, sil.NullLit()())())()
               case _ => and
