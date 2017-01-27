@@ -83,9 +83,9 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
             // TODO: With the new CFG this became very hacky, can this be solved more properly?
             val (edge1, edge2) =  (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
-            val cond = edge1.condition.backwardSemantics(state1.lub(state2)).expr
+            val cond = edge1.condition.specialBackwardSemantics(state1.lub(state2)).expr
             val pp = edge1.condition.getPC()
-            state1.lub(state2, cond).before(pp).after(pp)
+            edge1.condition.specialBackwardSemantics(state1.lub(state2, cond).before(pp)).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates = cfgResult.getStates(currentBlock)
@@ -115,9 +115,9 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
       newStates.prepend(nextState)
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
-//      logger.info(nextState.toString)
-//      logger.info(stmt.toString)
-//      logger.info(prevState.toString)
+      logger.info(nextState.toString)
+      logger.info(stmt.toString)
+      logger.info(prevState.toString)
       nextState = prevState
     }
     if (cfgResult.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
