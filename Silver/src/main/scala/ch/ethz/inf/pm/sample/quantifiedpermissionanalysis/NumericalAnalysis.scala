@@ -11,13 +11,12 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.SilverEntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.NumericalAnalysisState.{OctagonAnalysisState, PolyhedraAnalysisState}
 
 /**
   * @author Severin Münger
   *         Added on 02/11/16.
   */
-trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
+sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
   extends SimpleState[T]
   with StateWithRefiningAnalysisStubs[T]
 {
@@ -27,7 +26,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
 
   def currentPP: ProgramPoint
 
-  def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
+  def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom, currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
 
   override def command(cmd: Command): T = this
 
@@ -67,20 +66,24 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = x match {
     case x: VariableIdentifier =>
+      println("ASSIGN")
       // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
       var newNumDom = if (!numDom.ids.contains(x)) numDom.createVariable(x) else numDom
+      right.ids.toSetOrFail.foreach {
+        id => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
+      }
       newNumDom = right match {
         case _: AccessPathIdentifier => newNumDom.removeVariable(x).createVariable(x)
         case _ => newNumDom.assign(x, right)
       }
       if (newNumDom.isBottom){
+        println("WAAA BOOTTOMT")
         newNumDom = newNumDom.removeVariable(x).createVariable(x)
       }
       copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
   }
 
-  override def toString: String = numDom.toString
 
   /** Assigns an expression to a field of an object.
     *
@@ -101,12 +104,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable*/
-  override def setVariableToTop(varExpr: Expression): T = {
-    varExpr match {
-      case ident: VariableIdentifier => copy(numDom = numDom.setToTop(ident))
-      case _ => this
-    }
-  }
+  override def setVariableToTop(varExpr: Expression): T = ???
 
   /** Removes a variable.
     *
@@ -250,23 +248,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object*/
-  override def factory(): T = {
-    copy()
-  }
-
-  /** Returns the top value of the lattice.
-    *
-    * @return The top value, that is, a value x that is greater than or equal to any other value*/
-  override def top(): T = {
-    copy(numDom = numDom.top())
-  }
-
-  /** Returns the bottom value of the lattice.
-    *
-    * @return The bottom value, that is, a value x that is less than or to any other value*/
-  override def bottom(): T = {
-    copy(numDom = numDom.bottom())
-  }
+  override def factory(): T = copy()
 
   /** Computes the least upper bound of two elements.
     *
@@ -274,7 +256,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments*/
   override def lub(other: T): T = {
-    copy(numDom = numDom.lub(other.numDom))
+    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, numDom = numDom.lub(other.numDom))
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -283,7 +265,7 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments*/
   override def glb(other: T): T = {
-    copy(numDom = numDom.glb(other.numDom))
+    copy(isTop = isTop && other.isTop, isBottom = isBottom || other.isBottom, numDom = numDom.glb(other.numDom))
   }
 
   /** Computes the widening of two elements.
@@ -291,72 +273,103 @@ trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnalysisStat
     * @param other The new value
     * @return The widening of `this` and `other`*/
   override def widening(other: T): T = {
-    copy(numDom = numDom.widening(other.numDom))
+    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, numDom = numDom.widening(other.numDom))
   }
+
+}
+
+case class PolyhedraAnalysisState(isTop: Boolean = false,
+                                  isBottom: Boolean = false,
+                                  currentPP: ProgramPoint = DummyProgramPoint,
+                                  expr: ExpressionSet = ExpressionSet(),
+                                  numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+  extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
+{
+  override def copy(isTop: Boolean = isTop,
+                    isBottom: Boolean = isBottom,
+                    currentPP: ProgramPoint = currentPP,
+                    expr: ExpressionSet = expr,
+                    numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =
+    PolyhedraAnalysisState(isTop, isBottom, currentPP, expr, numDom)
+
+  /** Returns the top value of the lattice.
+    *
+    * @return The top value, that is, a value x that is greater than or equal to any other value*/
+  override def top(): PolyhedraAnalysisState = PolyhedraAnalysisState.Top
+
+  /** Returns the bottom value of the lattice.
+    *
+    * @return The bottom value, that is, a value x that is less than or to any other value */
+  override def bottom(): PolyhedraAnalysisState = PolyhedraAnalysisState.Bottom
 
   /** Returns true if and only if `this` is less than or equal to `other`.
     *
     * @param other The value to compare
     * @return true if and only if `this` is less than or equal to `other`*/
-  override def lessEqual(other: T): Boolean = {
-    numDom.lessEqual(other.numDom)
-  }
-
-  /** Checks whether the given domain element is equivalent to bottom.
-    *
-    * @return bottom*/
-  override def isBottom: Boolean = {
-    numDom.isBottom
-  }
-
-  /** Checks whether the given domain element is equivalent to top.
-    *
-    * @return bottom */
-  override def isTop: Boolean = {
-    numDom.isTop
+  override def lessEqual(other: PolyhedraAnalysisState): Boolean = (this, other) match {
+    case (PolyhedraAnalysisState.Bottom, _) | (_, PolyhedraAnalysisState.Top) => true
+    case (PolyhedraAnalysisState.Top, _) | (_, PolyhedraAnalysisState.Bottom) => false
+    case _ => numDom.lessEqual(other.numDom)
   }
 }
 
-object NumericalAnalysisState
+object PolyhedraAnalysisState {
+  object Top extends PolyhedraAnalysisState(true, false, numDom = Apron.Polyhedra.Top)
+
+  object Bottom extends PolyhedraAnalysisState(false, true, numDom = Apron.Polyhedra.Bottom)
+}
+
+case class OctagonAnalysisState(isTop: Boolean = false,
+                                isBottom: Boolean = false,
+                                currentPP: ProgramPoint = DummyProgramPoint,
+                                expr: ExpressionSet = ExpressionSet(),
+                                numDom: IntegerOctagons = IntegerOctagons.Bottom)
+  extends NumericalAnalysisState[IntegerOctagons, OctagonAnalysisState]
 {
-  case class PolyhedraAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
-                                    expr: ExpressionSet = ExpressionSet(),
-                                    numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom.factory())
-    extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
-  {
-    override def copy(currentPP: ProgramPoint = currentPP,
-                      expr: ExpressionSet = expr,
-                      numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =
-      PolyhedraAnalysisState(currentPP, expr, numDom)
-  }
+  override def copy(isTop: Boolean = isTop,
+                    isBottom: Boolean = isBottom,
+                    currentPP: ProgramPoint = currentPP,
+                    expr: ExpressionSet = expr,
+                    numDom: IntegerOctagons = numDom): OctagonAnalysisState =
+    OctagonAnalysisState(isTop, isBottom, currentPP, expr, numDom)
 
-  case class OctagonAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
-                                  expr: ExpressionSet = ExpressionSet(),
-                                  numDom: IntegerOctagons = IntegerOctagons.Bottom.factory())
-    extends NumericalAnalysisState[IntegerOctagons, OctagonAnalysisState]
-  {
-    override def copy(currentPP: ProgramPoint = currentPP,
-                      expr: ExpressionSet = expr,
-                      numDom: IntegerOctagons = numDom): OctagonAnalysisState =
-      OctagonAnalysisState(currentPP, expr, numDom)
+  /** Returns the top value of the lattice.
+    *
+    * @return The top value, that is, a value x that is greater than or equal to any other value*/
+  override def top(): OctagonAnalysisState = OctagonAnalysisState.Top
+
+  /** Returns the bottom value of the lattice.
+    *
+    * @return The bottom value, that is, a value x that is less than or to any other value */
+  override def bottom(): OctagonAnalysisState = OctagonAnalysisState.Bottom
+
+  /** Returns true if and only if `this` is less than or equal to `other`.
+    *
+    * @param other The value to compare
+    * @return true if and only if `this` is less than or equal to `other`*/
+  override def lessEqual(other: OctagonAnalysisState): Boolean = (this, other) match {
+    case (OctagonAnalysisState.Bottom, _) | (_, OctagonAnalysisState.Top) => true
+    case (OctagonAnalysisState.Top, _) | (_, OctagonAnalysisState.Bottom) => false
+    case _ => numDom.lessEqual(other.numDom)
   }
 }
 
-trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
-  extends SilverEntryStateBuilder[T] {
+object OctagonAnalysisState {
+  object Top extends OctagonAnalysisState(true, false, numDom = IntegerOctagons.Top)
+
+  object Bottom extends OctagonAnalysisState(false, true, numDom = IntegerOctagons.Bottom)
+}
+
+trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]] extends SilverEntryStateBuilder[T] {
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
     top.copy()
   }
 }
 
-object PolyhedraAnalysisEntryState
-  extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState] {
-
+object PolyhedraAnalysisEntryState extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState] {
   override def top: PolyhedraAnalysisState = PolyhedraAnalysisState()
 }
 
-object OctagonAnalysisEntryState
-  extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState] {
-
+object OctagonAnalysisEntryState extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState] {
   override def top: OctagonAnalysisState = OctagonAnalysisState()
 }
