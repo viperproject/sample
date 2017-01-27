@@ -31,6 +31,8 @@ object QuantifiedPermissionsParameters {
 
   val addReceiverNullCheckInSetDefinition = true
 
+  val useCustomTriggerGeneration = true
+
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
     * the natively supported IntegerOctagon domain for the numerical analysis.

@@ -310,14 +310,19 @@ object ReferenceSetDescription {
             })
           case AddField(field) =>
             val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, sil.Ref)())()
+            val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             val and =
-              if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), sil.AnySetContains(quantifiedVariableForFieldsVar, set)())()
-              else sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
+              if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), contains)()
+              else contains
             val left = and match {
               case _ if isNullProhibited => sil.And(and, sil.NeCmp(fieldAccess, sil.NullLit()())())()
               case _ => and
             }
-            val forall = sil.Forall(Seq(quantifiedVariableForFields), Seq(), sil.Implies(left, sil.AnySetContains(fieldAccess, set)())())()
+            val triggers =
+              if (QuantifiedPermissionsParameters.useCustomTriggerGeneration)
+                Seq(sil.Trigger(Seq(contains, fieldAccess))())
+              else Seq()
+            val forall = sil.Forall(Seq(quantifiedVariableForFields), triggers, sil.Implies(left, sil.AnySetContains(fieldAccess, set)())())()
             fields :+= forall
           case Function(functionName, _, _, argKeys) =>
             val function = Context.functions(functionName)
