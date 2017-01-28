@@ -26,7 +26,7 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
 
   def currentPP: ProgramPoint
 
-  def copy(isTop: Boolean = isTop, isBottom: Boolean = isBottom, currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
+  def copy(currentPP: ProgramPoint = currentPP, expr: ExpressionSet = expr, numDom: N = numDom): T
 
   override def command(cmd: Command): T = this
 
@@ -66,7 +66,6 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = x match {
     case x: VariableIdentifier =>
-      println("ASSIGN")
       // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
       var newNumDom = if (!numDom.ids.contains(x)) numDom.createVariable(x) else numDom
       right.ids.toSetOrFail.foreach {
@@ -75,10 +74,6 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
       newNumDom = right match {
         case _: AccessPathIdentifier => newNumDom.removeVariable(x).createVariable(x)
         case _ => newNumDom.assign(x, right)
-      }
-      if (newNumDom.isBottom){
-        println("WAAA BOOTTOMT")
-        newNumDom = newNumDom.removeVariable(x).createVariable(x)
       }
       copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
@@ -176,7 +171,7 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @return The abstract state eventually modified*/
   override def before(pp: ProgramPoint): T = {
     // Nothing to do here
-    this
+    copy(currentPP = pp)
   }
 
   /** Creates an object
@@ -248,7 +243,15 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
   /** Returns a new instance of the lattice.
     *
     * @return A new instance of the current object*/
-  override def factory(): T = copy()
+  override def factory(): T =
+    copy(
+      expr = ExpressionSet(),
+      currentPP = DummyProgramPoint,
+      numDom = numDom.factory())
+
+  def isTop: Boolean = numDom.isTop
+
+  def isBottom: Boolean = numDom.isBottom
 
   /** Computes the least upper bound of two elements.
     *
@@ -256,7 +259,9 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
     *         and less than or equal to any other upper bound of the two arguments*/
   override def lub(other: T): T = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, numDom = numDom.lub(other.numDom))
+    copy(
+      numDom = numDom.lub(other.numDom),
+      expr = expr.lub(other.expr))
   }
 
   /** Computes the greatest lower bound of two elements.
@@ -265,7 +270,9 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
     *         and greater than or equal to any other lower bound of the two arguments*/
   override def glb(other: T): T = {
-    copy(isTop = isTop && other.isTop, isBottom = isBottom || other.isBottom, numDom = numDom.glb(other.numDom))
+    copy(
+      numDom = numDom.glb(other.numDom),
+      expr = expr.glb(other.expr))
   }
 
   /** Computes the widening of two elements.
@@ -273,24 +280,22 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @param other The new value
     * @return The widening of `this` and `other`*/
   override def widening(other: T): T = {
-    copy(isTop = isTop || other.isTop, isBottom = isBottom && other.isBottom, numDom = numDom.widening(other.numDom))
+    copy(
+      expr = expr.widening(other.expr),
+      numDom = numDom.widening(other.numDom))
   }
 
 }
 
-case class PolyhedraAnalysisState(isTop: Boolean = false,
-                                  isBottom: Boolean = false,
-                                  currentPP: ProgramPoint = DummyProgramPoint,
+case class PolyhedraAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                   expr: ExpressionSet = ExpressionSet(),
-                                  numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom)
+                                  numDom: Apron.Polyhedra = Apron.Polyhedra.Bottom.factory())
   extends NumericalAnalysisState[Apron.Polyhedra, PolyhedraAnalysisState]
 {
-  override def copy(isTop: Boolean = isTop,
-                    isBottom: Boolean = isBottom,
-                    currentPP: ProgramPoint = currentPP,
+  override def copy(currentPP: ProgramPoint = currentPP,
                     expr: ExpressionSet = expr,
                     numDom: Apron.Polyhedra = numDom): PolyhedraAnalysisState =
-    PolyhedraAnalysisState(isTop, isBottom, currentPP, expr, numDom)
+    PolyhedraAnalysisState(currentPP, expr, numDom)
 
   /** Returns the top value of the lattice.
     *
@@ -314,24 +319,20 @@ case class PolyhedraAnalysisState(isTop: Boolean = false,
 }
 
 object PolyhedraAnalysisState {
-  object Top extends PolyhedraAnalysisState(true, false, numDom = Apron.Polyhedra.Top)
+  object Top extends PolyhedraAnalysisState(numDom = Apron.Polyhedra.Top)
 
-  object Bottom extends PolyhedraAnalysisState(false, true, numDom = Apron.Polyhedra.Bottom)
+  object Bottom extends PolyhedraAnalysisState(numDom = Apron.Polyhedra.Bottom)
 }
 
-case class OctagonAnalysisState(isTop: Boolean = false,
-                                isBottom: Boolean = false,
-                                currentPP: ProgramPoint = DummyProgramPoint,
+case class OctagonAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                 expr: ExpressionSet = ExpressionSet(),
                                 numDom: IntegerOctagons = IntegerOctagons.Bottom)
   extends NumericalAnalysisState[IntegerOctagons, OctagonAnalysisState]
 {
-  override def copy(isTop: Boolean = isTop,
-                    isBottom: Boolean = isBottom,
-                    currentPP: ProgramPoint = currentPP,
+  override def copy(currentPP: ProgramPoint = currentPP,
                     expr: ExpressionSet = expr,
                     numDom: IntegerOctagons = numDom): OctagonAnalysisState =
-    OctagonAnalysisState(isTop, isBottom, currentPP, expr, numDom)
+    OctagonAnalysisState(currentPP, expr, numDom)
 
   /** Returns the top value of the lattice.
     *
@@ -355,9 +356,9 @@ case class OctagonAnalysisState(isTop: Boolean = false,
 }
 
 object OctagonAnalysisState {
-  object Top extends OctagonAnalysisState(true, false, numDom = IntegerOctagons.Top)
+  object Top extends OctagonAnalysisState(numDom = IntegerOctagons.Top)
 
-  object Bottom extends OctagonAnalysisState(false, true, numDom = IntegerOctagons.Bottom)
+  object Bottom extends OctagonAnalysisState(numDom = IntegerOctagons.Bottom)
 }
 
 trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]] extends SilverEntryStateBuilder[T] {

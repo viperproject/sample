@@ -69,11 +69,12 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     val bottom = finalState.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
     val ordering: Ordering[SampleBlock] = Ordering.by(block => (-nestingLevels(block), -sequenceNumbers(block)))
-    var blocksToProcessIds: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit)(ordering)
-    var iterationAtBlock = Map[SampleBlock, Int]()
-    while (blocksToProcessIds.nonEmpty) {
-      val currentBlock: SampleBlock = blocksToProcessIds.head; blocksToProcessIds.remove(currentBlock)
-      val currentCount: Int = iterationAtBlock.getOrElse(currentBlock, 0)
+    var worklist: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit)(ordering)
+    var iterations = Map[SampleBlock, Int]()
+    while (worklist.nonEmpty) {
+      val currentBlock: SampleBlock = worklist.head
+      worklist.remove(currentBlock)
+      val currentCount: Int = iterations.getOrElse(currentBlock, 0)
       val exitEdges = cfg.outEdges(currentBlock)
       val currentState: QuantifiedPermissionsState =
         if (cfg.exit == currentBlock) finalState
@@ -92,8 +93,8 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
       val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) finalState else blockStates.last
       if (!currentState.lessEqual(oldState)) {
         backwardExecuteBlock(currentState, currentBlock, currentCount, cfgResult)
-        blocksToProcessIds ++= cfg.predecessors(currentBlock)
-        iterationAtBlock += currentBlock -> (currentCount + 1)
+        worklist ++= cfg.predecessors(currentBlock)
+        iterations += currentBlock -> (currentCount + 1)
       }
     }
     if (QuantifiedPermissionsParameters.useExpressionsSimplifications) {

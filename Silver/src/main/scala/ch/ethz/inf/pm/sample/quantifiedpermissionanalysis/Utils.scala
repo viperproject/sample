@@ -73,12 +73,7 @@ object Utils {
     case transformed => toNNF(transformed)
   }
 
-  private def toCNF(expr: Expression): Expression = expr.transform {
-    case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op)) =>
-      BinaryBooleanExpression(NegatedBooleanExpression(left), NegatedBooleanExpression(right), BooleanOperator.negate(op))
-    case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
-    case other => other
-  }.transform {
+  private def toCNF(expr: Expression): Expression = toNNF(expr).transform {
     case BinaryBooleanExpression(left, BinaryBooleanExpression(innerLeft, innerRight, BooleanOperator.&&), BooleanOperator.||) =>
       BinaryBooleanExpression(BinaryBooleanExpression(left, innerLeft, BooleanOperator.||), BinaryBooleanExpression(left, innerRight, BooleanOperator.||), BooleanOperator.&&)
     case BinaryBooleanExpression(BinaryBooleanExpression(innerLeft, innerRight, BooleanOperator.&&), right, BooleanOperator.||) =>

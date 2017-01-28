@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
-import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
+import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters, quantifiedpermissionanalysis}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -198,7 +198,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
           newInvariants ++= setDescription.toSetDefinition(state)
       case _ => throw new IllegalStateException()
     })
-    val numDom: NumericalDomain[_] = Context.postNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
+    val numDom: NumericalDomain[_] = Context.preNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
     if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
     newInvariants
@@ -250,25 +250,25 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     Context.setProgram(DefaultSilverConverter.prog)
 
     // TODO: just catching the exception is a hack, better perform a search through the program if there exists a field access with a function as receiver
-//    val aliasAnalysisResult: Option[CfgResult[SimpleAliasAnalysisState]] =
-//      try {
-//        val aliasEntry = aliasAnalysisBuilder.build(program, method)
-//        val aliasInterpreter = FinalResultForwardInterpreter[SimpleAliasAnalysisState]()
-//        val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
-//        Some(aliasResult)
-//      } catch {
-//        case _: IllegalArgumentException =>
-//          println("Warning: Heap analysis failed!")
-//          None
-//      }
-//
+    val aliasAnalysisResult: Option[CfgResult[SimpleAliasAnalysisState]] =
+      try {
+        val aliasEntry = aliasAnalysisBuilder.build(program, method)
+        val aliasInterpreter = FinalResultForwardInterpreter[SimpleAliasAnalysisState]()
+        val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
+        Some(aliasResult)
+      } catch {
+        case _: IllegalArgumentException =>
+          logger.warn("Heap analysis failed!")
+          None
+      }
+
     Context.setAliases(method.name.name.toString, None)//aliasAnalysisResult)
 
     val numericalEntry = numericalStateBuilder.build(program, method)
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
     val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
 
-    Context.setNumericalInfo(method.name.name.toString, numericalResult)
+    Context.setNumericalInfo(method.name.name, numericalResult)
 
     val quantifiedPermissionsEntry = QuantifiedPermissionsState()
     val quantifiedPermissionsInterpreter = new QPInterpreter
