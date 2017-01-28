@@ -200,7 +200,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
           refSets.transform {
             case (_, setDescription) => setDescription.transformAssignVariable(left, right)
           }
-        case IntType => refSets
+        case _ => refSets
       }
       copy(
         changingVars = changingVars + left,
