@@ -262,12 +262,12 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
           None
       }
 
-    Context.setAliases(method.name.name.toString, None)//aliasAnalysisResult)
+    Context.setAliases(method.name.name.toString, aliasAnalysisResult)
 
     val numericalEntry = numericalStateBuilder.build(program, method)
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
     val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
-
+    numericalResult.print()
     Context.setNumericalInfo(method.name.name, numericalResult)
 
     val quantifiedPermissionsEntry = QuantifiedPermissionsState()

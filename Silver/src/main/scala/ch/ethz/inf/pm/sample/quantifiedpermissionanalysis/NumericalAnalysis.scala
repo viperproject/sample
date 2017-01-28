@@ -65,20 +65,23 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @param right The assigned expression
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = x match {
-    case x: VariableIdentifier =>
+    case left: VariableIdentifier =>
       // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-      var newNumDom = if (!numDom.ids.contains(x)) numDom.createVariable(x) else numDom
-      right.ids.toSetOrFail.foreach {
-        id => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
-      }
-      newNumDom = right match {
-        case _: AccessPathIdentifier => newNumDom.removeVariable(x).createVariable(x)
-        case _ => newNumDom.assign(x, right)
-      }
+      var newNumDom = if (!numDom.ids.contains(left)) numDom.createVariable(left) else numDom
+      newNumDom =
+        if (right.ids.toSetOrFail.forall {
+          case _: VariableIdentifier => true
+          case _ => false
+        }) {
+          right.ids.toSetOrFail.foreach {
+            id => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
+          }
+          newNumDom.assign(left, right)
+        }
+        else newNumDom.removeVariable(left).createVariable(left)
       copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
   }
-
 
   /** Assigns an expression to a field of an object.
     *
@@ -136,29 +139,23 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds*/
   override def assume(cond: Expression): T = {
-    val condCNFConjuncts = Utils.toCNFConjuncts(cond.transform {
-      case BinaryArithmeticExpression(_: FieldExpression, _, _) |
-           BinaryArithmeticExpression(_, _: FieldExpression, _) |
-           FieldExpression(BoolType, _, _) |
-           _: ReferenceComparisonExpression =>
-        Constant("true", BoolType)
-      case e => e
-    })
+    val condCNFConjuncts = Utils.toCNFConjuncts(cond)
     var newNumDom = numDom
-    condCNFConjuncts.foreach {
-      case conjunct: BinaryArithmeticExpression =>
-        val ids = conjunct.ids.toSetOrFail.filter {
-          case _: VariableIdentifier => true
-          case _ => false
-        }
+    condCNFConjuncts.foreach { conjunct =>
+      if (conjunct.contains {
+        case _: AccessPathIdentifier => true
+        case _ => false
+      }) {
+        conjunct.ids.toSetOrFail.foreach(id => if (newNumDom.ids.contains(id)) newNumDom = newNumDom.setToTop(id))
+      } else {
         // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-        ids.foreach {
+        conjunct.ids.toSetOrFail.foreach {
           case id: VariableIdentifier =>
             if (!newNumDom.ids.contains(id))
               newNumDom = newNumDom.createVariable(id)
         }
         newNumDom = newNumDom.assume(conjunct)
-      case _ =>
+      }
     }
     copy(numDom = newNumDom)
   }
