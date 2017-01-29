@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -287,6 +288,17 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr, positive)))
   }
 
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  override def command(cmd: Command): QuantifiedPermissionsState = cmd match {
+    case InhaleCommand(expression) => inhale(expression)
+    case ExhaleCommand(expression) => exhale(expression)
+    case _ => throw new UnsupportedOperationException(s"Unknown command: $cmd")
+  }
+
   /** Inhales permissions.
     *
     * Implementations can already assume that this state is non-bottom.
@@ -295,6 +307,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after inhaling the permission
     */
   override def inhale(acc: Expression): QuantifiedPermissionsState = acc match {
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&) => inhale(left).inhale(right)
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.undoLastRead(field).sub(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
@@ -304,6 +317,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         permissions = newPermissions,
         refSets = newRefSets
       )
+    case _ => assume(acc)
   }
 
   /** Exhales permissions.
@@ -414,8 +428,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the creation of the argument
     */
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = this
-
-  override def command(cmd: Command): QuantifiedPermissionsState = this
 
   // STUBS
 

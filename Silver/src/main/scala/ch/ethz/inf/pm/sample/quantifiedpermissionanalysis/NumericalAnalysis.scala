@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Apron, IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.execution.SilverEntryStateBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 
 /**
@@ -102,7 +102,9 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     *
     * @param varExpr The variable to be forgotten
     * @return The abstract state obtained after forgetting the variable*/
-  override def setVariableToTop(varExpr: Expression): T = ???
+  override def setVariableToTop(varExpr: Expression): T = varExpr match {
+    case id: VariableIdentifier => this.copy(numDom = numDom.setToTop(id))
+  }
 
   /** Removes a variable.
     *

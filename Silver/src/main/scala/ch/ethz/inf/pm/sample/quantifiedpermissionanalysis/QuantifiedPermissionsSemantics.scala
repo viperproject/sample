@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSetFactory._
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{Constants, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -20,7 +21,8 @@ import com.typesafe.scalalogging.LazyLogging
   *         Added on 05/11/16.
   */
 object QuantifiedPermissionMethods extends Enumeration {
-  val acc = Value(Constants.GhostSymbolPrefix + "access")
+  val access = Value(Constants.GhostSymbolPrefix + "access")
+  val permission = Value(Constants.GhostSymbolPrefix + "permission")
   val forall = Value(Constants.GhostSymbolPrefix + "forall")
   val inhale = Value(Constants.GhostSymbolPrefix + "inhale")
   val exhale = Value(Constants.GhostSymbolPrefix + "exhale")
@@ -67,28 +69,27 @@ object QuantifiedPermissionMethodSemantics extends NativeMethodSemantics with La
                                                            returnedtype: Type,
                                                            programpoint: ProgramPoint,
                                                            state: S): Option[S] = {
-    state match {
-      case state: QuantifiedPermissionsState =>
-        val nativeMethod = QuantifiedPermissionMethods.values.find(_.toString == operator)
-        nativeMethod match {
-          case Some(QuantifiedPermissionMethods.acc) =>
-            val permissionExpr =
-              if (parameters.size <= 1) createFieldAccessPredicate(thisExpr, parameters.head, ExpressionSet(Constant("1", PermType)), returnedtype)
-              else createFieldAccessPredicate(thisExpr, parameters.head, parameters(1), returnedtype)
-            Some(state.setExpression(permissionExpr).asInstanceOf[S])
-          case Some(QuantifiedPermissionMethods.inhale) => Some(state.inhale(thisExpr).asInstanceOf[S])
-          case Some(QuantifiedPermissionMethods.exhale) => Some(state.exhale(thisExpr).asInstanceOf[S])
-          case Some(QuantifiedPermissionMethods.forall) =>
-            val implies = thisExpr.getSingle.get.asInstanceOf[BinaryBooleanExpression]
-            val left = implies.left.asInstanceOf[NegatedBooleanExpression].exp
-            assert(implies.op == BooleanOperator.||)
-            val right = implies.right
-            Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))).asInstanceOf[S])
-          case None =>
-            Some(state.setExpression(ExpressionSetFactory.createFunctionCallExpression(operator, parameters, returnedtype, programpoint)).asInstanceOf[S])
-          case _ => None
-        }
-      case _ => None
+    val nativeMethod = QuantifiedPermissionMethods.values.find(_.toString == operator)
+    nativeMethod match {
+      case Some(QuantifiedPermissionMethods.access) =>
+        val permissionExpr =
+          if (parameters.size <= 1) createFieldAccessPredicate(thisExpr, parameters.head, ExpressionSet(Constant("1", PermType)), returnedtype)
+          else createFieldAccessPredicate(thisExpr, parameters.head, parameters(1), returnedtype)
+        Some(state.setExpression(permissionExpr))
+      case Some(QuantifiedPermissionMethods.inhale) => Some(state.command(InhaleCommand(thisExpr)))
+      case Some(QuantifiedPermissionMethods.exhale) => Some(state.command(ExhaleCommand(thisExpr)))
+      case Some(QuantifiedPermissionMethods.forall) =>
+        val implies = thisExpr.getSingle.get.asInstanceOf[BinaryBooleanExpression]
+        val left = implies.left.asInstanceOf[NegatedBooleanExpression].exp
+        assert(implies.op == BooleanOperator.||)
+        val right = implies.right
+        Some(state.setExpression(ExpressionSet(ForallExpression(left, right, parameters.head.getSingle.get.asInstanceOf[VariableIdentifier]))))
+      case Some(QuantifiedPermissionMethods.permission) => Some(state.setExpression(createCurrentPermission(thisExpr, returnedtype)))
+      case None => (operator, parameters) match {
+        case ("&&", right :: Nil) => Some(state.setExpression(createBooleanBinaryExpression(thisExpr, right, BooleanOperator.&&)))
+        case ("==" | "!=" | "<" | "<!" | ">" | ">=", right :: Nil) => Some(state.setExpression(createBinaryArithmeticExpression(thisExpr, right, ArithmeticOperator.withName(operator))))
+        case _ => Some(state.setExpression(ExpressionSetFactory.createFunctionCallExpression(operator, parameters, returnedtype, programpoint)))
+      }
     }
   }
 

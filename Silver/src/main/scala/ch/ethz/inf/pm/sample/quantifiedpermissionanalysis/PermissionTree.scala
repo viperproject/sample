@@ -109,7 +109,7 @@ case class ZeroBoundedPermissionTree(child: PermissionAddition) extends Permissi
   override def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = child.canBeExpressedByIntegerQuantification(expressions)
   override def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[Inner] = child.getSetDescriptions(expressions)
   override def transform(f: (Expression) => Expression): PermissionTree = ZeroBoundedPermissionTree(child.transform(f))
-  override def exists(f: (PermissionTree) => Boolean): Boolean = f(this) || f(child)
+  override def exists(f: (PermissionTree) => Boolean): Boolean = f(this) || child.exists(f)
   override def foreach(f: (Expression) => Unit): Unit = child.foreach(f)
   override def getReadAmounts: Set[(FractionalPermission, Int)] = child.getReadAmounts
   override def simplify: PermissionTree = this

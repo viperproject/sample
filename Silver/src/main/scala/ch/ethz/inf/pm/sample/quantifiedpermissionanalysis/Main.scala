@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
-import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters, quantifiedpermissionanalysis}
+import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -267,7 +267,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     val numericalEntry = numericalStateBuilder.build(program, method)
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
     val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
-    numericalResult.print()
+
     Context.setNumericalInfo(method.name.name, numericalResult)
 
     val quantifiedPermissionsEntry = QuantifiedPermissionsState()
