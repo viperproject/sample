@@ -1,0 +1,21 @@
+field right: Ref
+
+field left: Ref
+method example4(m: Ref)
+{
+  var n: Ref
+  var b: Ref
+  n := m
+  if(n!=null){
+    b := n.right
+    n := n.left
+    if(n!=null){
+      b := n.right
+      n := n.left
+    }
+    if(n!=null && n.right!=null){
+      b := n.right.left
+    }
+  }
+
+}

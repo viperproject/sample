@@ -1,0 +1,30 @@
+method lcp(arr: Ref, x: Int, y: Int, lenA:Int) returns (n: Int)
+requires 0 <= x && 0 <= y && x < lenA&& y < lenA
+{
+   n := 0
+   while (x + n < lenA &&  y + n < lenA && loc(arr, x + n).val == loc(arr, y + n).val)
+   {
+     n := n + 1
+   }
+}
+
+
+/* Encoding of arrays */
+
+field val: Int
+
+domain IArray {
+  function loc(a: Ref, i: Int): Ref
+  function len(a: Ref): Int
+  function first(r: Ref): Ref
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    forall a: Ref, i: Int :: {loc(a, i)}
+      first(loc(a, i)) == a && second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: Ref :: len(a) >= 0
+  }
+}

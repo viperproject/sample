@@ -1,0 +1,36 @@
+field left: Ref
+field right: Ref
+
+method traverseRightAndLeft(nd:Ref)
+{
+    var nodeLeft :Ref := nd.left
+    var nodeRight:Ref := nd.right
+
+  while(nodeLeft!=null || nodeRight!=null)
+{
+        if(nodeLeft != null){
+            nodeLeft := nodeLeft.left
+        }
+        if(nodeRight!=null){
+            nodeRight:=nodeRight.right
+        }
+    }
+}
+
+method traverseRandom(nd:Ref)
+{
+    var i:Int:= 0
+    var node :Ref := nd
+
+    while(node!=null)
+    {
+        node := node.left
+        if(i<5 || i>10){
+            node := node.left
+        }
+        else{
+            node:=node.right
+        }
+        i := i+1
+    }
+}

@@ -1,0 +1,7 @@
+field x: Int
+
+
+method exhaleExpression1WithInhale(this: Ref)
+{
+  inhale acc(this.x) && this.x == 1
+}

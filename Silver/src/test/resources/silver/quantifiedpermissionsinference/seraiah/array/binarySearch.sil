@@ -1,0 +1,43 @@
+method binary_search(arr: Ref, lenA: Int,  key: Int) returns (index: Int)
+//requires lenA>=0
+{
+  var mid: Int
+  var low: Int := 0
+  var high: Int := lenA
+  index := -1
+  while (low < high)
+  {
+    mid := (low + high) \ 2
+    //todo: there is a bug with handling \ 2. try without inhale
+    inhale low+high == 2*mid
+    if (loc(arr, mid).val < key) {
+      low := mid + 1
+    } else {
+      if (key < loc(arr, mid).val) {
+        high := mid
+      } else {
+        index := mid
+        high := mid
+      }
+    }
+  }
+}
+/* Encoding of arrays */
+
+field val: Int
+
+domain IArray {
+  function loc(a: Ref, i: Int): Ref
+  function len(a: Ref): Int
+  function first(r: Ref): Ref
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    forall a: Ref, i: Int :: {loc(a, i)}
+      first(loc(a, i)) == a && second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: Ref :: len(a) >= 0
+  }
+}

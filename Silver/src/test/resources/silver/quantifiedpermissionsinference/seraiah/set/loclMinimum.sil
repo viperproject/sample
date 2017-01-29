@@ -1,0 +1,26 @@
+field e1: Ref
+
+field e2: Ref
+
+field data: Int
+
+method findMin(node: Ref) returns(nd:Ref)
+{
+  nd := node
+  var moved:Bool := true
+  var value: Int
+  while (moved)
+  {
+  	moved := false
+  	value := nd.data
+    if (node.e1 != null && node.e1.data < value) {
+    	nd := node.e1
+    	moved := true
+    } else {
+    	if (node.e2 != null && node.e2.data < value) {
+    		nd := node.e2
+    		moved := true
+    	}
+    }
+  }
+}

@@ -1,0 +1,13 @@
+field next: Ref
+field data: Int
+
+method sumList(nd: Ref) returns (sum:Int)
+{
+    var node :Ref := nd
+    sum  := 0
+    while(node != null)
+    {
+        sum := sum + node.data
+        node := node.next
+    }
+}

@@ -1,0 +1,45 @@
+field next: Ref
+field prev: Ref
+field data: Int
+field is_marked: Bool
+
+method traverse(nd: Ref)
+{
+    var node :Ref := nd
+
+    while(node != null && !node.next.is_marked)
+    {
+        node.is_marked := true
+        node := node.next
+    }
+}
+
+method sumList(nd: Ref) returns (sum:Int)
+{
+    var node :Ref := nd
+    sum  := 0
+    while(node != null)
+    {
+        sum := sum + node.data
+        node := node.next
+    }
+}
+
+method getThird(nd:Ref) returns (third:Ref)
+{
+    var second: Ref := nd.next
+    third := second.next
+}
+
+//Find node with value 5 and take the previous one.
+method findNodeBeforeFive(nodesN: Set[Ref], nd: Ref) returns(res:Ref)
+{
+    var node :Ref := nd
+    while(node != null && node.data != 5)
+    {
+        node := node.next
+    }
+    if(node != null && node.data == 5){
+        res := node.prev
+    }
+}

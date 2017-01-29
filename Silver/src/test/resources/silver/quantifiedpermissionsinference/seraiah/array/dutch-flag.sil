@@ -1,0 +1,40 @@
+method DutchFlag(a: Array, lenA:Int)
+{
+  var unsorted : Int := 0
+  var white : Int := 0
+  var blue : Int := lenA
+
+  while (unsorted < blue)
+  {
+    var tmp : Int := loc(a,unsorted).val
+    if(tmp == 1) { //WHITE
+      unsorted := unsorted + 1
+    } elseif(tmp == 0) {//RED
+      loc(a,unsorted).val := loc(a,white).val
+      loc(a,white).val := tmp
+      white := white + 1
+      unsorted := unsorted + 1
+    } else {
+      loc(a,unsorted).val := loc(a,blue - 1).val
+      blue := blue - 1
+      loc(a,blue).val := tmp
+    }
+  }
+}
+
+field val: Int // array slot value
+domain Array {
+  function loc(a: Array, i: Int): Ref
+  function length(a: Array): Int
+  function inverse_first(r: Ref): Array // array this slot belongs to
+  function inverse_second(r: Ref): Int // index of this array slot
+
+  axiom all_diff {
+    forall a: Array, i: Int :: {loc(a, i)}
+      inverse_first(loc(a, i)) == a && inverse_second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: Array :: length(a) >= 0
+  }
+}

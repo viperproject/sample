@@ -1,0 +1,20 @@
+field left: Ref
+field right: Ref
+
+method traverseRandom(nd:Ref)
+{
+    var i:Int:= 0
+    var node :Ref := nd
+
+    while(node!=null)
+    {
+        node := node.left
+        if(i<5 || i>10){
+            node := node.left
+        }
+        else{
+            node:=node.right
+        }
+        i := i+1
+    }
+}

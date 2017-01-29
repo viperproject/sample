@@ -1,0 +1,14 @@
+field next: Ref
+field prev: Ref
+field is_marked: Bool
+
+method traverse(nd: Ref)
+{
+    var node :Ref := nd
+
+    while(node != null && !node.next.is_marked)
+    {
+        node.is_marked := true
+        node := node.next
+    }
+}

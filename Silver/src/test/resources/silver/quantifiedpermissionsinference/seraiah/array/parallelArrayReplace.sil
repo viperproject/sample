@@ -1,0 +1,56 @@
+
+method Replace(arr: Ref, left: Int, right: Int, from: Int, to: Int, lenA: Int)
+  requires 0 <= left && left < right && right <= lenA
+{
+  if (right - left <= 1) {
+    if(loc(arr, left).val == from) {
+      loc(arr, left).val := to
+    }
+  } else {
+    var mid: Int := left + (right - left) \ 2
+    inhale mid*2== 2*left + (right-left)
+    //fork-left
+    exhale 0 <= left && left < mid && mid <= lenA
+    exhale forall i: Int :: left <= i && i < mid ==> acc(loc(arr, i).val)
+
+    //fork-right
+    exhale 0 <= mid && mid < right && right <= lenA
+    exhale forall i: Int :: mid <= i && i < right ==> acc(loc(arr, i).val)
+
+    //join-left
+    inhale forall i: Int :: left <= i && i < mid ==> acc(loc(arr, i).val)
+
+    //join-right
+    inhale forall i: Int :: mid <= i && i < right ==> acc(loc(arr, i).val)
+  }
+}
+
+method Client(arr: Ref)
+  requires 1 < len(arr)
+  requires forall i: Int :: 0 <= i && i < len(arr) ==> acc(loc(arr, i).val)
+{
+  Replace(arr, 1, len(arr), 5, 7, len(arr))
+}
+
+
+/* Encoding of arrays */
+
+field val: Int
+
+domain Array {
+  function loc(a: Ref, i: Int): Ref
+  function len(a: Ref): Int
+  function first(r: Ref): Ref
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    forall a: Ref, i: Int :: {loc(a, i)}
+      first(loc(a, i)) == a && second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: Ref :: len(a) >= 0
+  }
+
+
+}

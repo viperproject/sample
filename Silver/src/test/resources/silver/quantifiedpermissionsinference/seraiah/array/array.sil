@@ -1,0 +1,50 @@
+method example_array(array: IArray, a: Int) {
+    var re: Ref
+    var t: Int
+    var r : Int
+    t:=a
+    if (t < 0) {
+        t := 9
+    }
+    else {
+        t := 0
+    }
+    inhale acc(loc(array,3).val,1/10)
+    t := 3
+    loc(array,2*t).val := 0
+    r := loc(array,t).val
+    r := t
+    while(t<10 && loc(array,100).val == 0)
+    {
+        r := r+1
+        r := loc(array,t).val
+        r := loc(array,a).val
+        t := t + 1
+    }
+    re := loc(array,1)
+    var end: Int := 99
+    end := loc(array,t).val
+    inhale forall q:Int:: (q>10 && q<15) ==> acc(loc(array,q).val)
+    r := loc(array,20).val
+    r := loc(array,8).val
+}
+/* Encoding of arrays */
+
+//function f(x:Perm):Perm  {x>none?x:none}
+field val: Int
+
+domain IArray {
+  function loc(a: IArray, i: Int): Ref
+  function len(a: IArray): Int
+  function first(r: Ref): IArray
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    forall a: IArray, i: Int :: {loc(a, i)}
+      first(loc(a, i)) == a && second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: IArray :: len(a) >= 0
+  }
+}

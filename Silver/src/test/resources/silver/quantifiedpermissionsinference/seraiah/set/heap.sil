@@ -1,0 +1,12 @@
+
+field f: Ref
+
+method t3(r:Ref) returns (res:Ref)
+{
+    res := r.f.f
+}
+
+method t4(r:Ref, res:Ref)
+{
+    r.f.f := res
+}

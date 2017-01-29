@@ -1,0 +1,13 @@
+field right:Ref
+field left:Ref
+
+method example4(m:Ref, arr:Ref)
+{
+	var n:Ref := m
+	var b:Ref := n.right
+	n:= n.left
+	b := n.right
+	n:= n.left
+	b := n.right//.left
+	n:= b.left
+}
