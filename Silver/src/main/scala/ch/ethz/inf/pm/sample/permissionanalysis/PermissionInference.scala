@@ -102,10 +102,13 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
 
     // TODO: Report if infeasible permissions are inferred.
 
-    val inferred = specifications.children.flatMap { case (field, tree) =>
-      val permission = tree.permission
-      if (permission.isNone) None
-      else Some(createSilverField(field, state))
+    val inferred = specifications match {
+      case tree: PermissionTree.Inner =>
+        tree.children.flatMap { case (field, subtree) =>
+          val permission = subtree.permission
+          if (permission.isNone) None
+          else Some(createSilverField(field, state))
+        }
     }
 
     (existing ++ inferred).distinct
@@ -143,7 +146,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A tuple containing the extracted permissions and the unknown part of the specifications.
     */
   private def extractSpecifications(expressions: Seq[sil.Exp], state: T): (PermissionTree, Seq[sil.Exp]) =
-    expressions.foldLeft((PermissionTree(), Seq.empty[sil.Exp])) {
+    expressions.foldLeft((PermissionTree.empty, Seq.empty[sil.Exp])) {
       case ((specs, unknown), expression) =>
         val (s, u) = extractPermissions(expression, state)
         (specs plus s, unknown ++ u)
@@ -189,8 +192,8 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       val path = accessPath(location)
       val amount = permissionAmount(permission)
 
-      (PermissionTree(path, amount), Seq.empty)
-    case unknown => (PermissionTree(), Seq(unknown))
+      (PermissionTree.create(path, amount), Seq.empty)
+    case unknown => (PermissionTree.empty, Seq(unknown))
   }
 
   /**
