@@ -309,7 +309,12 @@ object ReferenceSetDescription {
               case contains => contains
             })
           case AddField(field) =>
-            val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, sil.Ref)())()
+            if (!Context.fieldAccessFunctions.contains(field)) {
+              val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), silverType, Seq(), Seq(), None)()
+              Context.fieldAccessFunctions += field -> fun
+              Context.auxiliaryFunctions += fun.name -> fun
+            }
+            val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, silverType)())()// sil.FuncApp(Context.fieldAccessFunctions(field), Seq(quantifiedVariableForFieldsVar))()
             val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             val and =
               if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), contains)()
