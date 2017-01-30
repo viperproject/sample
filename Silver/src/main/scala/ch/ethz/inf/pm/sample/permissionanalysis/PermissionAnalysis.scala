@@ -206,7 +206,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     * @return The state after leaving the loop.
     */
   override def leaveLoop(): T =
-    copy(stack = PermissionTree() :: stack)
+    copy(stack = PermissionTree.empty :: stack)
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -472,7 +472,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def bottom(): T = {
     logger.trace("bottom")
     copy(result = result.bottom(),
-      stack = List(PermissionTree()),
+      stack = List(PermissionTree.empty),
       inferred = None,
       isBottom = true,
       isTop = false)
@@ -688,7 +688,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     else {
       // build permission tree for the wanted permission
       val want = permission minus collect(path)
-      val tree = PermissionTree(path, want)
+      val tree = PermissionTree.create(path, want)
 
       val (head :: tail) = stack
       val newStack = (head lub tree) :: tail
@@ -769,7 +769,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     stack.head.fold(z)(f)
 
   def foldAll[R](z: R)(f: (R, (AccessPath, PermissionTree)) => R): R =
-    stack.foldLeft(z) { (x, tree) => tree.fold(x)(f) }
+    stack.foldLeft[R](z) { case (x, tree) => tree.fold[R](x)(f) }
 
   def copy(currentPP: ProgramPoint = currentPP,
            fields: Set[(String, Type)] = fields,
@@ -785,7 +785,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     else if (isBottom) "⊥"
     else {
       s"inferred:\n ${inferred.getOrElse("none")}\n" +
-      s"stack:\n${stack.zipWithIndex.map { case (permissions, level) => s" $level: $permissions" }.mkString("\n")}"
+        s"stack:\n${stack.zipWithIndex.map { case (permissions, level) => s" $level: $permissions" }.mkString("\n")}"
     }
 
   override def ids = IdentifierSet.Top
@@ -797,7 +797,7 @@ object PermissionAnalysisState {
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
-                                           stack: List[PermissionTree] = PermissionTree() :: Nil,
+                                           stack: List[PermissionTree] = PermissionTree.empty :: Nil,
                                            inferred: Option[PermissionTree] = None,
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
