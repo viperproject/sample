@@ -67,8 +67,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   * @author Jerome Dohrau
   */
 trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SimpleState[T]
-    with SilverState[T]
+  extends SilverState[T]
     with SilverSpecification[PermissionTree]
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
