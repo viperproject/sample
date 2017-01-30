@@ -62,10 +62,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            changingVars: Set[Identifier] = changingVars,
            declaredBelowVars: Set[Identifier] = declaredBelowVars,
            refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets) match {
-      case newState if QuantifiedPermissionsParameters.useSetSimplifications && newState.canBeMerged => newState.mergeSetDescriptions
-      case newState => newState
-    }
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets)
 
   /** Removes the current expression.
     *
@@ -168,14 +165,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     }
   }
 
-  private def canBeMerged: Boolean = refSets.foldLeft(Map[(ProgramPoint, Expression), ReferenceSetDescription]()) {
-    case (collected, entry@(key, setDescription)) => collected + (collected.find(_._2.isEquivalentDescription(setDescription)) match {
-      case Some((_, result)) => key -> result
-      case None => entry
-    })
-  } != refSets
-
-  private def mergeSetDescriptions: QuantifiedPermissionsState = {
+  def mergeSetDescriptions: QuantifiedPermissionsState = {
     copy(refSets = refSets.foldLeft(Map[(ProgramPoint, Expression), ReferenceSetDescription]()) {
       case (collected, entry@(key, setDescription)) => collected + (collected.find(_._2.isEquivalentDescription(setDescription)) match {
         case Some((_, result)) => key -> result
