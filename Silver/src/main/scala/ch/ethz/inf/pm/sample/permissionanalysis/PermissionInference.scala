@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePe
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
-import viper.silver.ast.Method
+import viper.silver.ast.{LocalVarDecl, Method}
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]

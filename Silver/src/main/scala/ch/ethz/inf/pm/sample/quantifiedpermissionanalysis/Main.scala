@@ -249,19 +249,19 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
     Context.setProgram(DefaultSilverConverter.prog)
 
     // TODO: just catching the exception is a hack, better perform a search through the program if there exists a field access with a function as receiver
-    val aliasAnalysisResult: Option[CfgResult[SimpleAliasAnalysisState]] =
-      try {
-        val aliasEntry = aliasAnalysisBuilder.build(program, method)
-        val aliasInterpreter = FinalResultForwardInterpreter[SimpleAliasAnalysisState]()
-        val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
-        Some(aliasResult)
-      } catch {
-        case _: IllegalArgumentException =>
-          logger.warn("Heap analysis failed!")
-          None
-      }
+//    val aliasAnalysisResult: Option[CfgResult[SimpleAliasAnalysisState]] =
+//      try {
+//        val aliasEntry = aliasAnalysisBuilder.build(program, method)
+//        val aliasInterpreter = FinalResultForwardInterpreter[SimpleAliasAnalysisState]()
+//        val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
+//        Some(aliasResult)
+//      } catch {
+//        case _: IllegalArgumentException =>
+//          logger.warn("Heap analysis failed!")
+//          None
+//      }
 
-    Context.setAliases(method.name.name.toString, aliasAnalysisResult)
+    Context.setAliases(method.name.name.toString, None)
 
     val numericalEntry = numericalStateBuilder.build(program, method)
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
