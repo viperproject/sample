@@ -8,12 +8,12 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverInferenceRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
-import ch.ethz.inf.pm.sample.permissionanalysis.util.{Permission, PermissionTree}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
 import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
@@ -169,7 +169,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
         case sil.LocalVar(name) =>
           List(VariableIdentifier(name)(DummyRefType))
         case sil.FieldAccess(receiver, field) =>
-          val typ = state.fields.find(_._1 == field.name).map(_._2).get
+          val typ = Context.getField(field.name).map(_.typ).getOrElse(TopType)
           accessPath(receiver) :+ VariableIdentifier(field.name)(typ)
       }
 
@@ -294,10 +294,10 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     */
   private def createSilverType(identifier: Identifier, state: T): sil.Type = {
     val name = identifier.toString
-    state.fields.find(_._1 == name) match {
-      case Some((_, typ)) if typ.isObject => sil.Ref
-      case Some((_, typ)) if typ.isNumericalType => sil.Int
-      case Some((_, typ)) if typ.isBooleanType => sil.Bool
+    Context.getField(name).map(_.typ) match {
+      case Some(typ) if typ.isObject => sil.Ref
+      case Some(typ) if typ.isNumericalType => sil.Int
+      case Some(typ) if typ.isBooleanType => sil.Bool
       case None => throw new IllegalArgumentException(s"Type $identifier does not exist.")
     }
   }

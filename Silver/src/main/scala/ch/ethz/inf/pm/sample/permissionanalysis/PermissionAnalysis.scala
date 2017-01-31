@@ -76,9 +76,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   // current program point
   def currentPP: ProgramPoint
 
-  // the set of fields
-  def fields: Set[(String, Type)]
-
   // result of the previous statement
   def result: ExpressionSet
 
@@ -771,7 +768,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     stack.foldLeft[R](z) { case (x, tree) => tree.fold[R](x)(f) }
 
   def copy(currentPP: ProgramPoint = currentPP,
-           fields: Set[(String, Type)] = fields,
            result: ExpressionSet = result,
            stack: List[PermissionTree] = stack,
            inferred: Option[PermissionTree] = inferred,
@@ -794,7 +790,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 object PermissionAnalysisState {
 
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
-                                           fields: Set[(String, Type)] = Set.empty,
                                            result: ExpressionSet = ExpressionSet(),
                                            stack: List[PermissionTree] = PermissionTree.empty :: Nil,
                                            inferred: Option[PermissionTree] = None,
@@ -802,13 +797,12 @@ object PermissionAnalysisState {
                                            isTop: Boolean = false)
     extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
     override def copy(currentPP: ProgramPoint,
-                      fields: Set[(String, Type)],
                       result: ExpressionSet,
                       stack: List[PermissionTree],
                       inferred: Option[PermissionTree],
                       isBottom: Boolean,
                       isTop: Boolean): SimplePermissionAnalysisState =
-      SimplePermissionAnalysisState(currentPP, fields, result, stack, inferred, isBottom, isTop)
+      SimplePermissionAnalysisState(currentPP, result, stack, inferred, isBottom, isTop)
   }
 
 }
@@ -816,14 +810,7 @@ object PermissionAnalysisState {
 trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverEntryStateBuilder[T] {
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
-    // retrieve the set of fields declared in the program
-    val fields = program.fields
-      .map(field => (field.variable.toString, field.typ))
-      .toSet
-
-    val initial = top.copy(fields = fields)
-
-    method.initializeArgument(initial)
+    method.initializeArgument(top)
   }
 }
 
@@ -837,6 +824,9 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
  permissionAnalysisStateBuilder: PermissionAnalysisStateBuilder[A, T])
   extends SilverAnalysis[T] {
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
+    // initialize context
+    Context.setProgram(program)
+
     // first phase: alias analysis
     val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
     val aliasInterpreter = FinalResultForwardInterpreter[A]()
