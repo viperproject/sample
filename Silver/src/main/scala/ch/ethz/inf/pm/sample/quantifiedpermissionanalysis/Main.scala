@@ -40,8 +40,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
   }
 
   override def extendMethod(method: sil.Method, cfgResult: CfgResult[QuantifiedPermissionsState]): sil.Method = {
-    Context.loadAliasesForMethod(method.name)
-    Context.loadNumericalInfoForMethod(method.name)
+    Context.initMethod(method.name)
     super.extendMethod(method, cfgResult)
   }
 

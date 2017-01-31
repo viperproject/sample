@@ -8,8 +8,8 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, PermType}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.{ast => sil}
@@ -84,6 +84,13 @@ object Context {
 
   def functions(name: String): sil.FuncLike = {
     if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
+  }
+
+  def initMethod(name: String) = {
+    loadAliasesForMethod(name)
+    loadNumericalInfoForMethod(name)
+    identifiers --= sets.values.map(_.name)
+    sets = Map()
   }
 
   def clearMethodSpecificInfo(): Unit = {
