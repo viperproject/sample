@@ -17,6 +17,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisTypes._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasGraph._
 import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode._
+import ch.ethz.inf.pm.sample.permissionanalysis.util.Context
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
@@ -167,14 +168,6 @@ trait AliasGraph[T <: AliasGraph[T]] {
     */
   def heap: Heap
 
-  /** Returns the set of fields declared in the program. The set only contains
-    * fields with a reference types since all other fields are irrelevant for
-    * the alias analysis.
-    *
-    * @return The set of fields.
-    */
-  def fields: Set[String]
-
   def ids = IdentifierSet.Top
 
   /** Returns the current program point.
@@ -214,14 +207,14 @@ trait AliasGraph[T <: AliasGraph[T]] {
     *
     * @param fields The set of fields in the program.
     */
-  def initialize(fields: Set[String]): T = {
+  def initialize(fields: Seq[String]): T = {
     // prepare the initial heap
     val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
 
     val x = initialValue() - NullNode
     val heap = x.foldLeft(Heap()) { (map, node) => map + (node -> fieldMap) }
     // set initial heap
-    copy(heap = heap, fields = fields)
+    copy(heap = heap)
   }
 
   /** Returns the least upper bound of this and the other alias graph.
@@ -273,7 +266,9 @@ trait AliasGraph[T <: AliasGraph[T]] {
   def addNode(name: String): T = {
     // create node and initialize its fields
     val node = HeapNode(name)
-    val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
+    val fieldMap = Context.getFields()
+      .map(_.variable.getName)
+      .foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
     // update heap
     copy(heap = heap + (node -> fieldMap))
   }
@@ -555,7 +550,9 @@ trait AliasGraph[T <: AliasGraph[T]] {
         // add summary node to heap if it does not exist
         val summaryHeap = if (newHeap contains SummaryNode) newHeap
         else {
-          val fieldMap = fields.foldLeft(FieldMap()) { (map, field) => map + (field -> Set(SummaryNode)) }
+          val fieldMap = Context.getFields()
+            .map(_.variable.getName)
+            .foldLeft(FieldMap()) { (map, field) => map + (field -> Set(SummaryNode)) }
           newHeap + (SummaryNode -> fieldMap)
         }
         (copy(heap = summaryHeap), newValues)
@@ -744,15 +741,13 @@ trait AliasGraph[T <: AliasGraph[T]] {
   /** Copies the alias graph but updates the store and the heap if the
     * corresponding arguments are defined.
     *
-    * @param fields          The set of fields in the program.
     * @param currentPP       The current program point
     * @param materialization The flag indicating whether materialization is allowed.
     * @param store           The new store.
     * @param heap            The new heap.
     * @return The updated copy of the alias graph.
     */
-  def copy(fields: Set[String] = fields,
-           currentPP: ProgramPoint = currentPP,
+  def copy(currentPP: ProgramPoint = currentPP,
            materialization: Boolean = materialization,
            store: Store = store,
            heap: Heap = heap): T
@@ -837,7 +832,6 @@ object AliasGraph {
 
       // update alias graph
       copy(
-        fields = fields ++ other.fields,
         currentPP = DummyProgramPoint,
         materialization = materialization && other.materialization,
         store = newStore,
@@ -878,7 +872,6 @@ object AliasGraph {
 
       // update alias graph
       copy(
-        fields = fields & other.fields,
         currentPP = DummyProgramPoint,
         materialization = materialization || other.materialization,
         store = newStore,
@@ -920,15 +913,13 @@ object AliasGraph {
     /** Copies the alias graph but updates the store, the heap, and current
       * program point if the corresponding arguments are defined.
       *
-      * @param fields          The set of fields in the program.
       * @param currentPP       The current program point.
       * @param materialization The flag indicating whether materialization is allowed.
       * @param store           The new store.
       * @param heap            The new heap.
       * @return The updated copy of the alias graph.
       */
-    override def copy(fields: Set[String],
-                      currentPP: ProgramPoint,
+    override def copy(currentPP: ProgramPoint,
                       materialization: Boolean,
                       store: Store,
                       heap: Heap): MayAliasGraph =
@@ -1001,7 +992,6 @@ object AliasGraph {
 
       // update alias graph
       copy(
-        fields = fields ++ other.fields,
         currentPP = DummyProgramPoint,
         materialization = materialization && other.materialization,
         store = newStore,
@@ -1049,7 +1039,6 @@ object AliasGraph {
 
       // update alias graph
       copy(
-        fields = fields & other.fields,
         currentPP = DummyProgramPoint,
         materialization = materialization || other.materialization,
         store = newStore,
@@ -1090,7 +1079,6 @@ object AliasGraph {
     /** Copies the alias graph but updates the store, the heap, and the current
       * program point if the corresponding arguments are defined.
       *
-      * @param fields          The set of fields in the program.
       * @param currentPP       The new current program point.
       * @param materialization The flag indicating whether materialization is
       *                        allowed.
@@ -1098,8 +1086,7 @@ object AliasGraph {
       * @param heap            The new heap.
       * @return The updated copy of the alias graph.
       */
-    override def copy(fields: Set[String],
-                      currentPP: ProgramPoint,
+    override def copy(currentPP: ProgramPoint,
                       materialization: Boolean,
                       store: Store,
                       heap: Heap): MustAliasGraph =
@@ -1746,10 +1733,7 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
   extends SilverEntryStateBuilder[T] {
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
     // retrieve the set of fields declared in the program
-    val fields = program.fields
-      .filter(_.typ.isObject)
-      .map(_.variable.toString)
-      .toSet
+    val fields = Context.getReferenceFields().map(_.variable.getName)
 
     val may = MayAliasGraph().initialize(fields)
     val must = MustAliasGraph().initialize(fields)
@@ -1810,6 +1794,16 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
   override def toString: String = "Alias Analysis"
 }
 
+case class AliasAnalysis[A <: AliasAnalysisState[A]](builder: AliasAnalysisStateBuilder[A])
+  extends SilverForwardAnalysis[A] {
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[A] = {
+    // initialize context
+    Context.setProgram(program)
+    // analyze method
+    analyze(method, builder.build(program, method))
+  }
+}
+
 /** The alias analysis.
   *
   * @author Caterina Urban
@@ -1817,7 +1811,7 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
   */
 object AliasAnalysis
   extends AliasAnalysisRunner[SimpleAliasAnalysisState] {
-  override val analysis: SilverAnalysis[SimpleAliasAnalysisState] = SimpleSilverForwardAnalysis[SimpleAliasAnalysisState](AliasAnalysisEntryState)
+  override val analysis: SilverAnalysis[SimpleAliasAnalysisState] = AliasAnalysis[SimpleAliasAnalysisState](AliasAnalysisEntryState)
 
   override def toString: String = "Alias Analysis"
 }
