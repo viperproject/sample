@@ -66,19 +66,14 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @return The abstract state after the assignment*/
   override def assignVariable(x: Expression, right: Expression): T = x match {
     case left: VariableIdentifier =>
-      // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-      var newNumDom = if (!numDom.ids.contains(left)) numDom.createVariable(left) else numDom
-      newNumDom =
+      val newNumDom =
         if (right.ids.toSetOrFail.forall {
           case _: VariableIdentifier => true
           case _ => false
         }) {
-          right.ids.toSetOrFail.foreach {
-            id => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
-          }
-          newNumDom.assign(left, right)
+          numDom.assign(left, right)
         }
-        else newNumDom.removeVariable(left).createVariable(left)
+        else numDom.removeVariable(left).createVariable(left)
       copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
   }
@@ -149,15 +144,8 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
         case _ => false
       }) {
         conjunct.ids.toSetOrFail.foreach(id => if (newNumDom.ids.contains(id)) newNumDom = newNumDom.setToTop(id))
-      } else {
-        // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-        conjunct.ids.toSetOrFail.foreach {
-          case id: VariableIdentifier =>
-            if (!newNumDom.ids.contains(id))
-              newNumDom = newNumDom.createVariable(id)
-        }
-        newNumDom = newNumDom.assume(conjunct)
       }
+      else newNumDom = newNumDom.assume(conjunct)
     }
     copy(numDom = newNumDom)
   }

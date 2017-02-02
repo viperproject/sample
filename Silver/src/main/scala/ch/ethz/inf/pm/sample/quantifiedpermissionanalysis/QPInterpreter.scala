@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -97,10 +98,39 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
         iterations += currentBlock -> (currentCount + 1)
       }
     }
-    if (QuantifiedPermissionsParameters.useExpressionsSimplifications) {
+    if (QuantifiedPermissionsParameters.useSetSimplifications)
+      simplifySets(cfgResult)
+    if (QuantifiedPermissionsParameters.useExpressionsSimplifications)
       cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplify, refSets = state.refSets.mapValues(_.simplify)))))
-    }
     cfgResult
+  }
+
+  private def simplifySets(cfgResult: CfgResult[QuantifiedPermissionsState]) = {
+    val cfg = cfgResult.cfg
+    type Key = (ProgramPoint, Expression)
+
+    var differentSets: Map[SampleBlock, Map[Key, Set[Key]]] = Map()
+    val relevantBlocks = cfg.blocks.filter {
+      case PreconditionBlock(_) | LoopHeadBlock(_, _) => true
+      case _ => false
+    }
+    relevantBlocks.foreach { block =>
+      val refSets = cfgResult.getStates(block).head.refSets
+      differentSets += block -> refSets.foldLeft[Map[Key, Set[Key]]](Map()) {
+        case (map, (key, refSet)) => map + (key -> refSets.keys.filterNot(refSets(_).isEquivalentDescription(refSet)).toSet)
+      }
+    }
+    val allKeys = differentSets.values.toSet.flatMap((map: Map[Key, Set[Key]]) => map.keys.toSet)
+    val mergeMap: Map[Key, Set[Key]] = differentSets.foldLeft(Map[Key, Set[Key]]()) {
+      case (map, (_, differentSet)) => map ++ differentSet.transform {
+        case (key, set) => if (map.contains(key)) set ++ map(key) else set
+      }
+    }.transform((_, set) => allKeys -- set)
+    val setKeys: Map[Set[Key], Key] = mergeMap.foldLeft(Map[Set[Key], Key]()) {
+      case (map, (key, set)) => if (!map.contains(set)) map + (set -> key) else map
+    }
+    val replacements = mergeMap.transform((_, set) => setKeys(set))
+    relevantBlocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(refSets = state.refSets.transform((key, _) => state.refSets(replacements(key)))))))
   }
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgResult: CfgResult[QuantifiedPermissionsState]): Unit = {

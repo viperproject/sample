@@ -406,8 +406,10 @@ object ReferenceSetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    final def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
-      concreteExpressions.flatMap(concreteExpression => extractRules(concreteExpression._1))
+    private def startsWith(expr: Expression, start: Expression): Boolean = expr match {
+      case `start` => true
+      case FieldExpression(_, _, receiver) => startsWith(receiver, start)
+      case _ => false
     }
 
     private def extractRules(expr: Expression): Set[ReferenceSetElementDescriptor] = expr match {
@@ -415,6 +417,22 @@ object ReferenceSetDescription {
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
       case id: VariableIdentifier => Set(RootElement(id))
       case FunctionCallExpression(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map(expr => (expr.typ, pp, expr))))
+    }
+
+    final def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
+      var rootExpression: Option[Expression] = None
+      concreteExpressions.foreach {
+        case (start, _) => if (concreteExpressions.forall { case (concreteExpression, _) => startsWith(concreteExpression, start) }) rootExpression = Some(start)
+      }
+      rootExpression match {
+        case Some(root) => concreteExpressions.flatMap {
+          case (concreteExpression, _) => extractRules(concreteExpression)
+        }.filterNot {
+          case _: RootElement => true
+          case _ => false
+        } + RootElement(root)
+        case None => concreteExpressions.flatMap { case (concreteExpression, _) => extractRules(concreteExpression) }
+      }
     }
 
     def simplify: Inner = copy(concreteExpressions = concreteExpressions.map { case (expr, b) => (Utils.simplifyExpression(expr), b) })

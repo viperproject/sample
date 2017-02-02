@@ -20,7 +20,7 @@ object QuantifiedPermissionsParameters {
 
   val useExpressionsSimplifications = true
 
-  val useSetSimplifications = false
+  val useSetSimplifications = true
 
   val includeBranchConditions = true
 
@@ -30,7 +30,7 @@ object QuantifiedPermissionsParameters {
 
   val addReceiverNullCheckInSetDefinition = true
 
-  val useCustomTriggerGeneration = true
+  val useCustomTriggerGeneration = false
 
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
