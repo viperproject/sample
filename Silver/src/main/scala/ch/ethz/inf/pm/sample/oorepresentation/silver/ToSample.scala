@@ -189,6 +189,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         returnedType = sample.TopType)
       Seq(call)
 
+    case sil.LocalVarDeclStmt(decl) =>
+      Seq(go(decl))
+
     // Inhale and Exhale statements are converted into native method calls
     // @author Caterina Urban
     case sil.Inhale(exp) =>
