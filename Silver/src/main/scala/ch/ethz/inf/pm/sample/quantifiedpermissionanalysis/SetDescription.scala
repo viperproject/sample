@@ -337,11 +337,7 @@ object ReferenceSetDescription {
               val arg = Context.getQuantifiedVarDecl(formalArg.typ, args.toSet)
               args :+= arg
               formalArg.typ match {
-                case sil.Ref | _: sil.DomainType =>
-                  impliesLeftConjuncts :+= expressions((pp, argExpr)).toSilExpression(state, arg.localVar)
-                  // TODO: do we want to include this restriction? Consequence: Not necessarily sound anymore!
-                  //              if (formalArg.typ.equals(sil.Ref))
-                  //                impliesLeftConjuncts :+= sil.NeCmp(arg.localVar, sil.NullLit()())()
+                case sil.Ref | _: sil.DomainType => impliesLeftConjuncts :+= expressions((pp, argExpr)).toSilExpression(state, arg.localVar)
                 case sil.Int => DefaultSampleConverter.convert(forget(VariableIdentifier(arg.name)(IntType), argExpr))
                 case _ => throw new IllegalStateException()
               }
