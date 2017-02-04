@@ -30,7 +30,7 @@ object QuantifiedPermissionsParameters {
 
   val addReceiverNullCheckInSetDefinition = true
 
-  val useCustomTriggerGeneration = false
+  val useCustomTriggerGeneration = true
 
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or

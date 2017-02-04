@@ -129,8 +129,8 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     val setKeys: Map[Set[Key], Key] = mergeMap.foldLeft(Map[Set[Key], Key]()) {
       case (map, (key, set)) => if (!map.contains(set)) map + (set -> key) else map
     }
-    val replacements = mergeMap.transform((_, set) => setKeys(set))
-    relevantBlocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(refSets = state.refSets.transform((key, _) => state.refSets(replacements(key)))))))
+    val replacements: Map[Key, Key] = mergeMap.transform((_, set) => setKeys(set))
+    relevantBlocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(refSets = state.refSets.transform { case (key, refSet: ReferenceSetDescription.Inner) => refSet.copy(key = replacements(key)) }))))
   }
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgResult: CfgResult[QuantifiedPermissionsState]): Unit = {
