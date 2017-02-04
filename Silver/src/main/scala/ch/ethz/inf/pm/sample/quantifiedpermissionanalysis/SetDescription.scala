@@ -148,7 +148,8 @@ object ReferenceSetDescription {
 
     def concreteExpressions: Set[(Expression, Boolean)]
 
-    def copy(widened: Boolean = widened,
+    def copy(key: (ProgramPoint, Expression) = key,
+             widened: Boolean = widened,
              concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner
 
     override def isNullProhibited: Boolean = concreteExpressions.forall { case (_, b) => b }
@@ -462,7 +463,8 @@ object NegativeReferenceSetDescription {
       extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
 
-    override def copy(widened: Boolean = widened,
+    override def copy(key: (ProgramPoint, Expression) = key,
+                      widened: Boolean = widened,
                       concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
       Inner(key, widened, concreteExpressions)
 
@@ -517,8 +519,9 @@ object PositiveReferenceSetDescription {
 
     def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
 
-    override def copy(widened: Boolean,
-                      concreteExpressions: Set[(Expression, Boolean)]): Inner =
+    override def copy(key: (ProgramPoint, Expression) = key,
+                      widened: Boolean = widened,
+                      concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
       Inner(key, widened, concreteExpressions)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =

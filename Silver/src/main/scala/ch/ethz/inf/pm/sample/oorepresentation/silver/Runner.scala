@@ -14,12 +14,9 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-//import viper.carbon.CarbonVerifier
 import viper.silicon.Silicon
 
 import scala.collection.mutable
-
-//import viper.silicon.Silicon
 
 trait AbstractAnalysisRunner[S <: State[S]] {
   val compiler: SilverCompiler

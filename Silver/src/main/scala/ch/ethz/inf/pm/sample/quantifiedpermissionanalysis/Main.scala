@@ -16,6 +16,7 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsP
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 
 /**
   * @author Severin Münger
@@ -199,7 +200,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     })
     val numDom: NumericalDomain[_] = Context.preNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
-    if (constraints.nonEmpty) newInvariants :+= numDom.getConstraints(numDom.ids.getNonTop).map(expr => DefaultSampleConverter.convert(expr)).reduce((left, right) => sil.And(left, right)())
+    if (!numDom.isBottom && constraints.nonEmpty) newInvariants :+= constraints.map(DefaultSampleConverter.convert).reduce(and)
     newInvariants
   }
 

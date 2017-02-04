@@ -73,7 +73,7 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
         }) {
           numDom.assign(left, right)
         }
-        else numDom.removeVariable(left).createVariable(left)
+        else numDom.setToTop(left)
       copy(numDom = newNumDom)
     case _ => throw new IllegalStateException()
   }
