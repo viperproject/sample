@@ -268,13 +268,7 @@ object ReferenceSetDescription {
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       if (isFinite(state.refSets))
         expand(state, this).map (expr => expr.transform {
-          case FieldExpression(typ, field, receiver) =>
-            if (!Context.fieldAccessFunctions.contains(field)) {
-              val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), DefaultSampleConverter.convert(typ), Seq(), Seq(), None)()
-              Context.fieldAccessFunctions += field -> fun
-              Context.auxiliaryFunctions += fun.name -> fun
-            }
-            FunctionCallExpression(Context.fieldAccessFunctions(field).name, Seq(receiver), typ)
+          case FieldExpression(typ, field, receiver) => FunctionCallExpression(Context.getFieldAccessFunction(field).name, Seq(receiver), typ)
           case other => other
         }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
       else
@@ -311,14 +305,7 @@ object ReferenceSetDescription {
             })
           case AddField(field) =>
             val fieldAccess =
-              if (useFieldAccessFunctionsInSetDefinitions) {
-                if (!Context.fieldAccessFunctions.contains(field)) {
-                  val fun = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), silverType, Seq(), Seq(), None)()
-                  Context.fieldAccessFunctions += field -> fun
-                  Context.auxiliaryFunctions += fun.name -> fun
-                }
-                sil.FuncApp(Context.fieldAccessFunctions(field), Seq(quantifiedVariableForFieldsVar))()
-              }
+              if (useFieldAccessFunctionsInSetDefinitions) sil.FuncApp(Context.getFieldAccessFunction(field), Seq(quantifiedVariableForFieldsVar))()
               else sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, silverType)())()
             val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             val and =

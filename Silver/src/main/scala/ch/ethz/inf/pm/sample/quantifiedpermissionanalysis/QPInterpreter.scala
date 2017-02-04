@@ -85,9 +85,15 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
             // TODO: With the new CFG this became very hacky, can this be solved more properly?
             val (edge1, edge2) =  (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
-            val cond = edge1.condition.specialBackwardSemantics(state1.lub(state2)).expr
+            val cond1 = edge1.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
+            val cond2 = edge2.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
+            val cond1Conjuncts = Utils.toCNFConjuncts(cond1)
+            val cond2Conjuncts = Utils.toCNFConjuncts(cond2)
             val pp = edge1.condition.getPC()
-            edge1.condition.specialBackwardSemantics(state1.lub(state2, cond).before(pp)).after(pp)
+            val (joined, condConjuncts) =
+              if (cond1Conjuncts.size > cond2Conjuncts.size) (state1.lub(state2, cond1).before(pp), cond1Conjuncts)
+              else (state2.lub(state1, cond2).before(pp), cond2Conjuncts)
+            condConjuncts.foldRight(joined)((conjunct, filtered) => filtered.assume(conjunct)).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates = cfgResult.getStates(currentBlock)

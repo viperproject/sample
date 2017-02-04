@@ -105,19 +105,18 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       )
   }
 
-  def lub(falseState: QuantifiedPermissionsState, cond: ExpressionSet): QuantifiedPermissionsState = (cond.getSingle.isDefined && !cond.getSingle.get.isInstanceOf[UnitExpression], this, falseState) match {
-    case (false, _, _) => throw new IllegalArgumentException()
-    case (true, Bottom, _) | (true, _, Top) => falseState
-    case (true, _, Bottom) | (true, Top, _) => this
-    case (true, _, _) =>
-      val condSingle = cond.getSingle.get
+  def lub(falseState: QuantifiedPermissionsState, cond: Expression): QuantifiedPermissionsState = (this, falseState) match {
+    case (Bottom, _) | (_, Top) => falseState
+    case (_, Bottom) | (Top, _) => this
+    case _ =>
       val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
         case (true, _) => permissions
         case (_, true) => falseState.permissions
-        case (false, false) => permissions.lub(condSingle, falseState.permissions)
+        case (false, false) => permissions.lub(cond, falseState.permissions)
       }
-      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(condSingle) } ++ falseState.refSets.transform {
-        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(NegatedBooleanExpression(condSingle)))
+      val negCondition = NegatedBooleanExpression(cond)
+      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) } ++ falseState.refSets.transform {
+        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(negCondition))
       }
       copy(
         expr = expr lub falseState.expr,
@@ -396,7 +395,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @param cond The assumed expression
     * @return The abstract state after assuming that the expression holds
     */
-  override def assume(cond: Expression): QuantifiedPermissionsState = this
+  override def assume(cond: Expression): QuantifiedPermissionsState = {
+    val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) }
+    var filtered = copy(refSets = newRefSets)
+    cond.foreach {
+      case FieldExpression(typ, field, receiver) => filtered = filtered.getFieldValue(receiver, field, typ)
+      case _: AccessPathIdentifier => throw new IllegalStateException()
+      case _ =>
+    }
+    filtered
+  }
 
   /** Creates a variable given a `VariableIdentifier`.
     *

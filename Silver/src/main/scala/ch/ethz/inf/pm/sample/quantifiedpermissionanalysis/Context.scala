@@ -8,10 +8,11 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
+import viper.silver.ast.Function
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -24,21 +25,25 @@ object Context {
 
   var program: sil.Program = _
 
-  var identifiers: Set[String] = Set()
+  private var currentMethod: String = _
 
-  var auxiliaryFunctions: Map[String, sil.Function] = Map()
+  private var identifiers: Set[String] = Set()
 
-  var programFunctions: Map[String, sil.FuncLike] = Map()
+  private var boundaryFunction: Option[sil.Function] = None
 
-  var maxFunction: Option[sil.Function] = None
+  private var maxFunction: Option[sil.Function] = None
 
-  var boundaryFunction: Option[sil.Function] = None
+  private var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
-  var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
+  private var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
 
-  var rdAmountVariable: Option[sil.LocalVarDecl] = None
+  private var programFunctions: Map[String, sil.FuncLike] = Map()
 
-  var fieldAccessFunctions: Map[String, sil.Function] = Map()
+  private var auxiliaryFunctions: Map[String, sil.Function] = Map()
+
+  private var fieldAccessFunctions: Map[String, sil.Function] = Map()
+
+  private var fieldAccessFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
 
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
@@ -56,6 +61,20 @@ object Context {
     */
   private var numericalInfo: Option[CfgResult[NumericalStateType]] = None
 
+  def getAuxiliaryFunctions: Map[String, Function] = auxiliaryFunctions
+
+  def getFieldAccessFunction(field: String): sil.Function = {
+    if (!fieldAccessFunctions.contains(field)) {
+      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None)()
+      fieldAccessFunctions += field -> function
+      auxiliaryFunctions += function.name -> function
+    }
+    fieldAccessFunctionsInMethod += currentMethod -> (fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set()) + ((field, fieldAccessFunctions(field))))
+    fieldAccessFunctions(field)
+  }
+
+  def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set())
+
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
       sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
@@ -68,8 +87,9 @@ object Context {
     case FunctionCallExpression(functionName, _, _, _) => functionName
   }
 
-  def setProgram(program: sil.Program): Unit = {
+  def setMethodContext(program: sil.Program, method: SilverMethodDeclaration): Unit = {
     this.program = program
+    currentMethod = method.name.name
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
     identifiers ++= program.fields.map(_.name)
     identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(_.name)
@@ -86,7 +106,8 @@ object Context {
     if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
   }
 
-  def initMethod(name: String) = {
+  def prepareMethodForExtension(name: String): Unit = {
+    currentMethod = name
     loadAliasesForMethod(name)
     loadNumericalInfoForMethod(name)
     identifiers --= sets.values.map(_.name)

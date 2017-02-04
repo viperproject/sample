@@ -88,8 +88,7 @@ object Utils {
   }
 
   def splitToConjuncts(expr: Expression): Set[Expression] = expr match {
-    case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
-      splitToConjuncts(left) ++ splitToConjuncts(right)
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&) => splitToConjuncts(left) ++ splitToConjuncts(right)
     case cnfExpr => Set(cnfExpr)
   }
 

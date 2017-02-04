@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
@@ -16,7 +17,6 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsP
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 
 /**
   * @author Severin Münger
@@ -37,11 +37,11 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
 
   override def extendProgram(program: sil.Program, cfgResults: Map[SilverIdentifier, CfgResult[QuantifiedPermissionsState]]): sil.Program = {
     val tempProg = super.extendProgram(program, cfgResults)
-    tempProg.copy(functions = tempProg.functions ++ Context.auxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
+    tempProg.copy(functions = tempProg.functions ++ Context.getAuxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
   }
 
   override def extendMethod(method: sil.Method, cfgResult: CfgResult[QuantifiedPermissionsState]): sil.Method = {
-    Context.initMethod(method.name)
+    Context.prepareMethodForExtension(method.name)
     super.extendMethod(method, cfgResult)
   }
 
@@ -116,18 +116,20 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         newPreconditions :+= forall
       }
     }
-    Context.fieldAccessFunctions.foreach {
-      case (fieldName, function) =>
-        val quantifiedVarDecl = Context.getQuantifiedVarDecl(sil.Ref)
-        val quantifiedVar = quantifiedVarDecl.localVar
-        val field = sil.Field(fieldName, function.typ)()
-        val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
-        newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
+    Context.getFieldAccessFunctionsForCurrentMethod.foreach { case (fieldName, function) =>
+      val quantifiedVarDecl = Context.getQuantifiedVarDecl(sil.Ref)
+      val quantifiedVar = quantifiedVarDecl.localVar
+      val field = sil.Field(fieldName, function.typ)()
+      val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
+      newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
+    var visited: Set[(ProgramPoint, Expression)] = Set()
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
-        if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
+        if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets) && !visited.contains(setDescription.key)) {
           newPreconditions ++= setDescription.toSetDefinition(state)
+          visited += setDescription.key
+        }
       case _ => throw new IllegalStateException()
     })
     newPreconditions
@@ -184,18 +186,20 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         newInvariants :+= forall
       }
     }
-    Context.fieldAccessFunctions.foreach {
-      case (fieldName, function) =>
-        val quantifiedVarDecl = Context.getQuantifiedVarDecl(sil.Ref)
-        val quantifiedVar = quantifiedVarDecl.localVar
-        val field = sil.Field(fieldName, function.typ)()
-        val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
-        newInvariants :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
+    Context.getFieldAccessFunctionsForCurrentMethod.foreach { case (fieldName, function) =>
+      val quantifiedVarDecl = Context.getQuantifiedVarDecl(sil.Ref)
+      val quantifiedVar = quantifiedVarDecl.localVar
+      val field = sil.Field(fieldName, function.typ)()
+      val implies = sil.Implies(sil.PermGtCmp(sil.CurrentPerm(sil.FieldAccess(quantifiedVar, field)())(), ZeroPerm)(), sil.EqCmp(sil.FuncApp(function, Seq(quantifiedVar))(), sil.FieldAccess(quantifiedVar, field)())())()
+      newInvariants :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), implies)(), sil.TrueLit()())()
     }
+    var visited: Set[(ProgramPoint, Expression)] = Set()
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
-        if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets))
+        if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets) && !visited.contains(setDescription.key)) {
           newInvariants ++= setDescription.toSetDefinition(state)
+          visited += setDescription.key
+        }
       case _ => throw new IllegalStateException()
     })
     val numDom: NumericalDomain[_] = Context.preNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
@@ -247,7 +251,7 @@ case class ForwardAndBackwardAnalysis(aliasAnalysisBuilder: AliasAnalysisStateBu
 
     Context.clearMethodSpecificInfo()
 
-    Context.setProgram(DefaultSilverConverter.prog)
+    Context.setMethodContext(DefaultSilverConverter.prog, method)
 
     // TODO: just catching the exception is a hack, better perform a search through the program if there exists a field access with a function as receiver
 //    val aliasAnalysisResult: Option[CfgResult[SimpleAliasAnalysisState]] =
