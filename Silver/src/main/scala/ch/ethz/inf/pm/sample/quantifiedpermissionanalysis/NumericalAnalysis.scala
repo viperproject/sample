@@ -125,14 +125,7 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
     * @param typ   the type of the field
     * @return The abstract state obtained after the field access, that is,
     *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.*/
-  override def getFieldValue(obj: Expression, field: String, typ: Type): T = {
-    obj match {
-      case obj: Identifier =>
-        val fieldId = VariableIdentifier(field)(typ, currentPP)
-        copy(expr = ExpressionSet(AccessPathIdentifier((obj :: Nil) :+ fieldId)))
-      case _ => this
-    }
-  }
+  override def getFieldValue(obj: Expression, field: String, typ: Type): T = copy(expr = ExpressionSet(FieldExpression(typ, field, obj)))
 
   /** Assumes that a boolean expression holds.
     *

@@ -147,21 +147,21 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
       case PostconditionBlock(posts) => posts
       case PreconditionBlock(pres) => pres
     }
-    var nextState: QuantifiedPermissionsState = exitState
+    var postState: QuantifiedPermissionsState = exitState
     for ((stmt: Statement, _: Int) <- stmts.zipWithIndex.reverse) {
-      newStates.prepend(nextState)
+      newStates.prepend(postState)
       val pp = ProgramPointUtils.identifyingPP(stmt)
-      val prevState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(nextState.before(pp)).after(pp)
-      logger.info(nextState.toString)
+      val preState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(postState.before(pp)).after(pp)
+      logger.info(postState.toString)
       logger.info(stmt.toString)
-      logger.info(prevState.toString)
-      nextState = prevState
+      logger.info(preState.toString)
+      postState = preState
     }
     if (cfgResult.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {
       val blockStates: Seq[QuantifiedPermissionsState] = cfgResult.getStates(block)
-      nextState = blockStates.head widening nextState
+      postState = blockStates.head widening postState
     }
-    newStates.prepend(nextState)
+    newStates.prepend(postState)
     cfgResult.setStates(block, newStates.toList)
   }
 
