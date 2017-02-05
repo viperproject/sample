@@ -310,22 +310,19 @@ object ReferenceSetDescription {
               case contains => contains
             })
           case AddField(field) =>
-            val fieldAccess =
+            val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, silverType)())()
+            val fieldAccessExpr =
               if (useFieldAccessFunctionsInSetDefinitions) sil.FuncApp(Context.getFieldAccessFunction(field), Seq(quantifiedVariableForFieldsVar))()
-              else sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, silverType)())()
+              else fieldAccess
             val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
-            val and =
-              if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), contains)()
-              else contains
-            val left = and match {
-              case _ if isNullProhibited => sil.And(and, sil.NeCmp(fieldAccess, sil.NullLit()())())()
-              case _ => and
-            }
+            var conjuncts: Seq[sil.Exp] = Seq(contains)
+            if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) conjuncts :+= sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), contains)()
+            if (!useFieldAccessFunctionsInSetDefinitions) conjuncts :+= sil.PermGtCmp(sil.CurrentPerm(fieldAccess)(), sil.NoPerm()())()
+            if (isNullProhibited) conjuncts :+= sil.NeCmp(fieldAccessExpr, sil.NullLit()())()
             val triggers =
-              if (QuantifiedPermissionsParameters.useCustomTriggerGeneration)
-                Seq(sil.Trigger(Seq(contains, fieldAccess))())
+              if (QuantifiedPermissionsParameters.useCustomTriggerGeneration) Seq(sil.Trigger(Seq(contains, fieldAccessExpr))())
               else Seq()
-            val forall = sil.Forall(Seq(quantifiedVariableForFields), triggers, sil.Implies(left, sil.AnySetContains(fieldAccess, set)())())()
+            val forall = sil.Forall(Seq(quantifiedVariableForFields), triggers, sil.Implies(conjuncts.reduce(sil.And(_, _)()), sil.AnySetContains(fieldAccessExpr, set)())())()
             fields :+= forall
           case Function(functionName, _, _, argKeys) =>
             val function = Context.functions(functionName)
@@ -400,12 +397,6 @@ object ReferenceSetDescription {
       copy(concreteExpressions = newConcreteExpressions)
     }
 
-    private def startsWith(expr: Expression, start: Expression): Boolean = expr match {
-      case `start` => true
-      case FieldExpression(_, _, receiver) => startsWith(receiver, start)
-      case _ => false
-    }
-
     private def extractRules(expr: Expression): Set[ReferenceSetElementDescriptor] = expr match {
       case ConditionalExpression(_, left, right, _) => extractRules(left) ++ extractRules(right)
       case FieldExpression(_, field, receiver) => extractRules(receiver) + AddField(field)
@@ -413,21 +404,7 @@ object ReferenceSetDescription {
       case FunctionCallExpression(functionName, parameters, returnType, _) => Set(Function(functionName, returnType, pp, parameters.map(expr => (expr.typ, pp, expr))))
     }
 
-    final def abstractExpressions: Set[ReferenceSetElementDescriptor] = {
-      var rootExpression: Option[Expression] = None
-      concreteExpressions.foreach {
-        case (start, _) => if (concreteExpressions.forall { case (concreteExpression, _) => startsWith(concreteExpression, start) }) rootExpression = Some(start)
-      }
-      rootExpression match {
-        case Some(root) => concreteExpressions.flatMap {
-          case (concreteExpression, _) => extractRules(concreteExpression)
-        }.filterNot {
-          case _: RootElement => true
-          case _ => false
-        } + RootElement(root)
-        case None => concreteExpressions.flatMap { case (concreteExpression, _) => extractRules(concreteExpression) }
-      }
-    }
+    final def abstractExpressions: Set[ReferenceSetElementDescriptor] = concreteExpressions.flatMap { case (concreteExpression, _) => extractRules(concreteExpression) }
 
     def simplify: Inner = copy(concreteExpressions = concreteExpressions.map { case (expr, b) => (Utils.simplifyExpression(expr), b) })
   }
