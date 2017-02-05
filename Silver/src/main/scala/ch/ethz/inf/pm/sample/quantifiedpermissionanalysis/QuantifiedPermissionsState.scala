@@ -325,6 +325,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         permissions = newPermissions,
         refSets = newRefSets
       )
+    case _ => this
   }
 
   /** Assumes that a boolean expression holds.
