@@ -247,7 +247,7 @@ object ReferenceSetDescription {
 //                case some: Some[_] => some
 //                case None => Some(sil.TrueLit()())
 //              }
-              Some(DefaultSampleConverter.convert(forget(quantifiedVariableIdentifier, e)))
+              Some(DefaultSampleConverter.convert(forget(state, quantifiedVariableIdentifier, e)))
             case (Some(_), e) if e.typ == IntType => throw new IllegalStateException("Encountered two or more int arguments")
             case _ => None
           }
@@ -275,14 +275,14 @@ object ReferenceSetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    def forget(variable: VariableIdentifier, exprToForget: Expression): Expression = {
+    def forget(state: QuantifiedPermissionsState, variable: VariableIdentifier, exprToForget: Expression): Expression = {
       val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
       val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
       if (useQE) {
         val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-        QuantifierElimination.eliminate(exprToForget.ids.toSetOrFail.map { case varId: VariableIdentifier => varId }, constraints.reduce(ExpressionBuilder.and))
+        QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(ExpressionBuilder.and))
       } else {
-        numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail).getConstraints(Set(variable)).reduce(ExpressionBuilder.and)
+        numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduce(ExpressionBuilder.and)
       }
     }
 
@@ -333,7 +333,7 @@ object ReferenceSetDescription {
               args :+= arg
               formalArg.typ match {
                 case sil.Ref | _: sil.DomainType => impliesLeftConjuncts :+= expressions((pp, argExpr)).toSilExpression(state, arg.localVar)
-                case sil.Int => DefaultSampleConverter.convert(forget(VariableIdentifier(arg.name)(IntType), argExpr))
+                case sil.Int => DefaultSampleConverter.convert(forget(state, VariableIdentifier(arg.name)(IntType), argExpr))
                 case _ => throw new IllegalStateException()
               }
             }
