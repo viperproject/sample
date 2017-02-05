@@ -268,12 +268,11 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
 
   private def extractExpressionDescriptions(expr: Expression, positive: Boolean = true): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
     case functionCall@FunctionCallExpression(_, parameters, _, _) =>
-      parameters.map {
-        case param: RefType => extractExpressionDescriptions(param, positive)
-        case param if param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param, positive)
+     val result = parameters.map {
+        case param if param.typ.isInstanceOf[RefType] || param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param, positive)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
-      }.reduce(_ ++ _) +
-      ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall, positive))
+      }.reduce(_ ++ _) + ((currentPP, functionCall) -> ReferenceSetDescription.Inner(currentPP, functionCall, positive))
+      result
     case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr, positive)))
   }
 
@@ -326,6 +325,24 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         permissions = newPermissions,
         refSets = newRefSets
       )
+  }
+
+  /** Assumes that a boolean expression holds.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param cond The assumed expression
+    * @return The abstract state after assuming that the expression holds
+    */
+  override def assume(cond: Expression): QuantifiedPermissionsState = {
+    val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) }
+    var filtered = copy(refSets = newRefSets)
+    cond.foreach {
+      case FieldExpression(typ, field, receiver) => filtered = filtered.getFieldValue(receiver, field, typ)
+      case _: AccessPathIdentifier => throw new IllegalStateException()
+      case _ =>
+    }
+    filtered
   }
 
   /** Signals that we are going to analyze the statement at program point `pp`.
@@ -387,24 +404,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the creation of the object
     */
   override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
-
-  /** Assumes that a boolean expression holds.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param cond The assumed expression
-    * @return The abstract state after assuming that the expression holds
-    */
-  override def assume(cond: Expression): QuantifiedPermissionsState = {
-    val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) }
-    var filtered = copy(refSets = newRefSets)
-    cond.foreach {
-      case FieldExpression(typ, field, receiver) => filtered = filtered.getFieldValue(receiver, field, typ)
-      case _: AccessPathIdentifier => throw new IllegalStateException()
-      case _ =>
-    }
-    filtered
-  }
 
   /** Creates a variable given a `VariableIdentifier`.
     *
