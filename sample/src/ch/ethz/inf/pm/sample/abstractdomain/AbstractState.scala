@@ -21,9 +21,11 @@ object ExpressionSetFactory {
   }
 
   def createFunctionCallExpression(functionName: String, parameterExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
-    ExpressionSet((for (params <- expand(parameterExpressions)) yield {
+    val exprs = (for (params <- expand(parameterExpressions)) yield {
       FunctionCallExpression(functionName, params, typ, pp)
-    }).toSeq)
+    }).toSeq
+    if (exprs.isEmpty) ExpressionSet()
+    else ExpressionSet(exprs)
   }
 
   def createVariable(variable: Variable, ty: Type, pp: ProgramPoint): ExpressionSet = {
