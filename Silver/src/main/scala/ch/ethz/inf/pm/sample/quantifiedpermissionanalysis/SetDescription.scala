@@ -298,9 +298,15 @@ object ReferenceSetDescription {
         val quantifiedVariableForFieldsVar = Context.getQuantifiedVarDecl(silverType).localVar
         abstractExpressions.foreach {
           case RootElement(root) =>
+            var accessConjuncts: Seq[sil.Exp] = Seq()
             val silRoot = DefaultSampleConverter.convert(root)
+            silRoot.foreach {
+              case fa: sil.FieldAccess => accessConjuncts +:= sil.PermGtCmp(sil.CurrentPerm(fa)(), sil.NoPerm()())()
+              case _ =>
+            }
             roots :+= (sil.AnySetContains(silRoot, set)() match {
-              case contains if isNullProhibited => sil.Implies(sil.NeCmp(silRoot, sil.NullLit()())(), contains)()
+              case contains if isNullProhibited => sil.Implies((accessConjuncts :+ sil.NeCmp(silRoot, sil.NullLit()())()).reduceLeft(sil.And(_, _)()), contains)()
+              case contains if accessConjuncts.nonEmpty => sil.Implies(accessConjuncts.reduceLeft(sil.And(_, _)()), contains)()
               case contains => contains
             })
           case AddField(field) =>
