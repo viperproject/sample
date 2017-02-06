@@ -317,14 +317,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
+      println(permissions(field))
       val newPermissions =
-        if (!visited.contains(currentPP)) permissions.undoLastRead(field).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
+        if (!visited.contains(currentPP)) (if (permissions.getOrElse(field, EmptyPermissionTree).hasRead) permissions.undoLastRead(field) else permissions).add(field, ExpressionDescription(currentPP, receiver), FractionalPermission(num, denom))
         else permissions
       val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
       copy(
         permissions = newPermissions,
         refSets = newRefSets
       )
+    case BinaryBooleanExpression(left, right, BooleanOperator.&&) => exhale(right).exhale(left)
     case _ => this
   }
 

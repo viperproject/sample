@@ -1,0 +1,7 @@
+method multi_exhale(ref: Ref)
+{
+    exhale acc(ref.f.f)
+    exhale acc(ref.f)
+}
+
+field f: Ref
