@@ -11,7 +11,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, Do
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silver.{ast => sil}
 
 /**
@@ -275,15 +276,20 @@ object ReferenceSetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    def forget(state: QuantifiedPermissionsState, variable: VariableIdentifier, exprToForget: Expression): Expression = {
-      val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
-      val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-      if (useQE) {
-        val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-        QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(ExpressionBuilder.and))
-      } else {
-        numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduce(ExpressionBuilder.and)
-      }
+    def forget(state: QuantifiedPermissionsState, variable: VariableIdentifier, exprToForget: Expression): Expression = exprToForget match {
+      case _: Constant => BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
+      case _ =>
+        val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
+        val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
+        if (useQE) {
+          val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+          QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
+        } else {
+          numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduceOption(and) match {
+            case Some(exp) => exp
+            case None => trueConst
+          }
+        }
     }
 
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = {
