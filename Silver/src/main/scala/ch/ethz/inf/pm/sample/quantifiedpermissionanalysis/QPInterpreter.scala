@@ -21,7 +21,7 @@ import scala.collection.mutable.ListBuffer
   * @author Severin Münger
   *         Added on 29.11.16.
   */
-final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
+sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
 
   var blocksLastInLoop: Set[SampleBlock] = Set()
   var nestingLevels: Map[SampleBlock, Int] = Map()
@@ -62,10 +62,12 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     cfgResult.initialize(state)
     cfgResult
   }
+}
 
-  override def execute(cfg: SampleCfg, initial: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = backwardExecute(cfg, initial)
 
-  def backwardExecute(cfg: SampleCfg, finalState: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
+final class QPBackwardInterpreter extends QPInterpreter {
+
+  override def execute(cfg: SampleCfg, finalState: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
     determineBlockTypes(cfg, cfg.entry)
     val bottom = finalState.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
@@ -165,4 +167,11 @@ final class QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] 
     cfgResult.setStates(block, newStates.toList)
   }
 
+}
+
+final class QPForwardInterpreter extends QPInterpreter {
+
+  override def execute(cfg: SampleCfg, initial: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
+    null
+  }
 }

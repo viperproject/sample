@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType, RefType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silicon.Silicon
@@ -235,6 +235,8 @@ object Utils {
   val trueConst = Constant("true", BoolType)
 
   val falseConst = Constant("false", BoolType)
+
+  val nullConst = Constant("null", RefType())
 
   object ExpressionBuilder {
 

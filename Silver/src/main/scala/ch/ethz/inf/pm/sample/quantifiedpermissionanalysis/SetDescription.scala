@@ -193,28 +193,31 @@ object ReferenceSetDescription {
       case _ => false
     }
 
-    private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[Expression] = setDescription match {
+    private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[(Expression, Seq[Expression])] = setDescription match {
       case inner: Inner =>
         inner.concreteExpressions.flatMap {
-          case (FunctionCallExpression(functionName, parameters, typ, _), _) =>
-            expandFunction(state, parameters.map(param => (param.typ, pp, param))).map(arguments => FunctionCallExpression(functionName, arguments, typ, pp)).toSet[Expression]
-          case (other, _) => Set(other)
+          case (FunctionCallExpression(functionName, parameters, typ, _), isNullGuarded) =>
+            expandFunction(state, parameters.map(param => (param.typ, pp, param))).map { arguments =>
+              val functionCall = FunctionCallExpression(functionName, arguments.unzip._1, typ, pp)
+              val constraints: Seq[Expression] = arguments.unzip._2.flatten
+              (functionCall, if (isNullGuarded) constraints :+ functionCall else constraints)
+            }
+          case (other, isNullGuarded) => Seq((other, if (isNullGuarded) Seq(other) else Seq[Expression]()))
         }
       case _ => throw new IllegalArgumentException()
     }
 
-    private def expand(state: QuantifiedPermissionsState, key: (ProgramPoint, Expression)): Set[Expression] = expand(state, state.refSets(key))
+    private def expand(state: QuantifiedPermissionsState, key: (ProgramPoint, Expression)): Set[(Expression, Seq[Expression])] = expand(state, state.refSets(key))
 
-    private def expandFunction(state: QuantifiedPermissionsState, parameters: Seq[(Type, ProgramPoint, Expression)]): Set[Seq[Expression]] = {
+    private def expandFunction(state: QuantifiedPermissionsState, parameters: Seq[(Type, ProgramPoint, Expression)]): Set[Seq[(Expression, Seq[Expression])]] = {
       val variablesToRemove = state.changingVars ++ state.declaredBelowVars
-      if (parameters.isEmpty) Set(Seq())
+      if (parameters.isEmpty) Set[Seq[(Expression, Seq[Expression])]](Seq[(Expression, Seq[Expression])]())
       else expandFunction(state, parameters.init).flatMap(seq => parameters.last match {
-        case (_: RefType | _: DomType, _, expr) =>
-          expand(state, (pp, expr)).map(expr => seq :+ expr)
+        case (_: RefType | _: DomType, _, expr) => expand(state, (pp, expr)).map(expr => seq :+ expr)
         case (IntType, _, expr) =>
           val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).localVar.name)(IntType)
           val expressionToAssume = BinaryArithmeticExpression(quantifiedVariable, expr, ArithmeticOperator.==)
-          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ constant)
+          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ (constant, Seq()))
       })
     }
 
@@ -268,10 +271,18 @@ object ReferenceSetDescription {
       */
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       if (isFinite(state.refSets))
-        expand(state, this).map (expr => expr.transform {
-          case FieldExpression(typ, field, receiver) => FunctionCallExpression(Context.getFieldAccessFunction(field).name, Seq(receiver), typ)
-          case other => other
-        }).map(expr => sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))()).reduce[sil.Exp]((left, right) => sil.Or(left, right)())
+        expand(state, this).map { case (expr, constraints) =>
+          val transformer: Expression => Expression = {
+            case FieldExpression(typ, field, receiver) => FunctionCallExpression(Context.getFieldAccessFunction(field).name, Seq(receiver), typ)
+            case other => other
+          }
+          (expr.transform(transformer), constraints.map(_.transform(transformer)))
+        }.map {
+          case (expr, constraints) => (sil.EqCmp(quantifiedVariable, DefaultSampleConverter.convert(expr))(), constraints.map(DefaultSampleConverter.convert))
+        }.map {
+          case (e, Nil) => e
+          case (e, constraints) => sil.And(constraints.map(constraint => sil.NeCmp(constraint, sil.NullLit()())()).reduce[sil.Exp](sil.And(_, _)()), e)()
+        }.reduce[sil.Exp](sil.Or(_, _)())
       else
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
