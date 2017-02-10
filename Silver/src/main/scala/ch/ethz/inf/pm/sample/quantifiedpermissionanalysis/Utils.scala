@@ -246,8 +246,6 @@ object Utils {
 
     def plus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.+)
 
-    def plusOne(expr: Expression): BinaryArithmeticExpression = plus(expr, oneConst)
-
     def neg(arg: Expression): UnaryArithmeticExpression = UnaryArithmeticExpression(arg, ArithmeticOperator.-, IntType)
 
     def minus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.-)
@@ -256,17 +254,23 @@ object Utils {
 
     def modulo(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.%)
 
-    def lt(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.<)
+    def comp(left: Expression, right: Expression, op: ArithmeticOperator.Value): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, op)
 
-    def leq(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.<=)
+    def lt(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.<)
+
+    def leq(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.<=)
+
+    def gt(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.>)
+
+    def geq(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.>=)
+
+    def equ(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.==)
+
+    def neq(left: Expression, right: Expression): BinaryArithmeticExpression = comp(left, right, ArithmeticOperator.!=)
 
     def and(left: Expression, right: Expression): BinaryBooleanExpression = BinaryBooleanExpression(left, right, BooleanOperator.&&)
 
     def or(left: Expression, right: Expression): BinaryBooleanExpression = BinaryBooleanExpression(left, right, BooleanOperator.||)
-
-    def equ(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==)
-
-    def neq(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.!=)
 
     def not(arg: Expression): NegatedBooleanExpression = NegatedBooleanExpression(arg)
   }
