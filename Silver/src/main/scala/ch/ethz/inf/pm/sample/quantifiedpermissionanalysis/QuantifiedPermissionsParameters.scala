@@ -24,7 +24,7 @@ object QuantifiedPermissionsParameters {
 
   val includeBranchConditions = true
 
-  val useQE = false
+  val useQE = true
 
   val useQESimplifications = true
 

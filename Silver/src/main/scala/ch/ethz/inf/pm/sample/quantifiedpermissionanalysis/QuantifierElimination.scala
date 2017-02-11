@@ -24,7 +24,7 @@ object QuantifierElimination {
   def eliminate(variables: Set[VariableIdentifier], expr: Expression): Expression = variables.foldLeft(expr)((expr, variable) => eliminate(variable, expr))
 
   def eliminate(variable: VariableIdentifier, expr: Expression): Expression = {
-    println("original: " + expr)
+    println(s"original to eliminate $variable: $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF): " + formulaNNF)
 //    val tzEquivalentFormula = toTzEquivalentFormula(formulaNNF)
@@ -36,6 +36,10 @@ object QuantifierElimination {
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println("RESULT: " + equivalentFormula)
     equivalentFormula
+  }
+
+  private def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = expr.transform {
+    case BinaryArithmeticExpression(`placeholder`, MaxFunction(left, right), ArithmeticOperator.==) => or(and(equ(placeholder, left), geq(left, right)), and(equ(placeholder, right), geq(right, left)))
   }
 
   // Step 1
@@ -181,6 +185,13 @@ object NotDivides {
   def unapply(notDivides: Expression): Option[(Int, Expression)] = notDivides match {
     case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.!=) => Some(divisor.toInt, expr)
     case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
+    case _ => None
+  }
+}
+
+object MaxFunction {
+  def unapply(expr: Expression): Option[(Expression, Expression)] = expr match {
+    case FunctionCallExpression(name, left :: right :: Nil, _, _) if name == Context.getMaxFunction.name => Some(left, right)
     case _ => None
   }
 }
