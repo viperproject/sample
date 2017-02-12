@@ -20,9 +20,14 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
     else permissions
 
-  def simplify: PermissionRecords =
+  def simplifySyntactially: PermissionRecords =
     copy(permissions = permissions.transform {
-      case (_, tree) => tree.simplify
+      case (_, tree) => tree.simplifySyntactically
+    })
+
+  def simplifySemantically(state: QuantifiedPermissionsState): PermissionRecords =
+    copy(permissions = permissions.transform {
+      case (_, tree) => tree.simplifySemantically(state)
     })
 
   def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
@@ -37,7 +42,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
       case (_, other) => other
     })
 
-  def sub(field: String, receiver: ExpressionDescription, permission: SimplePermission): PermissionRecords =
+  def sub(field: String, receiver: ExpressionDescription, permission: FractionalPermission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.sub(receiver, permission)
       case (_, other) => other

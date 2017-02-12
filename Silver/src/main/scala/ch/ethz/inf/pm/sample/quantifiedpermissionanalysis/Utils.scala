@@ -30,6 +30,13 @@ object Utils {
     case _ => gcd(b, a % b)
   }
 
+  def mergeElements[T](seq: Seq[T], mergeFun: (T, T) => Option[T]): Seq[T] = seq.foldLeft[Seq[T]](Seq()) {
+    case (existing, nextElement) => existing.find(mergeFun(nextElement, _).isDefined) match {
+      case Some(result) => (existing.takeWhile(_ != result) :+ mergeFun(nextElement, result).get) ++ existing.dropWhile(_ != result).tail
+      case None => existing :+ nextElement
+    }
+  }
+
   def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: NumericalDomainType, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)
