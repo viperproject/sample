@@ -46,9 +46,11 @@ object QuantifierElimination {
   private def toNNF(expr: Expression): Expression = Utils.toNNF(expr)
 
   // Step 3
-  private def collectVariable(variable: VariableIdentifier, expr: Expression): Expression = expr match {
-    case BinaryBooleanExpression(left, right, op) => BinaryBooleanExpression(collectVariable(variable, left), collectVariable(variable, right), op)
-    case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) =>
+  private def collectVariable(variable: VariableIdentifier, expr: Expression): Expression = expr.transform {
+    case binExp@BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) && (binExp.contains(_ == variable) || !binExp.contains {
+      case DivideExpression(_, _) => true
+      case _ => false
+    }) =>
       val collectedVariables = binOp(collect(left), collect(right), _ - _)
       val mapping: ((Any, Int)) => Expression = {
         case (_, 0) => const(0)
@@ -56,9 +58,10 @@ object QuantifierElimination {
         case (ConstPlaceholder, value) => const(value)
       }
       val varFactor = collectedVariables.getOrElse(variable, 0)
-      if (varFactor > 0) BinaryArithmeticExpression(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
-      else if (varFactor < 0) BinaryArithmeticExpression((collectedVariables - variable).map(mapping).reduce(plus), VariableIdentifierWithFactor(-varFactor, variable), op)
-      else expr
+      if (varFactor > 0) comp(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
+      else if (varFactor < 0) comp((collectedVariables - variable).map(mapping).reduce(plus), VariableIdentifierWithFactor(-varFactor, variable), op)
+      else binExp
+    case other => other
   }
 
   // Step 4
@@ -125,6 +128,8 @@ object QuantifierElimination {
     expr.foreach {
       case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.< | ArithmeticOperator.!=) => bs += left
       case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.<= | ArithmeticOperator.==) => bs += minus(left, oneConst)
+      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.> | ArithmeticOperator.!=) => bs += right
+      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.>= | ArithmeticOperator.==) => bs += minus(right, oneConst)
       case _ =>
     }
     bs
@@ -202,5 +207,6 @@ object Main3 {
     val b = VariableIdentifier("B")(IntType)
     //    QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
     QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(const(0), a), leq(a, const(10)))))
+    QuantifierElimination.eliminate(Set(a), equ(mult(const(2), a), b))
   }
 }
