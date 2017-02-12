@@ -292,14 +292,18 @@ object ReferenceSetDescription {
       case _ =>
         val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
         val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-        if (useQE) {
-          val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-          QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
-        } else {
-          numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduceOption(and) match {
+        val eliminated =
+          if (useQE) {
+            val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+            QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
+          }
+          else None
+        eliminated match {
+          case None => numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduceOption(and) match {
             case Some(exp) => exp
             case None => trueConst
           }
+          case Some(exp) => exp
         }
     }
 

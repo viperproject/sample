@@ -17,13 +17,22 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
   */
 object QuantifierElimination {
 
-  def eliminate(variable: VariableIdentifier, conjuncts: Set[Expression]): Set[Expression] = toCNFConjuncts(eliminate(Set(variable), conjuncts.reduce(and)))
+  def eliminate(variable: VariableIdentifier, conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(Set(variable), conjuncts.reduce(and)) match {
+    case Some(eliminated) => Some(toCNFConjuncts(eliminated))
+    case None => None
+  }
 
-  def eliminate(variables: Set[VariableIdentifier], conjuncts: Set[Expression]): Set[Expression] = toCNFConjuncts(eliminate(variables, conjuncts.reduce(and)))
+  def eliminate(variables: Set[VariableIdentifier], conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(variables, conjuncts.reduce(and)) match {
+    case Some(eliminated) => Some(toCNFConjuncts(eliminated))
+    case None => None
+  }
 
-  def eliminate(variables: Set[VariableIdentifier], expr: Expression): Expression = variables.foldLeft(expr)((expr, variable) => eliminate(variable, expr))
+  def eliminate(variables: Set[VariableIdentifier], expr: Expression): Option[Expression] = variables.foldLeft[Option[Expression]](Some(expr))((expr, variable) => expr match {
+    case Some(exp) => eliminate(variable, exp)
+    case None => None
+  })
 
-  def eliminate(variable: VariableIdentifier, expr: Expression): Expression = {
+  def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] = try {
     println(s"original to eliminate $variable: $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF): " + formulaNNF)
@@ -35,7 +44,10 @@ object QuantifierElimination {
     println(s"F4[$variable] (lcmReplaced): " + lcmReplaced)
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println("RESULT: " + equivalentFormula)
-    equivalentFormula
+    Some(equivalentFormula)
+  } catch { case exception: Exception =>
+    println(s"Something went wrong: $exception")
+    None
   }
 
   private def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = expr.transform {
@@ -74,7 +86,6 @@ object QuantifierElimination {
     }
     val leastCommonMultiple = if (numbers.isEmpty) 1 else lcm(numbers)
     val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
-      case VariableIdentifierWithFactor(h, variableIdentifier) => VariableIdentifierWithFactor(h * hPrime, variableIdentifier)
       case Constant(const, IntType, pp) => Constant((const.toInt * hPrime).toString, IntType, pp)
       case other => other
     }
