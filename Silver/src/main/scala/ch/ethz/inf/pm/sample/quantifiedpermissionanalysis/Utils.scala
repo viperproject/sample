@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, IntType, RefType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silicon.Silicon
@@ -23,7 +23,12 @@ object Utils {
 
   def lcm(a: Int, b: Int): Int = a * b / gcd(a, b)
 
-  def lcm(numbers: TraversableOnce[Int]): Int = numbers.reduce(lcm)
+  def lcmOption(numbers: TraversableOnce[Int]): Option[Int] = numbers.reduceOption(lcm)
+
+  def lcm(numbers: TraversableOnce[Int]): Int = lcmOption(numbers) match {
+    case Some(lcm) => lcm
+    case None => 1
+  }
 
   def gcd(a: Int, b: Int): Int = b match {
     case 0 => a.abs
@@ -111,6 +116,7 @@ object Utils {
     case Constant(const, IntType, _) => Map((ConstPlaceholder, const.toInt))
     case v: VariableIdentifier => Map((v, 1))
     case VariableIdentifierWithFactor(factor, variableIdentifier) => Map((variableIdentifier, factor))
+    case other => Map((other, 1))
   }
 
   private def collectedToExpr(collected: Map[Any, Int]): Expression = {
@@ -121,13 +127,13 @@ object Utils {
     collectedNotNull.size match {
       case 0 => zeroConst
       case 1 => collectedNotNull.head match {
-        case (ConstPlaceholder, n) => const(n)
-        case (other: VariableIdentifier, n) => mult(const(n), other)
+        case (ConstPlaceholder, n) => n
+        case (other: VariableIdentifier, n) => mult(n, other)
       }
       case _ =>
         collectedNotNull.map {
-          case (key: VariableIdentifier, value) => mult(const(value), key)
-          case (ConstPlaceholder, value) => const(value)
+          case (key: VariableIdentifier, value) => mult(value, key)
+          case (ConstPlaceholder, value) => intToConst(value)
         }.reduce(plus)
     }
   }
@@ -148,29 +154,29 @@ object Utils {
   def getCollected(expr: Expression): Expression = expr.transform {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => BinaryArithmeticExpression(collectAndToExpr(left), collectAndToExpr(right), ArithmeticOperator.%)
     case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if left.typ == IntType && right.typ == IntType && ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
-      val collectedNotNull = binOp(collect(left), collect(right), _ - _).filter {
+      val collectedNotZero = binOp(collect(left), collect(right), _ - _).filter {
         case (_, 0) => false
         case _ => true
       }
-      collectedNotNull.size match {
+      collectedNotZero.size match {
         case 0 => Constant(toComparisonOp(op)(0, 0).toString, BoolType)
-        case 1 => collectedNotNull.head match {
+        case 1 => collectedNotZero.head match {
           case (ConstPlaceholder, n) => Constant(toComparisonOp(op)(n, 0).toString, BoolType)
-          case (other: VariableIdentifier, n) if n >= 0 => BinaryArithmeticExpression(BinaryArithmeticExpression(const(n), other, ArithmeticOperator.*), zeroConst, op)
-          case (other: VariableIdentifier, n) if n < 0 => BinaryArithmeticExpression(zeroConst, BinaryArithmeticExpression(const(-n), other, ArithmeticOperator.*), op)
+          case (other: VariableIdentifier, n) if n >= 0 => BinaryArithmeticExpression(BinaryArithmeticExpression(n, other, ArithmeticOperator.*), zeroConst, op)
+          case (other: VariableIdentifier, n) if n < 0 => BinaryArithmeticExpression(zeroConst, BinaryArithmeticExpression(-n, other, ArithmeticOperator.*), op)
         }
         case _ =>
           val mapping: ((Any, Int)) => Expression = {
-            case (key: VariableIdentifier, value) => mult(const(value), key)
-            case (ConstPlaceholder, value) => const(value)
+            case (ConstPlaceholder, value) => value
+            case (key: Expression, value) => mult(value, key)
           }
-          BinaryArithmeticExpression(collectedNotNull.filter {
+          BinaryArithmeticExpression(collectedNotZero.filter {
             case (_, n) if n > 0 => true
             case (_, n) if n < 0 => false
           }.map(mapping).reduceOption(plus) match {
             case Some(e) => e
             case None => zeroConst
-          }, unOp(collectedNotNull.filter {
+          }, unOp(collectedNotZero.filter {
             case (_, n) if n > 0 => false
             case (_, n) if n < 0 => true
           }, - _).map(mapping).reduceOption(plus) match {
@@ -200,8 +206,8 @@ object Utils {
     case ConditionalExpression(`trueConst`, left, _, _) => left
     case ConditionalExpression(`falseConst`, _, right, _) => right
     case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
-    case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => const(toComparisonOp(op)(left.toInt, right.toInt))
-    case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => const(toArithmeticOp(op)(left.toInt, right.toInt))
+    case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(left.toInt, right.toInt)
+    case BinaryArithmeticExpression(Constant(left, IntType, _), Constant(right, IntType, _), op) if ArithmeticOperator.isArithmetic(op) => toArithmeticOp(op)(left.toInt, right.toInt)
     case BinaryArithmeticExpression(`oneConst`, other, ArithmeticOperator.*) => other
     case BinaryArithmeticExpression(other, `oneConst`, ArithmeticOperator.* | ArithmeticOperator./) => other
     case BinaryArithmeticExpression(`zeroConst`, other, ArithmeticOperator.+ | ArithmeticOperator.-) => other
@@ -245,11 +251,11 @@ object Utils {
 
   val nullConst = Constant("null", RefType())
 
+  implicit def intToConst(c: Int): Constant = Constant(c.toString, IntType)
+
+  implicit def boolToConst(c: Boolean): Constant = Constant(c.toString, BoolType)
+
   object ExpressionBuilder {
-
-    def const(c: Int): Constant = Constant(c.toString, IntType)
-
-    def const(c: Boolean): Constant = Constant(c.toString, BoolType)
 
     def plus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.+)
 
@@ -258,6 +264,8 @@ object Utils {
     def minus(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.-)
 
     def mult(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.*)
+
+    def div(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator./)
 
     def modulo(left: Expression, right: Expression): BinaryArithmeticExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.%)
 

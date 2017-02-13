@@ -36,7 +36,7 @@ object QuantifiedPermissionsParameters {
 
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
-    * the natively supported IntegerOctagon domain for the numerical analysis.
+    * the natively supported IntegerOctagon domain for the numerical analysis. Just comment in/out the respective part.
     */
 
   type NumericalDomainType = Apron.Polyhedra
@@ -45,10 +45,10 @@ object QuantifiedPermissionsParameters {
 
   val numericalStateBuilder = PolyhedraAnalysisEntryState
 
-//    type NumericalDomainType = IntegerOctagons
-//
-//    type NumericalStateType = OctagonAnalysisState
-//
-//    val numericalStateBuilder = OctagonAnalysisEntryState
+  /* type NumericalDomainType = IntegerOctagons
+
+  type NumericalStateType = OctagonAnalysisState
+
+  val numericalStateBuilder = OctagonAnalysisEntryState */
 
 }

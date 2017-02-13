@@ -109,10 +109,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case (Bottom, _) | (_, Top) => falseState
     case (_, Bottom) | (Top, _) => this
     case _ =>
+      val newChangingVars = changingVars ++ falseState.changingVars
       val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
         case (true, _) => permissions
         case (_, true) => falseState.permissions
-        case (false, false) => permissions.lub(cond, falseState.permissions)
+        case (false, false) =>
+          if (!cond.contains {
+            case id: Identifier => newChangingVars.contains(id)
+            case _ => false
+          }) permissions.lub(cond, falseState.permissions)
+          else permissions.lub(falseState.permissions)
       }
       val negCondition = NegatedBooleanExpression(cond)
       val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) } ++ falseState.refSets.transform {
@@ -122,7 +128,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         expr = expr lub falseState.expr,
         visited = visited ++ falseState.visited,
         permissions = newPermissions,
-        changingVars = changingVars ++ falseState.changingVars,
+        changingVars = newChangingVars,
         declaredBelowVars = declaredBelowVars ++ falseState.declaredBelowVars,
         refSets = newRefSets
       )

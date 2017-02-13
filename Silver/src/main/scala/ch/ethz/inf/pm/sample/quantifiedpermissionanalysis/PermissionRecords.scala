@@ -32,7 +32,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
 
   def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
     copy(elsePermissions ++ permissions.transform { case (field, tree) =>
-      if (elsePermissions.contains(field)) tree.max(elsePermissions(field))
+      if (elsePermissions.contains(field)) tree.condition(cond, elsePermissions(field))
       else tree
     })
 

@@ -7,15 +7,16 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * @author Severin Münger
   *         Added on 10.01.17.
   */
-object QuantifierElimination {
+object QuantifierElimination extends LazyLogging {
 
   def eliminate(variable: VariableIdentifier, conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(Set(variable), conjuncts.reduce(and)) match {
     case Some(eliminated) => Some(toCNFConjuncts(eliminated))
@@ -50,8 +51,78 @@ object QuantifierElimination {
     None
   }
 
-  private def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = expr.transform {
-    case BinaryArithmeticExpression(`placeholder`, MaxFunction(left, right), ArithmeticOperator.==) => or(and(equ(placeholder, left), geq(left, right)), and(equ(placeholder, right), geq(right, left)))
+  def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = {
+    val exprWithPlaceholder = equ(placeholder, expr)
+    var placeholderMap: Map[Expression, VariableIdentifier] = Map()
+    def replaceExpression(expr: Expression): Expression =
+      if (placeholderMap.contains(expr)) placeholderMap(expr)
+      else {
+        val newFreeVar = VariableIdentifier(Context.createNewUniqueVarIdentifier("p"))(expr.typ)
+        placeholderMap += expr -> newFreeVar
+        newFreeVar
+      }
+    val rewritten = exprWithPlaceholder.transform {
+      case max@MaxFunction(_, _) => replaceExpression(max)
+      case bound@BoundaryFunction(_) => replaceExpression(bound)
+      case cond: ConditionalExpression => replaceExpression(cond)
+      case other => other
+    }
+    val rewrittenWithPlaceholders = placeholderMap.foldLeft(rewritten) {
+      case (existing, (replaced, placeholderVar)) => and(existing, replaced match {
+        case MaxFunction(left, right) => rewriteEquMax(placeholderVar, left, right)
+        case BoundaryFunction(arg) => rewriteEquMax(placeholderVar, arg, zeroConst)
+        case ConditionalExpression(cond, left, right, _) => rewriteEquCond(placeholderVar, cond, left, right)
+      })
+    }
+    var denominators: Set[Int] = Set()
+    rewrittenWithPlaceholders.foreach {
+      case BinaryArithmeticExpression(_, Constant(const, _, _), ArithmeticOperator./) => denominators += const.toInt
+      case _ =>
+    }
+    val leastCommonMultiple = lcm(denominators)
+    def divisionMultiplier(expr: Expression): (Expression, Boolean) = expr match {
+      case BinaryArithmeticExpression(left, Constant(c, _, _), ArithmeticOperator./) => (if (leastCommonMultiple / c.toInt == 1) left else BinaryArithmeticExpression(leastCommonMultiple / c.toInt, left, ArithmeticOperator.*), true)
+      case binExp@BinaryArithmeticExpression(left, right, ArithmeticOperator.*) => (divisionMultiplier(left), divisionMultiplier(right)) match {
+        case ((expr1, true), (expr2, false)) => (BinaryArithmeticExpression(expr1, expr2, ArithmeticOperator.*), true)
+        case ((expr1, false), (expr2, true)) => (BinaryArithmeticExpression(expr1, expr2, ArithmeticOperator.*), true)
+        case ((_, false), (_, false)) => (binExp, false)
+      }
+      case BinaryArithmeticExpression(left, right, op@(ArithmeticOperator.+ | ArithmeticOperator.-)) => (divisionMultiplier(left), divisionMultiplier(right)) match {
+        case ((expr1, true), (expr2, true)) => (BinaryArithmeticExpression(expr1, expr2, op), true)
+        case ((expr1, false), (expr2, false)) => (BinaryArithmeticExpression(expr1, expr2, op), false)
+        case ((expr1, true), (expr2, false)) => (BinaryArithmeticExpression(expr1, mult(leastCommonMultiple, expr2), op), true)
+        case ((expr1, false), (expr2, true)) => (BinaryArithmeticExpression(mult(leastCommonMultiple, expr1), expr2, op), true)
+      }
+      case binExp@BinaryArithmeticExpression(_, _, ArithmeticOperator.%) => (mult(leastCommonMultiple, binExp), true)
+      case other => (other, false)
+    }
+    def coefficientMultiplier(expr: Expression): Expression = divisionMultiplier(expr) match {
+      case (multiplied, true) => multiplied
+      case (original, false) => mult(leastCommonMultiple, original)
+    }
+    val rewrittenWithoutFractions = rewrittenWithPlaceholders.transform {
+      case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => comp(coefficientMultiplier(left), coefficientMultiplier(right), op)
+      case other => other
+    }
+    rewrittenWithoutFractions
+  }
+
+  private def rewriteEquMax(expr: Expression, maxLeft: Expression, maxRight: Expression): Expression = or(and(equ(expr, maxLeft), geq(maxLeft, maxRight)), and(equ(expr, maxRight), geq(maxRight, maxLeft)))
+
+  private def rewriteEquCond(expr: Expression, cond: Expression, left: Expression, right: Expression) = or(and(equ(expr, left), cond), and(equ(expr, right), NegatedBooleanExpression(cond)))
+
+  private def rewriteWithStateInfo(expr: Expression, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState): Expression = expr.transform {
+    case BinaryArithmeticExpression(left, ExpressionDescription(pp, intExpr), op) if ArithmeticOperator.isComparison(op) =>
+      val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail)
+      constraints.foldLeft[Expression](comp(left, quantifiedVariable, op)) {
+        case (existing, constraint) => and(existing, constraint)
+      }
+    case BinaryArithmeticExpression(ExpressionDescription(pp, intExpr), right, op) if ArithmeticOperator.isComparison(op) =>
+      val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail)
+      constraints.foldLeft[Expression](comp(right, quantifiedVariable, op)) {
+        case (existing, constraint) => and(existing, constraint)
+      }
+    case other => other
   }
 
   // Step 1
@@ -65,9 +136,9 @@ object QuantifierElimination {
     }) =>
       val collectedVariables = binOp(collect(left), collect(right), _ - _)
       val mapping: ((Any, Int)) => Expression = {
-        case (_, 0) => const(0)
+        case (_, 0) => 0
         case (key: VariableIdentifier, value) => VariableIdentifierWithFactor(value, key)
-        case (ConstPlaceholder, value) => const(value)
+        case (ConstPlaceholder, value) => value
       }
       val varFactor = collectedVariables.getOrElse(variable, 0)
       if (varFactor > 0) comp(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
@@ -84,7 +155,7 @@ object QuantifierElimination {
       case VariableIdentifierWithFactor(factor, `variable`) => numbers += factor.abs
       case _ =>
     }
-    val leastCommonMultiple = if (numbers.isEmpty) 1 else lcm(numbers)
+    val leastCommonMultiple = lcm(numbers)
     val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
       case Constant(const, IntType, pp) => Constant((const.toInt * hPrime).toString, IntType, pp)
       case other => other
@@ -107,11 +178,11 @@ object QuantifierElimination {
     println(s"F-∞[.] (left infinite projection): "+ leftProjection)
     ((1 to d).map(j => leftProjection.transform {
       case ComparisonWithVariableRight(_, 1, `freshVariable`, _) | ComparisonWithVariableLeft(1, `freshVariable`, _, _) => throw new IllegalStateException()
-      case Divides(n, `freshVariable`) => Divides(n, const(j))
-      case NotDivides(n, `freshVariable`) => NotDivides(n, const(j))
+      case Divides(n, `freshVariable`) => Divides(n, j)
+      case NotDivides(n, `freshVariable`) => NotDivides(n, j)
       case other => other
     }) ++ (1 to d).flatMap(j => B.map(b => {
-      val x = plus(b, const(j))
+      val x = plus(b, j)
       expr.transform {
         case ComparisonWithVariableRight(left, 1, `freshVariable`, op) => comp(left, x, op)
         case ComparisonWithVariableLeft(1, `freshVariable`, right, op) => comp(x, right, op)
@@ -131,7 +202,7 @@ object QuantifierElimination {
       case DivideExpression(left, _) => numbers += left
       case _ =>
     }
-    if (numbers.isEmpty) 1 else lcm(numbers)
+    lcm(numbers)
   }
 
   private def getBs(freshVariable: VariableIdentifier, expr: Expression): Set[Expression] = {
@@ -155,7 +226,7 @@ object QuantifierElimination {
 }
 
 object VariableIdentifierWithFactor {
-  def apply(factor: Int, variable: VariableIdentifier): Expression = mult(const(factor), variable)
+  def apply(factor: Int, variable: VariableIdentifier): Expression = mult(factor, variable)
   def unapply(expr: Expression): Option[(Int, VariableIdentifier)] = expr match {
     case BinaryArithmeticExpression(Constant(const, IntType, _), variable: VariableIdentifier, ArithmeticOperator.*) => Some(const.toInt, variable)
     case BinaryArithmeticExpression(variable: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.*) => Some(const.toInt, variable)
@@ -188,7 +259,7 @@ object DivideExpression {
 }
 
 object Divides {
-  def apply(divisor: Int, expr: Expression): Expression = equ(modulo(expr, const(divisor)), zeroConst)
+  def apply(divisor: Int, expr: Expression): Expression = equ(modulo(expr, divisor), zeroConst)
   def unapply(divides: Expression): Option[(Int, Expression)] = divides match {
     case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.==) => Some(divisor.toInt, expr)
     case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), ArithmeticOperator.==) => Some(divisor.toInt, expr)
@@ -197,7 +268,7 @@ object Divides {
 }
 
 object NotDivides {
-  def apply(divisor: Int, expr: Expression): Expression = neq(modulo(expr, const(divisor)), zeroConst)
+  def apply(divisor: Int, expr: Expression): Expression = neq(modulo(expr, divisor), zeroConst)
   def unapply(notDivides: Expression): Option[(Int, Expression)] = notDivides match {
     case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.!=) => Some(divisor.toInt, expr)
     case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
@@ -212,12 +283,25 @@ object MaxFunction {
   }
 }
 
+object BoundaryFunction {
+  def unapply(expr: Expression): Option[(Expression)] = expr match {
+    case FunctionCallExpression(name, arg :: Nil, _, _) if name == Context.getBoundaryFunction.name => Some(arg)
+    case _ => None
+  }
+}
+
 object Main3 {
   def main(args: Array[String]): Unit = {
     val a = VariableIdentifier("A")(IntType)
     val b = VariableIdentifier("B")(IntType)
-    //    QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
-    QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(const(0), a), leq(a, const(10)))))
-    QuantifierElimination.eliminate(Set(a), equ(mult(const(2), a), b))
+    val c = VariableIdentifier("C")(IntType)
+    // QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
+    QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(0, a), leq(a, 10))))
+    QuantifierElimination.eliminate(Set(a), equ(mult(2, a), b))
+    println(QuantifierElimination.rewriteExpression(a, max(cond(equ(b, c), 1, 0), cond(equ(b, c), div(1, 2), 0))))
   }
+
+  def max(left: Expression, right: Expression): FunctionCallExpression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
+
+  def cond(condition: Expression, left: Expression, right: Expression) = ConditionalExpression(condition, left, right, PermType)
 }

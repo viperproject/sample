@@ -126,7 +126,7 @@ object Context {
     sets = Map()
   }
 
-  private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true) = {
+  private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true): String = {
     var identifier: String = ""
     if (identifiers.contains(name)) {
       var count = 0
