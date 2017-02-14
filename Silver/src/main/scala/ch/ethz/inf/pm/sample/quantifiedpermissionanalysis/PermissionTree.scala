@@ -8,10 +8,10 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, IntType, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.Inner
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.{ast => sil}
 
 /**
@@ -153,7 +153,7 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     val condition = Context.preNumericalInfo(integerParam._1).numDom.getConstraints(integerParam._2.ids.toSetOrFail).foldLeft[Expression](equ(quantifiedVariable, integerParam._2)) {
       case (existing, constraint) => and(existing, constraint)
     }
-    ConditionalExpression(condition, permission.toSampleExpression, noneConst, PermType)
+    ConditionalExpression(condition, permission.toSampleExpression, intToConst(0, PermType), PermType)
   }
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
     expressions(receiver.key).canBeExpressedByIntegerQuantification(expressions)
@@ -268,7 +268,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = false
   def toMax: Maximum = Maximum(Seq(left, right))
   def hasToBeForgotten(state: QuantifiedPermissionsState): Boolean = cond.contains {
-    case id: Identifier => state.declaredBelowVars.contains(id) || state.changingVars.contains(id)
+    case id: VariableIdentifier => state.declaredBelowVars.contains(id) || state.changingVars.contains(id)
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Condition(cond, left.transform(f), right.transform(f)))
@@ -280,7 +280,7 @@ case object EmptyPermissionTree extends PermissionTree {
   override def max(other: PermissionTree): PermissionTree = other
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
-  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = noneConst
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = intToConst(0, PermType)
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = true
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = Set()
   def transformExpressions(f: (Expression) => Expression): PermissionTree = this
@@ -305,7 +305,7 @@ trait SimplePermission extends Permission
 
 case class NegativePermission(arg: FractionalPermission) extends Permission {
   def toSilExpression: sil.Exp = sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression)()
-  def toSampleExpression: Expression = mult(-1, arg.toSampleExpression)
+  def toSampleExpression: Expression = mult(Constant("-1", PermType), arg.toSampleExpression)
   def getReadPerm: (FractionalPermission, Int) = arg.getReadPerm match {
     case (FractionalPermission(num, denom), r) => (FractionalPermission.createReduced(-num, denom), -r)
   }
@@ -328,7 +328,7 @@ object FractionalPermission {
 case class FractionalPermission(numerator: Int, denominator: Int) extends SimplePermission {
   require(denominator >= 1, "Denominator of a fractional permission must be greater than 0!")
   def toSilExpression: sil.FractionalPerm = sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
-  def toSampleExpression: Expression = div(numerator, denominator)
+  def toSampleExpression: Expression = div(Constant(numerator.toString, PermType), Constant(denominator.toString, PermType))
   def getReadPerm: (FractionalPermission, Int) = (this, 0)
   def <(other: FractionalPermission): Boolean = other match {
     case FractionalPermission(otherNumerator, otherDenominator) => numerator * otherDenominator < denominator * otherNumerator
@@ -354,7 +354,7 @@ case object SymbolicReadPermission extends SimplePermission {
 
 case object WritePermission extends SimplePermission {
   def toSilExpression: sil.Exp = sil.FullPerm()()
-  def toSampleExpression: Expression = writeConst
+  def toSampleExpression: Expression = intToConst(1, PermType)
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
   def lessEqual(other: Permission): Boolean = this == other || (other match {
     case FractionalPermission(numerator, denominator) => numerator > denominator

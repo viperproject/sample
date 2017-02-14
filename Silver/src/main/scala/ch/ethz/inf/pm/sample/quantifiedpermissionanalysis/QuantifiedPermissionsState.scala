@@ -25,8 +25,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       visited: Set[ProgramPoint] = Set(),
                                       currentPP: ProgramPoint = DummyProgramPoint,
                                       permissions: PermissionRecords = PermissionRecords(),
-                                      changingVars: Set[Identifier] = Set(),
-                                      declaredBelowVars: Set[Identifier] = Set(),
+                                      changingVars: Set[VariableIdentifier] = Set(),
+                                      declaredBelowVars: Set[VariableIdentifier] = Set(),
                                       refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
@@ -59,8 +59,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            visited: Set[ProgramPoint] = visited,
            currentPP: ProgramPoint = currentPP,
            permissions: PermissionRecords = permissions,
-           changingVars: Set[Identifier] = changingVars,
-           declaredBelowVars: Set[Identifier] = declaredBelowVars,
+           changingVars: Set[VariableIdentifier] = changingVars,
+           declaredBelowVars: Set[VariableIdentifier] = declaredBelowVars,
            refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets): QuantifiedPermissionsState =
     QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets)
 
@@ -115,7 +115,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case (_, true) => falseState.permissions
         case (false, false) =>
           if (!cond.contains {
-            case id: Identifier if id.typ != IntType => newChangingVars.contains(id)
+            case id: VariableIdentifier if id.typ != IntType => newChangingVars.contains(id)
             case _ => false
           }) permissions.lub(cond, falseState.permissions)
           else permissions.lub(falseState.permissions)

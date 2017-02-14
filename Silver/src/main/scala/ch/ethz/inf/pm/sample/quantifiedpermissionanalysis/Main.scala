@@ -98,13 +98,17 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         }
       }) {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
-        val quantifiedVariable = quantifiedVariableDecl.localVar
+        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
         val fieldAccessReceiver = permissionTree.getSetDescriptions(state.refSets).head.concreteExpressions.head._1.transform {
-          case e: Expression if e.typ == IntType => VariableIdentifier(quantifiedVariable.name)(IntType)
+          case e: Expression if e.typ == IntType => quantifiedVariable
           case other => other
         }
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
+        val placeholder = VariableIdentifier(Context.createNewUniqueVarIdentifier("z"))(PermType)
+        val permissionExpression = permissionTree.toIntegerQuantificationSample(state, quantifiedVariable)
+        val rewritten = QuantifierElimination.rewriteExpression(placeholder, permissionExpression)
+        val forgotten = QuantifierElimination.eliminate(state.changingVars ++ state.declaredBelowVars, rewritten)
+        val implies = sil.FieldAccessPredicate(fieldAccess, DefaultSampleConverter.convert(forgotten.get))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newPreconditions :+= forall
       } else {

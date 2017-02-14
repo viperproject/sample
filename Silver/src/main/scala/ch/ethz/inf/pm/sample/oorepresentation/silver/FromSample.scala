@@ -37,6 +37,18 @@ object DefaultSampleConverter extends SampleConverter {
       case ReferenceOperator.`==` => sil.EqCmp(go(left), go(right))()
       case ReferenceOperator.`!=` => sil.NeCmp(go(left), go(right))()
     }
+    case sample.BinaryArithmeticExpression(left, right, op) if left.typ == PermType && right.typ == PermType => op match {
+      case ArithmeticOperator.`+` => sil.PermAdd(go(left), go(right))()
+      case ArithmeticOperator.`-` => sil.PermSub(go(left), go(right))()
+      case ArithmeticOperator.`*` => sil.PermMul(go(left), go(right))()
+      case ArithmeticOperator.`/` => sil.PermDiv(go(left), go(right))()
+      case ArithmeticOperator.`>=` => sil.PermGeCmp(go(left), go(right))()
+      case ArithmeticOperator.`<=` => sil.PermLeCmp(go(left), go(right))()
+      case ArithmeticOperator.`==` => sil.EqCmp(go(left), go(right))()
+      case ArithmeticOperator.`!=` => sil.NeCmp(go(left), go(right))()
+      case ArithmeticOperator.`<` => sil.PermLtCmp(go(left), go(right))()
+      case ArithmeticOperator.`>` => sil.PermGtCmp(go(left), go(right))()
+    }
     case sample.BinaryArithmeticExpression(left, right, op) => op match {
       case ArithmeticOperator.`+` => sil.Add(go(left), go(right))()
       case ArithmeticOperator.`-` => sil.Sub(go(left), go(right))()

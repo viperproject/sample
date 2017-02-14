@@ -34,7 +34,7 @@ object QuantifierElimination extends LazyLogging {
     case None => None
   })
 
-  def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] = try {
+  def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] =  {
     println(s"original to eliminate $variable: $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF) (containing " + countLiterals(formulaNNF) + s" literals): $formulaNNF")
@@ -45,9 +45,6 @@ object QuantifierElimination extends LazyLogging {
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println(s"RESULT (containing " + countLiterals(equivalentFormula) + s" literals): $equivalentFormula")
     Some(equivalentFormula)
-  } catch { case exception: Exception =>
-    println(s"Something went wrong: $exception")
-    None
   }
 
   def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = {
@@ -69,7 +66,7 @@ object QuantifierElimination extends LazyLogging {
     val rewrittenWithPlaceholders = placeholderMap.foldLeft(rewritten) {
       case (existing, (replaced, placeholderVar)) => and(existing, replaced match {
         case MaxFunction(left, right) => rewriteEquMax(placeholderVar, left, right)
-        case BoundaryFunction(arg) => rewriteEquMax(placeholderVar, arg, zeroConst)
+        case BoundaryFunction(arg) => rewriteEquMax(placeholderVar, arg, intToConst(0, PermType))
         case ConditionalExpression(cond, left, right, _) => rewriteEquCond(placeholderVar, cond, left, right)
       })
     }
@@ -156,10 +153,10 @@ object QuantifierElimination extends LazyLogging {
     }
     val leastCommonMultiple = lcm(numbers)
     val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
-      case Constant(const, IntType, pp) => Constant((const.toInt * hPrime).toString, IntType, pp)
+      case Constant(const, typ@(IntType | PermType), pp) => Constant((const.toInt * hPrime).toString, typ, pp)
       case other => other
     }
-    val freshVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("fresh", markAsTaken = false))(IntType)
+    val freshVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("fresh", markAsTaken = false))(variable.typ)
     val replacedLCM = expr.transform {
       case ComparisonWithVariableLeft(factor, `variable`, right, op) => ComparisonWithVariableLeft(1, freshVariable, right.transform(coefficientMultiplier(leastCommonMultiple / factor)), op)
       case ComparisonWithVariableRight(left, factor, `variable`, op) => ComparisonWithVariableRight(left.transform(coefficientMultiplier(leastCommonMultiple / factor)), 1, freshVariable, op)
@@ -214,9 +211,9 @@ object QuantifierElimination extends LazyLogging {
     var bs: Set[Expression] = Set()
     expr.foreach {
       case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.< | ArithmeticOperator.!=) => bs += left
-      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.<= | ArithmeticOperator.==) => bs += minus(left, oneConst)
+      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.<= | ArithmeticOperator.==) => bs += minus(left, intToConst(1, left.typ))
       case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.> | ArithmeticOperator.!=) => bs += right
-      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.>= | ArithmeticOperator.==) => bs += minus(right, oneConst)
+      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.>= | ArithmeticOperator.==) => bs += minus(right, intToConst(1, right.typ))
       case _ =>
     }
     bs
@@ -233,8 +230,8 @@ object QuantifierElimination extends LazyLogging {
 object VariableIdentifierWithFactor {
   def apply(factor: Int, variable: VariableIdentifier): Expression = mult(factor, variable)
   def unapply(expr: Expression): Option[(Int, VariableIdentifier)] = expr match {
-    case BinaryArithmeticExpression(Constant(const, IntType, _), variable: VariableIdentifier, ArithmeticOperator.*) => Some(const.toInt, variable)
-    case BinaryArithmeticExpression(variable: VariableIdentifier, Constant(const, IntType, _), ArithmeticOperator.*) => Some(const.toInt, variable)
+    case BinaryArithmeticExpression(Constant(const, IntType | PermType, _), variable: VariableIdentifier, ArithmeticOperator.*) => Some(const.toInt, variable)
+    case BinaryArithmeticExpression(variable: VariableIdentifier, Constant(const, IntType | PermType, _), ArithmeticOperator.*) => Some(const.toInt, variable)
     case _ => None
   }
 }
@@ -265,19 +262,19 @@ object DivideExpression {
 }
 
 object Divides {
-  def apply(divisor: Int, expr: Expression): Expression = equ(modulo(expr, divisor), zeroConst)
+  def apply(divisor: Int, expr: Expression): Expression = equ(modulo(expr, divisor), intToConst(0, expr.typ))
   def unapply(divides: Expression): Option[(Int, Expression)] = divides match {
-    case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.==) => Some(divisor.toInt, expr)
-    case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), ArithmeticOperator.==) => Some(divisor.toInt, expr)
+    case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType | PermType, _), ArithmeticOperator.%), Constant("0", _, _), ArithmeticOperator.==) => Some(divisor.toInt, expr)
+    case BinaryArithmeticExpression(Constant("0", _, _), BinaryArithmeticExpression(expr, Constant(divisor, IntType | PermType, _), ArithmeticOperator.%), ArithmeticOperator.==) => Some(divisor.toInt, expr)
     case _ => None
   }
 }
 
 object NotDivides {
-  def apply(divisor: Int, expr: Expression): Expression = neq(modulo(expr, divisor), zeroConst)
+  def apply(divisor: Int, expr: Expression): Expression = neq(modulo(expr, divisor), intToConst(0, expr.typ))
   def unapply(notDivides: Expression): Option[(Int, Expression)] = notDivides match {
-    case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), `zeroConst`, ArithmeticOperator.!=) => Some(divisor.toInt, expr)
-    case BinaryArithmeticExpression(`zeroConst`, BinaryArithmeticExpression(expr, Constant(divisor, IntType, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
+    case BinaryArithmeticExpression(BinaryArithmeticExpression(expr, Constant(divisor, IntType | PermType, _), ArithmeticOperator.%), Constant("0", _, _), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
+    case BinaryArithmeticExpression(Constant("0", _, _), BinaryArithmeticExpression(expr, Constant(divisor, IntType | PermType, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
     case _ => None
   }
 }
