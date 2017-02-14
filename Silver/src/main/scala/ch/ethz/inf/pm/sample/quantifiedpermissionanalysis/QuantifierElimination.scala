@@ -104,7 +104,7 @@ object QuantifierElimination extends LazyLogging {
       case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => comp(coefficientMultiplier(left), coefficientMultiplier(right), op)
       case other => other
     }
-    rewrittenWithoutFractions
+    eliminate(placeholderMap.values.toSet, rewrittenWithoutFractions).get
   }
 
   private def rewriteEquMax(expr: Expression, maxLeft: Expression, maxRight: Expression): Expression = or(and(equ(expr, maxLeft), geq(maxLeft, maxRight)), and(equ(expr, maxRight), geq(maxRight, maxLeft)))
@@ -131,7 +131,7 @@ object QuantifierElimination extends LazyLogging {
   // Step 3
   private def collectVariable(variable: VariableIdentifier, expr: Expression): Expression = expr.transform {
     case binExp@BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) && (binExp.contains(_ == variable) || !binExp.contains {
-      case DivideExpression(_, _) => true
+      case DivideExpression(_, _, _) => true
       case _ => false
     }) =>
       val collectedVariables = binOp(collect(left), collect(right), _ - _)
@@ -144,6 +144,7 @@ object QuantifierElimination extends LazyLogging {
       if (varFactor > 0) comp(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
       else if (varFactor < 0) comp((collectedVariables - variable).map(mapping).reduce(plus), VariableIdentifierWithFactor(-varFactor, variable), op)
       else binExp
+    case binExp: BinaryArithmeticExpression => getCollected(binExp) // We still want to collect the variable to eliminate for divide expressions
     case other => other
   }
 
@@ -151,7 +152,6 @@ object QuantifierElimination extends LazyLogging {
   private def replaceLCM(variable: VariableIdentifier, expr: Expression): (Expression, VariableIdentifier) = {
     var numbers: Set[Int] = Set()
     expr.foreach {
-      case VariableIdentifierWithFactor(factor, `variable`) => numbers += factor.abs
       case VariableIdentifierWithFactor(factor, `variable`) => numbers += factor.abs
       case _ =>
     }
@@ -164,6 +164,17 @@ object QuantifierElimination extends LazyLogging {
     val replacedLCM = expr.transform {
       case ComparisonWithVariableLeft(factor, `variable`, right, op) => ComparisonWithVariableLeft(1, freshVariable, right.transform(coefficientMultiplier(leastCommonMultiple / factor)), op)
       case ComparisonWithVariableRight(left, factor, `variable`, op) => ComparisonWithVariableRight(left.transform(coefficientMultiplier(leastCommonMultiple / factor)), 1, freshVariable, op)
+      case DivideExpression(divisor, arg, op) if arg.contains(_ == variable) =>
+        var fact: Option[Int] = None
+        arg.foreach {
+          case VariableIdentifierWithFactor(factor, `variable`) => assert(fact.isEmpty); fact = Some(factor)
+          case _ =>
+        }
+        val hPrime = leastCommonMultiple / fact.get
+        DivideExpression(divisor * hPrime, arg.transform {
+          case VariableIdentifierWithFactor(_, `variable`) => freshVariable
+          case other => other
+        }.transform(coefficientMultiplier(hPrime)), op)
       case other => other
     }
     if (leastCommonMultiple != 1) (and(replacedLCM, Divides(leastCommonMultiple, freshVariable)), freshVariable)
@@ -178,16 +189,11 @@ object QuantifierElimination extends LazyLogging {
     println(s"F-∞[.] (left infinite projection): "+ leftProjection)
     ((1 to d).map(j => leftProjection.transform {
       case ComparisonWithVariableRight(_, 1, `freshVariable`, _) | ComparisonWithVariableLeft(1, `freshVariable`, _, _) => throw new IllegalStateException()
-      case Divides(n, `freshVariable`) => Divides(n, j)
-      case NotDivides(n, `freshVariable`) => NotDivides(n, j)
+      case `freshVariable` => j
       case other => other
     }) ++ (1 to d).flatMap(j => B.map(b => {
-      val x = plus(b, j)
       expr.transform {
-        case ComparisonWithVariableRight(left, 1, `freshVariable`, op) => comp(left, x, op)
-        case ComparisonWithVariableLeft(1, `freshVariable`, right, op) => comp(x, right, op)
-        case Divides(n, `freshVariable`) => Divides(n, x)
-        case NotDivides(n, `freshVariable`) => NotDivides(n, x)
+        case `freshVariable` => plus(b, j)
         case other => other
       }
     }))).reduce(or) match {
@@ -199,7 +205,7 @@ object QuantifierElimination extends LazyLogging {
   private def delta(freshVariable: VariableIdentifier, expr: Expression): Int = {
     var numbers: Set[Int] = Set()
     expr.foreach {
-      case DivideExpression(left, _) => numbers += left
+      case DivideExpression(left, _, _) => numbers += left
       case _ =>
     }
     lcm(numbers)
@@ -251,9 +257,10 @@ object ComparisonWithVariableRight {
 }
 
 object DivideExpression {
-  def unapply(divide: Expression): Option[(Int, Expression)] = (divide: Expression) match {
-    case Divides(divisor, expr) => Some(divisor, expr)
-    case NotDivides(divisor, expr) => Some(divisor, expr)
+  def apply(divisor: Int, arg: Expression, op: ArithmeticOperator.Value): Expression = comp(modulo(arg, divisor), 0, op)
+  def unapply(divide: Expression): Option[(Int, Expression, ArithmeticOperator.Value)] = (divide: Expression) match {
+    case Divides(divisor, expr) => Some(divisor, expr, ArithmeticOperator.==)
+    case NotDivides(divisor, expr) => Some(divisor, expr, ArithmeticOperator.!=)
     case _ => None
   }
 }
@@ -295,10 +302,12 @@ object Main3 {
     val a = VariableIdentifier("A")(IntType)
     val b = VariableIdentifier("B")(IntType)
     val c = VariableIdentifier("C")(IntType)
+    val d = VariableIdentifier("D")(IntType)
     // QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
     QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(0, a), leq(a, 10))))
     QuantifierElimination.eliminate(Set(a), equ(mult(2, a), b))
-    println(QuantifierElimination.rewriteExpression(a, max(cond(equ(b, c), 1, 0), cond(equ(b, c), div(1, 2), 0))))
+    QuantifierElimination.rewriteExpression(a, max(cond(equ(b, c), 1, 0), cond(equ(b, d), div(1, 2), 0)))
+    println(simplifyExpression(geq(plus(a, 1), plus(a, b))))
   }
 
   def max(left: Expression, right: Expression): FunctionCallExpression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)

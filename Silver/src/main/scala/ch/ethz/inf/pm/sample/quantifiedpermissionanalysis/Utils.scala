@@ -153,7 +153,7 @@ object Utils {
 
   def getCollected(expr: Expression): Expression = expr.transform {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => BinaryArithmeticExpression(collectAndToExpr(left), collectAndToExpr(right), ArithmeticOperator.%)
-    case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if left.typ == IntType && right.typ == IntType && ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
+    case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
       val collectedNotZero = binOp(collect(left), collect(right), _ - _).filter {
         case (_, 0) => false
         case _ => true
@@ -162,8 +162,8 @@ object Utils {
         case 0 => Constant(toComparisonOp(op)(0, 0).toString, BoolType)
         case 1 => collectedNotZero.head match {
           case (ConstPlaceholder, n) => Constant(toComparisonOp(op)(n, 0).toString, BoolType)
-          case (other: VariableIdentifier, n) if n >= 0 => BinaryArithmeticExpression(BinaryArithmeticExpression(n, other, ArithmeticOperator.*), zeroConst, op)
-          case (other: VariableIdentifier, n) if n < 0 => BinaryArithmeticExpression(zeroConst, BinaryArithmeticExpression(-n, other, ArithmeticOperator.*), op)
+          case (other: VariableIdentifier, n) if n >= 0 => comp(mult(n, other), zeroConst, op)
+          case (other: VariableIdentifier, n) if n < 0 => comp(zeroConst, mult(-n, other), op)
         }
         case _ =>
           val mapping: ((Any, Int)) => Expression = {
@@ -214,6 +214,8 @@ object Utils {
     case BinaryArithmeticExpression(other, `zeroConst`, ArithmeticOperator.+ | ArithmeticOperator.-) => other
     case BinaryArithmeticExpression(_, `oneConst`, ArithmeticOperator.%) => zeroConst
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) if left == right => zeroConst
+    case BinaryArithmeticExpression(left, right, ArithmeticOperator.<= | ArithmeticOperator.== | ArithmeticOperator.>=) if left == right => trueConst
+    case BinaryArithmeticExpression(left, right, ArithmeticOperator.< | ArithmeticOperator.!= | ArithmeticOperator.>) if left == right => falseConst
     case b@BinaryArithmeticExpression(left, Constant(const, IntType, _), ArithmeticOperator.%) =>
       val collectLeft = collect(left)
       if (collectLeft.forall(collected => collected._2 % const.toInt == 0)) zeroConst
