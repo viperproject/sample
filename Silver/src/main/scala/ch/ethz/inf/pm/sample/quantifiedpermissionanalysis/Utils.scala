@@ -21,7 +21,7 @@ import viper.silver.{ast => sil}
   */
 object Utils {
 
-  def lcm(a: Int, b: Int): Int = a * b / gcd(a, b)
+  def lcm(a: Int, b: Int): Int = (a * b / gcd(a, b)).abs
 
   def lcmOption(numbers: TraversableOnce[Int]): Option[Int] = numbers.reduceOption(lcm)
 
@@ -33,6 +33,13 @@ object Utils {
   def gcd(a: Int, b: Int): Int = b match {
     case 0 => a.abs
     case _ => gcd(b, a % b)
+  }
+
+  def gcdOption(numbers: TraversableOnce[Int]): Option[Int] = numbers.reduceOption(gcd)
+
+  def gcd(numbers: TraversableOnce[Int]): Int = gcdOption(numbers) match {
+    case Some(gcd) => gcd
+    case None => 0
   }
 
   def mergeElements[T](seq: Seq[T], mergeFun: (T, T) => Option[T]): Seq[T] = seq.foldLeft[Seq[T]](Seq()) {
@@ -154,29 +161,30 @@ object Utils {
   def getCollected(expr: Expression): Expression = expr.transform {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => BinaryArithmeticExpression(collectAndToExpr(left), collectAndToExpr(right), ArithmeticOperator.%)
     case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
-      val collectedNotZero = binOp(collect(left), collect(right), _ - _).filter {
+      val collectedNonZero = binOp(collect(left), collect(right), _ - _).filter {
         case (_, 0) => false
         case _ => true
       }
-      collectedNotZero.size match {
+      collectedNonZero.size match {
         case 0 => Constant(toComparisonOp(op)(0, 0).toString, BoolType)
-        case 1 => collectedNotZero.head match {
+        case 1 => collectedNonZero.head match {
           case (ConstPlaceholder, n) => Constant(toComparisonOp(op)(n, 0).toString, BoolType)
-          case (other: VariableIdentifier, n) if n >= 0 => comp(mult(n, other), zeroConst, op)
-          case (other: VariableIdentifier, n) if n < 0 => comp(zeroConst, mult(-n, other), op)
+          case (other: VariableIdentifier, n) if n >= 0 => comp(other, zeroConst, op)
+          case (other: VariableIdentifier, n) if n < 0 => comp(zeroConst, UnaryArithmeticExpression(other, ArithmeticOperator.-, other.typ), op)
         }
         case _ =>
+          val greatestCommonDivisor = gcd(collectedNonZero.values)
           val mapping: ((Any, Int)) => Expression = {
-            case (ConstPlaceholder, value) => value
-            case (key: Expression, value) => mult(value, key)
+            case (ConstPlaceholder, value) => value / greatestCommonDivisor
+            case (key: Expression, value) => mult(value / greatestCommonDivisor, key)
           }
-          BinaryArithmeticExpression(collectedNotZero.filter {
+          BinaryArithmeticExpression(collectedNonZero.filter {
             case (_, n) if n > 0 => true
             case (_, n) if n < 0 => false
           }.map(mapping).reduceOption(plus) match {
             case Some(e) => e
             case None => zeroConst
-          }, unOp(collectedNotZero.filter {
+          }, unOp(collectedNonZero.filter {
             case (_, n) if n > 0 => false
             case (_, n) if n < 0 => true
           }, - _).map(mapping).reduceOption(plus) match {

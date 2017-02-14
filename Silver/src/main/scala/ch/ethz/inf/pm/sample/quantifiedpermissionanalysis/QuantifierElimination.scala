@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -36,15 +37,15 @@ object QuantifierElimination extends LazyLogging {
   def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] = try {
     println(s"original to eliminate $variable: $expr")
     val formulaNNF = toNNF(expr)
-    println(s"F1[$variable] (NNF): " + formulaNNF)
+    println(s"F1[$variable] (NNF) (containing " + countLiterals(formulaNNF) + " literals): $formulaNNF")
 //    val tzEquivalentFormula = toTzEquivalentFormula(formulaNNF)
 //    println(s"F2[$variable] (tzEquivalentFormula): " + tzEquivalentFormula)
     val collected = collectVariable(variable, formulaNNF)
-    println(s"F3[$variable] (collected): " + collected)
+    println(s"F3[$variable] (collected) (containing " + countLiterals(collected) + " literals): $collected")
     val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
-    println(s"F4[$variable] (lcmReplaced): " + lcmReplaced)
+    println(s"F4[$variable] (lcmReplaced) (containing " + countLiterals(lcmReplaced) + " literals): $lcmReplaced")
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
-    println("RESULT: " + equivalentFormula)
+    println(s"RESULT (containing " + countLiterals(equivalentFormula) + " literals): $equivalentFormula")
     Some(equivalentFormula)
   } catch { case exception: Exception =>
     println(s"Something went wrong: $exception")
@@ -307,7 +308,6 @@ object Main3 {
     QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(0, a), leq(a, 10))))
     QuantifierElimination.eliminate(Set(a), equ(mult(2, a), b))
     QuantifierElimination.rewriteExpression(a, max(cond(equ(b, c), 1, 0), cond(equ(b, d), div(1, 2), 0)))
-    println(simplifyExpression(geq(plus(a, 1), plus(a, b))))
   }
 
   def max(left: Expression, right: Expression): FunctionCallExpression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
