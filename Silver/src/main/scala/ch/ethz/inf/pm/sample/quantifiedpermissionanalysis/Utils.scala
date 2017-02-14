@@ -261,6 +261,10 @@ object Utils {
 
   val nullConst = Constant("null", RefType())
 
+  val writeConst = Constant("write", PermType)
+
+  val noneConst = Constant("none", PermType)
+
   implicit def intToConst(c: Int): Constant = Constant(c.toString, IntType)
 
   implicit def boolToConst(c: Boolean): Constant = Constant(c.toString, BoolType)

@@ -283,6 +283,7 @@ object NotDivides {
 }
 
 object MaxFunction {
+  def apply(left: Expression, right: Expression): Expression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
   def unapply(expr: Expression): Option[(Expression, Expression)] = expr match {
     case FunctionCallExpression(name, left :: right :: Nil, _, _) if name == Context.getMaxFunction.name => Some(left, right)
     case _ => None
@@ -290,6 +291,7 @@ object MaxFunction {
 }
 
 object BoundaryFunction {
+  def apply(arg: Expression): Expression = FunctionCallExpression(Context.getBoundaryFunction.name, Seq(arg), PermType)
   def unapply(expr: Expression): Option[(Expression)] = expr match {
     case FunctionCallExpression(name, arg :: Nil, _, _) if name == Context.getBoundaryFunction.name => Some(arg)
     case _ => None

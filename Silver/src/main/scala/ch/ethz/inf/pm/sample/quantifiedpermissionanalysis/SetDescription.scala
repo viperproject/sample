@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DomType, IntType, RefType}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
@@ -42,6 +42,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
 
+  def extractIntegerParameterExpression: (ProgramPoint, Expression)
+
   def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
 
   def isOneElement: Boolean
@@ -66,6 +68,8 @@ object SetDescription {
 
     override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
+    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = (DummyProgramPoint, trueConst)
+
     override def isOneElement = false
 
     def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
@@ -83,6 +87,8 @@ object SetDescription {
     override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
 
     override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
+
+    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = throw new UnsupportedOperationException()
 
     override def isOneElement = throw new UnsupportedOperationException()
 
@@ -220,6 +226,8 @@ object ReferenceSetDescription {
           Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ (constant, Seq()))
       })
     }
+
+    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = (pp, key._2.find(_.typ == IntType).get)
 
     override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       concreteExpressions.foldLeft[Option[sil.Exp]](None) {

@@ -169,7 +169,11 @@ trait Expression {
   /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
 
+  /** Applies function f to every sub-expression. */
   def foreach(f: (Expression => Unit)): Unit = transform(expr => { f(expr); expr })
+
+  /** Finds a sub-expression of this expression satisfying the predicate f, if any. */
+  def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else None
 
 }
 
@@ -188,6 +192,8 @@ case class NegatedBooleanExpression(exp: Expression) extends Expression {
     f(NegatedBooleanExpression(exp.transform(f)))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || exp.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else exp.find(f)
 }
 
 /**
@@ -234,6 +240,8 @@ case class AbstractOperator(
     f(AbstractOperator(thisExpr.transform(f), parameters.map(_.transform(f)), typeparameters, op, returntyp))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || thisExpr.contains(f) || parameters.map(_.contains(f)).foldLeft(false)(_ || _)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else thisExpr.find(f).orElse(parameters.find(f))
 }
 
 /**
@@ -270,6 +278,8 @@ case class BinaryBooleanExpression(
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
 
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else left.find(f).orElse(right.find(f))
+
 }
 
 
@@ -284,6 +294,8 @@ trait BinaryExpression extends Expression {
   def pp: ProgramPoint = left.pp
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f) || right.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else left.find(f).orElse(right.find(f))
 
 }
 
@@ -382,6 +394,8 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f)
 
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else left.find(f)
+
 }
 
 /**
@@ -412,6 +426,8 @@ case class Constant(
   override def transform(f: (Expression => Expression)): Expression = f(this)
 
   def contains(f: (Expression => Boolean)): Boolean = f(this)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else None
 
 }
 
@@ -517,6 +533,8 @@ case class VariableIdentifier
 
   // Variables always represent exactly one concrete identifier
   override def representsSingleVariable = true
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else None
 }
 
 /**
@@ -546,6 +564,8 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
   override def transform(f: (Expression => Expression)): Expression = f(this)
 
   def contains(f: (Expression => Boolean)): Boolean = f(this)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else None
 }
 
 case class AccessPathIdentifier(path: List[Identifier])
@@ -570,6 +590,8 @@ case class AccessPathIdentifier(path: List[Identifier])
     if (typ.isObject) stringPath else stringPath.dropRight(1)
 
   def typ: Type = path.last.typ
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else None
 }
 
 object AccessPathIdentifier {
@@ -653,6 +675,8 @@ case class ForallExpression(leftCond: Expression, right: Expression, quantifiedV
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || leftCond.contains(f) || right.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else leftCond.find(f).orElse(right.find(f)).orElse(quantifiedVariable.find(f))
 }
 
 case class FieldExpression(typ: Type, field: String, receiver: Expression) extends Expression {
@@ -674,6 +698,8 @@ case class FieldExpression(typ: Type, field: String, receiver: Expression) exten
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || receiver.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else receiver.find(f)
 }
 
   /**
@@ -695,6 +721,8 @@ case class FieldAccessPredicate(location: Expression, numerator: Expression, den
   override def pp: ProgramPoint = location.pp
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f) || numerator.contains(f) || denominator.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else location.find(f).orElse(numerator.find(f)).orElse(denominator.find(f))
 }
 
 /**
@@ -715,6 +743,8 @@ case class CurrentPermission(location: Expression, typ: Type)
   override def transform(f: (Expression) => Expression): Expression = f(CurrentPermission(location.transform(f), typ))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else location.find(f)
 }
 
 case class ConditionalExpression(cond: Expression, left: Expression, right: Expression, typ: Type) extends Expression {
@@ -735,6 +765,8 @@ case class ConditionalExpression(cond: Expression, left: Expression, right: Expr
 
   /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || cond.contains(f) || left.contains(f) || right.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else cond.find(f).orElse(left.find(f)).orElse(right.find(f))
 }
 
 
@@ -775,6 +807,8 @@ case class FunctionCallExpression(functionName: String, parameters: Seq[Expressi
   override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(functionName, parameters.map(param => param.transform(f)), typ, pp))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else parameters.find(f)
 }
 
 object StringOperator extends Enumeration {

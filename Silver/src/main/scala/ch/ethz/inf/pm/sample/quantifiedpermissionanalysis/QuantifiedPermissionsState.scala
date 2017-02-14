@@ -115,7 +115,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
         case (_, true) => falseState.permissions
         case (false, false) =>
           if (!cond.contains {
-            case id: Identifier => newChangingVars.contains(id)
+            case id: Identifier if id.typ != IntType => newChangingVars.contains(id)
             case _ => false
           }) permissions.lub(cond, falseState.permissions)
           else permissions.lub(falseState.permissions)

@@ -8,9 +8,10 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.Inner
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silver.{ast => sil}
 
 /**
@@ -41,6 +42,8 @@ trait PermissionTree {
     * @return The silver permission expression represented by this tree, expressed as integer quantification.
     */
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
+
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression
 
   /**
     * Traverses this tree and checks if the whole tree can be expressed by integer quantification instead of reference
@@ -122,6 +125,7 @@ trait SequencePermissionTree extends PermissionTree {
 case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toIntegerQuantification(state, quantifiedVariable)))()
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = BoundaryFunction(child.toIntegerQuantificationSample(state, quantifiedVariable))
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = child.canBeExpressedByIntegerQuantification(expressions)
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[Inner] = child.getSetDescriptions(expressions)
   def transformExpressions(f: (Expression) => Expression): PermissionTree = ZeroBoundedPermissionTree(child.transformExpressions(f))
@@ -144,6 +148,13 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     sil.CondExp(state.refSets(receiver.key).toSilExpression(state, quantifiedVar), permission.toSilExpression, sil.NoPerm()())()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     sil.CondExp(state.refSets(receiver.key).toIntegerQuantification(state, quantifiedVariable), permission.toSilExpression, sil.NoPerm()())()
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = {
+    val integerParam = state.refSets(receiver.key).extractIntegerParameterExpression
+    val condition = Context.preNumericalInfo(integerParam._1).numDom.getConstraints(integerParam._2.ids.toSetOrFail).foldLeft[Expression](equ(quantifiedVariable, integerParam._2)) {
+      case (existing, constraint) => and(existing, constraint)
+    }
+    ConditionalExpression(condition, permission.toSampleExpression, noneConst, PermType)
+  }
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
     expressions(receiver.key).canBeExpressedByIntegerQuantification(expressions)
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
@@ -177,6 +188,8 @@ case class PermissionAddition(permissions: Seq[PermissionTree]) extends Sequence
     permissions.map(_.toSilExpression(state, quantifiedVar)).reduce(sil.PermAdd(_, _)())
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     permissions.map(_.toIntegerQuantification(state, quantifiedVariable)).reduce(sil.PermAdd(_, _)())
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression =
+    permissions.map(_.toIntegerQuantificationSample(state, quantifiedVariable)).reduce(plus)
   override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionAddition = PermissionAddition(PermissionLeaf(receiver, permission) +: permissions)
   override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionAddition = PermissionAddition(PermissionLeaf(receiver, NegativePermission(permission)) +: permissions)
   def transformExpressions(f: (Expression => Expression)) = PermissionAddition(permissions.map(_.transformExpressions(f)))
@@ -198,6 +211,8 @@ case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionT
     permissions.map(_.toSilExpression(state, quantifiedVar)).reduce((left, right) => sil.FuncApp(Context.getMaxFunction, Seq(left, right))())
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     permissions.map(_.toIntegerQuantification(state, quantifiedVariable)).reduce((left, right) => sil.FuncApp(Context.getMaxFunction, Seq(left, right))())
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression =
+    permissions.map(_.toIntegerQuantificationSample(state, quantifiedVariable)).reduceLeft(MaxFunction(_, _))
   def transformExpressions(f: (Expression => Expression)) = Maximum(permissions.map(_.transformExpressions(f)))
   override def max(other: PermissionTree): PermissionTree = Maximum(other +: permissions)
   override def undoLastRead: PermissionTree = permissions match {
@@ -228,6 +243,8 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
     sil.CondExp(DefaultSampleConverter.convert(cond), left.toSilExpression(state, quantifiedVar), right.toSilExpression(state, quantifiedVar))()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     sil.CondExp(DefaultSampleConverter.convert(cond), left.toIntegerQuantification(state, quantifiedVariable), right.toIntegerQuantification(state, quantifiedVariable))()
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression =
+    ConditionalExpression(cond, left.toIntegerQuantificationSample(state, quantifiedVariable), right.toIntegerQuantificationSample(state, quantifiedVariable), PermType)
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
     left.canBeExpressedByIntegerQuantification(expressions) && right.canBeExpressedByIntegerQuantification(expressions)
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
@@ -263,6 +280,7 @@ case object EmptyPermissionTree extends PermissionTree {
   override def max(other: PermissionTree): PermissionTree = other
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = noneConst
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = true
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = Set()
   def transformExpressions(f: (Expression) => Expression): PermissionTree = this
@@ -278,6 +296,7 @@ case object EmptyPermissionTree extends PermissionTree {
 
 trait Permission {
   def toSilExpression: sil.Exp
+  def toSampleExpression: Expression
   def getReadPerm: (FractionalPermission, Int)
   def lessEqual(other: Permission): Boolean
 }
@@ -286,6 +305,7 @@ trait SimplePermission extends Permission
 
 case class NegativePermission(arg: FractionalPermission) extends Permission {
   def toSilExpression: sil.Exp = sil.IntPermMul(sil.IntLit(-1)(), arg.toSilExpression)()
+  def toSampleExpression: Expression = mult(-1, arg.toSampleExpression)
   def getReadPerm: (FractionalPermission, Int) = arg.getReadPerm match {
     case (FractionalPermission(num, denom), r) => (FractionalPermission.createReduced(-num, denom), -r)
   }
@@ -308,6 +328,7 @@ object FractionalPermission {
 case class FractionalPermission(numerator: Int, denominator: Int) extends SimplePermission {
   require(denominator >= 1, "Denominator of a fractional permission must be greater than 0!")
   def toSilExpression: sil.FractionalPerm = sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
+  def toSampleExpression: Expression = div(numerator, denominator)
   def getReadPerm: (FractionalPermission, Int) = (this, 0)
   def <(other: FractionalPermission): Boolean = other match {
     case FractionalPermission(otherNumerator, otherDenominator) => numerator * otherDenominator < denominator * otherNumerator
@@ -323,6 +344,7 @@ case class FractionalPermission(numerator: Int, denominator: Int) extends Simple
 
 case object SymbolicReadPermission extends SimplePermission {
   def toSilExpression: sil.Exp = Context.getRdAmountVariable.localVar
+  def toSampleExpression: Expression = VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(0, 1), 1)
   def lessEqual(other: Permission): Boolean = this == other || (other match {
     case _: NegativePermission | FractionalPermission(0, _) => false
@@ -332,6 +354,7 @@ case object SymbolicReadPermission extends SimplePermission {
 
 case object WritePermission extends SimplePermission {
   def toSilExpression: sil.Exp = sil.FullPerm()()
+  def toSampleExpression: Expression = writeConst
   def getReadPerm: (FractionalPermission, Int) = (FractionalPermission(1, 1), 0)
   def lessEqual(other: Permission): Boolean = this == other || (other match {
     case FractionalPermission(numerator, denominator) => numerator > denominator

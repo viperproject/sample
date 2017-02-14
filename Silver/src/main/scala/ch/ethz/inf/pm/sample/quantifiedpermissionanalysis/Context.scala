@@ -271,4 +271,5 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
   override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   def key: (ProgramPoint, Expression) = (pp, expr)
+  override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
 }
