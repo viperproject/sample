@@ -202,7 +202,7 @@ object Utils {
     * @param expr The expression to simplify.
     * @return An equivalent expression that is potentially simpler than the original one.
     */
-  def simplifyExpression(expr: Expression): Expression = getCollected(expr).transform {
+  def simplifyExpression(expr: Expression): Expression = getCollected(toNNF(expr)).transform {
     case BinaryBooleanExpression(`trueConst`, other, BooleanOperator.&&) => other
     case BinaryBooleanExpression(other, `trueConst`, BooleanOperator.&&) => other
     case BinaryBooleanExpression(`falseConst`, _, BooleanOperator.&&) | BinaryBooleanExpression(_, `falseConst`, BooleanOperator.&&) => falseConst

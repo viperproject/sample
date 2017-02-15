@@ -49,30 +49,10 @@ object QuantifierElimination extends LazyLogging {
   }
 
   def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = {
-    val exprWithPlaceholder = equ(placeholder, expr)
-    var placeholderMap: Map[Expression, VariableIdentifier] = Map()
-    def replaceExpression(expr: Expression): Expression =
-      if (placeholderMap.contains(expr)) placeholderMap(expr)
-      else {
-        val newFreeVar = VariableIdentifier(Context.createNewUniqueVarIdentifier("p"))(expr.typ)
-        placeholderMap += expr -> newFreeVar
-        newFreeVar
-      }
-    val rewritten = exprWithPlaceholder.transform {
-      case max@MaxFunction(_, _) => replaceExpression(max)
-      case bound@BoundaryFunction(_) => replaceExpression(bound)
-      case cond: ConditionalExpression => replaceExpression(cond)
-      case other => other
-    }
-    val rewrittenWithPlaceholders = placeholderMap.foldLeft(rewritten) {
-      case (existing, (replaced, placeholderVar)) => and(existing, replaced match {
-        case MaxFunction(left, right) => rewriteEquMax(placeholderVar, left, right)
-        case BoundaryFunction(arg) => rewriteEquMax(placeholderVar, arg, intToConst(0, PermType))
-        case ConditionalExpression(cond, left, right, _) => rewriteEquCond(placeholderVar, cond, left, right)
-      })
-    }
+    val rewritten = rewriteFunctionsAndConditionals(equ(placeholder, expr))
+    println(rewritten)
     var denominators: Set[Int] = Set()
-    rewrittenWithPlaceholders.foreach {
+    rewritten.foreach {
       case BinaryArithmeticExpression(_, Constant(const, _, _), ArithmeticOperator./) => denominators += const.toInt
       case _ =>
     }
@@ -97,16 +77,30 @@ object QuantifierElimination extends LazyLogging {
       case (multiplied, true) => multiplied
       case (original, false) => mult(intToConst(leastCommonMultiple, original.typ), original)
     }
-    val rewrittenWithoutFractions = rewrittenWithPlaceholders.transform {
+    simplifyExpression(rewritten.transform {
       case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => comp(coefficientMultiplier(left), coefficientMultiplier(right), op)
       case other => other
-    }
-    eliminate(placeholderMap.values.toSet, rewrittenWithoutFractions).get
+    })
   }
 
-  private def rewriteEquMax(expr: Expression, maxLeft: Expression, maxRight: Expression): Expression = or(and(equ(expr, maxLeft), geq(maxLeft, maxRight)), and(equ(expr, maxRight), geq(maxRight, maxLeft)))
+  private def rewriteFunctionsAndConditionals(expr: Expression): Expression = expr.transform {
+    case BinaryArithmeticExpression(left, MaxFunction(maxLeft, maxRight), op) => rewriteMaxComp(left, maxLeft, maxRight, op)
+    case BinaryArithmeticExpression(MaxFunction(maxLeft, maxRight), right, op) => rewriteMaxComp(right, maxLeft, maxRight, ArithmeticOperator.flip(op))
+    case BinaryArithmeticExpression(left, BoundaryFunction(arg), op) => rewriteBoundaryComp(left, arg, op)
+    case BinaryArithmeticExpression(BoundaryFunction(arg), right, op) => rewriteBoundaryComp(right, arg, ArithmeticOperator.flip(op))
+    case BinaryArithmeticExpression(left, ConditionalExpression(cond, condLeft, condRight, _), op) => rewriteCondComp(left, cond, condLeft, condRight, op)
+    case BinaryArithmeticExpression(ConditionalExpression(cond, condLeft, condRight, _), right, op) => rewriteCondComp(right, cond, condLeft, condRight, op)
+    case other => other
+  } match {
+    case unmodified if unmodified == expr => unmodified
+    case modified => rewriteFunctionsAndConditionals(modified)
+  }
 
-  private def rewriteEquCond(expr: Expression, cond: Expression, left: Expression, right: Expression) = or(and(equ(expr, left), cond), and(equ(expr, right), NegatedBooleanExpression(cond)))
+  private def rewriteMaxComp(expr: Expression, maxLeft: Expression, maxRight: Expression, op: ArithmeticOperator.Value): Expression = or(and(comp(expr, maxLeft, op), geq(maxLeft, maxRight)), and(comp(expr, maxRight, op), geq(maxRight, maxLeft)))
+
+  private def rewriteBoundaryComp(expr: Expression, arg: Expression, op: ArithmeticOperator.Value): Expression = rewriteMaxComp(expr, arg, intToConst(0, arg.typ), op)
+
+  private def rewriteCondComp(expr: Expression, cond: Expression, left: Expression, right: Expression, op: ArithmeticOperator.Value) = or(and(comp(expr, left, op), cond), and(comp(expr, right, op), NegatedBooleanExpression(cond)))
 
   private def rewriteWithStateInfo(expr: Expression, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState): Expression = expr.transform {
     case BinaryArithmeticExpression(left, ExpressionDescription(pp, intExpr), op) if ArithmeticOperator.isComparison(op) =>
@@ -304,10 +298,11 @@ object Main3 {
     val c = VariableIdentifier("C")(IntType)
     val d = VariableIdentifier("D")(IntType)
     val aa = VariableIdentifier("A")(PermType)
+    val f = VariableIdentifier("F")(PermType)
     // QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
     QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(intToConst(0, IntType), a), leq(a, intToConst(10, IntType)))))
     QuantifierElimination.eliminate(Set(a), equ(mult(intToConst(2, IntType), a), b))
-    QuantifierElimination.rewriteExpression(aa, max(cond(equ(b, c), intToConst(1, PermType), intToConst(0, PermType)), cond(equ(b, d), div(intToConst(1, PermType), intToConst(2, PermType)), intToConst(0, PermType))))
+    println(QuantifierElimination.rewriteExpression(aa, max(cond(equ(b, c), f, intToConst(0, PermType)), cond(equ(b, d), div(intToConst(1, PermType), intToConst(2, PermType)), intToConst(0, PermType)))))
   }
 
   def max(left: Expression, right: Expression): FunctionCallExpression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
