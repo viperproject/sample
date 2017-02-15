@@ -108,6 +108,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         val permissionExpression = permissionTree.toIntegerQuantificationSample(state, quantifiedVariable)
         val rewritten = QuantifierElimination.rewriteExpression(placeholder, permissionExpression)
         val forgotten = QuantifierElimination.eliminate(state.changingVars ++ state.declaredBelowVars, rewritten)
+        val placeholderFun = Context.createNewUniqueFunctionIdentifier("p")
         val implies = sil.FieldAccessPredicate(fieldAccess, DefaultSampleConverter.convert(forgotten.get))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
         newPreconditions :+= forall
