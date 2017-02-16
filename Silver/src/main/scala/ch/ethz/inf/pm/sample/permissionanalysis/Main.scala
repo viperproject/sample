@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
+import ch.ethz.inf.pm.sample.abstractdomain.IntegerIntervalAnalysis
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
@@ -26,19 +27,8 @@ object Main {
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
 
-    //MayPointToOctagonsAnalysisRunner.main(args)
-    //MayPointToAOctagonsAnalysisRunner.main(args)
-    //MayPointToAPolyhedraAnalysisRunner.main(args)
-
-    PermissionInference.main(args)
-
-    //println("\n******************\n* AnalysisResult *\n******************\n")
-    //if (Reporter.seenErrors.isEmpty) println("No errors")
-    //for (e <- Reporter.seenErrors) { println(e) } // error report
-    //println()
-    //if (Reporter.seenInfos.isEmpty) println("No warnings")
-    //for (w <- Reporter.seenInfos) { println(w) } // warning report
-
+    IntegerIntervalAnalysis.main(args)
+    //PermissionInference.main(args)
   }
 
 }
