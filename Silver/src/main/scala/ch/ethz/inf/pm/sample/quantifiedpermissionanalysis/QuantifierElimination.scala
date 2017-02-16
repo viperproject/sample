@@ -6,12 +6,11 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType, SilverTypeMap}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -36,23 +35,25 @@ object QuantifierElimination extends LazyLogging {
   })
 
   def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] =  {
-    println(s"original to eliminate $variable: $expr")
+    println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
-    println(s"F1[$variable] (NNF) (containing " + countLiterals(formulaNNF) + s" literals): $formulaNNF")
+    println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
     val collected = collectVariable(variable, formulaNNF)
-    println(s"F3[$variable] (collected) (containing " + countLiterals(collected) + s" literals): $collected")
+    println(s"F3[$variable] (collected) (containing ${countLiterals(collected)} literals): $collected")
     val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
-    println(s"F4[$variable] (lcmReplaced) (containing " + countLiterals(lcmReplaced) + s" literals): $lcmReplaced")
+    println(s"F4[$variable] (lcmReplaced) (containing ${countLiterals(lcmReplaced)} literals): $lcmReplaced")
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
-    println(s"RESULT (containing " + countLiterals(equivalentFormula) + s" literals): $equivalentFormula")
+    println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula")
     Some(equivalentFormula)
   }
 
-  def rewriteExpression(placeholder: VariableIdentifier, expr: Expression): Expression = {
-    val rewritten = rewriteFunctionsAndConditionals(equ(placeholder, expr))
-    println(rewritten)
+  def rewriteExpression(placeholder: VariableIdentifier, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState, expr: Expression): Expression = {
+    val exprWithNumericalInfo = rewriteWithStateInfo(expr, quantifiedVariable, state)
+    println(s"with numinfo: $exprWithNumericalInfo")
+    val exprWithoutFunctionsAndConditions = rewriteFunctionsAndConditionals(equ(placeholder, exprWithNumericalInfo))
+    println(s"without fun/cond: $exprWithoutFunctionsAndConditions")
     var denominators: Set[Int] = Set()
-    rewritten.foreach {
+    exprWithoutFunctionsAndConditions.foreach {
       case BinaryArithmeticExpression(_, Constant(const, _, _), ArithmeticOperator./) => denominators += const.toInt
       case _ =>
     }
@@ -77,7 +78,7 @@ object QuantifierElimination extends LazyLogging {
       case (multiplied, true) => multiplied
       case (original, false) => mult(intToConst(leastCommonMultiple, original.typ), original)
     }
-    simplifyExpression(rewritten.transform {
+    simplifyExpression(exprWithoutFunctionsAndConditions.transform {
       case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => comp(coefficientMultiplier(left), coefficientMultiplier(right), op)
       case other => other
     })
@@ -148,7 +149,7 @@ object QuantifierElimination extends LazyLogging {
     }
     val leastCommonMultiple = lcm(numbers)
     val coefficientMultiplier: (Int) => ((Expression) => Expression) = (hPrime) => {
-      case Constant(const, typ, pp) => intToConst(const.toInt * hPrime, typ)
+      case Constant(const, typ, _) => intToConst(const.toInt * hPrime, typ)
       case other => other
     }
     val freshVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("fresh", markAsTaken = false))(variable.typ)
@@ -288,24 +289,4 @@ object BoundaryFunction {
     case FunctionCallExpression(name, arg :: Nil, _, _) if name == Context.getBoundaryFunction.name => Some(arg)
     case _ => None
   }
-}
-
-object Main3 {
-  def main(args: Array[String]): Unit = {
-    SystemParameters.tm = SilverTypeMap
-    val a = VariableIdentifier("A")(IntType)
-    val b = VariableIdentifier("B")(IntType)
-    val c = VariableIdentifier("C")(IntType)
-    val d = VariableIdentifier("D")(IntType)
-    val aa = VariableIdentifier("A")(PermType)
-    val f = VariableIdentifier("F")(PermType)
-    // QuantifierElimination.eliminate(Set(d), and(equ(a, plus(b, c)), and(and(leq(const(0), b), leq(b, const(10))), and(leq(const(0), c), leq(c, const(10))))))
-    QuantifierElimination.eliminate(Set(a), and(equ(b, a), and(leq(intToConst(0, IntType), a), leq(a, intToConst(10, IntType)))))
-    QuantifierElimination.eliminate(Set(a), equ(mult(intToConst(2, IntType), a), b))
-    println(QuantifierElimination.rewriteExpression(aa, max(cond(equ(b, c), f, intToConst(0, PermType)), cond(equ(b, d), div(intToConst(1, PermType), intToConst(2, PermType)), intToConst(0, PermType)))))
-  }
-
-  def max(left: Expression, right: Expression): FunctionCallExpression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
-
-  def cond(condition: Expression, left: Expression, right: Expression) = ConditionalExpression(condition, left, right, PermType)
 }

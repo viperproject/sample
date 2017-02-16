@@ -15,6 +15,8 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -106,11 +108,16 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
         val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
         val placeholder = VariableIdentifier(Context.createNewUniqueVarIdentifier("z"))(PermType)
         val permissionExpression = permissionTree.toIntegerQuantificationSample(state, quantifiedVariable)
-        val rewritten = QuantifierElimination.rewriteExpression(placeholder, permissionExpression)
-        val forgotten = QuantifierElimination.eliminate(state.changingVars ++ state.declaredBelowVars, rewritten)
-        val placeholderFun = Context.createNewUniqueFunctionIdentifier("p")
-        val implies = sil.FieldAccessPredicate(fieldAccess, DefaultSampleConverter.convert(forgotten.get))()
+        val rewritten = QuantifierElimination.rewriteExpression(placeholder, quantifiedVariable, state, permissionExpression)
+        val forgotten = QuantifierElimination.eliminate(state.changingVars ++ state.declaredBelowVars, rewritten).get
+        val placeholderFun = Context.getPlaceholderFunction(fieldName, quantifiedVariableDecl)
+        val placeholderFunCall = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable), PermType)
+        val implies = sil.FieldAccessPredicate(fieldAccess, DefaultSampleConverter.convert(placeholderFunCall))()
         val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+        newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVariableDecl), Seq(), DefaultSampleConverter.convert(forgotten.transform {
+          case `placeholder` => placeholderFunCall
+          case other => other
+        }))(), sil.TrueLit()())()
         newPreconditions :+= forall
       } else {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)

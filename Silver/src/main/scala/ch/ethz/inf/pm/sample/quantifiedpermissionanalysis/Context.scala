@@ -45,6 +45,10 @@ object Context {
 
   private var fieldAccessFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
 
+  private var placeHolderFunctions: Map[String, sil.Function] = Map()
+
+  private var placeHolderFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
+
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
   private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_]]]] = Map()
@@ -71,6 +75,16 @@ object Context {
     }
     fieldAccessFunctionsInMethod += currentMethod -> (fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set()) + ((field, fieldAccessFunctions(field))))
     fieldAccessFunctions(field)
+  }
+
+  def getPlaceholderFunction(field: String, quantifiedVariable: sil.LocalVarDecl): sil.Function = {
+    if (!placeHolderFunctions.contains(field)) {
+      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None)()
+      ;placeHolderFunctions += field -> function
+      auxiliaryFunctions += function.name -> function
+    }
+    placeHolderFunctionsInMethod += currentMethod -> (placeHolderFunctionsInMethod.getOrElse(currentMethod, Set()) + ((field, placeHolderFunctions(field))))
+    placeHolderFunctions(field)
   }
 
   def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set())
