@@ -7,14 +7,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.IntegerIntervalAnalysis
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
-
-object NumDom {
-  type I = BoxedNonRelationalNumericalDomain[DoubleInterval]
-  type IO = IntegerOctagons
-  type DO = DoubleOctagons
-}
 
 /** Main for the permission inference.
   *
@@ -22,7 +15,7 @@ object NumDom {
   */
 object Main {
 
-  def main(args:Array[String]) = {
+  def main(args: Array[String]) = {
 
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
