@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
@@ -48,10 +48,8 @@ object QuantifierElimination extends LazyLogging {
   }
 
   def rewriteExpression(placeholder: VariableIdentifier, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState, expr: Expression): Expression = {
-    val exprWithNumericalInfo = rewriteWithStateInfo(expr, quantifiedVariable, state)
-    println(s"with numinfo: $exprWithNumericalInfo")
-    val exprWithoutFunctionsAndConditions = rewriteFunctionsAndConditionals(equ(placeholder, exprWithNumericalInfo))
-    println(s"without fun/cond: $exprWithoutFunctionsAndConditions")
+    val exprWithoutFunctionsAndConditions = rewriteConditions(equ(placeholder, expr), quantifiedVariable, state)
+    println(s"EXPR without functions/conditions: $exprWithoutFunctionsAndConditions")
     var denominators: Set[Int] = Set()
     exprWithoutFunctionsAndConditions.foreach {
       case BinaryArithmeticExpression(_, Constant(const, _, _), ArithmeticOperator./) => denominators += const.toInt
@@ -84,37 +82,56 @@ object QuantifierElimination extends LazyLogging {
     })
   }
 
-  private def rewriteFunctionsAndConditionals(expr: Expression): Expression = expr.transform {
-    case BinaryArithmeticExpression(left, MaxFunction(maxLeft, maxRight), op) => rewriteMaxComp(left, maxLeft, maxRight, op)
-    case BinaryArithmeticExpression(MaxFunction(maxLeft, maxRight), right, op) => rewriteMaxComp(right, maxLeft, maxRight, ArithmeticOperator.flip(op))
-    case BinaryArithmeticExpression(left, BoundaryFunction(arg), op) => rewriteBoundaryComp(left, arg, op)
-    case BinaryArithmeticExpression(BoundaryFunction(arg), right, op) => rewriteBoundaryComp(right, arg, ArithmeticOperator.flip(op))
-    case BinaryArithmeticExpression(left, ConditionalExpression(cond, condLeft, condRight, _), op) => rewriteCondComp(left, cond, condLeft, condRight, op)
-    case BinaryArithmeticExpression(ConditionalExpression(cond, condLeft, condRight, _), right, op) => rewriteCondComp(right, cond, condLeft, condRight, op)
-    case other => other
-  } match {
-    case unmodified if unmodified == expr => unmodified
-    case modified => rewriteFunctionsAndConditionals(modified)
-  }
-
-  private def rewriteMaxComp(expr: Expression, maxLeft: Expression, maxRight: Expression, op: ArithmeticOperator.Value): Expression = or(and(comp(expr, maxLeft, op), geq(maxLeft, maxRight)), and(comp(expr, maxRight, op), geq(maxRight, maxLeft)))
-
-  private def rewriteBoundaryComp(expr: Expression, arg: Expression, op: ArithmeticOperator.Value): Expression = rewriteMaxComp(expr, arg, intToConst(0, arg.typ), op)
-
-  private def rewriteCondComp(expr: Expression, cond: Expression, left: Expression, right: Expression, op: ArithmeticOperator.Value) = or(and(comp(expr, left, op), cond), and(comp(expr, right, op), NegatedBooleanExpression(cond)))
-
-  private def rewriteWithStateInfo(expr: Expression, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState): Expression = expr.transform {
-    case BinaryArithmeticExpression(left, ExpressionDescription(pp, intExpr), op) if ArithmeticOperator.isComparison(op) =>
-      val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail)
-      constraints.foldLeft[Expression](comp(left, quantifiedVariable, op)) {
-        case (existing, constraint) => and(existing, constraint)
+  private def rewriteConditions(expr: Expression, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState): Expression = {
+    var freeVarMap: Map[VariableIdentifier, Set[(Expression, Expression)]] = Map()
+    var freeVarOrder: Seq[VariableIdentifier] = Seq()
+    val exprWithoutConditions = expr.transform {
+      case ConditionalExpression(cond, left, right, typ) =>
+        val freeVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("y"))(typ)
+        freeVarOrder +:= freeVariable
+        cond match {
+          case ExpressionDescription(pp, intExpr) => simplifyExpression(intExpr) match {
+            case const: Constant => freeVarMap += freeVariable -> Set((left, equ(quantifiedVariable, const)), (right, neq(quantifiedVariable, const)))
+            case other =>
+              val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail).filter(x => intExpr.ids.toSetOrFail.forall(id => x.contains {
+                case `id` => true
+                case _ => false
+              })).reduceOption(and) match {
+                case None => trueConst
+                case Some(exp) => exp
+              }
+              val quantifiedCond = equ(quantifiedVariable, other)
+              val condTrue = and(quantifiedCond, constraints)
+              val condFalse = and(quantifiedCond, not(constraints))
+              freeVarMap += freeVariable -> Set((left, condTrue), (right, condFalse))
+          }
+          case _ => freeVarMap += freeVariable -> Set((left, cond), (right, NegatedBooleanExpression(cond)))
+        }
+        freeVariable
+      case MaxExpression(args, typ, _) =>
+        val argSet = args.toSet
+        val freeVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("y"))(typ)
+        freeVarOrder +:= freeVariable
+        freeVarMap += freeVariable -> argSet.map(arg => (arg, (argSet - arg).map(otherArg => geq(arg, otherArg)).reduce(and)))
+        freeVariable
+      case other => other
+    }
+    var exprSet: Set[Expression] = Set(exprWithoutConditions)
+    for (x <- freeVarOrder) {
+      var newExprSet: Set[Expression] = Set()
+      for (existing <- exprSet) {
+        for ((expr, conditionsTrue) <- freeVarMap(x)) {
+          val newExpr = existing.transform {
+            case `x` => expr
+            case other => other
+          }
+          newExprSet += and(newExpr, conditionsTrue)
+        }
       }
-    case BinaryArithmeticExpression(ExpressionDescription(pp, intExpr), right, op) if ArithmeticOperator.isComparison(op) =>
-      val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail)
-      constraints.foldLeft[Expression](comp(right, quantifiedVariable, op)) {
-        case (existing, constraint) => and(existing, constraint)
-      }
-    case other => other
+      exprSet = newExprSet
+    }
+    Context.clearIdentifiers(freeVarOrder.map(_.name))
+    exprSet.reduce(or)
   }
 
   // Step 1
@@ -179,6 +196,7 @@ object QuantifierElimination extends LazyLogging {
     val d = delta(freshVariable, expr)
     val B = getBs(freshVariable, expr)
     println(s"F-∞[.] (left infinite projection): "+ leftProjection)
+    println(s"F-∞[.] (left infinite projection simplified): "+ simplifyExpression(leftProjection))
     ((1 to d).map(j => leftProjection.transform {
       case ComparisonWithVariableRight(_, 1, `freshVariable`, _) | ComparisonWithVariableLeft(1, `freshVariable`, _, _) => throw new IllegalStateException()
       case `freshVariable` => intToConst(j, freshVariable.typ)
@@ -275,18 +293,11 @@ object NotDivides {
   }
 }
 
-object MaxFunction {
-  def apply(left: Expression, right: Expression): Expression = FunctionCallExpression(Context.getMaxFunction.name, Seq(left, right), PermType)
-  def unapply(expr: Expression): Option[(Expression, Expression)] = expr match {
-    case FunctionCallExpression(name, left :: right :: Nil, _, _) if name == Context.getMaxFunction.name => Some(left, right)
-    case _ => None
-  }
-}
+object Main3 {
 
-object BoundaryFunction {
-  def apply(arg: Expression): Expression = FunctionCallExpression(Context.getBoundaryFunction.name, Seq(arg), PermType)
-  def unapply(expr: Expression): Option[(Expression)] = expr match {
-    case FunctionCallExpression(name, arg :: Nil, _, _) if name == Context.getBoundaryFunction.name => Some(arg)
-    case _ => None
+  def main(args: Array[String]): Unit = {
+    val a = VariableIdentifier("a")(IntType)
+    val b = VariableIdentifier("b")(IntType)
+    QuantifierElimination.eliminate(a, and(neq(a, b), and(leq(intToConst(0, IntType), a), leq(a, intToConst(10, IntType)))))
   }
 }

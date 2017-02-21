@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.ast.Function
@@ -162,6 +162,8 @@ object Context {
 
   private def createNewUniqueSetIdentifier(name: String = "_set"): String = createNewUniqueIdentifier(name)
 
+  def clearIdentifiers(identifiers: GenTraversableOnce[String]): Unit = this.identifiers --= identifiers
+
   def getRdAmountVariable: sil.LocalVarDecl = rdAmountVariable match {
     case Some(existingRdAmountVar) => existingRdAmountVar
     case None =>
@@ -286,4 +288,11 @@ case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Exp
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   def key: (ProgramPoint, Expression) = (pp, expr)
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
+}
+
+case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Expression {
+  override def ids: IdentifierSet = args.map(_.ids).reduce(_ ++ _)
+  override def transform(f: (Expression) => Expression): Expression = f(MaxExpression(args.map(_.transform(f)), typ))
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || args.exists(_.contains(f))
+  override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else args.map(_.find(f)).reduce(_.orElse(_))
 }

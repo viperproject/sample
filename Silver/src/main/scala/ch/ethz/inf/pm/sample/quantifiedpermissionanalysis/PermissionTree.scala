@@ -125,7 +125,10 @@ trait SequencePermissionTree extends PermissionTree {
 case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toIntegerQuantification(state, quantifiedVariable)))()
-  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = BoundaryFunction(child.toIntegerQuantificationSample(state, quantifiedVariable))
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = {
+    val childExpr = child.toIntegerQuantificationSample(state, quantifiedVariable)
+    ConditionalExpression(geq(childExpr, intToConst(0, PermType)), childExpr, intToConst(0, PermType), PermType)
+  }
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = child.canBeExpressedByIntegerQuantification(expressions)
   def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[Inner] = child.getSetDescriptions(expressions)
   def transformExpressions(f: (Expression) => Expression): PermissionTree = ZeroBoundedPermissionTree(child.transformExpressions(f))
@@ -150,10 +153,7 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     sil.CondExp(state.refSets(receiver.key).toIntegerQuantification(state, quantifiedVariable), permission.toSilExpression, sil.NoPerm()())()
   def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = {
     val integerParam = state.refSets(receiver.key).extractIntegerParameterExpression
-    val condition = Context.preNumericalInfo(integerParam._1).numDom.getConstraints(integerParam._2.ids.toSetOrFail).foldLeft[Expression](equ(quantifiedVariable, integerParam._2)) {
-      case (existing, constraint) => and(existing, constraint)
-    }
-    ConditionalExpression(condition, permission.toSampleExpression, intToConst(0, PermType), PermType)
+    ConditionalExpression(ExpressionDescription.tupled(integerParam), permission.toSampleExpression, intToConst(0, PermType), PermType)
   }
   def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
     expressions(receiver.key).canBeExpressedByIntegerQuantification(expressions)
@@ -212,7 +212,7 @@ case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionT
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
     permissions.map(_.toIntegerQuantification(state, quantifiedVariable)).reduce((left, right) => sil.FuncApp(Context.getMaxFunction, Seq(left, right))())
   def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression =
-    permissions.map(_.toIntegerQuantificationSample(state, quantifiedVariable)).reduceLeft(MaxFunction(_, _))
+    MaxExpression(permissions.map(_.toIntegerQuantificationSample(state, quantifiedVariable)), PermType)
   def transformExpressions(f: (Expression => Expression)) = Maximum(permissions.map(_.transformExpressions(f)))
   override def max(other: PermissionTree): PermissionTree = Maximum(other +: permissions)
   override def undoLastRead: PermissionTree = permissions match {
