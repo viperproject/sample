@@ -20,7 +20,7 @@ object QuantifiedPermissionsParameters {
 
   val useExpressionsSimplifications = true
 
-  val useSetSimplifications = true
+  val useSetSimplifications = false
 
   val includeBranchConditions = true
 
@@ -34,9 +34,13 @@ object QuantifiedPermissionsParameters {
 
   val useFieldAccessFunctionsInSetDefinitions = false
 
+  val usePermissionCheckInFieldAdd = true
+
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
     * the natively supported IntegerOctagon domain for the numerical analysis. Just comment in/out the respective part.
+    *
+    * NOTE: IntegerOctagons is broken since the new CFG has been introduced.
     */
 
   type NumericalDomainType = Apron.Polyhedra

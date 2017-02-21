@@ -346,7 +346,7 @@ object ReferenceSetDescription {
             val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             var conjuncts: Seq[sil.Exp] = Seq(contains)
             if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) conjuncts :+= sil.And(sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())(), contains)()
-            if (!useFieldAccessFunctionsInSetDefinitions) conjuncts :+= sil.PermGtCmp(sil.CurrentPerm(fieldAccess)(), sil.NoPerm()())()
+            if (!useFieldAccessFunctionsInSetDefinitions && usePermissionCheckInFieldAdd) conjuncts :+= sil.PermGtCmp(sil.CurrentPerm(fieldAccess)(), sil.NoPerm()())()
             if (isNullProhibited) conjuncts :+= sil.NeCmp(fieldAccessExpr, sil.NullLit()())()
             val triggers =
               if (QuantifiedPermissionsParameters.useCustomTriggerGeneration) Seq(sil.Trigger(Seq(contains, fieldAccessExpr))())
