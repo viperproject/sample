@@ -1550,6 +1550,8 @@ object IntegerOctagons
 
 /** An element of the double octagon domain.
   *
+  * NOTE: This domain is unsound due to rounding errors.
+  *
   * @author Jerome Dohrau
   */
 sealed trait DoubleOctagons

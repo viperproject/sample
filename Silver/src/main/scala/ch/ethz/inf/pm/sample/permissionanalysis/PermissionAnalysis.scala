@@ -807,21 +807,14 @@ object PermissionAnalysisState {
 
 }
 
-trait PermissionAnalysisStateBuilder[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverEntryStateBuilder[T] {
-  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
-    method.initializeArgument(top)
-  }
-}
-
 object PermissionAnalysisEntryState
-  extends PermissionAnalysisStateBuilder[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+  extends SimpleEntryStateBuilder[SimplePermissionAnalysisState] {
   override def top: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
 case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
 (aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
- permissionAnalysisStateBuilder: PermissionAnalysisStateBuilder[A, T])
+ permissionAnalysisStateBuilder: SimpleEntryStateBuilder[T])
   extends SilverAnalysis[T] {
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
     // initialize context
