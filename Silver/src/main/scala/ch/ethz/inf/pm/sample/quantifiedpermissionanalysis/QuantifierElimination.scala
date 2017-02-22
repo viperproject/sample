@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
@@ -296,8 +296,12 @@ object NotDivides {
 object Main3 {
 
   def main(args: Array[String]): Unit = {
-    val a = VariableIdentifier("a")(IntType)
-    val b = VariableIdentifier("b")(IntType)
-    QuantifierElimination.eliminate(a, and(neq(a, b), and(leq(intToConst(0, IntType), a), leq(a, intToConst(10, IntType)))))
+    val q = VariableIdentifier("q")(IntType)
+    val i = VariableIdentifier("i")(IntType)
+    val p = VariableIdentifier("p")(PermType)
+    val inv = and(leq(intToConst(0, IntType), i), leq(i, intToConst(10, IntType)))
+    println(simplifyExpression(or(
+      QuantifierElimination.eliminate(i, and(and(equ(q, i), inv), equ(p, intToConst(1, PermType)))).get,
+        and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv)).get), equ(p, intToConst(0, PermType))))))
   }
 }
