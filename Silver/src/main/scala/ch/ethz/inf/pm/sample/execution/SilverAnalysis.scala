@@ -29,5 +29,20 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 
 trait SilverEntryStateBuilder[S <: State[S]] {
   def top: S
+
   def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S
+}
+
+/**
+  * A simple entry state builder that starts with the top state and initializes
+  * the arguments.
+  *
+  * @tparam S The type of the state.
+  * @author Jerome Dohrau
+  */
+trait SimpleEntryStateBuilder[S <: State[S]]
+  extends SilverEntryStateBuilder[S] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S = {
+    method.initializeArgument(top)
+  }
 }
