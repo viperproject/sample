@@ -146,7 +146,7 @@ case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTr
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(ZeroBoundedPermissionTree(child.transform(f)))
 }
 
-case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission) extends PermissionTree {
+case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission)() extends PermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     sil.CondExp(state.refSets(receiver.key).toSilExpression(state, quantifiedVar), permission.toSilExpression, sil.NoPerm()())()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp =
