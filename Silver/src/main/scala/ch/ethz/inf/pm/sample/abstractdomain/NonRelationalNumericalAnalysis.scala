@@ -9,8 +9,9 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BoxedNonRelationalNumericalDomain, IntegerInterval, NonRelationalNumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.{EnterLoopCommand, LeaveLoopCommand}
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -22,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
   * @author Jerome Dohrau
   */
 trait NonRelationalNumericalAnalysisState[S <: NonRelationalNumericalAnalysisState[S, N], N <: NonRelationalNumericalDomain[N]]
-  extends State[S]
+  extends SilverState[S]
     with StateWithRefiningAnalysisStubs[S]
     with LazyLogging {
   this: S =>
@@ -31,16 +32,18 @@ trait NonRelationalNumericalAnalysisState[S <: NonRelationalNumericalAnalysisSta
 
   def domain: BoxedNonRelationalNumericalDomain[N]
 
-  override def before(pp: ProgramPoint): S = copy(pp = pp)
+  override def inhale(expression: Expression): S = assume(expression)
 
-  override def command(cmd: Command): S = {
-    logger.trace(s"command($cmd)")
-    cmd match {
-      case EnterLoopCommand() => this
-      case LeaveLoopCommand() => this
-      case _ => super.command(cmd)
+  override def exhale(expression: Expression): S = {
+    val assumed = assume(expression)
+    val assumedFalse = assume(NegatedBooleanExpression(expression))
+    if (!assumedFalse.lessEqual(bottom())) {
+      Reporter.reportAssertionViolation("Possible assertion violation", pp)
     }
+    assumed
   }
+
+  override def before(pp: ProgramPoint): S = copy(pp = pp)
 
   override def createObject(typ: Type, pp: ProgramPoint): S = {
     logger.trace(s"createObject($typ)")
