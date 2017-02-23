@@ -6,8 +6,6 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import javax.naming.OperationNotSupportedException
-
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 
@@ -573,7 +571,7 @@ case class AccessPathIdentifier(path: List[Identifier])
 
   require(path.nonEmpty, "the access path must not be empty")
 
-  def getField = throw new OperationNotSupportedException()
+  def getField = throw new UnsupportedOperationException()
 
   def pp: ProgramPoint = path.last.pp
 

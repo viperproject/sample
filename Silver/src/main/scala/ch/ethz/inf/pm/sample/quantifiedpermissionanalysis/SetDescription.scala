@@ -23,6 +23,10 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   this: S =>
 
+  def pp: ProgramPoint
+
+  def expr: Expression
+
   def silverType: sil.Type
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): S
@@ -551,4 +555,22 @@ object PositiveReferenceSetDescription {
       abstractExpressions.subsetOf(other.abstractExpressions) && (isNullProhibited || !other.isNullProhibited) &&
         (other.widened || concreteExpressions.subsetOf(other.concreteExpressions))
   }
+}
+
+sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription] {
+
+  def silverType: sil.Type = sil.Int
+
+}
+
+object IntegerSetDescription {
+
+  sealed trait Top extends IntegerSetDescription with SetDescription.Top[IntegerSetDescription]
+
+  sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription]
+
+  sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner] {
+
+  }
+
 }
