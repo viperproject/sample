@@ -15,8 +15,6 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.{AliasAnalysisEntryState, AliasAnalysisStateBuilder}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -88,8 +86,8 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
       }
     }
     state.permissions.foreach { case (fieldName, permissionTree) =>
-      if (permissionTree.canBeExpressedByIntegerQuantification(state.refSets) && {
-        val concreteExpressions = permissionTree.getSetDescriptions(state.refSets).flatMap(set => set.concreteExpressions)
+      if (permissionTree.canBeExpressedByIntegerQuantification(state) && {
+        val concreteExpressions = permissionTree.getSetDescriptions(state).flatMap(set => set.concreteExpressions)
         val elem: FunctionCallExpression = concreteExpressions.head._1.asInstanceOf[FunctionCallExpression]
         concreteExpressions.forall {
           case (FunctionCallExpression(functionName, parameters, _, _), _) =>
@@ -101,7 +99,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
       }) {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
         val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
-        val fieldAccessReceiver = permissionTree.getSetDescriptions(state.refSets).head.concreteExpressions.head._1.transform {
+        val fieldAccessReceiver = permissionTree.getSetDescriptions(state).head.concreteExpressions.head._1.transform {
           case e: Expression if e.typ == IntType => quantifiedVariable
           case other => other
         }
@@ -138,7 +136,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     var visited: Set[(ProgramPoint, Expression)] = Set()
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
-        if (!setDescription.isFinite(state.refSets) && !setDescription.canBeExpressedByIntegerQuantification(state.refSets) && !visited.contains(setDescription.key)) {
+        if (!setDescription.isFinite(state) && !setDescription.canBeExpressedByIntegerQuantification(state) && !visited.contains(setDescription.key)) {
           newPreconditions ++= setDescription.toSetDefinition(state)
           visited += setDescription.key
         }
@@ -201,7 +199,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     }
     state.refSets.foreach {
       case (_, setDescription: ReferenceSetDescription.Inner) =>
-        if (!setDescription.isFinite(state.refSets) && !newFormalArguments.contains(Context.getSetFor(setDescription.key)))
+        if (!setDescription.isFinite(state) && !newFormalArguments.contains(Context.getSetFor(setDescription.key)))
           newFormalArguments :+= Context.getSetFor(setDescription.key)
       case _ => throw new IllegalStateException()
     }

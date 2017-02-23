@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.Inner
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
@@ -49,16 +48,16 @@ trait PermissionTree {
     * Traverses this tree and checks if the whole tree can be expressed by integer quantification instead of reference
     * quantification.
     *
-    * @param refSets The set descriptions to check against.
+    * @param state The state in which to check whether this permission tree can be expressed by integer quantification.
     * @return Whether the permission expression denoted by this tree can be expressed by integer quantification.
     */
-  def canBeExpressedByIntegerQuantification(refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean
 
   def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(Seq(PermissionLeaf(receiver, permission), this))
 
   def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(PermissionAddition(Seq(PermissionLeaf(receiver, NegativePermission(permission)), this)))
 
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner]
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner]
 
   def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
 
@@ -111,10 +110,10 @@ trait SequencePermissionTree extends PermissionTree {
   def create(permissions: Seq[PermissionTree]): SequencePermissionTree
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || permissions.exists(_.exists(f))
   def foreach(f: (Expression => Unit)): Unit = permissions.foreach(_.foreach(f))
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
-    permissions.forall(_.canBeExpressedByIntegerQuantification(expressions))
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
-    permissions.toSet.flatMap((p: PermissionTree) => p.getSetDescriptions(expressions))
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean =
+    permissions.forall(_.canBeExpressedByIntegerQuantification(state))
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] =
+    permissions.toSet.flatMap((p: PermissionTree) => p.getSetDescriptions(state))
   def hasRead: Boolean = permissions.exists(_.hasRead)
   override def undoLastRead: PermissionTree = permissions.find(_.hasRead) match {
     case Some(exp) => create((permissions.takeWhile(_ != exp) :+ exp.undoLastRead) ++ permissions.dropWhile(_ != exp).tail)
@@ -129,8 +128,8 @@ case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTr
     val childExpr = child.toIntegerQuantificationSample(state, quantifiedVariable)
     ConditionalExpression(geq(childExpr, intToConst(0, PermType)), childExpr, intToConst(0, PermType), PermType)
   }
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = child.canBeExpressedByIntegerQuantification(expressions)
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[Inner] = child.getSetDescriptions(expressions)
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = child.canBeExpressedByIntegerQuantification(state)
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[Inner] = child.getSetDescriptions(state)
   def transformExpressions(f: (Expression) => Expression): PermissionTree = ZeroBoundedPermissionTree(child.transformExpressions(f))
   def exists(f: (PermissionTree) => Boolean): Boolean = f(this) || child.exists(f)
   def foreach(f: (Expression) => Unit): Unit = child.foreach(f)
@@ -155,10 +154,10 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     val integerParam = state.refSets(receiver.key).extractIntegerParameterExpression
     ConditionalExpression(ExpressionDescription.tupled(integerParam), permission.toSampleExpression, intToConst(0, PermType), PermType)
   }
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
-    expressions(receiver.key).canBeExpressedByIntegerQuantification(expressions)
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
-    Set(expressions(receiver.key).asInstanceOf[ReferenceSetDescription.Inner])
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean =
+    state.refSets(receiver.key).canBeExpressedByIntegerQuantification(state)
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] =
+    Set(state.refSets(receiver.key).asInstanceOf[ReferenceSetDescription.Inner])
   def transformExpressions(f: (Expression => Expression)) = PermissionLeaf(receiver.transform(f), permission)
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
@@ -245,10 +244,10 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
     sil.CondExp(DefaultSampleConverter.convert(cond), left.toIntegerQuantification(state, quantifiedVariable), right.toIntegerQuantification(state, quantifiedVariable))()
   def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression =
     ConditionalExpression(cond, left.toIntegerQuantificationSample(state, quantifiedVariable), right.toIntegerQuantificationSample(state, quantifiedVariable), PermType)
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean =
-    left.canBeExpressedByIntegerQuantification(expressions) && right.canBeExpressedByIntegerQuantification(expressions)
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] =
-    left.getSetDescriptions(expressions) ++ right.getSetDescriptions(expressions)
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean =
+    left.canBeExpressedByIntegerQuantification(state) && right.canBeExpressedByIntegerQuantification(state)
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] =
+    left.getSetDescriptions(state) ++ right.getSetDescriptions(state)
   def transformExpressions(f: (Expression => Expression)) = Condition(cond.transform(f), left.transformExpressions(f), right.transformExpressions(f))
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this) || left.exists(f) || right.exists(f)
   def foreach(f: (Expression => Unit)): Unit = {
@@ -281,8 +280,8 @@ case object EmptyPermissionTree extends PermissionTree {
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = ZeroPerm
   def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = intToConst(0, PermType)
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = true
-  def getSetDescriptions(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Set[ReferenceSetDescription.Inner] = Set()
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = true
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] = Set()
   def transformExpressions(f: (Expression) => Expression): PermissionTree = this
   def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = {}

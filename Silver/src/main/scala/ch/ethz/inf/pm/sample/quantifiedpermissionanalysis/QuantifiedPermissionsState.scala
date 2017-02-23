@@ -27,7 +27,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
                                       permissions: PermissionRecords = PermissionRecords(),
                                       changingVars: Set[VariableIdentifier] = Set(),
                                       declaredBelowVars: Set[VariableIdentifier] = Set(),
-                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map())
+                                      refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = Map(),
+                                      intSets: Map[(ProgramPoint, Expression), IntegerSetDescription] = Map())
   extends SimplePermissionState[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with SilverSpecification[Any]
@@ -61,8 +62,9 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
            permissions: PermissionRecords = permissions,
            changingVars: Set[VariableIdentifier] = changingVars,
            declaredBelowVars: Set[VariableIdentifier] = declaredBelowVars,
-           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets)
+           refSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets,
+           intSets: Map[(ProgramPoint, Expression), IntegerSetDescription] = intSets): QuantifiedPermissionsState =
+    QuantifiedPermissionsState(isTop, isBottom, expr, visited, currentPP, permissions, changingVars, declaredBelowVars, refSets, intSets)
 
   /** Removes the current expression.
     *

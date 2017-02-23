@@ -50,11 +50,11 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def extractIntegerParameterExpression: (ProgramPoint, Expression)
 
-  def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
+  def isFinite(state: QuantifiedPermissionsState): Boolean
 
   def isOneElement: Boolean
 
-  def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean
 
   def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp]
 
@@ -74,7 +74,7 @@ object SetDescription {
 
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
+    override def isFinite(state: QuantifiedPermissionsState): Boolean = false
 
     override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
@@ -82,7 +82,7 @@ object SetDescription {
 
     override def isOneElement = false
 
-    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = false
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = false
 
     def simplify: S = this
   }
@@ -98,7 +98,7 @@ object SetDescription {
 
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
+    override def isFinite(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
 
     override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
@@ -106,7 +106,7 @@ object SetDescription {
 
     override def isOneElement = throw new UnsupportedOperationException()
 
-    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = throw new UnsupportedOperationException()
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
 
     def simplify: S = this
   }
@@ -180,20 +180,20 @@ object ReferenceSetDescription {
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
-    private def isFunctionExprFinite(function: Function, expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = function match {
+    private def isFunctionExprFinite(function: Function, state: QuantifiedPermissionsState): Boolean = function match {
       case Function(_, _, _, parameters) => parameters.forall {
-        case ((_: RefType) | (_: DomType), _, expr) => expressions((pp, expr)).isFinite(expressions)
+        case ((_: RefType) | (_: DomType), _, expr) => state.refSets((pp, expr)).isFinite(state)
         case (IntType, _, _) => false
       }
     }
 
-    override def isFinite(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = {
+    override def isFinite(state: QuantifiedPermissionsState): Boolean = {
       (!widened && abstractExpressions.forall {
-        case function: Function => isFunctionExprFinite(function, expressions)
+        case function: Function => isFunctionExprFinite(function, state)
         case _ => true
       }) || abstractExpressions.forall {
         case _: AddField => false
-        case function: Function => isFunctionExprFinite(function, expressions)
+        case function: Function => isFunctionExprFinite(function, state)
         case _ => true
       }
     }
@@ -203,13 +203,13 @@ object ReferenceSetDescription {
       case _ => true
     }
 
-    def canBeExpressedByIntegerQuantification(expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = QuantifiedPermissionsParameters.useIntegerQuantification && !widened && abstractExpressions.forall {
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = QuantifiedPermissionsParameters.useIntegerQuantification && !widened && abstractExpressions.forall {
       case Function(functionName, _, _, parameters) => parameters.count {
         case (IntType, _, _) => true
         case _ => false
       } == 1 && parameters.forall {
         case (IntType, _, expr) => Utils.isFunctionInjective(Context.functions(functionName), expr, Context.postNumericalInfo(pp).numDom)
-        case (_, pp, expr) => expressions((pp, expr)).isOneElement
+        case (_, pp, expr) => state.refSets((pp, expr)).isOneElement
       }
       case _ => false
     }
@@ -293,7 +293,7 @@ object ReferenceSetDescription {
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
-      if (isFinite(state.refSets))
+      if (isFinite(state))
         expand(state, this).map { case (expr, constraints) =>
           val transformer: Expression => Expression = {
             case FieldExpression(typ, field, receiver) => FunctionCallExpression(Context.getFieldAccessFunction(field).name, Seq(receiver), typ)
@@ -333,7 +333,7 @@ object ReferenceSetDescription {
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
       val set = Context.getSetFor(key).localVar
-      if (isFinite(expressions) || canBeExpressedByIntegerQuantification(expressions)) null
+      if (isFinite(state) || canBeExpressedByIntegerQuantification(state)) null
       else {
         var roots: Seq[sil.Exp] = Seq()
         var fields: Seq[sil.Exp] = Seq()
