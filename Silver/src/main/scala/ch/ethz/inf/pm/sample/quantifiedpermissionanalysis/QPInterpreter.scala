@@ -139,7 +139,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
       case (map, (key, set)) => if (!map.contains(set)) map + (set -> key) else map
     }
     val replacements: Map[Key, Key] = mergeMap.transform((_, set) => setKeys(set))
-    relevantBlocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(refSets = state.refSets.transform { case (key, refSet: ReferenceSetDescription.Inner) => refSet.copy(key = replacements(key)) }))))
+    relevantBlocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(refSets = state.refSets.transform { case (key, refSet: ReferenceSetDescription.Inner) => refSet.copy2(replacements(key)) }))))
   }
 
   private def backwardExecuteBlock(exitState: QuantifiedPermissionsState, block: SampleBlock, count: Int, cfgResult: CfgResult[QuantifiedPermissionsState]): Unit = {

@@ -27,6 +27,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def expr: Expression
 
+  def key: (ProgramPoint, Expression) = (pp, expr)
+
   def silverType: sil.Type
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): S
@@ -64,6 +66,10 @@ object SetDescription {
   sealed trait Top[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Top[S] {
     this: S =>
 
+    def pp = throw new UnsupportedOperationException
+
+    def expr = throw new UnsupportedOperationException
+
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = Seq(sil.TrueLit()())
 
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
@@ -83,6 +89,10 @@ object SetDescription {
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
     this: S =>
+
+    def pp = throw new UnsupportedOperationException
+
+    def expr = throw new UnsupportedOperationException
 
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = throw new UnsupportedOperationException()
 
@@ -153,21 +163,22 @@ object ReferenceSetDescription {
 
   sealed trait Inner extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
 
-    def key: (ProgramPoint, Expression)
-
     def widened: Boolean
 
     def concreteExpressions: Set[(Expression, Boolean)]
 
-    def copy(key: (ProgramPoint, Expression) = key,
+    def copy(pp: ProgramPoint = pp,
+             expr: Expression = expr,
              widened: Boolean = widened,
              concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner
+
+    def copy2(key: (ProgramPoint, Expression),
+             widened: Boolean = widened,
+             concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner = copy(key._1, key._2, widened, concreteExpressions)
 
     override def isNullProhibited: Boolean = concreteExpressions.forall { case (_, b) => b }
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
-
-    protected def pp: ProgramPoint = key._1
 
     private def isFunctionExprFinite(function: Function, expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription]): Boolean = function match {
       case Function(_, _, _, parameters) => parameters.forall {
@@ -466,14 +477,15 @@ object NegativeReferenceSetDescription {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
+  case class Inner(pp: ProgramPoint, expr: Expression, widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
       extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
-    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
+    def this(key: (ProgramPoint, Expression)) = this(key._1, key._2, concreteExpressions = Set((key._2, false)))
 
-    override def copy(key: (ProgramPoint, Expression) = key,
+    override def copy(pp: ProgramPoint = pp,
+                      expr: Expression = expr,
                       widened: Boolean = widened,
                       concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
-      Inner(key, widened, concreteExpressions)
+      Inner(pp, expr, widened, concreteExpressions)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[NegativeReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -521,15 +533,16 @@ object PositiveReferenceSetDescription {
     def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
   }
 
-  case class Inner(key: (ProgramPoint, Expression), widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
+  case class Inner(pp: ProgramPoint, expr: Expression, widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
     extends ReferenceSetDescription.Inner with PositiveReferenceSetDescription {
 
-    def this(pp: ProgramPoint, initExpression: Expression) = this((pp, initExpression), concreteExpressions = Set((initExpression, false)))
+    def this(pp: ProgramPoint, initExpression: Expression) = this(pp, initExpression, concreteExpressions = Set((initExpression, false)))
 
-    override def copy(key: (ProgramPoint, Expression) = key,
+    override def copy(pp: ProgramPoint = pp,
+                      expr: Expression = expr,
                       widened: Boolean = widened,
                       concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
-      Inner(key, widened, concreteExpressions)
+      Inner(pp, expr, widened, concreteExpressions)
 
     override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
       other.isInstanceOf[PositiveReferenceSetDescription] && super.isEquivalentDescription(other)
@@ -538,7 +551,7 @@ object PositiveReferenceSetDescription {
       copy(
         widened = widened || other.widened,
         concreteExpressions = (concreteExpressions ++ other.concreteExpressions).filter {
-          case (expr, true) => !concreteExpressions.contains((expr, false)) && !other.concreteExpressions.contains((expr, false))
+          case (concreteExpr, true) => !concreteExpressions.contains((concreteExpr, false)) && !other.concreteExpressions.contains((concreteExpr, false))
           case _ => true
         }
       )

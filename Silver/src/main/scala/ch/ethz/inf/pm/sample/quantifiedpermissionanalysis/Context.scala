@@ -281,26 +281,13 @@ object ZeroPerm extends sil.NoPerm()()
 
 object WritePerm extends sil.FullPerm()()
 
-sealed trait ExpressionDescription extends Expression {
-  def pp: ProgramPoint
-  def expr: Expression
+case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
+  override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
   final def key: (ProgramPoint, Expression) = (pp, expr)
   override def typ: Type = expr.typ
   override def ids: IdentifierSet = expr.ids
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
-}
-
-case class ReferenceExpressionDescription(pp: ProgramPoint, expr: Expression) extends ExpressionDescription {
-  override def transform(f: (Expression) => Expression): ReferenceExpressionDescription = ReferenceExpressionDescription(pp, expr.transform(f))
-}
-
-case class IntegerExpressionDescription(pp: ProgramPoint, expr: Expression) extends ExpressionDescription {
-  override def transform(f: (Expression) => Expression): IntegerExpressionDescription = IntegerExpressionDescription(pp, expr.transform(f))
-}
-
-case class ForgottenExpressionDescription(pp: ProgramPoint, expr: Expression) extends ExpressionDescription {
-  override def transform(f: (Expression) => Expression): ForgottenExpressionDescription = ForgottenExpressionDescription(pp, expr.transform(f))
 }
 
 case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Expression {
