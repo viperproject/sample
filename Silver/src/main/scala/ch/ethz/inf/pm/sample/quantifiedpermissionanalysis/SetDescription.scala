@@ -11,8 +11,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, Do
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
 /**
@@ -28,6 +29,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
   def expr: Expression
 
   def key: (ProgramPoint, Expression) = (pp, expr)
+
+  def inner(pp: ProgramPoint, initExpression: Expression): SetDescription[S]
 
   def silverType: sil.Type
 
@@ -122,15 +125,13 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   def isNullProhibited: Boolean
 
-  override def factory(): ReferenceSetDescription = top()
+  def factory(): ReferenceSetDescription = top()
 
-  def inner(pp: ProgramPoint, initExpression: Expression): ReferenceSetDescription.Inner
+  def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
 
-  override def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
+  def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
 
-  override def transformAssignVariable(left: VariableIdentifier, right: Expression): ReferenceSetDescription = this
-
-  override def transformCondition(cond: Expression): ReferenceSetDescription = this
+  def transformCondition(cond: Expression): ReferenceSetDescription = this
 
   def isEquivalentDescription(other: ReferenceSetDescription): Boolean
 }
@@ -574,6 +575,12 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 
   def silverType: sil.Type = sil.Int
 
+  def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = this
+
+  def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = this
+
+  def transformCondition(cond: Expression): IntegerSetDescription = this
+
 }
 
 object IntegerSetDescription {
@@ -582,8 +589,64 @@ object IntegerSetDescription {
 
   sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription]
 
-  sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner] {
+  sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner]
 
+}
+
+sealed trait PositiveIntegerSetDescription extends IntegerSetDescription {
+
+  override def top() = PositiveIntegerSetDescription.Top
+
+  override def bottom() = PositiveIntegerSetDescription.Bottom
+
+  override def factory(): IntegerSetDescription = top()
+
+  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr)
+
+}
+
+object PositiveIntegerSetDescription {
+  case object Top extends IntegerSetDescription.Top with PositiveIntegerSetDescription
+
+  case object Bottom extends IntegerSetDescription.Bottom with PositiveIntegerSetDescription
+
+  case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
+
+    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = ???
+
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = ???
+
+    override def transformCondition(cond: Expression): IntegerSetDescription = ???
+
+    /**
+      * Generates an expression that checks whether a given quantified variable is contained in the set represented by
+      * this description.
+      *
+      * @param quantifiedVariable The quantified variable to compare against.
+      * @return A silver expression that checks whether the given quantified variable is in the set.
+      */
+    def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = ???
+
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = ???
+
+    def extractIntegerParameterExpression: (ProgramPoint, Expression) = ???
+
+    def isFinite(state: QuantifiedPermissionsState): Boolean = ???
+
+    def isOneElement: Boolean = ???
+
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = ???
+
+    def toSetDefinition(state: QuantifiedPermissionsState): Seq[Exp] = ???
+
+    def simplify: IntegerSetDescription = ???
+
+    def lubInner(other: IntegerSetDescription.Inner): Inner = ???
+
+    def glbInner(other: IntegerSetDescription.Inner): Inner = ???
+
+    def wideningInner(other: IntegerSetDescription.Inner): Inner = ???
+
+    def lessEqualInner(other: IntegerSetDescription.Inner): Boolean = ???
   }
-
 }
