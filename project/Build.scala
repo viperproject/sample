@@ -52,10 +52,14 @@ object SampleBuild extends Build {
 
   lazy val silver = Project(
     id = "sample-silver",
-    base = file("Silver")) dependsOn(core, numerical, apron, viper)
+    base = file("Silver")) dependsOn(core, numerical, apron, viper, silicon)
 
   lazy val viper = RootProject(
     file("../silver-cfg/")
+  )
+
+  lazy val silicon = RootProject(
+    file("../silicon/")
   )
 
   lazy val web = Project(

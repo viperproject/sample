@@ -601,7 +601,7 @@ sealed trait PositiveIntegerSetDescription extends IntegerSetDescription {
 
   override def factory(): IntegerSetDescription = top()
 
-  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr)
+  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr, null)
 
 }
 

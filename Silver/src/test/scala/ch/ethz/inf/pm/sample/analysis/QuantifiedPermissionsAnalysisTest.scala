@@ -30,7 +30,6 @@ class QuantifiedPermissionsAnalysisTest extends SilSuite {
     val silicon = new SiliconWithQuantifiedPermissionAnalysis(Seq(("startedBy", "viper.silicon.SiliconTests")))
     val args = optionsFromScalaTestConfigMap(configMap) ++ Seq("dummy.sil")
     silicon.parseCommandLine(args)
-    silicon.config.initialize { case _ => silicon.config.initialized = true }
     silicon
   }
 

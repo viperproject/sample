@@ -20,7 +20,7 @@ object QuantifiedPermissionsParameters {
 
   val useExpressionsSimplifications = true
 
-  val useSetSimplifications = false
+  val useSetSimplifications = true
 
   val includeBranchConditions = true
 

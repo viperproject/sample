@@ -71,7 +71,6 @@ object Utils {
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
     silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.config.initialize { case _ => silicon.config.initialized = true }
     silicon.start()
     silicon.verify(newProgram) match {
       case Success => true
