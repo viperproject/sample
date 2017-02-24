@@ -72,10 +72,12 @@ object Utils {
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
     silicon.parseCommandLine(Seq("dummy.sil"))
     silicon.start()
-    silicon.verify(newProgram) match {
+    val result = silicon.verify(newProgram) match {
       case Success => true
       case _ => false
     }
+    silicon.stop()
+    result
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {

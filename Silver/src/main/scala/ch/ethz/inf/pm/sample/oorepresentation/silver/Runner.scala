@@ -172,14 +172,8 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     silicon.start()
     val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
     println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
+    silicon.stop()
 
-    // verify the extended program with Carbon
-//    val carbon = CarbonVerifier()
-//    carbon.parseCommandLine(Seq("dummy.sil"))
-//    carbon.config.initialize { case _ => carbon.config.initialized = true }
-//    carbon.start()
-//    val result = carbon.verify(extended)
-//    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
   }
 
   override def toString = "Specification Inference"

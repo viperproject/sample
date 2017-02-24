@@ -44,6 +44,8 @@ class QuantifiedPermissionsAnalysisTest extends SilSuite {
     fe
   }
 
+  override def afterAll(): Unit = verifiers.foreach(_.stop())
+
   /**
     * The test directories where tests can be found.
     * The directories must be relative because they are resolved via
