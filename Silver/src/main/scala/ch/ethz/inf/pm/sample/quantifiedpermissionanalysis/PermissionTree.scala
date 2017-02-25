@@ -273,6 +273,10 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Condition(cond, left.transform(f), right.transform(f)))
 }
 
+case class ForgottenPermissionTree(permissions: Set[(Expression, Expression)]) extends PermissionTree {
+
+}
+
 case object EmptyPermissionTree extends PermissionTree {
   override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionLeaf(receiver, permission)
   override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(PermissionAddition(Seq(PermissionLeaf(receiver, NegativePermission(permission)))))

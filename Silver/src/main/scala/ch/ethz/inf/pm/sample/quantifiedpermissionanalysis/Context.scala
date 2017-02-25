@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
@@ -282,17 +282,26 @@ object ZeroPerm extends sil.NoPerm()()
 object WritePerm extends sil.FullPerm()()
 
 case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
-  override def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
+  def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
   final def key: (ProgramPoint, Expression) = (pp, expr)
-  override def typ: Type = expr.typ
-  override def ids: IdentifierSet = expr.ids
-  override def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
+  def typ: Type = expr.typ
+  def ids: IdentifierSet = expr.ids
+  def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
 }
 
 case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Expression {
-  override def ids: IdentifierSet = args.map(_.ids).reduce(_ ++ _)
-  override def transform(f: (Expression) => Expression): Expression = f(MaxExpression(args.map(_.transform(f)), typ))
-  override def contains(f: (Expression) => Boolean): Boolean = f(this) || args.exists(_.contains(f))
+  def ids: IdentifierSet = args.map(_.ids).reduce(_ ++ _)
+  def transform(f: (Expression) => Expression): Expression = f(MaxExpression(args.map(_.transform(f)), typ))
+  def contains(f: (Expression) => Boolean): Boolean = f(this) || args.exists(_.contains(f))
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else args.map(_.find(f)).reduce(_.orElse(_))
+}
+
+case class SetContains(expressionDescription: ExpressionDescription) extends Expression {
+  def pp: ProgramPoint = expressionDescription.pp
+  def typ = BoolType
+  def ids: IdentifierSet = expressionDescription.ids
+  def transform(f: (Expression) => Expression): SetContains = SetContains(expressionDescription.transform(f))
+  def contains(f: (Expression) => Boolean): Boolean = f(this) || expressionDescription.contains(f)
+  override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expressionDescription.find(f)
 }

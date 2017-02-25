@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsP
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
 /**
@@ -40,28 +39,11 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def transformCondition(cond: Expression): S
 
-  /**
-    * Generates an expression that checks whether a given quantified variable is contained in the set represented by
-    * this description.
-    *
-    * @param quantifiedVariable The quantified variable to compare against.
-    * @return A silver expression that checks whether the given quantified variable is in the set.
-    */
-  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
-
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
-
-  def extractIntegerParameterExpression: (ProgramPoint, Expression)
 
   def isFinite(state: QuantifiedPermissionsState): Boolean
 
   def isOneElement: Boolean
-
-  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean
-
-  def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp]
-
-  def simplify: S
 }
 
 object SetDescription {
@@ -73,21 +55,11 @@ object SetDescription {
 
     def expr = throw new UnsupportedOperationException
 
-    override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = Seq(sil.TrueLit()())
+    def isFinite(state: QuantifiedPermissionsState): Boolean = false
 
-    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
-    override def isFinite(state: QuantifiedPermissionsState): Boolean = false
-
-    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
-
-    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = (DummyProgramPoint, trueConst)
-
-    override def isOneElement = false
-
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = false
-
-    def simplify: S = this
+    def isOneElement = false
   }
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
@@ -97,21 +69,11 @@ object SetDescription {
 
     def expr = throw new UnsupportedOperationException
 
-    override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = throw new UnsupportedOperationException()
+    def isFinite(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
 
-    override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
-    override def isFinite(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
-
-    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
-
-    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = throw new UnsupportedOperationException()
-
-    override def isOneElement = throw new UnsupportedOperationException()
-
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
-
-    def simplify: S = this
+    def isOneElement = throw new UnsupportedOperationException()
   }
 
   sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
@@ -125,6 +87,8 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
 
   def isNullProhibited: Boolean
 
+  def simplify: ReferenceSetDescription
+
   def factory(): ReferenceSetDescription = top()
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): ReferenceSetDescription = this
@@ -134,6 +98,21 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
   def transformCondition(cond: Expression): ReferenceSetDescription = this
 
   def isEquivalentDescription(other: ReferenceSetDescription): Boolean
+
+  /**
+    * Generates an expression that checks whether a given quantified variable is contained in the set represented by
+    * this description.
+    *
+    * @param quantifiedVariable The quantified variable to compare against.
+    * @return A silver expression that checks whether the given quantified variable is in the set.
+    */
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
+
+  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean
+
+  def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp]
+
+  def extractIntegerParameterExpression: (ProgramPoint, Expression)
 }
 
 object ReferenceSetDescription {
@@ -155,11 +134,31 @@ object ReferenceSetDescription {
   }
 
   sealed trait Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription] {
-    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == top()
+    def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == top()
+
+    def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
+
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = false
+
+    def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = Seq(sil.TrueLit()())
+
+    def simplify: ReferenceSetDescription = this
+
+    def extractIntegerParameterExpression: (ProgramPoint, Expression) = (DummyProgramPoint, trueConst)
   }
 
   sealed trait Bottom extends ReferenceSetDescription with SetDescription.Bottom[ReferenceSetDescription] {
-    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == bottom()
+    def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == bottom()
+
+    def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
+
+    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
+
+    def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = throw new UnsupportedOperationException()
+
+    def simplify: ReferenceSetDescription = this
+
+    def extractIntegerParameterExpression: (ProgramPoint, Expression) = throw new UnsupportedOperationException()
   }
 
   sealed trait Inner extends ReferenceSetDescription with SetDescription.Inner[ReferenceSetDescription, Inner] {
@@ -601,7 +600,7 @@ sealed trait PositiveIntegerSetDescription extends IntegerSetDescription {
 
   override def factory(): IntegerSetDescription = top()
 
-  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr, null)
+  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr, Context.preNumericalInfo(pp).numDom.getConstraints(initExpr.ids.toSetOrFail))
 
 }
 
@@ -612,41 +611,31 @@ object PositiveIntegerSetDescription {
 
   case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
 
-    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = ???
+    def ids: Set[Identifier] = constraints.flatMap(_.ids.toSetOrFail)
+
+    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = this
 
     override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = ???
 
     override def transformCondition(cond: Expression): IntegerSetDescription = ???
 
-    /**
-      * Generates an expression that checks whether a given quantified variable is contained in the set represented by
-      * this description.
-      *
-      * @param quantifiedVariable The quantified variable to compare against.
-      * @return A silver expression that checks whether the given quantified variable is in the set.
-      */
-    def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = ???
+    def forget(quantifiedVariable: sil.LocalVar, variablesToForget: Set[VariableIdentifier]): Inner = Inner(pp, expr, QuantifierElimination.eliminate(variablesToForget, constraints).get)
 
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: LocalVar): Exp = ???
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = DefaultSampleConverter.convert(constraints.reduce(and))
 
-    def extractIntegerParameterExpression: (ProgramPoint, Expression) = ???
+    def isFinite(state: QuantifiedPermissionsState): Boolean = isOneElement
 
-    def isFinite(state: QuantifiedPermissionsState): Boolean = ???
+    def isOneElement: Boolean = expr match {
+      case _: Constant => true
+      case _ => false
+    }
 
-    def isOneElement: Boolean = ???
+    def lubInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Top
 
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = ???
+    def glbInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Bottom
 
-    def toSetDefinition(state: QuantifiedPermissionsState): Seq[Exp] = ???
+    def wideningInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Top
 
-    def simplify: IntegerSetDescription = ???
-
-    def lubInner(other: IntegerSetDescription.Inner): Inner = ???
-
-    def glbInner(other: IntegerSetDescription.Inner): Inner = ???
-
-    def wideningInner(other: IntegerSetDescription.Inner): Inner = ???
-
-    def lessEqualInner(other: IntegerSetDescription.Inner): Boolean = ???
+    def lessEqualInner(other: IntegerSetDescription.Inner): Boolean = false
   }
 }

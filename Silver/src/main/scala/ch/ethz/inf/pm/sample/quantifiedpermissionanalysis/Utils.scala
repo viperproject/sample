@@ -50,6 +50,11 @@ object Utils {
     }
   }
 
+  def getLiterals(expr: Expression): Set[Expression] = expr match {
+    case BinaryBooleanExpression(left, right, _) => getLiterals(left) ++ getLiterals(right)
+    case other => Set(other)
+  }
+
   def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: NumericalDomainType, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)

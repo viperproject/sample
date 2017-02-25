@@ -19,22 +19,22 @@ import com.typesafe.scalalogging.LazyLogging
   */
 object QuantifierElimination extends LazyLogging {
 
-  def eliminate(variable: VariableIdentifier, conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(Set(variable), conjuncts.reduce(and)) match {
+  def eliminate(variable: Identifier, conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(Set(variable), conjuncts.reduce(and)) match {
     case Some(eliminated) => Some(toCNFConjuncts(eliminated))
     case None => None
   }
 
-  def eliminate(variables: Set[VariableIdentifier], conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(variables, conjuncts.reduce(and)) match {
+  def eliminate(variables: Set[_ <: Identifier], conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(variables, conjuncts.reduce(and)) match {
     case Some(eliminated) => Some(toCNFConjuncts(eliminated))
     case None => None
   }
 
-  def eliminate(variables: Set[VariableIdentifier], expr: Expression): Option[Expression] = variables.foldLeft[Option[Expression]](Some(expr))((expr, variable) => expr match {
+  def eliminate(variables: Set[_ <: Identifier], expr: Expression): Option[Expression] = variables.foldLeft[Option[Expression]](Some(expr))((expr, variable) => expr match {
     case Some(exp) => eliminate(variable, exp)
     case None => None
   })
 
-  def eliminate(variable: VariableIdentifier, expr: Expression): Option[Expression] =  {
+  def eliminate(variable: Identifier, expr: Expression): Option[Expression] =  {
     println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
@@ -138,7 +138,7 @@ object QuantifierElimination extends LazyLogging {
   private def toNNF(expr: Expression): Expression = Utils.toNNF(expr)
 
   // Step 3
-  private def collectVariable(variable: VariableIdentifier, expr: Expression): Expression = expr.transform {
+  private def collectVariable(variable: Identifier, expr: Expression): Expression = expr.transform {
     case binExp@BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) && (binExp.contains(_ == variable) || !binExp.contains {
       case DivideExpression(_, _, _) => true
       case _ => false
@@ -146,22 +146,22 @@ object QuantifierElimination extends LazyLogging {
       val collectedVariables = binOp(collect(left), collect(right), _ - _)
       val mapping: ((Any, Int)) => Expression = {
         case (_, 0) => intToConst(0, left.typ)
-        case (key: VariableIdentifier, value) => VariableIdentifierWithFactor(value, key)
+        case (key: Identifier, value) => IdentifierWithFactor(value, key)
         case (ConstPlaceholder, value) => intToConst(value, left.typ)
       }
       val varFactor = collectedVariables.getOrElse(variable, 0)
-      if (varFactor > 0) comp(VariableIdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
-      else if (varFactor < 0) comp((collectedVariables - variable).map(mapping).reduce(plus), VariableIdentifierWithFactor(-varFactor, variable), op)
+      if (varFactor > 0) comp(IdentifierWithFactor(varFactor, variable), unOp(collectedVariables - variable, - _).map(mapping).reduce(plus), op)
+      else if (varFactor < 0) comp((collectedVariables - variable).map(mapping).reduce(plus), IdentifierWithFactor(-varFactor, variable), op)
       else binExp
     case binExp: BinaryArithmeticExpression => getCollected(binExp) // We still want to collect the variable to eliminate for divide expressions
     case other => other
   }
 
   // Step 4
-  private def replaceLCM(variable: VariableIdentifier, expr: Expression): (Expression, VariableIdentifier) = {
+  private def replaceLCM(variable: Identifier, expr: Expression): (Expression, Identifier) = {
     var numbers: Set[Int] = Set()
     expr.foreach {
-      case VariableIdentifierWithFactor(factor, `variable`) => numbers += factor.abs
+      case IdentifierWithFactor(factor, `variable`) => numbers += factor.abs
       case _ =>
     }
     val leastCommonMultiple = lcm(numbers)
@@ -176,12 +176,12 @@ object QuantifierElimination extends LazyLogging {
       case DivideExpression(divisor, arg, op) if arg.contains(_ == variable) =>
         var fact: Option[Int] = None
         arg.foreach {
-          case VariableIdentifierWithFactor(factor, `variable`) => assert(fact.isEmpty); fact = Some(factor)
+          case IdentifierWithFactor(factor, `variable`) => assert(fact.isEmpty); fact = Some(factor)
           case _ =>
         }
         val hPrime = leastCommonMultiple / fact.get
         DivideExpression(divisor * hPrime, arg.transform {
-          case VariableIdentifierWithFactor(_, `variable`) => freshVariable
+          case IdentifierWithFactor(_, `variable`) => freshVariable
           case other => other
         }.transform(coefficientMultiplier(hPrime)), op)
       case other => other
@@ -191,7 +191,7 @@ object QuantifierElimination extends LazyLogging {
   }
 
   // Step 5
-  private def constructEquivalence(freshVariable: VariableIdentifier, expr: Expression): Expression = {
+  private def constructEquivalence(freshVariable: Identifier, expr: Expression): Expression = {
     val leftProjection = leftInfiniteProjection(freshVariable, expr)
     val d = delta(freshVariable, expr)
     val B = getBs(freshVariable, expr)
@@ -212,7 +212,7 @@ object QuantifierElimination extends LazyLogging {
     }
   }
 
-  private def delta(freshVariable: VariableIdentifier, expr: Expression): Int = {
+  private def delta(freshVariable: Identifier, expr: Expression): Int = {
     var numbers: Set[Int] = Set()
     expr.foreach {
       case DivideExpression(left, _, _) => numbers += left
@@ -221,7 +221,7 @@ object QuantifierElimination extends LazyLogging {
     lcm(numbers)
   }
 
-  private def getBs(freshVariable: VariableIdentifier, expr: Expression): Set[Expression] = {
+  private def getBs(freshVariable: Identifier, expr: Expression): Set[Expression] = {
     var bs: Set[Expression] = Set()
     expr.foreach {
       case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.< | ArithmeticOperator.!=) => bs += left
@@ -233,7 +233,7 @@ object QuantifierElimination extends LazyLogging {
     bs
   }
 
-  private def leftInfiniteProjection(variable: VariableIdentifier, expr: Expression): Expression = expr.transform {
+  private def leftInfiniteProjection(variable: Identifier, expr: Expression): Expression = expr.transform {
     case ComparisonWithVariableLeft(1, `variable`, _, ArithmeticOperator.< | ArithmeticOperator.<= | ArithmeticOperator.!=) | ComparisonWithVariableRight(_, 1, `variable`, ArithmeticOperator.> | ArithmeticOperator.>= | ArithmeticOperator.!=) => trueConst
     case ComparisonWithVariableRight(_, 1, `variable`, ArithmeticOperator.< | ArithmeticOperator.<= | ArithmeticOperator.==) | ComparisonWithVariableLeft(1, `variable`, _, ArithmeticOperator.> | ArithmeticOperator.>= | ArithmeticOperator.==) => falseConst
     case other => other
@@ -241,27 +241,27 @@ object QuantifierElimination extends LazyLogging {
 
 }
 
-object VariableIdentifierWithFactor {
-  def apply(factor: Int, variable: VariableIdentifier): Expression = mult(intToConst(factor, variable.typ), variable)
-  def unapply(expr: Expression): Option[(Int, VariableIdentifier)] = expr match {
-    case BinaryArithmeticExpression(Constant(const, _, _), variable: VariableIdentifier, ArithmeticOperator.*) => Some(const.toInt, variable)
-    case BinaryArithmeticExpression(variable: VariableIdentifier, Constant(const, _, _), ArithmeticOperator.*) => Some(const.toInt, variable)
+object IdentifierWithFactor {
+  def apply(factor: Int, variable: Identifier): Expression = mult(intToConst(factor, variable.typ), variable)
+  def unapply(expr: Expression): Option[(Int, Identifier)] = expr match {
+    case BinaryArithmeticExpression(Constant(const, _, _), variable: Identifier, ArithmeticOperator.*) => Some(const.toInt, variable)
+    case BinaryArithmeticExpression(variable: Identifier, Constant(const, _, _), ArithmeticOperator.*) => Some(const.toInt, variable)
     case _ => None
   }
 }
 
 object ComparisonWithVariableLeft {
-  def apply(factor: Int, variable: VariableIdentifier, right: Expression, op: ArithmeticOperator.Value): Expression = BinaryArithmeticExpression(VariableIdentifierWithFactor(factor, variable), right, op)
-  def unapply(expr: Expression): Option[(Int, VariableIdentifier, Expression, ArithmeticOperator.Value)] = expr match {
-    case BinaryArithmeticExpression(VariableIdentifierWithFactor(factor, variable), right, op) if ArithmeticOperator.isComparison(op) => Some(factor, variable, right, op)
+  def apply(factor: Int, variable: Identifier, right: Expression, op: ArithmeticOperator.Value): Expression = BinaryArithmeticExpression(IdentifierWithFactor(factor, variable), right, op)
+  def unapply(expr: Expression): Option[(Int, Identifier, Expression, ArithmeticOperator.Value)] = expr match {
+    case BinaryArithmeticExpression(IdentifierWithFactor(factor, variable), right, op) if ArithmeticOperator.isComparison(op) => Some(factor, variable, right, op)
     case _ => None
   }
 }
 
 object ComparisonWithVariableRight {
-  def apply(left: Expression, factor: Int, variable: VariableIdentifier, op: ArithmeticOperator.Value): Expression = BinaryArithmeticExpression(left, VariableIdentifierWithFactor(factor, variable), op)
-  def unapply(expr: Expression): Option[(Expression, Int, VariableIdentifier, ArithmeticOperator.Value)] = expr match {
-    case BinaryArithmeticExpression(left, VariableIdentifierWithFactor(factor, variable), op) if ArithmeticOperator.isComparison(op) => Some(left, factor, variable, op)
+  def apply(left: Expression, factor: Int, variable: Identifier, op: ArithmeticOperator.Value): Expression = BinaryArithmeticExpression(left, IdentifierWithFactor(factor, variable), op)
+  def unapply(expr: Expression): Option[(Expression, Int, Identifier, ArithmeticOperator.Value)] = expr match {
+    case BinaryArithmeticExpression(left, IdentifierWithFactor(factor, variable), op) if ArithmeticOperator.isComparison(op) => Some(left, factor, variable, op)
     case _ => None
   }
 }
@@ -303,5 +303,7 @@ object Main3 {
     println(simplifyExpression(or(
       QuantifierElimination.eliminate(i, and(and(equ(q, i), inv), equ(p, intToConst(1, PermType)))).get,
         and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv)).get), equ(p, intToConst(0, PermType))))))
+
+    QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
   }
 }
