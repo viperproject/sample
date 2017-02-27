@@ -34,7 +34,7 @@ object QuantifierElimination extends LazyLogging {
     case None => None
   })
 
-  def eliminate(variable: Identifier, expr: Expression): Option[Expression] =  {
+  def eliminate(variable: Identifier, expr: Expression): Option[Expression] =  if (!expr.ids.contains(variable)) Some(expr) else {
     println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
