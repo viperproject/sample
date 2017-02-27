@@ -37,17 +37,13 @@ sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState]
       val sequenceNumber = currentSequenceNumbers.getOrElse(nestingLevel, -1) + 1
       sequenceNumbers += block -> sequenceNumber
       currentSequenceNumbers += nestingLevel -> sequenceNumber
-      val exitEdges = cfg.outEdges(block)
-      exitEdges.size match {
-        case 0 =>
-          false
-        case 1 =>
-          val successor = cfg.successors(block).head
-          determineBlockTypes(cfg, successor, if (nestingLevel > 0 && cfg.inEdges(successor).size > 1) nestingLevel - 1 else nestingLevel, visited + block)
-        case 2 =>
-          val (trueEdge, falseEdge) = exitEdges.head.kind match {
-            case Kind.In => (exitEdges.head, exitEdges.last)
-            case _ => (exitEdges.last, exitEdges.head)
+      cfg.outEdges(block) match {
+        case Nil => false
+        case onlyEdge :: Nil => determineBlockTypes(cfg, onlyEdge.target, if (nestingLevel > 0 && cfg.inEdges(onlyEdge.target).size > 1) nestingLevel - 1 else nestingLevel, visited + block)
+        case first :: second :: Nil =>
+          val (trueEdge, falseEdge) = first.kind match {
+            case Kind.In => (first, second)
+            case _ => (second, first)
           }
           val (toTrue, toFalse) = (trueEdge.target, falseEdge.target)
           determineBlockTypes(cfg, toTrue, nestingLevel + 1, visited + block)
@@ -81,11 +77,10 @@ final class QPBackwardInterpreter extends QPInterpreter {
       val exitEdges = cfg.outEdges(currentBlock)
       val currentState: QuantifiedPermissionsState =
         if (cfg.exit == currentBlock) finalState
-        else exitEdges.size match {
-          case 1 => cfgResult.getStates(cfg.outEdges(currentBlock).head.target).head
-          case 2 =>
+        else exitEdges match {
+          case onlyEdge :: Nil => cfgResult.getStates(onlyEdge.target).head
+          case (edge1: ConditionalEdge[Statement, Statement]) :: (edge2: ConditionalEdge[Statement, Statement]) :: Nil =>
             // TODO: With the new CFG this became very hacky, can this be solved more properly?
-            val (edge1, edge2) =  (exitEdges.head.asInstanceOf[ConditionalEdge[Statement, Statement]], exitEdges.last.asInstanceOf[ConditionalEdge[Statement, Statement]])
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
             val cond1 = edge1.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
             val cond2 = edge2.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
@@ -109,7 +104,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
     if (QuantifiedPermissionsParameters.useSetSimplifications)
       simplifySets(cfgResult)
     if (QuantifiedPermissionsParameters.useExpressionsSimplifications) {
-      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplifySyntactially.simplifySemantically(state), refSets = state.refSets.mapValues(_.simplify)))))
+      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplifySyntactically.simplifySemantically(state), refSets = state.refSets.mapValues(_.simplify)))))
     }
     cfgResult
   }

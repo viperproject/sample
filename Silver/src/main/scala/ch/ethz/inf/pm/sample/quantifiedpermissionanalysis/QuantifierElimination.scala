@@ -43,7 +43,7 @@ object QuantifierElimination extends LazyLogging {
     val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
     println(s"F4[$variable] (lcmReplaced) (containing ${countLiterals(lcmReplaced)} literals): $lcmReplaced")
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
-    println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula")
+    println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
     Some(equivalentFormula)
   }
 
@@ -305,5 +305,7 @@ object Main3 {
         and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv)).get), equ(p, intToConst(0, PermType))))))
 
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
+    QuantifierElimination.eliminate(i, and(equ(i, q), and(and(Divides(2, i), leq(intToConst(0, IntType), i)), leq(i, intToConst(9, IntType)))))
+    QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, intToConst(3, IntType))))
   }
 }

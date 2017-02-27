@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
@@ -116,9 +116,7 @@ object Context {
     programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
   }
 
-  def functions(name: String): sil.FuncLike = {
-    if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
-  }
+  def functions(name: String): sil.FuncLike = if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
 
   def prepareMethodForExtension(name: String): Unit = {
     currentMethod = name
@@ -215,6 +213,7 @@ object Context {
     */
   def setAliases(method: String, aliases: Option[CfgResult[_ <: AliasAnalysisState[_]]]): Unit = {
     aliasesPerMethod += method -> aliases
+    this.aliases = aliases
   }
 
   def loadAliasesForMethod(method: String): Unit = aliases = aliasesPerMethod(method)
@@ -226,8 +225,7 @@ object Context {
     * @tparam A The type of the alias analysis.
     * @return The state of the alias analysis before the given program point.
     */
-  def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.preStateAt(pp).asInstanceOf[A]
+  def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A = aliases.get.preStateAt(pp).asInstanceOf[A]
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -236,8 +234,7 @@ object Context {
     * @tparam A The type fo the alias analysis.
     * @return The state of the alias analysis after the given program point.
     */
-  def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.postStateAt(pp).asInstanceOf[A]
+  def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A = aliases.get.postStateAt(pp).asInstanceOf[A]
 
   /**
     * Sets the result of the numerical analysis.
@@ -246,6 +243,7 @@ object Context {
     */
   def setNumericalInfo(method: String, numericalInfo: CfgResult[NumericalStateType]): Unit = {
     numericalInfoPerMethod += method -> Some(numericalInfo)
+    this.numericalInfo = Some(numericalInfo)
   }
 
   def loadNumericalInfoForMethod(method: String): Unit = numericalInfo = numericalInfoPerMethod(method)
@@ -256,8 +254,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the numerical analysis before the given program point.
     */
-  def preNumericalInfo(pp: ProgramPoint): NumericalStateType =
-    numericalInfo.get.preStateAt(pp)
+  def preNumericalInfo(pp: ProgramPoint): NumericalStateType = numericalInfo.get.preStateAt(pp)
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -265,8 +262,7 @@ object Context {
     * @param pp The program point.
     * @return The state of the alias analysis after the given program point.
     */
-  def postNumericalInfo(pp: ProgramPoint): NumericalStateType =
-    numericalInfo.get.postStateAt(pp)
+  def postNumericalInfo(pp: ProgramPoint): NumericalStateType = numericalInfo.get.postStateAt(pp)
 }
 
 object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()
@@ -281,13 +277,42 @@ object ZeroPerm extends sil.NoPerm()()
 
 object WritePerm extends sil.FullPerm()()
 
-case class ExpressionDescription(pp: ProgramPoint, expr: Expression) extends Expression {
-  def transform(f: (Expression) => Expression): ExpressionDescription = ExpressionDescription(pp, expr.transform(f))
+trait ExpressionDescription extends Expression {
+  def expr: Expression
   final def key: (ProgramPoint, Expression) = (pp, expr)
-  def typ: Type = expr.typ
   def ids: IdentifierSet = expr.ids
   def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
+  def transform(f: (Expression) => Expression): Expression = throw new UnsupportedOperationException()
+}
+
+object ExpressionDescription {
+  def apply(pp: ProgramPoint, expr: Expression): ExpressionDescription = expr match {
+    case FunctionCallExpression(functionName, parameters, typ, _) => FunctionExpressionDescription(functionName, parameters.map(parameter => parameter.typ match {
+      case IntType => Right(PositiveIntegerSetDescription.Inner(pp, parameter, Context.preNumericalInfo(pp).numDom.getConstraints(parameter.ids.toSetOrFail)))
+      case _ => Left(ExpressionDescription(pp, parameter))
+    } ), typ, pp)
+    case _ => SimpleExpressionDescription(pp, expr)
+  }
+  def unapply(expressionDescription: ExpressionDescription): Option[(ProgramPoint, Expression)] = Some(expressionDescription.pp, expressionDescription.expr)
+}
+
+case class SimpleExpressionDescription(pp: ProgramPoint, expr: Expression) extends ExpressionDescription {
+  def typ: Type = expr.typ
+}
+
+case class FunctionExpressionDescription(functionName: String, parameters: Seq[Either[ExpressionDescription, IntegerSetDescription]], typ: Type, pp: ProgramPoint) extends ExpressionDescription {
+  def expr = FunctionCallExpression(functionName, parameters.map(_.fold(_.expr, _.expr)), typ, pp)
+  def transformAssignVariable(left: VariableIdentifier): FunctionExpressionDescription = FunctionExpressionDescription(functionName, parameters.map {
+    case Right(integerSetDescription) => Right(integerSetDescription.transformAssignVariable(left, null))
+    case other => other
+  }, typ, pp)
+  def transformCondition(cond: Expression): FunctionExpressionDescription = FunctionExpressionDescription(functionName, parameters.map {
+    case Right(integerSetDescription) => Right(integerSetDescription.transformCondition(cond))
+    case other => other
+  }, typ, pp)
+  def getIntegerParams: Seq[IntegerSetDescription] = parameters.flatMap(_.fold(_ => Set[IntegerSetDescription](), Set(_)))
+  def getNonIntegerParams: Seq[ExpressionDescription] = parameters.flatMap(_.fold(Set(_), _ => Set[ExpressionDescription]()))
 }
 
 case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Expression {
@@ -295,13 +320,4 @@ case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = Du
   def transform(f: (Expression) => Expression): Expression = f(MaxExpression(args.map(_.transform(f)), typ))
   def contains(f: (Expression) => Boolean): Boolean = f(this) || args.exists(_.contains(f))
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else args.map(_.find(f)).reduce(_.orElse(_))
-}
-
-case class SetContains(expressionDescription: ExpressionDescription) extends Expression {
-  def pp: ProgramPoint = expressionDescription.pp
-  def typ = BoolType
-  def ids: IdentifierSet = expressionDescription.ids
-  def transform(f: (Expression) => Expression): SetContains = SetContains(expressionDescription.transform(f))
-  def contains(f: (Expression) => Boolean): Boolean = f(this) || expressionDescription.contains(f)
-  override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expressionDescription.find(f)
 }

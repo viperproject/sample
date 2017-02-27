@@ -6,7 +6,9 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, NegatedBooleanExpression, VariableIdentifier}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+
 import scala.collection.immutable
 
 /**
@@ -16,11 +18,36 @@ import scala.collection.immutable
 case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   extends immutable.Map[String, PermissionTree] {
 
-  private def withDefault(field: String) =
-    if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
-    else permissions
+  def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = undoLastRead(field).max(field, ExpressionDescription(pp, receiver), WritePermission)
 
-  def simplifySyntactially: PermissionRecords =
+  def addRead(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = max(field, ExpressionDescription(pp, receiver), SymbolicReadPermission)
+
+  def exhale(field: String, pp: ProgramPoint, receiver: Expression, permission: SimplePermission): PermissionRecords = (if (getOrElse(field, EmptyPermissionTree).hasRead) undoLastRead(field) else this).add(field, ExpressionDescription(pp, receiver), permission)
+
+  def inhale(field: String, pp: ProgramPoint, receiver: Expression, permission: FractionalPermission): PermissionRecords = (if (getOrElse(field, EmptyPermissionTree).hasRead) undoLastRead(field) else this).sub(field, ExpressionDescription(pp, receiver), permission)
+
+  def transformAssignVariable(variable: VariableIdentifier): PermissionRecords = copy(permissions.mapValues(_.transformAssignVariable(variable)))
+
+  def transformAssignField(field: String): PermissionRecords = copy(permissions.mapValues(_.transformAssignField(field)))
+
+  def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
+    copy(permissions ++ elsePermissions.transform { case (field, tree) =>
+      if (permissions.contains(field)) permissions(field).condition(cond, tree)
+      else tree.condition(NegatedBooleanExpression(cond), EmptyPermissionTree)
+    })
+
+  def lub(other: PermissionRecords): PermissionRecords =
+    copy(permissions ++ other.permissions.transform { case (field, tree) =>
+      if (permissions.contains(field)) tree.max(permissions(field))
+      else tree
+    })
+
+  def condition(cond: Expression): PermissionRecords =
+    copy(permissions.transform { case (_, tree) =>
+        tree.condition(cond)
+    })
+
+  def simplifySyntactically: PermissionRecords =
     copy(permissions = permissions.transform {
       case (_, tree) => tree.simplifySyntactically
     })
@@ -30,38 +57,32 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
       case (_, tree) => tree.simplifySemantically(state)
     })
 
-  def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
-    copy(elsePermissions ++ permissions.transform { case (field, tree) =>
-      if (elsePermissions.contains(field)) tree.condition(cond, elsePermissions(field))
-      else tree
-    })
+  private def withDefault(field: String) =
+    if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
+    else permissions
 
-  def add(field: String, receiver: ExpressionDescription, permission: SimplePermission): PermissionRecords =
+  private def add(field: String, receiver: ExpressionDescription, permission: SimplePermission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.add(receiver, permission)
       case (_, other) => other
     })
 
-  def sub(field: String, receiver: ExpressionDescription, permission: FractionalPermission): PermissionRecords =
+  private def sub(field: String, receiver: ExpressionDescription, permission: FractionalPermission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.sub(receiver, permission)
       case (_, other) => other
     })
 
-  def max(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
+  private def max(field: String, receiver: ExpressionDescription, permission: Permission): PermissionRecords =
     copy(withDefault(field).transform {
       case (`field`, tree) => tree.max(PermissionLeaf(receiver, permission))
       case (_, other) => other
     })
 
-  def lub(other: PermissionRecords): PermissionRecords =
-    copy(permissions ++ other.permissions.transform { case (field, tree) =>
-      if (permissions.contains(field)) tree.max(permissions(field))
-      else tree
-    })
-
-  def undoLastRead(field: String): PermissionRecords =
+  private def undoLastRead(field: String): PermissionRecords =
     copy(permissions.updated(field, permissions(field).undoLastRead))
+
+  // Implementation of Map functions
 
   override def +[B1 >: PermissionTree](kv: (String, B1)): Map[String, B1] = permissions + kv
 

@@ -1,28 +1,64 @@
-method test(arr: Array) returns (res: Int)
-{
-  var i: Int := 0
-  while (i < 10) {
-    res := loc(arr, i).val
-    i := i + 1
+domain Array {
+  
+  function loc(a: Array, i: Int): Ref
+  
+  function length(a: Array): Int
+  
+  function ref_to_array(ref: Ref): Array
+  
+  function ref_to_index(ref: Ref): Int
+  
+  axiom all_diff {
+    (forall a: Array, i: Int :: { loc(a, i) } 0 <= i ==> ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i)
   }
-  while (i < 20) {
-    loc(arr, i).val := i
-    i := i + 1
+  
+  axiom length_nonneg {
+    (forall a: Array :: length(a) >= 0)
   }
 }
 
 field val: Int
 
-domain Array {
-	function loc(a: Array, i: Int): Ref
-	function length(a: Array): Int
-	function ref_to_array(ref: Ref): Array
-	function ref_to_index(ref: Ref): Int
+function max(x: Perm, y: Perm): Perm
+{
+  (x > y ? x : y)
+}
 
-	axiom all_diff {
-		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
-	}
-	axiom length_nonneg {
-		forall a:Array :: length(a) >= 0
-	}
+method basic(arr: Array, foo: Bool, rdAmount: Perm)
+  requires none < rdAmount && rdAmount < write
+  requires (forall _i: Int :: acc(loc(arr, _i).val, max((_i >= 10 || _i == 10 && _i >= 10 && 9 < _i || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) ? rdAmount : none), (_i < 14 ? write : none))))
+{
+  var i: Int
+  var bound: Int
+  i := 0
+  while (i < 10)
+    invariant none < rdAmount && rdAmount < write
+    invariant (forall _i: Int :: acc(loc(arr, _i).val, max(max((_i >= 10 || _i == 10 && _i >= 10 && 9 < _i || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) ? rdAmount : none), (_i < 14 ? write : none)), (_i >= 10 || _i == 10 && _i >= 10 && 9 < _i || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) ? rdAmount : none))))
+    invariant i >= 0 
+  {
+    var j: Int
+    j := i
+    while (j < i + 5)
+      invariant none < rdAmount && rdAmount < write
+      invariant (forall _i: Int :: acc(loc(arr, _i).val, max((true ? write : none), (_i >= 10 || _i == 10 && _i >= 10 && 9 < _i || (_i >= 10 && 10 >= _i && _i < 11 || _i == 10) ? rdAmount : none))))
+      invariant j >= i && i >= 0 
+    {
+      loc(arr, j).val := i
+      j := j + 1
+    }
+    i := i + 4
+  }
+  if (foo) {
+    bound := 12
+  } else {
+    bound := 20
+  }
+  while (i < bound)
+    invariant none < rdAmount && rdAmount < write
+    invariant (forall _i: Int :: acc(loc(arr, _i).val, (_i >= 10 && _i < bound ? rdAmount : none)))
+    invariant i >= 10 && bound <= 20 && bound >= 12 
+  {
+    j := loc(arr, i).val
+    i := i + 1
+  }
 }

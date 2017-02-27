@@ -44,6 +44,8 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
   def isFinite(state: QuantifiedPermissionsState): Boolean
 
   def isOneElement: Boolean
+
+  def getSingleElement: Expression
 }
 
 object SetDescription {
@@ -60,6 +62,8 @@ object SetDescription {
     def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
     def isOneElement = false
+
+    def getSingleElement: Expression = throw new UnsupportedOperationException
   }
 
   sealed trait Bottom[S <: SetDescription[S]] extends SetDescription[S] with Lattice.Bottom[S] {
@@ -74,6 +78,8 @@ object SetDescription {
     def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
     def isOneElement = throw new UnsupportedOperationException()
+
+    def getSingleElement: Expression = throw new UnsupportedOperationException
   }
 
   sealed trait Inner[S <: SetDescription[S], T <: Inner[S, T]] extends SetDescription[S] with Lattice.Inner[S, T] {
@@ -176,9 +182,9 @@ object ReferenceSetDescription {
              widened: Boolean = widened,
              concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner = copy(key._1, key._2, widened, concreteExpressions)
 
-    override def isNullProhibited: Boolean = concreteExpressions.forall { case (_, b) => b }
+    def isNullProhibited: Boolean = concreteExpressions.forall { case (_, b) => b }
 
-    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
+    def isEquivalentDescription(other: ReferenceSetDescription): Boolean = lessEqual(other) && other.lessEqual(this)
 
     private def isFunctionExprFinite(function: Function, state: QuantifiedPermissionsState): Boolean = function match {
       case Function(_, _, _, parameters) => parameters.forall {
@@ -187,7 +193,7 @@ object ReferenceSetDescription {
       }
     }
 
-    override def isFinite(state: QuantifiedPermissionsState): Boolean = {
+    def isFinite(state: QuantifiedPermissionsState): Boolean = {
       (!widened && abstractExpressions.forall {
         case function: Function => isFunctionExprFinite(function, state)
         case _ => true
@@ -198,10 +204,12 @@ object ReferenceSetDescription {
       }
     }
 
-    override def isOneElement: Boolean = !widened && concreteExpressions.size == 1 && abstractExpressions.forall {
+    def isOneElement: Boolean = !widened && concreteExpressions.size == 1 && abstractExpressions.forall {
       case _: Function => false
       case _ => true
     }
+
+    def getSingleElement: Expression = concreteExpressions.head._1
 
     def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = QuantifiedPermissionsParameters.useIntegerQuantification && !widened && abstractExpressions.forall {
       case Function(functionName, _, _, parameters) => parameters.count {
@@ -242,9 +250,9 @@ object ReferenceSetDescription {
       })
     }
 
-    override def extractIntegerParameterExpression: (ProgramPoint, Expression) = (pp, key._2.find(_.typ == IntType).get)
+    def extractIntegerParameterExpression: (ProgramPoint, Expression) = (pp, key._2.find(_.typ == IntType).get)
 
-    override def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
       concreteExpressions.foldLeft[Option[sil.Exp]](None) {
         case (None, (FunctionCallExpression(_, parameters, _, _), _)) =>
           parameters.foldLeft[Option[sil.Exp]](None) {
@@ -572,6 +580,10 @@ object PositiveReferenceSetDescription {
 
 sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription] {
 
+  def constraints: Set[Expression]
+
+  def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier] = Set()): Expression
+
   def silverType: sil.Type = sil.Int
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = this
@@ -584,11 +596,43 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 
 object IntegerSetDescription {
 
-  sealed trait Top extends IntegerSetDescription with SetDescription.Top[IntegerSetDescription]
+  sealed trait Top extends IntegerSetDescription with SetDescription.Top[IntegerSetDescription] {
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
+  }
 
-  sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription]
+  sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription] {
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
+  }
 
-  sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner]
+  sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner] {
+    def isFinite(state: QuantifiedPermissionsState): Boolean = isOneElement
+
+    def isOneElement: Boolean = expr match {
+      case _: Constant => true
+      case _ => false
+    }
+
+    def getSingleElement: Expression = expr
+  }
+
+  object Inner {
+    def apply(pp: ProgramPoint, initExpr: Expression, positive: Boolean = true): IntegerSetDescription.Inner = {
+      val simplifiedExpr = simplifyExpression(initExpr)
+      val numDom = Context.preNumericalInfo(pp).numDom
+      val initConstraints = simplifiedExpr match {
+        case Constant(_, IntType, _) => Set[Expression]()
+        case _ => numDom.getConstraints(initExpr.ids.toSetOrFail)
+      }
+      def getClosure(existingConstraints: Set[Expression]): Set[Expression] = {
+        val newConstraints = numDom.getConstraints(existingConstraints.flatMap(_.ids.toSetOrFail))
+        if (newConstraints.size > existingConstraints.size) getClosure(newConstraints)
+        else existingConstraints
+      }
+      val closure = getClosure(initConstraints)
+      if (positive) PositiveIntegerSetDescription.Inner(pp, initExpr, closure)
+      else NegativeIntegerSetDescription.Inner(pp, initExpr, closure)
+    }
+  }
 
 }
 
@@ -600,41 +644,116 @@ sealed trait PositiveIntegerSetDescription extends IntegerSetDescription {
 
   override def factory(): IntegerSetDescription = top()
 
-  override def inner(pp: ProgramPoint, initExpr: Expression) = PositiveIntegerSetDescription.Inner(pp, initExpr, Context.preNumericalInfo(pp).numDom.getConstraints(initExpr.ids.toSetOrFail))
+  override def inner(pp: ProgramPoint, initExpr: Expression): IntegerSetDescription.Inner = IntegerSetDescription.Inner(pp, initExpr)
 
 }
 
 object PositiveIntegerSetDescription {
-  case object Top extends IntegerSetDescription.Top with PositiveIntegerSetDescription
+  case object Top extends IntegerSetDescription.Top with PositiveIntegerSetDescription {
+    def constraints: Set[Expression] = Set(trueConst)
+  }
 
-  case object Bottom extends IntegerSetDescription.Bottom with PositiveIntegerSetDescription
+  case object Bottom extends IntegerSetDescription.Bottom with PositiveIntegerSetDescription {
+    def constraints: Set[Expression] = Set(falseConst)
+  }
 
-  case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
+  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression], forgottenVariables: Set[Identifier] = Set()) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
 
     def ids: Set[Identifier] = constraints.flatMap(_.ids.toSetOrFail)
 
-    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = this
+    private def copy(pp: ProgramPoint = pp,
+                     expr: Expression = expr,
+                     constraints: Set[Expression] = constraints,
+                     forgottenVariables: Set[Identifier] = forgottenVariables): Inner =
+      Inner(pp, expr, constraints, forgottenVariables)
 
-    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = ???
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = {
+      println(Context.preNumericalInfo(pp).numDom)
+      QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and)).get
+    }
 
-    override def transformCondition(cond: Expression): IntegerSetDescription = ???
+    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
+      case FieldExpression(_, `field`, _) => true
+      case _ => false
+    }))
 
-    def forget(quantifiedVariable: sil.LocalVar, variablesToForget: Set[VariableIdentifier]): Inner = Inner(pp, expr, QuantifierElimination.eliminate(variablesToForget, constraints).get)
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = if (constraints.flatMap(_.ids.toSetOrFail).contains(left)) copy(forgottenVariables = forgottenVariables + left) else this
+
+    override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
+      case (setDescription@Inner(_pp, _expr, _constraints, _forgottenVariables), conjunct) => conjunct match {
+        case _ if (conjunct.ids.toSetOrFail & _forgottenVariables).nonEmpty => setDescription
+        case _ if (conjunct.ids.toSetOrFail & ids).nonEmpty => Inner(_pp, _expr, _constraints + conjunct, _forgottenVariables)
+        case _ => setDescription
+      }
+    }
 
     def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = DefaultSampleConverter.convert(constraints.reduce(and))
 
-    def isFinite(state: QuantifiedPermissionsState): Boolean = isOneElement
+    def lubInner(other: IntegerSetDescription.Inner): IntegerSetDescription = top()
 
-    def isOneElement: Boolean = expr match {
-      case _: Constant => true
+    def glbInner(other: IntegerSetDescription.Inner): IntegerSetDescription = bottom()
+
+    def wideningInner(other: IntegerSetDescription.Inner): IntegerSetDescription = top()
+
+    def lessEqualInner(other: IntegerSetDescription.Inner): Boolean = false
+  }
+}
+
+sealed trait NegativeIntegerSetDescription extends IntegerSetDescription {
+
+  override def top() = NegativeIntegerSetDescription.Top
+
+  override def bottom() = NegativeIntegerSetDescription.Bottom
+
+  override def factory(): NegativeIntegerSetDescription = top()
+
+  override def inner(pp: ProgramPoint, initExpr: Expression): IntegerSetDescription.Inner = IntegerSetDescription.Inner(pp, initExpr, positive = false)
+
+}
+
+object NegativeIntegerSetDescription {
+  case object Top extends IntegerSetDescription.Top with NegativeIntegerSetDescription {
+    def constraints: Set[Expression] = Set(falseConst)
+  }
+
+  case object Bottom extends IntegerSetDescription.Bottom with NegativeIntegerSetDescription {
+    def constraints: Set[Expression] = Set(trueConst)
+  }
+
+  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression], forgottenVariables: Set[Identifier] = Set()) extends IntegerSetDescription.Inner with NegativeIntegerSetDescription {
+
+    def ids: Set[Identifier] = constraints.flatMap(_.ids.toSetOrFail)
+
+    private def copy(pp: ProgramPoint = pp,
+                     expr: Expression = expr,
+                     constraints: Set[Expression] = constraints,
+                     forgottenVariables: Set[Identifier] = forgottenVariables): Inner =
+      Inner(pp, expr, constraints, forgottenVariables)
+
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and)).get
+
+    override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
+      case FieldExpression(_, `field`, _) => true
       case _ => false
+    }))
+
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = if (ids.contains(left)) copy(forgottenVariables = forgottenVariables + left) else this
+
+    override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
+      case (setDescription@Inner(_pp, _expr, _constraints, _forgottenVariables), conjunct) => conjunct match {
+        case _ if (conjunct.ids.toSetOrFail & _forgottenVariables).nonEmpty => setDescription
+        case _ if (conjunct.ids.toSetOrFail & ids).nonEmpty => Inner(_pp, _expr, _constraints + conjunct, _forgottenVariables)
+        case _ => setDescription
+      }
     }
 
-    def lubInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Top
+    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = DefaultSampleConverter.convert(constraints.reduce(and))
 
-    def glbInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Bottom
+    def lubInner(other: IntegerSetDescription.Inner): IntegerSetDescription = bottom()
 
-    def wideningInner(other: IntegerSetDescription.Inner): PositiveIntegerSetDescription = Top
+    def glbInner(other: IntegerSetDescription.Inner): IntegerSetDescription = top()
+
+    def wideningInner(other: IntegerSetDescription.Inner): IntegerSetDescription = bottom()
 
     def lessEqualInner(other: IntegerSetDescription.Inner): Boolean = false
   }
