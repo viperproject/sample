@@ -82,8 +82,10 @@ final class QPBackwardInterpreter extends QPInterpreter {
           case (edge1: ConditionalEdge[Statement, Statement]) :: (edge2: ConditionalEdge[Statement, Statement]) :: Nil =>
             // TODO: With the new CFG this became very hacky, can this be solved more properly?
             val (state1: QuantifiedPermissionsState, state2: QuantifiedPermissionsState) = (cfgResult.getStates(edge1.target).head, cfgResult.getStates(edge2.target).head)
-            val cond1 = edge1.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
-            val cond2 = edge2.condition.specialBackwardSemantics(state1.lub(state2)).expr.getSingle.get
+            val pp1 = ProgramPointUtils.identifyingPP(edge1.condition)
+            val pp2 = ProgramPointUtils.identifyingPP(edge2.condition)
+            val cond1 = edge1.condition.specialBackwardSemantics(state1.lub(state2).before(pp1)).expr.getSingle.get
+            val cond2 = edge2.condition.specialBackwardSemantics(state1.lub(state2).before(pp2)).expr.getSingle.get
             val cond1Conjuncts = Utils.toCNFConjuncts(cond1)
             val cond2Conjuncts = Utils.toCNFConjuncts(cond2)
             val pp = edge1.condition.getPC()
