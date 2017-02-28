@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 
 object QuantifiedPermissionsState {
   object Top extends QuantifiedPermissionsState(true, false)
@@ -106,23 +107,26 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       )
   }
 
-  def lub(falseState: QuantifiedPermissionsState, cond: Expression): QuantifiedPermissionsState = (this, falseState) match {
+  def lub(falseState: QuantifiedPermissionsState, cond: Expression, firstIteration: Boolean): QuantifiedPermissionsState = (this, falseState) match {
     case (Bottom, _) | (_, Top) => falseState
     case (_, Bottom) | (Top, _) => this
     case _ =>
-      val newPermissions = (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
-        case (true, true) => permissions
-        case _ => if (changingVars.filter(_.typ != IntType).exists(cond.ids.contains(_))) permissions.lub(falseState.permissions) else permissions.lub(cond, falseState.permissions)
-      }
-      val negCondition = NegatedBooleanExpression(cond)
+      val newChangingVars = changingVars ++ falseState.changingVars
+      val newPermissions =
+        if (firstIteration) if (newChangingVars.exists(cond.ids.contains(_))) permissions.condition(cond).lub(falseState.permissions.condition(not(cond))) else permissions.lub(cond, falseState.permissions)
+        else (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
+          case (true, true) => permissions
+          case (true, false) => permissions
+          case (false, true) => falseState.permissions
+        }
       val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) } ++ falseState.refSets.transform {
-        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(negCondition))
+        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(not(cond)))
       }
       copy(
         expr = expr lub falseState.expr,
         visited = visited ++ falseState.visited,
         permissions = newPermissions,
-        changingVars = changingVars ++ falseState.changingVars,
+        changingVars = newChangingVars,
         declaredBelowVars = declaredBelowVars ++ falseState.declaredBelowVars,
         refSets = newRefSets
       )

@@ -92,7 +92,7 @@ trait PermissionTree {
   def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
 
   def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = getLiterals(toCNF(cond)) match {
-    case literals if literals.size == 1 => transformCondition(literals.head).max(elsePermissions.transformCondition(not(literals.head)))
+    case literals if literals.size == 1 => Condition(cond, transformCondition(literals.head), elsePermissions.transformCondition(not(literals.head)))
     case _ => Condition(cond, this, elsePermissions)
   }
 

@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
@@ -298,6 +299,7 @@ object Main3 {
   def main(args: Array[String]): Unit = {
     val q = VariableIdentifier("q")(IntType)
     val i = VariableIdentifier("i")(IntType)
+    val j = VariableIdentifier("j")(IntType)
     val p = VariableIdentifier("p")(PermType)
     val inv = and(leq(intToConst(0, IntType), i), leq(i, intToConst(10, IntType)))
     println(simplifyExpression(or(
@@ -307,5 +309,11 @@ object Main3 {
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
     QuantifierElimination.eliminate(i, and(equ(i, q), and(and(Divides(2, i), leq(intToConst(0, IntType), i)), leq(i, intToConst(9, IntType)))))
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, intToConst(3, IntType))))
+    var foo = Apron.Polyhedra.Top.factory().createVariable(i).assume(leq(0, i)).assume(lt(i, 10))
+    foo = foo.createVariable(j)
+    foo = foo.assume(lt(j, plus(i, 5)))
+    foo = foo.assign(j, plus(j, 1))
+    println(foo)
   }
+  implicit def intToIntConst(i: Int): Constant = intToConst(i, IntType)
 }

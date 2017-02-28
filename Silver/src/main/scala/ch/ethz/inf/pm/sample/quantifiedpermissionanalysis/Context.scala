@@ -289,7 +289,7 @@ trait ExpressionDescription extends Expression {
 object ExpressionDescription {
   def apply(pp: ProgramPoint, expr: Expression): ExpressionDescription = expr match {
     case FunctionCallExpression(functionName, parameters, typ, _) => FunctionExpressionDescription(functionName, parameters.map(parameter => parameter.typ match {
-      case IntType => Right(PositiveIntegerSetDescription.Inner(pp, parameter, Context.preNumericalInfo(pp).numDom.getConstraints(parameter.ids.toSetOrFail)))
+      case IntType => Right(IntegerSetDescription.Inner(pp, parameter))
       case _ => Left(ExpressionDescription(pp, parameter))
     } ), typ, pp)
     case _ => SimpleExpressionDescription(pp, expr)

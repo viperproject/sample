@@ -143,7 +143,7 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
       }) {
         conjunct.ids.toSetOrFail.foreach(id => if (newNumDom.ids.contains(id)) newNumDom = newNumDom.setToTop(id))
       } else {
-        // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
+        // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignores variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
         conjunct.ids.toSetOrFail.foreach {
           case id: VariableIdentifier => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
         }

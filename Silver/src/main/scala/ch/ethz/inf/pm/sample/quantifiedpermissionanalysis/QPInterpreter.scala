@@ -90,8 +90,8 @@ final class QPBackwardInterpreter extends QPInterpreter {
             val cond2Conjuncts = Utils.toCNFConjuncts(cond2)
             val pp = edge1.condition.getPC()
             val (joined, condConjuncts) =
-              if (cond1Conjuncts.size > cond2Conjuncts.size) (state1.lub(state2, cond1).before(pp), cond1Conjuncts)
-              else (state2.lub(state1, cond2).before(pp), cond2Conjuncts)
+              if (cond1Conjuncts.size > cond2Conjuncts.size) (state1.lub(state2, cond1, currentCount == 0).before(pp), cond1Conjuncts)
+              else (state2.lub(state1, cond2, currentCount == 0).before(pp), cond2Conjuncts)
             condConjuncts.foldRight(joined)((conjunct, filtered) => filtered.assume(conjunct)).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
