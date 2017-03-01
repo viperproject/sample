@@ -105,8 +105,11 @@ final class QPBackwardInterpreter extends QPInterpreter {
     }
     if (QuantifiedPermissionsParameters.useSetSimplifications)
       simplifySets(cfgResult)
-    if (QuantifiedPermissionsParameters.useExpressionsSimplifications) {
-      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplifySyntactically.simplifySemantically(state), refSets = state.refSets.mapValues(_.simplify)))))
+    if (QuantifiedPermissionsParameters.useSyntacticExpressionsSimplifications) {
+      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplifySyntactically, refSets = state.refSets.mapValues(_.simplify)))))
+    }
+    if (QuantifiedPermissionsParameters.useSemanticExpressionsSimplifications) {
+      cfg.blocks.foreach(block => cfgResult.setStates(block, cfgResult.getStates(block).map(state => state.copy(permissions = state.permissions.simplifySemantically(state)))))
     }
     cfgResult
   }

@@ -187,7 +187,10 @@ case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTr
   def exists(f: (PermissionTree) => Boolean): Boolean = f(this) || child.exists(f)
   def foreach(f: (Expression) => Unit): Unit = child.foreach(f)
   def getReadAmounts: Set[(FractionalPermission, Int)] = child.getReadAmounts
-  def simplifySyntactically: PermissionTree = ZeroBoundedPermissionTree(child.simplifySyntactically)
+  def simplifySyntactically: PermissionTree = child.simplifySyntactically match {
+    case PermissionAddition((first@PermissionLeaf(_, NegativePermission(_))) :: ZeroBoundedPermissionTree(otherChild) :: rest) => ZeroBoundedPermissionTree(PermissionAddition(first +: otherChild +: rest))
+    case simplified => ZeroBoundedPermissionTree(simplified)
+  }
   def hasRead: Boolean = false
   override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(child.sub(receiver, permission))
   def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = ZeroBoundedPermissionTree(child.simplifySemantically(state))

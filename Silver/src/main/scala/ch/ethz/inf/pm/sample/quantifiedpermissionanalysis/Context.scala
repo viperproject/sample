@@ -91,7 +91,7 @@ object Context {
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
-      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier("set_" + extractSetName(key._2)), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
+      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier("s_" + extractSetName(key._2).head), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
     sets(key)
   }
 
@@ -192,7 +192,7 @@ object Context {
 
   def getQuantifiedVarDecl(typ: sil.Type, exclude: Set[sil.LocalVarDecl] = Set()): sil.LocalVarDecl = {
     if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).isEmpty)
-      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("_" + getTypeName(typ)(0).toLower.toString), typ)())
+      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
     (quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).head
   }
 
@@ -200,7 +200,7 @@ object Context {
     if (!quantifiedVariables.contains(typ))
       quantifiedVariables += typ -> Seq()
     for (_ <- 0 until Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier("_" + getTypeName(typ)(0).toLower.toString), typ)())
+      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
 

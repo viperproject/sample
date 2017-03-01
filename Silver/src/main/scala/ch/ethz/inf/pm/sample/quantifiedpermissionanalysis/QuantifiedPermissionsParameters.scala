@@ -18,7 +18,9 @@ object QuantifiedPermissionsParameters {
 
   val useHeapAnalysis = true
 
-  val useExpressionsSimplifications = true
+  val useSyntacticExpressionsSimplifications = true
+
+  val useSemanticExpressionsSimplifications = true
 
   val useSetSimplifications = true
 
