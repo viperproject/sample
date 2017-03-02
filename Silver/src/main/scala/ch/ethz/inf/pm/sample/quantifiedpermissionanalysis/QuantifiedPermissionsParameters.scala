@@ -38,6 +38,8 @@ object QuantifiedPermissionsParameters {
 
   val usePermissionCheckInFieldAdd = true
 
+  val useShortHelperVariableNames = true
+
   /**
     * Depending on which types are defined here, either the Polyhedra domain from the Apron library will be used or
     * the natively supported IntegerOctagon domain for the numerical analysis. Just comment in/out the respective part.

@@ -311,7 +311,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     */
   override def exhale(acc: Expression): QuantifiedPermissionsState = acc match {
     case FieldAccessPredicate(FieldExpression(_, field, receiver), num, denom, _) =>
-      println(permissions(field))
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.exhale(field, currentPP, receiver, FractionalPermission(num, denom))
         else permissions

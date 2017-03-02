@@ -582,6 +582,8 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 
   def constraints: Set[Expression]
 
+  def constraintsAsConjunction: Expression = constraints.reduce(and)
+
   def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier] = Set()): Expression
 
   def silverType: sil.Type = sil.Int

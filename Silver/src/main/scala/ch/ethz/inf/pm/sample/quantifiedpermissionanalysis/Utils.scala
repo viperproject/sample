@@ -118,6 +118,11 @@ object Utils {
     case cnfExpr => Set(cnfExpr)
   }
 
+  def splitToDisjuncts(expr: Expression): Set[Expression] = expr match {
+    case BinaryBooleanExpression(left, right, BooleanOperator.||) => splitToConjuncts(left) ++ splitToConjuncts(right)
+    case cnfExpr => Set(cnfExpr)
+  }
+
   def toCNFConjuncts(expr: Expression): Set[Expression] = splitToConjuncts(toCNF(expr))
 
   def collect(expr: Expression): Map[Any, Int] = expr match {
@@ -276,6 +281,10 @@ object Utils {
 
   val nullConst = Constant("null", RefType())
 
+  val noneConst = Constant("0", PermType)
+
+  val writeConst = Constant("1", PermType)
+
   def intToConst(c: Int, typ: Type): Constant = Constant(c.toString, typ)
 
   implicit def boolToConst(c: Boolean): Constant = Constant(c.toString, BoolType)
@@ -313,6 +322,8 @@ object Utils {
     def or(left: Expression, right: Expression): BinaryBooleanExpression = BinaryBooleanExpression(left, right, BooleanOperator.||)
 
     def not(arg: Expression): NegatedBooleanExpression = NegatedBooleanExpression(arg)
+
+    def iff(left: Expression, right: Expression): BinaryBooleanExpression = or(and(left, right), and(not(left), not(right)))
   }
 }
 

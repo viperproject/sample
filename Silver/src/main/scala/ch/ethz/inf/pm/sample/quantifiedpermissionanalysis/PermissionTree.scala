@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, In
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.Inner
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import viper.silver.ast.{Exp, LocalVar}
 import viper.silver.{ast => sil}
 
 /**
@@ -56,20 +57,19 @@ trait PermissionTree {
     var foundFunction: Option[String] = None
     var foundParameters: Map[(ProgramPoint, Expression), Expression] = Map()
     forall {
-      case PermissionLeaf(receiver, _) => receiver match {
-        case f: FunctionExpressionDescription =>
-          f.getIntegerParams.size == 1 && f.getNonIntegerParams.forall {
-            ed => state.refSets(ed.key).isOneElement && (foundParameters.get(ed.key) match {
+      case FunctionPermissionLeaf(receiver, _) =>
+        receiver.getIntegerParams.size == 1 && receiver.getNonIntegerParams.forall {
+          ed =>
+            state.refSets(ed.key).isOneElement && (foundParameters.get(ed.key) match {
               case None => foundParameters += ed.key -> state.refSets(ed.key).getSingleElement; true
               case Some(expr) => expr == state.refSets(ed.key).getSingleElement
             })
-          } && (foundFunction match {
-          case None => foundFunction = Some(f.functionName); true
-          case Some(functionName) if f.functionName == functionName => true
+        } && (foundFunction match {
+          case None => foundFunction = Some(receiver.functionName); true
+          case Some(functionName) if receiver.functionName == functionName => true
           case _ => false
         })
-        case _ => false
-      }
+      case _: SimplePermissionLeaf => false
       case _ => true
     }
   }
@@ -102,7 +102,7 @@ trait PermissionTree {
   }
 
   def transformAssignVariable(variable: VariableIdentifier): PermissionTree = transform {
-    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformAssignVariable(variable), permission)
+    case FunctionPermissionLeaf(f: FunctionExpressionDescription, permission) => FunctionPermissionLeaf(f.transformAssignVariable(variable), permission)
     case Condition(cond, left, right) if cond.ids.contains(variable) => Maximum(Seq(left, right))
     case other => other
   }
@@ -160,6 +160,10 @@ trait PermissionTree {
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean
 
   def isEquivalent(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = lessEqual(other,state) && other.lessEqual(this, state)
+
+  def forget(quantifiedVariabe: VariableIdentifier, variableToForget: VariableIdentifier): Expression = null
+
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree
 }
 
 trait SequencePermissionTree extends PermissionTree {
@@ -199,9 +203,27 @@ case class ZeroBoundedPermissionTree(child: PermissionTree) extends PermissionTr
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(ZeroBoundedPermissionTree(child.transform(f)))
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = child.toIntegerQuantifiedPermissionTree(state) match {
+    case IntegerQuantifiedPermissionTree(rootExpr, disjuncts) => IntegerQuantifiedPermissionTree(rootExpr, disjuncts.map { case elem@(cond, perm, _) =>
+      if (perm.numerator < 0) (cond, ZeroPermission(), 0)
+      else elem
+    } )
+  }
 }
 
-case class PermissionLeaf(receiver: ExpressionDescription, permission: Permission)() extends PermissionTree {
+object PermissionLeaf {
+  def apply(expressionDescription: ExpressionDescription, permission: Permission): PermissionLeaf = expressionDescription match {
+    case f: FunctionExpressionDescription => FunctionPermissionLeaf(f, permission)
+    case s: SimpleExpressionDescription => SimplePermissionLeaf(s, permission)
+  }
+  def unapply(tree: PermissionTree): Option[(ExpressionDescription, Permission)] = tree match {
+    case _ => Some(null)
+  }
+}
+
+sealed trait PermissionLeaf extends PermissionTree {
+  def receiver: ExpressionDescription
+  def permission: Permission
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     sil.CondExp(state.refSets(receiver.key).toSilExpression(state, quantifiedVar), permission.toSilExpression, sil.NoPerm()())()
   def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): sil.Exp =
@@ -212,7 +234,6 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
   }
   def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] =
     Set(state.refSets(receiver.key).asInstanceOf[ReferenceSetDescription.Inner])
-  def transformExpressions(f: (Expression => Expression)) = PermissionLeaf(receiver, permission)
   def exists(f: (PermissionTree => Boolean)): Boolean = f(this)
   def foreach(f: (Expression => Unit)): Unit = f(receiver)
   def getReadAmounts: Set[(FractionalPermission, Int)] = permission match {
@@ -229,10 +250,20 @@ case class PermissionLeaf(receiver: ExpressionDescription, permission: Permissio
     case _ => throw new IllegalStateException("To undo a read, the last max'ed permission to this tree has to be a symbolic read permission!")
   }
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = receiver.isInstanceOf[SimpleExpressionDescription] && (other match {
-    case PermissionLeaf(otherReceiver: SimpleExpressionDescription, otherPermission) => state.refSets(receiver.key).lessEqual(state.refSets(otherReceiver.key)) && permission.lessEqual(otherPermission)
+    case PermissionLeaf(otherReceiver: ExpressionDescription, otherPermission) => state.refSets(receiver.key).lessEqual(state.refSets(otherReceiver.key)) && permission.lessEqual(otherPermission)
     case _ => false
   })
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(this)
+}
+
+case class SimplePermissionLeaf(receiver: SimpleExpressionDescription, permission: Permission)() extends PermissionLeaf {
+  def transformExpressions(f: (Expression => Expression)) = SimplePermissionLeaf(receiver, permission)
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = throw new UnsupportedOperationException
+}
+
+case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permission: Permission)() extends PermissionLeaf {
+  def transformExpressions(f: (Expression => Expression)) = FunctionPermissionLeaf(receiver, permission)
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = null // IntegerQuantifiedPermissionTree(receiver, Set((receiver.getIntegerParams.head.constraintsAsConjunction)))
 }
 
 case class PermissionAddition(permissions: Seq[PermissionTree]) extends SequencePermissionTree {
@@ -255,6 +286,12 @@ case class PermissionAddition(permissions: Seq[PermissionTree]) extends Sequence
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(PermissionAddition(permissions.map(_.transform(f))))
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = permissions.map(_.toIntegerQuantifiedPermissionTree(state)).reduceLeft[IntegerQuantifiedPermissionTree]{
+    case (IntegerQuantifiedPermissionTree(root1, disjuncts1), IntegerQuantifiedPermissionTree(_, disjuncts2)) =>
+      IntegerQuantifiedPermissionTree(root1, disjuncts1.flatMap { case (cond1, perm1, reads1) =>
+        disjuncts2.map { case (cond2, perm2, reads2) => (and(cond1, cond2), perm1 + perm2, reads1 + reads2) }
+      })
+  }
 }
 
 case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionTree {
@@ -287,6 +324,12 @@ case class Maximum(permissions: Seq[PermissionTree]) extends SequencePermissionT
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Maximum(permissions.map(_.transform(f))))
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = permissions.map(_.toIntegerQuantifiedPermissionTree(state)).reduceLeft[IntegerQuantifiedPermissionTree] {
+    case (IntegerQuantifiedPermissionTree(root1, disjuncts1), IntegerQuantifiedPermissionTree(_, disjuncts2)) =>
+      IntegerQuantifiedPermissionTree(root1, disjuncts1.flatMap { case (cond1, perm1, reads1) =>
+        disjuncts2.map { case (cond2, perm2, reads2) => (and(cond1, cond2), perm1 + perm2, reads1 + reads2) }
+      })
+  }
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree) extends PermissionTree {
@@ -320,6 +363,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Condition(cond, left.transform(f), right.transform(f)))
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = null
 }
 
 case object EmptyPermissionTree extends PermissionTree {
@@ -339,6 +383,26 @@ case object EmptyPermissionTree extends PermissionTree {
   def simplifySemantically(state: QuantifiedPermissionsState): EmptyPermissionTree.type = this
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState) = true
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(this)
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = ???
+}
+
+case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescription, disjuncts: Set[(Expression, FractionalPermission, Int)]) extends PermissionTree {
+  def ids: Set[Identifier] = disjuncts.flatMap(_._1.ids.toSetOrFail)
+  def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: LocalVar): Exp = ???
+  def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Exp = ???
+  def toIntegerQuantificationSample(state: QuantifiedPermissionsState, quantifiedVariable: VariableIdentifier): Expression = ???
+  def getSetDescriptions(state: QuantifiedPermissionsState): Set[Inner] = Set()
+  def transform(f: (PermissionTree) => PermissionTree): PermissionTree = f(this)
+  def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
+  def foreach(f: (Expression) => Unit): Unit = disjuncts.foreach(disjunct => f(disjunct._1))
+  def hasRead: Boolean = disjuncts.exists(_._3 > 0)
+  def getReadAmounts: Set[(FractionalPermission, Int)] = disjuncts.map {
+    case (_, perm, read) => (perm, read)
+  }
+  def simplifySyntactically: PermissionTree = this
+  def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = this
+  def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = false
+  def toIntegerQuantifiedPermissionTree(state: QuantifiedPermissionsState): IntegerQuantifiedPermissionTree = this
 }
 
 trait Permission {
@@ -372,6 +436,14 @@ object FractionalPermission {
   }
 }
 
+object ZeroPermission {
+  def apply(): FractionalPermission = FractionalPermission(0, 1)
+  def unapply(perm: Permission): Boolean = perm match {
+    case FractionalPermission(0, _) => true
+    case _ => false
+  }
+}
+
 case class FractionalPermission(numerator: Int, denominator: Int) extends SimplePermission {
   require(denominator >= 1, "Denominator of a fractional permission must be greater than 0!")
   def toSilExpression: sil.FractionalPerm = sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())()
@@ -380,13 +452,16 @@ case class FractionalPermission(numerator: Int, denominator: Int) extends Simple
   def <(other: FractionalPermission): Boolean = other match {
     case FractionalPermission(otherNumerator, otherDenominator) => numerator * otherDenominator < denominator * otherNumerator
   }
-  def <=(other: FractionalPermission): Boolean = !(other < this)
-  def lessEqual(other: Permission): Boolean = this == other || (other match {
+  def <=(other: Permission): Boolean = this == other || (other match {
     case otherFrac: FractionalPermission => this <= otherFrac
     case NegativePermission(FractionalPermission(0, _)) | SymbolicReadPermission if numerator == 0 => true
     case WritePermission => numerator < denominator
     case _ => false
   })
+  def lessEqual(other: Permission): Boolean = this <= other
+  def +(other: FractionalPermission): FractionalPermission = other match {
+    case FractionalPermission(_numerator, _denominator) => FractionalPermission(numerator * _denominator + _numerator * denominator, denominator * _denominator)
+  }
 }
 
 case object SymbolicReadPermission extends SimplePermission {

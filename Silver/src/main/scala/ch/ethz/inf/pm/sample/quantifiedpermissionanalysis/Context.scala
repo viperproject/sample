@@ -91,7 +91,10 @@ object Context {
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
-      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier("s_" + extractSetName(key._2).head), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
+      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier(extractSetName(key._2) match {
+        case name if useShortHelperVariableNames => "s_" + name(0)
+        case name => "set_" + name
+      }), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
     sets(key)
   }
 
@@ -138,6 +141,11 @@ object Context {
     sets = Map()
   }
 
+  private def typeToVarPrefix(typ: sil.Type): Char = typ match {
+    case sil.Int => 'q'
+    case _ => DefaultSilverConverter.convert(typ).name.toLowerCase()(0)
+  }
+
   private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true): String = {
     var identifier: String = ""
     if (identifiers.contains(name)) {
@@ -155,6 +163,8 @@ object Context {
   }
 
   def createNewUniqueVarIdentifier(name: String = "_var", markAsTaken: Boolean = true): String = createNewUniqueIdentifier(name, markAsTaken)
+
+  def createNewUniqueVarIdentifier(name: Char): String = createNewUniqueIdentifier(name.toString)
 
   def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
 
@@ -192,7 +202,7 @@ object Context {
 
   def getQuantifiedVarDecl(typ: sil.Type, exclude: Set[sil.LocalVarDecl] = Set()): sil.LocalVarDecl = {
     if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).isEmpty)
-      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
+      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(typeToVarPrefix(typ)), typ)())
     (quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).head
   }
 
@@ -200,11 +210,9 @@ object Context {
     if (!quantifiedVariables.contains(typ))
       quantifiedVariables += typ -> Seq()
     for (_ <- 0 until Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(getTypeName(typ)(0).toLower.toString), typ)())
+      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(typeToVarPrefix(typ)), typ)())
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
-
-  private def getTypeName(typ: sil.Type): String = DefaultSilverConverter.convert(typ).name
 
   /**
     * Sets the result of the alias analysis.

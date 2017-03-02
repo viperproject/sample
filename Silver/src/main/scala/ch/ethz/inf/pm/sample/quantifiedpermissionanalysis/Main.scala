@@ -56,7 +56,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
   private def getMaxRdValue(permAmount: FractionalPermission, readAmount: Int): FractionalPermission = permAmount match {
     case FractionalPermission(numerator, denominator) =>
       if (readAmount == 0) FractionalPermission(1, 1)
-      else FractionalPermission(denominator - numerator, denominator * readAmount)
+      else FractionalPermission(Math.max(denominator - numerator, 1), denominator * readAmount)
   }
 
   private def getMaxRdValueTupled = (getMaxRdValue _).tupled

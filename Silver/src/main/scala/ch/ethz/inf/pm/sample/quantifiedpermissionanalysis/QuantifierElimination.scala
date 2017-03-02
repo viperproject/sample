@@ -309,11 +309,11 @@ object Main3 {
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
     QuantifierElimination.eliminate(i, and(equ(i, q), and(and(Divides(2, i), leq(intToConst(0, IntType), i)), leq(i, intToConst(9, IntType)))))
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, intToConst(3, IntType))))
-    var foo = Apron.Polyhedra.Top.factory().createVariable(i).assume(leq(0, i)).assume(lt(i, 10))
-    foo = foo.createVariable(j)
-    foo = foo.assume(lt(j, plus(i, 5)))
-    foo = foo.assign(j, plus(j, 1))
-    println(foo)
+    val exp = simplifyExpression(not(QuantifierElimination.eliminate(i, not(and(or(iff(inv, equ(p, writeConst)), neq(i, q)), or(iff(not(inv), equ(p, noneConst)), neq(i, q))))).get))
+    println(s"Disjuncts:")
+    splitToDisjuncts(exp).foreach(println)
+    println(s"\nConjuncts:")
+    splitToConjuncts(exp).foreach(println)
   }
   implicit def intToIntConst(i: Int): Constant = intToConst(i, IntType)
 }
