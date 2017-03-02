@@ -16,7 +16,7 @@ import viper.silver.cfg._
   *
   * @author Jerome Dohrau
   */
-class SampleCfg(val blocks: Seq[SampleBlock], val edges: Seq[SampleEdge], val entry: SampleBlock, val exit: SampleBlock)
+class SampleCfg(val blocks: Seq[SampleBlock], val edges: Seq[SampleEdge], val entry: SampleBlock, val exit: Option[SampleBlock])
   extends Cfg[Statement, Statement] {
 
   private lazy val positions: Map[ProgramPoint, CfgPosition] = {
@@ -53,7 +53,7 @@ class SampleCfg(val blocks: Seq[SampleBlock], val edges: Seq[SampleEdge], val en
   override def copy(blocks: Seq[SampleBlock] = blocks,
                     edges: Seq[SampleEdge] = edges,
                     entry: SampleBlock = entry,
-                    exit: SampleBlock = exit): SampleCfg =
+                    exit: Option[SampleBlock] = exit): SampleCfg =
     SampleCfg(blocks, edges, entry, exit)
 }
 
@@ -66,12 +66,12 @@ object SampleCfg {
     val exit: SampleBlock = PostconditionBlock(Seq.empty)
     val blocks = Seq(entry, exit)
     val edges = Seq(UnconditionalEdge(entry, exit))
-    SampleCfg(blocks, edges, entry, exit)
+    SampleCfg(blocks, edges, entry, Some(exit))
   }
 
-  def apply(blocks: Seq[SampleBlock], edges: Seq[SampleEdge], entry: SampleBlock, exit: SampleBlock): SampleCfg =
+  def apply(blocks: Seq[SampleBlock], edges: Seq[SampleEdge], entry: SampleBlock, exit: Option[SampleBlock]): SampleCfg =
     new SampleCfg(blocks, edges, entry, exit)
 
-  def unapply(cfg: SampleCfg): Option[(Seq[SampleBlock], Seq[SampleEdge], SampleBlock, SampleBlock)] =
+  def unapply(cfg: SampleCfg): Option[(Seq[SampleBlock], Seq[SampleEdge], SampleBlock, Option[SampleBlock])] =
     Some((cfg.blocks, cfg.edges, cfg.entry, cfg.exit))
 }

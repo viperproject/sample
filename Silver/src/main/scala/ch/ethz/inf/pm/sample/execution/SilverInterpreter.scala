@@ -196,8 +196,11 @@ trait SilverBackwardInterpreter[S <: State[S]]
     val bottom = initial.bottom()
     val cfgResult = initializeResult(cfg, bottom)
 
+    // TODO: Compute the list of starting points.
+    val starts = cfg.exit.toList
+
     // prepare data structures
-    val worklist = mutable.Queue(cfg.exit)
+    val worklist = mutable.Queue(starts: _*)
     val iterations = mutable.Map[SampleBlock, Int]()
 
     while (worklist.nonEmpty) {
@@ -205,7 +208,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
       val iteration = iterations.getOrElse(current, 0)
 
       // compute exit state of current block
-      val exit = if (current == cfg.exit) {
+      val exit = if (starts contains current) {
         initial
       } else {
         var state = bottom
@@ -332,7 +335,7 @@ case class FinalResultForwardInterpreter[S <: State[S]]()
 }
 
 /**
-  * Performs a backward interpretation of a control flwo graph that computes the
+  * Performs a backward interpretation of a control flow graph that computes the
   * final pre- and post states of statements within a control flow graph.
   *
   * @tparam S The type of the states.
