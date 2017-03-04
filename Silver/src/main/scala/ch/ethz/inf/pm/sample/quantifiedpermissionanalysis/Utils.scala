@@ -172,33 +172,41 @@ object Utils {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => BinaryArithmeticExpression(collectAndToExpr(left), collectAndToExpr(right), ArithmeticOperator.%)
     case BinaryArithmeticExpression(left, right, op: ArithmeticOperator.Value) if ArithmeticOperator.isComparison(op) && !containsModuloOrDivision(left) && !containsModuloOrDivision(right) =>
       val typ = left.typ
-      val collectedNonZero = binOp(collect(left), collect(right), _ - _).filter {
+      def divider(g: Int): ((Any, Int)) => Expression = {
+        case (ConstPlaceholder, value) => intToConst(value / g, typ)
+        case (key: Expression, value) => mult(intToConst(value / g, key.typ), key)
+      }
+      binOp(collect(left), collect(right), _ - _).filter {
         case (_, 0) => false
         case _ => true
-      }
-      collectedNonZero.size match {
-        case 0 => toComparisonOp(op)(0, 0)
-        case 1 => collectedNonZero.head match {
+      }.toList match {
+        case Nil => toComparisonOp(op)(0, 0)
+        case singleElement :: Nil => singleElement match {
           case (ConstPlaceholder, n) => toComparisonOp(op)(n, 0)
           case (other: VariableIdentifier, n) if n >= 0 => comp(other, intToConst(0, typ), op)
           case (other: VariableIdentifier, n) if n < 0 => comp(other, intToConst(0, typ), ArithmeticOperator.flip(op))
         }
-        case _ =>
-          val greatestCommonDivisor = gcd(collectedNonZero.values)
-          val mapping: ((Any, Int)) => Expression = {
-            case (ConstPlaceholder, value) => intToConst(value / greatestCommonDivisor, typ)
-            case (key: Expression, value) => mult(intToConst(value / greatestCommonDivisor, key.typ), key)
+        case (first@(key1, value1)) :: (second@(key2, value2)) :: Nil =>
+          val greatestCommonDivisor = gcd(value1, value2)
+          val mapping = divider(greatestCommonDivisor)
+          (value1 > 0, value2 > 0) match {
+            case (true, false) => comp(mapping(first), mapping((key2, -value2)), op)
+            case (false, true) => comp(mapping(second), mapping((key1, -value1)), op)
+            case (true, true) | (false, false) => comp(mapping(first), mapping((key2, -value2)), op)
           }
-          BinaryArithmeticExpression(collectedNonZero.filter {
+        case other =>
+          val greatestCommonDivisor = gcd(other.unzip._2)
+          val mapping = divider(greatestCommonDivisor)
+          BinaryArithmeticExpression(other.filter {
             case (_, n) if n > 0 => true
             case (_, n) if n < 0 => false
           }.map(mapping).reduceOption(plus) match {
             case Some(e) => e
             case None => intToConst(0, typ)
-          }, unOp(collectedNonZero.filter {
+          }, unOp(Map(other.filter {
             case (_, n) if n > 0 => false
             case (_, n) if n < 0 => true
-          }, - _).map(mapping).reduceOption(plus) match {
+          }: _*), -_).map(mapping).reduceOption(plus) match {
             case Some(e) => e
             case None => intToConst(0, typ)
           }, op)
@@ -231,19 +239,17 @@ object Utils {
       case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
       case BinaryArithmeticExpression(Constant("1", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
       case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("1", PermType, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
-      case BinaryArithmeticExpression(Constant("1", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isArithmetic(op) => intToConst(toArithmeticOp(op)(1, 0), PermType)
-      case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("1", PermType, _), op) if ArithmeticOperator.isArithmetic(op) => intToConst(toArithmeticOp(op)(0, 1), PermType)
       case BinaryArithmeticExpression(Constant("0", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
       case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("0", PermType, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
-      case BinaryArithmeticExpression(Constant("0", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isArithmetic(op) => intToConst(toArithmeticOp(op)(0, 1), PermType)
-      case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("0", PermType, _), op) if ArithmeticOperator.isArithmetic(op) => intToConst(toArithmeticOp(op)(1, 0), PermType)
       case BinaryArithmeticExpression(Constant(left, _, _), Constant(right, _, _), op) if ArithmeticOperator.isComparison(op) => Constant(toComparisonOp(op)(left.toInt, right.toInt).toString, BoolType)
       case BinaryArithmeticExpression(Constant(left, leftTyp, _), Constant(right, _, _), op) if ArithmeticOperator.isArithmetic(op) => Constant(toArithmeticOp(op)(left.toInt, right.toInt).toString, leftTyp)
       case BinaryArithmeticExpression(Constant("1", _, _), other, ArithmeticOperator.*) => other
+      case BinaryArithmeticExpression(Constant("-1", _, _), other, ArithmeticOperator.*) => neg(other)
       case BinaryArithmeticExpression(other, Constant("1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => other
+      case BinaryArithmeticExpression(other, Constant("-1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => neg(other)
       case BinaryArithmeticExpression(Constant("0", _, _), other, ArithmeticOperator.+ | ArithmeticOperator.-) => other
       case BinaryArithmeticExpression(other, Constant("0", _, _), ArithmeticOperator.+ | ArithmeticOperator.-) => other
-      case BinaryArithmeticExpression(_, Constant("1", typ, _), ArithmeticOperator.%) => intToConst(0, typ)
+      case BinaryArithmeticExpression(_, Constant("1" | "-1", typ, _), ArithmeticOperator.%) => intToConst(0, typ)
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) if left == right => intToConst(0, left.typ)
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.<= | ArithmeticOperator.== | ArithmeticOperator.>=) if left == right => trueConst
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.< | ArithmeticOperator.!= | ArithmeticOperator.>) if left == right => falseConst
@@ -322,6 +328,8 @@ object Utils {
     def or(left: Expression, right: Expression): BinaryBooleanExpression = BinaryBooleanExpression(left, right, BooleanOperator.||)
 
     def not(arg: Expression): NegatedBooleanExpression = NegatedBooleanExpression(arg)
+
+    def implies(left: Expression, right: Expression): BinaryBooleanExpression = or(not(left), right)
 
     def iff(left: Expression, right: Expression): BinaryBooleanExpression = or(and(left, right), and(not(left), not(right)))
   }

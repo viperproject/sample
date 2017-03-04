@@ -419,7 +419,12 @@ case class Constant(
     case _ => false
   }
 
-  override def toString: String = constant
+  override def toString: String = constant match {
+      // This is a hack for the quantified permission analysis to print Viper-compatible 'none' for 0 and 'write' for 1 if this constant is of Perm type
+    case "0" if typ.name == "Perm" => "none"
+    case "1" if typ.name == "Perm" => "write"
+    case _ => constant
+  }
 
   override def transform(f: (Expression => Expression)): Expression = f(this)
 
