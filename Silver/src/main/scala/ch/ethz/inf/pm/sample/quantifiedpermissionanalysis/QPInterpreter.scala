@@ -23,16 +23,14 @@ import scala.collection.mutable.ListBuffer
   */
 sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
 
-  var blocksLastInLoop: Set[SampleBlock] = Set()
   var nestingLevels: Map[SampleBlock, Int] = Map()
+  var firstBlocksInLoop: Set[SampleBlock] = Set()
   var sequenceNumbers: Map[SampleBlock, Int] = Map()
   var currentSequenceNumbers: Map[Int, Int] = Map()
 
   def determineBlockTypes(cfg: SampleCfg, block: SampleBlock, nestingLevel: Int = 0, visited: Set[SampleBlock] = Set()): Boolean = {
-    if (visited.contains(block)) {
-      blocksLastInLoop += block
-      true
-    } else {
+    if (visited.contains(block)) true
+    else {
       nestingLevels += block -> nestingLevel
       val sequenceNumber = currentSequenceNumbers.getOrElse(nestingLevel, -1) + 1
       sequenceNumbers += block -> sequenceNumber
@@ -42,12 +40,15 @@ sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState]
         case onlyEdge :: Nil => determineBlockTypes(cfg, onlyEdge.target, if (nestingLevel > 0 && cfg.inEdges(onlyEdge.target).size > 1) nestingLevel - 1 else nestingLevel, visited + block)
         case first :: second :: Nil =>
           val (trueEdge, falseEdge) = first.kind match {
-            case Kind.In => (first, second)
-            case _ => (second, first)
+            case Kind.Out => (second, first)
+            case _ => (first, second)
           }
           val (toTrue, toFalse) = (trueEdge.target, falseEdge.target)
           determineBlockTypes(cfg, toTrue, nestingLevel + 1, visited + block)
-          if (block.isInstanceOf[LoopHeadBlock[_, _]]) determineBlockTypes(cfg, toFalse, nestingLevel, visited + block)
+          if (block.isInstanceOf[LoopHeadBlock[_, _]]) {
+            firstBlocksInLoop += toTrue
+            determineBlockTypes(cfg, toFalse, nestingLevel, visited + block)
+          }
           else determineBlockTypes(cfg, toFalse, nestingLevel + 1, visited + block)
       }
     }
@@ -59,7 +60,6 @@ sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState]
     cfgResult
   }
 }
-
 
 final class QPBackwardInterpreter extends QPInterpreter {
 
@@ -164,15 +164,9 @@ final class QPBackwardInterpreter extends QPInterpreter {
       val blockStates: Seq[QuantifiedPermissionsState] = cfgResult.getStates(block)
       postState = blockStates.head widening postState
     }
+    if (firstBlocksInLoop.contains(block)) postState = postState.forgetAtLoopHead
     newStates.prepend(postState)
     cfgResult.setStates(block, newStates.toList)
   }
 
-}
-
-final class QPForwardInterpreter extends QPInterpreter {
-
-  override def execute(cfg: SampleCfg, initial: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
-    null
-  }
 }

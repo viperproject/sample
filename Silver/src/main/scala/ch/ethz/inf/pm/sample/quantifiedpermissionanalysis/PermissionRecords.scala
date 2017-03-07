@@ -57,6 +57,12 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
       case (_, tree) => tree.simplifySemantically(state)
     })
 
+  def forget: PermissionRecords =
+    copy(permissions = permissions.transform {
+      case (_, tree) if tree.canBeExpressedByIntegerQuantification => tree.toForgottenTree
+      case (_, other) => other
+    })
+
   private def withDefault(field: String) =
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)
     else permissions

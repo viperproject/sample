@@ -580,6 +580,8 @@ object PositiveReferenceSetDescription {
 
 sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription] {
 
+  def ids: IdentifierSet
+
   def constraints: Set[Expression]
 
   def constraintsAsConjunction: Expression = constraints.reduce(and)
@@ -599,21 +601,21 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 object IntegerSetDescription {
 
   sealed trait Top extends IntegerSetDescription with SetDescription.Top[IntegerSetDescription] {
+    def ids: IdentifierSet = IdentifierSet.Top
     def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
   }
 
   sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription] {
+    def ids: IdentifierSet = IdentifierSet.Bottom
     def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
   }
 
   sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner] {
     def isFinite(state: QuantifiedPermissionsState): Boolean = isOneElement
-
     def isOneElement: Boolean = expr match {
       case _: Constant => true
       case _ => false
     }
-
     def getSingleElement: Expression = expr
   }
 
@@ -659,15 +661,14 @@ object PositiveIntegerSetDescription {
     def constraints: Set[Expression] = Set(falseConst)
   }
 
-  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression], forgottenVariables: Set[Identifier] = Set()) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
+  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
 
-    def ids: Set[Identifier] = constraints.flatMap(_.ids.toSetOrFail)
+    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSetOrFail))
 
     private def copy(pp: ProgramPoint = pp,
                      expr: Expression = expr,
-                     constraints: Set[Expression] = constraints,
-                     forgottenVariables: Set[Identifier] = forgottenVariables): Inner =
-      Inner(pp, expr, constraints, forgottenVariables)
+                     constraints: Set[Expression] = constraints): Inner =
+      Inner(pp, expr, constraints)
 
     def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = {
       println(Context.preNumericalInfo(pp).numDom)
@@ -679,12 +680,11 @@ object PositiveIntegerSetDescription {
       case _ => false
     }))
 
-    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = if (constraints.flatMap(_.ids.toSetOrFail).contains(left)) copy(forgottenVariables = forgottenVariables + left) else this
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = this
 
     override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
-      case (setDescription@Inner(_pp, _expr, _constraints, _forgottenVariables), conjunct) => conjunct match {
-        case _ if (conjunct.ids.toSetOrFail & _forgottenVariables).nonEmpty => setDescription
-        case _ if (conjunct.ids.toSetOrFail & ids).nonEmpty => Inner(_pp, _expr, _constraints + conjunct, _forgottenVariables)
+      case (setDescription@Inner(_pp, _expr, _constraints), conjunct) => conjunct match {
+        case _ if (conjunct.ids.toSetOrFail & ids.toSetOrFail).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
         case _ => setDescription
       }
     }
@@ -722,15 +722,14 @@ object NegativeIntegerSetDescription {
     def constraints: Set[Expression] = Set(trueConst)
   }
 
-  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression], forgottenVariables: Set[Identifier] = Set()) extends IntegerSetDescription.Inner with NegativeIntegerSetDescription {
+  sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with NegativeIntegerSetDescription {
 
-    def ids: Set[Identifier] = constraints.flatMap(_.ids.toSetOrFail)
+    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSetOrFail))
 
     private def copy(pp: ProgramPoint = pp,
                      expr: Expression = expr,
-                     constraints: Set[Expression] = constraints,
-                     forgottenVariables: Set[Identifier] = forgottenVariables): Inner =
-      Inner(pp, expr, constraints, forgottenVariables)
+                     constraints: Set[Expression] = constraints): Inner =
+      Inner(pp, expr, constraints)
 
     def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and)).get
 
@@ -739,12 +738,11 @@ object NegativeIntegerSetDescription {
       case _ => false
     }))
 
-    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = if (ids.contains(left)) copy(forgottenVariables = forgottenVariables + left) else this
+    override def transformAssignVariable(left: VariableIdentifier, right: Expression): IntegerSetDescription = this
 
     override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
-      case (setDescription@Inner(_pp, _expr, _constraints, _forgottenVariables), conjunct) => conjunct match {
-        case _ if (conjunct.ids.toSetOrFail & _forgottenVariables).nonEmpty => setDescription
-        case _ if (conjunct.ids.toSetOrFail & ids).nonEmpty => Inner(_pp, _expr, _constraints + conjunct, _forgottenVariables)
+      case (setDescription@Inner(_pp, _expr, _constraints), conjunct) => conjunct match {
+        case _ if (conjunct.ids.toSetOrFail & ids.toSetOrFail).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
         case _ => setDescription
       }
     }

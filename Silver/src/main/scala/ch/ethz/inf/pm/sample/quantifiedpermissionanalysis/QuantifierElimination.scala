@@ -302,6 +302,7 @@ object Main3 {
     val j = VariableIdentifier("j")(IntType)
     val bound = VariableIdentifier("bound")(IntType)
     val p = VariableIdentifier("p")(PermType)
+    val p2 = VariableIdentifier("p2")(PermType)
     val inv1 = and(leq(intToConst(0, IntType), i), leq(i, intToConst(10, IntType)))
     val inv2 = and(leq(intToConst(20, IntType), i), leq(i, intToConst(30, IntType)))
     val rdAmount = VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
@@ -347,7 +348,7 @@ object Main3 {
 
 
     val invi = and(leq(0, i), leq(i, 9))
-    val existPart = or(and(and(and(equ(p, writeConst), equ(q, 9)), neq(q, i)), invi), and(and(equ(p, noneConst), or(neq(q, 9), eq(q, i))), invi))
+    val existPart = or(and(and(and(equ(p, writeConst), equ(q, 9)), neq(q, i)), invi), and(and(equ(p, noneConst), or(neq(q, 9), equ(q, i))), invi))
     val forallPart = implies(invi, or(and(and(geq(p, writeConst), equ(q, 9)), neq(q, i)), and(geq(p, noneConst), or(neq(q, 9), equ(q, i)))))
     val wholeExpr = simplifyExpression(and(QuantifierElimination.eliminate(i, existPart).get, not(QuantifierElimination.eliminate(i, not(forallPart)).get)))
     println(wholeExpr)
@@ -357,6 +358,7 @@ object Main3 {
     splitToConjuncts(wholeExpr).foreach(println)
 
     QuantifierElimination.eliminate(Set(i, j), and(and(equ(q, plus(i, j)), equ(i, 3)), equ(j, 4)))
+    QuantifierElimination.eliminate(i, and(equ(q, i), or(lt(i, 0), gt(i, 10))))
   }
   implicit def intToIntConst(i: Int): Constant = intToConst(i, IntType)
 }

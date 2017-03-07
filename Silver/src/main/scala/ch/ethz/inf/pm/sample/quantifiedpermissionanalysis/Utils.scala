@@ -133,6 +133,7 @@ object Utils {
     case UnaryArithmeticExpression(left, ArithmeticOperator.-, _) => unOp(collect(left), - _)
     case UnaryArithmeticExpression(left, ArithmeticOperator.+, _) => collect(left)
     case Constant(const, _, _) => Map((ConstPlaceholder, const.toInt))
+    case FractionalPermissionExpression(numerator, denominator) => Map((ConstPlaceholder, numerator / denominator))
     case other => Map((other, 1))
   }
 
@@ -183,8 +184,8 @@ object Utils {
         case Nil => toComparisonOp(op)(0, 0)
         case singleElement :: Nil => singleElement match {
           case (ConstPlaceholder, n) => toComparisonOp(op)(n, 0)
-          case (other: VariableIdentifier, n) if n >= 0 => comp(other, intToConst(0, typ), op)
-          case (other: VariableIdentifier, n) if n < 0 => comp(other, intToConst(0, typ), ArithmeticOperator.flip(op))
+          case (other: Expression, n) if n >= 0 => comp(other, intToConst(0, typ), op)
+          case (other: Expression, n) if n < 0 => comp(other, intToConst(0, typ), ArithmeticOperator.flip(op))
         }
         case (first@(key1, value1)) :: (second@(key2, value2)) :: Nil =>
           val greatestCommonDivisor = gcd(value1, value2)

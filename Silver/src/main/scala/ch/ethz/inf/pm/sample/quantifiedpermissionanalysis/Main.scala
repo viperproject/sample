@@ -86,7 +86,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
       }
     }
     state.permissions.foreach { case (fieldName, permissionTree) =>
-      if (permissionTree.canBeExpressedByIntegerQuantification(state)) {
+      if (permissionTree.canBeExpressedByIntegerQuantification) {
 //        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
 //        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
 //        val fieldAccessReceiver = permissionTree.getSetDescriptions(state).head.concreteExpressions.head._1.transform {
@@ -108,16 +108,18 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
 //        }))(), sil.TrueLit()())()
 //        newPreconditions :+= forall
 
+//        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
+//        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
+//        val function = permissionTree.extractFunction.get
+//        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(FunctionCallExpression(function.functionName, function.parameters.map {
+//          case Right(_) => quantifiedVariable
+//          case Left(expressionDescription) => expressionDescription.expr
+//        }, function.typ, function.pp)), Context.program.findField(fieldName))()
+//        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
+//        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
+//        newPreconditions :+= forall
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
-        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
-        val function = permissionTree.extractFunction.get
-        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(FunctionCallExpression(function.functionName, function.parameters.map {
-          case Right(_) => quantifiedVariable
-          case Left(expressionDescription) => expressionDescription.expr
-        }, function.typ, function.pp)), Context.program.findField(fieldName))()
-        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
-        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-        newPreconditions :+= forall
+        newPreconditions ++= permissionTree.toForgottenTree.toSilAssertions(quantifiedVariableDecl, Context.program.findField(fieldName))
       } else {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
         val quantifiedVariable = quantifiedVariableDecl.localVar

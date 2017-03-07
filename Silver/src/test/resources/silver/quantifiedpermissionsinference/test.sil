@@ -1,12 +1,17 @@
 method basic(arr: Array)
-requires acc(loc(arr, 9).val)
+requires forall k: Int :: 0 <= k && k <= 9 ==> acc(loc(arr, k).val)
 {
 	var i: Int := 0
     while (i < 10)
-	invariant  acc(loc(arr, 9).val)
+	invariant forall k: Int :: 0 <= k && k <= 9 ==> acc(loc(arr, k).val)
+	invariant i >= 0
 	{
-        inhale acc(loc(arr, i).val)
-        loc(arr, 9).val := i
+		var j: Int := 0
+		while (j < 5)
+		{
+			j := j + 1
+		}
+        loc(arr, i).val := i
         i := i + 1
     } 
 }

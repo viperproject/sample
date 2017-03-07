@@ -391,6 +391,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       )
   }
 
+  def forgetAtLoopHead: QuantifiedPermissionsState = copy(permissions = permissions.forget)
+
   // DO NOTHING ON THESE OPERATIONS
 
   /** Creates an object

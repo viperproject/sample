@@ -12,6 +12,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silver.ast.Function
 import viper.silver.{ast => sil}
 
@@ -45,10 +47,6 @@ object Context {
 
   private var fieldAccessFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
 
-  private var placeHolderFunctions: Map[String, sil.Function] = Map()
-
-  private var placeHolderFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
-
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
   private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_]]]] = Map()
@@ -77,14 +75,10 @@ object Context {
     fieldAccessFunctions(field)
   }
 
-  def getPlaceholderFunction(field: String, quantifiedVariable: sil.LocalVarDecl): sil.Function = {
-    if (!placeHolderFunctions.contains(field)) {
-      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None)()
-      ;placeHolderFunctions += field -> function
-      auxiliaryFunctions += function.name -> function
-    }
-    placeHolderFunctionsInMethod += currentMethod -> (placeHolderFunctionsInMethod.getOrElse(currentMethod, Set()) + ((field, placeHolderFunctions(field))))
-    placeHolderFunctions(field)
+  def getPlaceholderFunction(quantifiedVariable: sil.LocalVarDecl): sil.Function = {
+    val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None)()
+    auxiliaryFunctions += function.name -> function
+    function
   }
 
   def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set())
@@ -214,6 +208,11 @@ object Context {
     (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
   }
 
+  def getReplacements(variables: Set[Identifier]): Map[Identifier, Identifier] = variables.foldLeft[Map[Identifier, Identifier]](Map()) { case (existing, identifier) =>
+    val replacement = VariableIdentifier(createNewUniqueVarIdentifier())(identifier.typ)
+    existing + (identifier -> replacement)
+  }
+
   /**
     * Sets the result of the alias analysis.
     *
@@ -328,4 +327,28 @@ case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = Du
   def transform(f: (Expression) => Expression): Expression = f(MaxExpression(args.map(_.transform(f)), typ))
   def contains(f: (Expression) => Boolean): Boolean = f(this) || args.exists(_.contains(f))
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else args.map(_.find(f)).reduce(_.orElse(_))
+}
+
+case class FractionalPermissionExpression(numerator: Int, denominator: Int) extends Expression {
+  def pp: ProgramPoint = DummyProgramPoint
+  def ids: IdentifierSet = IdentifierSet.Bottom
+  def transform(f: (Expression) => Expression): Expression = f(this)
+  def contains(f: (Expression) => Boolean): Boolean = f(this)
+  override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else None
+  override def typ: Type = PermType
+}
+
+object PermissionExpression {
+  def apply(fractional: FractionalPermission, reads: Int): Expression = (fractional, reads) match {
+    case (ZeroPermission(), 0) => noneConst
+    case (ZeroPermission(), _) => mult(intToConst(reads, PermType), VariableIdentifier(Context.getRdAmountVariable.name)(PermType))
+    case (FractionalPermission(numerator, denominator), 0) => FractionalPermissionExpression(numerator, denominator)
+    case (FractionalPermission(numerator, denominator), _) => plus(FractionalPermissionExpression(numerator, denominator), mult(intToConst(reads, PermType), VariableIdentifier(Context.getRdAmountVariable.name)(PermType)))
+  }
+  def unapply(expr: Expression): Option[(FractionalPermission, Int)] = expr match {
+    case `noneConst` => Some(ZeroPermission(), 0)
+    case BinaryArithmeticExpression(Constant(const, PermType, _), VariableIdentifier(name, _), ArithmeticOperator.*) if name == Context.getRdAmountVariable.name => Some(ZeroPermission(), const.toInt)
+    case FractionalPermissionExpression(numerator, denominator) => Some(FractionalPermission(numerator, denominator), 0)
+    case BinaryArithmeticExpression(FractionalPermissionExpression(numerator, denominator), BinaryArithmeticExpression(Constant(const, PermType, _), VariableIdentifier(name, _), ArithmeticOperator.*), ArithmeticOperator.+) if name == Context.getRdAmountVariable.name => Some(FractionalPermission(numerator, denominator), const.toInt)
+  }
 }
