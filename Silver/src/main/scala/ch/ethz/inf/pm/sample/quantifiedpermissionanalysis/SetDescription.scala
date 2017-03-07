@@ -323,19 +323,8 @@ object ReferenceSetDescription {
       case _ =>
         val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
         val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-        val eliminated =
-          if (useQE) {
-            val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-            QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
-          }
-          else None
-        eliminated match {
-          case None => numericalInfo.createVariable(variable).assume(expressionToAssume).removeVariables(exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).getConstraints(Set(variable)).reduceOption(and) match {
-            case Some(exp) => exp
-            case None => trueConst
-          }
-          case Some(exp) => exp
-        }
+        val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
+        QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
     }
 
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = {
@@ -670,10 +659,7 @@ object PositiveIntegerSetDescription {
                      constraints: Set[Expression] = constraints): Inner =
       Inner(pp, expr, constraints)
 
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = {
-      println(Context.preNumericalInfo(pp).numDom)
-      QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and)).get
-    }
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and))
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
       case FieldExpression(_, `field`, _) => true
@@ -731,7 +717,7 @@ object NegativeIntegerSetDescription {
                      constraints: Set[Expression] = constraints): Inner =
       Inner(pp, expr, constraints)
 
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and)).get
+    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and))
 
     override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
       case FieldExpression(_, `field`, _) => true

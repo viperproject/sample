@@ -20,22 +20,13 @@ import com.typesafe.scalalogging.LazyLogging
   */
 object QuantifierElimination extends LazyLogging {
 
-  def eliminate(variable: Identifier, conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(Set(variable), conjuncts.reduce(and)) match {
-    case Some(eliminated) => Some(toCNFConjuncts(eliminated))
-    case None => None
-  }
+  def eliminate(variable: Identifier, conjuncts: Set[Expression]): Set[Expression] = eliminate(Set(variable), conjuncts)
 
-  def eliminate(variables: Set[_ <: Identifier], conjuncts: Set[Expression]): Option[Set[Expression]] = eliminate(variables, conjuncts.reduce(and)) match {
-    case Some(eliminated) => Some(toCNFConjuncts(eliminated))
-    case None => None
-  }
+  def eliminate(variables: Set[_ <: Identifier], conjuncts: Set[Expression]): Set[Expression] = toCNFConjuncts(eliminate(variables, conjuncts.reduce(and)))
 
-  def eliminate(variables: Set[_ <: Identifier], expr: Expression): Option[Expression] = variables.foldLeft[Option[Expression]](Some(expr))((expr, variable) => expr match {
-    case Some(exp) => eliminate(variable, exp)
-    case None => None
-  })
+  def eliminate(variables: Set[_ <: Identifier], expr: Expression): Expression = variables.foldLeft[Expression](expr)((expr, variable) => eliminate(variable, expr))
 
-  def eliminate(variable: Identifier, expr: Expression): Option[Expression] =  if (!expr.ids.contains(variable)) Some(expr) else {
+  def eliminate(variable: Identifier, expr: Expression): Expression =  if (!expr.ids.contains(variable)) expr else {
     println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
@@ -45,7 +36,7 @@ object QuantifierElimination extends LazyLogging {
     println(s"F4[$variable] (lcmReplaced) (containing ${countLiterals(lcmReplaced)} literals): $lcmReplaced")
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
     println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
-    Some(equivalentFormula)
+    equivalentFormula
   }
 
   def rewriteExpression(placeholder: VariableIdentifier, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState, expr: Expression): Expression = {
@@ -307,25 +298,25 @@ object Main3 {
     val inv2 = and(leq(intToConst(20, IntType), i), leq(i, intToConst(30, IntType)))
     val rdAmount = VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
     println(simplifyExpression(or(
-      QuantifierElimination.eliminate(i, and(and(equ(q, i), inv1), equ(p, intToConst(1, PermType)))).get,
-        and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv1)).get), equ(p, intToConst(0, PermType))))))
+      QuantifierElimination.eliminate(i, and(and(equ(q, i), inv1), equ(p, intToConst(1, PermType)))),
+        and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv1))), equ(p, intToConst(0, PermType))))))
 
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
     QuantifierElimination.eliminate(i, and(equ(i, q), and(and(Divides(2, i), leq(intToConst(0, IntType), i)), leq(i, intToConst(9, IntType)))))
     QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, intToConst(3, IntType))))
-    val exp = simplifyExpression(not(QuantifierElimination.eliminate(i, and(equ(i, q), not(and(and(iff(inv2, equ(p, writeConst)), iff(and(inv1, not(inv2)), equ(p, rdAmount))), iff(not(and(inv1, inv2)), equ(p, noneConst)))))).get))
+    val exp = simplifyExpression(not(QuantifierElimination.eliminate(i, and(equ(i, q), not(and(and(iff(inv2, equ(p, writeConst)), iff(and(inv1, not(inv2)), equ(p, rdAmount))), iff(not(and(inv1, inv2)), equ(p, noneConst))))))))
     println(s"Disjuncts:")
     splitToDisjuncts(exp).foreach(println)
     println(s"\nConjuncts:")
     splitToConjuncts(exp).foreach(println)
 
-    val exp2 = simplifyExpression(not(QuantifierElimination.eliminate(i, not(and(and(implies(and(inv1, equ(q, i)), equ(p, writeConst)), implies(and(and(inv2, equ(q, i)), not(and(inv1, equ(q, i)))), equ(p, rdAmount))), implies(and(not(and(inv1, equ(q, i))), not(and(inv2, equ(q, i)))), equ(p, noneConst))))).get))
+    val exp2 = simplifyExpression(not(QuantifierElimination.eliminate(i, not(and(and(implies(and(inv1, equ(q, i)), equ(p, writeConst)), implies(and(and(inv2, equ(q, i)), not(and(inv1, equ(q, i)))), equ(p, rdAmount))), implies(and(not(and(inv1, equ(q, i))), not(and(inv2, equ(q, i)))), equ(p, noneConst)))))))
     println(s"Disjuncts:")
     splitToDisjuncts(exp2).foreach(println)
     println(s"\nConjuncts:")
     splitToConjuncts(exp2).foreach(println)
 
-    val exp3 = simplifyExpression(QuantifierElimination.eliminate(i, or(equ(p, writeConst), and(and(inv1, equ(q, i)), neq(p, noneConst)))).get)
+    val exp3 = simplifyExpression(QuantifierElimination.eliminate(i, or(equ(p, writeConst), and(and(inv1, equ(q, i)), neq(p, noneConst)))))
     println(s"Disjuncts:")
     splitToDisjuncts(exp3).foreach(println)
     println(s"\nConjuncts:")
@@ -335,14 +326,14 @@ object Main3 {
     val inv4 = and(leq(0, i), leq(i, 10))
     val q_constr = and(equ(q, i), equ(q, plus(i, j)))
 
-    val blubb = simplifyExpression(not(QuantifierElimination.eliminate(i, not(implies(inv1, or(or(and(and(equ(q, 5), equ(q, i)), equ(p, noneConst)), and(and(equ(q, 5), neq(q, i)), equ(p, noneConst))), and(and(neq(q, 5), equ(q, i)), equ(p, writeConst)))))).get))
+    val blubb = simplifyExpression(not(QuantifierElimination.eliminate(i, not(implies(inv1, or(or(and(and(equ(q, 5), equ(q, i)), equ(p, noneConst)), and(and(equ(q, 5), neq(q, i)), equ(p, noneConst))), and(and(neq(q, 5), equ(q, i)), equ(p, writeConst))))))))
 
     println(s"Disjuncts:")
     splitToDisjuncts(blubb).foreach(println)
     println(s"\nConjuncts:")
     splitToConjuncts(blubb).foreach(println)
 
-    val blubb2 = simplifyExpression(not(QuantifierElimination.eliminate(q, and(or(lt(p, writeConst), neq(q, 9)), or(lt(p, noneConst), equ(q, 9)))).get))
+    val blubb2 = simplifyExpression(not(QuantifierElimination.eliminate(q, and(or(lt(p, writeConst), neq(q, 9)), or(lt(p, noneConst), equ(q, 9))))))
     println(s"\n\n$blubb2")
     val blubb3 = QuantifierElimination.eliminate(q, and(or(and(equ(p, writeConst), equ(q, 9)), and(equ(p, noneConst), neq(q, 9))), blubb2))
 
@@ -350,7 +341,7 @@ object Main3 {
     val invi = and(leq(0, i), leq(i, 9))
     val existPart = or(and(and(and(equ(p, writeConst), equ(q, 9)), neq(q, i)), invi), and(and(equ(p, noneConst), or(neq(q, 9), equ(q, i))), invi))
     val forallPart = implies(invi, or(and(and(geq(p, writeConst), equ(q, 9)), neq(q, i)), and(geq(p, noneConst), or(neq(q, 9), equ(q, i)))))
-    val wholeExpr = simplifyExpression(and(QuantifierElimination.eliminate(i, existPart).get, not(QuantifierElimination.eliminate(i, not(forallPart)).get)))
+    val wholeExpr = simplifyExpression(and(QuantifierElimination.eliminate(i, existPart), not(QuantifierElimination.eliminate(i, not(forallPart)))))
     println(wholeExpr)
     println(s"Disjuncts:")
     splitToDisjuncts(wholeExpr).foreach(println)

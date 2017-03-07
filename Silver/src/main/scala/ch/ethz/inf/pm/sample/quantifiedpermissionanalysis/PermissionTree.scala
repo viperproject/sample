@@ -160,7 +160,7 @@ trait PermissionTree {
     val invariant = invariants.reduceOption(and).getOrElse(trueConst)
     val existsPart = and(invariant, constraints.map { case (constraint, perm) => implies(constraint, equ(permissionPlaceholder, perm)) }.reduce(and))
     val forallPart = implies(invariant, constraints.map { case (constraint, perm) => implies(constraint, geq(permissionPlaceholder, perm)) }.reduce(and))
-    IntegerQuantifiedPermissionTree(extractFunction.get, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart).get, not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart)).get))), quantifiedVariable, permissionPlaceholder, forgottenPermissions)
+    IntegerQuantifiedPermissionTree(extractFunction.get, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), quantifiedVariable, permissionPlaceholder, forgottenPermissions)
   }
 }
 
