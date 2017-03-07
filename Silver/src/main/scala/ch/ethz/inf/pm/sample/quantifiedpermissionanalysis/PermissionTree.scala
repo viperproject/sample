@@ -153,14 +153,14 @@ trait PermissionTree {
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression])
 
   def toForgottenTree: IntegerQuantifiedPermissionTree = {
-    val quantifiedVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("_q"))(IntType)
+    val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
     val placeholderFun = Context.getPlaceholderFunction(Context.getQuantifiedVarDecl(sil.Int))
     val permissionPlaceholder = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable), PermType)
     val (constraints, invariants, variablesToQuantify, forgottenPermissions) = toIntegerQuantificationConstraints(quantifiedVariable)
     val invariant = invariants.reduceOption(and).getOrElse(trueConst)
     val existsPart = and(invariant, constraints.map { case (constraint, perm) => implies(constraint, equ(permissionPlaceholder, perm)) }.reduce(and))
     val forallPart = implies(invariant, constraints.map { case (constraint, perm) => implies(constraint, geq(permissionPlaceholder, perm)) }.reduce(and))
-    IntegerQuantifiedPermissionTree(extractFunction.get, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), quantifiedVariable, permissionPlaceholder, forgottenPermissions)
+    IntegerQuantifiedPermissionTree(extractFunction.get, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), permissionPlaceholder, forgottenPermissions)
   }
 }
 
@@ -188,7 +188,7 @@ case class ZeroBoundedPermissionTree(child: PermissionTree, forgottenVariables: 
     case PermissionAddition((first@PermissionLeaf(_, NegativePermission(_))) :: ZeroBoundedPermissionTree(otherChild, _) :: rest, _) => ZeroBoundedPermissionTree(PermissionAddition(first +: otherChild +: rest))
     case simplified => ZeroBoundedPermissionTree(simplified)
   }
-  def hasRead: Boolean = false
+  def hasRead: Boolean = child.hasRead
   override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(child.sub(receiver, permission))
   def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = ZeroBoundedPermissionTree(child.simplifySemantically(state))
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = other match {
@@ -396,35 +396,39 @@ case object EmptyPermissionTree extends PermissionTree {
   def transformAssignVariable(variable: VariableIdentifier): PermissionTree = this
 }
 
-case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescription, permissionExpression: Expression, quantifiedVariable: VariableIdentifier, permissionPlaceholder: FunctionCallExpression, forgottenPermissions: Map[FunctionCallExpression, Expression]) extends PermissionTree {
+case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescription, permissionExpression: Expression, permissionPlaceholder: FunctionCallExpression, forgottenPermissions: Map[FunctionCallExpression, Expression]) extends PermissionTree {
   def forgottenVariables: Set[Identifier] = Set()
   def ids: Set[Identifier] = permissionExpression.ids.toSetOrFail
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException
   def toSilAssertions(quantifiedVarDecl: sil.LocalVarDecl, field: sil.Field): Seq[sil.Exp] = {
-    var replacements: Map[Identifier, Expression] = Map()
     val quantifiedVar = quantifiedVarDecl.localVar
     val quantifiedSampleVar = VariableIdentifier(quantifiedVar.name)(IntType)
     val funcApp = sil.FuncLikeApp(Context.functions(rootExpr.functionName), rootExpr.parameters.map {
       case Left(e) => DefaultSampleConverter.convert(e.expr)
       case Right(_) => quantifiedVar
     }, scala.Predef.Map[sil.TypeVar, sil.Type]())
-    replacements += quantifiedVariable -> quantifiedSampleVar
     val access = sil.FieldAccessPredicate(sil.FieldAccess(funcApp, field)(), sil.FuncLikeApp(Context.functions(permissionPlaceholder.functionName), Seq(quantifiedVar), scala.Predef.Map()))()
     val permExp = sil.Forall(Seq(quantifiedVarDecl), Seq(), access)()
     var assertions = Seq[sil.Exp](permExp)
-    assertions +:= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(replaceVariables(permissionExpression, replacements)))(), sil.TrueLit()())()
-    assertions ++:= forgottenPermissions.map { case (_, assertion) => replaceVariables(assertion, replacements) }.map(assertion => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(assertion))(), sil.TrueLit()())())
+    assertions +:= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(permissionExpression))(), sil.TrueLit()())()
+    assertions ++:= forgottenPermissions.map(assertion => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(assertion._2))(), sil.TrueLit()())())
     assertions ++:= forgottenPermissions.map(fun => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), sil.PermGeCmp(sil.FuncLikeApp(Context.functions(fun._1.functionName), Seq(quantifiedVar), scala.Predef.Map()), sil.NoPerm()())())(), sil.TrueLit()())())
     assertions
   }
   def getSetDescriptions(state: QuantifiedPermissionsState): Set[Inner] = Set()
   def transform(f: (PermissionTree) => PermissionTree): PermissionTree = f(this)
   def exists(f: (PermissionTree) => Boolean): Boolean = f(this)
-  def foreach(f: (Expression) => Unit): Unit = permissionExpression.foreach(f)
-  def hasRead: Boolean = permissionExpression.contains {
-    case PermissionExpression(_, reads) if reads != 0 => true
-    case _ => false
+  def foreach(f: (Expression) => Unit): Unit = {
+    rootExpr.foreach(f)
+    permissionExpression.foreach(f)
   }
+  def hasRead: Boolean = permissionExpression.contains {
+    case VariableIdentifier(name, _) if name == Context.getRdAmountVariable.name => true
+    case _ => false
+  } || forgottenPermissions.values.exists(_.contains {
+    case VariableIdentifier(name, _) if name == Context.getRdAmountVariable.name => true
+    case _ => false
+  })
   def getReadAmounts: Set[(FractionalPermission, Int)] = {
     var readAmounts: Set[(FractionalPermission, Int)] = Set()
     permissionExpression.foreach {
@@ -438,7 +442,7 @@ case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescripti
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = false
   def transformAssignVariable(variable: VariableIdentifier): PermissionTree = this
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) =
-    (Set((trueConst, permissionPlaceholder)), Set(), Set(), Map((permissionPlaceholder, replaceVariables(permissionExpression, Map((this.quantifiedVariable, quantifiedVariable))))))
+    (Set((trueConst, permissionPlaceholder)), Set(), Set(), Map((permissionPlaceholder, permissionExpression)))
   override def toForgottenTree: IntegerQuantifiedPermissionTree = this
 }
 

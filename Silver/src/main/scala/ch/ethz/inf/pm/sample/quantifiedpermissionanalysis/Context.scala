@@ -290,7 +290,7 @@ trait ExpressionDescription extends Expression {
   def ids: IdentifierSet = expr.ids
   def contains(f: (Expression) => Boolean): Boolean = f(this) || expr.contains(f)
   override def find(f: (Expression) => Boolean): Option[Expression] = if (f(this)) Some(this) else expr.find(f)
-  def transform(f: (Expression) => Expression): Expression = throw new UnsupportedOperationException()
+  def transform(f: (Expression) => Expression): Expression = f(this)
 }
 
 object ExpressionDescription {
@@ -350,5 +350,6 @@ object PermissionExpression {
     case BinaryArithmeticExpression(Constant(const, PermType, _), VariableIdentifier(name, _), ArithmeticOperator.*) if name == Context.getRdAmountVariable.name => Some(ZeroPermission(), const.toInt)
     case FractionalPermissionExpression(numerator, denominator) => Some(FractionalPermission(numerator, denominator), 0)
     case BinaryArithmeticExpression(FractionalPermissionExpression(numerator, denominator), BinaryArithmeticExpression(Constant(const, PermType, _), VariableIdentifier(name, _), ArithmeticOperator.*), ArithmeticOperator.+) if name == Context.getRdAmountVariable.name => Some(FractionalPermission(numerator, denominator), const.toInt)
+    case _ => None
   }
 }

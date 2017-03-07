@@ -71,10 +71,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     */
   override def preconditions(existing: Seq[sil.Exp], state: QuantifiedPermissionsState): Seq[sil.Exp] = {
     var newPreconditions = existing
-    if (state.permissions.exists((arg) => arg._2.exists {
-      case PermissionLeaf(_, SymbolicReadPermission) => true
-      case _ => false
-    })) {
+    if (state.permissions.exists((arg) => arg._2.hasRead)) {
       val rdAmount = Context.getRdAmountVariable.localVar
       val readPaths = state.permissions.flatMap { case (_, tree) => tree.getReadAmounts }.toSet
       if (readPaths.nonEmpty) {
@@ -87,37 +84,6 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     }
     state.permissions.foreach { case (fieldName, permissionTree) =>
       if (permissionTree.canBeExpressedByIntegerQuantification) {
-//        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
-//        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
-//        val fieldAccessReceiver = permissionTree.getSetDescriptions(state).head.concreteExpressions.head._1.transform {
-//          case e: Expression if e.typ == IntType => quantifiedVariable
-//          case other => other
-//        }
-//        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(fieldAccessReceiver), Context.program.findField(fieldName))()
-//        val placeholder = VariableIdentifier(Context.createNewUniqueVarIdentifier("z"))(PermType)
-//        val permissionExpression = permissionTree.toIntegerQuantificationSample(state, quantifiedVariable)
-//        val rewritten = QuantifierElimination.rewriteExpression(placeholder, quantifiedVariable, state, permissionExpression)
-//        val forgotten = QuantifierElimination.eliminate(state.changingVars ++ state.declaredBelowVars, rewritten).get
-//        val placeholderFun = Context.getPlaceholderFunction(fieldName, quantifiedVariableDecl)
-//        val placeholderFunCall = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable), PermType)
-//        val implies = sil.FieldAccessPredicate(fieldAccess, DefaultSampleConverter.convert(placeholderFunCall))()
-//        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-//        newPreconditions :+= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVariableDecl), Seq(), DefaultSampleConverter.convert(forgotten.transform {
-//          case `placeholder` => placeholderFunCall
-//          case other => other
-//        }))(), sil.TrueLit()())()
-//        newPreconditions :+= forall
-
-//        val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
-//        val quantifiedVariable = VariableIdentifier(quantifiedVariableDecl.localVar.name)(IntType)
-//        val function = permissionTree.extractFunction.get
-//        val fieldAccess = viper.silver.ast.FieldAccess(DefaultSampleConverter.convert(FunctionCallExpression(function.functionName, function.parameters.map {
-//          case Right(_) => quantifiedVariable
-//          case Left(expressionDescription) => expressionDescription.expr
-//        }, function.typ, function.pp)), Context.program.findField(fieldName))()
-//        val implies = sil.FieldAccessPredicate(fieldAccess, permissionTree.toIntegerQuantification(state, quantifiedVariable))()
-//        val forall = sil.Forall(Seq(quantifiedVariableDecl), Seq(), implies)()
-//        newPreconditions :+= forall
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
         newPreconditions ++= permissionTree.toForgottenTree.toSilAssertions(quantifiedVariableDecl, Context.program.findField(fieldName))
       } else {
@@ -193,10 +159,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     */
   override def formalArguments(existing: Seq[sil.LocalVarDecl], state: QuantifiedPermissionsState): Seq[sil.LocalVarDecl] = {
     var newFormalArguments = existing
-    if (state.permissions.exists(_._2.exists {
-      case PermissionLeaf(_, SymbolicReadPermission) => true
-      case _ => false
-    })) {
+    if (state.permissions.exists(_._2.hasRead)) {
       val rdAmount = Context.getRdAmountVariable
       if (!newFormalArguments.contains(rdAmount)) newFormalArguments :+= rdAmount
     }
