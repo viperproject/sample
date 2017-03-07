@@ -245,14 +245,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = go(e.typ))
-    case sil.MethodCallExpr(mname, _, args, _) =>
-      sample.MethodCall(
-        pp = go(e.pos),
-        // Functions are static, so there is no receiver (TODO: what does this mean for us?)
-        method = makeVariable(e.pos, sil.Ref, mname),
-        parametricTypes = Nil,
-        parameters = args.map(go).toList,
-        returnedType = go(e.typ))
     case sil.FieldAccess(rcv, field) =>
       sample.FieldAccess(go(e.pos), go(rcv), field.name, go(field.typ))
     case sil.CondExp(cond, thn, els) =>
