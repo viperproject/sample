@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import viper.silver.ast.Function
 import viper.silver.{ast => sil}
 

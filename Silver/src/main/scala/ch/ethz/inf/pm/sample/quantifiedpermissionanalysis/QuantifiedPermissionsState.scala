@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.permissionanalysis.{ExhaleCommand, InhaleCommand}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsState.{Bottom, Top}
 import com.typesafe.scalalogging.LazyLogging
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 
 object QuantifiedPermissionsState {
   object Top extends QuantifiedPermissionsState(true, false)

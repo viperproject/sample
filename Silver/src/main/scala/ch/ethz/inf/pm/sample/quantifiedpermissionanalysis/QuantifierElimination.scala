@@ -7,10 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.EvaluationUtils._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import com.typesafe.scalalogging.LazyLogging
 
@@ -38,94 +34,6 @@ object QuantifierElimination extends LazyLogging {
     println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
     equivalentFormula
   }
-
-  def rewriteExpression(placeholder: VariableIdentifier, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState, expr: Expression): Expression = {
-    val exprWithoutFunctionsAndConditions = rewriteConditions(equ(placeholder, expr), quantifiedVariable, state)
-    println(s"EXPR without functions/conditions: $exprWithoutFunctionsAndConditions")
-    var denominators: Set[Int] = Set()
-    exprWithoutFunctionsAndConditions.foreach {
-      case BinaryArithmeticExpression(_, Constant(const, _, _), ArithmeticOperator./) => denominators += const.toInt
-      case _ =>
-    }
-    val leastCommonMultiple = lcm(denominators)
-    def divisionMultiplier(expr: Expression): (Expression, Boolean) = expr match {
-      case BinaryArithmeticExpression(left, Constant(c, typ, _), ArithmeticOperator./) => (if (leastCommonMultiple / c.toInt == 1) left else mult(intToConst(leastCommonMultiple / c.toInt, typ), left), true)
-      case binExp@BinaryArithmeticExpression(left, right, ArithmeticOperator.*) => (divisionMultiplier(left), divisionMultiplier(right)) match {
-        case ((expr1, true), (expr2, false)) => (mult(expr1, expr2), true)
-        case ((expr1, false), (expr2, true)) => (mult(expr1, expr2), true)
-        case ((_, false), (_, false)) => (binExp, false)
-      }
-      case BinaryArithmeticExpression(left, right, op@(ArithmeticOperator.+ | ArithmeticOperator.-)) => (divisionMultiplier(left), divisionMultiplier(right)) match {
-        case ((expr1, true), (expr2, true)) => (BinaryArithmeticExpression(expr1, expr2, op), true)
-        case ((expr1, false), (expr2, false)) => (BinaryArithmeticExpression(expr1, expr2, op), false)
-        case ((expr1, true), (expr2, false)) => (BinaryArithmeticExpression(expr1, mult(intToConst(leastCommonMultiple, expr2.typ), expr2), op), true)
-        case ((expr1, false), (expr2, true)) => (BinaryArithmeticExpression(mult(intToConst(leastCommonMultiple, expr1.typ), expr1), expr2, op), true)
-      }
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) => (modulo(mult(left, intToConst(leastCommonMultiple, left.typ)), mult(right, intToConst(leastCommonMultiple, right.typ))), true)
-      case other => (other, false)
-    }
-    def coefficientMultiplier(expr: Expression): Expression = divisionMultiplier(expr) match {
-      case (multiplied, true) => multiplied
-      case (original, false) => mult(intToConst(leastCommonMultiple, original.typ), original)
-    }
-    simplifyExpression(exprWithoutFunctionsAndConditions.transform {
-      case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => comp(coefficientMultiplier(left), coefficientMultiplier(right), op)
-      case other => other
-    })
-  }
-
-  private def rewriteConditions(expr: Expression, quantifiedVariable: VariableIdentifier, state: QuantifiedPermissionsState): Expression = {
-    var freeVarMap: Map[VariableIdentifier, Set[(Expression, Expression)]] = Map()
-    var freeVarOrder: Seq[VariableIdentifier] = Seq()
-    val exprWithoutConditions = expr.transform {
-      case ConditionalExpression(cond, left, right, typ) =>
-        val freeVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("y"))(typ)
-        freeVarOrder +:= freeVariable
-        cond match {
-          case ExpressionDescription(pp, intExpr) => simplifyExpression(intExpr) match {
-            case const: Constant => freeVarMap += freeVariable -> Set((left, equ(quantifiedVariable, const)), (right, neq(quantifiedVariable, const)))
-            case other =>
-              val constraints = Context.preNumericalInfo(pp).numDom.getConstraints(intExpr.ids.toSetOrFail).filter(x => intExpr.ids.toSetOrFail.forall(id => x.contains {
-                case `id` => true
-                case _ => false
-              })).reduceOption(and) match {
-                case None => trueConst
-                case Some(exp) => exp
-              }
-              val quantifiedCond = equ(quantifiedVariable, other)
-              val condTrue = and(quantifiedCond, constraints)
-              val condFalse = and(quantifiedCond, not(constraints))
-              freeVarMap += freeVariable -> Set((left, condTrue), (right, condFalse))
-          }
-          case _ => freeVarMap += freeVariable -> Set((left, cond), (right, NegatedBooleanExpression(cond)))
-        }
-        freeVariable
-      case MaxExpression(args, typ, _) =>
-        val argSet = args.toSet
-        val freeVariable = VariableIdentifier(Context.createNewUniqueVarIdentifier("y"))(typ)
-        freeVarOrder +:= freeVariable
-        freeVarMap += freeVariable -> argSet.map(arg => (arg, (argSet - arg).map(otherArg => geq(arg, otherArg)).reduce(and)))
-        freeVariable
-      case other => other
-    }
-    var exprSet: Set[Expression] = Set(exprWithoutConditions)
-    for (x <- freeVarOrder) {
-      var newExprSet: Set[Expression] = Set()
-      for (existing <- exprSet) {
-        for ((expr, conditionsTrue) <- freeVarMap(x)) {
-          val newExpr = existing.transform {
-            case `x` => expr
-            case other => other
-          }
-          newExprSet += and(newExpr, conditionsTrue)
-        }
-      }
-      exprSet = newExprSet
-    }
-    Context.clearIdentifiers(freeVarOrder.map(_.name))
-    exprSet.reduce(or)
-  }
-
   // Step 1
   private def toNNF(expr: Expression): Expression = Utils.toNNF(expr)
 
@@ -283,73 +191,4 @@ object NotDivides {
     case BinaryArithmeticExpression(Constant("0", _, _), BinaryArithmeticExpression(expr, Constant(divisor, _, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
     case _ => None
   }
-}
-
-object Main3 {
-
-  def main(args: Array[String]): Unit = {
-    val q = VariableIdentifier("q")(IntType)
-    val i = VariableIdentifier("i")(IntType)
-    val j = VariableIdentifier("j")(IntType)
-    val bound = VariableIdentifier("bound")(IntType)
-    val p = VariableIdentifier("p")(PermType)
-    val p2 = VariableIdentifier("p2")(PermType)
-    val inv1 = and(leq(intToConst(0, IntType), i), leq(i, intToConst(10, IntType)))
-    val inv2 = and(leq(intToConst(20, IntType), i), leq(i, intToConst(30, IntType)))
-    val rdAmount = VariableIdentifier(Context.getRdAmountVariable.name)(PermType)
-    println(simplifyExpression(or(
-      QuantifierElimination.eliminate(i, and(and(equ(q, i), inv1), equ(p, intToConst(1, PermType)))),
-        and(not(QuantifierElimination.eliminate(i, and(equ(q, i), inv1))), equ(p, intToConst(0, PermType))))))
-
-    QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, p)))
-    QuantifierElimination.eliminate(i, and(equ(i, q), and(and(Divides(2, i), leq(intToConst(0, IntType), i)), leq(i, intToConst(9, IntType)))))
-    QuantifierElimination.eliminate(i, and(equ(i, q), equ(i, intToConst(3, IntType))))
-    val exp = simplifyExpression(not(QuantifierElimination.eliminate(i, and(equ(i, q), not(and(and(iff(inv2, equ(p, writeConst)), iff(and(inv1, not(inv2)), equ(p, rdAmount))), iff(not(and(inv1, inv2)), equ(p, noneConst))))))))
-    println(s"Disjuncts:")
-    splitToDisjuncts(exp).foreach(println)
-    println(s"\nConjuncts:")
-    splitToConjuncts(exp).foreach(println)
-
-    val exp2 = simplifyExpression(not(QuantifierElimination.eliminate(i, not(and(and(implies(and(inv1, equ(q, i)), equ(p, writeConst)), implies(and(and(inv2, equ(q, i)), not(and(inv1, equ(q, i)))), equ(p, rdAmount))), implies(and(not(and(inv1, equ(q, i))), not(and(inv2, equ(q, i)))), equ(p, noneConst)))))))
-    println(s"Disjuncts:")
-    splitToDisjuncts(exp2).foreach(println)
-    println(s"\nConjuncts:")
-    splitToConjuncts(exp2).foreach(println)
-
-    val exp3 = simplifyExpression(QuantifierElimination.eliminate(i, or(equ(p, writeConst), and(and(inv1, equ(q, i)), neq(p, noneConst)))))
-    println(s"Disjuncts:")
-    splitToDisjuncts(exp3).foreach(println)
-    println(s"\nConjuncts:")
-    splitToConjuncts(exp3).foreach(println)
-
-    val inv3 = equ(plus(i, j), bound)
-    val inv4 = and(leq(0, i), leq(i, 10))
-    val q_constr = and(equ(q, i), equ(q, plus(i, j)))
-
-    val blubb = simplifyExpression(not(QuantifierElimination.eliminate(i, not(implies(inv1, or(or(and(and(equ(q, 5), equ(q, i)), equ(p, noneConst)), and(and(equ(q, 5), neq(q, i)), equ(p, noneConst))), and(and(neq(q, 5), equ(q, i)), equ(p, writeConst))))))))
-
-    println(s"Disjuncts:")
-    splitToDisjuncts(blubb).foreach(println)
-    println(s"\nConjuncts:")
-    splitToConjuncts(blubb).foreach(println)
-
-    val blubb2 = simplifyExpression(not(QuantifierElimination.eliminate(q, and(or(lt(p, writeConst), neq(q, 9)), or(lt(p, noneConst), equ(q, 9))))))
-    println(s"\n\n$blubb2")
-    val blubb3 = QuantifierElimination.eliminate(q, and(or(and(equ(p, writeConst), equ(q, 9)), and(equ(p, noneConst), neq(q, 9))), blubb2))
-
-
-    val invi = and(leq(0, i), leq(i, 9))
-    val existPart = or(and(and(and(equ(p, writeConst), equ(q, 9)), neq(q, i)), invi), and(and(equ(p, noneConst), or(neq(q, 9), equ(q, i))), invi))
-    val forallPart = implies(invi, or(and(and(geq(p, writeConst), equ(q, 9)), neq(q, i)), and(geq(p, noneConst), or(neq(q, 9), equ(q, i)))))
-    val wholeExpr = simplifyExpression(and(QuantifierElimination.eliminate(i, existPart), not(QuantifierElimination.eliminate(i, not(forallPart)))))
-    println(wholeExpr)
-    println(s"Disjuncts:")
-    splitToDisjuncts(wholeExpr).foreach(println)
-    println(s"\nConjuncts:")
-    splitToConjuncts(wholeExpr).foreach(println)
-
-    QuantifierElimination.eliminate(Set(i, j), and(and(equ(q, plus(i, j)), equ(i, 3)), equ(j, 4)))
-    QuantifierElimination.eliminate(i, and(equ(q, i), or(lt(i, 0), gt(i, 10))))
-  }
-  implicit def intToIntConst(i: Int): Constant = intToConst(i, IntType)
 }

@@ -11,7 +11,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, Do
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.ReferenceSetDescription.ReferenceSetElementDescriptor.{AddField, Function, RootElement}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils.ExpressionBuilder._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import viper.silver.{ast => sil}
 
