@@ -388,13 +388,10 @@ object ReferenceSetDescription {
       }
     }
 
-    private def transformFieldAssignRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr match {
-      case ConditionalExpression(cond, thenExpr, elseExpr, typ) => ConditionalExpression(transformFieldAssignRecursively(field, receiver, right, cond), transformFieldAssignRecursively(field, receiver, right, thenExpr), transformFieldAssignRecursively(field, receiver, right, elseExpr), typ)
+    private def transformFieldAssignRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr.transform {
       case FieldExpression(typ, `field`, rec) =>
         if (receiver.equals(rec)) right
-        else ConditionalExpression(BinaryArithmeticExpression(rec, receiver, ArithmeticOperator.==), right, FieldExpression(typ, field, transformFieldAssignRecursively(field, receiver, right, rec)), right.typ)
-      case BinaryArithmeticExpression(l, r, op) => BinaryArithmeticExpression(transformFieldAssignRecursively(field, receiver, right, l), transformFieldAssignRecursively(field, receiver, right, r), op)
-      case FieldExpression(_, otherField, rec) => FieldExpression(right.typ, otherField, transformFieldAssignRecursively(field, receiver, right, rec))
+        else ConditionalExpression(BinaryArithmeticExpression(rec, receiver, ArithmeticOperator.==), right, FieldExpression(typ, field, rec), right.typ)
       case _ => expr
     }
 

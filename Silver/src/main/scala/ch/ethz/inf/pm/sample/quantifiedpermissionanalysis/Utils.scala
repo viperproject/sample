@@ -233,10 +233,11 @@ object Utils {
         case _ if left == right => left
         case _ => b
       }
-      case NegatedBooleanExpression(arg) => arg match {
+      case n@NegatedBooleanExpression(arg) => arg match {
         case NegatedBooleanExpression(nestedArg) => nestedArg
         case `trueConst` => falseConst
         case `falseConst` => trueConst
+        case _ => n
       }
       case ConditionalExpression(`trueConst`, left, _, _) => left
       case ConditionalExpression(`falseConst`, _, right, _) => right

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, NegatedBooleanExpression, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 import scala.collection.immutable
@@ -26,25 +26,17 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
 
   def inhale(field: String, pp: ProgramPoint, receiver: Expression, permission: FractionalPermission): PermissionRecords = (if (getOrElse(field, EmptyPermissionTree).hasRead) undoLastRead(field) else this).sub(field, ExpressionDescription(pp, receiver), permission)
 
-  def transformAssignVariable(variable: VariableIdentifier): PermissionRecords = copy(permissions.mapValues(_.transformAssignVariable(variable)))
+  def transformAssignVariable(variable: VariableIdentifier): PermissionRecords = copy(permissions.mapValues(_.transformAssignVariable(variable).transformForgetVariable(variable)))
 
   def transformAssignField(field: String): PermissionRecords = copy(permissions.mapValues(_.transformAssignField(field)))
 
   def lub(cond: Expression, elsePermissions: PermissionRecords): PermissionRecords =
-    copy(permissions ++ elsePermissions.transform { case (field, tree) =>
-      if (permissions.contains(field)) permissions(field).condition(cond, tree)
-      else tree.condition(NegatedBooleanExpression(cond), EmptyPermissionTree)
-    })
+    copy(Map((permissions.keySet ++ elsePermissions.keySet).map(field => (field, permissions.getOrElse(field, EmptyPermissionTree).condition(cond, elsePermissions.getOrElse(field, EmptyPermissionTree)))).toSeq :_*))
 
   def lub(other: PermissionRecords): PermissionRecords =
     copy(permissions ++ other.permissions.transform { case (field, tree) =>
       if (permissions.contains(field)) tree.max(permissions(field))
       else tree
-    })
-
-  def condition(cond: Expression): PermissionRecords =
-    copy(permissions.transform { case (_, tree) =>
-        tree.condition(cond)
     })
 
   def simplifySyntactically: PermissionRecords =
@@ -59,7 +51,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
 
   def forget: PermissionRecords =
     copy(permissions = permissions.transform {
-      case (_, tree) if tree.canBeExpressedByIntegerQuantification => tree.toForgottenTree
+      case (_, tree) if tree.isIntegerDependent => tree.toForgottenTree
       case (_, other) => other
     })
 

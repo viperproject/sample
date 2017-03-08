@@ -113,7 +113,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     case _ =>
       val newChangingVars = changingVars ++ falseState.changingVars
       val newPermissions =
-        if (firstIteration) if (newChangingVars.exists(cond.ids.contains(_))) permissions.condition(cond).lub(falseState.permissions.condition(not(cond))) else permissions.lub(cond, falseState.permissions)
+        if (firstIteration) permissions.lub(cond, falseState.permissions)
         else (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
           case (true, true) => permissions
           case (true, false) => permissions
