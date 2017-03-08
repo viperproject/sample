@@ -225,39 +225,45 @@ object Utils {
   def simplifyExpression(expr: Expression): Expression = {
     val rdAmountName = Context.getRdAmountVariable.name
     getCollected(toNNF(expr)).transform {
-      case BinaryBooleanExpression(`trueConst`, other, BooleanOperator.&&) => other
-      case BinaryBooleanExpression(other, `trueConst`, BooleanOperator.&&) => other
-      case BinaryBooleanExpression(`falseConst`, _, BooleanOperator.&&) | BinaryBooleanExpression(_, `falseConst`, BooleanOperator.&&) => falseConst
-      case BinaryBooleanExpression(`falseConst`, other, BooleanOperator.||) => other
-      case BinaryBooleanExpression(other, `falseConst`, BooleanOperator.||) => other
-      case BinaryBooleanExpression(`trueConst`, _, BooleanOperator.||) | BinaryBooleanExpression(_, `trueConst`, BooleanOperator.||) => trueConst
-      case BinaryBooleanExpression(left, right, _) if left == right => left
-      case NegatedBooleanExpression(NegatedBooleanExpression(arg)) => arg
-      case NegatedBooleanExpression(`trueConst`) => falseConst
-      case NegatedBooleanExpression(`falseConst`) => trueConst
+      case BinaryBooleanExpression(left, right, op) => (left, right, op) match {
+        case (`trueConst`, other, BooleanOperator.&&) => other
+        case (other, `trueConst`, BooleanOperator.&&) => other
+        case (`falseConst`, _, BooleanOperator.&&) | (_, `falseConst`, BooleanOperator.&&) => falseConst
+        case (`falseConst`, other, BooleanOperator.||) => other
+        case (other, `falseConst`, BooleanOperator.||) => other
+        case (`trueConst`, _, BooleanOperator.||) | (_, `trueConst`, BooleanOperator.||) => trueConst
+        case _ if left == right => left
+      }
+      case NegatedBooleanExpression(arg) => arg match {
+        case NegatedBooleanExpression(nestedArg) => nestedArg
+        case `trueConst` => falseConst
+        case `falseConst` => trueConst
+      }
       case ConditionalExpression(`trueConst`, left, _, _) => left
       case ConditionalExpression(`falseConst`, _, right, _) => right
       case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
-      case BinaryArithmeticExpression(Constant("1", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
-      case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("1", PermType, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
-      case BinaryArithmeticExpression(Constant("0", PermType, _), VariableIdentifier(`rdAmountName`, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
-      case BinaryArithmeticExpression(VariableIdentifier(`rdAmountName`, _), Constant("0", PermType, _), op) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
-      case BinaryArithmeticExpression(Constant(left, _, _), Constant(right, _, _), op) if ArithmeticOperator.isComparison(op) => Constant(toComparisonOp(op)(left.toInt, right.toInt).toString, BoolType)
-      case BinaryArithmeticExpression(Constant(left, leftTyp, _), Constant(right, _, _), op) if ArithmeticOperator.isArithmetic(op) => Constant(toArithmeticOp(op)(left.toInt, right.toInt).toString, leftTyp)
-      case BinaryArithmeticExpression(Constant("1", _, _), other, ArithmeticOperator.*) => other
-      case BinaryArithmeticExpression(Constant("-1", _, _), other, ArithmeticOperator.*) => neg(other)
-      case BinaryArithmeticExpression(other, Constant("1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => other
-      case BinaryArithmeticExpression(other, Constant("-1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => neg(other)
-      case BinaryArithmeticExpression(Constant("0", _, _), other, ArithmeticOperator.+ | ArithmeticOperator.-) => other
-      case BinaryArithmeticExpression(other, Constant("0", _, _), ArithmeticOperator.+ | ArithmeticOperator.-) => other
-      case BinaryArithmeticExpression(_, Constant("1" | "-1", typ, _), ArithmeticOperator.%) => intToConst(0, typ)
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.%) if left == right => intToConst(0, left.typ)
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.<= | ArithmeticOperator.== | ArithmeticOperator.>=) if left == right => trueConst
-      case BinaryArithmeticExpression(left, right, ArithmeticOperator.< | ArithmeticOperator.!= | ArithmeticOperator.>) if left == right => falseConst
-      case b@BinaryArithmeticExpression(left, Constant(const, _, _), ArithmeticOperator.%) =>
-        val collectLeft = collect(left)
-        if (collectLeft.forall(_._2 % const.toInt == 0)) intToConst(0, left.typ)
-        else b
+      case b@BinaryArithmeticExpression(left, right, op) => (left, right, op) match {
+        case (Constant("1", PermType, _), VariableIdentifier(`rdAmountName`, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
+        case (VariableIdentifier(`rdAmountName`, _), Constant("1", PermType, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
+        case (Constant("0", PermType, _), VariableIdentifier(`rdAmountName`, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
+        case (VariableIdentifier(`rdAmountName`, _), Constant("0", PermType, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
+        case (Constant(leftConst, _, _), Constant(rightConst, _, _), _) if ArithmeticOperator.isComparison(op) => Constant(toComparisonOp(op)(leftConst.toInt, rightConst.toInt).toString, BoolType)
+        case (Constant(leftConst, leftTyp, _), Constant(rightConst, _, _), _) if ArithmeticOperator.isArithmetic(op) => Constant(toArithmeticOp(op)(leftConst.toInt, rightConst.toInt).toString, leftTyp)
+        case (Constant("1", _, _), other, ArithmeticOperator.*) => other
+        case (Constant("-1", _, _), other, ArithmeticOperator.*) => neg(other)
+        case (other, Constant("1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => other
+        case (other, Constant("-1", _, _), ArithmeticOperator.* | ArithmeticOperator./) => neg(other)
+        case (Constant("0", _, _), other, ArithmeticOperator.+ | ArithmeticOperator.-) => other
+        case (other, Constant("0", _, _), ArithmeticOperator.+ | ArithmeticOperator.-) => other
+        case (_, Constant("1" | "-1", typ, _), ArithmeticOperator.%) => intToConst(0, typ)
+        case (_, _, ArithmeticOperator.%) if left == right => intToConst(0, left.typ)
+        case (_, _, ArithmeticOperator.<= | ArithmeticOperator.== | ArithmeticOperator.>=) if left == right => trueConst
+        case (_, _, ArithmeticOperator.< | ArithmeticOperator.!= | ArithmeticOperator.>) if left == right => falseConst
+        case (_, Constant(const, _, _), ArithmeticOperator.%) =>
+          val collectLeft = collect(left)
+          if (collectLeft.forall(_._2 % const.toInt == 0)) intToConst(0, left.typ)
+          else b
+      }
       case other => other
     } match {
       case transformed if transformed == expr => transformed
