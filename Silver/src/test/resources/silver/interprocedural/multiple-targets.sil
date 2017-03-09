@@ -1,0 +1,13 @@
+method foo(this: Ref)
+{
+    var i: Int := 0
+    var z: Int := 0
+    i, z := bar(this, i)
+    assert i == 1
+}
+
+method bar(i: Int) returns (k: Int, l: Int)
+{
+    k := i + 1
+    l := i + 1
+}
