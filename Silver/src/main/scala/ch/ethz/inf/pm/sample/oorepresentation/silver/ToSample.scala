@@ -175,14 +175,22 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
       Seq(assignment)
 
-    case sil.MethodCall(method, args, targets) =>
+    case s@sil.MethodCall(method, args, targets) => {
       val call = sample.MethodCall(
         pp = go(s.pos),
         method = makeVariable(s.pos, sil.Ref, method),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = sample.TopType)
-      Seq(call)
+      if (s.targets.length == 1) {
+        Seq(sample.Assignment(go(s.pos), go(s.targets.head), call))
+      }
+      else if (s.targets.length > 1) {
+        ??? //TODO what about multiple targets?
+      } else {
+        Seq(call)
+      }
+    }
 
     case sil.LocalVarDeclStmt(decl) =>
       Seq(go(decl))
