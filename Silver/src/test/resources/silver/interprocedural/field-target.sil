@@ -1,0 +1,13 @@
+//
+// this test may not make sense. check first whether object.field := method() is supposed to work in silver
+//
+field f: Int
+
+method foo(this: Ref) {
+    this.f := bar()     // RuntimeError "unexpected reference to non-function"
+}
+
+method bar() returns (k: Int)
+{
+    k := 0
+}

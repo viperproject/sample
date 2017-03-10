@@ -1,0 +1,14 @@
+field f: Int
+
+method foo(this: Ref) {
+    var i: Int := 0
+    this.f := 0
+    i := bar()
+    i := this.f
+    assert i == 0 // should fail because this.f should be set to top
+}
+
+method bar() returns (k: Int)
+{
+    k := 0
+}
