@@ -37,7 +37,7 @@ object QuantifierElimination extends LazyLogging {
   // Step 1
   private def toNNF(expr: Expression): Expression = Utils.toNNF(expr)
 
-  // Step 3
+  // Step 2
   private def collectVariable(variable: Identifier, expr: Expression): Expression = expr.transform {
     case binExp@BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) && (binExp.contains(_ == variable) || !binExp.contains {
       case DivideExpression(_, _, _) => true
@@ -57,7 +57,7 @@ object QuantifierElimination extends LazyLogging {
     case other => other
   }
 
-  // Step 4
+  // Step 3
   private def replaceLCM(variable: Identifier, expr: Expression): (Expression, Identifier) = {
     var numbers: Set[Int] = Set()
     expr.foreach {
@@ -90,7 +90,7 @@ object QuantifierElimination extends LazyLogging {
     else (replacedLCM, freshVariable)
   }
 
-  // Step 5
+  // Step 4
   private def constructEquivalence(freshVariable: Identifier, expr: Expression): Expression = {
     val leftProjection = leftInfiniteProjection(freshVariable, expr)
     val d = delta(freshVariable, expr)
