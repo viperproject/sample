@@ -98,7 +98,13 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(f: sil.Function): SilverFunctionDeclaration = {
-    ???
+    new SilverFunctionDeclaration(
+      programPoint = go(f.pos),
+      name = SilverIdentifier(f.name),
+      parameters = f.formalArgs.map(go).toList,
+      returnType = go(f.typ),
+      body = go(f.body.getOrElse(null))
+    )
   }
 
   def convert(method: sil.Method): SilverMethodDeclaration =
