@@ -188,11 +188,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = sample.TopType)
-      if (s.targets.length == 1) {
-        Seq(sample.Assignment(go(s.pos), go(s.targets.head), call))
-      }
-      else if (s.targets.length > 1) {
-        ??? //TODO what about multiple targets?
+      // currently we just translate each target into target := method()
+      //TODO we should probably store the targets and move the assignment into the interpreter
+      if (s.targets.length > 0) {
+        s.targets.map(t => sample.Assignment(go(s.pos), go(t), call))
       } else {
         Seq(call)
       }
