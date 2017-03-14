@@ -72,7 +72,7 @@ trait PermissionTree {
 
   def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
 
-  def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if(isIntegerDependent) Maximum(Seq(transformCondition(cond), elsePermissions.transformCondition(not(cond)))) else Condition(cond, this, elsePermissions)
+  def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if(isIntegerDependent) Maximum(Seq(propagateCondition(cond), elsePermissions.propagateCondition(not(cond)))) else Condition(cond, this, elsePermissions)
 
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree
 
@@ -92,7 +92,7 @@ trait PermissionTree {
     case other => other
   }
 
-  def transformCondition(cond: Expression): PermissionTree = transform {
+  def propagateCondition(cond: Expression): PermissionTree = transform {
     case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission)
     case other => other
   }
@@ -256,7 +256,7 @@ case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permi
     val invariants = intParameter.constraints
     val replacements = getReplacementsForForgottenVariables(quantifiedVariable)
     def replacer(expr: Expression) = expr match {
-      case v: VariableIdentifier if replacements.contains(v) => replacements(v)
+      case v: VariableIdentifier => replacements.getOrElse(v, v)
       case other => other
     }
     val replacedExpression = expression.transform(replacer)
