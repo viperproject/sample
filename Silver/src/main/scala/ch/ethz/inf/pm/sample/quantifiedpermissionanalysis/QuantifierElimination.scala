@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import com.typesafe.scalalogging.LazyLogging
 
@@ -203,4 +204,15 @@ object NotDivides {
     case BinaryArithmeticExpression(Constant("0", _, _), BinaryArithmeticExpression(expr, Constant(divisor, _, _), ArithmeticOperator.%), ArithmeticOperator.!=) => Some(divisor.toInt, expr)
     case _ => None
   }
+}
+
+object Main2 {
+  def main(args: Array[String]): Unit = {
+    val q = VariableIdentifier("q")(IntType)
+    val i = VariableIdentifier("i")(IntType)
+    val p = VariableIdentifier("p")(PermType)
+    QuantifierElimination.eliminate(i, and(and(leq(0, i), leq(i, 9)), and(or(neq(q, i), equ(p, writeConst)), or(equ(q, i), equ(p, noneConst)))))
+  }
+
+  implicit def blubb(i: Int): Constant = intToConst(i, IntType)
 }
