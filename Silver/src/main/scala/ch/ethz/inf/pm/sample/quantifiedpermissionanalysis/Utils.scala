@@ -9,7 +9,6 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Type
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silicon.Silicon
 import viper.silver.verifier.Success
 import viper.silver.{ast => sil}
@@ -53,25 +52,21 @@ object Utils {
     case other => Set(other)
   }
 
-  def isFunctionInjective(function: sil.FuncLike, expr: Expression, numericalInfo: NumericalDomainType, program: sil.Program = Context.program): Boolean = {
+  def isFunctionInjective(function: sil.FuncLike, expr: Expression, constraints: Expression, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)
     val formalArgs = function.formalArgs.filter(formalArg => formalArg.typ != sil.Int) ++ intDecls
     val i1Id = VariableIdentifier(i1.name)(IntType)
     val i2Id = VariableIdentifier(i2.name)(IntType)
-    val expressionToAssume1 = BinaryArithmeticExpression(i1Id, expr, ArithmeticOperator.==)
-    val expressionToAssume2 = BinaryArithmeticExpression(i2Id, expr, ArithmeticOperator.==)
-    val constraints1 = numericalInfo.createVariable(i1Id).assume(expressionToAssume1).removeVariables(numericalInfo.ids.getNonTop).getConstraints(Set(i1Id))
-    val constraints2 = numericalInfo.createVariable(i2Id).assume(expressionToAssume2).removeVariables(numericalInfo.ids.getNonTop).getConstraints(Set(i2Id))
-    val precondition =
-      (Seq(sil.NeCmp(i1.localVar, i2.localVar)()) ++
-      constraints1.map(DefaultSampleConverter.convert) ++
-      constraints2.map(DefaultSampleConverter.convert)).reduceLeft(sil.And(_, _)())
+    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
+    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
+    val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
     val postcondition = sil.NeCmp(
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
+    println(newProgram)
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
     silicon.parseCommandLine(Seq("dummy.sil"))
     silicon.start()

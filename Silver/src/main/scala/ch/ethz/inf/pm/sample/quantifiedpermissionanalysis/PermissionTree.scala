@@ -140,6 +140,12 @@ trait PermissionTree {
 
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression])
 
+  def isIntegerQuantificationValid(function: FunctionExpressionDescription): Boolean = forall {
+    case _: SimplePermissionLeaf => false
+    case FunctionPermissionLeaf(receiver, _, _) => receiver.functionName == function.functionName && receiver.isInjective
+    case _ => true
+  }
+
   def toForgottenTree: IntegerQuantifiedPermissionTree = {
     val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
     val placeholderFun = Context.getPlaceholderFunction(Context.getQuantifiedVarDecl(sil.Int))
@@ -148,7 +154,9 @@ trait PermissionTree {
     val invariant = invariants.reduceOption(and).getOrElse(trueConst)
     val existsPart = and(invariant, constraints.map { case (constraint, perm) => implies(constraint, equ(permissionPlaceholder, perm)) }.reduce(and))
     val forallPart = implies(invariant, constraints.map { case (constraint, perm) => implies(constraint, geq(permissionPlaceholder, perm)) }.reduce(and))
-    IntegerQuantifiedPermissionTree(extractFunction.get, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), permissionPlaceholder, forgottenPermissions)
+    val function = extractFunction.get
+    if (!isIntegerQuantificationValid(function)) throw new IllegalStateException("The program contains integer dependent heap accesses but they do not conform to the requirements!")
+    IntegerQuantifiedPermissionTree(function, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), permissionPlaceholder, forgottenPermissions)
   }
 }
 

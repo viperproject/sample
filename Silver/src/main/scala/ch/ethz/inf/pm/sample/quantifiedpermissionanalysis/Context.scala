@@ -319,6 +319,7 @@ case class FunctionExpressionDescription(functionName: String, parameters: Seq[E
   }, typ, pp)
   def getIntegerParams: Seq[IntegerSetDescription] = parameters.flatMap(_.fold(_ => Set[IntegerSetDescription](), Set(_)))
   def getNonIntegerParams: Seq[ExpressionDescription] = parameters.flatMap(_.fold(Set(_), _ => Set[ExpressionDescription]()))
+  def isInjective: Boolean = Utils.isFunctionInjective(Context.functions(functionName), getIntegerParams.head.expr, getIntegerParams.head.constraintsAsConjunction)
 }
 
 case class MaxExpression(args: Seq[Expression], typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Expression {

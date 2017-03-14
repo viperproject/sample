@@ -1,35 +1,10 @@
-method basic(arr: Array)
-requires forall k: Int :: 0 <= k && k <= 9 ==> acc(loc(arr, k).val)
+field next: Ref
+
+method simple_conditional(b: Bool, x: Ref) returns (res: Ref)
 {
-	var i: Int := 0
-    while (i < 10)
-	invariant forall k: Int :: 0 <= k && k <= 9 ==> acc(loc(arr, k).val)
-	invariant i >= 0
-	{
-		var j: Int := 0
-		while (j < 5)
-		{
-			j := j + 1
-		}
-        loc(arr, i).val := i
-        i := i + 1
-    } 
-}
-
-function p(q: Int): Perm
-
-field val: Int
-
-domain Array {
-	function loc(a: Array, i: Int): Ref
-	function length(a: Array): Int
-	function ref_to_array(ref: Ref): Array
-	function ref_to_index(ref: Ref): Int
-
-	axiom all_diff {
-		forall a: Array, i: Int :: {loc(a, i)} 0 <= i ==> ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
+	var y: Ref := x
+	if (b) {
+		y := x.next
 	}
-	axiom length_nonneg {
-		forall a:Array :: length(a) >= 0
-	}
+	res := y.next
 }

@@ -105,7 +105,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     var visited: Set[(ProgramPoint, Expression)] = Set()
     state.refSets.values.toSet.foreach((set: ReferenceSetDescription) => set match {
       case setDescription: ReferenceSetDescription.Inner =>
-        if (!setDescription.isFinite(state) && !setDescription.canBeExpressedByIntegerQuantification(state) && !visited.contains(setDescription.key)) {
+        if (!setDescription.isFinite(state) && !visited.contains(setDescription.key)) {
           newPreconditions ++= setDescription.toSetDefinition(state)
           visited += setDescription.key
         }

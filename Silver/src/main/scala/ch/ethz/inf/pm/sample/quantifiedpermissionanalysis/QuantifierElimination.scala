@@ -121,6 +121,18 @@ object QuantifierElimination extends LazyLogging {
     lcm(numbers)
   }
 
+  private def getAs(freshVariable: Identifier, expr: Expression): Set[Expression] = {
+    var as: Set[Expression] = Set()
+    expr.foreach {
+      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.> | ArithmeticOperator.!=) => as += left
+      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.>= | ArithmeticOperator.==) => as += plus(left, intToConst(1, left.typ))
+      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.< | ArithmeticOperator.!=) => as += right
+      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.<= | ArithmeticOperator.==) => as += plus(right, intToConst(1, right.typ))
+      case _ =>
+    }
+    as
+  }
+
   private def getBs(freshVariable: Identifier, expr: Expression): Set[Expression] = {
     var bs: Set[Expression] = Set()
     expr.foreach {

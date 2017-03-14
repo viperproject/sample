@@ -38,8 +38,6 @@ sealed trait SetDescription[S <: SetDescription[S]] extends Lattice[S] {
 
   def transformCondition(cond: Expression): S
 
-  def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
-
   def isFinite(state: QuantifiedPermissionsState): Boolean
 
   def isOneElement: Boolean
@@ -58,8 +56,6 @@ object SetDescription {
 
     def isFinite(state: QuantifiedPermissionsState): Boolean = false
 
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
-
     def isOneElement = false
 
     def getSingleElement: Expression = throw new UnsupportedOperationException
@@ -73,8 +69,6 @@ object SetDescription {
     def expr = throw new UnsupportedOperationException
 
     def isFinite(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
-
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
 
     def isOneElement = throw new UnsupportedOperationException()
 
@@ -113,8 +107,6 @@ sealed trait ReferenceSetDescription extends SetDescription[ReferenceSetDescript
     */
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp
 
-  def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean
-
   def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp]
 
   def extractIntegerParameterExpression: (ProgramPoint, Expression)
@@ -143,8 +135,6 @@ object ReferenceSetDescription {
 
     def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = sil.TrueLit()()
 
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = false
-
     def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = Seq(sil.TrueLit()())
 
     def simplify: ReferenceSetDescription = this
@@ -156,8 +146,6 @@ object ReferenceSetDescription {
     def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == bottom()
 
     def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException()
-
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = throw new UnsupportedOperationException()
 
     def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = throw new UnsupportedOperationException()
 
@@ -210,17 +198,6 @@ object ReferenceSetDescription {
 
     def getSingleElement: Expression = concreteExpressions.head._1
 
-    def canBeExpressedByIntegerQuantification(state: QuantifiedPermissionsState): Boolean = QuantifiedPermissionsParameters.useIntegerQuantification && !widened && abstractExpressions.forall {
-      case Function(functionName, _, _, parameters) => parameters.count {
-        case (IntType, _, _) => true
-        case _ => false
-      } == 1 && parameters.forall {
-        case (IntType, _, expr) => Utils.isFunctionInjective(Context.functions(functionName), expr, Context.postNumericalInfo(pp).numDom)
-        case (_, pp, expr) => state.refSets((pp, expr)).isOneElement
-      }
-      case _ => false
-    }
-
     private def expand(state: QuantifiedPermissionsState, setDescription: ReferenceSetDescription): Set[(Expression, Seq[Expression])] = setDescription match {
       case inner: Inner =>
         inner.concreteExpressions.flatMap {
@@ -251,47 +228,6 @@ object ReferenceSetDescription {
 
     def extractIntegerParameterExpression: (ProgramPoint, Expression) = (pp, key._2.find(_.typ == IntType).get)
 
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
-      concreteExpressions.foldLeft[Option[sil.Exp]](None) {
-        case (None, (FunctionCallExpression(_, parameters, _, _), _)) =>
-          parameters.foldLeft[Option[sil.Exp]](None) {
-            case (None, e) if e.typ == IntType =>
-              val quantifiedVariableIdentifier = VariableIdentifier(quantifiedVariable.name)(IntType)
-//              Utils.toCNFConjuncts(forget(quantifiedVariableIdentifier, e))
-//                .toSeq
-//                .map(constraint => constraint.transform {
-//                  // Reorder subexpressions in the constraints in order to make them more 'natural'. E.g. i >= 0 will be changed to 0 <= i
-//                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>=) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<=)
-//                  case BinaryArithmeticExpression(`quantifiedVariableIdentifier`, right, ArithmeticOperator.>) => BinaryArithmeticExpression(right, quantifiedVariableIdentifier, ArithmeticOperator.<)
-//                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<=) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>=)
-//                  case BinaryArithmeticExpression(left, `quantifiedVariableIdentifier`, ArithmeticOperator.<) => BinaryArithmeticExpression(quantifiedVariableIdentifier, left, ArithmeticOperator.>)
-//                  case other => other
-//                })
-//                .sorted (new Ordering[Expression] {
-//                  // Reorder the constraints, e.g. [10 >= i, i >= 0] together with the above map will be changed to [0 <= i, i <= 10] which looks like an interval and thus more intuitive
-//                  override def compare(x: Expression, y: Expression): Int = (x, y) match {
-//                    case (BinaryArithmeticExpression(_, `quantifiedVariableIdentifier`, _), _) => -1
-//                    case (BinaryArithmeticExpression(`quantifiedVariableIdentifier`, _, _), _) => 1
-//                    case _ => 0
-//                  }
-//                })
-//                .map(constraint => DefaultSampleConverter.convert(constraint))
-//                .reduceLeftOption((left, right) => sil.And(left, right)())
-//              match {
-//                case some: Some[_] => some
-//                case None => Some(sil.TrueLit()())
-//              }
-              Some(DefaultSampleConverter.convert(forget(state, quantifiedVariableIdentifier, e)))
-            case (Some(_), e) if e.typ == IntType => throw new IllegalStateException("Encountered two or more int arguments")
-            case _ => None
-          }
-        case _ => throw new IllegalStateException("Encountered a concrete expression that is no function call! Integer quantification can only be applied for functions.")
-      } match {
-        case Some(exp) => exp
-        case _ => throw new IllegalStateException("Integer quantification can only be applied if there is at least one int argument!")
-      }
-    }
-
     /**
       * Generates an expression that checks whether a given quantified variable is contained in the set represented by
       * this description.
@@ -317,19 +253,10 @@ object ReferenceSetDescription {
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
 
-    def forget(state: QuantifiedPermissionsState, variable: VariableIdentifier, exprToForget: Expression): Expression = exprToForget match {
-      case _: Constant => BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-      case _ =>
-        val numericalInfo: NumericalDomainType = Context.postNumericalInfo(pp).numDom
-        val expressionToAssume = BinaryArithmeticExpression(variable, exprToForget, ArithmeticOperator.==)
-        val constraints = expressionToAssume +: numericalInfo.getConstraints(exprToForget.ids.toSetOrFail).toSeq
-        QuantifierElimination.eliminate((exprToForget.ids.toSetOrFail ++ state.changingVars ++ state.declaredBelowVars).map { case varId: VariableIdentifier => varId }, constraints.reduce(and))
-    }
-
     override def toSetDefinition(state: QuantifiedPermissionsState): Seq[sil.Exp] = {
       val expressions: Map[(ProgramPoint, Expression), ReferenceSetDescription] = state.refSets
       val set = Context.getSetFor(key).localVar
-      if (isFinite(state) || canBeExpressedByIntegerQuantification(state)) null
+      if (isFinite(state)) null
       else {
         var roots: Seq[sil.Exp] = Seq()
         var fields: Seq[sil.Exp] = Seq()
@@ -373,7 +300,6 @@ object ReferenceSetDescription {
               args :+= arg
               formalArg.typ match {
                 case sil.Ref | _: sil.DomainType => impliesLeftConjuncts :+= expressions((pp, argExpr)).toSilExpression(state, arg.localVar)
-                case sil.Int => DefaultSampleConverter.convert(forget(state, VariableIdentifier(arg.name)(IntType), argExpr))
                 case _ => throw new IllegalStateException()
               }
             }
@@ -571,8 +497,6 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 
   def constraintsAsConjunction: Expression = constraints.reduce(and)
 
-  def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier] = Set()): Expression
-
   def silverType: sil.Type = sil.Int
 
   def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = this
@@ -587,12 +511,10 @@ object IntegerSetDescription {
 
   sealed trait Top extends IntegerSetDescription with SetDescription.Top[IntegerSetDescription] {
     def ids: IdentifierSet = IdentifierSet.Top
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
   }
 
   sealed trait Bottom extends IntegerSetDescription with SetDescription.Bottom[IntegerSetDescription] {
     def ids: IdentifierSet = IdentifierSet.Bottom
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = constraints.reduce(and)
   }
 
   sealed trait Inner extends IntegerSetDescription with SetDescription.Inner[IntegerSetDescription, Inner] {
@@ -655,8 +577,6 @@ object PositiveIntegerSetDescription {
                      constraints: Set[Expression] = constraints): Inner =
       Inner(pp, expr, constraints)
 
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and))
-
     override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
       case FieldExpression(_, `field`, _) => true
       case _ => false
@@ -670,8 +590,6 @@ object PositiveIntegerSetDescription {
         case _ => setDescription
       }
     }
-
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = DefaultSampleConverter.convert(constraints.reduce(and))
 
     def lubInner(other: IntegerSetDescription.Inner): IntegerSetDescription = top()
 
@@ -713,8 +631,6 @@ object NegativeIntegerSetDescription {
                      constraints: Set[Expression] = constraints): Inner =
       Inner(pp, expr, constraints)
 
-    def forget(quantifiedVariable: VariableIdentifier, otherVarsToForget: Set[Identifier]): Expression = QuantifierElimination.eliminate(otherVarsToForget ++ expr.ids.toSetOrFail, constraints.foldLeft[Expression](equ(quantifiedVariable, expr))(and))
-
     override def transformAssignField(receiver: Expression, field: String, right: Expression): IntegerSetDescription = copy(constraints = constraints.filter(!_.contains {
       case FieldExpression(_, `field`, _) => true
       case _ => false
@@ -728,8 +644,6 @@ object NegativeIntegerSetDescription {
         case _ => setDescription
       }
     }
-
-    def toIntegerQuantification(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = DefaultSampleConverter.convert(constraints.reduce(and))
 
     def lubInner(other: IntegerSetDescription.Inner): IntegerSetDescription = bottom()
 
