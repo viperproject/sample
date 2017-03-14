@@ -1,0 +1,26 @@
+field val: Int
+
+domain Matrix {
+	function loc(a: Matrix, i: Int, j: Int): Ref
+	function rows(a: Matrix): Int
+	function columns(a: Matrix): Int
+	function ref_to_matrix(ref: Ref): Matrix
+	function ref_to_row(ref: Ref): Int
+	function ref_to_column(ref: Ref): Int
+
+	axiom all_diff {
+		forall m: Matrix, i: Int, j: Int :: {loc(m, i, j)} ref_to_matrix(loc(m, i, j)) == m && ref_to_row(loc(m, i, j)) == i && ref_to_column(loc(m, i, j)) == j
+	}
+	axiom rows_nonneg {
+		forall m: Matrix :: rows(m) >= 0
+	}
+	axiom collumns_nonneg {
+		forall m: Matrix :: columns(m) >= 0
+	}
+}
+
+method test()
+ensures forall m: Matrix, i1: Int, j1: Int, i2: Int, j2: Int :: i1 != i2 && j1 != j2 ==> loc(m, i1, j1) != loc(m, i2, j2)
+{
+
+}
