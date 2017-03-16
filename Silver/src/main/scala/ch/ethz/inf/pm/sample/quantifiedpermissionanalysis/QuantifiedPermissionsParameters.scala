@@ -32,6 +32,8 @@ object QuantifiedPermissionsParameters {
 
   val addReceiverNullCheckInSetDefinition = true
 
+  val addReceiverNullCheckInPermissionExpression = false
+
   val useCustomTriggerGeneration = true
 
   val useFieldAccessFunctionsInSetDefinitions = false

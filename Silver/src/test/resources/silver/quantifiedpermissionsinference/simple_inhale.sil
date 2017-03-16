@@ -1,0 +1,6 @@
+field f: Ref
+
+method simpleInhale(r: Ref)
+{
+    inhale acc(r.f)
+}

@@ -6,7 +6,7 @@ method traverse(nd: Ref)
 {
     var node :Ref := nd
 
-    while(node != null && !node.next.is_marked)
+    while(node != null && !node.is_marked)
     {
         node.is_marked := true
         node := node.next

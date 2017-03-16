@@ -249,6 +249,8 @@ object ReferenceSetDescription {
           case (e, Nil) => e
           case (e, constraints) => sil.And(constraints.map(constraint => sil.NeCmp(constraint, sil.NullLit()())()).reduce[sil.Exp](sil.And(_, _)()), e)()
         }.reduce[sil.Exp](sil.Or(_, _)())
+      else if (QuantifiedPermissionsParameters.addReceiverNullCheckInPermissionExpression)
+        sil.And(sil.NeCmp(quantifiedVariable, sil.NullLit()())(), sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)())()
       else
         sil.AnySetContains(quantifiedVariable, Context.getSetFor(key).localVar)()
     }
