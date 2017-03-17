@@ -1,9 +1,7 @@
-method basic(head: Ref)
-{
-    var x: Ref := head
-    while (x != null) {
-        x := x.next
-    }
-}
+field f: Ref
 
-field next: Ref
+method basic(x: Ref, y: Ref)
+{
+  x.f := y
+  y.f.f := x
+}

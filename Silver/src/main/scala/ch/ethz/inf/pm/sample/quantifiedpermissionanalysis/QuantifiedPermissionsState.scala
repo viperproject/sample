@@ -204,10 +204,14 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return the abstract state after the assignment
     */
   override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = {
+    // Note: This is a hack since obj appears to be not the receiver but the whole field access.
     val receiver = obj match {
       case FieldExpression(_, `field`, rec) => rec
       case _ => throw new IllegalStateException()
     }
+    println(s"Permissions: $permissions")
+    println(s"Sets: $refSets")
+    println(s"assign $receiver.$field = $right")
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.addWrite(field, currentPP, receiver)
       else permissions.transformAssignField(field)
@@ -220,6 +224,8 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case _ => refSets
     }
     newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, elem.bottom()).lub(elem))
+    println(s"New Permissions: $newPermissions")
+    println(s"New Refsets: $newRefSets")
     copy(
       permissions = newPermissions,
       refSets = newRefSets
@@ -261,13 +267,13 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     )
   }
 
-  private def extractExpressionDescriptions(expr: Expression, positive: Boolean = true): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
+  private def extractExpressionDescriptions(expr: Expression): Map[(ProgramPoint, Expression), ReferenceSetDescription] = expr match {
     case FunctionCallExpression(_, parameters, _, _) =>
      parameters.map {
-        case param if param.typ.isInstanceOf[RefType] || param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param, positive)
+        case param if param.typ.isInstanceOf[RefType] || param.typ.isInstanceOf[DomType] => extractExpressionDescriptions(param)
         case _ => Map[(ProgramPoint, Expression), ReferenceSetDescription]()
       }.reduce(_ ++ _)
-    case _ => Map(((currentPP, expr), ReferenceSetDescription.Inner(currentPP, expr, positive)))
+    case _ => Map(((currentPP, expr), PositiveReferenceSetDescription.Inner(currentPP, expr)))
   }
 
   /** Executes the given command.
@@ -294,7 +300,7 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val newPermissions =
         if (!visited.contains(currentPP)) permissions.inhale(field, currentPP, receiver, FractionalPermission(num, denom))
         else permissions
-      val newRefSets = refSets ++ extractExpressionDescriptions(receiver, positive = false).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
+      val newRefSets = refSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => refSets.getOrElse(key, elem.bottom()).lub(elem))
       copy(
         permissions = newPermissions,
         refSets = newRefSets

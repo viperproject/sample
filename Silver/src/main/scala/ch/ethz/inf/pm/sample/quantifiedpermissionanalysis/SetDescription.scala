@@ -124,12 +124,6 @@ object ReferenceSetDescription {
     case class Function(functionName: String, typ: Type, pp: ProgramPoint, parameters: Seq[(Type, ProgramPoint, Expression)]) extends ReferenceSetElementDescriptor
   }
 
-  object Inner {
-    def apply(pp: ProgramPoint, initExpr: Expression, positive: Boolean): ReferenceSetDescription.Inner =
-      if (positive) PositiveReferenceSetDescription.Inner(pp, initExpr)
-      else NegativeReferenceSetDescription.Inner(pp, initExpr)
-  }
-
   sealed trait Top extends ReferenceSetDescription with SetDescription.Top[ReferenceSetDescription] {
     def isEquivalentDescription(other: ReferenceSetDescription): Boolean = other == top()
 
@@ -317,10 +311,10 @@ object ReferenceSetDescription {
     }
 
     private def transformFieldAssignRecursively(field: String, receiver: Expression, right: Expression, expr: Expression): Expression = expr.transform {
-      case FieldExpression(typ, `field`, rec) =>
+      case f@FieldExpression(_, `field`, rec) =>
         if (receiver.equals(rec)) right
-        else ConditionalExpression(BinaryArithmeticExpression(rec, receiver, ArithmeticOperator.==), right, FieldExpression(typ, field, rec), right.typ)
-      case _ => expr
+        else ConditionalExpression(equ(rec, receiver), right, f, right.typ)
+      case other => other
     }
 
     private def transformVariableAssignRecursively(left: VariableIdentifier, right: Expression, expr: Expression): Expression = expr match {
@@ -372,62 +366,6 @@ object ReferenceSetDescription {
     final def abstractExpressions: Set[ReferenceSetElementDescriptor] = concreteExpressions.flatMap { case (concreteExpression, _) => extractRules(concreteExpression) }
 
     def simplify: Inner = copy(concreteExpressions = concreteExpressions.map { case (expr, b) => (Utils.simplifyExpression(expr), b) })
-  }
-}
-
-sealed trait NegativeReferenceSetDescription extends ReferenceSetDescription {
-
-  override def top() = NegativeReferenceSetDescription.Top
-
-  override def bottom() = NegativeReferenceSetDescription.Bottom
-
-  override def inner(pp: ProgramPoint, initExpr: Expression) = NegativeReferenceSetDescription.Inner(pp, initExpr)
-}
-
-object NegativeReferenceSetDescription {
-
-  case object Top extends ReferenceSetDescription.Top with NegativeReferenceSetDescription {
-    override def isNullProhibited = false
-  }
-
-  case object Bottom extends ReferenceSetDescription.Bottom with NegativeReferenceSetDescription {
-    override def isNullProhibited = true
-  }
-
-  object Inner {
-    def apply(pp: ProgramPoint, initExpression: Expression) = new Inner(pp, initExpression)
-  }
-
-  case class Inner(pp: ProgramPoint, expr: Expression, widened: Boolean = false, concreteExpressions: Set[(Expression, Boolean)] = Set())
-      extends ReferenceSetDescription.Inner with NegativeReferenceSetDescription {
-    def this(key: (ProgramPoint, Expression)) = this(key._1, key._2, concreteExpressions = Set((key._2, false)))
-
-    override def copy(pp: ProgramPoint = pp,
-                      expr: Expression = expr,
-                      widened: Boolean = widened,
-                      concreteExpressions: Set[(Expression, Boolean)] = concreteExpressions): Inner =
-      Inner(pp, expr, widened, concreteExpressions)
-
-    override def isEquivalentDescription(other: ReferenceSetDescription): Boolean =
-      other.isInstanceOf[NegativeReferenceSetDescription] && super.isEquivalentDescription(other)
-
-    override def lubInner(other: ReferenceSetDescription.Inner): Inner =
-      copy(
-        widened = widened && other.widened,
-        concreteExpressions = concreteExpressions & other.concreteExpressions
-      )
-
-    override def glbInner(other: ReferenceSetDescription.Inner): Inner =
-      copy(
-        widened = widened || other.widened,
-        concreteExpressions = concreteExpressions ++ other.concreteExpressions
-      )
-
-    override def wideningInner(other: ReferenceSetDescription.Inner): Inner = glbInner(other).copy(widened = true)
-
-    override def lessEqualInner(other: ReferenceSetDescription.Inner): Boolean =
-      other.abstractExpressions.subsetOf(abstractExpressions) && (!isNullProhibited || other.isNullProhibited) &&
-        (widened || other.concreteExpressions.subsetOf(concreteExpressions))
   }
 }
 

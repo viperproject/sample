@@ -18,7 +18,7 @@ import scala.collection.immutable
 case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   extends immutable.Map[String, PermissionTree] {
 
-  def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = undoLastRead(field).max(field, ExpressionDescription(pp, receiver), WritePermission)
+  def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = max(field, ExpressionDescription(pp, receiver), WritePermission)
 
   def addRead(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = max(field, ExpressionDescription(pp, receiver), SymbolicReadPermission)
 

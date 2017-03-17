@@ -205,6 +205,7 @@ case class ZeroBoundedPermissionTree(child: PermissionTree, forgottenVariables: 
     }
   }
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = ZeroBoundedPermissionTree(child, forgottenVariables + variable)
+  override def toString: String = s"bound(${child.toString})"
 }
 
 object PermissionLeaf {
@@ -252,6 +253,7 @@ case class SimplePermissionLeaf(receiver: SimpleExpressionDescription, permissio
   def transformExpressions(f: (Expression => Expression)) = SimplePermissionLeaf(receiver, permission)
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = throw new UnsupportedOperationException
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = SimplePermissionLeaf(receiver, permission, forgottenVariables + variable)
+  override def toString: String = s"($receiver, $permission)"
 }
 
 case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permission: Permission, forgottenVariables: Set[Identifier] = Set())() extends PermissionLeaf {
@@ -270,6 +272,7 @@ case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permi
     (Set((equ(quantifiedVariable, replacedExpression), permission.toSampleExpression), (neq(quantifiedVariable, replacedExpression), noneConst)), replacedInvariants, replacements.values.toSet ++ replacedExpression.ids.toSetOrFail, Map())
   }
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = FunctionPermissionLeaf(receiver, permission, forgottenVariables + variable)
+  override def toString: String = s"($receiver, $permission)"
 }
 
 case class PermissionAddition(permissions: Seq[PermissionTree], forgottenVariables: Set[Identifier] = Set()) extends SequencePermissionTree {
@@ -296,6 +299,7 @@ case class PermissionAddition(permissions: Seq[PermissionTree], forgottenVariabl
     }
   }
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = PermissionAddition(permissions, forgottenVariables + variable)
+  override def toString: String = s"add(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
 }
 
 case class Maximum(permissions: Seq[PermissionTree], forgottenVariables: Set[Identifier] = Set()) extends SequencePermissionTree {
@@ -335,6 +339,7 @@ case class Maximum(permissions: Seq[PermissionTree], forgottenVariables: Set[Ide
     }
   }
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Maximum(permissions, forgottenVariables = forgottenVariables + variable)
+  override def toString: String = s"max(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree, forgottenVariables: Set[Identifier] = Set()) extends PermissionTree {
@@ -371,6 +376,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
       (constraints1.map { case (constraint, perm) => (replaceVariables(and(constraint, cond), replacements), perm) } ++ constraints2.map { case (constraint, perm) => (replaceVariables(and(constraint, not(cond)), replacements), perm) }, (invariants1 ++ invariants2).map(replaceVariables(_, replacements)), (forgottenVars1 ++ forgottenVars2).map(replacer(replacements)), additionalConstraints1 ++ additionalConstraints2)
     }
   }
+  override def toString: String = s"($cond ? $left : $right)"
 }
 
 case object EmptyPermissionTree extends PermissionTree {
@@ -391,6 +397,7 @@ case object EmptyPermissionTree extends PermissionTree {
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(this)
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = (Set((trueConst, noneConst)), Set(trueConst), Set(), Map())
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = this
+  override def toString: String = "none"
 }
 
 case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescription, permissionExpression: Expression, permissionPlaceholder: FunctionCallExpression, forgottenPermissions: Map[FunctionCallExpression, Expression]) extends PermissionTree {
