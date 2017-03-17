@@ -1,0 +1,11 @@
+field left: Ref
+field right: Ref
+
+method leftRight(head: Ref)
+{
+    var x: Ref := head
+    while (x != null)
+    {
+        x := x.left.right
+    }
+}

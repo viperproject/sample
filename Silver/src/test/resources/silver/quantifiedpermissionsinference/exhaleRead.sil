@@ -1,0 +1,7 @@
+field f: Ref
+
+method exhaleRead(r: Ref) returns (res: Ref)
+{
+    exhale acc(r.f, 1 / 2)
+    res := r.f
+}
