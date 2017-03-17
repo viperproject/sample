@@ -1,0 +1,6 @@
+field f: Ref
+method fieldAssignment(x: Ref, y: Ref)
+{
+    x.f := y
+    y.f.f := x
+}
