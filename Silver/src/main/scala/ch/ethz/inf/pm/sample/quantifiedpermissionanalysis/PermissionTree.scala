@@ -147,16 +147,22 @@ trait PermissionTree {
   }
 
   def toForgottenTree: IntegerQuantifiedPermissionTree = {
-    val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).name)(IntType)
+    val silQuantifiedVariable = Context.getQuantifiedVarDecl(sil.Int)
+    val quantifiedVariable = VariableIdentifier(silQuantifiedVariable.name)(IntType)
     val placeholderFun = Context.getPlaceholderFunction(Context.getQuantifiedVarDecl(sil.Int))
-    val permissionPlaceholder = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable), PermType)
     val (constraints, invariants, variablesToQuantify, forgottenPermissions) = toIntegerQuantificationConstraints(quantifiedVariable)
     val invariant = invariants.reduceOption(and).getOrElse(trueConst)
-    val existsPart = and(invariant, constraints.map { case (constraint, perm) => implies(constraint, equ(permissionPlaceholder, perm)) }.reduce(and))
-    val forallPart = implies(invariant, constraints.map { case (constraint, perm) => implies(constraint, geq(permissionPlaceholder, perm)) }.reduce(and))
+    val result = VariableIdentifier("result")(PermType)
+    val existsPart = and(invariant, constraints.map { case (constraint, perm) => implies(constraint, equ(result, perm)) }.reduce(and))
+    val forallPart = implies(invariant, constraints.map { case (constraint, perm) => implies(constraint, geq(result, perm)) }.reduce(and))
     val function = extractFunction.get
     if (!isIntegerQuantificationValid(function)) throw new IllegalStateException("The program contains integer dependent heap accesses but they do not conform to the requirements!")
-    IntegerQuantifiedPermissionTree(function, simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart))))), permissionPlaceholder, forgottenPermissions)
+    val permissionExpression = simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart)))))
+    val additionalVars = permissionExpression.ids.toSetOrFail.filter(v => !Set(quantifiedVariable.name, result.name).contains(v.getName))
+    val functionWithPostcondition = sil.Function(placeholderFun.name, Seq(silQuantifiedVariable) ++ additionalVars.map(v => sil.LocalVarDecl(v.getName, DefaultSampleConverter.convert(v.typ))()), sil.Perm, Seq(), Seq(DefaultSampleConverter.convert(permissionExpression)), None)()
+    Context.replaceFunction(functionWithPostcondition)
+    val newPermissionPlaceholder = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable) ++ additionalVars, PermType)
+    IntegerQuantifiedPermissionTree(function, permissionExpression, newPermissionPlaceholder, forgottenPermissions)
   }
 }
 
@@ -397,13 +403,10 @@ case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescripti
       case Left(e) => DefaultSampleConverter.convert(e.expr)
       case Right(_) => quantifiedVar
     }, scala.Predef.Map[sil.TypeVar, sil.Type]())
-    val access = sil.FieldAccessPredicate(sil.FieldAccess(funcApp, field)(), sil.FuncLikeApp(Context.functions(permissionPlaceholder.functionName), Seq(quantifiedVar), scala.Predef.Map()))()
+    val access = sil.FieldAccessPredicate(sil.FieldAccess(funcApp, field)(), sil.FuncLikeApp(Context.functions(permissionPlaceholder.functionName), permissionPlaceholder.parameters.map(v => DefaultSampleConverter.convert(v)), scala.Predef.Map()))()
     val permExp = sil.Forall(Seq(quantifiedVarDecl), Seq(), access)()
-    var assertions = Seq[sil.Exp](permExp)
-    assertions +:= sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(permissionExpression))(), sil.TrueLit()())()
-    assertions ++:= forgottenPermissions.map(assertion => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), DefaultSampleConverter.convert(assertion._2))(), sil.TrueLit()())())
-    assertions ++:= forgottenPermissions.map(fun => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), sil.PermGeCmp(sil.FuncLikeApp(Context.functions(fun._1.functionName), Seq(quantifiedVar), scala.Predef.Map()), sil.NoPerm()())())(), sil.TrueLit()())())
-    assertions
+//    assertions ++:= forgottenPermissions.map(fun => sil.InhaleExhaleExp(sil.Forall(Seq(quantifiedVarDecl), Seq(), sil.PermGeCmp(sil.FuncLikeApp(Context.functions(fun._1.functionName), Seq(quantifiedVar), scala.Predef.Map()), sil.NoPerm()())())(), sil.TrueLit()())())
+    Seq(permExp)
   }
   def getSetDescriptions(state: QuantifiedPermissionsState): Set[Inner] = Set()
   def transform(f: (PermissionTree) => PermissionTree): PermissionTree = f(this)

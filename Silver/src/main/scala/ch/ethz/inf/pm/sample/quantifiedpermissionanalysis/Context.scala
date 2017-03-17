@@ -80,6 +80,8 @@ object Context {
     function
   }
 
+  def replaceFunction(function: sil.Function): Unit = auxiliaryFunctions += function.name -> function
+
   def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set())
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {

@@ -1,7 +1,7 @@
-method array_example(arr: Array)
+method array_example(arr: Array, bound: Int)
 {
     var i: Int := 0
-    while (i < 10) {
+    while (i < bound) {
         loc(arr, i).val := i
         i := i + 1
     }

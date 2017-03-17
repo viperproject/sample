@@ -67,15 +67,16 @@ object Utils {
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
     println(newProgram)
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result = silicon.verify(newProgram) match {
-      case Success => true
-      case _ => false
-    }
-    silicon.stop()
-    result
+//    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+//    silicon.parseCommandLine(Seq("dummy.sil"))
+//    silicon.start()
+//    val result = silicon.verify(newProgram) match {
+//      case Success => true
+//      case _ => false
+//    }
+//    silicon.stop()
+//    result
+    true
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {
