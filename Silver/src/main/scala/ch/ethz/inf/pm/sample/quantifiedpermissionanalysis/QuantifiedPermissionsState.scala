@@ -209,9 +209,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case FieldExpression(_, `field`, rec) => rec
       case _ => throw new IllegalStateException()
     }
-    println(s"Permissions: $permissions")
-    println(s"Sets: $refSets")
-    println(s"assign $receiver.$field = $right")
     val newPermissions =
       if (!visited.contains(currentPP)) permissions.addWrite(field, currentPP, receiver)
       else permissions.transformAssignField(field)
@@ -224,8 +221,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       case _ => refSets
     }
     newRefSets = newRefSets ++ extractExpressionDescriptions(receiver).transform((key, elem) => newRefSets.getOrElse(key, elem.bottom()).lub(elem))
-    println(s"New Permissions: $newPermissions")
-    println(s"New Refsets: $newRefSets")
     copy(
       permissions = newPermissions,
       refSets = newRefSets
