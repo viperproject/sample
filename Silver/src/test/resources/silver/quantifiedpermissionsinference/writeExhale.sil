@@ -1,0 +1,7 @@
+field next: Ref
+
+method writeExhale(x: Ref)
+{
+    x.next := x
+    exhale acc(x.next)
+}
