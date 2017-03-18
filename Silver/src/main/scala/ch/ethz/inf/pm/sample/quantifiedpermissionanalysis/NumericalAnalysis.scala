@@ -353,7 +353,7 @@ object OctagonAnalysisState {
 
 trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]] extends SilverEntryStateBuilder[T] {
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
-    top.copy()
+    method.initializeArgument(top.copy())
   }
 }
 

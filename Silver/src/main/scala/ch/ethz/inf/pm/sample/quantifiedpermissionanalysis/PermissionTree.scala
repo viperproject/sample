@@ -93,7 +93,7 @@ trait PermissionTree {
   }
 
   def propagateCondition(cond: Expression): PermissionTree = transform {
-    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission)
+    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSetOrFail)
     case other => other
   }
 
@@ -209,9 +209,9 @@ case class ZeroBoundedPermissionTree(child: PermissionTree, forgottenVariables: 
 }
 
 object PermissionLeaf {
-  def apply(expressionDescription: ExpressionDescription, permission: Permission): PermissionLeaf = expressionDescription match {
-    case f: FunctionExpressionDescription => FunctionPermissionLeaf(f, permission)
-    case s: SimpleExpressionDescription => SimplePermissionLeaf(s, permission)
+  def apply(expressionDescription: ExpressionDescription, permission: Permission, forgottenVariables: Set[Identifier] = Set()): PermissionLeaf = expressionDescription match {
+    case f: FunctionExpressionDescription => FunctionPermissionLeaf(f, permission, forgottenVariables)
+    case s: SimpleExpressionDescription => SimplePermissionLeaf(s, permission, forgottenVariables)
   }
   def unapply(tree: PermissionTree): Option[(ExpressionDescription, Permission)] = tree match {
     case FunctionPermissionLeaf(receiver, permission, _) => Some(receiver, permission)

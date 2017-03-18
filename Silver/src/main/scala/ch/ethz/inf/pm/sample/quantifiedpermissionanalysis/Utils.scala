@@ -66,7 +66,6 @@ object Utils {
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
     val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
-    println(newProgram)
 //    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
 //    silicon.parseCommandLine(Seq("dummy.sil"))
 //    silicon.start()
