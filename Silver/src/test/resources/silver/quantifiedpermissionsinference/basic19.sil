@@ -1,4 +1,4 @@
-method array_example(arr: Array, bound: Int)
+method arrayExample(arr: Array, bound: Int)
 {
     var i: Int := 0
     while (i < bound) {

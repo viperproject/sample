@@ -1,13 +1,13 @@
-method basic(arr: Array, bound: Int)
+method basic(arr: Array) returns (res: Int)
 {
-    var i: Int := bound
+    var i: Int := 0
     while (i < 10) {
         if (i % 2 == 0) {
-            i := i + 4
+        	loc(arr, i).val := i
         } else {
-            i := i + 8
+        	res := loc(arr, i).val
         }
-        loc(arr, i).val := i
+		i := i + 1
     }
 }
 

@@ -1,0 +1,10 @@
+field next: Ref
+method noWidening(head: Ref)
+{
+    var x: Ref := head
+    while (x != null)
+    {
+        x := x.next
+        x.next := x
+    }
+}

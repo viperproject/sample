@@ -66,9 +66,9 @@ trait PermissionTree {
     found
   }
 
-  def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionAddition(Seq(PermissionLeaf(receiver, permission), this))
+  def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = Addition(Seq(PermissionLeaf(receiver, permission), this))
 
-  def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(PermissionAddition(Seq(PermissionLeaf(receiver, NegativePermission(permission)), this)))
+  def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(Addition(Seq(PermissionLeaf(receiver, NegativePermission(permission)), this)))
 
   def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
 
@@ -182,9 +182,11 @@ case class ZeroBoundedPermissionTree(child: PermissionTree, forgottenVariables: 
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = sil.FuncApp(Context.getBoundaryFunction, Seq(child.toSilExpression(state, quantifiedVar)))()
   def exists(f: (PermissionTree) => Boolean): Boolean = f(this) || child.exists(f)
   def foreach(f: (Expression) => Unit): Unit = child.foreach(f)
-  def getReadAmounts: Set[(FractionalPermission, Int)] = child.getReadAmounts
+  def getReadAmounts: Set[(FractionalPermission, Int)] = child.getReadAmounts.map {
+    case (FractionalPermission(n, d), reads) => (FractionalPermission(Math.max(0, n), d), reads)
+  }
   def simplifySyntactically: PermissionTree = child.simplifySyntactically match {
-    case PermissionAddition((first@PermissionLeaf(_, NegativePermission(_))) :: ZeroBoundedPermissionTree(otherChild, _) :: rest, _) => ZeroBoundedPermissionTree(PermissionAddition(first +: otherChild +: rest))
+    case Addition((first@PermissionLeaf(_, NegativePermission(_))) :: ZeroBoundedPermissionTree(otherChild, _) :: rest, _) => ZeroBoundedPermissionTree(Addition(first +: otherChild +: rest))
     case simplified => ZeroBoundedPermissionTree(simplified)
   }
   def hasRead: Boolean = child.hasRead
@@ -275,14 +277,14 @@ case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permi
   override def toString: String = s"($receiver, $permission)"
 }
 
-case class PermissionAddition(permissions: Seq[PermissionTree], forgottenVariables: Set[Identifier] = Set()) extends SequencePermissionTree {
-  def create(permissions: Seq[PermissionTree]): PermissionAddition = PermissionAddition(permissions)
+case class Addition(permissions: Seq[PermissionTree], forgottenVariables: Set[Identifier] = Set()) extends SequencePermissionTree {
+  def create(permissions: Seq[PermissionTree]): Addition = Addition(permissions)
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp =
     permissions.map(_.toSilExpression(state, quantifiedVar)).reduce(sil.PermAdd(_, _)())
-  override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionAddition = PermissionAddition(PermissionLeaf(receiver, permission) +: permissions)
-  override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionAddition = PermissionAddition(PermissionLeaf(receiver, NegativePermission(permission)) +: permissions)
-  def simplifySyntactically: PermissionAddition = PermissionAddition(permissions.map(_.simplifySyntactically))
-  def simplifySemantically(state: QuantifiedPermissionsState): PermissionAddition = PermissionAddition(permissions.map(_.simplifySemantically(state)))
+  override def add(receiver: ExpressionDescription, permission: SimplePermission): Addition = Addition(PermissionLeaf(receiver, permission) +: permissions)
+  override def sub(receiver: ExpressionDescription, permission: FractionalPermission): Addition = Addition(PermissionLeaf(receiver, NegativePermission(permission)) +: permissions)
+  def simplifySyntactically: Addition = Addition(permissions.map(_.simplifySyntactically))
+  def simplifySemantically(state: QuantifiedPermissionsState): Addition = Addition(permissions.map(_.simplifySemantically(state)))
   def getReadAmounts: Set[(FractionalPermission, Int)] = Set(permissions.flatMap(_.getReadAmounts).reduceLeft[(FractionalPermission, Int)] {
     case ((FractionalPermission(leftNum, leftDenom), leftRead), (FractionalPermission(rightNum, rightDenom), rightRead)) =>
       (FractionalPermission.createReduced(leftNum * rightDenom + rightNum * leftDenom, leftDenom * rightDenom), leftRead + rightRead)
@@ -290,7 +292,7 @@ case class PermissionAddition(permissions: Seq[PermissionTree], forgottenVariabl
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = other match {
     case _ => false
   }
-  def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(PermissionAddition(permissions.map(_.transform(f))))
+  def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Addition(permissions.map(_.transform(f))))
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = {
     val childConstraints = permissions.map(_.toIntegerQuantificationConstraints(quantifiedVariable))
     val replacements = getReplacementsForForgottenVariables(quantifiedVariable)
@@ -298,7 +300,7 @@ case class PermissionAddition(permissions: Seq[PermissionTree], forgottenVariabl
       (constraints1.flatMap { case (constraint1, perm1) => constraints2.map { case (constraint2, perm2) => (replaceVariables(and(constraint1, constraint2), replacements), plus(perm1, perm2)) } }, (invariants1 ++ invariants2).map(replaceVariables(_, replacements)), (forgottenVars1 ++ forgottenVars2).map(replacer(replacements)), additionalConstraints1 ++ additionalConstraints2)
     }
   }
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = PermissionAddition(permissions, forgottenVariables + variable)
+  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Addition(permissions, forgottenVariables + variable)
   override def toString: String = s"add(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
 }
 
@@ -382,7 +384,7 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
 case object EmptyPermissionTree extends PermissionTree {
   def forgottenVariables: Set[Identifier] = Set()
   override def add(receiver: ExpressionDescription, permission: SimplePermission): PermissionTree = PermissionLeaf(receiver, permission)
-  override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(PermissionAddition(Seq(PermissionLeaf(receiver, NegativePermission(permission)))))
+  override def sub(receiver: ExpressionDescription, permission: FractionalPermission): PermissionTree = ZeroBoundedPermissionTree(Addition(Seq(PermissionLeaf(receiver, NegativePermission(permission)))))
   override def max(other: PermissionTree): PermissionTree = other
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = ZeroPerm
   def getSetDescriptions(state: QuantifiedPermissionsState): Set[ReferenceSetDescription.Inner] = Set()
