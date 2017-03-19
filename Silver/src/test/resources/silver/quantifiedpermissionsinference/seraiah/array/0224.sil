@@ -1,0 +1,51 @@
+
+method f_loop(a: IArray, x: Int, y: Int, n: Int, lengthA:Int) returns(res:Int)
+  requires 0 <= n && x+n <= lengthA && y+n <= lengthA && lengthA>=0
+{
+     var m: Int := n
+     while(x+m < lengthA && y+m < lengthA && loc(a,x+m).val == loc(a,y+m).val){
+        m:= m+1
+     }
+     res:=m
+}
+
+method test02(a : IArray, x : Int, y : Int, lengthA:Int)
+requires lengthA>=0
+{
+  var res : Int
+
+  if(x < lengthA && y < lengthA && loc(a,x).val == loc(a,y).val) {
+   res := 1
+  }else{
+    res := 0
+  }
+
+  inhale 0 <= res && x+res <= lengthA && y+res <= lengthA
+  inhale (x+res < lengthA && y+res < lengthA) ==> loc(a,x+res).val != loc(a,y+res).val
+
+  exhale (x+res < lengthA && y+res < lengthA) ==> loc(a,x+res).val != loc(a,y+res).val
+}
+
+
+
+
+
+
+
+field val: Int
+
+domain IArray {
+  function loc(a: IArray, i: Int): Ref
+  function length(a: IArray): Int
+  function first(r: Ref): IArray
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    forall a: IArray, i: Int :: {loc(a, i)}
+      first(loc(a, i)) == a && second(loc(a, i)) == i
+  }
+
+  axiom length_nonneg {
+    forall a: IArray :: length(a) >= 0
+  }
+}

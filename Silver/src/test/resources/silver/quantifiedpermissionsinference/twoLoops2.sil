@@ -1,0 +1,14 @@
+field next: Ref
+
+method foo(head: Ref)
+{
+    var x: Ref := head
+    while (x != null)
+    {
+        x := x.next
+    }
+    while (x != null)
+    {
+        x := x.next
+    }
+}

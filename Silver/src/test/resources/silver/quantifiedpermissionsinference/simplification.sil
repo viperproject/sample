@@ -1,0 +1,7 @@
+field f: Ref
+
+method foo(x: Ref) returns (res: Ref)
+{
+    x.f := x
+    res := x.f
+}

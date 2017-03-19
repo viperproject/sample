@@ -72,14 +72,18 @@ trait PermissionTree {
 
   def max(other: PermissionTree): PermissionTree = Maximum(Seq(other, this))
 
-  def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if(isIntegerDependent) Maximum(Seq(propagateCondition(cond), elsePermissions.propagateCondition(not(cond)))) else Condition(cond, this, elsePermissions)
+  def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if (isIntegerDependent) Maximum(Seq(propagateCondition(cond), elsePermissions.propagateCondition(not(cond)))) else Condition(cond, this, elsePermissions)
 
   private def propagateCondition(cond: Expression): PermissionTree = transform {
     case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSetOrFail)
     case other => other
   }
 
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree
+  def transformForgetVariable(variable: Identifier): PermissionTree
+
+  def transformForgetVariables(variables: Set[Identifier]): PermissionTree = variables.foldLeft(this) {
+    case (tree, variable) => tree.transformForgetVariable(variable)
+  }
 
   def transformAssignVariable(variable: VariableIdentifier): PermissionTree = transform {
     case Condition(cond, left, right, _) if cond.contains {
@@ -214,7 +218,7 @@ case class ZeroBoundedPermissionTree(child: PermissionTree, forgottenVariables: 
       }, invariants.map(replaceVariables(_, replacements)), forgottenVars.map(replacer(replacements)), additionalConstraints)
     }
   }
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = ZeroBoundedPermissionTree(child, forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = ZeroBoundedPermissionTree(child, forgottenVariables + variable)
   override def toString: String = s"bound(${child.toString})"
 }
 
@@ -263,7 +267,7 @@ sealed trait PermissionLeaf extends PermissionTree {
 case class SimplePermissionLeaf(receiver: SimpleExpressionDescription, permission: Permission, forgottenVariables: Set[Identifier] = Set())() extends PermissionLeaf {
   def transformExpressions(f: (Expression => Expression)) = SimplePermissionLeaf(receiver, permission)
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = throw new UnsupportedOperationException
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = SimplePermissionLeaf(receiver, permission, forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = SimplePermissionLeaf(receiver, permission, forgottenVariables + variable)
   override def toString: String = s"($receiver, $permission)"
 }
 
@@ -282,7 +286,7 @@ case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permi
     val replacedInvariants = invariants.map(_.transform(replacer))
     (Set((equ(quantifiedVariable, replacedExpression), permission.toSampleExpression), (neq(quantifiedVariable, replacedExpression), noneConst)), replacedInvariants, replacements.values.toSet ++ replacedExpression.ids.toSetOrFail, Map())
   }
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = FunctionPermissionLeaf(receiver, permission, forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = FunctionPermissionLeaf(receiver, permission, forgottenVariables + variable)
   override def toString: String = s"($receiver, $permission)"
 }
 
@@ -309,7 +313,7 @@ case class Addition(permissions: Seq[PermissionTree], forgottenVariables: Set[Id
       (constraints1.flatMap { case (constraint1, perm1) => constraints2.map { case (constraint2, perm2) => (replaceVariables(and(constraint1, constraint2), replacements), plus(perm1, perm2)) } }, (invariants1 ++ invariants2).map(replaceVariables(_, replacements)), (forgottenVars1 ++ forgottenVars2).map(replacer(replacements)), additionalConstraints1 ++ additionalConstraints2)
     }
   }
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Addition(permissions, forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = Addition(permissions, forgottenVariables + variable)
   override def toString: String = s"add(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
 }
 
@@ -349,7 +353,7 @@ case class Maximum(permissions: Seq[PermissionTree], forgottenVariables: Set[Ide
       } }, (invariants1 ++ invariants2).map(replaceVariables(_, replacements)), (forgottenVars1 ++ forgottenVars2).map(replacer(replacements)), additionalConstraints1 ++ additionalConstraints2)
     }
   }
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Maximum(permissions, forgottenVariables = forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = Maximum(permissions, forgottenVariables = forgottenVariables + variable)
   override def toString: String = s"max(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
   override def isLastWrite: Boolean = permissions.head.isLastWrite
 }
@@ -371,15 +375,14 @@ case class Condition(cond: Expression, left: PermissionTree, right: PermissionTr
     case (simplifiedCond, l, r) => Condition(simplifiedCond, l, r)
   }
   def hasRead: Boolean = left.hasRead || right.hasRead
-  def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = this
+  def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = Condition(cond, left.simplifySemantically(state), right.simplifySemantically(state))
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = false
-  def toMax: Maximum = Maximum(Seq(left, right))
   def hasToBeForgotten(state: QuantifiedPermissionsState): Boolean = cond.contains {
     case id: VariableIdentifier => state.declaredBelowVars.contains(id) || state.changingVars.contains(id)
     case _ => false
   }
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(Condition(cond, left.transform(f), right.transform(f)))
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Condition(cond, left, right, forgottenVariables + variable)
+  def transformForgetVariable(variable: Identifier): PermissionTree = Condition(cond, left, right, forgottenVariables + variable)
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = {
     val leftConstraints = left.toIntegerQuantificationConstraints(quantifiedVariable)
     val rightConstraints = right.toIntegerQuantificationConstraints(quantifiedVariable)
@@ -408,7 +411,7 @@ case object EmptyPermissionTree extends PermissionTree {
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState) = true
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(this)
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) = (Set((trueConst, noneConst)), Set(trueConst), Set(), Map())
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = this
+  def transformForgetVariable(variable: Identifier): PermissionTree = this
   override def toString: String = "none"
 }
 
@@ -452,7 +455,7 @@ case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescripti
   def simplifySyntactically: PermissionTree = this
   def simplifySemantically(state: QuantifiedPermissionsState): PermissionTree = this
   def lessEqual(other: PermissionTree, state: QuantifiedPermissionsState): Boolean = false
-  def transformForgetVariable(variable: VariableIdentifier): PermissionTree = this
+  def transformForgetVariable(variable: Identifier): PermissionTree = this
   def toIntegerQuantificationConstraints(quantifiedVariable: VariableIdentifier): (Set[(Expression, Expression)], Set[Expression], Set[Identifier], Map[FunctionCallExpression, Expression]) =
     (Set((trueConst, permissionPlaceholder)), Set(), Set(), Map((permissionPlaceholder, permissionExpression)))
   override def toForgottenTree: IntegerQuantifiedPermissionTree = this

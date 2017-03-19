@@ -1,0 +1,27 @@
+field val: Int
+field next: Ref
+
+domain Array {
+	function loc(a: Array, i: Int): Ref
+	function length(a: Array): Int
+	function ref_to_array(ref: Ref): Array
+	function ref_to_index(ref: Ref): Int
+
+	axiom all_diff {
+		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
+	}
+	axiom length_nonneg {
+		forall a:Array :: length(a) >= 0
+	}
+}
+
+method allInOne(arr: Array, head: Ref)
+{
+    var i: Int := 0
+    var x: Ref := head
+    while (i < 10 && x != null)
+    {
+        loc(arr, i).val := i
+        x := x.next
+    }
+}

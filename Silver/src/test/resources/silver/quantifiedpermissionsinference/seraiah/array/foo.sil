@@ -1,0 +1,31 @@
+domain IArray {
+
+  function loc(a: Ref, i: Int): Ref
+
+  function len(a: Ref): Int
+
+  function first(r: Ref): Ref
+
+  function second(r: Ref): Int
+
+  axiom all_diff {
+    (forall a: Ref, i: Int :: { loc(a, i) } (first(loc(a, i)) == a) && (second(loc(a, i)) == i))
+  }
+
+  axiom length_nonneg {
+    (forall a: Ref :: len(a) >= 0)
+  }
+}
+
+field val: Int
+
+method foo(arr:Ref, b:Bool)
+{
+  var v: Int
+  loc(arr,1).val := 0
+  v:=loc(arr,1).val
+  exhale acc(loc(arr,1).val, 1/2)
+  while(b){
+      v:= loc(arr,1).val
+  }
+}

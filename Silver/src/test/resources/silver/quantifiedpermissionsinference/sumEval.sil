@@ -1,0 +1,54 @@
+domain Array {
+  
+  function loc(a: Array, i: Int): Ref
+  
+  function len(a: Array): Int
+  
+  function first(r: Ref): Array
+  
+  function second(r: Ref): Int
+  
+  axiom all_diff {
+    (forall a: Array, i: Int :: { loc(a, i) } first(loc(a, i)) == a && second(loc(a, i)) == i)
+  }
+  
+  axiom length_nonneg {
+    (forall a: Array :: len(a) >= 0)
+  }
+}
+
+field val: Int
+
+function p(q: Int, lenA: Int, rdAmount: Perm): Perm
+  ensures (lenA >= 1 + q && q >= 1 && result == rdAmount || lenA >= 2 && ((q == 1 || q == 0 || result == none) && (q == 0 || q == 1 || result == none) && (q != 0 || q != 1 || result == rdAmount) && (q != 0 || q == 1 || result == rdAmount) && (q != 1 || q != 0 || result == rdAmount) && (q != 1 || q == 0 || result == rdAmount)) || lenA >= 2 + q && q >= 0 && result == rdAmount || lenA >= 3 + q && q >= -1 && result == none || lenA >= 2 + q && q >= 0 && result == rdAmount || q >= 1 && lenA >= 1 + q && ((q != 0 || result == rdAmount) && (q == 0 || result == rdAmount)) || (q >= 0 && lenA >= 2 + q && ((q == 0 || result == none) && (q != 0 || result == rdAmount)) || lenA >= 2 + q && q >= 0 && result == rdAmount)) && ((lenA < 1 + q || q < 1 || result >= rdAmount) && (lenA < 2 || (q == 1 || q == 0 || result >= none) && (q == 0 || q == 1 || result >= none) && (q != 0 || q != 1 || result >= rdAmount) && (q != 0 || q == 1 || result >= rdAmount) && (q != 1 || q != 0 || result >= rdAmount) && (q != 1 || q == 0 || result >= rdAmount)) && (lenA < 2 + q || q < 0 || result >= rdAmount) && (lenA < 3 + q || q < -1 || result >= none) && (lenA < 2 + q || q < 0 || result >= rdAmount) && ((q < 0 || lenA < 2 + q || (q == 0 || result >= none) && (q != 0 || result >= rdAmount)) && (lenA < 2 + q || q < 0 || result >= rdAmount)) && (q < 1 || lenA < 1 + q || (q != 0 || result >= rdAmount) && (q == 0 || result >= rdAmount)))
+
+method blubb(lenA: Int, rdAmount: Perm)
+requires none < rdAmount && rdAmount < write
+ensures forall q: Int :: (q >= 0 && q <= lenA - 1 ==> p(q, lenA, rdAmount) == rdAmount) && ((q < 0 || q >= lenA) ==> p(q, lenA, rdAmount) == none)
+{
+
+}
+
+method max_array(arr: Array, lenA: Int, rdAmount: Perm) returns (x: Int)
+  requires none < rdAmount && rdAmount < write
+  requires (forall q: Int :: acc(loc(arr, q).val, p(q, lenA, rdAmount)))
+{
+  var y: Int
+  if (lenA <= 0) {
+    x := -1
+  } else {
+    x := 0
+    y := lenA - 1
+    while (x != y)
+      invariant none < rdAmount && rdAmount < write
+      invariant (forall q: Int :: acc(loc(arr, q).val, p(q, lenA, rdAmount)))
+      invariant lenA >= 1 + y && y >= x && x >= 0 
+    {
+      if (loc(arr, x).val <= loc(arr, y).val) {
+        x := x + 1
+      } else {
+        y := y - 1
+      }
+    }
+  }
+}

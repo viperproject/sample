@@ -85,7 +85,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverInferenceRunner[Any, Qu
     state.permissions.foreach { case (fieldName, permissionTree) =>
       if (permissionTree.isIntegerDependent) {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Int)
-        newPreconditions ++= permissionTree.toForgottenTree.toSilAssertions(quantifiedVariableDecl, Context.program.findField(fieldName))
+        newPreconditions ++= permissionTree.transformForgetVariables(state.declaredBelowVars).toForgottenTree.toSilAssertions(quantifiedVariableDecl, Context.program.findField(fieldName))
       } else {
         val quantifiedVariableDecl = Context.getQuantifiedVarDecl(sil.Ref)
         val quantifiedVariable = quantifiedVariableDecl.localVar
