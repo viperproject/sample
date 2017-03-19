@@ -115,12 +115,19 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
       val newPermissions =
         if (firstIteration) permissions.lub(cond, falseState.permissions)
         else (falseState.visited.subsetOf(visited), visited.subsetOf(falseState.visited)) match {
+          case (false, false) => permissions.lub(cond, falseState.permissions)
           case (true, true) => permissions
           case (true, false) => permissions
           case (false, true) => falseState.permissions
         }
-      val newRefSets: Map[(ProgramPoint, Expression), ReferenceSetDescription] = refSets.transform { case (_, setDescription) => setDescription.transformCondition(cond) } ++ falseState.refSets.transform {
-        case (key, expressionCollection) => refSets.getOrElse(key, expressionCollection.bottom()).lub(expressionCollection.transformCondition(not(cond)))
+      val thisRefSets = refSets.transform {
+        case (_, setDescription) => setDescription.transformCondition(cond)
+      }
+      val otherRefSets = falseState.refSets.transform {
+        case (_, setDescription) => setDescription.transformCondition(not(cond))
+      }
+      val newRefSets = thisRefSets ++ otherRefSets.transform {
+        case (key, setDescription) => thisRefSets.getOrElse(key, setDescription.bottom()).lub(setDescription)
       }
       copy(
         expr = expr lub falseState.expr,
@@ -342,6 +349,16 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     filtered
   }
 
+  def extractAccesses(cond: Expression): QuantifiedPermissionsState = {
+    var filtered = this
+    cond.foreach {
+      case FieldExpression(typ, field, receiver) => filtered = filtered.getFieldValue(receiver, field, typ)
+      case _: AccessPathIdentifier => throw new IllegalStateException()
+      case _ =>
+    }
+    filtered
+  }
+
   /** Signals that we are going to analyze the statement at program point `pp`.
     *
     * This is particularly important to eventually partition a state following the specified directives.
@@ -370,6 +387,19 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     *         as expression the symbolic representation of the value of the given variable
     */
   override def getVariableValue(id: Identifier): QuantifiedPermissionsState = copy(expr = ExpressionSet(id))
+
+  /** Creates a variable given a `VariableIdentifier`.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x   The name of the variable
+    * @param typ The static type of the variable
+    * @param pp  The program point that creates the variable
+    * @return The abstract state after the creation of the variable
+    */
+  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
+    copy(declaredBelowVars = declaredBelowVars + x)
+  }
 
   /** Computes the widening of two elements.
     *
@@ -403,17 +433,6 @@ case class QuantifiedPermissionsState(isTop: Boolean = false,
     * @return The abstract state after the creation of the object
     */
   override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
-
-  /** Creates a variable given a `VariableIdentifier`.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param x   The name of the variable
-    * @param typ The static type of the variable
-    * @param pp  The program point that creates the variable
-    * @return The abstract state after the creation of the variable
-    */
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *

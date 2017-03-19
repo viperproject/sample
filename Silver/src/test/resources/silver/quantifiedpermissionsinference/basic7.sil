@@ -3,6 +3,6 @@ field right: Ref
 
 method basic(a: Ref, b: Ref, c: Ref)
 {
-  a.left := c
-  b.left := b.left.left.right
+	a.left := c
+	b.left := b.left.left.right
 }

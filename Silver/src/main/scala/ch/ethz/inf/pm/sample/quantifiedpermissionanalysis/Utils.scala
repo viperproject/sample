@@ -9,8 +9,6 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Type
-import viper.silicon.Silicon
-import viper.silver.verifier.Success
 import viper.silver.{ast => sil}
 
 /**
@@ -58,14 +56,14 @@ object Utils {
     val formalArgs = function.formalArgs.filter(formalArg => formalArg.typ != sil.Int) ++ intDecls
     val i1Id = VariableIdentifier(i1.name)(IntType)
     val i2Id = VariableIdentifier(i2.name)(IntType)
-    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
-    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
-    val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
-    val postcondition = sil.NeCmp(
-      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
-      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
-    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
-    val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
+//    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
+//    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
+//    val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
+//    val postcondition = sil.NeCmp(
+//      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
+//      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
+//    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
+//    val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
 //    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
 //    silicon.parseCommandLine(Seq("dummy.sil"))
 //    silicon.start()
@@ -112,8 +110,8 @@ object Utils {
   }
 
   def splitToDisjuncts(expr: Expression): Set[Expression] = expr match {
-    case BinaryBooleanExpression(left, right, BooleanOperator.||) => splitToConjuncts(left) ++ splitToConjuncts(right)
-    case cnfExpr => Set(cnfExpr)
+    case BinaryBooleanExpression(left, right, BooleanOperator.||) => splitToDisjuncts(left) ++ splitToDisjuncts(right)
+    case dnfExpr => Set(dnfExpr)
   }
 
   def toCNFConjuncts(expr: Expression): Set[Expression] = splitToConjuncts(toCNF(expr))
@@ -218,6 +216,7 @@ object Utils {
   def simplifyExpression(expr: Expression): Expression = {
     val rdAmountName = Context.getRdAmountVariable.name
     getCollected(toNNF(expr)).transform {
+      // Simplify binary boolean expressions, e.g. true && a = a
       case b@BinaryBooleanExpression(left, right, op) => (left, right, op) match {
         case (`trueConst`, other, BooleanOperator.&&) => other
         case (other, `trueConst`, BooleanOperator.&&) => other
@@ -228,15 +227,19 @@ object Utils {
         case _ if left == right => left
         case _ => b
       }
+      // Eliminate doubly negated boolean expressions and negations of constants
       case n@NegatedBooleanExpression(arg) => arg match {
         case NegatedBooleanExpression(nestedArg) => nestedArg
         case `trueConst` => falseConst
         case `falseConst` => trueConst
         case _ => n
       }
+      // Simplify constant conditions in ternary expressions
       case ConditionalExpression(`trueConst`, left, _, _) => left
       case ConditionalExpression(`falseConst`, _, right, _) => right
+      // Comparing two syntactically equal elements is trivially true
       case ReferenceComparisonExpression(left, right, ReferenceOperator.==) if left == right => trueConst
+      // Simplify binary arithmetic expressions, e.g. 1 * a = a
       case b@BinaryArithmeticExpression(left, right, op) => (left, right, op) match {
         case (Constant("1", PermType, _), VariableIdentifier(`rdAmountName`, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(1, 0)
         case (VariableIdentifier(`rdAmountName`, _), Constant("1", PermType, _), _) if ArithmeticOperator.isComparison(op) => toComparisonOp(op)(0, 1)
@@ -263,7 +266,7 @@ object Utils {
       case other => other
     } match {
       case transformed if transformed == expr => transformed
-      case transformed => simplifyExpression(transformed)
+      case transformed => simplifyExpression(transformed) // Recursively apply simplifications until no more simplification can be applied
     }
   }
 

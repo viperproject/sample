@@ -23,7 +23,13 @@ object QuantifierElimination extends LazyLogging {
 
   def eliminate(variables: Set[_ <: Identifier], expr: Expression): Expression = variables.foldLeft[Expression](expr)((expr, variable) => eliminate(variable, expr))
 
-  def eliminate(variable: Identifier, expr: Expression): Expression =  if (!expr.ids.contains(variable)) expr else {
+  def eliminate(variable: Identifier, expr: Expression): Expression = if (!expr.ids.contains(variable)) expr else {
+    val simplifiedExpr = simplifyExpression(expr)
+    val disjuncts = splitToDisjuncts(simplifiedExpr)
+    disjuncts.map(eliminateDisjunct(variable, _)).reduce(or)
+  }
+
+  private def eliminateDisjunct(variable: Identifier, expr: Expression): Expression = if (!expr.ids.contains(variable)) expr else {
     println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
     println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
@@ -35,6 +41,7 @@ object QuantifierElimination extends LazyLogging {
     println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
     equivalentFormula
   }
+
   // Step 1
   private def toNNF(expr: Expression): Expression = Utils.toNNF(expr)
 

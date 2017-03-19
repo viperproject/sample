@@ -230,6 +230,7 @@ object ReferenceSetDescription {
       * @return A silver expression that checks whether the given quantified variable is in the set.
       */
     override def toSilExpression(state: QuantifiedPermissionsState, quantifiedVariable: sil.LocalVar): sil.Exp = {
+      println(this)
       if (isFinite(state))
         expand(state, this).map { case (expr, constraints) =>
           val transformer: Expression => Expression = {
@@ -438,7 +439,10 @@ sealed trait IntegerSetDescription extends SetDescription[IntegerSetDescription]
 
   def constraints: Set[Expression]
 
-  def constraintsAsConjunction: Expression = constraints.reduce(and)
+  def constraintsAsConjunction: Expression = constraints.reduceOption(and) match {
+    case Some(constr) => constr
+    case None => trueConst
+  }
 
   def silverType: sil.Type = sil.Int
 

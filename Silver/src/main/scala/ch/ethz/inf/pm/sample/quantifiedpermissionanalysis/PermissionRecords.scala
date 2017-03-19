@@ -18,9 +18,14 @@ import scala.collection.immutable
 case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
   extends immutable.Map[String, PermissionTree] {
 
-  def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = max(field, ExpressionDescription(pp, receiver), WritePermission)
+  private var writeMap: Map[String, Boolean] = Map()
 
-  def addRead(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = max(field, ExpressionDescription(pp, receiver), SymbolicReadPermission)
+  def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = {
+    writeMap += field -> true
+    max(field, ExpressionDescription(pp, receiver), WritePermission)
+  }
+
+  def addRead(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = if (isLastWrite(field)) this else max(field, ExpressionDescription(pp, receiver), SymbolicReadPermission)
 
   def exhale(field: String, pp: ProgramPoint, receiver: Expression, permission: SimplePermission): PermissionRecords = (if (getOrElse(field, EmptyPermissionTree).hasRead) undoLastRead(field) else this).add(field, ExpressionDescription(pp, receiver), permission)
 
@@ -54,6 +59,12 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
       case (_, tree) if tree.isIntegerDependent => tree.toForgottenTree
       case (_, other) => other
     })
+
+  def isLastWrite(field: String): Boolean = {
+    val result = writeMap.getOrElse(field, false) && getOrElse(field, EmptyPermissionTree).isLastWrite
+    writeMap += field -> false
+    result
+  }
 
   private def withDefault(field: String) =
     if (!permissions.contains(field)) permissions + (field -> EmptyPermissionTree)

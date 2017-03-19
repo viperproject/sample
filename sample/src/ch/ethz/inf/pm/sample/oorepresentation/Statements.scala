@@ -211,11 +211,12 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     val rightExpr = right.specialBackwardSemantics(state).expr
     // evaluate the right
     val assigned = left match {
-      case f: FieldAccess => state.assignField(leftExpr, f.field, rightExpr)
-      case _ => state.assignVariable(leftExpr, rightExpr)
+      case f: FieldAccess => state.removeExpression().assignField(leftExpr, f.field, rightExpr)
+      case _ => state.removeExpression().assignVariable(leftExpr, rightExpr)
     }
+    val expr = assigned.expr
     val rightState = right.specialBackwardSemantics[S](assigned.removeExpression())
-    left.specialBackwardSemantics(rightState.removeExpression())
+    left.specialBackwardSemantics(rightState.removeExpression()).setExpression(expr)
   }
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {

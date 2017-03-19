@@ -18,7 +18,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
-  * @author Severin Münger
+  * @author Severin MÃ¼nger
   *         Added on 29.11.16.
   */
 sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
@@ -88,11 +88,11 @@ final class QPBackwardInterpreter extends QPInterpreter {
             val cond2 = edge2.condition.specialBackwardSemantics(state1.lub(state2).before(pp2)).expr.getSingle.get
             val cond1Conjuncts = Utils.toCNFConjuncts(cond1)
             val cond2Conjuncts = Utils.toCNFConjuncts(cond2)
-            val filtered1 = cond1Conjuncts.foldRight(state1)((conjunct, filtered) => filtered.assume(conjunct)).after(pp1)
-            val filtered2 = cond2Conjuncts.foldRight(state2)((conjunct, filtered) => filtered.assume(conjunct)).after(pp2)
             val pp = edge1.condition.getPC()
-            if (cond1Conjuncts.size > cond2Conjuncts.size) filtered1.lub(filtered2, cond1, currentCount == 0).before(pp)
-            else filtered2.lub(filtered1, cond2, currentCount == 0).before(pp)
+            val (joined, condConjuncts) =
+              if (cond1Conjuncts.size > cond2Conjuncts.size) (state1.lub(state2, cond1, currentCount == 0).before(pp), cond1Conjuncts)
+              else (state2.lub(state1, cond2, currentCount == 0).before(pp), cond2Conjuncts)
+            condConjuncts.foldRight(joined)((conjunct, filtered) => filtered.extractAccesses(conjunct)).after(pp)
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates = cfgResult.getStates(currentBlock)
@@ -155,9 +155,9 @@ final class QPBackwardInterpreter extends QPInterpreter {
       newStates.prepend(postState)
       val pp = ProgramPointUtils.identifyingPP(stmt)
       val preState: QuantifiedPermissionsState = stmt.specialBackwardSemantics(postState.before(pp)).after(pp)
-      logger.trace(postState.toString)
-      logger.trace(stmt.toString)
-      logger.trace(preState.toString)
+      logger.info(postState.toString)
+      logger.info(stmt.toString)
+      logger.info(preState.toString)
       postState = preState
     }
     if (cfgResult.cfg.outEdges(block).size > 1 && count > SystemParameters.wideningLimit) {

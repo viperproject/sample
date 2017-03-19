@@ -1,21 +1,27 @@
-method foo(arr: Array)
-requires forall i: Int :: acc(loc(arr, i).val)
+method sumList(nd: Ref, rdAmount: Perm, s_n: Set[Ref], s_n0: Set[Ref]) returns (sum: Int)
+requires none < rdAmount && rdAmount < write
+requires forall _r: Ref :: acc(_r.next, (_r in s_n) ? rdAmount : none)
+requires forall _r: Ref :: acc(_r.data, (_r in s_n0) ? rdAmount : none)
+requires nd != null ==> (nd in s_n)
+requires (forall _r: Ref :: { (_r in s_n),_r.next } (_r in s_n) && (_r != null) && perm(_r.next) > none && _r.next != null ==> (_r.next in s_n))
+requires nd != null ==> (nd in s_n0)
+requires (forall _r: Ref :: { (_r in s_n0),_r.next } (_r in s_n0) && (_r != null) && perm(_r.next) > none && _r.next != null ==> (_r.next in s_n0))
 {
-	exhale forall i: Int :: acc(loc(arr, i).val)
+  var node: Ref := nd
+  sum := 0
+  while (node != null)
+  invariant none < rdAmount && rdAmount < write
+  invariant forall _r: Ref :: acc(_r.next, (_r in s_n) ? rdAmount : none)
+  invariant forall _r: Ref :: acc(_r.data, (_r in s_n0) ? rdAmount : none)
+  invariant node != null ==> (node in s_n)
+  invariant (forall _r: Ref :: { (_r in s_n),_r.next } (_r in s_n) && (_r != null) && perm(_r.next) > none && _r.next != null ==> (_r.next in s_n))
+  invariant node != null ==> (node in s_n0)
+  invariant (forall _r: Ref :: { (_r in s_n0),_r.next } (_r in s_n0) && (_r != null) && perm(_r.next) > none && _r.next != null ==> (_r.next in s_n0)) 
+  {
+    sum := sum + node.data
+    node := node.next
+  }
 }
 
-field val: Int
-
-domain Array {
-	function loc(a: Array, i: Int): Ref
-	function length(a: Array): Int
-	function ref_to_array(ref: Ref): Array
-	function ref_to_index(ref: Ref): Int
-
-	axiom all_diff {
-		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
-	}
-	axiom length_nonneg {
-		forall a:Array :: length(a) >= 0
-	}
-}
+field data: Int
+field next: Ref

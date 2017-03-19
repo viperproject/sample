@@ -27,7 +27,7 @@ trait PermissionTree {
 
   def getReplacementsForForgottenVariables(excludeSet: Set[Identifier]): Map[Identifier, Identifier] = Context.getReplacements(forgottenVariables)
 
-  def replacer(replacements: Map[Identifier, Identifier]): (Identifier) => Identifier = id => replacements.getOrElse(id, id)
+  def replacer(replacements: Map[Identifier, Identifier]): Identifier => Identifier = id => replacements.getOrElse(id, id)
 
   def replaceVariables(expr: Expression, replacements: Map[Identifier, Expression]): Expression = expr.transform {
     case id: Identifier => replacements.getOrElse(id, id)
@@ -74,6 +74,11 @@ trait PermissionTree {
 
   def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if(isIntegerDependent) Maximum(Seq(propagateCondition(cond), elsePermissions.propagateCondition(not(cond)))) else Condition(cond, this, elsePermissions)
 
+  private def propagateCondition(cond: Expression): PermissionTree = transform {
+    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSetOrFail)
+    case other => other
+  }
+
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree
 
   def transformAssignVariable(variable: VariableIdentifier): PermissionTree = transform {
@@ -89,11 +94,6 @@ trait PermissionTree {
       case FieldExpression(_, `field`, _) => true
       case _ => false
     } => Maximum(Seq(left, right))
-    case other => other
-  }
-
-  def propagateCondition(cond: Expression): PermissionTree = transform {
-    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSetOrFail)
     case other => other
   }
 
@@ -114,7 +114,15 @@ trait PermissionTree {
     */
   def undoLastRead: PermissionTree = throw new UnsupportedOperationException(s"$this does not support undo!")
 
+  /**
+    * Used to determine whether there is at least one read permission in this tree. This is in particular used to
+    * decide whether or not to introduce the rdAmount variable in formal arguments.
+    *
+    * @return Whether this permission tree contains at least one symbolic read permission.
+    */
   def hasRead: Boolean
+
+  def isLastWrite: Boolean = false
 
   /**
     * Lists all possible read amount sums that are reachable starting from this tree. A read amount is a pair of a
@@ -158,7 +166,7 @@ trait PermissionTree {
     val function = extractFunction.get
     if (!isIntegerQuantificationValid(function)) throw new IllegalStateException("The program contains integer dependent heap accesses but they do not conform to the requirements!")
     val permissionExpression = simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart)))))
-    val additionalVars = permissionExpression.ids.toSetOrFail.filter(v => !Set(quantifiedVariable.name, result.name).contains(v.getName))
+    val additionalVars = permissionExpression.ids.toSetOrFail.filter(v => !Set(quantifiedVariable.name, result.name).contains(v.getName)).toSeq
     val functionWithPostcondition = sil.Function(placeholderFun.name, Seq(silQuantifiedVariable) ++ additionalVars.map(v => sil.LocalVarDecl(v.getName, DefaultSampleConverter.convert(v.typ))()), sil.Perm, Seq(), Seq(DefaultSampleConverter.convert(permissionExpression)), None)()
     Context.replaceFunction(functionWithPostcondition)
     val newPermissionPlaceholder = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable) ++ additionalVars, PermType)
@@ -249,6 +257,7 @@ sealed trait PermissionLeaf extends PermissionTree {
     case _ => false
   })
   def transform(f: (PermissionTree => PermissionTree)): PermissionTree = f(this)
+  override def isLastWrite: Boolean = permission == WritePermission
 }
 
 case class SimplePermissionLeaf(receiver: SimpleExpressionDescription, permission: Permission, forgottenVariables: Set[Identifier] = Set())() extends PermissionLeaf {
@@ -342,6 +351,7 @@ case class Maximum(permissions: Seq[PermissionTree], forgottenVariables: Set[Ide
   }
   def transformForgetVariable(variable: VariableIdentifier): PermissionTree = Maximum(permissions, forgottenVariables = forgottenVariables + variable)
   override def toString: String = s"max(${permissions.map(_.toString).reduceLeft(_ + ", " + _)})"
+  override def isLastWrite: Boolean = permissions.head.isLastWrite
 }
 
 case class Condition(cond: Expression, left: PermissionTree, right: PermissionTree, forgottenVariables: Set[Identifier] = Set()) extends PermissionTree {
