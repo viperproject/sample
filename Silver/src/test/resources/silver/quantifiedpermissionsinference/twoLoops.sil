@@ -1,28 +1,14 @@
-method arrayExample(arr: Array, bound: Int)
+field next: Ref
+
+method twoLoops(head: Ref)
 {
-    var i: Int := 0
-    while (i < 10) {
-        loc(arr, i).val := i
-        i := i + 1
+    var x: Ref := head
+    while (x != null)
+    {
+        x := x.next
     }
-    while (i < bound) {
-        loc(arr, i).val := i
-        i := i + 2
+    while (x != null)
+    {
+        x := x.next
     }
-}
-
-field val: Int
-
-domain Array {
-	function loc(a: Array, i: Int): Ref
-	function length(a: Array): Int
-	function ref_to_array(ref: Ref): Array
-	function ref_to_index(ref: Ref): Int
-
-	axiom all_diff {
-		forall a: Array, i: Int :: {loc(a, i)} 0 <= i ==> ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
-	}
-	axiom length_nonneg {
-		forall a:Array :: length(a) >= 0
-	}
 }

@@ -1,4 +1,4 @@
-method max_array(arr: Array, lenA:Int) returns (x: Int)
+method maxArray(arr: Array, lenA:Int) returns (x: Int)
 {
   if (lenA <= 0) {
     x := (-1)

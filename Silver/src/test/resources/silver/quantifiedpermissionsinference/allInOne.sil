@@ -23,5 +23,6 @@ method allInOne(arr: Array, head: Ref)
     {
         loc(arr, i).val := i
         x := x.next
+        i := i + 1
     }
 }

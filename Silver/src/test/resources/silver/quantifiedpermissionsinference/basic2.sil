@@ -1,8 +1,0 @@
-field f: Ref
-
-method test(r: Ref)
-{
-  exhale acc(r.f.f, 1 / 2)
-  var ref: Ref := r
-  ref := ref.f.f.f
-}

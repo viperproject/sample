@@ -66,7 +66,7 @@ object Context {
 
   def getFieldAccessFunction(field: String): sil.Function = {
     if (!fieldAccessFunctions.contains(field)) {
-      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get_" + field), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None)()
+      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get" + field.head.toUpper + field.tail), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None)()
       fieldAccessFunctions += field -> function
       auxiliaryFunctions += function.name -> function
     }

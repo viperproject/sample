@@ -1,7 +1,7 @@
 field left: Ref
 field right: Ref
 
-method basic(a: Ref, b: Ref, c: Ref)
+method fieldAssignment(a: Ref, b: Ref, c: Ref)
 {
   a.left := c
   b.left := b.left.left.right

@@ -1,14 +1,15 @@
-method basic(arr: Array, r: Ref)
+method writeSingleIndex(arr: Array, bound: Int)
 {
-    var i: Int := 0
-    while (i + 1 < 10 && r.val + 10 < 5) {
-        i := i + 2
-        r.next := r.next.next
+	var i: Int := 0
+	var j: Int := bound
+    while (i < bound) {
+        loc(arr, i + j).val := i
+        i := i + 1
+        j := j - 1
     }
 }
 
 field val: Int
-field next: Ref
 
 domain Array {
 	function loc(a: Array, i: Int): Ref

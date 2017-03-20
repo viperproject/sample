@@ -1,8 +1,0 @@
-method example_loop(a: Int) {
-    var r : Int
-    r := 3
-    while(r<10)
-    {
-        r := r+1
-    }
-}

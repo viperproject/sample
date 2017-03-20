@@ -1,6 +1,6 @@
 field next: Ref
 
-method basic(a: Ref, b: Ref)
+method twoLists(a: Ref, b: Ref)
 {
     var x: Ref := a
     var y: Ref := b

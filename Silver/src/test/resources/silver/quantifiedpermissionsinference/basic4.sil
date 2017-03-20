@@ -1,9 +1,0 @@
-method cross_access(ref: Ref, set_l: Set[Ref], set_r: Set[Ref]) returns (res: Ref)
-{
-    res := ref.right.left.right
-    res := ref.left.right
-    res := ref.right.left
-}
-
-field left: Ref
-field right: Ref

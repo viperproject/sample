@@ -5,7 +5,7 @@ method inhaleWriteExhale(arr: Array)
     {
 		inhale acc(loc(arr, i).val)
         loc(arr, i).val := i
-		exhale acc(loc(arr, i + 1).val)
+		exhale acc(loc(arr, i).val)
         i := i + 1
     }
 }

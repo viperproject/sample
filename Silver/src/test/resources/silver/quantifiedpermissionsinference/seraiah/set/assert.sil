@@ -1,8 +1,0 @@
-
-field test: Bool
-
-method t1(b: Bool, d: Int, r: Ref) returns ()
-{
-    r.test := b
-    assert b == (r.test)
-}
