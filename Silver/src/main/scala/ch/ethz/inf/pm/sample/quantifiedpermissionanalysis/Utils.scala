@@ -9,6 +9,8 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{BinaryArithmeticExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Type
+import viper.silicon.Silicon
+import viper.silver.verifier.Success
 import viper.silver.{ast => sil}
 
 /**
@@ -56,24 +58,23 @@ object Utils {
     val formalArgs = function.formalArgs.filter(formalArg => formalArg.typ != sil.Int) ++ intDecls
     val i1Id = VariableIdentifier(i1.name)(IntType)
     val i2Id = VariableIdentifier(i2.name)(IntType)
-//    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
-//    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
-//    val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
-//    val postcondition = sil.NeCmp(
-//      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
-//      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
-//    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
-//    val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
-//    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-//    silicon.parseCommandLine(Seq("dummy.sil"))
-//    silicon.start()
-//    val result = silicon.verify(newProgram) match {
-//      case Success => true
-//      case _ => false
-//    }
-//    silicon.stop()
-//    result
-    true
+    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
+    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
+    val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
+    val postcondition = sil.NeCmp(
+      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
+      sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
+    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivity_test"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
+    val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
+    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
+    silicon.parseCommandLine(Seq("dummy.sil"))
+    silicon.start()
+    val result = silicon.verify(newProgram) match {
+      case Success => true
+      case _ => false
+    }
+    silicon.stop()
+    result
   }
 
   def toNNF(expr: Expression): Expression = expr.transform {

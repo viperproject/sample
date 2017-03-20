@@ -30,15 +30,15 @@ object QuantifierElimination extends LazyLogging {
   }
 
   private def eliminateDisjunct(variable: Identifier, expr: Expression): Expression = if (!expr.ids.contains(variable)) expr else {
-    println(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
+    logger.trace(s"original to eliminate $variable (containing ${countLiterals(expr)} literals): $expr")
     val formulaNNF = toNNF(expr)
-    println(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
+    logger.trace(s"F1[$variable] (NNF) (containing ${countLiterals(formulaNNF)}) literals): $formulaNNF")
     val collected = collectVariable(variable, formulaNNF)
-    println(s"F3[$variable] (collected) (containing ${countLiterals(collected)} literals): $collected")
+    logger.trace(s"F3[$variable] (collected) (containing ${countLiterals(collected)} literals): $collected")
     val (lcmReplaced, freshVariable) = replaceLCM(variable, collected)
-    println(s"F4[$variable] (lcmReplaced) (containing ${countLiterals(lcmReplaced)} literals): $lcmReplaced")
+    logger.trace(s"F4[$variable] (lcmReplaced) (containing ${countLiterals(lcmReplaced)} literals): $lcmReplaced")
     val equivalentFormula = constructEquivalence(freshVariable, lcmReplaced)
-    println(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
+    logger.trace(s"RESULT (containing ${countLiterals(equivalentFormula)} literals): $equivalentFormula\n")
     equivalentFormula
   }
 
@@ -103,8 +103,7 @@ object QuantifierElimination extends LazyLogging {
     val leftProjection = leftInfiniteProjection(freshVariable, expr)
     val d = delta(freshVariable, expr)
     val B = getBs(freshVariable, expr)
-    println(s"F-∞[.] (left infinite projection): "+ leftProjection)
-    println(s"F-∞[.] (left infinite projection simplified): "+ simplifyExpression(leftProjection))
+    logger.trace(s"F-∞[.] (left infinite projection): "+ simplifyExpression(leftProjection))
     ((1 to d).map(j => leftProjection.transform {
       case ComparisonWithVariableRight(_, 1, `freshVariable`, _) | ComparisonWithVariableLeft(1, `freshVariable`, _, _) => throw new IllegalStateException()
       case `freshVariable` => intToConst(j, freshVariable.typ)
