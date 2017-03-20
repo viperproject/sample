@@ -36,8 +36,6 @@ object QuantifiedPermissionsParameters {
 
   val useCustomTriggerGeneration = true
 
-  val useFieldAccessFunctionsInSetDefinitions = false
-
   val usePermissionCheckInFieldAdd = true
 
   val useShortHelperVariableNames = true

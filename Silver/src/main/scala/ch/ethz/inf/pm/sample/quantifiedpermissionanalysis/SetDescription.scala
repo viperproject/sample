@@ -274,18 +274,15 @@ object ReferenceSetDescription {
             })
           case AddField(field) =>
             val fieldAccess = sil.FieldAccess(quantifiedVariableForFieldsVar, sil.Field(field, silverType)())()
-            val fieldAccessExpr =
-              if (useFieldAccessFunctionsInSetDefinitions) sil.FuncApp(Context.getFieldAccessFunction(field), Seq(quantifiedVariableForFieldsVar))()
-              else fieldAccess
             val contains = sil.AnySetContains(quantifiedVariableForFieldsVar, set)()
             var conjuncts: Seq[sil.Exp] = Seq(contains)
             if (QuantifiedPermissionsParameters.addReceiverNullCheckInSetDefinition) conjuncts :+= sil.NeCmp(quantifiedVariableForFieldsVar, sil.NullLit()())()
-            if (!useFieldAccessFunctionsInSetDefinitions && usePermissionCheckInFieldAdd) conjuncts :+= sil.PermGtCmp(sil.CurrentPerm(fieldAccess)(), sil.NoPerm()())()
-            if (isNullProhibited) conjuncts :+= sil.NeCmp(fieldAccessExpr, sil.NullLit()())()
+            if (usePermissionCheckInFieldAdd) conjuncts :+= sil.PermGtCmp(sil.CurrentPerm(fieldAccess)(), sil.NoPerm()())()
+            if (isNullProhibited) conjuncts :+= sil.NeCmp(fieldAccess, sil.NullLit()())()
            val triggers =
-             if (QuantifiedPermissionsParameters.useCustomTriggerGeneration) Seq(sil.Trigger(Seq(contains, fieldAccessExpr))())
+             if (QuantifiedPermissionsParameters.useCustomTriggerGeneration) Seq(sil.Trigger(Seq(contains, fieldAccess))())
              else Seq()
-            val forall = sil.Forall(Seq(quantifiedVariableForFields), triggers, sil.Implies(conjuncts.reduce(sil.And(_, _)()), sil.AnySetContains(fieldAccessExpr, set)())())()
+            val forall = sil.Forall(Seq(quantifiedVariableForFields), triggers, sil.Implies(conjuncts.reduce(sil.And(_, _)()), sil.AnySetContains(fieldAccess, set)())())()
             fields :+= forall
           case Function(functionName, _, _, argKeys) =>
             val function = Context.functions(functionName)
