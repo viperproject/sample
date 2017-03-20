@@ -1,11 +1,10 @@
 field f: Ref
 
 method demo(y: Ref, z: Ref)
-requires acc(y.f) && acc(z.f)
 {
-	var x: Ref := y
-	if (y == null) {
-		x := z
+	var x: Ref := z
+	if (y != null) {
+		x := y
 	}
-	x := x.f
+	x.f := x
 }

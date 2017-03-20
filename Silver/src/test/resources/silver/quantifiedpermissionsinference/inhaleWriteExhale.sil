@@ -3,13 +3,9 @@ method inhaleWriteExhale(arr: Array)
     var i: Int := 0
     while (i < 10)
     {
-        if (i % 2 == 0) {
-            inhale acc(loc(arr, i).val)
-        }
+		inhale acc(loc(arr, i).val)
         loc(arr, i).val := i
-        if (i % 2 == 0) {
-            exhale acc(loc(arr, i).val)
-        }
+		exhale acc(loc(arr, i + 1).val)
         i := i + 1
     }
 }

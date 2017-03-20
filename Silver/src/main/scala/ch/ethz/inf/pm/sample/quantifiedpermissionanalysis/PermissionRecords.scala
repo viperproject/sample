@@ -15,10 +15,8 @@ import scala.collection.immutable
   * @author Severin Münger
   *         Added on 07.11.16.
   */
-case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
+case class PermissionRecords(permissions: Map[String, PermissionTree] = Map(), private var writeMap: Map[String, Boolean] = Map())
   extends immutable.Map[String, PermissionTree] {
-
-  private var writeMap: Map[String, Boolean] = Map()
 
   def addWrite(field: String, pp: ProgramPoint, receiver: Expression): PermissionRecords = {
     writeMap += field -> true
@@ -60,7 +58,7 @@ case class PermissionRecords(permissions: Map[String, PermissionTree] = Map())
       case (_, other) => other
     })
 
-  def isLastWrite(field: String): Boolean = {
+  private def isLastWrite(field: String): Boolean = {
     val result = writeMap.getOrElse(field, false) && getOrElse(field, EmptyPermissionTree).isLastWrite
     writeMap += field -> false
     result

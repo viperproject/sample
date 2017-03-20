@@ -1,0 +1,40 @@
+domain Array {
+  
+  function loc(a: Array, i: Int): Ref
+  
+  function length(a: Array): Int
+  
+  function ref_to_array(ref: Ref): Array
+  
+  function ref_to_index(ref: Ref): Int
+  
+  axiom all_diff {
+    (forall a: Array, i: Int :: { loc(a, i) } ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i)
+  }
+  
+  axiom length_nonneg {
+    (forall a: Array :: length(a) >= 0)
+  }
+}
+
+field val: Int
+
+function p(q: Int): Perm
+  ensures (q <= 9 && q >= 0 && result == none || q <= 10 && q >= 1 && result == write || q <= 8 && q >= -1 && result == none || (q == 0 || (q == 1 || q == 0) || result == none) && (q == 0 || (q == 0 || q == 1) || result == none) && (q == 0 || (q != 0 || q == 1) || result == write) && (q == 0 || (q != 0 || q != 1) || result == write) && (q == 0 || (q != 1 || q == 0) || result == write) && (q == 0 || (q != 1 || q != 0) || result == write) && (q != 0 || (q != 0 || q == 1) || result == none) && (q != 0 || (q != 0 || q != 1) || result == none) && (q != 0 || (q == 1 || q == 0) || result == none) && (q != 0 || (q == 0 || q == 1) || result == none) && (q != 0 || (q != 1 || q == 0) || result == none) && (q != 0 || (q != 1 || q != 0) || result == none) || q <= 9 && q >= 0 && result == none) && ((q > 9 || q < 0 || result >= none) && (q > 10 || q < 1 || result >= write) && (q > 8 || q < -1 || result >= none) && ((q == 0 || (q == 1 || q == 0) || result >= none) && (q == 0 || (q == 0 || q == 1) || result >= none) && (q == 0 || (q != 0 || q == 1) || result >= write) && (q == 0 || (q != 0 || q != 1) || result >= write) && (q == 0 || (q != 1 || q == 0) || result >= write) && (q == 0 || (q != 1 || q != 0) || result >= write) && (q != 0 || (q != 0 || q == 1) || result >= none) && (q != 0 || (q != 0 || q != 1) || result >= none) && (q != 0 || (q == 1 || q == 0) || result >= none) && (q != 0 || (q == 0 || q == 1) || result >= none) && (q != 0 || (q != 1 || q == 0) || result >= none) && (q != 0 || (q != 1 || q != 0) || result >= none)) && (q > 9 || q < 0 || result >= none))
+
+
+method inhaleWriteExhale(arr: Array)
+  requires (forall q: Int :: acc(loc(arr, q).val, p(q)))
+{
+  var i: Int
+  i := 0
+  while (i < 10)
+    invariant (forall q: Int :: acc(loc(arr, q).val, p(q)))
+    invariant i >= 0 
+  {
+    inhale acc(loc(arr, i).val, write)
+    loc(arr, i).val := i
+    exhale acc(loc(arr, i + 1).val, write)
+    i := i + 1
+  }
+}
