@@ -30,7 +30,7 @@ object RemoveGetterSetter {
        case Variable(pp, id) => st;
        case New(pp, typ) => st;
        case ConstantStatement(pp, value, typ) => st;
-       case MethodCall(pp, method, parametricTypes, parameters, returnedType) => method.normalize() match {
+       case MethodCall(pp, method, parametricTypes, parameters, returnedType, targets) => method.normalize() match {
          case FieldAccess(pp1, obj, field, typ) =>
            if(field.length>=2 && field.substring(field.length-2, field.length).equals("_=")) //obj.field_=expr is adopted to assign fields
            	parameters match {
@@ -58,7 +58,7 @@ object RemoveGetterSetter {
              case _ => 
              	//System.out.println("Look at this:\n"+st.toString);
            } 
-           MethodCall(pp, cleanStatement(method), parametricTypes, cleanListStatement(parameters), returnedType);
+           MethodCall(pp, cleanStatement(method), parametricTypes, cleanListStatement(parameters), returnedType, targets);
        } 
        case Throw(pp, expr) => Throw(pp, cleanStatement(expr));
   }

@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.execution.SampleCfg
-import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodCall, Statement, TaggedProgramPoint}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -181,20 +181,15 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
       Seq(assignment)
 
-    case s@sil.MethodCall(method, args, targets) => {
+    case sil.MethodCall(method, args, targets) => {
       val call = sample.MethodCall(
-        pp = go(s.pos),
-        method = makeVariable(s.pos, sil.Ref, method),
-        parametricTypes = Nil,
-        parameters = args.map(go).toList,
-        returnedType = sample.TopType)
-      // currently we just translate each target into target := method()
-      //TODO we should probably store the targets and move the assignment into the interpreter
-      if (s.targets.length > 0) {
-        s.targets.map(t => sample.Assignment(go(s.pos), go(t), call))
-      } else {
-        Seq(call)
-      }
+          pp = go(s.pos),
+          method = makeVariable(s.pos, sil.Ref, method),
+          parametricTypes = Nil,
+          parameters = args.map(go).toList,
+          returnedType = sample.TopType,
+          targets = targets.map(go).toList)
+      Seq(call)
     }
 
     case sil.LocalVarDeclStmt(decl) =>
