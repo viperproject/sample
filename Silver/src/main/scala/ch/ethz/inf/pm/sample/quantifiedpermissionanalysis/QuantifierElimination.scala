@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
 import com.typesafe.scalalogging.LazyLogging
 
@@ -101,9 +100,9 @@ object QuantifierElimination extends LazyLogging {
   // Step 4
   private def constructEquivalence(freshVariable: Identifier, expr: Expression): Expression = {
     val leftProjection = leftInfiniteProjection(freshVariable, expr)
+    logger.trace(s"F-∞[.] (left infinite projection): "+ simplifyExpression(leftProjection))
     val d = delta(freshVariable, expr)
     val B = getBs(freshVariable, expr)
-    logger.trace(s"F-∞[.] (left infinite projection): "+ simplifyExpression(leftProjection))
     ((1 to d).map(j => leftProjection.transform {
       case ComparisonWithVariableRight(_, 1, `freshVariable`, _) | ComparisonWithVariableLeft(1, `freshVariable`, _, _) => throw new IllegalStateException()
       case `freshVariable` => intToConst(j, freshVariable.typ)
@@ -126,18 +125,6 @@ object QuantifierElimination extends LazyLogging {
       case _ =>
     }
     lcm(numbers)
-  }
-
-  private def getAs(freshVariable: Identifier, expr: Expression): Set[Expression] = {
-    var as: Set[Expression] = Set()
-    expr.foreach {
-      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.> | ArithmeticOperator.!=) => as += left
-      case ComparisonWithVariableRight(left, 1, `freshVariable`, ArithmeticOperator.>= | ArithmeticOperator.==) => as += plus(left, intToConst(1, left.typ))
-      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.< | ArithmeticOperator.!=) => as += right
-      case ComparisonWithVariableLeft(1, `freshVariable`, right, ArithmeticOperator.<= | ArithmeticOperator.==) => as += plus(right, intToConst(1, right.typ))
-      case _ =>
-    }
-    as
   }
 
   private def getBs(freshVariable: Identifier, expr: Expression): Set[Expression] = {

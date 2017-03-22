@@ -1,0 +1,49 @@
+method twoLoops(arr: Array)
+{
+    var i: Int := 0
+    var sum: Int := 0
+    while (i < 10)
+    {
+        loc(arr, i).val := i
+        i := i + 1
+    }
+    while (i < 20)
+    {
+        sum := sum + loc(arr, i).val
+        i := i + 1
+    }
+}
+
+field val: Int
+
+domain Array {
+	function loc(a: Array, i: Int): Ref
+	function length(a: Array): Int
+	function ref_to_array(ref: Ref): Array
+	function ref_to_index(ref: Ref): Int
+
+	axiom all_diff {
+		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
+	}
+	axiom length_nonneg {
+		forall a:Array :: length(a) >= 0
+	}
+}
+
+/*
+method humanImpliesInferred(arr: Array, rdAmount: Perm)
+requires none < rdAmount && rdAmount < write
+requires forall q: Int :: (0 <= q && q < 10 ==> acc(loc(arr, q).val)) && (10 <= q && q < 20 ==> acc(loc(arr, q).val, rdAmount))
+ensures forall q: Int :: acc(loc(arr, q).val, p0(q, rdAmount))
+{
+
+}
+
+method inferredImpliesHuman(arr: Array, rdAmount: Perm)
+requires none < rdAmount && rdAmount < write
+requires forall q: Int :: acc(loc(arr, q).val, p0(q, rdAmount))
+ensures forall q: Int :: (0 <= q && q < 10 ==> acc(loc(arr, q).val)) && (10 <= q && q < 20 ==> acc(loc(arr, q).val, rdAmount))
+{
+
+}
+*/
