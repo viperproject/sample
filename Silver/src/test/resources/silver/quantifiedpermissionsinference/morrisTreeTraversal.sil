@@ -1,0 +1,34 @@
+method markTree(root: Ref) {
+
+    var x: Ref := root
+    var y: Ref
+
+    x.mark := true
+    if (x.left == null && x.right == null) {
+        y := x.parent
+    } else {
+        y := x.left
+        x.left := x.right
+        x.right := x.parent
+        x.parent := y
+    }
+    x := y
+
+    while (x != null) {
+        x.mark := true
+        if (x.left == null && x.right == null) {
+            y := x.parent
+        } else {
+            y := x.left
+            x.left := x.right
+            x.right := x.parent
+            x.parent := y
+        }
+        x := y
+    }
+}
+
+field mark: Bool
+field left: Ref
+field right: Ref
+field parent: Ref
