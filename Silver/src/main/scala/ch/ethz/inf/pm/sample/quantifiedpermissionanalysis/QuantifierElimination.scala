@@ -211,14 +211,3 @@ object NotDivides {
     case _ => None
   }
 }
-
-object Main2 {
-  def main(args: Array[String]): Unit = {
-    val q = VariableIdentifier("q")(IntType)
-    val i = VariableIdentifier("i")(IntType)
-    val p = VariableIdentifier("p")(PermType)
-    QuantifierElimination.eliminate(i, and(and(leq(0, i), leq(i, 9)), and(or(neq(q, i), equ(p, writeConst)), or(equ(q, i), equ(p, noneConst)))))
-  }
-
-  implicit def blubb(i: Int): Constant = intToConst(i, IntType)
-}
