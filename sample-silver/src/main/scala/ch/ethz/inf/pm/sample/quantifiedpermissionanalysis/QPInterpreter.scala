@@ -68,7 +68,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
     val bottom = finalState.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
     val ordering: Ordering[SampleBlock] = Ordering.by(block => (-nestingLevels(block), -sequenceNumbers(block)))
-    var worklist: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit)(ordering)
+    var worklist: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit.get)(ordering)
     var iterations = Map[SampleBlock, Int]()
     while (worklist.nonEmpty) {
       val currentBlock: SampleBlock = worklist.head
@@ -76,7 +76,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
       val currentCount: Int = iterations.getOrElse(currentBlock, 0)
       val exitEdges = cfg.outEdges(currentBlock)
       val currentState: QuantifiedPermissionsState =
-        if (cfg.exit == currentBlock) finalState
+        if (cfg.exit.get == currentBlock) finalState
         else exitEdges match {
           case onlyEdge :: Nil => cfgResult.getStates(onlyEdge.target).head
           case (edge1: ConditionalEdge[Statement, Statement]) :: (edge2: ConditionalEdge[Statement, Statement]) :: Nil =>
