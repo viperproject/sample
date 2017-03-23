@@ -52,16 +52,16 @@ object SampleBuild extends Build {
 
   lazy val silver = Project(
     id = "sample-silver",
-    base = file("Silver")) dependsOn(core, numerical, viper)
+    base = file("sample-silver")) dependsOn(core, numerical, viper)
 
   lazy val viper = RootProject(
-    file("../silver-cfg/")
+    file("../silver/")
   )
 
   lazy val web = Project(
     id = "sample-web",
     base = file("Web"),
-    settings = Defaults.coreDefaultSettings++ com.earldouglas.xwp.XwpPlugin.jetty()
+    settings = Defaults.coreDefaultSettings ++ com.earldouglas.xwp.XwpPlugin.jetty()
   ).enablePlugins(SbtTwirl).dependsOn(core, numerical, apron, valuedrivenheap, sil, touchdevelop)
 
   // Custom configuration key to specify apron shared library location
@@ -90,9 +90,9 @@ object SampleBuild extends Build {
     ),
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.1.7" % "runtime", // Logging Backend % "runtime"
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",  // Logging Frontend
-      "org.scalatest" % "scalatest_2.11" % "2.2.1",               // Testing Framework
-      "org.scalaz" %% "scalaz-core" % "7.1.5"                     // Functional Programming
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0", // Logging Frontend
+      "org.scalatest" % "scalatest_2.11" % "2.2.1", // Testing Framework
+      "org.scalaz" %% "scalaz-core" % "7.1.5" // Functional Programming
     )
   )
 

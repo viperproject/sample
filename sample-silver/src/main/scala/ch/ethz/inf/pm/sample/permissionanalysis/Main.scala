@@ -10,9 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.IntegerIntervalAnalysis
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 /** Main for the permission inference.
-  *
-  * @author Lucas Brutschy, Caterina Urban
-  */
+  **/
 object Main {
 
   def main(args: Array[String]) = {
