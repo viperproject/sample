@@ -3,8 +3,8 @@ method qe(arr: Array)
     var i: Int := 0
     while (i < 10)
     {
-        inhale acc(loc(arr, i).val)
-        loc(arr,9).val := i
+		inhale acc(loc(arr, i).val)
+        loc(arr, 8).val := i
         i := i + 1
     }
 }

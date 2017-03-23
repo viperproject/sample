@@ -3,6 +3,6 @@ field right: Ref
 
 method fieldAssignment(a: Ref, b: Ref, c: Ref)
 {
-  a.left := c
-  b.left := b.left.left.right
-}
+				a.left := c
+				b.left := b.left.left.right
+			}

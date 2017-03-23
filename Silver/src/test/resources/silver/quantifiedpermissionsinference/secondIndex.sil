@@ -1,4 +1,4 @@
-method basic(arr: Array) returns (res: Int)
+method secondIndex(arr: Array) returns (res: Int)
 {
     var i: Int := 0
     while (i < 10) {

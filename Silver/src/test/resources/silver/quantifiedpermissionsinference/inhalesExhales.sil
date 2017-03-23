@@ -1,0 +1,9 @@
+field next: Ref
+
+method inhaleExhale(head: Ref)
+{
+    exhale acc(head.next)
+    inhale acc(head.next)
+    inhale acc(head.next)
+    exhale acc(head.next)
+}

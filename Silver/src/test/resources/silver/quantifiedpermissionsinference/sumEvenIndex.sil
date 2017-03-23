@@ -1,12 +1,14 @@
-method arrayExample(arr: Array, len: Int)
+method sumEvenIndexes(arr: Array) returns (res: Int)
 {
-    var i: Int := 0
-    while (i < len) {
-        loc(arr, i).val := i
-        i := i + 1
-    }
+	var i: Int := 0
+	while (i < 10)
+	{
+		if (i % 2 == 0) {
+			res := res + loc(arr, i).val
+		}
+		i := i + 1
+	}
 }
-
 field val: Int
 
 domain Array {
@@ -16,7 +18,7 @@ domain Array {
 	function ref_to_index(ref: Ref): Int
 
 	axiom all_diff {
-		forall a: Array, i: Int :: {loc(a, i)} 0 <= i ==> ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
+		forall a: Array, i: Int :: {loc(a, i)} ref_to_array(loc(a, i)) == a && ref_to_index(loc(a, i)) == i
 	}
 	axiom length_nonneg {
 		forall a:Array :: length(a) >= 0

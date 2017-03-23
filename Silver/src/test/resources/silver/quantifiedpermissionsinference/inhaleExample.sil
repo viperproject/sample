@@ -1,10 +1,12 @@
-method arrayExample(arr: Array, len: Int)
+method inhaleExample(arr: Array)
 {
-    var i: Int := 0
-    while (i < len) {
-        loc(arr, i).val := i
-        i := i + 1
-    }
+	var i: Int := 0
+	while (i < 10)
+	{
+		inhale acc(loc(arr, i).val)
+		loc(arr,9).val := i
+		i := i + 1
+	}
 }
 
 field val: Int
