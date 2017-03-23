@@ -106,7 +106,7 @@ trait CfgResult[S <: State[S]] {
     * @return The exit state.
     */
   def exitState(): S =
-    getStates(cfg.exit).last
+    cfg.exit.map(getStates(_).last).getOrElse(entryState().bottom())
 
   /**
     * Returns the states corresponding to the given basic block.

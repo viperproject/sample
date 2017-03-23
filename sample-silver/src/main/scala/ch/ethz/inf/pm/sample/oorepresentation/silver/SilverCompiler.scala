@@ -6,10 +6,9 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import java.io.{BufferedReader, FileReader}
-import ch.ethz.inf.pm.sample.oorepresentation._
 import java.nio.file.Files
 import java.text.ParseException
+
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, _}

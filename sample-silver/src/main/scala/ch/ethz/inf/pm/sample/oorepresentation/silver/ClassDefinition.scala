@@ -41,10 +41,12 @@ class SilverMethodDeclaration(val programPoint: ProgramPoint,
   /**
     * Returns the postcondition of the method.
     *
+    * TODO: Make the postcondition (and also precondition) a field of the method.
+    *
     * @return The postcondition of the method.
     */
   def postcondition(): Seq[Statement] = body.exit match {
-    case PostconditionBlock(posts) => posts
+    case Some(PostconditionBlock(posts)) => posts
     case _ => Seq.empty
   }
 

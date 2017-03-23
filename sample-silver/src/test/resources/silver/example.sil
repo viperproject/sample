@@ -1,13 +1,19 @@
-field f: Ref
 
-method foo_pre(a: Ref)
-    ensures acc(a.f, write)
-{
-}
+field data: Int
 
-method foo(a: Ref)
-    requires acc(a.f, write)
+method foo_pre(this: Ref)
+    requires acc(this.data, write)
+{}
+
+method foo(this: Ref)
+    //ensures acc(this.data, write)
 {
-    var v: Ref
-    v := a.f
+    var i: Int
+    i := 0
+    while (i < 100)
+        //invariant acc(this.data, write)
+    {
+        this.data := this.data + i
+        i := i + 1
+    }
 }
