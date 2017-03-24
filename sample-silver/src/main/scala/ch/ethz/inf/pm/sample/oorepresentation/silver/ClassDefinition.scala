@@ -21,7 +21,7 @@ class SilverFunctionDeclaration(val programPoint: ProgramPoint,
                                 val name: SilverIdentifier,
                                 val parameters: List[VariableDeclaration],
                                 val returnType: Type,
-                                val body: Statement)
+                                val body: Option[Statement])
 
 class SilverMethodDeclaration(val programPoint: ProgramPoint,
                               val name: SilverIdentifier,

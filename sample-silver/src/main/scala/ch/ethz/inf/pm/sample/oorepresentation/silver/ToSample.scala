@@ -103,7 +103,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       name = SilverIdentifier(f.name),
       parameters = f.formalArgs.map(go).toList,
       returnType = go(f.typ),
-      body = go(f.body.getOrElse(null))
+      body = f.body match {
+        case Some(b) => Option(go(b))
+        case None => None
+      }
     )
   }
 
