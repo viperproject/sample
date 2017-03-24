@@ -448,26 +448,23 @@ case class MethodCall(
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
     }; //return state
-    //TODO: why is this necessary? Can we reuse the same state?
-    val targetExpr = targets.map(t => UtilitiesOnStates.forwardExecuteStatement(state, t)._1)
-    var rhs : ExpressionSet = null
-    var nextState = body match {
-      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
+    var curState = state
+    val targetExpr = for(t <- targets) yield {
+      val (expr: ExpressionSet, nextState) = UtilitiesOnStates.forwardExecuteStatement(curState, t)
+      curState = nextState
+      expr
+    }
+    body match {
+      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, curState, getPC())
       case body: Variable =>
-        var curState = state
         val parameterExpressions = for (parameter <- parameters) yield {
           curState = parameter.forwardSemantics[S](curState)
           curState.expr
         }
-        rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
+        val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
         curState.setExpression(rhs)
+        targetExpr.foldLeft(curState)((st, exp) => st.assignVariable (exp, rhs))
     }
-    if(targets.length > 0) {
-      //TODO: as soon as we "care" about the return values rhs needs to keep track of which return value is used.
-      for(leftExpr <- targetExpr)
-        nextState = nextState.assignVariable(leftExpr, rhs)
-    }
-    nextState
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
