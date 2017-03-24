@@ -95,6 +95,71 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     (list, tree) => tree.fold(list) { case (xs, (x, _)) => x :: xs }
   }
 
+  /* ------------------------------------------------------------------------- *
+   * LATTICE FUNCTIONS
+   */
+
+  override def factory(): T = {
+    logger.trace("factory")
+    this
+  }
+
+  override def top(): T = {
+    logger.trace("top")
+    copy(
+      result = result.top(),
+      stack = stack.top(),
+      inferred = None,
+      isBottom = false,
+      isTop = true)
+  }
+
+  override def bottom(): T = {
+    logger.trace("bottom")
+    copy(
+      result = result.bottom(),
+      stack = stack.bottom(),
+      inferred = None,
+      isBottom = true,
+      isTop = false)
+  }
+
+  override def lub(other: T): T = {
+    logger.trace(s"lub(${this.toString}, ${other.toString})")
+    copy(
+      isBottom = isBottom && other.isBottom,
+      isTop = isTop || other.isTop,
+      stack = stack lub other.stack)
+  }
+
+  override def glb(other: T): T = {
+    logger.trace("glb")
+    copy(
+      isBottom = isBottom || other.isBottom,
+      isTop = isTop && other.isTop,
+      stack = stack glb other.stack)
+  }
+
+  override def widening(other: T): T = {
+    logger.trace(s"widening(${this.toString}, ${other.toString})")
+    copy(
+      isBottom = isBottom && other.isBottom,
+      isTop = isTop || other.isTop,
+      stack = stack widening other.stack)
+  }
+
+  override def lessEqual(other: T): Boolean = {
+    logger.trace(s"lessEqual(${this.toString}, ${other.toString})")
+    // handle cases involving bottom and top
+    if (isBottom || other.isTop) true
+    else if (other.isBottom || isTop) false
+    else stack lessEqual other.stack
+  }
+
+  /* ------------------------------------------------------------------------- *
+   * STATE FUNCTIONS
+   */
+
   /**
     * Processes the given precondition.
     *
@@ -459,109 +524,12 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     copy(result = ExpressionSet(id))
   }
 
-  /** Returns the bottom value of the lattice.
-    *
-    * @return The bottom value, that is, a value x that is less than or to any other value
-    */
-  override def bottom(): T = {
-    logger.trace("bottom")
-    copy(
-      result = result.bottom(),
-      stack = stack.bottom(),
-      inferred = None,
-      isBottom = true,
-      isTop = false)
-  }
-
-  /** Computes the widening of two elements.
-    *
-    * @param other The new value
-    * @return The widening of `this` and `other`
-    */
-  override def widening(other: T): T = {
-    logger.trace(s"widening(${this.toString}, ${other.toString})")
-    copy(
-      isBottom = isBottom && other.isBottom,
-      isTop = isTop || other.isTop,
-      stack = stack widening other.stack)
-  }
-
-  /** Returns true if and only if `this` is less than or equal to `other`.
-    *
-    * @param other The value to compare
-    * @return true if and only if `this` is less than or equal to `other`
-    */
-  override def lessEqual(other: T): Boolean = {
-    logger.trace(s"lessEqual(${this.toString}, ${other.toString})")
-    // handle cases involving bottom and top
-    if (isBottom || other.isTop) true
-    else if (other.isBottom || isTop) false
-    else stack lessEqual other.stack
-  }
-
-  /** Returns the top value of the lattice.
-    *
-    * @return The top value, that is, a value x that is greater than or equal to any other value
-    */
-  override def top(): T = {
-    logger.trace("top")
-    copy(
-      result = result.top(),
-      stack = stack.top(),
-      inferred = None,
-      isBottom = false,
-      isTop = true)
-  }
-
-  /** Computes the least upper bound of two elements.
-    *
-    * @param other The other value
-    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
-    *         and less than or equal to any other upper bound of the two arguments
-    */
-  override def lub(other: T): T = {
-    logger.trace(s"lub(${this.toString}, ${other.toString})")
-    copy(
-      isBottom = isBottom && other.isBottom,
-      isTop = isTop || other.isTop,
-      stack = stack lub other.stack)
-  }
-
-  /** Returns a new instance of the lattice.
-    *
-    * @return A new instance of the current object
-    */
-  override def factory(): T = {
-    logger.trace("factory")
-    this
-  }
-
-  /** Computes the greatest lower bound of two elements.
-    *
-    * @param other The other value
-    * @return The greatest upper bound, that is, an element that is less than or
-    *         equal to the two arguments, and greater than or equal to any other
-    *         lower bound of the two arguments.
-    */
-  override def glb(other: T): T = {
-    logger.trace("glb")
-    copy(
-      isBottom = isBottom || other.isBottom,
-      isTop = isTop && other.isTop,
-      stack = stack glb other.stack)
-  }
-
-  /**
-    * Returns the inferred specifications.
-    *
-    * @return The inferred specifications.
-    */
-  override def specifications: PermissionTree =
-    inferred.getOrElse(stack.headTree)
-
   /* ------------------------------------------------------------------------- *
    * HELPER FUNCTIONS FOR INFERENCE
    */
+
+  override def specifications: PermissionTree =
+    inferred.getOrElse(stack.headTree)
 
   private def saveSpecifications(): T =
     copy(inferred = Some(stack.headTree))
