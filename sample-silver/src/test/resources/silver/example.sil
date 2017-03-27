@@ -1,19 +1,11 @@
-
-field data: Int
-
-method foo_pre(this: Ref)
-    requires acc(this.data, write)
-{}
-
 method foo(this: Ref)
-    //ensures acc(this.data, write)
 {
-    var i: Int
-    i := 0
-    while (i < 100)
-        //invariant acc(this.data, write)
-    {
-        this.data := this.data + i
-        i := i + 1
-    }
+    var i: Int := 0
+    i := bar(this, i)
+    assert i == 0     // the trivial analysis should set i to Top and this assert is expected to fail
+}
+
+method bar(this: Ref, i: Int) returns (k: Int)
+{
+    k := 0
 }
