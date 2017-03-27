@@ -146,6 +146,15 @@ trait PermissionStack extends Lattice[PermissionStack] {
   def mapPermissions(f: (AccessPath, PermissionTree) => Permission): PermissionStack =
     map(entry => Entry(entry.tree.map()(f), entry.paths))
 
+  def foldLeft[R](v: R)(f: (R, Entry) => R): R =
+    entries.foldLeft(v)(f)
+
+  def foldLeftTrees[R](v: R)(f: (R, PermissionTree) => R): R =
+    foldLeft(v) { case (result, entry) => f(result, entry.tree) }
+
+  def foldLeftPaths[R](v: R)(f: (R, Set[AccessPath]) => R): R =
+    foldLeft(v) { case (result, entry) => f(result, entry.paths) }
+
   override def toString: String =
     if (isTop) "⊤"
     else if (isBottom) "⊥"

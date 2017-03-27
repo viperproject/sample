@@ -13,12 +13,12 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAn
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
-import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
 import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverInferenceRunner[PermissionTree, T] {
+  extends SilverInferenceRunner[PermissionStack, T] {
   /**
     * The flag indicating whether there is a read permission mentioned in the
     * specifications.
@@ -96,7 +96,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     */
   override def fields(existing: Seq[sil.Field], state: T): Seq[sil.Field] = {
     // extract specifications from state
-    val specifications = state.specifications
+    val specifications = state.specifications.foldLeftTrees[PermissionTree](PermissionTree.Bottom)(_ lub _)
 
     // TODO: Report if infeasible permissions are inferred.
 
@@ -123,7 +123,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
   private def extendSpecifications(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] = {
     val inferredSpecifications = state.specifications
     val (existingSpecifications, unknown) = extractSpecifications(existing, state)
-    val specifications = inferredSpecifications plus existingSpecifications
+    val specifications = inferredSpecifications.headTree plus existingSpecifications
 
     read = read || specifications.fold(false) {
       case (result, (_, tree)) =>

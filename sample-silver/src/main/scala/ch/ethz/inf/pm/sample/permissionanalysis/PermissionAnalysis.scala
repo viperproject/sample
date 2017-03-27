@@ -68,7 +68,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
   */
 trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverState[T]
-    with SilverSpecification[PermissionTree]
+    with SilverSpecification[PermissionStack]
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
@@ -82,7 +82,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   // permission stack
   def stack: PermissionStack
 
-  def inferred: Option[PermissionTree]
+  def inferred: Option[PermissionStack]
 
   // result of the alias analysis before the current program point
   lazy val preAliases = Context.preAliases[A](currentPP)
@@ -157,46 +157,29 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   }
 
   /* ------------------------------------------------------------------------- *
-   * STATE FUNCTIONS
+   * SILVER STATE FUNCTIONS
    */
 
-  /**
-    * Processes the given precondition.
-    *
-    * @param expression The expression representing the precondition.
-    * @return The state after processing the given precondition.
-    */
-  override def precondition(expression: Expression): T =
-    inhale(expression).saveSpecifications()
-
-  /**
-    * Processes the given postcondition.
-    *
-    * @param expression The expression representing the postcondition.
-    * @return The state after processing the postcondition.
-    */
-  override def postcondition(expression: Expression): T =
-    exhale(expression).saveSpecifications()
-
-  /**
-    * Processes the given invariant.
-    *
-    * @param expression The expression representing the invariant.
-    * @return The state after processing the invariant.
-    */
-  override def invariant(expression: Expression): T = {
-    // TODO: "assert" invariant rather than exhale it.
-    val exhaled = exhale(expression)
-    setSpecifications(exhaled.stack.headTree)
+  def inhale(acc: Expression): T = {
+    logger.trace(s"inhale($acc)")
+    acc match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
+        inhale(right).inhale(left)
+      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
+        // get access path
+        val location = path(identifier)
+        // get the amount of permission that is inhaled
+        val inhaled = permission(numerator, denominator)
+        // add permission to all paths that must alias
+        val updated = stack.mapPermissions { (path, tree) =>
+          if (mustBeSame(postAliases, path, location)) tree.permission minus inhaled
+          else tree.permission
+        }
+        copy(stack = updated).read(location.dropRight(1))
+      case _ => assume(acc)
+    }
   }
 
-  /** Exhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to exhale.
-    * @return The abstract state after exhaling the permission.
-    */
   def exhale(acc: Expression): T = {
     logger.trace(s"exhale($acc)")
     acc match {
@@ -226,46 +209,25 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     }
   }
 
-  /** Inhales permissions.
-    *
-    * Implementations can already assume that this state is non-bottom.
-    *
-    * @param acc The permission to inhale.
-    * @return The abstract state after inhaling the permission.
-    */
-  def inhale(acc: Expression): T = {
-    logger.trace(s"inhale($acc)")
-    acc match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
-        inhale(right).inhale(left)
-      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
-        // get access path
-        val location = path(identifier)
-        // get the amount of permission that is inhaled
-        val inhaled = permission(numerator, denominator)
-        // add permission to all paths that must alias
-        val updated = stack.mapPermissions { (path, tree) =>
-          if (mustBeSame(postAliases, path, location)) tree.permission minus inhaled
-          else tree.permission
-        }
-        copy(stack = updated).read(location.dropRight(1))
-      case _ => assume(acc)
-    }
+  override def precondition(expression: Expression): T =
+    inhale(expression).saveSpecifications()
+
+  override def postcondition(expression: Expression): T =
+    exhale(expression).saveSpecifications()
+
+  override def invariant(expression: Expression): T = {
+    // TODO: "assert" invariant rather than exhale it.
+    val exhaled = exhale(expression)
+    setSpecifications(exhaled.stack)
   }
 
-  /**
-    * This method is invoked to signal the state that a loop is being entered.
-    *
-    * @return The state after entering the loop.
-    */
   override def enterLoop(): T = copy(stack = stack.pop)
 
-  /**
-    * This method is invoked to signal the state that a loop is being left.
-    *
-    * @return The state after leaving the loop.
-    */
   override def leaveLoop(): T = copy(stack = stack.push)
+
+  /* ------------------------------------------------------------------------- *
+   * STATE FUNCTIONS
+   */
 
   /** Creates a variable for an argument given a `VariableIdentifier`.
     *
@@ -528,13 +490,13 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
    * HELPER FUNCTIONS FOR INFERENCE
    */
 
-  override def specifications: PermissionTree =
-    inferred.getOrElse(stack.headTree)
+  override def specifications: PermissionStack =
+    inferred.getOrElse(stack)
 
   private def saveSpecifications(): T =
-    copy(inferred = Some(stack.headTree))
+    copy(inferred = Some(stack))
 
-  private def setSpecifications(specifications: PermissionTree): T =
+  private def setSpecifications(specifications: PermissionStack): T =
     copy(inferred = Some(specifications))
 
   private def forgetSpecifications(): T =
@@ -693,7 +655,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   def copy(currentPP: ProgramPoint = currentPP,
            result: ExpressionSet = result,
            stack: PermissionStack = stack,
-           inferred: Option[PermissionTree] = inferred,
+           inferred: Option[PermissionStack] = inferred,
            isBottom: Boolean = isBottom,
            isTop: Boolean = isTop): T
 
@@ -712,14 +674,14 @@ object PermissionAnalysisState {
   case class SimplePermissionAnalysisState(currentPP: ProgramPoint = DummyProgramPoint,
                                            result: ExpressionSet = ExpressionSet(),
                                            stack: PermissionStack = PermissionStack.empty,
-                                           inferred: Option[PermissionTree] = None,
+                                           inferred: Option[PermissionStack] = None,
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
     extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
     override def copy(currentPP: ProgramPoint,
                       result: ExpressionSet,
                       stack: PermissionStack,
-                      inferred: Option[PermissionTree],
+                      inferred: Option[PermissionStack],
                       isBottom: Boolean,
                       isTop: Boolean): SimplePermissionAnalysisState =
       SimplePermissionAnalysisState(currentPP, result, stack, inferred, isBottom, isTop)
