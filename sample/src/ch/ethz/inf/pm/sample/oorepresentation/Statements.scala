@@ -119,8 +119,8 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
       VariableDeclaration(programpoint, variable, typ, right.map(_.normalize))
     case FieldAccess(pp, obj, field, typ) =>
       FieldAccess(pp, obj.normalize(), field, typ)
-    case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
-      MethodCall(pp, method.normalize(), parametricTypes, normalizeList(parameters), returnedType)
+    case MethodCall(pp, method, parametricTypes, parameters, returnedType, targets) =>
+      MethodCall(pp, method.normalize(), parametricTypes, normalizeList(parameters), returnedType, targets)
     case Throw(programpoint, expr) => Throw(programpoint, expr.normalize())
     case z => z
   }
@@ -423,7 +423,9 @@ case class MethodCall(
                        method: Statement,
                        parametricTypes: List[Type],
                        parameters: List[Statement],
-                       returnedType: Type) extends Statement(pp) {
+                       returnedType: Type,
+                       targets: List[Statement] = Nil
+                     ) extends Statement(pp) {
 
   /**
    * It analyzes the invocation of <code>method</code>
@@ -446,15 +448,25 @@ case class MethodCall(
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
     }; //return state
+    var curState = state
+    val targetExpr = for(t <- targets) yield {
+      val (expr: ExpressionSet, nextState) = UtilitiesOnStates.forwardExecuteStatement(curState, t)
+      curState = nextState
+      expr
+    }
     body match {
-      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
+      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, curState, getPC())
       case body: Variable =>
-        var curState = state
         val parameterExpressions = for (parameter <- parameters) yield {
           curState = parameter.forwardSemantics[S](curState)
           curState.expr
         }
-        curState.setExpression(ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp))
+        val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
+        curState.setExpression(rhs)
+        targets.zip(targetExpr).foldLeft(curState)((st, t) => t match {
+          case (v: Variable, exp) => st.assignVariable (exp, rhs)
+          case (fa: FieldAccess, exp) => st.assignField(exp, fa.field, rhs)
+        })
     }
   }
 
@@ -544,12 +556,23 @@ case class MethodCall(
   }
 
   override def toString: String =
-    method.toString + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
-      ToStringUtilities.listToCommasRepresentation[Statement](parameters) + ")"
+    if (targets.length > 0) {
+      ToStringUtilities.listToCommasRepresentation(targets) + " = " + method.toString + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+        ToStringUtilities.listToCommasRepresentation[Statement](parameters) + ")"
+    } else {
+      method.toString + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+        ToStringUtilities.listToCommasRepresentation[Statement](parameters) + ")"
+    }
 
   override def toSingleLineString(): String =
-    method.toSingleLineString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
-      ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters) + ")"
+    if (targets.length > 0) {
+      ToStringUtilities.listToCommasRepresentation(targets) + " = " + method.toSingleLineString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+        ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters) + ")"
+    }
+    else {
+      method.toSingleLineString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+        ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters) + ")"
+    }
 
   override def getChildren: List[Statement] = List(method) ::: parameters
 }

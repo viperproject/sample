@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.execution.SampleCfg
-import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodCall, Statement, TaggedProgramPoint}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -98,7 +98,16 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(f: sil.Function): SilverFunctionDeclaration = {
-    ???
+    new SilverFunctionDeclaration(
+      programPoint = go(f.pos),
+      name = SilverIdentifier(f.name),
+      parameters = f.formalArgs.map(go).toList,
+      returnType = go(f.typ),
+      body = f.body match {
+        case Some(b) => Option(go(b))
+        case None => None
+      }
+    )
   }
 
   def convert(method: sil.Method): SilverMethodDeclaration =
@@ -175,14 +184,16 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val assignment = sample.Assignment(go(s.pos), go(lhs), go(rhs))
       Seq(assignment)
 
-    case sil.MethodCall(method, args, targets) =>
+    case sil.MethodCall(method, args, targets) => {
       val call = sample.MethodCall(
-        pp = go(s.pos),
-        method = makeVariable(s.pos, sil.Ref, method),
-        parametricTypes = Nil,
-        parameters = args.map(go).toList,
-        returnedType = sample.TopType)
+          pp = go(s.pos),
+          method = makeVariable(s.pos, sil.Ref, method),
+          parametricTypes = Nil,
+          parameters = args.map(go).toList,
+          returnedType = sample.TopType,
+          targets = targets.map(go).toList)
       Seq(call)
+    }
 
     case sil.LocalVarDeclStmt(decl) =>
       Seq(go(decl))
