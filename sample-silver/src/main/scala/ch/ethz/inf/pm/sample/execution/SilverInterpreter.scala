@@ -7,9 +7,10 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverProgramDeclaration
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.cfg._
@@ -160,7 +161,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResult
   }
 
-  private def executeStatement(statement: Statement, state: S): S = {
+  protected def executeStatement(statement: Statement, state: S): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -189,7 +190,38 @@ trait SilverForwardInterpreter[S <: State[S]]
 trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   extends SilverForwardInterpreter[S]
     with LazyLogging {
+  val program: SilverProgramDeclaration
+  val builder: SilverEntryStateBuilder[S]
+  override protected def executeStatement(statement: Statement, state: S): S = {
+    statement match {
+      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state)
+      case call: MethodCall => {
+        val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
+        val name: String = call.method match {
+          case v: Variable => v.getName
+          case _ => throw new RuntimeException("Should not happen") //TODO
+        }
 
+        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(predecessor, call.targets.head)
+        val calledMethod = program.methods.find(m => m.name.name == name).get
+        val result = FinalResultForwardInterpreter[S]().execute(calledMethod.body, builder.build(program, calledMethod))//st)
+        //result.fi
+//        val successor = statement.forwardSemantics(predecessor)
+//        logger.trace(predecessor.toString)
+//        logger.trace(statement.toString)
+//        logger.trace(successor.toString)
+//        successor
+        //TODO actually map return values to the targets (not just hardcode one return value to the first target)
+        val (a, returnState) = UtilitiesOnStates.forwardExecuteStatement(result.exitState(), Assignment(DummyProgramPoint, call.targets.head, calledMethod.parameters.last.variable))
+        //result.exitState().assignVariable(exp, result.exitState().expr)
+        logger.trace(predecessor.toString)
+        logger.trace(s"Calling Method: $call")
+        logger.trace(returnState.toString)
+        returnState
+      }
+      case _ => return super.executeStatement(statement, state)
+    }
+  }
 }
 
 /**
@@ -345,7 +377,7 @@ case class FinalResultForwardInterpreter[S <: State[S]]()
   }
 }
 
-case class FinalResultInterproceduralForwardInterpreter[S <: State[S]]()
+case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S])
   extends InterproceduralSilverForwardInterpreter[S] {
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)

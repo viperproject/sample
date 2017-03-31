@@ -16,16 +16,13 @@ trait SilverAnalysis[S <: State[S]] {
 trait SilverForwardAnalysis[S <: State[S]]
   extends SilverAnalysis[S] {
   protected def analyze(method: SilverMethodDeclaration, initial: S): CfgResult[S] = {
-    val interpreter = createInterpreter
+    val interpreter = FinalResultForwardInterpreter[S]()
     interpreter.execute(method.body, initial)
   }
-
-  protected def createInterpreter(): SilverForwardInterpreter[S] = FinalResultForwardInterpreter[S]()
 }
 
 trait SilverInterproceduralForwardAnalysis[S <: State[S]]
   extends SilverForwardAnalysis[S] {
-  override protected def createInterpreter(): SilverForwardInterpreter[S] = FinalResultInterproceduralForwardInterpreter[S]()
 }
 
 case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S])
@@ -36,8 +33,10 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 
 case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](val builder: SilverEntryStateBuilder[S])
   extends SilverInterproceduralForwardAnalysis[S] {
-  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[S] =
-    analyze(method, builder.build(program, method))
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[S] = {
+    val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, builder)
+    interpreter.execute(method.body, builder.build(program, method))
+  }
 }
 
 trait SilverEntryStateBuilder[S <: State[S]] {
