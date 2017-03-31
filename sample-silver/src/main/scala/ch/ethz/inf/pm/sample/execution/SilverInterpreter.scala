@@ -182,6 +182,17 @@ trait SilverForwardInterpreter[S <: State[S]]
 }
 
 /**
+  * Performs a forward interpretation of a control flow graph with special handling for method and function calls.
+  *
+  * @tparam S The type of the states.
+  */
+trait InterproceduralSilverForwardInterpreter[S <: State[S]]
+  extends SilverForwardInterpreter[S]
+    with LazyLogging {
+
+}
+
+/**
   * Performs a backward interpretation of a control flwo graph.
   *
   * @tparam S The type of the states.
@@ -327,6 +338,15 @@ trait SilverBackwardInterpreter[S <: State[S]]
   */
 case class FinalResultForwardInterpreter[S <: State[S]]()
   extends SilverForwardInterpreter[S] {
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
+    val cfgResult = FinalCfgResult[S](cfg)
+    cfgResult.initialize(state)
+    cfgResult
+  }
+}
+
+case class FinalResultInterproceduralForwardInterpreter[S <: State[S]]()
+  extends InterproceduralSilverForwardInterpreter[S] {
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)
     cfgResult.initialize(state)
