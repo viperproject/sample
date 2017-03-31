@@ -3,11 +3,11 @@
 method foo(this: Ref)
 {
     var i: Int := 1
-    i := bar()
+    i := bar(i)
     assert i == 0
 }
 
-method bar() returns (k: Int)
+method bar(i: Int) returns (k: Int)
 {
     k := 0
 }

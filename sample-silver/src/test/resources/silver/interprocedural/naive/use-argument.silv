@@ -1,13 +1,11 @@
-// a context sensitive interproc analysis should be able to analyze this.
-// assert is expected to work
 method foo(this: Ref)
 {
     var i: Int := 1
     i := bar(i)
-    assert i == 1
+    assert i == 2
 }
 
-method bar(i: Int) returns (k: Int)
+method bar(j: Int) returns (k: Int)
 {
-    k := i
+    k := j + 1
 }
