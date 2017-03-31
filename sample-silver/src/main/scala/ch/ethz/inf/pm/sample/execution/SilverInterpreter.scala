@@ -204,7 +204,9 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
         val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(predecessor, call.targets.head)
         val calledMethod = program.methods.find(m => m.name.name == name).get
-        val result = FinalResultForwardInterpreter[S]().execute(calledMethod.body, builder.build(program, calledMethod))//st)
+        val topState = builder.build(program, calledMethod) lub st //TODO this causes trouble for "reused" variable names
+        val (_, context) = UtilitiesOnStates.forwardExecuteStatement(topState, Assignment(DummyProgramPoint, calledMethod.parameters.head.variable, call.parameters.head))
+        val result = FinalResultForwardInterpreter[S]().execute(calledMethod.body, context)
         //result.fi
 //        val successor = statement.forwardSemantics(predecessor)
 //        logger.trace(predecessor.toString)
@@ -212,7 +214,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 //        logger.trace(successor.toString)
 //        successor
         //TODO actually map return values to the targets (not just hardcode one return value to the first target)
-        val (a, returnState) = UtilitiesOnStates.forwardExecuteStatement(result.exitState(), Assignment(DummyProgramPoint, call.targets.head, calledMethod.parameters.last.variable))
+        val (_, returnState) = UtilitiesOnStates.forwardExecuteStatement(result.exitState(), Assignment(DummyProgramPoint, call.targets.head, calledMethod.parameters.last.variable))
         //result.exitState().assignVariable(exp, result.exitState().expr)
         logger.trace(predecessor.toString)
         logger.trace(s"Calling Method: $call")
