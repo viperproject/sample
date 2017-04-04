@@ -12,8 +12,8 @@ import org.scalatest.FunSuite
   */
 class InterproceduralAnalysisTest extends FunSuite with SampleTest {
 
-  private def getVariableValue(state: IntegerIntervalAnalysisState, name: String): IntegerIntervalAnalysisState = {
-    state.getVariableValue(VariableIdentifier(name)(DummyIntegerType))
+  private def isTop(state: IntegerIntervalAnalysisState, name: String): Boolean = {
+    state.domain.map(VariableIdentifier(name)(DummyIntegerType)).isTop
   }
 
   test("trivial") {
@@ -31,9 +31,8 @@ class InterproceduralAnalysisTest extends FunSuite with SampleTest {
          }
       """.stripMargin
     )
-    val x = getVariableValue(result("main").exitState(), "x")
     //assert(x.isTop) //TODO shouln't this be true too?
-    assert(x.domain.dom.isTop, "x is set to top at the end of main()")
+    assert(isTop(result("main").exitState(), "x"), "x is set to top at the end of main()")
     assert(assertions.size == 1, "Only assert x != 1 is expected to fail")
   }
 
@@ -58,8 +57,8 @@ class InterproceduralAnalysisTest extends FunSuite with SampleTest {
         }
       """.stripMargin
     )
-    val variableValues = List("i", "z").map(v => getVariableValue(result("foo").exitState(), v))
-    assert(variableValues.forall(v => v.domain.dom.isTop), "i and z must be set to top")
+    val variableValues = List("i", "z").map(v => isTop(result("foo").exitState(), v))
+    assert(variableValues.forall(v => v), "i and z must be set to top")
     assert(assertions.isEmpty, "Method call must not change the value of y")
   }
 
@@ -81,7 +80,7 @@ class InterproceduralAnalysisTest extends FunSuite with SampleTest {
       """.stripMargin
     )
     assert(assertions.isEmpty, "method call must not change the value of j")
-    assert(getVariableValue(result("foo").exitState(), "i").domain.dom.isTop, "Function call should set variable to top.")
+    assert(isTop(result("foo").exitState(), "i"), "Function call should set variable to top.")
   }
 
   /**
