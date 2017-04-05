@@ -462,8 +462,8 @@ case class MethodCall(
           curState.expr
         }
         val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
-        curState.setExpression(rhs)
-        targets.zip(targetExpr).foldLeft(curState)((st, t) => t match {
+        val stateWithExpression = curState.setExpression(rhs)
+        targets.zip(targetExpr).foldLeft(stateWithExpression)((st, t) => t match {
           case (v: Variable, exp) => st.assignVariable (exp, rhs)
           case (fa: FieldAccess, exp) => st.assignField(exp, fa.field, rhs)
         })
