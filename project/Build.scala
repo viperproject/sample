@@ -93,9 +93,7 @@ object SampleBuild extends Build {
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0", // Logging Frontend
       "org.scalatest" % "scalatest_2.11" % "2.2.1", // Testing Framework
       "org.scalaz" %% "scalaz-core" % "7.1.5" // Functional Programming
-    ),
-    // Exclude Silver's logging library to continue using our ch.qos Logging Backend
-    libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
+    )
   )
 
 }
