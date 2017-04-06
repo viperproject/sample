@@ -36,7 +36,6 @@ class InterproceduralAnalysisTest extends FunSuite with SampleTest {
          }
       """.stripMargin
     )
-    //assert(x.isTop) //TODO shouln't this be true too?
     assert(isTop(result("main").exitState(), "x"), "x is set to top at the end of main()")
     assert(assertions.size == 1, "Only assert x != 1 is expected to fail")
   }
