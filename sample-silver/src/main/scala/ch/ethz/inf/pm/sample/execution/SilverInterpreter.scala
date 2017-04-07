@@ -201,39 +201,60 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           case v: Variable => v.getName
           case _ => throw new RuntimeException("Should not happen") //TODO
         }
-        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(predecessor, call.targets.head)
-        val calledMethod = program.methods.find(m => m.name.name == name).get
-        //create temporary arg_i variables
-        var tempVariables = List[ExpressionSet]()
-        val newVar = ExpressionSet(VariableIdentifier("arg_i")(call.targets.head.asInstanceOf[Variable].id.typ))
-        tempVariables = newVar :: tempVariables
-        var withVariable = st.createVariable(newVar, call.targets.head.asInstanceOf[Variable].id.typ, DummyProgramPoint)
-        withVariable = withVariable.assignVariable(newVar, exp)
-        withVariable = withVariable.removeVariable(exp)
-        // merge input variables with state of to be analysed method
-        var inputState = builder.build(program, calledMethod) lub withVariable
-        // assign argumetns to parameters
-        inputState = inputState.assignVariable(ExpressionSet(ExpressionFactory.IntVar("i")(DummyProgramPoint)), newVar)
-        // (intraprocedural) analysis of method
-        var result = FinalResultForwardInterpreter[S]().execute(calledMethod.body, inputState)
-        // map return values to temp variables
-        val retVar = ExpressionSet(ExpressionFactory.IntVar("ret_k")(DummyProgramPoint))
-        tempVariables = retVar :: tempVariables
-        var todo = result.exitState().createVariable(retVar, call.targets.head.asInstanceOf[Variable].id.typ, DummyProgramPoint)
-        todo = todo.assignVariable(retVar, ExpressionSet(ExpressionFactory.IntVar("k")(DummyProgramPoint)))
-        // remove variables of the analyzed method
-        for(param <- calledMethod.parameters){
-          todo = todo.removeVariable(ExpressionSet(param.variable.id))
+        var currentState = predecessor
+        val targetExpressions = for(target <- call.targets) yield {
+          val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
+          currentState = st
+          exp
         }
-        todo = todo lub st
-        // asssign return value to variable
-        todo = todo.assignVariable(ExpressionSet(call.targets.head.asInstanceOf[Variable].id), retVar)
-        // remove all temporary variables
-        todo = tempVariables.foldLeft(todo)((st, tempVar) => st.removeVariable(tempVar))
+        val parameterExpressions = for (parameter <- call.parameters) yield {
+          currentState = parameter.forwardSemantics[S](currentState)
+          currentState.expr
+        }
+        val methodDeclaration = program.methods.find(m => m.name.name == name).get
+        // create arg_# variables and assign the value to them. then remove all non arg_# variables
+        var tmpVariableState = currentState
+        val tmpArguments = for((param, index) <- parameterExpressions.zipWithIndex) yield {
+          val exp = ExpressionSet(VariableIdentifier("arg_#" + index )(param.typ))
+          tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
+          tmpVariableState = tmpVariableState.assignVariable(exp, param)
+          exp
+        }
+        //TODO can we use State.ids like this?
+        tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
+          .filter(id => ! id.getName.startsWith("arg_#"))
+          .foldLeft(tmpVariableState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+        // create input state for intraprocedural analysis
+        var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
+        // assign (temporary) arguments to parameters and remove the temp args
+        inputState = methodDeclaration.parameters.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
+        inputState = tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
+        // (intraprocedural) analysis of method
+        var result = FinalResultForwardInterpreter[S]().execute(methodDeclaration.body, inputState)
+        // create return variables ret_# and assign the values to them
+        var exitState = result.exitState()
+        var index = 0
+        val returnVariableMapping = for(tuple <- methodDeclaration.parameters.reverse.zip(targetExpressions.reverse).reverse) yield {
+          // methodDeclaration.parameters = [param1, param2... paramN, return1, return2... returnN] .reverse calls above are to
+          // only work with return parameters and to preserve their order
+          // tuple._1 = the variable declared in returns(...) of the method
+          // tuple._2 = the target-expression which we'll assign to later
+          val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(tuple._1.typ))
+          index += 1
+          exitState = exitState.createVariable(exp, tuple._1.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(tuple._1.variable.id))
+          (tuple._2, exp)
+        }
+        //TODO can we use State.ids like this?
+        exitState = exitState.ids.toSetOrFail // let's all non ret_# variables
+          .filter(id => ! id.getName.startsWith("ret_#"))
+          .foldLeft(exitState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+        // map return values to temp variables and remove all temporary ret_# variables
+        val joinedState = returnVariableMapping.foldLeft(currentState lub exitState)((st, tuple) => (st.assignVariable _).tupled(tuple))
+        val resultState = returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))
         logger.trace(predecessor.toString)
         logger.trace(statement.toString)
-        logger.trace(todo.toString)
-        todo
+        logger.trace(resultState.toString)
+        resultState
       }
       case _ => return super.executeStatement(statement, state)
     }
