@@ -192,6 +192,39 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     with LazyLogging {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
+  var methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
+
+  override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
+    //TODO: cleanup / remove
+//    //find every call to a method
+//    //this will also include assert() etc.
+//    var callsInProgram = (for(method <- program.methods) yield {
+//      method.body.blocks.map(block => block match {
+//        case StatementBlock(statements) =>
+//          statements.filter(s => s match {
+//            case call: MethodCall => true
+//            case _ => false
+//          })
+//        case LoopHeadBlock(_, statements) =>
+//          statements.filter(s => s match {
+//            case call: MethodCall => true
+//            case _ => false
+//          })
+//        case _ => Nil
+//      })
+//    }).flatMap(l => l.filterNot(_.isEmpty)).flatten
+//
+//    var testMap: mutable.Map[String, Set[ProgramPoint]] = mutable.Map[String, Set[ProgramPoint]]().withDefault(_ => Set[ProgramPoint]())
+//    for(call <- callsInProgram) {
+//      call match {
+//        case MethodCall(_, v: Variable, _, _, _, _) => testMap(v.id.name) = testMap(v.id.name) + call.getPC()
+//        case _ =>
+//      }
+//    }
+//    println(testMap.values)
+    super.execute(cfg, initial)
+  }
+
   override protected def executeStatement(statement: Statement, state: S): S = {
     statement match {
       case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state)
@@ -224,6 +257,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
           .filter(id => ! id.getName.startsWith("arg_#"))
           .foldLeft(tmpVariableState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+
+        //context insensitive analysis: analyze the called method with the join of all calling states
+        // this implementation could analyze the method several times
+        //TODO is this a problem?
+        methodEntryStates(name) = methodEntryStates(name) + (statement.getPC() -> tmpVariableState)
+        tmpVariableState = methodEntryStates(name).values.foldLeft(tmpVariableState)((st1, st2) => st1 lub st2)
+
         // create input state for intraprocedural analysis
         var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
         // assign (temporary) arguments to parameters and remove the temp args
