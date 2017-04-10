@@ -113,7 +113,7 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             statements.foldLeft(entry) { (predecessor, statement) =>
-              val successor = executeStatement(statement, predecessor)
+              val successor = executeStatement(statement, predecessor, worklist)
               states.append(successor)
               successor
             }
@@ -140,7 +140,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             }
             // execute statements
             statements.foldLeft(intermediate) { (predecessor, statement) =>
-              val successor = executeStatement(statement, predecessor)
+              val successor = executeStatement(statement, predecessor, worklist)
               states.append(successor)
               successor
             }
@@ -161,7 +161,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResult
   }
 
-  protected def executeStatement(statement: Statement, state: S): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[SampleBlock]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -193,41 +193,33 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   var methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
+  var callsInProgram : mutable.Map[String, Set[SampleBlock]] = mutable.Map().withDefault(_ => Set())
 
   override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
-    //TODO: cleanup / remove
-//    //find every call to a method
-//    //this will also include assert() etc.
-//    var callsInProgram = (for(method <- program.methods) yield {
-//      method.body.blocks.map(block => block match {
-//        case StatementBlock(statements) =>
-//          statements.filter(s => s match {
-//            case call: MethodCall => true
-//            case _ => false
-//          })
-//        case LoopHeadBlock(_, statements) =>
-//          statements.filter(s => s match {
-//            case call: MethodCall => true
-//            case _ => false
-//          })
-//        case _ => Nil
-//      })
-//    }).flatMap(l => l.filterNot(_.isEmpty)).flatten
-//
-//    var testMap: mutable.Map[String, Set[ProgramPoint]] = mutable.Map[String, Set[ProgramPoint]]().withDefault(_ => Set[ProgramPoint]())
-//    for(call <- callsInProgram) {
-//      call match {
-//        case MethodCall(_, v: Variable, _, _, _, _) => testMap(v.id.name) = testMap(v.id.name) + call.getPC()
-//        case _ =>
-//      }
-//    }
-//    println(testMap.values)
+    //find every call to a method
+    //this will also include assert() etc.
+    //TODO: cleanup code
+    for(method <- program.methods; block <- method.body.blocks) {
+      block match {
+      case StatementBlock(statements) =>
+        statements.foreach(s => s match {
+          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + block
+          case _ =>
+        })
+      case LoopHeadBlock(_, statements) =>
+        statements.foreach(s => s match {
+          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + block
+          case _ =>
+        })
+      case _ =>
+      }
+    }
     super.execute(cfg, initial)
   }
 
-  override protected def executeStatement(statement: Statement, state: S): S = {
+  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[SampleBlock]): S = {
     statement match {
-      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state)
+      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist)
       case call: MethodCall => {
         val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
         val name: String = call.method match {
@@ -294,9 +286,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         logger.trace(predecessor.toString)
         logger.trace(statement.toString)
         logger.trace(resultState.toString)
+
+        //contex insensitive analysis: we need to reanalyze all blocks containing a call to this method
+        //TODO figure out how to handle enqueued blocks in other method
+        worklist.enqueue(callsInProgram(name).toSeq : _*)
+
         resultState
       }
-      case _ => return super.executeStatement(statement, state)
+      case _ => return super.executeStatement(statement, state, worklist)
     }
   }
 }
