@@ -65,12 +65,12 @@ trait SilverForwardInterpreter[S <: State[S]]
     val cfgResult = initializeResult(cfg, bottom)
 
     // prepare data structures
-    val worklist = mutable.Queue(cfg.entry)
-    val iterations = mutable.Map[SampleBlock, Int]()
+    val worklist = mutable.Queue[(SampleBlock, Option[Int])]((cfg.entry, None))
+    val iterations = mutable.Map[(SampleBlock, Option[Int]), Int]()
 
     while (worklist.nonEmpty) {
-      val current = worklist.dequeue()
-      val iteration = iterations.getOrElse(current, 0)
+      val (current, offset) = worklist.dequeue()
+      val iteration = iterations.getOrElse((current, offset), 0)
 
       // compute entry state state of current block
       val entry = if (current == cfg.entry) {
@@ -78,9 +78,13 @@ trait SilverForwardInterpreter[S <: State[S]]
       } else {
         var state = bottom
         // join incoming states
-        val edges = cfg.inEdges(current)
+        val edges = cfg.inEdges (current)
         for (edge <- edges) {
-          val predecessor = cfgResult.getStates(edge.source).last
+          val predecessor = offset match {
+            case None => cfgResult.getStates (edge.source).last
+            // For offsets do not use the incoming edge but the state of the previous instruction of the CURRENT block
+            case Some(o) => cfgResult.getStates (edge.target)(o-1)
+          }
           // filter state if there is a condition
           val filtered = edge match {
             case ConditionalEdge(condition, _, _, _) => condition.forwardSemantics(predecessor).testTrue()
@@ -97,49 +101,54 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResult.getStates(current).head widening state
+          offset match {
+            case None => cfgResult.getStates (current).head widening state
+            case Some(o) => cfgResult.getStates (current)(o-1) widening state //TODO @flurin not sure yet
+          }
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResult.getStates(current)
-      val oldEntry = if (oldStates.isEmpty) bottom else oldStates.head
+      val  oldStates = cfgResult.getStates(current)
+      val numToSkip = offset match {case None => 0 case Some(o) => o}
+      val oldEntry = if (oldStates.isEmpty) bottom else oldStates(numToSkip) //TODO @flurin check this!
       if (!(entry lessEqual oldEntry)) {
         // execute block
-        val states = ListBuffer(entry)
+        val states = ListBuffer(oldStates.take(numToSkip): _*)
+        states.append(entry)
         current match {
           case StatementBlock(statements) =>
             // execute statements
-            statements.foldLeft(entry) { (predecessor, statement) =>
-              val successor = executeStatement(statement, predecessor, worklist)
-              states.append(successor)
-              successor
+            statements.drop(numToSkip).foldLeft(entry) { (predecessor, statement) =>
+                val successor = executeStatement(statement, predecessor, worklist)
+                states.append(successor)
+                successor
             }
           case PreconditionBlock(preconditions) =>
             // process preconditions
-            preconditions.foldLeft(entry) { (predecessor, precondition) =>
+            preconditions.drop(numToSkip).foldLeft(entry) { (predecessor, precondition) =>
               val successor = executeCommand(PreconditionCommand, precondition, predecessor)
               states.append(successor)
               successor
             }
           case PostconditionBlock(postconditions) =>
             // process postconditions
-            postconditions.foldLeft(entry) { (predecessor, postcondition) =>
+            postconditions.drop(numToSkip).foldLeft(entry) { (predecessor, postcondition) =>
               val successor = executeCommand(PostconditionCommand, postcondition, predecessor)
               states.append(successor)
               successor
             }
           case LoopHeadBlock(invariants, statements) =>
             // process invariants
-            val intermediate = invariants.foldLeft(entry) { (predecessor, invariant) =>
+            val intermediate = invariants.drop(numToSkip).foldLeft(entry) { (predecessor, invariant) =>
               val successor = executeCommand(InvariantCommand, invariant, predecessor)
               states.append(successor)
               successor
             }
             // execute statements
-            statements.foldLeft(intermediate) { (predecessor, statement) =>
+            statements.drop(numToSkip - invariants.size).foldLeft(intermediate) { (predecessor, statement) =>
               val successor = executeStatement(statement, predecessor, worklist)
               states.append(successor)
               successor
@@ -152,8 +161,8 @@ trait SilverForwardInterpreter[S <: State[S]]
         cfgResult.setStates(current, states.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg.successors(current): _*)
-        iterations.put(current, iteration + 1)
+        worklist.enqueue(cfg.successors(current).toSeq.zip(Stream(None)): _*)
+        iterations.put((current,offset), iteration + 1)
       }
     }
 
@@ -161,7 +170,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResult
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[SampleBlock]): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[(SampleBlock, Option[Int])]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -193,31 +202,32 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   var methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
-  var callsInProgram : mutable.Map[String, Set[SampleBlock]] = mutable.Map().withDefault(_ => Set())
+  var callsInProgram : mutable.Map[String, Set[(SampleBlock,Option[Int])]] = mutable.Map().withDefault(_ => Set())
 
   override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
-    //find every call to a method
-    //this will also include assert() etc.
-    //TODO: cleanup code
+    //find every call to a method. For each found call we store the Block and the offset of the next statement
+    //if a MethodCall was the last statement in a block then nothing needs to be done. The Interpreter will enqueue all
+    // following blocks anyway.
+    //TODO @flurin: cleanup code
     for(method <- program.methods; block <- method.body.blocks) {
       block match {
       case StatementBlock(statements) =>
-        statements.foreach(s => s match {
-          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + block
+        statements.zipWithIndex.foreach(t => t match{ case (s ,index: Int) => s match {
+          case MethodCall(_, v: Variable, _, _, _, _) => if(index < statements.size-1) callsInProgram(v.getName) = callsInProgram(v.getName) + ((block,Option(index+1)))
           case _ =>
-        })
+        }})
       case LoopHeadBlock(_, statements) =>
-        statements.foreach(s => s match {
-          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + block
+        statements.zipWithIndex.foreach(t => t match{ case (s,index: Int) => s match {
+          case MethodCall(_, v: Variable, _, _, _, _) => if(index < statements.size-1) callsInProgram(v.getName) = callsInProgram(v.getName) + ((block,Option(index+1)))
           case _ =>
-        })
+        }})
       case _ =>
       }
     }
     super.execute(cfg, initial)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[SampleBlock]): S = {
+  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[(SampleBlock, Option[Int])]): S = {
     statement match {
       case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist)
       case call: MethodCall => {
@@ -245,14 +255,12 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           tmpVariableState = tmpVariableState.assignVariable(exp, param)
           exp
         }
-        //TODO can we use State.ids like this?
         tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
           .filter(id => ! id.getName.startsWith("arg_#"))
           .foldLeft(tmpVariableState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
 
         //context insensitive analysis: analyze the called method with the join of all calling states
         // this implementation could analyze the method several times
-        //TODO is this a problem?
         methodEntryStates(name) = methodEntryStates(name) + (statement.getPC() -> tmpVariableState)
         tmpVariableState = methodEntryStates(name).values.foldLeft(tmpVariableState)((st1, st2) => st1 lub st2)
 
@@ -276,7 +284,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           exitState = exitState.createVariable(exp, tuple._1.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(tuple._1.variable.id))
           (tuple._2, exp)
         }
-        //TODO can we use State.ids like this?
         exitState = exitState.ids.toSetOrFail // let's all non ret_# variables
           .filter(id => ! id.getName.startsWith("ret_#"))
           .foldLeft(exitState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
