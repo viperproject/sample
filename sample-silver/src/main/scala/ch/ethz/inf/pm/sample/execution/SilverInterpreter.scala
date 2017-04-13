@@ -202,23 +202,22 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   var methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
-  var callsInProgram : mutable.Map[String, Set[(SampleBlock,Option[Int])]] = mutable.Map().withDefault(_ => Set())
+  var callsInProgram : mutable.Map[String, Set[(SampleBlock,Int)]] = mutable.Map().withDefault(_ => Set())
 
   override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
-    //find every call to a method. For each found call we store the Block and the offset of the next statement
-    //if a MethodCall was the last statement in a block then nothing needs to be done. The Interpreter will enqueue all
-    // following blocks anyway.
+    //find every call to a method. For each found call we store the Block and the location/offset to the statement.
+    //this datastructure can be used to enqueue all instructions after a method call
     //TODO @flurin: cleanup code
     for(method <- program.methods; block <- method.body.blocks) {
       block match {
       case StatementBlock(statements) =>
         statements.zipWithIndex.foreach(t => t match{ case (s ,index: Int) => s match {
-          case MethodCall(_, v: Variable, _, _, _, _) => if(index < statements.size-1) callsInProgram(v.getName) = callsInProgram(v.getName) + ((block,Option(index+1)))
+          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + ((block, index))
           case _ =>
         }})
-      case LoopHeadBlock(_, statements) =>
+      case LoopHeadBlock(invariants, statements) =>
         statements.zipWithIndex.foreach(t => t match{ case (s,index: Int) => s match {
-          case MethodCall(_, v: Variable, _, _, _, _) => if(index < statements.size-1) callsInProgram(v.getName) = callsInProgram(v.getName) + ((block,Option(index+1)))
+          case MethodCall(_, v: Variable, _, _, _, _) => callsInProgram(v.getName) = callsInProgram(v.getName) + ((block, invariants.size + index))
           case _ =>
         }})
       case _ =>
@@ -294,10 +293,16 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         logger.trace(statement.toString)
         logger.trace(resultState.toString)
 
-        //contex insensitive analysis: we need to reanalyze all blocks containing a call to this method
-        //TODO figure out how to handle enqueued blocks in other method
-        worklist.enqueue(callsInProgram(name).toSeq : _*)
-
+        //enqueue all statements directly after each calls to the method
+        //if the method-call was the last statement of the block we do not enqeueu here. the interpreter will enqueue all
+        //blocks for us
+        callsInProgram(name).foreach(tuple => tuple match {
+          case (block, position) => {
+            block match {
+              case StatementBlock(statements) => if(position < statements.size -1) worklist.enqueue((block, Option(position + 1)))
+              case LoopHeadBlock(invs, statements) => if(position < invs.size + statements.size -1) worklist.enqueue((block, Option(position + 1)))
+            }
+        }})
         resultState
       }
       case _ => return super.executeStatement(statement, state, worklist)
