@@ -6,9 +6,13 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet, Lattice, SimpleState}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethodDeclaration
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall, MethodDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.permissionanalysis._
+
+import scala.collection.mutable
 
 /**
   * A state providing transformers for inhale statements, exhale statements,
@@ -36,6 +40,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
+      case LeaveMethodCommand(methodDeclaration, methodCall, exitState: S, methodExitStates: mutable.Map[String, Any]) => exitMethod(methodDeclaration, methodCall, exitState, methodExitStates)
     }
     case _ => super.command(cmd)
   }
@@ -172,4 +177,41 @@ trait SilverState[S <: SilverState[S]]
     * @return The state after leaving the loop.
     */
   def leaveLoop(): S = this
+
+  /**
+    * Returns a state where methodCall.targets received the return-values of the analyzed method.
+    * methodExitStates is a Map to cache the result of the analyzed methods
+    * TODO @flurin: this is very naive-interproc-analysis specific
+    *
+    * @param methodDeclaration
+    * @param methodCall
+    * @param exitState
+    * @return
+    */
+  def exitMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S, methodExitStates: mutable.Map[String, Any]): S = {
+    var index = 0
+    val targetExpressions = for(target <- methodCall.targets) yield {
+      val (exp, _) = UtilitiesOnStates.forwardExecuteStatement(this, target)
+      exp
+    }
+    var st = exitState
+    val returnVariableMapping = for(tuple <- methodDeclaration.parameters.reverse.zip(targetExpressions.reverse).reverse) yield {
+      // methodDeclaration.parameters = [param1, param2... paramN, return1, return2... returnN] .reverse calls above are to
+      // only work with return parameters and to preserve their order
+      // tuple._1 = the variable declared in returns(...) of the method
+      // tuple._2 = the target-expression which we'll assign to later
+      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(tuple._1.typ))
+      index += 1
+      st = st.createVariable(exp, tuple._1.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(tuple._1.variable.id))
+      (tuple._2, exp)
+    }
+    st = st.ids.toSetOrFail // let's all non ret_# variables
+      .filter(id => ! id.getName.startsWith("ret_#"))
+      .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+    methodExitStates(methodDeclaration.name.name) = st
+    // map return values to temp variables and remove all temporary ret_# variables
+    val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))
+  }
+
 }

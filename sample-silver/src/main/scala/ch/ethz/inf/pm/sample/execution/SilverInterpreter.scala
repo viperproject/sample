@@ -69,8 +69,13 @@ trait SilverForwardInterpreter[S <: State[S]]
     val iterations = mutable.Map[(SampleBlock, Option[Int]), Int]()
 
     while (worklist.nonEmpty) {
-      val (current, offset) = worklist.dequeue()
-      val iteration = iterations.getOrElse((current, offset), 0)
+      val (current, tmpOffset) = worklist.dequeue()
+      val (iteration, offset) = if(iterations.getOrElse((current, None),0) > 0) {
+        (iterations.getOrElse((current, tmpOffset), 0), tmpOffset)
+      } else {
+        // this block has never been analyzed before. Do not jump to an offset but analyze the whole block
+        (0, None)
+      }
 
       // compute entry state state of current block
       val entry = if (current == cfg.entry) {
@@ -80,11 +85,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         // join incoming states
         val edges = cfg.inEdges (current)
         for (edge <- edges) {
-          val predecessor = offset match {
-            case None => cfgResult.getStates (edge.source).last
-            // For offsets do not use the incoming edge but the state of the previous instruction of the CURRENT block
-            case Some(o) => cfgResult.getStates (edge.target)(o-1)
-          }
+          val predecessor = getPredecessorState(cfgResult, current, offset, edge)
           // filter state if there is a condition
           val filtered = edge match {
             case ConditionalEdge(condition, _, _, _) => condition.forwardSemantics(predecessor).testTrue()
@@ -170,6 +171,14 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResult
   }
 
+  protected def getPredecessorState(cfgResult: CfgResult[S], current: SampleBlock, offset: Option[Int], edge: Edge[Statement, Statement]): S = {
+    offset match {
+      case None => cfgResult.getStates(edge.source).last
+      // For offsets do not use the incoming edge but the state of the previous instruction of the CURRENT block
+      case Some(o) =>cfgResult.getStates(edge.target)(o - 1)
+    }
+  }
+
   protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[(SampleBlock, Option[Int])]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
@@ -202,7 +211,36 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   var methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
+  var methodExitStates : mutable.Map[String, S] = mutable.Map()
   var callsInProgram : mutable.Map[String, Set[(SampleBlock,Int)]] = mutable.Map().withDefault(_ => Set())
+
+  override def getPredecessorState(cfgResult: CfgResult[S], current: SampleBlock, offset: Option[Int], edge: Edge[Statement, Statement]): S = {
+    offset match {
+      case Some(o) => {
+        val tmp = cfgResult.getStates(edge.target)(o - 1)
+        current match {
+          case StatementBlock(statements) => statements(o - 1) match {
+            case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) => {
+              val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
+              val methodCall = statements(o - 1).asInstanceOf[MethodCall]
+              tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, tmp, methodExitStates))
+            }
+            case _ => tmp
+          }
+          case LoopHeadBlock(invs, statements) => statements(o - invs.size - 1) match {
+            case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) =>{
+              val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
+              val methodCall = statements(o - 1).asInstanceOf[MethodCall]
+              tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, tmp, methodExitStates))
+            }
+            case _ => tmp
+          }
+          case _ => tmp
+        }
+      }
+      case _ => super.getPredecessorState(cfgResult, current, offset, edge)
+    }
+  }
 
   override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
     //find every call to a method. For each found call we store the Block and the location/offset to the statement.
@@ -246,6 +284,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           currentState.expr
         }
         val methodDeclaration = program.methods.find(m => m.name.name == name).get
+
         // create arg_# variables and assign the value to them. then remove all non arg_# variables
         var tmpVariableState = currentState
         val tmpArguments = for((param, index) <- parameterExpressions.zipWithIndex) yield {
@@ -272,23 +311,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         var result = FinalResultForwardInterpreter[S]().execute(methodDeclaration.body, inputState)
         // create return variables ret_# and assign the values to them
         var exitState = result.exitState()
-        var index = 0
-        val returnVariableMapping = for(tuple <- methodDeclaration.parameters.reverse.zip(targetExpressions.reverse).reverse) yield {
-          // methodDeclaration.parameters = [param1, param2... paramN, return1, return2... returnN] .reverse calls above are to
-          // only work with return parameters and to preserve their order
-          // tuple._1 = the variable declared in returns(...) of the method
-          // tuple._2 = the target-expression which we'll assign to later
-          val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(tuple._1.typ))
-          index += 1
-          exitState = exitState.createVariable(exp, tuple._1.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(tuple._1.variable.id))
-          (tuple._2, exp)
-        }
-        exitState = exitState.ids.toSetOrFail // let's all non ret_# variables
-          .filter(id => ! id.getName.startsWith("ret_#"))
-          .foldLeft(exitState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
-        // map return values to temp variables and remove all temporary ret_# variables
-        val joinedState = returnVariableMapping.foldLeft(currentState lub exitState)((st, tuple) => (st.assignVariable _).tupled(tuple))
-        val resultState = returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))
+
+        //
+        val resultState = currentState.command(LeaveMethodCommand(methodDeclaration, call, exitState, methodExitStates))
+
         logger.trace(predecessor.toString)
         logger.trace(statement.toString)
         logger.trace(resultState.toString)
