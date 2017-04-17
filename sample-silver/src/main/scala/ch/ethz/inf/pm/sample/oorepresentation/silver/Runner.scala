@@ -8,13 +8,19 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import java.io.{File, PrintWriter}
 
-import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
-import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import viper.silver.{ast => sil}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, MethodCall, Statement, Variable}
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
+import org.jgrapht.alg.StrongConnectivityInspector
+import org.jgrapht.graph.DefaultDirectedGraph
+import org.jgrapht.traverse.TopologicalOrderIterator
+import viper.silver.ast.utility.Functions
+import viper.silver.ast.utility.Functions.Factory
+import viper.silver.{ast => sil}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 //import viper.silicon.Silicon
@@ -97,6 +103,69 @@ trait SilverAnalysisRunner[S <: State[S]]
     for (w <- Reporter.genericWarnings) {
       println(w)
     } // warning report
+  }
+}
+
+/** Interprocedural analysis runner for Silver programs. */
+trait InterproceduralSilverAnalysisRunner[S <: State[S]]
+extends SilverAnalysisRunner[S] {
+  override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+    prepareContext()
+    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
+
+    // build a call graph.
+    // Most code was taken from ast.utility.Functions in silver repo!
+    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+
+    for (f <- program.methods) {
+      callGraph.addVertex(f)
+    }
+
+    def process(m: SilverMethodDeclaration, e: Statement) {
+      e match {
+        case MethodCall(_, method: Variable, _, _, _, _) =>
+          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+        case _ => e.getChildren foreach(process(m, _))
+      }
+    }
+
+    for (m <- program.methods;
+         block <- m.body.blocks;
+         statement<- block.elements){
+      process(m, statement.left.get)
+    }
+
+    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
+    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
+
+    /* Add each SCC as a vertex to the condensed call-graph */
+    for (v <- stronglyConnectedSets) {
+      condensedCallGraph.addVertex(v)
+    }
+
+    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
+      stronglyConnectedSets.find(_ contains m).get
+
+    /* Add edges from the call-graph (between individual functions) as edges
+     * between their corresponding SCCs in the condensed call-graph, but only
+     * if this does not result in a cycle.
+     */
+    for (e <- callGraph.edgeSet().asScala) {
+      val sourceSet = condensationOf(e.source)
+      val targetSet = condensationOf(e.target)
+
+      if (sourceSet != targetSet)
+        condensedCallGraph.addEdge(sourceSet, targetSet)
+    }
+
+    //TODO new CycleDetector(condensedCallGraph).detectCycles()
+
+    // analyze the methods in topological order of the callgraph
+    for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
+      result.put(method.name, analysis.analyze(program, method))
+    }
+
+    result.toMap
   }
 }
 
