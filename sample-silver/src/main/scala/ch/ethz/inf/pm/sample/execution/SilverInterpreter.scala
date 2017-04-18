@@ -320,13 +320,20 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         logger.trace(resultState.toString)
 
         //enqueue all statements directly after each calls to the method
-        //if the method-call was the last statement of the block we do not enqeueu here. the interpreter will enqueue all
+        //if the method-call was the last statement of the block we do not enqueue here. the interpreter will enqueue all
         //blocks for us
         callsInProgram(name).foreach(tuple => tuple match {
+            //TODO @flurin cleanup this fine piece of code
           case (block, position) => {
             block match {
-              case StatementBlock(statements) => if(position < statements.size -1) worklist.enqueue((block, Option(position + 1)))
-              case LoopHeadBlock(invs, statements) => if(position < invs.size + statements.size -1) worklist.enqueue((block, Option(position + 1)))
+              case StatementBlock(statements) => if(position < statements.size -1 &&
+                // only enqueue calls that we've seen before
+                methodEntryStates(name).contains(block.asInstanceOf[StatementBlock[Statement, Statement]].stmts(position).asInstanceOf[MethodCall].pp)
+              ) worklist.enqueue((block, Option(position + 1)))
+              case LoopHeadBlock(invs, statements) => if(position < invs.size + statements.size -1 &&
+                // only enqueue calls that we've seen before
+                methodEntryStates(name).contains(block.asInstanceOf[StatementBlock[Statement, Statement]].stmts(position).asInstanceOf[MethodCall].pp)
+                ) worklist.enqueue((block, Option(position + 1)))
             }
         }})
         resultState
