@@ -10,7 +10,7 @@ import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, MethodCall, Statement, Variable}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import org.jgrapht.alg.StrongConnectivityInspector
@@ -113,9 +113,10 @@ extends SilverAnalysisRunner[S] {
     prepareContext()
     val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
 
-    // build a call graph.
+    // build a call graph. And while at it, also build a map containing all BlockPositions that call a method
     // Most code was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+    var callsInProgram : Map[String, Set[BlockPosition]] = Map().withDefault(_ => Set())
 
     for (f <- program.methods) {
       callGraph.addVertex(f)
@@ -123,8 +124,11 @@ extends SilverAnalysisRunner[S] {
 
     def process(m: SilverMethodDeclaration, e: Statement) {
       e match {
-        case MethodCall(_, method: Variable, _, _, _, _) =>
+        case MethodCall(_, method: Variable, _, _, _, _) => {
           callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          //TODO @flurin is this how maps work in scala?
+          callsInProgram = (callsInProgram + (method.getName -> (callsInProgram(method.getName) + m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e)))))
+        }
         case _ => e.getChildren foreach(process(m, _))
       }
     }
@@ -132,7 +136,7 @@ extends SilverAnalysisRunner[S] {
     for (m <- program.methods;
          block <- m.body.blocks;
          statement<- block.elements){
-      process(m, statement.left.get)
+      process(m, statement.merge)
     }
 
     val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
@@ -162,7 +166,8 @@ extends SilverAnalysisRunner[S] {
 
     // analyze the methods in topological order of the callgraph
     for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      result.put(method.name, analysis.analyze(program, method))
+      //TODO @flurin asInstanceOf is ugly ...
+      result.put(method.name, analysis.asInstanceOf[SilverInterproceduralForwardAnalysis[S]].analyze(program, method, callsInProgram))
     }
 
     result.toMap
