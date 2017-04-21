@@ -35,7 +35,9 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](val builder: SilverEntryStateBuilder[S])
   extends SilverInterproceduralForwardAnalysis[S] {
 
-  //TODO @flurin this is never called in the interprocedural setting
+  // Calling this does not make sense in the interprocedural setting.
+  // possible implementation: = analyze(program, method, Map().withDefault(_ => Set())
+  // TODO @flurin: Would it make more sense to move SilverAnalysis.analyze to a new trait InterprocSilverAnalys.analyze?
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[S] = ???
 
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration, callsInProgram: Map[String, Set[BlockPosition]]): CfgResult[S] = {

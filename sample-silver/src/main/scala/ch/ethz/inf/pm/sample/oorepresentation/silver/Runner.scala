@@ -110,14 +110,16 @@ trait SilverAnalysisRunner[S <: State[S]]
 /** Interprocedural analysis runner for Silver programs. */
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 extends SilverAnalysisRunner[S] {
+
+  override val analysis: SilverInterproceduralForwardAnalysis[S]
+
   override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
     prepareContext()
     val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
     // analyze the methods in topological order of the condensed callgraph
     for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      //TODO @flurin asInstanceOf is ugly ...
-      result.put(method.name, analysis.asInstanceOf[SilverInterproceduralForwardAnalysis[S]].analyze(program, method, callsInProgram))
+      result.put(method.name, analysis.analyze(program, method, callsInProgram))
     }
     result.toMap
   }
