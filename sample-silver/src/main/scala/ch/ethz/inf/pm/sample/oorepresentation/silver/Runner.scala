@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
+import org.jgrapht.DirectedGraph
 import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
@@ -112,8 +113,25 @@ extends SilverAnalysisRunner[S] {
   override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
     prepareContext()
     val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
+    // analyze the methods in topological order of the condensed callgraph
+    for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
+      //TODO @flurin asInstanceOf is ugly ...
+      result.put(method.name, analysis.asInstanceOf[SilverInterproceduralForwardAnalysis[S]].analyze(program, method, callsInProgram))
+    }
+    result.toMap
+  }
 
-    // build a call graph. And while at it, also build a map containing all BlockPositions that call a method
+  /**
+    * Analyze the given program an return a tuple of condensed Callgraph and a map containing all calls to each method.
+    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
+    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
+    * set(foo, bar) -> set(baz)
+    *
+    * @param program
+    * @return tuple of condensed call graph and map containing all method calls
+    */
+  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], Map[String, Set[BlockPosition]]) = {
     // Most code was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram : Map[String, Set[BlockPosition]] = Map().withDefault(_ => Set())
@@ -126,8 +144,8 @@ extends SilverAnalysisRunner[S] {
       e match {
         case MethodCall(_, method: Variable, _, _, _, _) => {
           callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
-          //TODO @flurin is this how maps work in scala?
-          callsInProgram = (callsInProgram + (method.getName -> (callsInProgram(method.getName) + m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e)))))
+          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
+          callsInProgram = (callsInProgram + (method.getName -> (callsInProgram(method.getName) + pp)))
         }
         case _ => e.getChildren foreach(process(m, _))
       }
@@ -161,16 +179,8 @@ extends SilverAnalysisRunner[S] {
       if (sourceSet != targetSet)
         condensedCallGraph.addEdge(sourceSet, targetSet)
     }
-
-    //TODO new CycleDetector(condensedCallGraph).detectCycles()
-
-    // analyze the methods in topological order of the callgraph
-    for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      //TODO @flurin asInstanceOf is ugly ...
-      result.put(method.name, analysis.asInstanceOf[SilverInterproceduralForwardAnalysis[S]].analyze(program, method, callsInProgram))
-    }
-
-    result.toMap
+    //TODO do we care about new CycleDetector(condensedCallGraph).detectCycles()
+    (condensedCallGraph, callsInProgram)
   }
 }
 
