@@ -4,9 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import sbt._
-import sbt.Keys._
 import play.twirl.sbt.SbtTwirl
+import sbt.Keys._
+import sbt._
 
 object SampleBuild extends Build {
   lazy val root = Project(
@@ -92,7 +92,8 @@ object SampleBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.1.7" % "runtime", // Logging Backend % "runtime"
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0", // Logging Frontend
       "org.scalatest" % "scalatest_2.11" % "2.2.1", // Testing Framework
-      "org.scalaz" %% "scalaz-core" % "7.1.5" // Functional Programming
+      "org.scalaz" %% "scalaz-core" % "7.1.5", // Functional Programming
+      "org.jgrapht" % "jgrapht-core" % "0.9.1" // Graph Library used for interproc call graphs
     )
   )
 
