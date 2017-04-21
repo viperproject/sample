@@ -92,7 +92,7 @@ trait SilverAnalysisRunner[S <: State[S]]
 
   /** Runs the analysis on the Silver program whose name is passed as first argument and reports errors and warnings. */
   override def main(args: Array[String]): Unit = {
-    run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
+    val result = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
 
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
@@ -104,6 +104,8 @@ trait SilverAnalysisRunner[S <: State[S]]
     for (w <- Reporter.genericWarnings) {
       println(w)
     } // warning report
+    println("\n***************\n* Exit States *\n***************\n")
+    result.foreach(r => println(r._1.name + "() -> " + r._2.exitState()))
   }
 }
 
