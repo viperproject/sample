@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.execution.SampleCfg
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodCall, Statement, TaggedProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint, VariableDeclaration}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -120,7 +120,10 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       // it might also make sense not to use the return type for functions either.
       returnType = null,
       body = method.toCfg().map[SampleCfg, Statement, Statement](SampleCfg())(go, go)
-    )
+    ) with FormalReturns {
+      //TODO @flurin: hack
+      override val returns: List[VariableDeclaration] = method.formalReturns.map(go).toList
+    }
 
   def convert(f: sil.Field): sample.FieldDeclaration =
     new sample.FieldDeclaration(go(f.pos), modifiers = Nil,
