@@ -1,11 +1,24 @@
-method foo(this: Ref)
+//
+// bar() has multiple callers. a analysis of bar() should trigger new results for all call locations
+// but assuming the analysis starts at foo() it would not make sense to add the "entrypoint for naive analysis" to the
+// interpreter worklist when baz has not been analyzed before
+//
+method foo(this: Ref, j: Int)
 {
     var i: Int := 0
-    i := bar(this, i)
-    assert i == 0     // the trivial analysis should set i to Top and this assert is expected to fail
+    i := bar(i)
+    i := bar(i)
 }
 
-method bar(this: Ref, i: Int) returns (k: Int)
+method bar(k: Int) returns (l: Int)
 {
-    k := 0
+    l := k + 1
+}
+
+method baz()
+{
+    var k: Int := 0
+    k := bar(k)
+    // entrypoint for naive analysis
+    k := k + 1
 }
