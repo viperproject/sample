@@ -12,8 +12,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable.ListBuffer
-
 trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: IdentifierSet]
   extends SilverState[S]
     with StateWithRefiningAnalysisStubs[S]
@@ -81,18 +79,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: Ident
     x match {
       case left: VariableIdentifier if domain.contains(left) =>
         val d = domain - left // LIVE \ KILL
-        right match {
-          case r: VariableIdentifier => copy(domain = d + r) // gen union live \ kill
-          case FunctionCallExpression(_, params, _, _) =>
-            // mark all arguments as live
-            val toMarkAsLive = ListBuffer[Identifier]()
-            //TODO @flurin blows up for expression in method calls i := foo(i+1)
-            params.foreach { case p: VariableIdentifier => toMarkAsLive.append(p) }
-            copy(domain = d ++ toMarkAsLive.toSet)
-          case _: Constant => copy(domain = d)
-          //TODO @flurin right not a variable is actually valid
-          case _ => throw new IllegalArgumentException(s"$right is not a variable identifier.")
-        }
+        if (right.ids.isBottom) copy(domain = d) else copy(domain = d ++ right.ids) // GEN \union LIVE \ KILL
       case _: VariableIdentifier => this
       case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
     }
