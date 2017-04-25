@@ -43,7 +43,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       val arguments = (extended.formalArgs ++ argument).distinct
       // add constraint for read permission to precondition
       val variable = sil.LocalVar("read")(sil.Perm)
-      val condition = Seq(sil.And(sil.PermGtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
+      val condition = Seq(sil.And(sil.PermLtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
       val preconditions = condition ++ extended.pres
       // update method
       extended.copy(
@@ -83,11 +83,18 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @param state    The state providing the specifications.
     * @return The modified list of invariants.
     */
-  override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
+  override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] = {
+    /*val stack = state.specifications
+    val tree = stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
+    val paths = stack.headPaths.filter(tree.extract(_)._2.nonEmpty())
+
+    println(s"paths: $paths")*/
+
     extendSpecifications(existing, state)
+  }
 
   /**
-    * Modifies the list of fields of a new statement using specifications
+    * Modifies the list of fields of a new statement ussing specifications
     * provided by the given state.
     *
     * @param existing The existing list of fields.
@@ -103,7 +110,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     val inferred = specifications match {
       case tree: PermissionTree.Inner =>
         tree.children.flatMap { case (field, subtree) =>
-          val permission = subtree.permission
+          val permission = subtree.permission()
           if (permission.isNone) None
           else Some(createSilverField(field, state))
         }
@@ -127,8 +134,8 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
 
     read = read || specifications.fold(false) {
       case (result, (_, tree)) =>
-        result || (tree.permission match {
-          case Fractional(_, _, read) => read > 0
+        result || (tree.permission() match {
+          case Fractional(_, _, rd) => rd > 0
           case _ => false
         })
     }
@@ -203,7 +210,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     */
   private def createSilverSpecifications(specifications: PermissionTree, state: T): Seq[sil.Exp] = {
     val framed = specifications.map() { case (_, tree) =>
-      val permission = tree.permission
+      val permission = tree.permission()
       if (permission.isSome || tree.isEmpty) permission
       else Permission.read
     }
@@ -254,15 +261,15 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A Silver expression representing a permission amount.
     */
   private def createSilverPermissionAmount(permission: Permission, state: T): sil.Exp = permission match {
-    case Fractional(numerator, denominator, read) =>
+    case Fractional(numerator, denominator, rd) =>
       val fractionalAmount =
         if (numerator == 0) None
         else if (numerator == denominator) Some(sil.FullPerm()())
         else Some(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())())
       val readAmount =
-        if (read == 0) None
-        else if (read == 1) Some(sil.LocalVar("read")(sil.Perm))
-        else Some(sil.PermMul(sil.IntLit(read)(), sil.LocalVar("read")(sil.Perm))())
+        if (rd == 0) None
+        else if (rd == 1) Some(sil.LocalVar("read")(sil.Perm))
+        else Some(sil.PermMul(sil.IntLit(rd)(), sil.LocalVar("read")(sil.Perm))())
 
       (fractionalAmount, readAmount) match {
         case (Some(left), Some(right)) => sil.PermAdd(left, right)()
