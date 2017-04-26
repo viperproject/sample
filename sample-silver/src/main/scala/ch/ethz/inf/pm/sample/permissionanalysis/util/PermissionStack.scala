@@ -187,6 +187,9 @@ object PermissionStack {
 
     def lessEqual(other: Entry): Boolean =
       (tree lessEqual other.tree) && (paths subsetOf other.paths)
+
+    def copy(tree: PermissionTree = tree, paths: Set[AccessPath] = paths): Entry =
+      Entry(tree, paths)
   }
 
   case object Entry {

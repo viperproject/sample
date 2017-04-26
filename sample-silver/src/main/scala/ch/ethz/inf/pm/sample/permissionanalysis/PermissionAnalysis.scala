@@ -601,12 +601,13 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def assign(left: AccessPath, right: AccessPath): T = {
     if (left.isEmpty || right.isEmpty) this
     else if (right.head.isInstanceOf[NewObject]) {
-      /*val extracted = stack.trees.map(_.extract(left))
-      val newStack = extracted.map(_._1)
-      val specifications = extracted.map(_._2).reduce(_ lub _)
-      copy(stack = newStack, inferred = Some(specifications))*/
-      // TODO:
-      ???
+      val (remainderEntries, extractedEntries) = stack.entries.unzip { entry =>
+        val (remainder, extracted) = entry.tree.extract(left)
+        (entry.copy(tree = remainder), entry.copy(tree = extracted))
+      }
+      val remainderStack = PermissionStack(remainderEntries)
+      val extractedStack = PermissionStack(extractedEntries)
+      copy(stack = remainderStack, inferred = Some(extractedStack))
     } else {
       val updated = stack.mapTrees { tree =>
         val (remainder, extracted) = tree.extract(left)

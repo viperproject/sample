@@ -281,7 +281,7 @@ object PermissionTree {
         children.get(path.head) match {
           case Some(subtree) =>
             val (updated, extracted) = subtree.extract(path.tail)
-            val remainder = PermissionTree(Permission.none, children + (path.head -> updated))
+            val remainder = PermissionTree(subtree.permission(), children + (path.head -> updated))
             (remainder, extracted)
           case None => (this, PermissionTree.empty)
         }
