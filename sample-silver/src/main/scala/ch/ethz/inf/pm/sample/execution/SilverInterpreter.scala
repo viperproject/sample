@@ -83,7 +83,7 @@ trait SilverForwardInterpreter[S <: State[S]]
           val predecessor = getPredecessorState(cfgResult, current, edge)
           // filter state if there is a condition
           val filtered = edge match {
-            case ConditionalEdge(condition, _, _, _) => condition.forwardSemantics(predecessor).testTrue()
+            case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, predecessor)
             case UnconditionalEdge(_, _, _) => predecessor
           }
           // handle in and out edges
@@ -161,6 +161,15 @@ trait SilverForwardInterpreter[S <: State[S]]
 
     // return result
     cfgResult
+  }
+
+  private def assumeCondition(condition: Statement, state: S): S = {
+    val predecessor = state.before(ProgramPointUtils.identifyingPP(condition))
+    val successor = condition.forwardSemantics(predecessor).testTrue()
+    logger.trace(predecessor.toString)
+    logger.trace(condition.toString)
+    logger.trace(successor.toString)
+    successor
   }
 
   protected def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Edge[Statement, Statement]): S = {
@@ -353,7 +362,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
           }
           // filter state if there is a condition
           val filtered = edge match {
-            case ConditionalEdge(condition, _, _, _) => condition.backwardSemantics(adapted).testTrue()
+            case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, adapted)
             case UnconditionalEdge(_, _, _) => adapted
           }
 
@@ -423,6 +432,15 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
     // return result
     cfgResult
+  }
+
+  private def assumeCondition(condition: Statement, state: S): S = {
+    val successor = state.before(ProgramPointUtils.identifyingPP(condition))
+    val predecessor = condition.backwardSemantics(successor).testTrue()
+    logger.trace(successor.toString)
+    logger.trace(condition.toString)
+    logger.trace(predecessor.toString)
+    predecessor
   }
 
   private def executeStatement(statement: Statement, state: S): S = {
