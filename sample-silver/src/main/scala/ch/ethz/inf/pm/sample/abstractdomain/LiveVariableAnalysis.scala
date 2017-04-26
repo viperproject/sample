@@ -79,7 +79,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: Ident
     x match {
       case left: VariableIdentifier if domain.contains(left) =>
         val d = domain - left // LIVE \ KILL
-        if (right.ids.isBottom) copy(domain = d) else copy(domain = d ++ right.ids) // GEN \union LIVE \ KILL
+        if (right.ids.isBottom) copy(domain = d) else copy(domain = d ++ right.ids) // gen ∪ (live \ kill)
       case _: VariableIdentifier => this
       case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
     }

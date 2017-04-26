@@ -1,1 +1,1 @@
-apronLibPath in ThisBuild := "/local/rflurin/apron/lib"
+apronLibPath in ThisBuild := "/usr/local/lib"
