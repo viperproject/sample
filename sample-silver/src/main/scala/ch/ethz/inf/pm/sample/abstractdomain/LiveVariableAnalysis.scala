@@ -12,7 +12,18 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
-trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: IdentifierSet]
+/**
+  * A state for (strongly) live variable analysis. IdentifierSet is used as domain.
+  * If an identifier exists in the domain then it is considered to be live. Widening is implemented as a join of the
+  * two operands.
+  *
+  * This implementation treats fields as "always live". An assignment to a field will therefore set all identifiers
+  * on the right hand side of the assignment to live.
+  *
+  * @tparam S The type of the state.
+  * @author Flurin Rindisbacher
+  */
+trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
   extends SilverState[S]
     with StateWithRefiningAnalysisStubs[S]
     with LazyLogging {
@@ -87,6 +98,8 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: Ident
 
   override def assignField(obj: Expression, field: String, right: Expression): S = {
     logger.trace(s"assignField($obj, $field, $right")
+    // we treat fields a being always live. that's why there's no "kill" set for this assignment
+    if (right.ids.isBottom) copy(domain = domain) else copy(domain = domain ++ right.ids)
     this
   }
 
@@ -101,7 +114,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: Ident
   override def removeVariable(x: VariableIdentifier): S = {
     logger.trace(s"removeVariable($x)")
     x match {
-      case variable: VariableIdentifier => copy(domain = domain - variable) //TODO @flurin
+      case variable: VariableIdentifier => copy(domain = domain - variable)
       case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
     }
     this
@@ -140,7 +153,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S, N], N <: Ident
     logger.trace(s"widening($this, $other)")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
-    else copy(domain = domain widening other.domain)
+    else copy(domain = domain ++ other.domain)
   }
 
   override def lessEqual(other: S): Boolean = {
@@ -188,13 +201,12 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
                                            domain: IdentifierSet,
                                            isTop: Boolean,
                                            isBottom: Boolean)
-  extends LiveVariableAnalysisState[SimpleLiveVariableAnalysisState, IdentifierSet] {
+  extends LiveVariableAnalysisState[SimpleLiveVariableAnalysisState] {
   override def copy(pp: ProgramPoint, expr: ExpressionSet, domain: IdentifierSet, isTop: Boolean, isBottom: Boolean): SimpleLiveVariableAnalysisState = {
     val b = isBottom || (!isTop && domain.isBottom)
     SimpleLiveVariableAnalysisState(pp, expr, domain, isTop, b)
   }
 }
-
 
 object LiveVariableAnalysis
   extends SilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
