@@ -7,14 +7,13 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis}
+import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
-import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
@@ -32,7 +31,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @param cfgResult The result of the analysis.
     * @return The extended program.
     */
-  override def extendMethod(method: Method, cfgResult: CfgResult[T]): Method = {
+  override def extendMethod(method: sil.Method, cfgResult: CfgResult[T]): sil.Method = {
     // reset read flag and extend method
     read = false
     val extended = super.extendMethod(method, cfgResult)
@@ -53,56 +52,28 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     } else extended
   }
 
-  /**
-    * Modifies the list of preconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing preconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of preconditions.
-    */
-  override def preconditions(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
-    extendSpecifications(existing, state)
-
-  /**
-    * Modifies the list of postconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing postconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of postconditions.
-    */
-  override def postconditions(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
-    extendSpecifications(existing, state)
-
-  /**
-    * Modifies the list of invariants using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing invariants.
-    * @param state    The state providing the specifications.
-    * @return The modified list of invariants.
-    */
-  override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] = {
-    /*val stack = state.specifications
-    val tree = stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
-    val paths = stack.headPaths.filter(tree.extract(_)._2.nonEmpty())
-
-    println(s"paths: $paths")*/
-
+  override def preconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+    val state = result.preStateAt(position)
     extendSpecifications(existing, state)
   }
 
-  /**
-    * Modifies the list of fields of a new statement ussing specifications
-    * provided by the given state.
-    *
-    * @param existing The existing list of fields.
-    * @param state    The state providing the specifications.
-    * @return The modified list of fields.
-    */
-  override def fields(existing: Seq[sil.Field], state: T): Seq[sil.Field] = {
+  override def postconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+    val state = result.postStateAt(position)
+    extendSpecifications(existing, state)
+  }
+
+  override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+    /*val stack = state.specifications
+    val tree = stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
+    val paths = stack.headPaths.filter(tree.extract(_)._2.nonEmpty()).map(_.map(_.getName))*/
+
+    val state = result.preStateAt(position)
+    extendSpecifications(existing, state)
+  }
+
+  override def fields(existing: Seq[sil.Field], position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
     // extract specifications from state
+    val state = result.preStateAt(position)
     val specifications = state.specifications.foldLeftTrees[PermissionTree](PermissionTree.Bottom)(_ lub _)
 
     // TODO: Report if infeasible permissions are inferred.

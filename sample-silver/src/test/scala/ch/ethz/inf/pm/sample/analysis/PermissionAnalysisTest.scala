@@ -91,8 +91,6 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
     val allMethods = extendedProgram.methods ++ preMethods ++ postMethods
     val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info)
 
-    print(extendedProgramWithChecks.toString())
-
     try {
       // use silicon to verify the extended program with the checks
       start()
