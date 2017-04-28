@@ -77,8 +77,12 @@ trait SilverForwardInterpreter[S <: State[S]]
         initial
       } else {
         var state = bottom
-        // join incoming states
-        val edges = cfg.inEdges (current.block)
+        // join incoming states. Positions with an index > 0 are implicit edges not modelled in the cfg
+        // We'll use a "dummy" edge and let getPredecessorState() do the magic
+        val edges = current match {
+          case BlockPosition(_, 0) => cfg.inEdges(current.block)
+          case _ => Seq(UnconditionalEdge(current.block, current.block))
+        }
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResult, current, edge)
           // filter state if there is a condition
@@ -97,14 +101,14 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResult.preStateAt(current) widening  state
+          cfgResult.preStateAt(current) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val  oldStates = cfgResult.getStates(current.block)
+      val oldStates = cfgResult.getStates(current.block)
       val numToSkip = current.index
       val oldEntry = if (oldStates.isEmpty) bottom else cfgResult.preStateAt(current)
       if (!(entry lessEqual oldEntry)) {
@@ -115,9 +119,9 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             statements.drop(numToSkip).foldLeft(entry) { (predecessor, statement) =>
-                val successor = executeStatement(statement, predecessor, worklist)
-                states.append(successor)
-                successor
+              val successor = executeStatement(statement, predecessor, worklist)
+              states.append(successor)
+              successor
             }
           case PreconditionBlock(preconditions) =>
             // process preconditions
@@ -211,33 +215,32 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     with LazyLogging {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
-  val methodEntryStates : mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
-  val methodExitStates : mutable.Map[String, S] = mutable.Map()
-  val callsInProgram : Map[String, Set[BlockPosition]]// = mutable.Map().withDefault(_ => Set())
+  val methodEntryStates: mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
+  val methodExitStates: mutable.Map[String, S] = mutable.Map()
+  val callsInProgram: Map[String, Set[BlockPosition]] // = mutable.Map().withDefault(_ => Set())
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Edge[Statement, Statement]): S = {
     //
-    // idea: if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
+    // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
     // a method-call. Use the entrystate and add the infos we got from analyzing the called method.
     //
-    //TODO @flurin
-    current.index match {
-      case 0 => super.getPredecessorState(cfgResult, current, edge)
+    current match {
+      case BlockPosition(_, 0) => super.getPredecessorState(cfgResult, current, edge)
       case _ => {
-        val tmp = cfgResult.preStateAt(current) //TODO @flurin check again // getStates(edge.target)(current.index -1)
+        val tmp = cfgResult.preStateAt(current)
         current.block match {
-          case StatementBlock(statements) => statements(current.index -1) match {
+          case StatementBlock(statements) => statements(current.index - 1) match {
             case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) => {
               val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
-              val methodCall = statements(current.index -1).asInstanceOf[MethodCall]
+              val methodCall = statements(current.index - 1).asInstanceOf[MethodCall]
               tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, tmp, methodExitStates))
             }
             case _ => tmp
           }
           case LoopHeadBlock(invs, statements) => statements(current.index - invs.size - 1) match {
-            case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) =>{
+            case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) => {
               val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
-              val methodCall = statements(current.index -1).asInstanceOf[MethodCall]
+              val methodCall = statements(current.index - 1).asInstanceOf[MethodCall]
               tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, tmp, methodExitStates))
             }
             case _ => tmp
@@ -258,7 +261,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           case _ => throw new RuntimeException("Should not happen") //TODO
         }
         var currentState = predecessor
-        val targetExpressions = for(target <- call.targets) yield {
+        val targetExpressions = for (target <- call.targets) yield {
           val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
           currentState = st
           exp
@@ -271,15 +274,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
         // create arg_# variables and assign the value to them. then remove all non arg_# variables
         var tmpVariableState = currentState
-        val tmpArguments = for((param, index) <- parameterExpressions.zipWithIndex) yield {
-          val exp = ExpressionSet(VariableIdentifier("arg_#" + index )(param.typ))
+        val tmpArguments = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
+          val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
           tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
           tmpVariableState = tmpVariableState.assignVariable(exp, param)
           exp
         }
         tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
-          .filter(id => ! id.getName.startsWith("arg_#"))
-          .foldLeft(tmpVariableState)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+          .filter(id => !id.getName.startsWith("arg_#"))
+          .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
         //context insensitive analysis: analyze the called method with the join of all calling states
         // this implementation could analyze the method several times
@@ -289,7 +292,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // create input state for intraprocedural analysis
         var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
         // assign (temporary) arguments to parameters and remove the temp args
-        inputState = methodDeclaration.parameters.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
+        inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
         inputState = tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
         // (intraprocedural) analysis of method
         var result = FinalResultForwardInterpreter[S]().execute(methodDeclaration.body, inputState)
@@ -309,7 +312,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         callsInProgram(name)
           .filter(b => methodEntryStates(name)
             // block must have been analyzed before and methodcall mustn't be the last statement
-            .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size -1
+            .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
           )
           .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
         resultState
@@ -481,7 +484,7 @@ case class FinalResultForwardInterpreter[S <: State[S]]()
   }
 }
 
-case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram : Map[String, Set[BlockPosition]])
+case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram: Map[String, Set[BlockPosition]])
   extends InterproceduralSilverForwardInterpreter[S] {
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)

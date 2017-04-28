@@ -222,10 +222,10 @@ object IntegerIntervalAnalysisEntryState
   */
 object IntegerIntervalAnalysis
   extends NonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
-  override val analysis: SilverAnalysis[IntegerIntervalAnalysisState] = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+  override val analysis = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
 }
 
 object InterproceduralIntegerIntervalAnalysis
   extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
-  override val analysis: SilverInterproceduralForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
 }

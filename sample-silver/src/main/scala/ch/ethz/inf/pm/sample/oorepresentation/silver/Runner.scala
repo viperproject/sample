@@ -117,7 +117,7 @@ trait SilverAnalysisRunner[S <: State[S]]
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 extends SilverAnalysisRunner[S] {
 
-  override val analysis: SilverInterproceduralForwardAnalysis[S]
+  override val analysis: InterproceduralSilverForwardAnalysis[S]
 
   override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
     prepareContext()
