@@ -292,7 +292,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // create input state for intraprocedural analysis
         var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
         // assign (temporary) arguments to parameters and remove the temp args
-        inputState = methodDeclaration.parameters.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
+        inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
         inputState = tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
         // (intraprocedural) analysis of method
         var result = FinalResultForwardInterpreter[S]().execute(methodDeclaration.body, inputState)

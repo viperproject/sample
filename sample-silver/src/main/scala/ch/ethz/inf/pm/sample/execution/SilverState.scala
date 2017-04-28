@@ -195,15 +195,13 @@ trait SilverState[S <: SilverState[S]]
       exp
     }
     var st = exitState
-    val returnVariableMapping = for(tuple <- methodDeclaration.parameters.reverse.zip(targetExpressions.reverse).reverse) yield {
-      // methodDeclaration.parameters = [param1, param2... paramN, return1, return2... returnN] .reverse calls above are to
-      // only work with return parameters and to preserve their order
-      // tuple._1 = the variable declared in returns(...) of the method
-      // tuple._2 = the target-expression which we'll assign to later
-      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(tuple._1.typ))
+    val returnVariableMapping = for((formalRetVar, targetVar) <- methodDeclaration.returns.zip(targetExpressions)) yield {
+      // formalRetVar = the variable declared in returns(...) of the method
+      // targetVar = the target-expression which we'll assign to later
+      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(formalRetVar.typ))
       index += 1
-      st = st.createVariable(exp, tuple._1.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(tuple._1.variable.id))
-      (tuple._2, exp)
+      st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
+      (targetVar, exp)
     }
     st = st.ids.toSetOrFail // let's all non ret_# variables
       .filter(id => ! id.getName.startsWith("ret_#"))
