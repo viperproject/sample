@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{FormalReturns, SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -186,13 +186,12 @@ object LiveVariableAnalysisEntryState
     isBottom = false
   )
 
-  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleLiveVariableAnalysisState = method match {
-    case r: FormalReturns => r.returns.foldLeft(top) { case (state, parameter) =>
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleLiveVariableAnalysisState = {
+    method.returns.foldLeft(top) { case (state, parameter) =>
       val result = parameter.variable.forwardSemantics(state)
       val expression = result.expr
       result.removeExpression().createVariableForArgument(expression, parameter.typ)
     }
-    case _ => super.build(program, method)
   }
 }
 

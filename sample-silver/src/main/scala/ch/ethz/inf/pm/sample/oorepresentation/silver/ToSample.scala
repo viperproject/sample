@@ -118,10 +118,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       returns = method.formalReturns.map(go).toList,
       returnType = method.formalReturns.map(_.typ).map(go).toList,
       body = method.toCfg().map[SampleCfg, Statement, Statement](SampleCfg())(go, go)
-    ) with FormalReturns {
-      //TODO @flurin: hack
-      override val returns: List[VariableDeclaration] = method.formalReturns.map(go).toList
-    }
+    )
 
   def convert(f: sil.Field): sample.FieldDeclaration =
     new sample.FieldDeclaration(go(f.pos), modifiers = Nil,

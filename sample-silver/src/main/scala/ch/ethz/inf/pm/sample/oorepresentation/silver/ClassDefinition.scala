@@ -23,10 +23,6 @@ class SilverFunctionDeclaration(val programPoint: ProgramPoint,
                                 val returnType: Type,
                                 val body: Option[Statement])
 
-trait FormalReturns {
-  val returns : List[VariableDeclaration]
-}
-
 class SilverMethodDeclaration(val programPoint: ProgramPoint,
                               val name: SilverIdentifier,
                               val arguments: List[VariableDeclaration],
