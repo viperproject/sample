@@ -14,7 +14,7 @@ object SampleBuild extends Build {
     base = file(".")) aggregate(sample_core, sample_numerical, sample_apron,
     sample_touchdevelop, sample_scala_processing, sample_partitioning,
     sample_string, sample_valuedriven_heap, sample_sil, sample_web,
-    sample_silver, silver)
+    sample_silver)
 
   lazy val sample_core = Project(
     id = "sample-core",
