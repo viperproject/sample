@@ -48,7 +48,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       extended.copy(
         _pres = preconditions,
         formalArgs = arguments
-      )(extended.pos, extended.info)
+      )(extended.pos, extended.info, extended.errT)
     } else extended
   }
 

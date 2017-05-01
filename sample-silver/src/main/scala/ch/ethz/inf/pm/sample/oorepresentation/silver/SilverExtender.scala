@@ -54,7 +54,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     }
 
     // return extended program
-    program.copy(methods = extendedMethods)(program.pos, program.info)
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
 
   /**
@@ -80,7 +80,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       _pres = extendedPreconditions,
       _posts = extendedPostconditions,
       _body = extendedBody
-    )(method.pos, method.info)
+    )(method.pos, method.info, method.errT)
   }
 
   /**

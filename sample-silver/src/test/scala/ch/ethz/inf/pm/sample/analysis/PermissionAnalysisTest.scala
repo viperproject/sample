@@ -67,7 +67,7 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
         } else (m :+ method, pre, posts)
     }
 
-    val filteredProgram = program.copy(methods = methods)(program.pos, program.info)
+    val filteredProgram = program.copy(methods = methods)(program.pos, program.info, program.errT)
     val results = runner.run(filteredProgram)
 
     // run the permission inference
@@ -78,18 +78,18 @@ class SiliconWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = 
     val preMethods = extendedProgram.methods.filter(preMap contains _.name).map {
       method =>
         val preMethod = preMap(method.name)
-        preMethod.copy(_posts = method.pres)(preMethod.pos, preMethod.info)
+        preMethod.copy(_posts = method.pres)(preMethod.pos, preMethod.info, preMethod.errT)
     }
     // methods that check against expected postconditions
     val postMethods = extendedProgram.methods.filter(postMap contains _.name).map {
       method =>
         val postMethod = postMap(method.name)
-        postMethod.copy(_pres = method.posts)(postMethod.pos, postMethod.info)
+        postMethod.copy(_pres = method.posts)(postMethod.pos, postMethod.info, postMethod.errT)
     }
 
     // program with checks against expected pre- and postconditions added
     val allMethods = extendedProgram.methods ++ preMethods ++ postMethods
-    val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info)
+    val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info, extendedProgram.errT)
 
     try {
       // use silicon to verify the extended program with the checks
