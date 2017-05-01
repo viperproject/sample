@@ -36,7 +36,7 @@ class SilverCompiler {
         val input = Source.fromInputStream(Files.newInputStream(file)).mkString
         (FastParser.parse(input, file), file)
       case Compilable.Code(label, input) =>
-        // input will be parsed. But need to pass in a valid Path object anyway. Use the sample/ dir
+        // input will be parsed but we'll need to pass in a valid Path object anyway. Let's use the working dir for this.
         (FastParser.parse(input, Paths.get(".").toAbsolutePath().normalize()), label)
       case _ => throw new UnsupportedOperationException("Compilable " + compilable + " not supported by this compiler")
     }
