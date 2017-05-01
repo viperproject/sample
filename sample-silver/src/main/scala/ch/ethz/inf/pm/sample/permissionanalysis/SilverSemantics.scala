@@ -68,12 +68,14 @@ case class LeaveLoopCommand() extends SilverCommand
 
 /**
   * A command issued when a method is left. exitState contains the return values of the analyzed methodCall
+  * The command should apply the effect of the method
   * @param methodDeclaration
   * @param methodCall
-  * @param methodExitStates
+  * @param stateBeforeMethodCall the callee's state before the method call
+  * @param methodExitStates the effect of the method. contains the exit states of all analyzed methods
   * @author Flurin Rindisbacher
   */
-case class LeaveMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S, methodExitStates: mutable.Map[String, S]) extends SilverCommand
+case class LeaveMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, stateBeforeMethodCall: S, methodExitStates: mutable.Map[String, S]) extends SilverCommand
 
 /** Object adding Inhale/Exhale semantics.
   *
