@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.text.ParseException
 
 import scala.io.Source
@@ -36,7 +36,8 @@ class SilverCompiler {
         val input = Source.fromInputStream(Files.newInputStream(file)).mkString
         (FastParser.parse(input, file), file)
       case Compilable.Code(label, input) =>
-        (FastParser.parse(input, null), label)
+        // input will be parsed. But need to pass in a valid Path object anyway. Use the sample/ dir
+        (FastParser.parse(input, Paths.get(".").toAbsolutePath().normalize()), label)
       case _ => throw new UnsupportedOperationException("Compilable " + compilable + " not supported by this compiler")
     }
     val parsed = parseResult match {
