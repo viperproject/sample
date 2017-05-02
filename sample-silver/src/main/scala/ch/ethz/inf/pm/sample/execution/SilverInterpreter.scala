@@ -323,7 +323,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //context insensitive analysis: analyze the called method with the join of all calling states
         // this implementation could analyze the method several times
         methodEntryStates(name) = methodEntryStates(name) + (statement.getPC() -> tmpVariableState)
-        tmpVariableState = methodEntryStates(name).values.foldLeft(tmpVariableState)((st1, st2) => st1 lub st2)
+        //tmpVariableState = methodEntryStates(name).values.foldLeft(tmpVariableState)((st1, st2) => st1 lub st2)
         //enqueue the method
         worklist.enqueue(BlockPosition(methodDeclaration.body.entry, 0))
         //TODO @flurin implement actual analysis
@@ -348,12 +348,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //enqueue all statements directly after each calls to the method
         //if the method-call was the last statement of the block we do not enqueue here. the interpreter will enqueue all
         //blocks for us. Calls from a block that has not been analyzed before are also not enqueued.
-        callsInProgram(name)
-          .filter(b => methodEntryStates(name)
-            // block must have been analyzed before and methodcall mustn't be the last statement
-            .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
-          )
-          .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
+
+        //TODO @flurin this is not necessary until we have analyzed the whole method
+//        callsInProgram(name)
+//          .filter(b => methodEntryStates(name)
+//            // block must have been analyzed before and methodcall mustn't be the last statement
+//            .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
+//          )
+//          .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
         (false, currentState)
       }
       case _ => return super.executeStatement(statement, state, worklist)
