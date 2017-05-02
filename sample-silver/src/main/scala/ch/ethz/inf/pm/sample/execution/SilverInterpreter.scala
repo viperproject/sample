@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
+import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis._
@@ -50,6 +50,8 @@ trait SilverInterpreter[S <: State[S]] {
   protected def initializeResultForward(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = ???
 }
 
+sealed trait InterprocEdge;
+
 /**
   * Performs a forward interpretation of a control flow graph.
   *
@@ -84,20 +86,20 @@ trait SilverForwardInterpreter[S <: State[S]]
         var state = bottom
         // join incoming states. Positions with an index > 0 are implicit edges not modelled in the cfg
         // We'll use a "dummy" edge and let getPredecessorState() do the magic
-        val edges = current match {
-          case BlockPosition(_, 0) if(cfg(current) == startCfg) => cfg(current).inEdges(current.block)
-          case BlockPosition(_, 0) => Seq(UnconditionalEdge(null, current.block)) //TODO @flurin
-          case _ => Seq(UnconditionalEdge(current.block, current.block))
+        val edges: Seq[Either[SampleEdge, InterprocEdge]] = current match {
+          case BlockPosition(_, 0) if(cfg(current) == startCfg) => cfg(current).inEdges(current.block).map(Left(_))
+          case BlockPosition(_, 0) => Seq(Left(UnconditionalEdge(null, current.block))) //TODO @flurin
+          case _ => Seq(Left(UnconditionalEdge(current.block, current.block)))
         }
         for (edge <- edges) {
-          val predecessor = getPredecessorState(cfgResult(cfg(current)), current, edge)
+          val predecessor = getPredecessorState(cfgResult(cfg(current)), current, edge.left.get)
           // filter state if there is a condition
           val filtered = edge match {
-            case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, predecessor)
-            case UnconditionalEdge(_, _, _) => predecessor
+            case Left(ConditionalEdge(condition, _, _, _)) => assumeCondition(condition, predecessor)
+            case Left(UnconditionalEdge(_, _, _)) => predecessor
           }
           // handle in and out edges
-          val adapted = edge.kind match {
+          val adapted = edge.left.get.kind match {
             case Kind.In => filtered.command(EnterLoopCommand())
             case Kind.Out => filtered.command(LeaveLoopCommand())
             case _ => filtered
