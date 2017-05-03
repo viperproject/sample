@@ -40,7 +40,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
-      case LeaveMethodCommand(methodDeclaration, methodCall, exitState: S, methodExitStates: mutable.Map[String, Any]) => exitMethod(methodDeclaration, methodCall, exitState, methodExitStates)
+      case LeaveMethodCommand(methodDeclaration, methodCall, exitState: S) => exitMethod(methodDeclaration, methodCall, exitState)
     }
     case _ => super.command(cmd)
   }
@@ -188,7 +188,7 @@ trait SilverState[S <: SilverState[S]]
     * @param exitState
     * @return
     */
-  def exitMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S, methodExitStates: mutable.Map[String, Any]): S = {
+  def exitMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S): S = {
     var index = 0
     val targetExpressions = for(target <- methodCall.targets) yield {
       val (exp, _) = UtilitiesOnStates.forwardExecuteStatement(this, target)
@@ -206,7 +206,6 @@ trait SilverState[S <: SilverState[S]]
     st = st.ids.toSetOrFail // let's all non ret_# variables
       .filter(id => ! id.getName.startsWith("ret_#"))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
-    methodExitStates(methodDeclaration.name.name) = st
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))
