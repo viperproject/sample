@@ -14,6 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverPr
   * methods but any valid SilverIdentifier is supported.
   *
   * @tparam S the state to be used in CfgResult
+  * @author Flurin Rindisbacher
   */
 trait ProgramResult[S <: State[S]] {
 
@@ -43,16 +44,16 @@ trait ProgramResult[S <: State[S]] {
   /**
     * Initializes the cfg results for all methods using the given helper function
     *
-    * @param initialize helper called for each result to be initalized
-    * @param state      State to use for the initalization
+    * @param initialize helper called for each result to be initialized
+    * @param state      State to use for the initialization
     */
   def initialize(initialize: (SampleCfg, S) => CfgResult[S], state: S): Unit
 }
 
-class FinalProgramResult[S <: State[S]](program: SilverProgramDeclaration)
+class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
   extends ProgramResult[S] {
 
-  var results: Map[SilverIdentifier, CfgResult[S]] = Map.empty;
+  var results: Map[SilverIdentifier, CfgResult[S]] = Map.empty
 
   override def initialize(initialize: (SampleCfg, S) => CfgResult[S], state: S) {
     for (method <- program.methods) {
@@ -81,7 +82,7 @@ class FinalProgramResult[S <: State[S]](program: SilverProgramDeclaration)
   override def identifiers: Iterable[SilverIdentifier] = results.keys
 }
 
-object FinalProgramResult {
-  def apply[S <: State[S]](program: SilverProgramDeclaration): FinalProgramResult[S] =
-    new FinalProgramResult[S](program: SilverProgramDeclaration)
+object DefaultProgramResult {
+  def apply[S <: State[S]](program: SilverProgramDeclaration): DefaultProgramResult[S] =
+    new DefaultProgramResult[S](program: SilverProgramDeclaration)
 }

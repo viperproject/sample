@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult, SampleCfg}
+import ch.ethz.inf.pm.sample.execution._
 import viper.silver.{ast => sil}
 
 /**
@@ -44,13 +44,12 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @param results The result of the analysis.
     * @return The
     */
-  def extendProgram(program: sil.Program, results: Map[SilverIdentifier, CfgResult[S]]): sil.Program = {
+  def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
     // extend methods
     val extendedMethods = program.methods.map { method =>
-      results.get(SilverIdentifier(method.name)) match {
-        case Some(cfgResult) => extendMethod(method, cfgResult)
-        case None => method
-      }
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      extendMethod(method, result)
     }
 
     // return extended program
