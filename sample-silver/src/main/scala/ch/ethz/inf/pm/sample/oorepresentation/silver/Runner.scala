@@ -130,8 +130,10 @@ extends SilverAnalysisRunner[S] {
     for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
       val res = analysis.analyze(program, method, callsInProgram)
       for(ident <- res.identifiers) {
-        assert(result.identifiers.count(_ == ident) == 0)
-        result.setResult(ident, res.getResult(ident))
+        //assert(result.identifiers.count(_ == ident) == 0)
+        //TODO @flurin multiple results for the same method?
+        if(result.identifiers.count(_ == ident) == 0)
+          result.setResult(ident, res.getResult(ident))
       }
     }
     result

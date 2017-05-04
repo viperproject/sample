@@ -259,17 +259,23 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 
   override protected def inEdges(current: BlockPosition, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+    /**
+      * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
+      * we'll add a MethodCallEdge
+      * @return
+      */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge]] = {
-      if (true) {
-        //TODO @flurin: check if this block is called form a method. if so also append MethodCallEdges
-        ??? ///Seq(Right(MethodCallEdge(null)))
+      if (cfg(current).entry != current.block)
+        return Seq.empty
+      val method = program.methods.find(_.body == cfg(current)).head
+      if (callsInProgram.contains(method.name.name)) {
+        Seq(Right(MethodCallEdge(method)))
       } else {
         Seq.empty
       }
     }
-
     current match {
-      case BlockPosition(_, 0) if (cfg(current).entry == current.block) => super.inEdges(current, cfgResult) ++ createMethodCallEdges()
+      case BlockPosition(_, 0) => super.inEdges(current, cfgResult) ++ createMethodCallEdges()
       case BlockPosition(_, 0) => super.inEdges(current, cfgResult)
       //case BlockPosition(_, 0) =>
       case BlockPosition(block, index) => {
