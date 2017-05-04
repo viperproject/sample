@@ -250,8 +250,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val builder: SilverEntryStateBuilder[S]
   val methodEntryStates: mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
   val methodExitStates: mutable.Map[String, S] = mutable.Map()
-  val callsInProgram: Map[String, Set[BlockPosition]] // = mutable.Map().withDefault(_ => Set())
+  val callsInProgram: Map[String, Set[BlockPosition]]
+  val programResult: ProgramResult[S] = DefaultProgramResult(program)
 
+  def executeInterprocedural(startCfg: SampleCfg, initial: S): ProgramResult[S] = {
+    super.execute(startCfg, initial)
+    programResult
+  }
 
   override protected def inEdges(current: BlockPosition, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge]] = {
@@ -589,10 +594,13 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = ???
 
   override protected def initializeResultForward(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
-    (for (m <- program.methods) yield {
-      val cfgResult = FinalCfgResult[S](m.body)
+    programResult.initialize((c, st) => {
+      val cfgResult = FinalCfgResult[S](c)
       cfgResult.initialize(state)
-      (m.body -> cfgResult)
+      cfgResult
+    }, state)
+    (for (method <- program.methods) yield {
+      (method.body -> programResult.getResult(method.name))
     }).toMap
   }
 }

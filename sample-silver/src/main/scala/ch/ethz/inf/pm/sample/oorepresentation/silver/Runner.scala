@@ -112,7 +112,7 @@ trait SilverAnalysisRunner[S <: State[S]]
       println(w)
     } // warning report
     println("\n***************\n* Exit States *\n***************\n")
-    result.foreach(r => println(r._1.name + "() -> " + r._2.exitState()))
+    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).exitState()))
   }
 }
 
@@ -122,15 +122,19 @@ extends SilverAnalysisRunner[S] {
 
   override val analysis: InterproceduralSilverForwardAnalysis[S]
 
-  override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+  override protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
+    val result = DefaultProgramResult[S](program)
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
     // analyze the methods in topological order of the condensed callgraph
     for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      result.put(method.name, analysis.analyze(program, method, callsInProgram))
+      val res = analysis.analyze(program, method, callsInProgram)
+      for(ident <- res.identifiers) {
+        assert(result.identifiers.count(_ == ident) == 0)
+        result.setResult(ident, res.getResult(ident))
+      }
     }
-    result.toMap
+    result
   }
 
   /**
