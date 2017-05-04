@@ -103,7 +103,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def exitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]): Unit = {
+  override protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]): Unit = {
     val method = findMethod(current)
     val name = method.name.name
     callsInProgram(name)
@@ -112,7 +112,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
       )
       .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
-    println(worklist)
   }
 
   override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
@@ -230,14 +229,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //enqueue all statements directly after each calls to the method
         //if the method-call was the last statement of the block we do not enqueue here. the interpreter will enqueue all
         //blocks for us. Calls from a block that has not been analyzed before are also not enqueued.
-
-        //TODO @flurin this is not necessary until we have analyzed the whole method
-        //        callsInProgram(name)
-        //          .filter(b => methodEntryStates(name)
-        //            // block must have been analyzed before and methodcall mustn't be the last statement
-        //            .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
-        //          )
-        //          .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
         (false, currentState)
       }
       case _ => return super.executeStatement(statement, state, worklist)

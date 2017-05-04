@@ -64,7 +64,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   protected def cfg(blockPosition: BlockPosition): SampleCfg = _cfg
 
-  protected def exitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]) = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]) = {}
 
   override def execute(startCfg: SampleCfg, initial: S): CfgResult[S] = {
     // initialize cfg result
@@ -174,11 +174,12 @@ trait SilverForwardInterpreter[S <: State[S]]
         // update worklist and iteration count
         if (blockFullyExecuted)
           worklist.enqueue(cfg(current).successors(current.block).map(b => BlockPosition(b, 0)): _*)
+        iterations.put(current, iteration + 1)
+        //notify (subclasses) about processed exit blocks
         val exitBlock = cfg(current).exit
         if (exitBlock.isDefined && exitBlock.get == current.block) {
-          exitBlockExecuted(current, worklist)
+          onExitBlockExecuted(current, worklist)
         }
-        iterations.put(current, iteration + 1)
       }
     }
 
