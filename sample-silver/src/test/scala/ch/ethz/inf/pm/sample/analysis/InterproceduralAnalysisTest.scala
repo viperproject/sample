@@ -96,7 +96,7 @@ class InterproceduralAnalysisTest extends FunSuite with SampleTest {
     val results = IntegerIntervalAnalysis.run(
       Compilable.Code("(no name)", s)
     )
-    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
+    val cfgResults = results.identifiers.map(id => id.name -> results.getResult(id)).toMap
     (Reporter.assertionViolations, cfgResults)
   }
 

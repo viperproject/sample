@@ -53,7 +53,7 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     */
   def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
 
-  def run(compilable: Compilable): Map[SilverIdentifier, CfgResult[S]] = {
+  def run(compilable: Compilable): ProgramResult[S] = {
     compiler.compile(compilable)
     _run()
   }
@@ -70,12 +70,15 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
   }
 
-  protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+  protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
-    //functionsToAnalyze.foreach(function => result.put(function.name, analysis.analyze(function))  )
-    methodsToAnalyze.foreach(method => result.put(method.name, analysis.analyze(program, method)))
-    result.toMap
+    val results = DefaultProgramResult[S](program)
+    for (method <- methodsToAnalyze) {
+      val identifier = method.name
+      val result = analysis.analyze(program, method)
+      results.setResult(identifier, result)
+    }
+    results
   }
 
   def main(args: Array[String]): Unit = {
@@ -89,7 +92,7 @@ trait SilverAnalysisRunner[S <: State[S]]
   val compiler = new SilverCompiler()
 
   /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): Map[SilverIdentifier, CfgResult[S]] = {
+  def run(program: sil.Program): ProgramResult[S] = {
     compiler.compileProgram(program)
     _run()
   }
@@ -206,7 +209,7 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     * specifications inferred by the analysis.
     */
   def extend(args: Array[String]): sil.Program = {
-    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
+    val results = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
     // extend the Silver program with inferred permission
     extendProgram(DefaultSilverConverter.prog, results)
   }

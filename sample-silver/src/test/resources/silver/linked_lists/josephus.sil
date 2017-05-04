@@ -1,0 +1,11 @@
+field next: Ref
+
+method josephus(head: Ref)
+{
+    var l: Ref := head
+    while (l != l.next)
+    {
+        l.next := l.next.next
+        l := l.next
+    }
+}
