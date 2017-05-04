@@ -43,14 +43,13 @@ case class DummyEdge[T](info: T) extends AuxiliaryEdge
 case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
 /**
-  * Represents a method call. A blick with an in-edge of type MethodCallEdge is a callee in the analysed program.
-  * This edge tells the interpreter to use the calling context('s) when starting to analyze this block
+  * Represents a method call. Blocks with in-edges of type MethodCallEdge are called from somewhere in the
+  * analyzed program. The inputState is a state where the parameters have been initialised using the arguments
+  * from the calling context.
   *
-  * TODO @flurin multiple edges for each caller?
-  *
-  * @param method a method declaration of the called method.
+  * @param inputState a method declaration of the called method.
   */
-case class MethodCallEdge(method: SilverMethodDeclaration) extends AuxiliaryEdge
+case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 
 /**
   * Performs a forward interpretation of a control flow graph with special handling for method and function calls.
@@ -80,12 +79,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       *
       * @return
       */
-    def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge]] = {
+    def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
       if (cfg(current).entry != current.block)
         return Seq.empty
       val method = program.methods.find(_.body == cfg(current)).head
       if (callsInProgram.contains(method.name.name)) {
-        Seq(Right(MethodCallEdge(method)))
+        (for(entryState <- methodEntryStates(method.name.name).values) yield{
+          Right(MethodCallEdge(entryState))
+        }).toList
       } else {
         Seq.empty
       }
@@ -131,14 +132,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
     // a method-call. Use the entrystate and add the infos we got from analyzing the called method.
     //
-    case Right(MethodCallEdge(m)) => {
+    case Right(MethodCallEdge(callingContext: S)) => {
       val methodDeclaration = findMethod(current)
       val name = methodDeclaration.name.name
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
       }
-      val tmpVariableState = methodEntryStates(name).values.foldLeft(methodEntryStates(name).values.head)((st1, st2) => st1 lub st2)
-      var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
+      var inputState = builder.build(program, methodDeclaration) lub callingContext
       // assign (temporary) arguments to parameters and remove the temp args
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
       tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
@@ -204,31 +204,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //context insensitive analysis: analyze the called method with the join of all calling states
         // this implementation could analyze the method several times
         methodEntryStates(name) = methodEntryStates(name) + (statement.getPC() -> tmpVariableState)
-        //tmpVariableState = methodEntryStates(name).values.foldLeft(tmpVariableState)((st1, st2) => st1 lub st2)
-        //enqueue the method
         worklist.enqueue(BlockPosition(methodDeclaration.body.entry, 0))
-        //TODO @flurin implement actual analysis
-
-        //        // create input state for intraprocedural analysis
-        //        var inputState = builder.build(program, methodDeclaration) lub tmpVariableState
-        //        // assign (temporary) arguments to parameters and remove the temp args
-        //        inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-        //        inputState = tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
-        //        // (intraprocedural) analysis of method
-        //        var result = FinalResultForwardInterpreter[S]().execute(methodDeclaration.body, inputState)
-        //        // create return variables ret_# and assign the values to them
-        //        var exitState = result.exitState()
-        //
-        //        //
-        //        val resultState = currentState.command(LeaveMethodCommand(methodDeclaration, call, exitState, methodExitStates))
-        //
         //        logger.trace(predecessor.toString)
         //        logger.trace(statement.toString)
         //        logger.trace(resultState.toString)
-        //
-        //enqueue all statements directly after each calls to the method
-        //if the method-call was the last statement of the block we do not enqueue here. the interpreter will enqueue all
-        //blocks for us. Calls from a block that has not been analyzed before are also not enqueued.
         (false, currentState)
       }
       case _ => return super.executeStatement(statement, state, worklist)
