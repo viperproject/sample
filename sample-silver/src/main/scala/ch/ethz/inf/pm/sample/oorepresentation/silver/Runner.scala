@@ -128,16 +128,10 @@ extends SilverAnalysisRunner[S] {
     val result = DefaultProgramResult[S](program)
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
     // analyze the methods in topological order of the condensed callgraph
-    for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      val res = analysis.analyze(program, method, callsInProgram)
-      for(ident <- res.identifiers) {
-        //assert(result.identifiers.count(_ == ident) == 0)
-        //TODO @flurin multiple results for the same method?
-        if(result.identifiers.count(_ == ident) == 0)
-          result.setResult(ident, res.getResult(ident))
-      }
-    }
-    result
+    val topDownOrdered = {for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) yield {
+      method
+    }}.toSeq
+    analysis.analyze(program, topDownOrdered, callsInProgram)
   }
 
   /**

@@ -17,10 +17,11 @@ import viper.silver.cfg.{LoopHeadBlock, StatementBlock}
 
 import scala.collection.mutable
 
-object InterproceduralSilverInterpreter {
+package object InterproceduralSilverInterpreter {
   /**
     * The MethodEntryStatesMap keeps track of all the incoming states to a method.
     * For each method call in the program the ProgramPoint and the state will be saved in this map.
+    *
     * @tparam S the type of the state
     */
   type MethodEntryStatesMap[S] = mutable.Map[SilverIdentifier, mutable.Map[ProgramPoint, S]]
@@ -28,6 +29,7 @@ object InterproceduralSilverInterpreter {
   /**
     * A datastructure used to store the exit states of an analzyed method. Context insensitive analyses
     * can use this to lookup the effect of a called method.
+    *
     * @tparam S the type of the state
     */
   type MethodExitStatesMap[S] = mutable.Map[SilverIdentifier, S]
@@ -92,15 +94,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
 
-  def executeInterprocedural(startCfg: SampleCfg, initial: S): ProgramResult[S] = {
-    super.execute(startCfg, initial)
+  def executeInterprocedural(cfgs: Seq[SampleCfg]): ProgramResult[S] = {
+    super.execute(cfgs)
     programResult
   }
 
   override protected def inEdges(current: BlockPosition, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     /**
       * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
-      * we'll add a MethodCallEdge
+      * we'll add a MethodCallEdge. The number of edges should equal the number of calls. But it's possible that
+      * methodEntryStates does not yet contain calling-contexts of all call locations. If the number of known entry states
+      * is less than the number of calls, we'll add additional edges with bottom as calling context.
       *
       * @return
       */
@@ -109,9 +113,12 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         return Nil
       val method = program.methods.find(_.body == cfg(current)).head
       if (callsInProgram.contains(method.name)) {
+        val numInEdgesShould = callsInProgram(method.name).size
+        val numInEdgesIs = methodEntryStates(method.name).size
+        val bottom = initial(cfg(current)).bottom()
         (for (entryState <- methodEntryStates(method.name).values) yield {
           Right(MethodCallEdge(entryState))
-        }).toList
+        }).toSeq ++ Seq.fill(numInEdgesShould - numInEdgesIs)(Right(MethodCallEdge(bottom)))
       } else {
         Nil
       }
@@ -137,6 +144,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
       )
       .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
+  }
+
+
+  override protected def initial(cfg: SampleCfg): S = {
+    builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
   override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
