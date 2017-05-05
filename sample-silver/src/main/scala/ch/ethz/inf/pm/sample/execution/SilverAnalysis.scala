@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 
 trait SilverAnalysis[S <: State[S]] {
@@ -22,7 +23,7 @@ trait InterproceduralSilverAnalysis[S <: State[S]]
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[S] = {
     throw new RuntimeException("This method is not applicable for interprocedural analyses")
   }
-  def analyze(program: SilverProgramDeclaration, entryMethod: SilverMethodDeclaration, callsInProgram: Map[String, Set[BlockPosition]]): ProgramResult[S]
+  def analyze(program: SilverProgramDeclaration, entryMethod: SilverMethodDeclaration, callsInProgram: CallGraphMap): ProgramResult[S]
 }
 
 trait SilverForwardAnalysis[S <: State[S]]
@@ -46,7 +47,7 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 
 case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](val builder: SilverEntryStateBuilder[S])
   extends InterproceduralSilverForwardAnalysis[S] {
-  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration, callsInProgram: Map[String, Set[BlockPosition]]): ProgramResult[S] = {
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration, callsInProgram: CallGraphMap): ProgramResult[S] = {
     val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, builder, callsInProgram)
     interpreter.executeInterprocedural(method.body, builder.build(program, method))
   }

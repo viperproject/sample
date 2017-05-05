@@ -7,14 +7,39 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.LeaveMethodCommand
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.cfg.{LoopHeadBlock, StatementBlock}
 
 import scala.collection.mutable
+
+object InterproceduralSilverInterpreter {
+  /**
+    * The MethodEntryStatesMap keeps track of all the incoming states to a method.
+    * For each method call in the program the ProgramPoint and the state will be saved in this map.
+    * @tparam S the type of the state
+    */
+  type MethodEntryStatesMap[S] = mutable.Map[SilverIdentifier, mutable.Map[ProgramPoint, S]]
+
+  /**
+    * A datastructure used to store the exit states of an analzyed method. Context insensitive analyses
+    * can use this to lookup the effect of a called method.
+    * @tparam S the type of the state
+    */
+  type MethodExitStatesMap[S] = mutable.Map[SilverIdentifier, S]
+
+  /**
+    * The CallGraphMap maps each method(SilverIdentifiers) to a set of it's callees.
+    * "foo" -> Set(BlockPosition(block, index))
+    * Would mean that the statement "index" of block "block" is a method call. The statement "index+1" would be
+    * the next instruction after the method call.
+    */
+  type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+}
 
 /**
   * The interprocedural interpreter adds auxiliary edges to the CFG.
@@ -62,9 +87,9 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     with LazyLogging {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
-  val methodEntryStates: mutable.Map[String, mutable.Map[ProgramPoint, S]] = mutable.Map().withDefault(_ => mutable.Map())
-  val methodExitStates: mutable.Map[String, S] = mutable.Map()
-  val callsInProgram: Map[String, Set[BlockPosition]]
+  val methodEntryStates: MethodEntryStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
+  val methodExitStates: MethodExitStatesMap[S] = mutable.Map()
+  val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
 
   def executeInterprocedural(startCfg: SampleCfg, initial: S): ProgramResult[S] = {
@@ -81,14 +106,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
       if (cfg(current).entry != current.block)
-        return Seq.empty
+        return Nil
       val method = program.methods.find(_.body == cfg(current)).head
-      if (callsInProgram.contains(method.name.name)) {
-        (for (entryState <- methodEntryStates(method.name.name).values) yield {
+      if (callsInProgram.contains(method.name)) {
+        (for (entryState <- methodEntryStates(method.name).values) yield {
           Right(MethodCallEdge(entryState))
         }).toList
       } else {
-        Seq.empty
+        Nil
       }
     }
 
@@ -106,9 +131,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]): Unit = {
     val method = findMethod(current)
-    val name = method.name.name
-    callsInProgram(name)
-      .filter(b => methodEntryStates(name)
+    callsInProgram(method.name)
+      .filter(b => methodEntryStates(method.name)
         // block must have been analyzed before and methodcall mustn't be the last statement
         .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
       )
@@ -121,6 +145,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   private def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
     program.methods.filter(_.body.blocks.contains(blockPosition.block)).head
+  }
+
+  private def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
+    findMethod(name.name)
   }
 
   private def findMethod(name: String): SilverMethodDeclaration = {
@@ -173,8 +201,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist)
       case call: MethodCall => {
         val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-        val name: String = call.method match {
-          case v: Variable => v.getName
+        val methodIdentifier = call.method match {
+          case v: Variable => SilverIdentifier(v.getName)
           case _ => throw new RuntimeException("Should not happen") //TODO
         }
         var currentState = predecessor
@@ -187,7 +215,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           currentState = parameter.forwardSemantics[S](currentState)
           currentState.expr
         }
-        val methodDeclaration = program.methods.find(m => m.name.name == name).get
+        val methodDeclaration = findMethod(methodIdentifier)
 
         // create arg_# variables and assign the value to them. then remove all non arg_# variables
         var tmpVariableState = currentState
@@ -203,7 +231,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
         //context insensitive analysis: analyze the called method with the join of all calling states
         // this implementation could analyze the method several times
-        methodEntryStates(name) = methodEntryStates(name) + (statement.getPC() -> tmpVariableState)
+        methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
         worklist.enqueue(BlockPosition(methodDeclaration.body.entry, 0))
         //        logger.trace(predecessor.toString)
         //        logger.trace(statement.toString)
@@ -215,7 +243,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 }
 
-case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram: Map[String, Set[BlockPosition]])
+case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram: CallGraphMap)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   override protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {

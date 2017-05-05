@@ -11,6 +11,7 @@ import java.io.{File, PrintWriter}
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -148,10 +149,10 @@ extends SilverAnalysisRunner[S] {
     * @param program
     * @return tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], Map[String, Set[BlockPosition]]) = {
+  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
-    var callsInProgram : Map[String, Set[BlockPosition]] = Map().withDefault(_ => Set())
+    var callsInProgram : CallGraphMap = Map().withDefault(_ => Set())
 
     for (f <- program.methods) {
       callGraph.addVertex(f)
@@ -162,7 +163,8 @@ extends SilverAnalysisRunner[S] {
         case MethodCall(_, method: Variable, _, _, _, _) => {
           callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
           val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
-          callsInProgram = (callsInProgram + (method.getName -> (callsInProgram(method.getName) + pp)))
+          val methodIdent = SilverIdentifier(method.getName)
+          callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
         }
         case _ => e.getChildren foreach(process(m, _))
       }
