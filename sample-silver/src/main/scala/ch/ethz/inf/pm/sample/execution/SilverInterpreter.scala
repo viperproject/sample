@@ -46,8 +46,6 @@ trait SilverInterpreter[S <: State[S]] {
     * @return The initialized result.
     */
   protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S]
-
-  protected def initializeResultForward(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = ???
 }
 
 /**
@@ -66,12 +64,16 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]) = {}
 
+  protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
+    Map(cfg -> initializeResult(cfg, state))
+  }
+
   override def execute(startCfg: SampleCfg, initial: S): CfgResult[S] = {
     // initialize cfg result
     this._cfg = startCfg //TODO @flurin ugly
     val startPosition = BlockPosition(startCfg.entry, 0)
     val bottom = initial.bottom()
-    val cfgResult = initializeResultForward(cfg(startPosition), bottom)
+    val cfgResult = initializeProgramResult(startCfg, bottom)
 
     // prepare data structures
     val worklist = mutable.Queue[BlockPosition](BlockPosition(cfg(startPosition).entry, 0))
@@ -385,14 +387,11 @@ trait SilverBackwardInterpreter[S <: State[S]]
   */
 case class FinalResultForwardInterpreter[S <: State[S]]()
   extends SilverForwardInterpreter[S] {
-  override protected def initializeResultForward(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)
     cfgResult.initialize(state)
-    Map(cfg -> cfgResult)
+    cfgResult
   }
-
-  //TODO @flurin
-  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = ???
 }
 
 /**

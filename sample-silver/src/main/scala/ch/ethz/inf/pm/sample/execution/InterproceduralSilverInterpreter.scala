@@ -84,7 +84,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         return Seq.empty
       val method = program.methods.find(_.body == cfg(current)).head
       if (callsInProgram.contains(method.name.name)) {
-        (for(entryState <- methodEntryStates(method.name.name).values) yield{
+        (for (entryState <- methodEntryStates(method.name.name).values) yield {
           Right(MethodCallEdge(entryState))
         }).toList
       } else {
@@ -217,16 +217,19 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram: Map[String, Set[BlockPosition]])
   extends InterproceduralSilverForwardInterpreter[S] {
-  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = ???
 
-  override protected def initializeResultForward(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
+  override protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
     programResult.initialize((c, st) => {
-      val cfgResult = FinalCfgResult[S](c)
-      cfgResult.initialize(state)
-      cfgResult
+      initializeResult(c, st)
     }, state)
     (for (method <- program.methods) yield {
       (method.body -> programResult.getResult(method.name))
     }).toMap
+  }
+
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
+    val cfgResult = FinalCfgResult[S](cfg)
+    cfgResult.initialize(state)
+    cfgResult
   }
 }
