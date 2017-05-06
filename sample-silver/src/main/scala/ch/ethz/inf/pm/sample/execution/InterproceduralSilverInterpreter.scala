@@ -71,7 +71,7 @@ case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
 /**
   * Represents a method call. Blocks with in-edges of type MethodCallEdge are called from somewhere in the
-  * analyzed program. The inputState is a state where the parameters have been initialised using the arguments
+  * analysed program. The inputState is a state where the parameters have been initialised using the arguments
   * from the calling context.
   *
   * @param inputState a method declaration of the called method.
@@ -111,7 +111,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
       if (cfg(current).entry != current.block)
         return Nil
-      val method = program.methods.find(_.body == cfg(current)).head
+      val method = findMethod(current)
       if (callsInProgram.contains(method.name)) {
         val numInEdgesShould = callsInProgram(method.name).size
         val numInEdgesIs = methodEntryStates(method.name).size
@@ -137,11 +137,22 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 
   override protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]): Unit = {
+    /**
+      * In the context insensitive analysis everytime a method has been analysed we enqueue all statements after
+      * a call to this method. callsInProgram contains all BlockPositions with method calls. index+1 will be the
+      * next statement.
+      *
+      * Special case "method call is the last instruction of a block":
+      *   Although there is no BlockPosition(_, index+1) if the method call was the last statement of the block this
+      *   needs to be enqueued to the worklist anyway! By enqueueing it the interpreter will use the out-state of the
+      *   method call as out-state of the whole block. If we wouldn't enqueue those calls here, the state in the caller
+      *   wouldn't reflect the result of analysing the callee.
+      */
     val method = findMethod(current)
     callsInProgram(method.name)
       .filter(b => methodEntryStates(method.name)
-        // block must have been analyzed before and methodcall mustn't be the last statement
-        .contains(b.block.elements(b.index).merge.getPC()) && b.index < b.block.elements.size - 1
+        // only enqueue blocks that have been analysed before
+        .contains(b.block.elements(b.index).merge.getPC())
       )
       .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
   }
@@ -170,7 +181,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     //
     // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
-    // a method-call. Use the entrystate and add the infos we got from analyzing the called method.
+    // a method-call. Use the entrystate and add the infos we got from analysing the called method.
     //
     case Right(MethodCallEdge(callingContext: S)) => {
       val methodDeclaration = findMethod(current)
@@ -241,8 +252,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           .filter(id => !id.getName.startsWith("arg_#"))
           .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-        //context insensitive analysis: analyze the called method with the join of all calling states
-        // this implementation could analyze the method several times
+        //context insensitive analysis: analyse the called method with the join of all calling states
+        // this implementation could analyse the method several times
         methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
         worklist.enqueue(BlockPosition(methodDeclaration.body.entry, 0))
         //        logger.trace(predecessor.toString)
