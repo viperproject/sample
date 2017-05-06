@@ -208,7 +208,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[BlockPosition]): (Boolean, S) = {
+  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[BlockPosition]): S = {
     statement match {
       case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist)
       case call: MethodCall => {
@@ -248,7 +248,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //        logger.trace(predecessor.toString)
         //        logger.trace(statement.toString)
         //        logger.trace(resultState.toString)
-        (false, currentState)
+        currentState
       }
       case _ => return super.executeStatement(statement, state, worklist)
     }
