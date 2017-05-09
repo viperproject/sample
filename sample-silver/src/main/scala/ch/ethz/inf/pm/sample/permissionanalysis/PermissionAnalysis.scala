@@ -711,7 +711,7 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
   override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
     // update context
-    Context.setMethod(method)
+    Context.setMethod(method.name)
 
     // first phase: alias analysis
     val aliasEntry = aliasAnalysisStateBuilder.build(program, method)

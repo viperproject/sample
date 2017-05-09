@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.permissionanalysis.util
 
 import ch.ethz.inf.pm.sample.execution.{CfgResult, DefaultProgramResult, ProgramResult}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.FieldDeclaration
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 
@@ -26,7 +26,7 @@ object Context {
   /**
     * The method currently being analyzed.
     */
-  private var method: Option[SilverMethodDeclaration] = None
+  private var method: Option[SilverIdentifier] = None
 
   /**
     * Stores the result of the alias analysis.
@@ -48,7 +48,7 @@ object Context {
     *
     * @param method The method being analyzed.
     */
-  def setMethod(method: SilverMethodDeclaration): Unit = {
+  def setMethod(method: SilverIdentifier): Unit = {
     this.method = Some(method)
   }
 
@@ -59,7 +59,7 @@ object Context {
     * @tparam A The type of the alias analysis state.
     */
   def setAliases[A <: AliasAnalysisState[A]](aliases: CfgResult[A]): Unit = {
-    val method = this.method.get.name
+    val method = this.method.get
     val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
     results.setResult(method, aliases)
   }
@@ -71,7 +71,7 @@ object Context {
     * @return The result of the alias analysis.
     */
   def getAliases[A <: AliasAnalysisState[A]]: CfgResult[A] = {
-    val method = this.method.get.name
+    val method = this.method.get
     val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
     results.getResult(method)
   }
