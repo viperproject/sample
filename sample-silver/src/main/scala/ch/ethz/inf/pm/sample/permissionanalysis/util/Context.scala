@@ -6,9 +6,8 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis.util
 
-import ch.ethz.inf.pm.sample.execution.CfgResult
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverProgramDeclaration
+import ch.ethz.inf.pm.sample.execution.{CfgResult, DefaultProgramResult, ProgramResult}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.FieldDeclaration
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 
@@ -25,26 +24,56 @@ object Context {
   private var program: Option[SilverProgramDeclaration] = None
 
   /**
+    * The method currently being analyzed.
+    */
+  private var method: Option[SilverMethodDeclaration] = None
+
+  /**
     * Stores the result of the alias analysis.
     */
-  private var aliases: Option[CfgResult[_]] = None
+  private var aliases: Option[ProgramResult[_]] = None
 
   /**
     * Sets the program being analyzed to the given program.
     *
     * @param program The program being analyzed.
     */
-  def setProgram(program: SilverProgramDeclaration): Unit =
+  def setProgram(program: SilverProgramDeclaration): Unit = {
     this.program = Some(program)
+    this.aliases = Some(DefaultProgramResult(program))
+  }
+
+  /**
+    * Sets the method being analyzed to the given method.
+    *
+    * @param method The method being analyzed.
+    */
+  def setMethod(method: SilverMethodDeclaration): Unit = {
+    this.method = Some(method)
+  }
 
   /**
     * Sets the result of the alias analysis.
     *
     * @param aliases The result of the alias analysis to set.
-    * @tparam A The type of the alias analysis.
+    * @tparam A The type of the alias analysis state.
     */
   def setAliases[A <: AliasAnalysisState[A]](aliases: CfgResult[A]): Unit = {
-    this.aliases = Some(aliases)
+    val method = this.method.get.name
+    val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
+    results.setResult(method, aliases)
+  }
+
+  /**
+    * Returns the result of the alias analysis.
+    *
+    * @tparam A The type of the alias analysis state.
+    * @return The result of the alias analysis.
+    */
+  def getAliases[A <: AliasAnalysisState[A]]: CfgResult[A] = {
+    val method = this.method.get.name
+    val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
+    results.getResult(method)
   }
 
   /**
@@ -72,31 +101,4 @@ object Context {
     */
   def getField(name: String): Option[FieldDeclaration] =
     getFields().find(_.variable.getName == name)
-
-  /**
-    * Clears the result of the alias analysis.
-    */
-  def clearAliases(): Unit = {
-    this.aliases = None
-  }
-
-  /**
-    * Returns the state of the alias analysis before the given program point.
-    *
-    * @param pp The program point.
-    * @tparam A The type of the alias analysis.
-    * @return The state of the alias analysis before the given program point.
-    */
-  def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.preStateAt(pp).asInstanceOf[A]
-
-  /**
-    * Returns the state of the alias analysis after the given program point.
-    *
-    * @param pp The program point.
-    * @tparam A The type fo the alias analysis.
-    * @return The state of the alias analysis after the given program point.
-    */
-  def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A =
-    aliases.get.postStateAt(pp).asInstanceOf[A]
 }

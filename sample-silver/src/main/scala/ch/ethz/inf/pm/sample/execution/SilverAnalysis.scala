@@ -10,6 +10,28 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 
 trait SilverAnalysis[S <: State[S]] {
+  /**
+    * Analyzes all methods of the given program.
+    *
+    * @param program The program to analyze.
+    * @return The result of the analysis.
+    */
+  def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
+    val results = DefaultProgramResult[S](program)
+    for (method <- program.methods) {
+      val result = analyze(program, method)
+      results.setResult(method.name, result)
+    }
+    results
+  }
+
+  /**
+    * Analyzes the given method.
+    *
+    * @param program The program.
+    * @param method  The method to analyze.
+    * @return The result of the analysis.
+    */
   def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[S]
 }
 

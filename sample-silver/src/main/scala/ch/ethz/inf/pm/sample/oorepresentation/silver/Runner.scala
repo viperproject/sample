@@ -27,22 +27,6 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   def program: SilverProgramDeclaration = compiler.program
 
-  /**
-    * Returns the sequence of functions to analyze. By default these are all
-    * functions.
-    *
-    * @return The sequence of functions to analyze.
-    */
-  def functionsToAnalyze: Seq[SilverFunctionDeclaration] = compiler.allFunctions
-
-  /**
-    * Returns the sequence of methods to analyze. By default these are all
-    * methods.
-    *
-    * @return The sequence of methods to analyze.
-    */
-  def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
-
   def run(compilable: Compilable): ProgramResult[S] = {
     compiler.compile(compilable)
     _run()
@@ -62,13 +46,7 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val results = DefaultProgramResult[S](program)
-    for (method <- methodsToAnalyze) {
-      val identifier = method.name
-      val result = analysis.analyze(program, method)
-      results.setResult(identifier, result)
-    }
-    results
+    analysis.analyze(program)
   }
 
   def main(args: Array[String]): Unit = {
