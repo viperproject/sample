@@ -193,11 +193,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         val updated = stack.mapPermissions { (path, tree) =>
-          if (mayBeSame(preAliases, path, location)) {
-            if (tree.permission.isSome || tree.isEmpty) tree.permission plus exhaled
-            else Permission.read plus exhaled
-          }
-          else tree.permission
+          if (mustBeSame(preAliases, path, location)) {
+            if (tree.permission().isNone && tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission() plus exhaled
+          } else if (mayBeSame(preAliases, path, location)) {
+            if (tree.permission().isSome) tree.permission() plus exhaled
+            else if (tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission()
+          } else tree.permission()
         }
         copy(stack = updated).access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
