@@ -7,17 +7,23 @@
 package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
+import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
+import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode.NullNode
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
+import ch.ethz.inf.pm.sample.permissionanalysis.util.ExpressionGenerator
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
   extends SilverInferenceRunner[PermissionStack, T] {
+
+  import ExpressionGenerator._
+
   /**
     * The flag indicating whether there is a read permission mentioned in the
     * specifications.
@@ -32,6 +38,9 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return The extended program.
     */
   override def extendMethod(method: sil.Method, cfgResult: CfgResult[T]): sil.Method = {
+    // update context
+    Context.setMethod(SilverIdentifier(method.name))
+
     // reset read flag and extend method
     read = false
     val extended = super.extendMethod(method, cfgResult)
@@ -63,12 +72,35 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
   }
 
   override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
-    /*val stack = state.specifications
-    val tree = stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
-    val paths = stack.headPaths.filter(tree.extract(_)._2.nonEmpty()).map(_.map(_.getName))*/
-
+    val aliases = Context.getAliases[A]
     val state = result.preStateAt(position)
-    extendSpecifications(existing, state)
+    val tree = state.stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
+
+    def getAliasState(edges: Seq[SampleEdge]): A = edges
+      .map(edge => aliases.postStateAt(lastPosition(edge.source)))
+      .fold(aliases.bottom)(_ lub _)
+
+    def createConstraint(aliasState: A): sil.Exp = {
+      val parts = state.stack.headPaths
+        .filter(path => tree.extract(path)._2.nonEmpty())
+        .map { path =>
+          // TODO: Handle summary and unknown nodes
+          val variable = access(path.map(_.getName), sil.Ref)
+          val equalities = aliasState.may
+            .evaluatePath(path.map(_.getName))
+            .filter(_ != NullNode)
+            .map(node => equal(variable, access(node.getName.split("\\."), sil.Ref)))
+          or(equalities)
+        }
+      and(parts)
+    }
+
+    val edges = result.cfg.inEdges(position.block)
+    val zero = getAliasState(edges.filter(_.isIn))
+    val more = getAliasState(edges.filterNot(_.isIn))
+
+    val constraints = or(createConstraint(zero), createConstraint(more))
+    extendSpecifications(existing, state) ++ Seq(constraints)
   }
 
   override def fields(existing: Seq[sil.Field], position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
