@@ -63,7 +63,7 @@ object SampleBuild extends Build {
   lazy val sample_silver = Project(
     id = "sample-silver",
     base = file("sample-silver")
-  ) dependsOn(sample_core, sample_numerical, silver, silicon)
+  ) dependsOn(sample_core, sample_numerical, silver, silicon, carbon)
 
   lazy val sample_web = Project(
     id = "sample-web",
@@ -77,6 +77,10 @@ object SampleBuild extends Build {
 
   lazy val silicon = RootProject(
     file("../silicon/")
+  )
+
+  lazy val carbon = RootProject(
+    file("../carbon/")
   )
 
   // Custom configuration key to specify apron shared library location

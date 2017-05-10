@@ -14,11 +14,8 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.silicon.Silicon
+import viper.carbon.CarbonVerifier
 
-import scala.collection.mutable
-
-//import viper.silicon.Silicon
 
 trait AbstractAnalysisRunner[S <: State[S]] {
   val compiler: SilverCompiler
@@ -116,12 +113,14 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
 
   /** Verifies a Silver program extended with inferred specifications using the Viper symbolic execution backend. */
   def verify(args: Array[String]): Unit = {
-    val program = extend(args) // extend the program with permission inferred by the analysis
-    // verified the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(program)
+    val program = extend(args)
+    // extend the program with permission inferred by the analysis
+    // verified the extended program with Silicon/Carbon
+    //val verifier = new Silicon()
+    val verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(program)
     println("\n***********************\n* Verification Result * " + result + "\n***********************")
   }
 
@@ -152,11 +151,12 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     ow.write(extended.toString())
     ow.close()
 
-    // verify the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
+    // verify the extended program with Silicon/Carbon
+    // val verifier = new Silicon()
+    var verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(extended)
     println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
   }
 
