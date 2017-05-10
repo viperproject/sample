@@ -125,6 +125,9 @@ object ExpressionGenerator {
     else if (path.size == 1) access(path.last, typ)
     else sil.FieldAccess(access(path.init, sil.Ref), sil.Field(path.last, typ)())()
 
+  def old(expression: sil.Exp): sil.Exp =
+    sil.Old(expression)()
+
   /**
     * Returns true if the two given expressions are equivalent.
     *
@@ -137,6 +140,7 @@ object ExpressionGenerator {
     case (sil.Or(l1, r1), sil.Or(l2, r2)) => equivalent(l1, r1) && equivalent(l2, r2)
     case (sil.Not(a1), sil.Not(a2)) => equivalent(a1, a2)
     case (sil.LocalVar(n1), sil.LocalVar(n2)) => n1 == n2
+    case (sil.Old(e1), sil.Old(e2)) => equivalent(e1, e2)
     case _ => false
   }
 }

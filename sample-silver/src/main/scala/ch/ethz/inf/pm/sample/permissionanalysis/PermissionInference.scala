@@ -85,11 +85,19 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
         .filter(path => tree.extract(path)._2.nonEmpty())
         .map { path =>
           // TODO: Handle summary and unknown nodes
-          val variable = access(path.map(_.getName), sil.Ref)
+          val leftPath = path.map(_.getName)
+          val left = access(leftPath, sil.Ref)
           val equalities = aliasState.may
-            .evaluatePath(path.map(_.getName))
+            .materialize(leftPath)
+            .evaluatePath(leftPath)
             .filter(_ != NullNode)
-            .map(node => equal(variable, access(node.getName.split("\\."), sil.Ref)))
+            .map { node =>
+              val rightPath = node.getName.split("\\.")
+              val right =
+                if (rightPath.length == 1) access(rightPath, sil.Ref)
+                else old(access(rightPath, sil.Ref))
+              equal(left, right)
+            }
           or(equalities)
         }
       and(parts)
