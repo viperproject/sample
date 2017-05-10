@@ -8,8 +8,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import java.io.{File, PrintWriter}
 
-import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
-import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
 import ch.ethz.inf.pm.sample.execution._
@@ -20,14 +18,12 @@ import org.jgrapht.DirectedGraph
 import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
+import viper.carbon.CarbonVerifier
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.silicon.Silicon
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 //import viper.silicon.Silicon
 
@@ -73,13 +69,7 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val results = DefaultProgramResult[S](program)
-    for (method <- methodsToAnalyze) {
-      val identifier = method.name
-      val result = analysis.analyze(program, method)
-      results.setResult(identifier, result)
-    }
-    results
+    analysis.analyze(program)
   }
 
   def main(args: Array[String]): Unit = {
@@ -231,12 +221,14 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
 
   /** Verifies a Silver program extended with inferred specifications using the Viper symbolic execution backend. */
   def verify(args: Array[String]): Unit = {
-    val program = extend(args) // extend the program with permission inferred by the analysis
-    // verified the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(program)
+    val program = extend(args)
+    // extend the program with permission inferred by the analysis
+    // verified the extended program with Silicon/Carbon
+    //val verifier = new Silicon()
+    val verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(program)
     println("\n***********************\n* Verification Result * " + result + "\n***********************")
   }
 
@@ -267,11 +259,12 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     ow.write(extended.toString())
     ow.close()
 
-    // verify the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
+    // verify the extended program with Silicon/Carbon
+    // val verifier = new Silicon()
+    var verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(extended)
     println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
   }
 

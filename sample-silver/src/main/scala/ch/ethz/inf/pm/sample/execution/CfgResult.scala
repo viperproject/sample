@@ -52,7 +52,26 @@ case class EdgePosition(edge: SampleEdge)
   * @author Caterina Urban
   */
 trait CfgResult[S <: State[S]] {
+  /**
+    * Returns the control flow graph.
+    *
+    * @return The control flow graph.
+    */
   def cfg: SampleCfg
+
+  /**
+    * Returns the top state.
+    *
+    * @return The top state
+    */
+  def top: S = entryState().top()
+
+  /**
+    * Returns the bottom state.
+    *
+    * @return The bottom state.
+    */
+  def bottom: S = entryState().bottom()
 
   /**
     * Returns the state before the given position.
@@ -106,7 +125,7 @@ trait CfgResult[S <: State[S]] {
     * @return The exit state.
     */
   def exitState(): S =
-    cfg.exit.map(getStates(_).last).getOrElse(entryState().bottom())
+    cfg.exit.map(getStates(_).last).getOrElse(bottom)
 
   /**
     * Returns the states corresponding to the given basic block.

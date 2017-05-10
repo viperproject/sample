@@ -1,0 +1,13 @@
+field next: Ref
+
+method traverse(head: Ref) {
+    var tmp: Ref
+    var cur: Ref
+    cur := head
+    while (cur != null) {
+        inhale acc(cur.next)
+        tmp := cur.next
+        exhale acc(cur.next)
+        cur := tmp
+    }
+}

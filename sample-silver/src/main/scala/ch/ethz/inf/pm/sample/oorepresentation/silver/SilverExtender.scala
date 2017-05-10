@@ -169,10 +169,22 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
    * Helper Functions
    */
 
-  private def firstPosition(block: SampleBlock): BlockPosition =
+  /**
+    * Returns the position before the first element of the given block.
+    *
+    * @param block The block.
+    * @return The position before the first element of the given block.
+    */
+  protected def firstPosition(block: SampleBlock): BlockPosition =
     BlockPosition(block, 0)
 
-  private def lastPosition(block: SampleBlock): BlockPosition =
+  /**
+    * Returns the position after the last element of the given block.
+    *
+    * @param block The block.
+    * @return The positoin after the last element.
+    */
+  protected def lastPosition(block: SampleBlock): BlockPosition =
     BlockPosition(block, block.elements.length - 1)
 
   /**
@@ -184,7 +196,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @return The position of the given statement in the given control flow
     *         graph.
     */
-  private def getPosition(statement: sil.Stmt, cfg: SampleCfg): CfgPosition = {
+  protected def getPosition(statement: sil.Stmt, cfg: SampleCfg): CfgPosition = {
     val pp = DefaultSilverConverter.convert(statement.pos)
     cfg.getPosition(pp)
   }
@@ -196,7 +208,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @param cfg  The control flow graph.
     * @return The position of the given loop in the given control flow graph.
     */
-  private def getLoopPosition(loop: sil.While, cfg: SampleCfg): BlockPosition = {
+  protected def getLoopPosition(loop: sil.While, cfg: SampleCfg): BlockPosition = {
     val pp = DefaultSilverConverter.convert(loop.cond.pos)
     val pos = cfg.getEdgePosition(pp)
     BlockPosition(pos.edge.source, 0)

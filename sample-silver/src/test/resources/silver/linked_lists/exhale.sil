@@ -1,0 +1,12 @@
+field val: Int
+field next: Ref
+
+method foo(list: Ref)
+{
+    var cur: Ref
+    cur := list
+    while (cur != null) {
+        exhale acc(cur.val)
+        cur := cur.next
+    }
+}

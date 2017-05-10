@@ -1,0 +1,32 @@
+field val: Int
+field left: Ref
+field right: Ref
+
+method minimum(root: Ref) returns (res: Int)
+{
+    var cur: Ref
+    cur := root
+    while (cur.left != null) {
+        cur := cur.left
+    }
+    res := cur.val
+}
+
+method contains(root: Ref, value: Int) returns (res: Bool)
+{
+    var cur: Ref
+    res := false
+    cur := root
+    while (cur != null) {
+        if (cur.val == value) {
+            res := true
+            cur := null
+        } else {
+            if (value < cur.val) {
+                cur := cur.left
+            } else {
+                cur := cur.right
+            }
+        }
+    }
+}

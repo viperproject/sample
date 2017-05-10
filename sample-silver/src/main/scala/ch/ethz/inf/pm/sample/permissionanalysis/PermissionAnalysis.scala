@@ -85,10 +85,10 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   def inferred: Option[PermissionStack]
 
   // result of the alias analysis before the current program point
-  lazy val preAliases = Context.preAliases[A](currentPP)
+  lazy val preAliases = Context.getAliases[A].preStateAt(currentPP)
 
   // result of the alias analysis after the current program point
-  lazy val postAliases = Context.postAliases[A](currentPP)
+  lazy val postAliases = Context.getAliases[A].postStateAt(currentPP)
 
   // the list of access paths
   lazy val paths: List[AccessPath] = stack.trees.foldLeft(List.empty[AccessPath]) {
@@ -193,11 +193,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         val updated = stack.mapPermissions { (path, tree) =>
-          if (mayBeSame(preAliases, path, location)) {
-            if (tree.permission.isSome || tree.isEmpty) tree.permission plus exhaled
-            else Permission.read plus exhaled
-          }
-          else tree.permission
+          if (mustBeSame(preAliases, path, location)) {
+            if (tree.permission().isNone && tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission() plus exhaled
+          } else if (mayBeSame(preAliases, path, location)) {
+            if (tree.permission().isSome) tree.permission() plus exhaled
+            else if (tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission()
+          } else tree.permission()
         }
         copy(stack = updated).access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
@@ -699,9 +702,16 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 (aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
  permissionAnalysisStateBuilder: SimpleEntryStateBuilder[T])
   extends SilverAnalysis[T] {
-  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[T] = {
     // initialize context
     Context.setProgram(program)
+
+    super.analyze(program)
+  }
+
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
+    // update context
+    Context.setMethod(method.name)
 
     // first phase: alias analysis
     val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
@@ -715,9 +725,6 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     val permissionEntry = permissionAnalysisStateBuilder.build(program, method)
     val permissionInterpreter = FinalResultBackwardInterpreter[T]()
     val permissionResult = permissionInterpreter.execute(method.body, permissionEntry)
-
-    // remove result of alias analysis from the context
-    Context.clearAliases()
 
     // return result of the permission analysis
     permissionResult
