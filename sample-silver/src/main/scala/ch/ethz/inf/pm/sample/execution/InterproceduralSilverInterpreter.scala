@@ -9,11 +9,11 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{InterpreterWorklistType, ProgramResultType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.LeaveMethodCommand
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.cfg.{LoopHeadBlock, StatementBlock}
 
 import scala.collection.mutable
 
@@ -126,27 +126,21 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
     current match {
       case BlockPosition(_, 0) => super.inEdges(current, cfgResult) ++ createMethodCallEdges()
-      case BlockPosition(block, index) => {
-        val previousStatement = block.elements(index - 1).merge
-        previousStatement match {
-          case MethodCall(pp, method: Variable, _, _, _, _) => Seq(Right(MethodReturnEdge(cfgResult(findMethod(method.getName).body).exitState())))
-          case _ => ???
-        }
-      }
+      case _ => super.inEdges(current, cfgResult)
     }
   }
 
-  override protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]): Unit = {
+  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {
     /**
       * In the context insensitive analysis everytime a method has been analysed we enqueue all statements after
       * a call to this method. callsInProgram contains all BlockPositions with method calls. index+1 will be the
       * next statement.
       *
       * Special case "method call is the last instruction of a block":
-      *   Although there is no BlockPosition(_, index+1) if the method call was the last statement of the block this
-      *   needs to be enqueued to the worklist anyway! By enqueueing it the interpreter will use the out-state of the
-      *   method call as out-state of the whole block. If we wouldn't enqueue those calls here, the state in the caller
-      *   wouldn't reflect the result of analysing the callee.
+      * Although there is no BlockPosition(_, index+1) if the method call was the last statement of the block this
+      * needs to be enqueued to the worklist anyway! By enqueueing it the interpreter will use the out-state of the
+      * method call as out-state of the whole block. If we wouldn't enqueue those calls here, the state in the caller
+      * wouldn't reflect the result of analysing the callee.
       */
     val method = findMethod(current)
     callsInProgram(method.name)
@@ -154,7 +148,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
-      .foreach(b => worklist.enqueue(BlockPosition(b.block, b.index + 1)))
+      .foreach(b => worklist.enqueue((BlockPosition(b.block, b.index), true)))
   }
 
 
@@ -178,50 +172,30 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     program.methods.find(_.name.name == name).get
   }
 
-  override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    //
-    // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
-    // a method-call. Use the entrystate and add the infos we got from analysing the called method.
-    //
-    case Right(MethodCallEdge(callingContext: S)) => {
-      val methodDeclaration = findMethod(current)
-      val name = methodDeclaration.name.name
-      val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
-      }
-      var inputState = builder.build(program, methodDeclaration) lub callingContext
-      // assign (temporary) arguments to parameters and remove the temp args
-      inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-      tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
-    }
-    case Right(MethodReturnEdge(exitState)) => {
-      val tmp = cfgResult.preStateAt(current)
-      current.block match {
-        case StatementBlock(statements) => statements(current.index - 1) match {
-          case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) => {
-            val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
-            val methodCall = statements(current.index - 1).asInstanceOf[MethodCall]
-            tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, exitState))
-          }
-          case _ => tmp
+  override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = {
+    edge match {
+      //
+      // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
+      // a method-call. Use the entrystate and add the infos we got from analysing the called method.
+      //
+      case Right(MethodCallEdge(callingContext: S)) => {
+        val methodDeclaration = findMethod(current)
+        val name = methodDeclaration.name.name
+        val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
+          ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
         }
-        case LoopHeadBlock(invs, statements) => statements(current.index - invs.size - 1) match {
-          case MethodCall(_, v: Variable, _, _, _, targets: List[Statement]) => {
-            val methodDeclaration = program.methods.find(m => m.name.name == v.getName).get
-            val methodCall = statements(current.index - 1).asInstanceOf[MethodCall]
-            tmp.command(LeaveMethodCommand(methodDeclaration, methodCall, exitState))
-          }
-          case _ => tmp
-        }
-        case _ => tmp
+        var inputState = builder.build(program, methodDeclaration) lub callingContext
+        // assign (temporary) arguments to parameters and remove the temp args
+        inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
+        tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
       }
+      case _ => super.getPredecessorState(cfgResult, current, edge)
     }
-    case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[BlockPosition]): S = {
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: ProgramResultType[S]): S = {
     statement match {
-      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist)
+      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist, programResult)
       case call: MethodCall => {
         val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
         val methodIdentifier = call.method match {
@@ -255,13 +229,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         //context insensitive analysis: analyse the called method with the join of all calling states
         // this implementation could analyse the method several times
         methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-        worklist.enqueue(BlockPosition(methodDeclaration.body.entry, 0))
+        worklist.enqueue((BlockPosition(methodDeclaration.body.entry, 0), false))
         //        logger.trace(predecessor.toString)
         //        logger.trace(statement.toString)
         //        logger.trace(resultState.toString)
-        currentState
+
+        // if the called method has been analyzed before return the effect of the method into our state.
+        // otherwise currentState.command() will return bottom (which is valid until the called method is analyzed)
+        val exitState = programResult(methodDeclaration.body).exitState()
+        currentState.command(LeaveMethodCommand(methodDeclaration, call, exitState))
       }
-      case _ => return super.executeStatement(statement, state, worklist)
+      case _ => return super.executeStatement(statement, state, worklist, programResult)
     }
   }
 }

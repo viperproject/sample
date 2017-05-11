@@ -1,0 +1,15 @@
+// assuming a widening limit of 3 this program should be analyzed precisely.
+method foo()
+{
+    var i: Int := 3
+    i := bar(i)
+} // expected exitState: i -> [0,0]
+
+method bar(j: Int) returns (k: Int)
+{
+    if(j > 0) {
+        k := bar(j - 1)
+    } else {
+        k := j
+    }
+} // expected exitState: j -> [0, 0], k -> [0, 0]

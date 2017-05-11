@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{InterpreterWorklistType, ProgramResultType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
@@ -48,6 +49,20 @@ trait SilverInterpreter[S <: State[S]] {
   protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S]
 }
 
+object SilverInterpreter {
+
+  /**
+    * the worklist of the (forward) interpreter consists of a blockposition and a boolean flag "forceReinterpretStmt"
+    * using BlockPosition any index within a block can be enqueued
+    * forceReinterpretStmt=true can be used to force re-interpretation of the enqueued position even though the
+    * successor state did not change. This is useful for example to merge the effect of a method call after the callee
+    * has been analyzed.
+    */
+  type InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]
+  //TODO @flurin should be ProgramResult
+  type ProgramResultType[S <: State[S]] = Map[SampleCfg, CfgResult[S]]
+}
+
 /**
   * Performs a forward interpretation of a control flow graph.
   *
@@ -64,9 +79,9 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   protected def cfg(blockPosition: BlockPosition): SampleCfg = _cfg
 
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: mutable.Queue[BlockPosition]) = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType) = {}
 
-  protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
+  protected def initializeProgramResult(cfg: SampleCfg, state: S): ProgramResultType[S] = {
     Map(cfg -> initializeResult(cfg, state))
   }
 
@@ -90,12 +105,12 @@ trait SilverForwardInterpreter[S <: State[S]]
     val cfgResult = initializeProgramResult(cfgs.head, bottom(cfgs.head))
 
     // prepare data structures
-    val worklist = mutable.Queue[BlockPosition]()
-    cfgs.foreach(c => worklist.enqueue(BlockPosition(c.entry, 0)))
+    val worklist : InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
+    cfgs.foreach(c => worklist.enqueue((BlockPosition(c.entry, 0), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
     while (worklist.nonEmpty) {
-      val current = worklist.dequeue()
+      val (current, forceReinterpretStmt) = worklist.dequeue()
       val currentCfg = cfg(current)
       val iteration = iterations.getOrElse(current, 0)
 
@@ -135,7 +150,7 @@ trait SilverForwardInterpreter[S <: State[S]]
       val oldStates = cfgResult(currentCfg).getStates(current.block)
       val numToSkip = current.index
       val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResult(currentCfg).preStateAt(current)
-      if (!(entry lessEqual oldEntry)) {
+      if (!(entry lessEqual oldEntry) || forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.take(numToSkip): _*)
         states.append(entry)
@@ -144,7 +159,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = entry
             statements.drop(numToSkip).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist)
+              val successor = executeStatement(st, predecessor, worklist, cfgResult)
               states.append(successor)
               predecessor = successor
             })
@@ -172,7 +187,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = intermediate
             statements.drop(numToSkip - invariants.size).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist)
+              val successor = executeStatement(st, predecessor, worklist, cfgResult)
               states.append(successor)
               predecessor = successor
             })
@@ -183,7 +198,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         cfgResult(currentCfg).setStates(current.block, states.toList)
         // update worklist and iteration count
-        worklist.enqueue(currentCfg.successors(current.block).map(b => BlockPosition(b, 0)): _*)
+        worklist.enqueue(currentCfg.successors(current.block).map(b => (BlockPosition(b, 0), false)): _*)
         iterations.put(current, iteration + 1)
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
@@ -219,7 +234,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case Right(_) => cfgResult.preStateAt(current)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: mutable.Queue[BlockPosition]): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: ProgramResultType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
