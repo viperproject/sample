@@ -182,7 +182,6 @@ extends SilverAnalysisRunner[S] {
       if (sourceSet != targetSet)
         condensedCallGraph.addEdge(sourceSet, targetSet)
     }
-    //TODO do we care about new CycleDetector(condensedCallGraph).detectCycles()
     (condensedCallGraph, callsInProgram)
   }
 }

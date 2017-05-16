@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{InterpreterWorklistType, ProgramResultType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
-import ch.ethz.inf.pm.sample.permissionanalysis.LeaveMethodCommand
+import ch.ethz.inf.pm.sample.permissionanalysis.ReturnFromMethodCommand
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -237,7 +237,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // if the called method has been analyzed before return the effect of the method into our state.
         // otherwise currentState.command() will return bottom (which is valid until the called method is analyzed)
         val exitState = programResult(methodDeclaration.body).exitState()
-        currentState.command(LeaveMethodCommand(methodDeclaration, call, exitState))
+        currentState.command(ReturnFromMethodCommand(methodDeclaration, call, exitState))
       }
       case _ => return super.executeStatement(statement, state, worklist, programResult)
     }
