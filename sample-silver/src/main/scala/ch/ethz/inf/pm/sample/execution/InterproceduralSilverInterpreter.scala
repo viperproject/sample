@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
-import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
+import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
@@ -137,16 +137,26 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       .foreach(b => worklist.enqueue((BlockPosition(b.block, b.index), true)))
   }
 
+  private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
+    var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
+    for (m <- program.methods) {
+      res += (Left(m.name.name) -> m)
+      for (b <- m.body.blocks)
+        res += (Right(b) -> m)
+    }
+    res
+  }
+
   override protected def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
   override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
-    program.methods.filter(_.body.blocks.contains(blockPosition.block)).head.body
+    findMethod(blockPosition).body
   }
 
   private def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
-    program.methods.filter(_.body.blocks.contains(blockPosition.block)).head
+    methods(Right(blockPosition.block))
   }
 
   private def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
@@ -154,7 +164,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 
   private def findMethod(name: String): SilverMethodDeclaration = {
-    program.methods.find(_.name.name == name).get
+    methods(Left(name))
   }
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
@@ -255,7 +265,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     })
     (for (method <- program.methods) yield {
       (method.body -> programResult.getResult(method.name))
-    }) toMap
+    }).toMap
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
