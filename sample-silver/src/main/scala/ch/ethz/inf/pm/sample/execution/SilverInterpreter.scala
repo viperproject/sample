@@ -31,13 +31,19 @@ import scala.collection.mutable.ListBuffer
   */
 trait SilverInterpreter[S <: State[S]] {
   /**
-    * Executes the given control flow graph.
+    * initial: The initial state.
+    * cfg:     The control flow graph to execute.
+    */
+  def initial: S
+
+  def cfg: SampleCfg
+
+  /**
+    * Executes the control flow graph.
     *
-    * @param cfg     The control flow graph to execute.
-    * @param initial The initial state.
     * @return The result of the execution.
     */
-  def execute(cfg: SampleCfg, initial: S): CfgResult[S]
+  def execute(): CfgResult[S]
 
   /**
     * Initializes the result of the execution.
@@ -73,11 +79,8 @@ object SilverInterpreter {
 trait SilverForwardInterpreter[S <: State[S]]
   extends SilverInterpreter[S]
     with LazyLogging {
-  var _cfg: SampleCfg = null
-  //TODO @flurin worst hack ever (how else can I initialize a field of type S?)
-  var _initial: () => S = () => "".asInstanceOf[S]
 
-  protected def cfg(blockPosition: BlockPosition): SampleCfg = _cfg
+  protected def cfg(blockPosition: BlockPosition): SampleCfg = cfg
 
   protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType) = {}
 
@@ -85,15 +88,13 @@ trait SilverForwardInterpreter[S <: State[S]]
     Map(cfg -> initializeResult(cfg, state))
   }
 
-  override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
-    this._cfg = cfg
-    this._initial = () => initial
+  override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
     result(cfg)
   }
 
   protected def initial(cfg: SampleCfg): S = {
-    this._initial()
+    this.initial
   }
 
   protected def bottom(cfg: SampleCfg): S = {
@@ -105,7 +106,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     val cfgResult = initializeProgramResult(cfgs.head, bottom(cfgs.head))
 
     // prepare data structures
-    val worklist : InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
+    val worklist: InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
     cfgs.foreach(c => worklist.enqueue((BlockPosition(c.entry, 0), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
@@ -256,7 +257,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 }
 
 /**
-  * Performs a backward interpretation of a control flwo graph.
+  * Performs a backward interpretation of a control flow graph.
   *
   * @tparam S The type of the states.
   * @author Jerome Dohrau
@@ -265,7 +266,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 trait SilverBackwardInterpreter[S <: State[S]]
   extends SilverInterpreter[S]
     with LazyLogging {
-  override def execute(cfg: SampleCfg, initial: S): CfgResult[S] = {
+  override def execute(): CfgResult[S] = {
     // initialize cfg result
     val bottom = initial.bottom()
     val cfgResult = initializeResult(cfg, bottom)
@@ -408,8 +409,9 @@ trait SilverBackwardInterpreter[S <: State[S]]
   * @author Jerome Dohrau
   * @author Caterina Urban
   */
-case class FinalResultForwardInterpreter[S <: State[S]]()
+case class FinalResultForwardInterpreter[S <: State[S]](override val cfg: SampleCfg, override val initial: S)
   extends SilverForwardInterpreter[S] {
+
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)
     cfgResult.initialize(state)
@@ -425,7 +427,7 @@ case class FinalResultForwardInterpreter[S <: State[S]]()
   * @author Jerome Dohrau
   * @author Caterina Urban
   */
-case class FinalResultBackwardInterpreter[S <: State[S]]()
+case class FinalResultBackwardInterpreter[S <: State[S]](override val cfg: SampleCfg, override val initial: S)
   extends SilverBackwardInterpreter[S] {
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)

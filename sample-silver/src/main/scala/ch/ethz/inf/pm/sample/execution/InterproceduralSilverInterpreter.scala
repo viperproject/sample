@@ -93,9 +93,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val methodExitStates: MethodExitStatesMap[S] = mutable.Map()
   val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
+  /*
+   * Seq of cfg that will be analyzed.
+   * cfgsInAnalysisOrder.head is the first that is enqeueued into the worklist
+   */
+  val cfgsInAnalysisOrder: Seq[SampleCfg]
 
-  def executeInterprocedural(cfgs: Seq[SampleCfg]): ProgramResult[S] = {
-    super.execute(cfgs)
+  def executeInterprocedural(): ProgramResult[S] = {
+    super.execute(cfgsInAnalysisOrder)
     programResult
   }
 
@@ -244,7 +249,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 }
 
-case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration, override val builder: SilverEntryStateBuilder[S], override val callsInProgram: CallGraphMap)
+case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
+                                                                        override val program: SilverProgramDeclaration,
+                                                                        override val cfgsInAnalysisOrder: Seq[SampleCfg],
+                                                                        override val builder: SilverEntryStateBuilder[S],
+                                                                        override val callsInProgram: CallGraphMap)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   override protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
@@ -261,4 +270,11 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](override 
     cfgResult.initialize(state)
     cfgResult
   }
+
+  /*
+   *  initial() and cfg() only make sense in the intraprocedural case
+   */
+  override def initial: S = ???
+
+  override def cfg: SampleCfg = ???
 }

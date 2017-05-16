@@ -10,8 +10,8 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
@@ -715,16 +715,16 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 
     // first phase: alias analysis
     val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
-    val aliasInterpreter = FinalResultForwardInterpreter[A]()
-    val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
+    val aliasInterpreter = FinalResultForwardInterpreter[A](method.body, aliasEntry)
+    val aliasResult = aliasInterpreter.execute()
 
     // add result of alias analysis to context
     Context.setAliases(aliasResult)
 
     // second phase: permission analysis
     val permissionEntry = permissionAnalysisStateBuilder.build(program, method)
-    val permissionInterpreter = FinalResultBackwardInterpreter[T]()
-    val permissionResult = permissionInterpreter.execute(method.body, permissionEntry)
+    val permissionInterpreter = FinalResultBackwardInterpreter[T](method.body, permissionEntry)
+    val permissionResult = permissionInterpreter.execute()
 
     // return result of the permission analysis
     permissionResult
