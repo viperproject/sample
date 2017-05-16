@@ -107,7 +107,14 @@ trait SilverAnalysisRunner[S <: State[S]]
   }
 }
 
-/** Interprocedural analysis runner for Silver programs. */
+/**
+  * Interprocedural analysis runner for Silver programs.
+  *
+  * Methods are added to the worklist according to the callgraph (top down)
+  *
+  * @author Flurin Rindisbacher
+  *
+  * */
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 extends SilverAnalysisRunner[S] {
 
@@ -134,7 +141,7 @@ extends SilverAnalysisRunner[S] {
     * @return tuple of condensed call graph and map containing all method calls
     */
   private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
-    // Most code was taken from ast.utility.Functions in silver repo!
+    // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram : CallGraphMap = Map().withDefault(_ => Set())
 
