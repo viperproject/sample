@@ -192,6 +192,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       }
       //
       // transfer arguments to methodEntryState
+      // TODO: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
