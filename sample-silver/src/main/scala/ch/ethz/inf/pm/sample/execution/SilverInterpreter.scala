@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{InterpreterWorklistType, ProgramResultType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
@@ -65,8 +65,14 @@ object SilverInterpreter {
     * has been analyzed.
     */
   type InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]
-  //TODO @flurin should be ProgramResult
-  type ProgramResultType[S <: State[S]] = Map[SampleCfg, CfgResult[S]]
+
+  /**
+    * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map is used
+    * and later depending on the use case this can be converted into either a CfgResult or a ProgramResult
+    *
+    * @tparam S The type of the states
+    */
+  type CfgResultMapType[S <: State[S]] = Map[SampleCfg, CfgResult[S]]
 }
 
 /**
@@ -84,7 +90,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType) = {}
 
-  protected def initializeProgramResult(cfg: SampleCfg, state: S): ProgramResultType[S] = {
+  protected def initializeProgramResult(cfg: SampleCfg, state: S): CfgResultMapType[S] = {
     Map(cfg -> initializeResult(cfg, state))
   }
 
@@ -101,7 +107,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     initial(cfg).bottom()
   }
 
-  def execute(cfgs: Seq[SampleCfg]): Map[SampleCfg, CfgResult[S]] = { //TODO should use ProgramResult[S]
+  def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
     // initialize cfg result
     val cfgResult = initializeProgramResult(cfgs.head, bottom(cfgs.head))
 
@@ -213,7 +219,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResult
   }
 
-  protected def inEdges(current: BlockPosition, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  protected def inEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     current match {
       case BlockPosition(_, 0) => cfg(current).inEdges(current.block).map(Left(_))
       case _ => Seq(Right(DummyEdge(current))) // just let the interpreter know that we jump to current for any reason
@@ -235,7 +241,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case Right(_) => cfgResult.preStateAt(current)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: ProgramResultType[S]): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)

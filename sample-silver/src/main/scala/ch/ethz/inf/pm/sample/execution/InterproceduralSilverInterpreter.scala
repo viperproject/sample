@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{InterpreterWorklistType, ProgramResultType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.ReturnFromMethodCommand
@@ -198,7 +198,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: ProgramResultType[S]): S = {
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
     statement match {
       case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist, programResult)
       case call: MethodCall => {
