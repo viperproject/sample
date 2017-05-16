@@ -8,8 +8,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BoxedNonRelationalNumericalDomain, IntegerInterval, NonRelationalNumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
-import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnalysisRunner, SilverAnalysisRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -174,6 +173,9 @@ trait NonRelationalNumericalAnalysisState[S <: NonRelationalNumericalAnalysisSta
 trait NonRelationalNumericalAnalysisRunner[S <: NonRelationalNumericalAnalysisState[S, N], N <: NonRelationalNumericalDomain[N]]
   extends SilverAnalysisRunner[S]
 
+trait InterproceduralNonRelationalNumericalAnalysisRunner[S <: NonRelationalNumericalAnalysisState[S, N], N <: NonRelationalNumericalDomain[N]]
+  extends InterproceduralSilverAnalysisRunner[S]
+
 /**
   * A very simple state used for a numerical analysis using the integer interval
   * domain.
@@ -220,5 +222,10 @@ object IntegerIntervalAnalysisEntryState
   */
 object IntegerIntervalAnalysis
   extends NonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
-  override val analysis: SilverAnalysis[IntegerIntervalAnalysisState] = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+  override val analysis = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+}
+
+object InterproceduralIntegerIntervalAnalysis
+  extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
 }

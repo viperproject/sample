@@ -114,11 +114,9 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     new SilverMethodDeclaration(
       programPoint = go(method.pos),
       name = SilverIdentifier(method.name),
-      parameters = method.formalArgs.map(go).toList ++ method.formalReturns.map(go).toList,
-      // Method calls in Silver cannot occur in expressions, so it is fine to use
-      // the return type 'null'. Depending on how the semantics is implemented,
-      // it might also make sense not to use the return type for functions either.
-      returnType = null,
+      arguments = method.formalArgs.map(go).toList,
+      returns = method.formalReturns.map(go).toList,
+      returnType = method.formalReturns.map(_.typ).map(go).toList,
       body = method.toCfg().map[SampleCfg, Statement, Statement](SampleCfg())(go, go)
     )
 

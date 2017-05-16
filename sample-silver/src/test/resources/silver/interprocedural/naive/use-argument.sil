@@ -1,0 +1,11 @@
+method foo(this: Ref)
+{
+    var i: Int := 1
+    i := bar(i)
+    assert i == 2
+}
+
+method bar(j: Int) returns (k: Int)
+{
+    k := j + 1
+}
