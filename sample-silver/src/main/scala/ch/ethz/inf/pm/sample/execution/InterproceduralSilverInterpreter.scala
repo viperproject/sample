@@ -58,18 +58,6 @@ sealed trait AuxiliaryEdge
 case class DummyEdge[T](info: T) extends AuxiliaryEdge
 
 /**
-  * A method return edges points from a called method to the next instruction after the method call. These
-  * edges can be used to merge the "effect of the method" into the callers state.
-  *
-  * The exitState will contain the result of the method that was called in the previous instruction. This information
-  * can be merged into the current state. E.g. using this: (State[S]).command(LeaveMethodCommand(exitState))
-  *
-  * @param exitState the exitState() for the called method
-  * @tparam S the domain used in the state
-  */
-case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
-
-/**
   * Represents a method call. Blocks with in-edges of type MethodCallEdge are called from somewhere in the
   * analysed program. The inputState is a state where the parameters have been initialised using the arguments
   * from the calling context.
@@ -185,7 +173,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-
   override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) => {
       //
@@ -254,13 +241,20 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val callsInProgram: CallGraphMap)
   extends InterproceduralSilverForwardInterpreter[S] {
 
-  override protected def initializeProgramResult(cfg: SampleCfg, state: S): Map[SampleCfg, CfgResult[S]] = {
-    programResult.initialize((c, st) => {
-      initializeResult(c, st)
-    }, state)
+  //
+  // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
+  // interpreter do its work
+  //
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg], states: Seq[S]): CfgResultMapType[S] = {
+    // initialize each CfgResult with its bottom state. Our initializer does not need the 2nd parameter to initialize()
+    // states.head is just passed in to make the compiler happy
+    programResult.initialize(c => {
+      val stForCfg = states(cfgs.indexOf(c))
+      initializeResult(c, stForCfg)
+    })
     (for (method <- program.methods) yield {
       (method.body -> programResult.getResult(method.name))
-    }).toMap
+    }) toMap
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
