@@ -79,7 +79,7 @@ case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 
 /**
-  * Performs a forward interpretation of a control flow graph with special handling for method and function calls.
+  * Performs a forward interpretation of a control flow graph with special handling for methods.
   *
   * @tparam S The type of the states.
   * @author Flurin Rindisbacher
@@ -95,7 +95,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
   /*
    * Seq of cfg that will be analyzed.
-   * cfgsInAnalysisOrder.head is the first that is enqeueued into the worklist
+   * cfgsInAnalysisOrder.head is the first that is enqueued into the worklist
    */
   val cfgsInAnalysisOrder: Seq[SampleCfg]
 
@@ -137,15 +137,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {
     /**
-      * In the context insensitive analysis everytime a method has been analysed we enqueue all statements after
-      * a call to this method. callsInProgram contains all BlockPositions with method calls. index+1 will be the
-      * next statement.
-      *
-      * Special case "method call is the last instruction of a block":
-      * Although there is no BlockPosition(_, index+1) if the method call was the last statement of the block this
-      * needs to be enqueued to the worklist anyway! By enqueueing it the interpreter will use the out-state of the
-      * method call as out-state of the whole block. If we wouldn't enqueue those calls here, the state in the caller
-      * wouldn't reflect the result of analysing the callee.
+      * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
+      * of this method. This way the new analysis results will be merged into the caller state.
       */
     val method = findMethod(current)
     callsInProgram(method.name)
@@ -155,7 +148,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       )
       .foreach(b => worklist.enqueue((BlockPosition(b.block, b.index), true)))
   }
-
 
   override protected def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
@@ -177,78 +169,84 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     program.methods.find(_.name.name == name).get
   }
 
-  override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = {
-    edge match {
-      //
-      // if previous instruction was a method-call and we hava a BlockPosition.index > 0 then it was a back-jump from
-      // a method-call. Use the entrystate and add the infos we got from analysing the called method.
-      //
-      case Right(MethodCallEdge(callingContext: S)) => {
-        val methodDeclaration = findMethod(current)
-        val name = methodDeclaration.name.name
-        val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-          ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
-        }
-        var inputState = builder.build(program, methodDeclaration) lub callingContext
-        // assign (temporary) arguments to parameters and remove the temp args
-        inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-        tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
+  override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+    // For MethodCallEdges use an empty state with the arguments from the call
+    case Right(MethodCallEdge(callingContext: S)) => {
+      val methodDeclaration = findMethod(current)
+      val name = methodDeclaration.name.name
+      val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
+        ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
       }
-      case _ => super.getPredecessorState(cfgResult, current, edge)
+      var inputState = initial(methodDeclaration.body) lub callingContext
+      // assign (temporary) arguments to parameters and remove the temp args
+      inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
+      tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
     }
+    case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
-    statement match {
-      case MethodCall(_, f: FieldAccess, _, _, _, _) => return super.executeStatement(statement, state, worklist, programResult)
-      case call: MethodCall => {
-        val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-        val methodIdentifier = call.method match {
-          case v: Variable => SilverIdentifier(v.getName)
-          case _ => throw new RuntimeException("Should not happen") //TODO
-        }
-        var currentState = predecessor
-        val targetExpressions = for (target <- call.targets) yield {
-          val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
-          currentState = st
-          exp
-        }
-        val parameterExpressions = for (parameter <- call.parameters) yield {
-          currentState = parameter.forwardSemantics[S](currentState)
-          currentState.expr
-        }
-        val methodDeclaration = findMethod(methodIdentifier)
 
-        // create arg_# variables and assign the value to them. then remove all non arg_# variables
-        var tmpVariableState = currentState
-        val tmpArguments = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
-          val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
-          tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
-          tmpVariableState = tmpVariableState.assignVariable(exp, param)
-          exp
-        }
-        tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
-          .filter(id => !id.getName.startsWith("arg_#"))
-          .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
-
-        //context insensitive analysis: analyse the called method with the join of all calling states
-        // this implementation could analyse the method several times
-        methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-        worklist.enqueue((BlockPosition(methodDeclaration.body.entry, 0), false))
-        //        logger.trace(predecessor.toString)
-        //        logger.trace(statement.toString)
-        //        logger.trace(resultState.toString)
-
-        // if the called method has been analyzed before return the effect of the method into our state.
-        // otherwise currentState.command() will return bottom (which is valid until the called method is analyzed)
-        val exitState = programResult(methodDeclaration.body).exitState()
-        currentState.command(ReturnFromMethodCommand(methodDeclaration, call, exitState))
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = statement match {
+    case call@MethodCall(_, v: Variable, _, _, _, _) => {
+      //
+      // prepare calling context (evaluate method targets and parameters)
+      //
+      val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
+      val methodIdentifier = SilverIdentifier(v.getName)
+      var currentState = predecessor
+      val targetExpressions = for (target <- call.targets) yield {
+        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
+        currentState = st
+        exp
       }
-      case _ => return super.executeStatement(statement, state, worklist, programResult)
+      val parameterExpressions = for (parameter <- call.parameters) yield {
+        currentState = parameter.forwardSemantics[S](currentState)
+        currentState.expr
+      }
+      //
+      // transfer arguments to methodEntryState
+      //
+      val methodDeclaration = findMethod(methodIdentifier)
+      // create arg_# variables and assign the value to them. then remove all non arg_# variables
+      var tmpVariableState = currentState
+      val tmpArguments = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
+        val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
+        tmpVariableState = tmpVariableState.assignVariable(exp, param)
+        exp
+      }
+      tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
+        .filter(id => !id.getName.startsWith("arg_#"))
+        .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+
+      //context insensitive analysis: analyse the called method with the join of all calling states
+      methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
+      worklist.enqueue((BlockPosition(methodDeclaration.body.entry, 0), false))
+
+      //
+      // if callee has been analyzed, merge results back into our state
+      // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
+      //
+      val exitState = programResult(methodDeclaration.body).exitState()
+      val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, exitState))
+      logger.trace(predecessor.toString)
+      logger.trace(statement.toString)
+      logger.trace(resultState.toString)
+      resultState
     }
+    case _ => return super.executeStatement(statement, state, worklist, programResult)
   }
 }
 
+/**
+  * Forward interpreter that handles method calls using a context insensitive approach.
+  *
+  * @param program             The program that is analysed
+  * @param cfgsInAnalysisOrder A sequence of cfgs that should be analysed in this order
+  * @param builder             A builder to create initial states for each cfg to analyse
+  * @param callsInProgram      The call graph of the program
+  * @tparam S The type of the states.
+  */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val program: SilverProgramDeclaration,
                                                                         override val cfgsInAnalysisOrder: Seq[SampleCfg],
