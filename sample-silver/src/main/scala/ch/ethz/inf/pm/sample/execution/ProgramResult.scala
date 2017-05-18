@@ -44,17 +44,17 @@ trait ProgramResult[S <: State[S]] {
   /**
     * Initializes the cfg results for all methods using the given helper function
     *
-    * @param i helper called for each result to be initialized
+    * @param cfgResultInitializer helper called for each result to be initialized
     * @param state      State to use for the initialization
     */
-  def initialize(i: (SampleCfg, S) => CfgResult[S], state: S): Unit
+  def initialize(cfgResultInitializer: (SampleCfg, S) => CfgResult[S], state: S): Unit
 
   /**
     * Initializes the cfg results for all methods using the given helper function
     *
-    * @param i helper called for each result to be initialized
+    * @param cfgResultInitializer helper called for each result to be initialized
     */
-  def initialize(i: SampleCfg => CfgResult[S]): Unit
+  def initialize(cfgResultInitializer: SampleCfg => CfgResult[S]): Unit
 }
 
 class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
