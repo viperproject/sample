@@ -1,0 +1,20 @@
+//
+// similar to multiple-callers.sil. the result should be the same
+// here the special case is, that the method-calls are the last instruction of the block. it is therefore not possible
+// to enqueue the statement directly after the method-call to the worklist
+//
+method foo(this: Ref)
+{
+    var i: Int := 0
+    i := bar(this, i)
+}
+
+method bar(this: Ref, i: Int) returns (k: Int)
+{
+    k := i + 1
+}
+
+method test(this: Ref) {
+  var i: Int := 2
+  i := bar(this, i)
+}

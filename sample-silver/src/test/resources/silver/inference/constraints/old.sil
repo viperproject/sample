@@ -1,0 +1,21 @@
+field next: Ref
+field val: Int
+
+method foo_pre(head: Ref, list: Ref, b: Bool)
+    requires acc(head.next, write)
+    requires acc(head.next.val, write)
+    requires acc(list.val, write)
+{}
+
+method foo_post(head: Ref, list: Ref, b: Bool)
+    ensures true
+{}
+
+method foo(head: Ref, list: Ref, b: Bool)
+{
+    while (b)
+    {
+        head.next := list
+    }
+    head.next.val := 42
+}

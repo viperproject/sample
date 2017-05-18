@@ -8,11 +8,9 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethodDeclaration
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall, MethodDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall}
 import ch.ethz.inf.pm.sample.permissionanalysis._
-
-import scala.collection.mutable
 
 /**
   * A state providing transformers for inhale statements, exhale statements,
@@ -40,7 +38,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
-      case LeaveMethodCommand(methodDeclaration, methodCall, exitState: S, methodExitStates: mutable.Map[String, Any]) => exitMethod(methodDeclaration, methodCall, exitState, methodExitStates)
+      case ReturnFromMethodCommand(methodDeclaration, methodCall, exitState: S) => returnFromMethod(methodDeclaration, methodCall, exitState)
     }
     case _ => super.command(cmd)
   }
@@ -179,16 +177,15 @@ trait SilverState[S <: SilverState[S]]
   def leaveLoop(): S = this
 
   /**
-    * Returns a state where methodCall.targets received the return-values of the analyzed method.
-    * methodExitStates is a Map to cache the result of the analyzed methods
-    * TODO @flurin: this is very naive-interproc-analysis specific
+    * Returns a state where methodCall.targets gets the values of the the called methods returns.
+    * methodCall.targets.head would "get" ret_#1 and so on
     *
     * @param methodDeclaration
     * @param methodCall
     * @param exitState
     * @return
     */
-  def exitMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S, methodExitStates: mutable.Map[String, Any]): S = {
+  def returnFromMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S): S = {
     var index = 0
     val targetExpressions = for(target <- methodCall.targets) yield {
       val (exp, _) = UtilitiesOnStates.forwardExecuteStatement(this, target)
@@ -203,10 +200,9 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
       (targetVar, exp)
     }
-    st = st.ids.toSetOrFail // let's all non ret_# variables
+    st = st.ids.toSetOrFail // let's remove all non ret_# variables
       .filter(id => ! id.getName.startsWith("ret_#"))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
-    methodExitStates(methodDeclaration.name.name) = st
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))

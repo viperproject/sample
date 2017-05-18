@@ -8,10 +8,8 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSetFactory._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverMethods, sample}
 import ch.ethz.inf.pm.sample.oorepresentation._
-
-import scala.collection.mutable
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverMethods}
 
 /** Super trait for all silver commands.
   */
@@ -67,13 +65,13 @@ case class EnterLoopCommand() extends SilverCommand
 case class LeaveLoopCommand() extends SilverCommand
 
 /**
-  * A command issued when a method is left. exitState contains the return values of the analyzed methodCall
-  * @param methodDeclaration
-  * @param methodCall
-  * @param methodExitStates
+  * A command issued when a method is left and we return into the caller.
+  * @param methodDeclaration the method declaration of the called method
+  * @param methodCall the statement that called the method
+  * @param exitState the exit state of the called method. E.g CfgResult.exitState()
   * @author Flurin Rindisbacher
   */
-case class LeaveMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S, methodExitStates: mutable.Map[String, S]) extends SilverCommand
+case class ReturnFromMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S) extends SilverCommand
 
 /** Object adding Inhale/Exhale semantics.
   *

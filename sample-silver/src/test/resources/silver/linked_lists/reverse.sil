@@ -1,0 +1,17 @@
+field next: Ref
+
+method reverse(head: Ref) returns (r: Ref)
+{
+    var p: Ref := null
+    var c: Ref := head
+    var n: Ref
+
+    while (c != null)
+    {
+        n := c.next
+        c.next := p
+        p := c
+        c := n
+    }
+    r := p
+}

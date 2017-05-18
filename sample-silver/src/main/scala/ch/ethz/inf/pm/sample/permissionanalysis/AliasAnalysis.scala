@@ -1771,13 +1771,12 @@ trait AliasAnalysisRunner[T <: AliasAnalysisState[T]]
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(Compilable.Path(path)).collect { case x => x }
+    val results = run(Compilable.Path(path))
 
-    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    for ((method, cfgResult) <- cfgResults) {
+    for (method <- results.identifiers) {
       println("******************* " + method + "\n")
-      cfgResult.print()
+      results.getResult(method).print()
     }
   }
 

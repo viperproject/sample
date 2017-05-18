@@ -8,9 +8,8 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import java.io.{File, PrintWriter}
 
-import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
-import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -19,14 +18,12 @@ import org.jgrapht.DirectedGraph
 import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
+import viper.carbon.CarbonVerifier
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
-import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.silicon.Silicon
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 //import viper.silicon.Silicon
 
@@ -53,7 +50,7 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     */
   def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
 
-  def run(compilable: Compilable): Map[SilverIdentifier, CfgResult[S]] = {
+  def run(compilable: Compilable): ProgramResult[S] = {
     compiler.compile(compilable)
     _run()
   }
@@ -70,12 +67,9 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
   }
 
-  protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+  protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
-    //functionsToAnalyze.foreach(function => result.put(function.name, analysis.analyze(function))  )
-    methodsToAnalyze.foreach(method => result.put(method.name, analysis.analyze(program, method)))
-    result.toMap
+    analysis.analyze(program)
   }
 
   def main(args: Array[String]): Unit = {
@@ -89,7 +83,7 @@ trait SilverAnalysisRunner[S <: State[S]]
   val compiler = new SilverCompiler()
 
   /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): Map[SilverIdentifier, CfgResult[S]] = {
+  def run(program: sil.Program): ProgramResult[S] = {
     compiler.compileProgram(program)
     _run()
   }
@@ -109,25 +103,32 @@ trait SilverAnalysisRunner[S <: State[S]]
       println(w)
     } // warning report
     println("\n***************\n* Exit States *\n***************\n")
-    result.foreach(r => println(r._1.name + "() -> " + r._2.exitState()))
+    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).exitState()))
   }
 }
 
-/** Interprocedural analysis runner for Silver programs. */
+/**
+  * Interprocedural analysis runner for Silver programs.
+  *
+  * Methods are added to the worklist according to the callgraph (top down)
+  *
+  * @author Flurin Rindisbacher
+  *
+  * */
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 extends SilverAnalysisRunner[S] {
 
   override val analysis: InterproceduralSilverForwardAnalysis[S]
 
-  override protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+  override protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
+    val result = DefaultProgramResult[S](program)
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
     // analyze the methods in topological order of the condensed callgraph
-    for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) {
-      result.put(method.name, analysis.analyze(program, method, callsInProgram))
-    }
-    result.toMap
+    val topDownOrdered = {for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) yield {
+      method
+    }}.toSeq
+    analysis.analyze(program, topDownOrdered, callsInProgram)
   }
 
   /**
@@ -139,10 +140,10 @@ extends SilverAnalysisRunner[S] {
     * @param program
     * @return tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], Map[String, Set[BlockPosition]]) = {
-    // Most code was taken from ast.utility.Functions in silver repo!
+  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+    // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
-    var callsInProgram : Map[String, Set[BlockPosition]] = Map().withDefault(_ => Set())
+    var callsInProgram : CallGraphMap = Map().withDefault(_ => Set())
 
     for (f <- program.methods) {
       callGraph.addVertex(f)
@@ -153,7 +154,8 @@ extends SilverAnalysisRunner[S] {
         case MethodCall(_, method: Variable, _, _, _, _) => {
           callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
           val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
-          callsInProgram = (callsInProgram + (method.getName -> (callsInProgram(method.getName) + pp)))
+          val methodIdent = SilverIdentifier(method.getName)
+          callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
         }
         case _ => e.getChildren foreach(process(m, _))
       }
@@ -187,7 +189,6 @@ extends SilverAnalysisRunner[S] {
       if (sourceSet != targetSet)
         condensedCallGraph.addEdge(sourceSet, targetSet)
     }
-    //TODO do we care about new CycleDetector(condensedCallGraph).detectCycles()
     (condensedCallGraph, callsInProgram)
   }
 }
@@ -206,7 +207,7 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     * specifications inferred by the analysis.
     */
   def extend(args: Array[String]): sil.Program = {
-    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
+    val results = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
     // extend the Silver program with inferred permission
     extendProgram(DefaultSilverConverter.prog, results)
   }
@@ -226,12 +227,14 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
 
   /** Verifies a Silver program extended with inferred specifications using the Viper symbolic execution backend. */
   def verify(args: Array[String]): Unit = {
-    val program = extend(args) // extend the program with permission inferred by the analysis
-    // verified the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(program)
+    val program = extend(args)
+    // extend the program with permission inferred by the analysis
+    // verified the extended program with Silicon/Carbon
+    //val verifier = new Silicon()
+    val verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(program)
     println("\n***********************\n* Verification Result * " + result + "\n***********************")
   }
 
@@ -262,11 +265,12 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
     ow.write(extended.toString())
     ow.close()
 
-    // verify the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
+    // verify the extended program with Silicon/Carbon
+    // val verifier = new Silicon()
+    var verifier = CarbonVerifier()
+    verifier.parseCommandLine(Seq("dummy.sil"))
+    verifier.start()
+    val result: viper.silver.verifier.VerificationResult = verifier.verify(extended)
     println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
   }
 

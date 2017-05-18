@@ -1,0 +1,59 @@
+field val: Int
+
+method fa_pre(x: Ref, y: Ref, c: Bool)
+  requires acc(x.val, write)
+  requires acc(y.val, write)
+{}
+
+method fa_post(x: Ref, y: Ref, c: Bool)
+    ensures true
+{}
+
+method fa(x: Ref, y: Ref, c: Bool)
+{
+    var u: Ref
+    var v: Ref
+
+    u := x
+    v := y
+
+    while (c)
+    {
+        u := y
+        v := x
+    }
+
+    u.val := 42
+}
+
+method fb_pre(x: Ref, y: Ref, z:Ref, c: Bool)
+  requires acc(z.val, write)
+  requires acc(x.val, write)
+  requires acc(y.val, write)
+{}
+
+method fb_post(x: Ref, y: Ref, z:Ref, c: Bool)
+    ensures true
+{}
+
+method fb(x: Ref, y: Ref, z:Ref, c: Bool)
+{
+    var u: Ref
+    var v: Ref
+
+    u := x
+    v := y
+
+    while (c)
+    {
+        while(c)
+        {
+            u := z
+        }
+
+        v := z
+        u.val := 1
+    }
+
+    v.val :=2
+}

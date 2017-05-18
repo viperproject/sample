@@ -10,8 +10,8 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
@@ -85,10 +85,10 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   def inferred: Option[PermissionStack]
 
   // result of the alias analysis before the current program point
-  lazy val preAliases = Context.preAliases[A](currentPP)
+  lazy val preAliases = Context.getAliases[A].preStateAt(currentPP)
 
   // result of the alias analysis after the current program point
-  lazy val postAliases = Context.postAliases[A](currentPP)
+  lazy val postAliases = Context.getAliases[A].postStateAt(currentPP)
 
   // the list of access paths
   lazy val paths: List[AccessPath] = stack.trees.foldLeft(List.empty[AccessPath]) {
@@ -193,11 +193,14 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         val exhaled = permission(numerator, denominator)
         // subtract permission form all paths that may alias
         val updated = stack.mapPermissions { (path, tree) =>
-          if (mayBeSame(preAliases, path, location)) {
-            if (tree.permission.isSome || tree.isEmpty) tree.permission plus exhaled
-            else Permission.read plus exhaled
-          }
-          else tree.permission
+          if (mustBeSame(preAliases, path, location)) {
+            if (tree.permission().isNone && tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission() plus exhaled
+          } else if (mayBeSame(preAliases, path, location)) {
+            if (tree.permission().isSome) tree.permission() plus exhaled
+            else if (tree.nonEmpty()) Permission.read plus exhaled
+            else tree.permission()
+          } else tree.permission()
         }
         copy(stack = updated).access(location, exhaled)
       case bool if bool.typ.isBooleanType =>
@@ -699,25 +702,29 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
 (aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
  permissionAnalysisStateBuilder: SimpleEntryStateBuilder[T])
   extends SilverAnalysis[T] {
-  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[T] = {
     // initialize context
     Context.setProgram(program)
 
+    super.analyze(program)
+  }
+
+  override def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[T] = {
+    // update context
+    Context.setMethod(method.name)
+
     // first phase: alias analysis
     val aliasEntry = aliasAnalysisStateBuilder.build(program, method)
-    val aliasInterpreter = FinalResultForwardInterpreter[A]()
-    val aliasResult = aliasInterpreter.execute(method.body, aliasEntry)
+    val aliasInterpreter = FinalResultForwardInterpreter[A](method.body, aliasEntry)
+    val aliasResult = aliasInterpreter.execute()
 
     // add result of alias analysis to context
     Context.setAliases(aliasResult)
 
     // second phase: permission analysis
     val permissionEntry = permissionAnalysisStateBuilder.build(program, method)
-    val permissionInterpreter = FinalResultBackwardInterpreter[T]()
-    val permissionResult = permissionInterpreter.execute(method.body, permissionEntry)
-
-    // remove result of alias analysis from the context
-    Context.clearAliases()
+    val permissionInterpreter = FinalResultBackwardInterpreter[T](method.body, permissionEntry)
+    val permissionResult = permissionInterpreter.execute()
 
     // return result of the permission analysis
     permissionResult
@@ -732,13 +739,12 @@ trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: Permission
 
     // run analysis
     val path = new File(arguments(0)).toPath
-    val results = run(Compilable.Path(path)).collect { case x => x }
+    val results = run(Compilable.Path(path))
 
-    val cfgResults = results.map { case (id, cfgResult) => id.name -> cfgResult }
     println("\n*******************\n* Analysis Result *\n*******************\n")
-    for ((method, cfgResult) <- cfgResults) {
+    for (method <- results.identifiers) {
       println("******************* " + method + "\n")
-      cfgResult.print()
+      results.getResult(method).print()
     }
   }
 }

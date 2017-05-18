@@ -14,7 +14,7 @@ object SampleBuild extends Build {
     base = file(".")) aggregate(sample_core, sample_numerical, sample_apron,
     sample_touchdevelop, sample_scala_processing, sample_partitioning,
     sample_string, sample_valuedriven_heap, sample_sil, sample_web,
-    sample_silver, silver)
+    sample_silver)
 
   lazy val sample_core = Project(
     id = "sample-core",
@@ -63,7 +63,7 @@ object SampleBuild extends Build {
   lazy val sample_silver = Project(
     id = "sample-silver",
     base = file("sample-silver")
-  ) dependsOn(sample_core, sample_numerical, silver, silicon)
+  ) dependsOn(sample_core, sample_numerical, silver, silicon, carbon)
 
   lazy val sample_web = Project(
     id = "sample-web",
@@ -77,6 +77,10 @@ object SampleBuild extends Build {
 
   lazy val silicon = RootProject(
     file("../silicon/")
+  )
+
+  lazy val carbon = RootProject(
+    file("../carbon/")
   )
 
   // Custom configuration key to specify apron shared library location

@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleBlock
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgPosition, CfgResult, SampleCfg}
+import ch.ethz.inf.pm.sample.execution._
 import viper.silver.{ast => sil}
 
 /**
@@ -44,17 +44,16 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @param results The result of the analysis.
     * @return The
     */
-  def extendProgram(program: sil.Program, results: Map[SilverIdentifier, CfgResult[S]]): sil.Program = {
+  def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
     // extend methods
     val extendedMethods = program.methods.map { method =>
-      results.get(SilverIdentifier(method.name)) match {
-        case Some(cfgResult) => extendMethod(method, cfgResult)
-        case None => method
-      }
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      extendMethod(method, result)
     }
 
     // return extended program
-    program.copy(methods = extendedMethods)(program.pos, program.info)
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
 
   /**
@@ -80,7 +79,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       _pres = extendedPreconditions,
       _posts = extendedPostconditions,
       _body = extendedBody
-    )(method.pos, method.info)
+    )(method.pos, method.info, method.errT)
   }
 
   /**
@@ -170,10 +169,22 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
    * Helper Functions
    */
 
-  private def firstPosition(block: SampleBlock): BlockPosition =
+  /**
+    * Returns the position before the first element of the given block.
+    *
+    * @param block The block.
+    * @return The position before the first element of the given block.
+    */
+  protected def firstPosition(block: SampleBlock): BlockPosition =
     BlockPosition(block, 0)
 
-  private def lastPosition(block: SampleBlock): BlockPosition =
+  /**
+    * Returns the position after the last element of the given block.
+    *
+    * @param block The block.
+    * @return The positoin after the last element.
+    */
+  protected def lastPosition(block: SampleBlock): BlockPosition =
     BlockPosition(block, block.elements.length - 1)
 
   /**
@@ -185,7 +196,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @return The position of the given statement in the given control flow
     *         graph.
     */
-  private def getPosition(statement: sil.Stmt, cfg: SampleCfg): CfgPosition = {
+  protected def getPosition(statement: sil.Stmt, cfg: SampleCfg): CfgPosition = {
     val pp = DefaultSilverConverter.convert(statement.pos)
     cfg.getPosition(pp)
   }
@@ -197,7 +208,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @param cfg  The control flow graph.
     * @return The position of the given loop in the given control flow graph.
     */
-  private def getLoopPosition(loop: sil.While, cfg: SampleCfg): BlockPosition = {
+  protected def getLoopPosition(loop: sil.While, cfg: SampleCfg): BlockPosition = {
     val pp = DefaultSilverConverter.convert(loop.cond.pos)
     val pos = cfg.getEdgePosition(pp)
     BlockPosition(pos.edge.source, 0)
