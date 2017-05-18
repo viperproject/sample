@@ -169,9 +169,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     // For MethodCallEdges use an empty state with the arguments from the call
-    case Right(MethodCallEdge(callingContext: S)) => {
+    case Right(MethodCallEdge(callingContext: S)) =>
       val methodDeclaration = findMethod(current)
-      val name = methodDeclaration.name.name
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
       }
@@ -179,7 +178,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // assign (temporary) arguments to parameters and remove the temp args
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
       tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
-    }
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
@@ -191,10 +189,9 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
       val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
-      val targetExpressions = for (target <- call.targets) yield {
+      for (target <- call.targets) {
         val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
         currentState = st
-        exp
       }
       val parameterExpressions = for (parameter <- call.parameters) yield {
         currentState = parameter.forwardSemantics[S](currentState)
@@ -207,11 +204,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val methodDeclaration = findMethod(methodIdentifier)
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
       var tmpVariableState = currentState
-      val tmpArguments = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
+      for ((param, index) <- parameterExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
         tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
         tmpVariableState = tmpVariableState.assignVariable(exp, param)
-        exp
       }
       tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
         .filter(id => !id.getName.startsWith("arg_#"))
@@ -232,7 +228,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       logger.trace(resultState.toString)
       resultState
     }
-    case _ => return super.executeStatement(statement, state, worklist, programResult)
+    case _ => super.executeStatement(statement, state, worklist, programResult)
   }
 }
 
