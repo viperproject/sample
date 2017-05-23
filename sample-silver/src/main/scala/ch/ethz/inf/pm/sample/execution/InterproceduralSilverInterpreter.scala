@@ -182,16 +182,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   }
 
   override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = statement match {
-    case call@MethodCall(_, v: Variable, _, _, _, _) => {
+    case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
       val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
-      for (target <- call.targets) {
+      val targetExpressions = for (target <- call.targets) yield {
         val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
         currentState = st
+        exp
       }
       val parameterExpressions = for (parameter <- call.parameters) yield {
         currentState = parameter.forwardSemantics[S](currentState)
@@ -222,12 +223,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
       val exitState = programResult(methodDeclaration.body).exitState()
-      val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, exitState))
+      val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
       resultState
-    }
     case _ => super.executeStatement(statement, state, worklist, programResult)
   }
 }
@@ -260,7 +260,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
     (for (method <- program.methods) yield {
-      (method.body -> programResult.getResult(method.name))
+      method.body -> programResult.getResult(method.name)
     }).toMap
   }
 
