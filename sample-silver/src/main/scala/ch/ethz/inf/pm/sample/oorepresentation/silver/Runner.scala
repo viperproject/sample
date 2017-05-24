@@ -114,9 +114,9 @@ trait SilverAnalysisRunner[S <: State[S]]
   *
   * @author Flurin Rindisbacher
   *
-  * */
+  **/
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
-extends SilverAnalysisRunner[S] {
+  extends SilverAnalysisRunner[S] {
 
   override val analysis: InterproceduralSilverForwardAnalysis[S]
 
@@ -124,11 +124,19 @@ extends SilverAnalysisRunner[S] {
     prepareContext()
     val result = DefaultProgramResult[S](program)
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
-    // analyze the methods in topological order of the condensed callgraph
-    val topDownOrdered = {for(condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala; method <- condensation.asScala) yield {
-      method
-    }}.toSeq
-    analysis.analyze(program, topDownOrdered, callsInProgram)
+    // search for "main methods". these are either methods that are not called from other methods,
+    // or they are methods in a strongly connected component where the component itself is not called by other methods
+    //
+    // e.g program has methods foo, bar and baz. foo() calls bar(), bar() calls foo(), bar() calls baz
+    // in this program foo and bar should be treated as main methods. baz is always called from another method
+    // so it won't be added to the set of main methods.
+    var mainMethods = Set[SilverIdentifier]()
+    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
+         if condensedCallGraph.inDegreeOf(condensation) == 0) {
+      for (method <- condensation.asScala)
+        mainMethods += method.name
+    }
+    analysis.analyze(program, mainMethods, callsInProgram)
   }
 
   /**
@@ -140,10 +148,10 @@ extends SilverAnalysisRunner[S] {
     * @param program
     * @return tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration) : (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
-    var callsInProgram : CallGraphMap = Map().withDefault(_ => Set())
+    var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
 
     for (f <- program.methods) {
       callGraph.addVertex(f)
@@ -157,13 +165,13 @@ extends SilverAnalysisRunner[S] {
           val methodIdent = SilverIdentifier(method.getName)
           callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
         }
-        case _ => e.getChildren foreach(process(m, _))
+        case _ => e.getChildren foreach (process(m, _))
       }
     }
 
     for (m <- program.methods;
          block <- m.body.blocks;
-         statement<- block.elements){
+         statement <- block.elements) {
       process(m, statement.merge)
     }
 

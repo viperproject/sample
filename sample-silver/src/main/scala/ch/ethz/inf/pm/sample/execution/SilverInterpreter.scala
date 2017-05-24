@@ -104,13 +104,12 @@ trait SilverForwardInterpreter[S <: State[S]]
   /**
     * Create and initialize all CfgResults for the given cfgs
     * @param cfgs the cfgs for which CfgResults should be created
-    * @param states the initial states to be used
     * @return a map of all initialized CfgResults
     */
-  protected def initializeProgramResult(cfgs: Seq[SampleCfg], states: Seq[S]): CfgResultMapType[S] = {
-    (for((cfg, state) <- cfgs.zip(states)) yield{
-      (cfg -> initializeResult(cfg, state))
-    }) toMap
+  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+    (for(cfg <- cfgs) yield{
+      (cfg -> initializeResult(cfg, bottom(cfg)))
+    }).toMap
   }
 
   override def execute(): CfgResult[S] = {
@@ -128,7 +127,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
     // initialize cfg result
-    val cfgResults = initializeProgramResult(cfgs, cfgs.map(bottom(_)))
+    val cfgResults = initializeProgramResult(cfgs)
 
     // prepare data structures
     val worklist: InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
