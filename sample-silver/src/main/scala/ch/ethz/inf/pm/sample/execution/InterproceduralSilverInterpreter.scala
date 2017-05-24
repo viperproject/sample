@@ -17,7 +17,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
 
-package object InterproceduralSilverInterpreter {
+object InterproceduralSilverInterpreter {
   /**
     * The MethodEntryStatesMap keeps track of all the incoming states to a method.
     * For each method call in the program the ProgramPoint and the state will be saved in this map.
