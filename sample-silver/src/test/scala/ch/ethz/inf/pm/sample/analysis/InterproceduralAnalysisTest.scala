@@ -276,8 +276,8 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
     )
     checkVariableInExitState(programResult, "foo", "a", IntegerInterval.Top, "a should be Top")
     checkVariableInExitState(programResult, "bar", "b", IntegerInterval.Top, "b should be Top")
-    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(Int.MinValue, -1), "x should be [-inf, 0]")
-    checkVariableInExitState(programResult, "bar", "y", IntegerInterval.Inner(Int.MinValue, -1), "y should be [-inf, 0]")
+    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(Int.MinValue, 0), "x should be [-inf, 0]")
+    checkVariableInExitState(programResult, "bar", "y", IntegerInterval.Inner(Int.MinValue, 0), "y should be [-inf, 0]")
   }
 
   def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
