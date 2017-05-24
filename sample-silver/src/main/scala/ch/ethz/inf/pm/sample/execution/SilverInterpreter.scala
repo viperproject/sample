@@ -88,7 +88,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   /**
     * Looks up a cfg for a given BlockPosition
-    * @param blockPosition
+    * @param blockPosition the BlockPosition
     * @return the SampleCfg containing this block
     */
   protected def cfg(blockPosition: BlockPosition): SampleCfg = cfg
@@ -99,18 +99,17 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType) = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
     * @param cfgs the cfgs for which CfgResults should be created
-    * @param states the initial states to be used
     * @return a map of all initialized CfgResults
     */
-  protected def initializeProgramResult(cfgs: Seq[SampleCfg], states: Seq[S]): CfgResultMapType[S] = {
-    (for((cfg, state) <- cfgs.zip(states)) yield{
-      (cfg -> initializeResult(cfg, state))
-    }) toMap
+  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+    (for(cfg <- cfgs) yield{
+      cfg -> initializeResult(cfg, bottom(cfg))
+    }).toMap
   }
 
   override def execute(): CfgResult[S] = {
@@ -128,7 +127,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
     // initialize cfg result
-    val cfgResults = initializeProgramResult(cfgs, cfgs.map(bottom(_)))
+    val cfgResults = initializeProgramResult(cfgs)
 
     // prepare data structures
     val worklist: InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
@@ -255,9 +254,8 @@ trait SilverForwardInterpreter[S <: State[S]]
   }
 
   protected def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e) if (current.index == 0) => cfgResult.getStates(e.source).last
-    case Left(e) => cfgResult.preStateAt(current)
-    case Right(_) => cfgResult.preStateAt(current)
+    case Left(e) if current.index == 0 => cfgResult.getStates(e.source).last
+    case _ => cfgResult.preStateAt(current)
   }
 
   protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
