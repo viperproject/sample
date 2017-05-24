@@ -88,7 +88,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   /**
     * Looks up a cfg for a given BlockPosition
-    * @param blockPosition
+    * @param blockPosition the BlockPosition
     * @return the SampleCfg containing this block
     */
   protected def cfg(blockPosition: BlockPosition): SampleCfg = cfg
@@ -99,7 +99,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType) = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
@@ -108,7 +108,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     */
   protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
     (for(cfg <- cfgs) yield{
-      (cfg -> initializeResult(cfg, bottom(cfg)))
+      cfg -> initializeResult(cfg, bottom(cfg))
     }).toMap
   }
 
@@ -254,9 +254,8 @@ trait SilverForwardInterpreter[S <: State[S]]
   }
 
   protected def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e) if (current.index == 0) => cfgResult.getStates(e.source).last
-    case Left(e) => cfgResult.preStateAt(current)
-    case Right(_) => cfgResult.preStateAt(current)
+    case Left(e) if current.index == 0 => cfgResult.getStates(e.source).last
+    case _ => cfgResult.preStateAt(current)
   }
 
   protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {

@@ -122,7 +122,6 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 
   override protected def _run(): ProgramResult[S] = {
     prepareContext()
-    val result = DefaultProgramResult[S](program)
     val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
     // search for "main methods". these are either methods that are not called from other methods,
     // or they are methods in a strongly connected component where the component itself is not called by other methods
@@ -140,13 +139,13 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
   }
 
   /**
-    * Analyze the given program an return a tuple of condensed Callgraph and a map containing all calls to each method.
+    * Analyze the given program and return a tuple of condensed Callgraph and a map containing all calls to each method.
     * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
     * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
     * set(foo, bar) -> set(baz)
     *
-    * @param program
-    * @return tuple of condensed call graph and map containing all method calls
+    * @param program The program to be analyzed
+    * @return Tuple of condensed call graph and map containing all method calls
     */
   private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver repo!
@@ -159,12 +158,11 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 
     def process(m: SilverMethodDeclaration, e: Statement) {
       e match {
-        case MethodCall(_, method: Variable, _, _, _, _) => {
+        case MethodCall(_, method: Variable, _, _, _, _) =>
           callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
           val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
           val methodIdent = SilverIdentifier(method.getName)
           callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
-        }
         case _ => e.getChildren foreach (process(m, _))
       }
     }

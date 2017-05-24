@@ -68,7 +68,7 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
     analyze(method, builder.build(program, method))
 }
 
-case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](val builder: SilverEntryStateBuilder[S])
+case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S])
   extends InterproceduralSilverForwardAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
     val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, mainMethods, builder, callsInProgram)
