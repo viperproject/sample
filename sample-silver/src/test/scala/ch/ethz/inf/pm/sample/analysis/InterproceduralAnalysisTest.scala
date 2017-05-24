@@ -119,7 +119,7 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
   private def checkVariableInExitState(programResult: ProgramResult[IntegerIntervalAnalysisState],
                                        method: String, variable: String, expected: IntegerInterval, reason: String): Unit = {
     val interval = programResult.getResult(SilverIdentifier(method)).exitState().domain.get(VariableIdentifier(variable)(DummyIntegerType))
-    assert(expected.equivalent(interval), reason)
+    assert(expected.equivalent(interval), s"$variable is: $interval but: $reason")
   }
 
   test("nop") {
