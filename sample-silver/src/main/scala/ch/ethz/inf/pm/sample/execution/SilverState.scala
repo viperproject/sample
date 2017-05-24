@@ -38,7 +38,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
-      case ReturnFromMethodCommand(methodDeclaration, methodCall, exitState: S) => returnFromMethod(methodDeclaration, methodCall, exitState)
+      case ReturnFromMethodCommand(methodDeclaration, methodCall, targetExpressions, exitState: S) => returnFromMethod(methodDeclaration, methodCall, targetExpressions, exitState)
     }
     case _ => super.command(cmd)
   }
@@ -180,17 +180,14 @@ trait SilverState[S <: SilverState[S]]
     * Returns a state where methodCall.targets gets the values of the the called methods returns.
     * methodCall.targets.head would "get" ret_#1 and so on
     *
-    * @param methodDeclaration
-    * @param methodCall
-    * @param exitState
+    * @param methodDeclaration The method declaration of the callee
+    * @param methodCall The statement in the caller that calls the method
+    * @param targetExpressions The target expressions that will receive the callee's returns
+    * @param exitState The exit state of the callee (from a previous analysis)
     * @return
     */
-  def returnFromMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, exitState: S): S = {
+  def returnFromMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S): S = {
     var index = 0
-    val targetExpressions = for(target <- methodCall.targets) yield {
-      val (exp, _) = UtilitiesOnStates.forwardExecuteStatement(this, target)
-      exp
-    }
     var st = exitState
     val returnVariableMapping = for((formalRetVar, targetVar) <- methodDeclaration.returns.zip(targetExpressions)) yield {
       // formalRetVar = the variable declared in returns(...) of the method
@@ -205,7 +202,7 @@ trait SilverState[S <: SilverState[S]]
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
-    returnVariableMapping.foldLeft(joinedState)((st, tupple) => st.removeVariable(tupple._2))
+    returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
   }
 
 }
