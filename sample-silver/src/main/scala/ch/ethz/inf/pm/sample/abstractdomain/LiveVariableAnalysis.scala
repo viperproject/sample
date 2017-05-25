@@ -209,5 +209,5 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
 
 object LiveVariableAnalysis
   extends SilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
-  override val analysis: SilverAnalysis[SimpleLiveVariableAnalysisState] = SimpleSilverForwardAnalysis(LiveVariableAnalysisEntryState)
+  override val analysis: SilverAnalysis[SimpleLiveVariableAnalysisState] = SimpleSilverBackwardAnalysis(LiveVariableAnalysisEntryState)
 }
