@@ -38,7 +38,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
-      case ReturnFromMethodCommand(methodDeclaration, methodCall, targetExpressions, exitState: S) => returnFromMethod(methodDeclaration, methodCall, targetExpressions, exitState)
+      case cmd: ReturnFromMethodCommand[S] => returnFromMethod(cmd.methodDeclaration, cmd.methodCall, cmd.targetExpressions, cmd.exitState)
     }
     case _ => super.command(cmd)
   }
