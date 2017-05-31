@@ -177,7 +177,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     // For MethodCallEdges use an empty state with the arguments from the call
-    case Right(MethodCallEdge(callingContext: S)) =>
+    case Right(edge: MethodCallEdge[S]) =>
+      val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
