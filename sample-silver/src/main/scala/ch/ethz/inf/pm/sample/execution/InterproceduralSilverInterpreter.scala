@@ -66,15 +66,7 @@ case class DummyEdge[T](info: T) extends AuxiliaryEdge
   */
 case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 
-/**
-  * Performs a forward interpretation of a whole program starting with a set of main methods.
-  *
-  * @tparam S The type of the states.
-  * @author Flurin Rindisbacher
-  */
-trait InterproceduralSilverForwardInterpreter[S <: State[S]]
-  extends SilverForwardInterpreter[S]
-    with LazyLogging {
+trait InterprocHelpers[S <: State[S]] {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   val methodEntryStates: MethodEntryStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
@@ -86,6 +78,40 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
    * A main method is analyzed using "initial" as the entry state.
    */
   val mainMethods: Set[SilverIdentifier]
+
+  private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
+    var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
+    for (m <- program.methods) {
+      res += (Left(m.name.name) -> m)
+      for (b <- m.body.blocks)
+        res += (Right(b) -> m)
+    }
+    res
+  }
+
+  protected def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
+    methods(Right(blockPosition.block))
+  }
+
+  protected def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
+    findMethod(name.name)
+  }
+
+  protected def findMethod(name: String): SilverMethodDeclaration = {
+    methods(Left(name))
+  }
+
+}
+
+/**
+  * Performs a forward interpretation of a whole program starting with a set of main methods.
+  *
+  * @tparam S The type of the states.
+  * @author Flurin Rindisbacher
+  */
+trait InterproceduralSilverForwardInterpreter[S <: State[S]]
+  extends SilverForwardInterpreter[S]
+    with LazyLogging with InterprocHelpers[S] {
 
   def executeInterprocedural(): ProgramResult[S] = {
     // execute the interpreter starting with all "main"-methods
@@ -141,34 +167,12 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       .foreach(b => worklist.enqueue((BlockPosition(b.block, b.index), true)))
   }
 
-  private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
-    var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
-    for (m <- program.methods) {
-      res += (Left(m.name.name) -> m)
-      for (b <- m.body.blocks)
-        res += (Right(b) -> m)
-    }
-    res
-  }
-
   override protected def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
   override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
     findMethod(blockPosition).body
-  }
-
-  private def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
-    methods(Right(blockPosition.block))
-  }
-
-  private def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
-    findMethod(name.name)
-  }
-
-  private def findMethod(name: String): SilverMethodDeclaration = {
-    methods(Left(name))
   }
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
@@ -281,4 +285,9 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   override def initial: S = ???
 
   override def cfg: SampleCfg = ???
+}
+
+trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
+  extends SilverForwardInterpreter[S]
+    with LazyLogging with InterprocHelpers[S] {
 }
