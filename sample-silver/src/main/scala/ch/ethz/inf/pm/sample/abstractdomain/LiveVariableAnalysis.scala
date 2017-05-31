@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -208,6 +208,6 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
 }
 
 object LiveVariableAnalysis
-  extends SilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
-  override val analysis: SilverAnalysis[SimpleLiveVariableAnalysisState] = SimpleSilverBackwardAnalysis(LiveVariableAnalysisEntryState)
+  extends InterproceduralSilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
+  override val analysis: InterproceduralSilverAnalysis[SimpleLiveVariableAnalysisState] = SimpleInterproceduralSilverBackwardAnalysis(LiveVariableAnalysisEntryState)
 }

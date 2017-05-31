@@ -291,4 +291,57 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
 trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   extends SilverForwardInterpreter[S]
     with LazyLogging with InterprocHelpers[S] {
+
+  def executeInterprocedural(): ProgramResult[S] = {
+    // execute the interpreter starting with all "main"-methods
+    super.execute(program.methods.filter(m => mainMethods.contains(m.name)).map(_.body))
+    programResult
+  }
+
+  override protected def initial(cfg: SampleCfg): S = {
+    builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
+  }
+
+  override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
+    findMethod(blockPosition).body
+  }
+
+}
+
+case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
+                                                                         override val program: SilverProgramDeclaration,
+                                                                         override val mainMethods: Set[SilverIdentifier],
+                                                                         override val builder: SilverEntryStateBuilder[S],
+                                                                         override val callsInProgram: CallGraphMap)
+  extends InterproceduralSilverBackwardInterpreter[S] {
+
+  //
+  // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
+  // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
+  // using "cfgs". (This is needed to initialize all callees too)
+  //
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+    // initialize each CfgResult with its bottom state. Our initializer does not need the 2nd parameter to initialize()
+    // states.head is just passed in to make the compiler happy
+    programResult.initialize(c => {
+      val stForCfg = bottom(c)
+      initializeResult(c, stForCfg)
+    })
+    (for (method <- program.methods) yield {
+      method.body -> programResult.getResult(method.name)
+    }).toMap
+  }
+
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
+    val cfgResult = FinalCfgResult[S](cfg)
+    cfgResult.initialize(state)
+    cfgResult
+  }
+
+  /*
+   *  initial() and cfg() only make sense in the intraprocedural case
+   */
+  override def initial: S = ???
+
+  override def cfg: SampleCfg = ???
 }
