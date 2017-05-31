@@ -39,6 +39,7 @@ trait SilverState[S <: SilverState[S]]
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
       case cmd: ReturnFromMethodCommand[S] => returnFromMethod(cmd.methodDeclaration, cmd.methodCall, cmd.targetExpressions, cmd.exitState)
+      case cmd: ReturnFromMethodBackwardsCommand[S] => returnFromMethodBackwards(cmd.methodDeclaration, cmd.methodCall, cmd.targetExpressions, cmd.exitState)
     }
     case _ => super.command(cmd)
   }
@@ -203,6 +204,25 @@ trait SilverState[S <: SilverState[S]]
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
+  }
+
+  def returnFromMethodBackwards(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S): S = {
+    var index = 0
+    var st = exitState
+    val argVariableMapping = for((formalRetVar, targetVar) <- methodDeclaration.arguments.zip(targetExpressions)) yield {
+      // formalRetVar = the variable declared in returns(...) of the method
+      // targetVar = the target-expression which we'll assign to later
+      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(formalRetVar.typ))
+      index += 1
+      st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalRetVar.variable.id), exp)
+      (targetVar, exp)
+    }
+    st = st.ids.toSetOrFail // let's remove all non ret_# variables
+      .filter(id => ! id.getName.startsWith("ret_#"))
+      .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+    // map return values to temp variables and remove all temporary ret_# variables
+    val joinedState = argVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => st.assignVariable(tuple._2, tuple._1))
+    argVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
   }
 
 }

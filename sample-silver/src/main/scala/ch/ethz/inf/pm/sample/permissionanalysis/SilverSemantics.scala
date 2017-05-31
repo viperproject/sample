@@ -75,6 +75,7 @@ case class LeaveLoopCommand() extends SilverCommand
   * @author Flurin Rindisbacher
   */
 case class ReturnFromMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S) extends SilverCommand
+case class ReturnFromMethodBackwardsCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S) extends SilverCommand
 
 /** Object adding Inhale/Exhale semantics.
   *

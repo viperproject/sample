@@ -91,7 +91,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
       case left: VariableIdentifier if domain.contains(left) =>
         val d = domain - left // LIVE \ KILL
         if (right.ids.isBottom) copy(domain = d) else copy(domain = d ++ right.ids) // gen ∪ (live \ kill)
-      case _: VariableIdentifier => this
+      case left: VariableIdentifier => copy(domain = domain - left)
       case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
     }
   }
@@ -100,7 +100,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
     logger.trace(s"assignField($obj, $field, $right")
     // we treat fields a being always live. that's why there's no "kill" set for this assignment
     if (right.ids.isBottom) copy(domain = domain) else copy(domain = domain ++ right.ids)
-    this
+    //this
   }
 
   override def setVariableToTop(x: Expression): S = {
@@ -113,11 +113,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
 
   override def removeVariable(x: VariableIdentifier): S = {
     logger.trace(s"removeVariable($x)")
-    x match {
-      case variable: VariableIdentifier => copy(domain = domain - variable)
-      case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
-    }
-    this
+    copy(domain = domain - x)
   }
 
   override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
