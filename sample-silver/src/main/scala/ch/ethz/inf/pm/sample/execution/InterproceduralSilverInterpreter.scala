@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.ReturnFromMethodCommand
@@ -41,6 +41,16 @@ object InterproceduralSilverInterpreter {
     * the next instruction after the method call.
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+
+  /**
+    * Prefix to be used for temporary method arguments.
+    */
+  val ArgumentPrefix = "arg_#"
+
+  /**
+    * Prefix to bused for temporary method returns.
+    */
+  val ReturnPrefix = "ret_#"
 }
 
 /**
@@ -75,6 +85,9 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   extends SilverForwardInterpreter[S]
     with LazyLogging {
+
+  import InterproceduralSilverInterpreter.ArgumentPrefix
+
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   val methodEntryStates: MethodEntryStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
@@ -103,12 +116,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       * @return
       */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
-      if (cfg(current).entry != current.block) // only look at entry-blocks
-        return Nil
-      val method = findMethod(current)
-      if (mainMethods.contains(method.name)) // ignore main methods. they are analyzed using the inital state
-        return Nil
-      if (callsInProgram.contains(method.name)) {
+      lazy val method = findMethod(current)
+      if (cfg(current).entry != current.block) { // only look at entry-blocks
+        Nil
+      } else if (callsInProgram.contains(method.name) && !mainMethods.contains(method.name)) { // use inital state for main methods
         val numInEdgesShould = callsInProgram(method.name).size
         val numInEdgesIs = methodEntryStates(method.name).size
         val initialState = initial(cfg(current))
@@ -127,7 +138,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {
+  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {
     /**
       * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
       * of this method. This way the new analysis results will be merged into the caller state.
@@ -151,11 +162,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     res
   }
 
-  override protected def initial(cfg: SampleCfg): S = {
+  override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
-  override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
+  override def cfg(blockPosition: BlockPosition): SampleCfg = {
     findMethod(blockPosition).body
   }
 
@@ -177,7 +188,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
       var inputState = initial(methodDeclaration.body) lub callingContext
       // assign (temporary) arguments to parameters and remove the temp args
@@ -186,7 +197,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -194,29 +205,29 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
       val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
+      val parameterExpressions = for (parameter <- call.parameters) yield {
+        currentState = parameter.forwardSemantics[S](currentState)
+        currentState.expr
+      }
       val targetExpressions = for (target <- call.targets) yield {
         val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
         currentState = st
         exp
       }
-      val parameterExpressions = for (parameter <- call.parameters) yield {
-        currentState = parameter.forwardSemantics[S](currentState)
-        currentState.expr
-      }
       //
       // transfer arguments to methodEntryState
-      // TODO: this could (should?) be moved into a Command
+      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
-      // create arg_# variables and assign the value to them. then remove all non arg_# variables
+      // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
       var tmpVariableState = currentState
       for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
         tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
         tmpVariableState = tmpVariableState.assignVariable(exp, param)
       }
       tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith("arg_#"))
+        .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states
@@ -276,10 +287,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     cfgResult
   }
 
-  /*
-   *  initial() and cfg() only make sense in the intraprocedural case
-   */
-  override def initial: S = ???
-
-  override def cfg: SampleCfg = ???
+  // The entrypoint for an interprocedural analysis is executeInterprocedural()
+  // return the result of a/the main method when execute() is run
+  override def execute(): CfgResult[S] = executeInterprocedural().getResult(mainMethods.head)
 }

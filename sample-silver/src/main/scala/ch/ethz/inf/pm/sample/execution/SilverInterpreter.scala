@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
@@ -31,12 +31,24 @@ import scala.collection.mutable.ListBuffer
   */
 trait SilverInterpreter[S <: State[S]] {
   /**
-    * initial: The initial state.
-    * cfg:     The control flow graph to execute.
+    * Look up the CFG containing the given blockPosition. Intraprocedural interpreters can always return the same
+    * CFG (there is only one cfg to analyze). Interprocedural interpreters on the other hand need to look up the
+    * method/cfg depending on the blockPosition.
+    *
+    * @param blockPosition The BlockPosition
+    * @return The SampleCfg containing this block
     */
-  def initial: S
+  def cfg(blockPosition: BlockPosition): SampleCfg
 
-  def cfg: SampleCfg
+  /**
+    * Create or look up the initial state for a given cfg. Intraprocedural interpreters can always return the same
+    * initial state. Interprocedural interpreters on the other hand need to create an initial state depending on the
+    * given CFG.
+    *
+    * @param cfg The control flow graph
+    * @return The initial state for a given cfg.
+    */
+  def initial(cfg: SampleCfg): S
 
   /**
     * Executes the control flow graph.
@@ -64,7 +76,7 @@ object SilverInterpreter {
     * successor state did not change. This is useful for example to merge the effect of a method call after the callee
     * has been analyzed.
     */
-  type InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]
+  type InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]
 
   /**
     * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map is used
@@ -87,42 +99,23 @@ trait SilverForwardInterpreter[S <: State[S]]
     with LazyLogging {
 
   /**
-    * Looks up a cfg for a given BlockPosition
-    * @param blockPosition the BlockPosition
-    * @return the SampleCfg containing this block
-    */
-  protected def cfg(blockPosition: BlockPosition): SampleCfg = cfg
-
-  /**
     * Is called everytime the exit block of a CFG was executed
     *
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
+    *
     * @param cfgs the cfgs for which CfgResults should be created
     * @return a map of all initialized CfgResults
     */
   protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
-    (for(cfg <- cfgs) yield{
+    (for (cfg <- cfgs) yield {
       cfg -> initializeResult(cfg, bottom(cfg))
     }).toMap
-  }
-
-  override def execute(): CfgResult[S] = {
-    val result = execute(Seq(cfg))
-    result(cfg)
-  }
-
-  protected def initial(cfg: SampleCfg): S = {
-    this.initial
-  }
-
-  protected def bottom(cfg: SampleCfg): S = {
-    initial(cfg).bottom()
   }
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
@@ -130,7 +123,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     val cfgResults = initializeProgramResult(cfgs)
 
     // prepare data structures
-    val worklist: InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
+    val worklist: InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]()
     cfgs.foreach(c => worklist.enqueue((BlockPosition(c.entry, 0), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
@@ -237,6 +230,14 @@ trait SilverForwardInterpreter[S <: State[S]]
     cfgResults
   }
 
+  /**
+    * Look up the bottom state for a cfg.
+    *
+    * @param cfg The control flow graph
+    * @return The bottom state for a given cfg.
+    */
+  def bottom(cfg: SampleCfg): S = initial(cfg).bottom()
+
   protected def inEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     current match {
       case BlockPosition(_, 0) => cfg(current).inEdges(current.block).map(Left(_))
@@ -258,7 +259,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -289,6 +290,11 @@ trait SilverForwardInterpreter[S <: State[S]]
 trait SilverBackwardInterpreter[S <: State[S]]
   extends SilverInterpreter[S]
     with LazyLogging {
+
+  def cfg: SampleCfg
+
+  def initial: S
+
   override def execute(): CfgResult[S] = {
     // initialize cfg result
     val bottom = initial.bottom()
@@ -432,13 +438,22 @@ trait SilverBackwardInterpreter[S <: State[S]]
   * @author Jerome Dohrau
   * @author Caterina Urban
   */
-case class FinalResultForwardInterpreter[S <: State[S]](override val cfg: SampleCfg, override val initial: S)
+case class FinalResultForwardInterpreter[S <: State[S]](cfg: SampleCfg, initial: S)
   extends SilverForwardInterpreter[S] {
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
     val cfgResult = FinalCfgResult[S](cfg)
     cfgResult.initialize(state)
     cfgResult
+  }
+
+  override def initial(cfg: SampleCfg): S = initial
+
+  override def cfg(blockPosition: BlockPosition): SampleCfg = cfg
+
+  override def execute(): CfgResult[S] = {
+    val result = execute(Seq(cfg))
+    result(cfg)
   }
 }
 
@@ -457,4 +472,8 @@ case class FinalResultBackwardInterpreter[S <: State[S]](override val cfg: Sampl
     cfgResult.initialize(state)
     cfgResult
   }
+
+  override def initial(cfg: SampleCfg): S = initial
+
+  override def cfg(blockPosition: BlockPosition): SampleCfg = cfg
 }

@@ -6,9 +6,8 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation
 
+import ch.ethz.inf.pm.sample.{ToStringUtilities, _}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
@@ -448,26 +447,30 @@ case class MethodCall(
       case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
       case _ =>
     }; //return state
+    body match {
+      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
+      case body: Variable => forwardAnalzyeMethodCallOnVariable(body, state)
+
+    }
+  }
+
+  private def forwardAnalzyeMethodCallOnVariable[S <: State[S]](body: Variable, state: S): S = {
     var curState = state
+    val parameterExpressions = for (parameter <- parameters) yield {
+      curState = parameter.forwardSemantics[S](curState)
+      curState.expr
+    }
+    val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
+    curState = curState.setExpression(rhs)
     val targetExpr = for(t <- targets) yield {
       val (expr: ExpressionSet, nextState) = UtilitiesOnStates.forwardExecuteStatement(curState, t)
       curState = nextState
       expr
     }
-    body match {
-      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, curState, getPC())
-      case body: Variable =>
-        val parameterExpressions = for (parameter <- parameters) yield {
-          curState = parameter.forwardSemantics[S](curState)
-          curState.expr
-        }
-        val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
-        val stateWithExpression = curState.setExpression(rhs)
-        targets.zip(targetExpr).foldLeft(stateWithExpression)((st, t) => t match {
-          case (v: Variable, exp) => st.assignVariable (exp, rhs)
-          case (fa: FieldAccess, exp) => st.assignField(exp, fa.field, rhs)
-        })
-    }
+    targets.zip(targetExpr).foldLeft(curState)((st, t) => t match {
+      case (v: Variable, exp) => st.assignVariable (exp, rhs)
+      case (fa: FieldAccess, exp) => st.assignField(exp, fa.field, rhs)
+    })
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, preState: S,
