@@ -162,11 +162,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     res
   }
 
-  override protected def initial(cfg: SampleCfg): S = {
+  override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
-  override protected def cfg(blockPosition: BlockPosition): SampleCfg = {
+  override def cfg(blockPosition: BlockPosition): SampleCfg = {
     findMethod(blockPosition).body
   }
 
