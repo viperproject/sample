@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap, MethodExitStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.ReturnFromMethodCommand
@@ -127,7 +127,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {
+  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {
     /**
       * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
       * of this method. This way the new analysis results will be merged into the caller state.
@@ -186,7 +186,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)

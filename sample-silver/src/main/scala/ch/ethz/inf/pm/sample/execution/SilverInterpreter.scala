@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklistType}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
@@ -32,10 +32,12 @@ import scala.collection.mutable.ListBuffer
 trait SilverInterpreter[S <: State[S]] {
   /**
     * initial: The initial state.
-    * cfg:     The control flow graph to execute.
     */
   def initial: S
 
+  /**
+    * @return The control flow graph to execute.
+    */
   def cfg: SampleCfg
 
   /**
@@ -64,7 +66,7 @@ object SilverInterpreter {
     * successor state did not change. This is useful for example to merge the effect of a method call after the callee
     * has been analyzed.
     */
-  type InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]
+  type InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]
 
   /**
     * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map is used
@@ -99,7 +101,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklistType): Unit = {}
+  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
@@ -130,7 +132,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     val cfgResults = initializeProgramResult(cfgs)
 
     // prepare data structures
-    val worklist: InterpreterWorklistType = mutable.Queue[(BlockPosition, Boolean)]()
+    val worklist: InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]()
     cfgs.foreach(c => worklist.enqueue((BlockPosition(c.entry, 0), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
@@ -258,7 +260,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklistType, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
