@@ -41,6 +41,16 @@ object InterproceduralSilverInterpreter {
     * the next instruction after the method call.
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+
+  /**
+    * Prefix to be used for temporary method arguments.
+    */
+  val ArgumentPrefix = "arg_#"
+
+  /**
+    * Prefix to bused for temporary method returns.
+    */
+  val ReturnPrefix = "ret_#"
 }
 
 /**
@@ -75,6 +85,8 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   extends SilverForwardInterpreter[S]
     with LazyLogging {
+  import InterproceduralSilverInterpreter.ArgumentPrefix
+
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
   val methodEntryStates: MethodEntryStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
@@ -177,7 +189,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
       var inputState = initial(methodDeclaration.body) lub callingContext
       // assign (temporary) arguments to parameters and remove the temp args
@@ -208,15 +220,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // TODO: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
-      // create arg_# variables and assign the value to them. then remove all non arg_# variables
+      // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
       var tmpVariableState = currentState
       for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
         tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
         tmpVariableState = tmpVariableState.assignVariable(exp, param)
       }
       tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith("arg_#"))
+        .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states

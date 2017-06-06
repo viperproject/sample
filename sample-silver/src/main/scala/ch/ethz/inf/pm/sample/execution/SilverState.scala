@@ -24,6 +24,8 @@ trait SilverState[S <: SilverState[S]]
   extends SimpleState[S] {
   this: S =>
 
+  import InterproceduralSilverInterpreter.ReturnPrefix
+
   /** Executes the given command.
     *
     * @param cmd The command to execute.
@@ -178,31 +180,30 @@ trait SilverState[S <: SilverState[S]]
 
   /**
     * Returns a state where methodCall.targets gets the values of the the called methods returns.
-    * methodCall.targets.head would "get" ret_#1 and so on
+    * methodCall.targets.head would "get" "ReturnPrefix"1 and so on
     *
     * @param methodDeclaration The method declaration of the callee
-    * @param methodCall The statement in the caller that calls the method
+    * @param methodCall        The statement in the caller that calls the method
     * @param targetExpressions The target expressions that will receive the callee's returns
-    * @param exitState The exit state of the callee (from a previous analysis)
+    * @param exitState         The exit state of the callee (from a previous analysis)
     * @return
     */
   def returnFromMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S): S = {
     var index = 0
     var st = exitState
-    val returnVariableMapping = for((formalRetVar, targetVar) <- methodDeclaration.returns.zip(targetExpressions)) yield {
+    val returnVariableMapping = for ((formalRetVar, targetVar) <- methodDeclaration.returns.zip(targetExpressions)) yield {
       // formalRetVar = the variable declared in returns(...) of the method
       // targetVar = the target-expression which we'll assign to later
-      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(formalRetVar.typ))
+      val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(formalRetVar.typ))
       index += 1
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
       (targetVar, exp)
     }
-    st = st.ids.toSetOrFail // let's remove all non ret_# variables
-      .filter(id => ! id.getName.startsWith("ret_#"))
-      .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
-    // map return values to temp variables and remove all temporary ret_# variables
+    st = st.ids.toSetOrFail // let's remove all non temporary-ret-variables
+      .filter(id => !id.getName.startsWith(ReturnPrefix))
+      .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+    // map return values to temp variables and remove all temporary ret variables
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
   }
-
 }
