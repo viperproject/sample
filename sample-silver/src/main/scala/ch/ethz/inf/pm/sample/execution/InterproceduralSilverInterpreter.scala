@@ -115,12 +115,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       * @return
       */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
-      if (cfg(current).entry != current.block) // only look at entry-blocks
-        return Nil
-      val method = findMethod(current)
-      if (mainMethods.contains(method.name)) // ignore main methods. they are analyzed using the inital state
-        return Nil
-      if (callsInProgram.contains(method.name)) {
+      lazy val method = findMethod(current)
+      if (cfg(current).entry != current.block) { // only look at entry-blocks
+        Nil
+      } else if (callsInProgram.contains(method.name) && !mainMethods.contains(method.name)) { // use inital state for main methods
         val numInEdgesShould = callsInProgram(method.name).size
         val numInEdgesIs = methodEntryStates(method.name).size
         val initialState = initial(cfg(current))
