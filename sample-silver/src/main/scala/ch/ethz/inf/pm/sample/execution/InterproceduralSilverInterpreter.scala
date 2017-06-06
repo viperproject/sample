@@ -205,14 +205,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
       val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
+      val parameterExpressions = for (parameter <- call.parameters) yield {
+        currentState = parameter.forwardSemantics[S](currentState)
+        currentState.expr
+      }
       val targetExpressions = for (target <- call.targets) yield {
         val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
         currentState = st
         exp
-      }
-      val parameterExpressions = for (parameter <- call.parameters) yield {
-        currentState = parameter.forwardSemantics[S](currentState)
-        currentState.expr
       }
       //
       // transfer arguments to methodEntryState
