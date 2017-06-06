@@ -85,6 +85,7 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   extends SilverForwardInterpreter[S]
     with LazyLogging {
+
   import InterproceduralSilverInterpreter.ArgumentPrefix
 
   val program: SilverProgramDeclaration
@@ -286,10 +287,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     cfgResult
   }
 
-  /*
-   *  initial() and cfg() only make sense in the intraprocedural case
-   */
-  override def initial: S = ???
-
-  override def cfg: SampleCfg = ???
+  // The entrypoint for an interprocedural analysis is executeInterprocedural()
+  // return the result of a/the main method when execute() is run
+  override def execute(): CfgResult[S] = executeInterprocedural().getResult(mainMethods.head)
 }
