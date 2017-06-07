@@ -318,19 +318,18 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
   override protected def outEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
-      if (!cfg(current).exit.isDefined || cfg(current).exit.get != current.block) // only look at exit-blocks
-        return Nil
-      val method = findMethod(current)
-      if (mainMethods.contains(method.name)) // ignore main methods. they are analyzed using the inital state
-        return Nil
-      if (callsInProgram.contains(method.name)) {
-        val numInEdgesShould = callsInProgram(method.name).size
-        val numInEdgesIs = methodEntryStates(method.name).size
-        val initialState = initial(cfg(current))
+      lazy val method = findMethod(current)
+      val currentCfg = cfg(current)
+      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.block   // only add edges for exit-blocks
+        && !mainMethods.contains(method.name)                                     // ignore for main methods. use inital state for them
+        && callsInProgram.contains(method.name)) {
+        val numEdgesShould = callsInProgram(method.name).size
+        val numEdgesIs = methodEntryStates(method.name).size
+        val initialState = initial(currentCfg)
         val bottom = initialState.bottom()
         (for (entryState <- methodEntryStates(method.name).values) yield {
           Right(MethodReturnEdge(entryState))
-        }).toSeq ++ Seq.fill(numInEdgesShould - numInEdgesIs)(Right(MethodCallEdge(bottom)))
+        }).toSeq ++ Seq.fill(numEdgesShould - numEdgesIs)(Right(MethodCallEdge(bottom)))
       } else {
         Nil
       }
