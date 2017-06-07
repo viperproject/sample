@@ -302,6 +302,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   extends SilverBackwardInterpreter[S]
     with LazyLogging with InterprocHelpers[S] {
 
+  import InterproceduralSilverInterpreter.ArgumentPrefix
+
   def executeInterprocedural(): ProgramResult[S] = {
     // execute the interpreter starting with all "main"-methods
     super.execute(program.methods.filter(m => mainMethods.contains(m.name)).map(_.body))
@@ -362,12 +364,12 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
       //var tmpVariableState = currentState
       for ((param, index) <- targetExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
         currentState = currentState.assignVariable(param, exp)
       }
       val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith("arg_#"))
+        .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states
@@ -383,7 +385,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
       currentState = currentState.ids.toSetOrFail
-        .filter(_.getName.startsWith("arg_#"))
+        .filter(_.getName.startsWith(ArgumentPrefix))
       .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       var st  = currentState
@@ -426,7 +428,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val callingContext = edge.exitState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.returns.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier("arg_#" + index)(param.typ))
+        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
       var inputState = callingContext//initial(methodDeclaration.body) lub callingContext
       // assign (temporary) arguments to parameters and remove the temp args

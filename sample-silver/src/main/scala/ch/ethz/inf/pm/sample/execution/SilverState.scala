@@ -214,13 +214,13 @@ trait SilverState[S <: SilverState[S]]
     val argVariableMapping = for((formalRetVar, targetVar) <- methodDeclaration.arguments.zip(targetExpressions)) yield {
       // formalRetVar = the variable declared in returns(...) of the method
       // targetVar = the target-expression which we'll assign to later
-      val exp = ExpressionSet(VariableIdentifier("ret_#" + index )(formalRetVar.typ))
+      val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index )(formalRetVar.typ))
       index += 1
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalRetVar.variable.id), exp)
       (targetVar, exp)
     }
     st = st.ids.toSetOrFail // let's remove all non ret_# variables
-      .filter(id => ! id.getName.startsWith("ret_#"))
+      .filter(id => ! id.getName.startsWith(ReturnPrefix))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = argVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => st.assignVariable(tuple._2, tuple._1))
