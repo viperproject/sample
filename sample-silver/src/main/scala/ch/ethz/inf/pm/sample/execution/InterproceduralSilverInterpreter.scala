@@ -346,7 +346,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       //
       // prepare calling context (evaluate method targets and parameters)
       //
-      val predecessor = state.before(ProgramPointUtils.identifyingPP(statement)) //TODO @flurin this is wrong
+      val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
       val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
       val targetExpressions = for (target <- call.targets) yield {
