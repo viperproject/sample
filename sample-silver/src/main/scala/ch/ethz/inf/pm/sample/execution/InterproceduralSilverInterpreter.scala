@@ -126,7 +126,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   import InterproceduralSilverInterpreter.ArgumentPrefix
 
-
   def executeInterprocedural(): ProgramResult[S] = {
     // execute the interpreter starting with all "main"-methods
     super.execute(program.methods.filter(m => mainMethods.contains(m.name)).map(_.body))
@@ -320,8 +319,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
       lazy val method = findMethod(current)
       val currentCfg = cfg(current)
-      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.block   // only add edges for exit-blocks
-        && !mainMethods.contains(method.name)                                     // ignore for main methods. use inital state for them
+      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.block // only add edges for exit-blocks
+        && !mainMethods.contains(method.name) // ignore for main methods. use inital state for them
         && callsInProgram.contains(method.name)) {
         val numEdgesShould = callsInProgram(method.name).size
         val numEdgesIs = methodEntryStates(method.name).size
@@ -334,6 +333,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         Nil
       }
     }
+
     current match {
       case BlockPosition(_, i) if i == current.block.elements.size - 1 => super.outEdges(current, cfgResult) ++ createMethodReturnEdges()
       case _ => super.outEdges(current, cfgResult)
@@ -372,7 +372,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //context insensitive analysis: analyse the called method with the join of all calling states
       methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, methodDeclaration.body.exit.get.elements.size-1), false))
+      worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, methodDeclaration.body.exit.get.elements.size - 1), false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -384,9 +384,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // we can safely remove arg_ now
       currentState = currentState.ids.toSetOrFail
         .filter(_.getName.startsWith(ArgumentPrefix))
-      .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+        .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-      var st  = currentState
+      var st = currentState
       val parameterExpressions = for (parameter <- call.parameters) yield {
         st = parameter.backwardSemantics[S](st)
         st.expr
@@ -428,7 +428,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val tmpArguments = for ((param, index) <- methodDeclaration.returns.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
-      var inputState = callingContext//initial(methodDeclaration.body) lub callingContext
+      var inputState = callingContext //initial(methodDeclaration.body) lub callingContext
       // assign (temporary) arguments to parameters and remove the temp args
       inputState = methodDeclaration.returns.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._2, ExpressionSet(tuple._1.variable.id)))
       tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))

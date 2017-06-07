@@ -13,12 +13,17 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
 
 /**
-  * A state for (strongly) live variable analysis. IdentifierSet is used as domain.
+  * A state for interprocedural strongly live variable analysis. IdentifierSet is used as domain.
   * If an identifier exists in the domain then it is considered to be live. Widening is implemented as a join of the
   * two operands.
   *
   * This implementation treats fields as "always live". An assignment to a field will therefore set all identifiers
   * on the right hand side of the assignment to live.
+  *
+  * A variable is considered to be strongly live if it is either used on the right hand side of an assignment to
+  * a strongly live variable or if it is used in the condition of an IF statement. Variables used as arguments to
+  * methods are not automatically considered to be strongly live. They're only considered to be live when the argument
+  * is actually used for the value of another strongly live variable.
   *
   * @tparam S The type of the state.
   * @author Flurin Rindisbacher
@@ -91,7 +96,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
       case left: VariableIdentifier if domain.contains(left) =>
         val d = domain - left // LIVE \ KILL
         if (right.ids.isBottom) copy(domain = d) else copy(domain = d ++ right.ids) // gen ∪ (live \ kill)
-      case left: VariableIdentifier => copy(domain = domain - left)
+      case left: VariableIdentifier => this
       case _ => throw new IllegalArgumentException(s"$x is not a variable identifier.")
     }
   }
@@ -170,6 +175,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
     else if (isBottom) "⊥"
     else s"live variables: $domain"
   }
+
 }
 
 object LiveVariableAnalysisEntryState
@@ -183,6 +189,7 @@ object LiveVariableAnalysisEntryState
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleLiveVariableAnalysisState = {
+    // we'll just set all returns to being "strongly live"
     method.returns.foldLeft(top) { case (state, parameter) =>
       val result = parameter.variable.forwardSemantics(state)
       val expression = result.expr
@@ -203,6 +210,14 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
   }
 }
 
+/**
+  * Interprocedural strongly live variable analysis
+  *
+  * Returns of a method are considered to be strongly live. Other variables are only strongly live if they are
+  * either assigned to a strongly live variable or if they are used in the condition of an IF statement.
+  *
+  * This is a backward analysis that treats method calls in a context-insensitive way.
+  */
 object LiveVariableAnalysis
   extends InterproceduralSilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
   override val analysis: InterproceduralSilverAnalysis[SimpleLiveVariableAnalysisState] = SimpleInterproceduralSilverBackwardAnalysis(LiveVariableAnalysisEntryState)
