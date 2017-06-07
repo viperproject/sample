@@ -270,8 +270,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   // using "cfgs". (This is needed to initialize all callees too)
   //
   override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
-    // initialize each CfgResult with its bottom state. Our initializer does not need the 2nd parameter to initialize()
-    // states.head is just passed in to make the compiler happy
+    // initialize each CfgResult with its bottom state.
     programResult.initialize(c => {
       val stForCfg = bottom(c)
       initializeResult(c, stForCfg)
