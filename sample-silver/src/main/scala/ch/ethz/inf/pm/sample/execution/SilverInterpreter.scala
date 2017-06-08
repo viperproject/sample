@@ -300,14 +300,35 @@ trait SilverBackwardInterpreter[S <: State[S]]
     */
   def bottom(cfg: SampleCfg): S = initial(cfg).bottom()
 
-  //BEGIN TODO @flurin these helper methods are to later memoize calls to elements.size because those numbers never change. or do they?
-  def lastIndex(current: BlockPosition): Int = lastIndex(current.block)
+  /**
+    * Helper that computes the last position in a block that can be enqueued to the worklist
+    * @param current A position anywhere in a block
+    * @return The index of the last existing position in the block
+    */
+  protected def lastIndex(current: BlockPosition): Int = lastIndex(current.block)
 
-  def lastIndex(block: SampleBlock): Int = numElementsInBlock(block) - 1
+  /**
+    * Helper that computes the last position in a block that can be enqueued to the worklist
+    * @param block The block to look at
+    * @return The index of the last existing position in the block
+    */
+  protected def lastIndex(block: SampleBlock): Int = numElementsInBlock(block) - 1
 
-  def numElementsInBlock(block: SampleBlock): Int = block.elements.size
+  // used to memoize the number of elements in a block.
+  private val blockElementMemo = mutable.Map[SampleBlock, Int]()
 
-  //END TODO @flurin
+  /**
+    * Returns the number of elements for a given block. Since block.elements can be quite costly
+    * this method uses memoization to store the number of elements in a block.
+    *
+    * @param block The block to look at
+    * @return Number of elemtns in this block
+    */
+  protected def numElementsInBlock(block: SampleBlock): Int = {
+    if (!(blockElementMemo contains block))
+      blockElementMemo += (block -> block.elements.size)
+    blockElementMemo(block)
+  }
 
   /**
     * Is called everytime the entry block of a CFG was executed
