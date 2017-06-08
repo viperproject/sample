@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Set
@@ -841,6 +841,12 @@ object UtilitiesOnStates {
 
   def forwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.forwardSemantics[S](state)
+    val expr = finalState.expr
+    (expr, finalState)
+  }
+
+  def backwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
+    val finalState = statement.backwardSemantics[S](state)
     val expr = finalState.expr
     (expr, finalState)
   }
