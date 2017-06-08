@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
-import ch.ethz.inf.pm.sample.permissionanalysis.{ReturnFromMethodBackwardsCommand, ReturnFromMethodCommand}
+import ch.ethz.inf.pm.sample.permissionanalysis.{CallMethodBackwardsCommand, ReturnFromMethodCommand}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -303,7 +303,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   extends SilverBackwardInterpreter[S]
     with LazyLogging with InterprocHelpers[S] {
 
-  import InterproceduralSilverInterpreter.ArgumentPrefix
+  import InterproceduralSilverInterpreter.ReturnPrefix
 
   def executeInterprocedural(): ProgramResult[S] = {
     // execute the interpreter starting with all "main"-methods
@@ -345,7 +345,6 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
   override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
-      //TODO @flurin cleanup this mess
       //
       // prepare calling context (evaluate method targets and parameters)
       //
@@ -358,19 +357,19 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         exp
       }
       //
-      // transfer arguments to methodEntryState
-      // TODO: this could (should?) be moved into a Command
+      // transfer arguments to method exit state
+      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
       //var tmpVariableState = currentState
       for ((param, index) <- targetExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+        val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(param.typ))
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
         currentState = currentState.assignVariable(param, exp)
       }
       val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith(ArgumentPrefix))
+        .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states
@@ -386,7 +385,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
       currentState = currentState.ids.toSetOrFail
-        .filter(_.getName.startsWith(ArgumentPrefix))
+        .filter(_.getName.startsWith(ReturnPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       var st = currentState
@@ -394,7 +393,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         st = parameter.backwardSemantics[S](st)
         st.expr
       }
-      val resultState = currentState.command(ReturnFromMethodBackwardsCommand(methodDeclaration, call, parameterExpressions, entryState))
+      val resultState = currentState.command(CallMethodBackwardsCommand(methodDeclaration, call, parameterExpressions, entryState))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
@@ -424,17 +423,16 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   }
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    // For MethodCallEdges use an empty state with the arguments from the call
     case Right(edge: MethodReturnEdge[S]) =>
-      val callingContext = edge.exitState
+      val exitContext = edge.exitState
       val methodDeclaration = findMethod(current)
-      val tmpArguments = for ((param, index) <- methodDeclaration.returns.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+      val tmpReturns = for ((retVar, index) <- methodDeclaration.returns.zipWithIndex) yield {
+        ExpressionSet(VariableIdentifier(ReturnPrefix + index)(retVar.typ))
       }
-      var inputState = callingContext //initial(methodDeclaration.body) lub callingContext
-      // assign (temporary) arguments to parameters and remove the temp args
-      inputState = methodDeclaration.returns.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._2, ExpressionSet(tuple._1.variable.id)))
-      tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
+      var inputState = exitContext
+      // assign the methods actual returns to the temporary returns and remove the temp variables
+      inputState = methodDeclaration.returns.zip(tmpReturns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._2, ExpressionSet(tuple._1.variable.id)))
+      tmpReturns.foldLeft(inputState)((st, tmpRet) => st.removeVariable(tmpRet))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }
 }
