@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodEntryStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -19,20 +19,14 @@ import scala.collection.mutable
 
 object InterproceduralSilverInterpreter {
   /**
-    * The MethodEntryStatesMap keeps track of all the incoming states to a method.
-    * For each method call in the program the ProgramPoint and the state will be saved in this map.
+    * The MethodTransferStatesMap keeps track of all the incoming states to a method.
+    * For each method call in the program the ProgramPoint and the state will be saved in this map. In the forward analysis
+    * a state in here represents the arguments to a method. In the backward analysis these states represent the state
+    * of the Method's returns.
     *
     * @tparam S the type of the state
     */
-  type MethodEntryStatesMap[S] = mutable.Map[SilverIdentifier, mutable.Map[ProgramPoint, S]]
-
-  /**
-    * A datastructure used to store the exit states of an analzyed method. Context insensitive analyses
-    * can use this to lookup the effect of a called method.
-    *
-    * @tparam S the type of the state
-    */
-  type MethodExitStatesMap[S] = mutable.Map[SilverIdentifier, S]
+  type MethodTransferStatesMap[S] = mutable.Map[SilverIdentifier, mutable.Map[ProgramPoint, S]]
 
   /**
     * The CallGraphMap maps each method(SilverIdentifiers) to a set of it's callees.
@@ -72,16 +66,27 @@ case class DummyEdge[T](info: T) extends AuxiliaryEdge
   * analysed program. The inputState is a state where the parameters have been initialised using the arguments
   * from the calling context.
   *
-  * @param inputState a method declaration of the called method.
+  * @param inputState The state of the method's arguments in the calling context.
+  * @tparam S The type of the states.
   */
 case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 
+/**
+  * Represents the return edge of a method call. A MethodReturnEdge is for the backward analysis, what a MethodCallEdge
+  * is for the forward analysis. The exitState represents the state of the called method's returns in the calling context.
+  *
+  * @param exitState The state of the called method's returns in the calling context.
+  * @tparam S The type of the states.
+  */
 case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
 trait InterprocHelpers[S <: State[S]] {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
-  val methodEntryStates: MethodEntryStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
+  /** this map is used to store entry (forward) or exit (backward) states for method calls
+    * executeStatement() stores the states here and in-/outEdges then uses them to create MethodCall / MethodReturn edges
+    */
+  val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
   val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
   /*
@@ -146,10 +151,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       if (cfg(current).entry == current.block // only entry-blocks can have incoming MethodCall edges
         && callsInProgram.contains(method.name)) {
         val numInEdgesShould = callsInProgram(method.name).size
-        val numInEdgesIs = methodEntryStates(method.name).size
+        val numInEdgesIs = methodTransferStates(method.name).size
         val initialState = initial(cfg(current))
         val bottom = initialState.bottom()
-        (for (entryState <- methodEntryStates(method.name).values) yield {
+        (for (entryState <- methodTransferStates(method.name).values) yield {
           Right(MethodCallEdge(entryState))
         }).toSeq ++ Seq.fill(numInEdgesShould - numInEdgesIs)(Right(MethodCallEdge(bottom)))
       } else {
@@ -170,7 +175,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       */
     val method = findMethod(current)
     callsInProgram(method.name)
-      .filter(b => methodEntryStates(method.name)
+      .filter(b => methodTransferStates(method.name)
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
@@ -234,7 +239,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states
-      methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
+      methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
       worklist.enqueue((BlockPosition(methodDeclaration.body.entry, 0), false))
 
       //
@@ -321,10 +326,10 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       if (currentCfg.exit.isDefined && currentCfg.exit.get == current.block // only add edges for exit-blocks
         && callsInProgram.contains(method.name)) {
         val numEdgesShould = callsInProgram(method.name).size
-        val numEdgesIs = methodEntryStates(method.name).size
+        val numEdgesIs = methodTransferStates(method.name).size
         val initialState = initial(currentCfg)
         val bottom = initialState.bottom()
-        (for (entryState <- methodEntryStates(method.name).values) yield {
+        (for (entryState <- methodTransferStates(method.name).values) yield {
           Right(MethodReturnEdge(entryState))
         }).toSeq ++ Seq.fill(numEdgesShould - numEdgesIs)(Right(MethodCallEdge(bottom)))
       } else {
@@ -369,7 +374,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //context insensitive analysis: analyse the called method with the join of all calling states
-      methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
+      methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
       worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
 
       //
@@ -411,7 +416,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       */
     val method = findMethod(current)
     callsInProgram(method.name)
-      .filter(b => methodEntryStates(method.name)
+      .filter(b => methodTransferStates(method.name)
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
