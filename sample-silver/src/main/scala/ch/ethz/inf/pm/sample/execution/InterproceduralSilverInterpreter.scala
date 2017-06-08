@@ -335,7 +335,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
 
     current match {
-      case BlockPosition(_, i) if i == current.block.elements.size - 1 => super.outEdges(current, cfgResult) ++ createMethodReturnEdges()
+      case BlockPosition(_, i) if i == lastIndex(current) => super.outEdges(current, cfgResult) ++ createMethodReturnEdges()
       case _ => super.outEdges(current, cfgResult)
     }
   }
@@ -372,7 +372,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //context insensitive analysis: analyse the called method with the join of all calling states
       methodEntryStates(methodIdentifier) = methodEntryStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, methodDeclaration.body.exit.get.elements.size - 1), false))
+      worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
 
       //
       // if callee has been analyzed, merge results back into our state

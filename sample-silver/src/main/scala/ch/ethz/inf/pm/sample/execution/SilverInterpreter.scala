@@ -291,9 +291,23 @@ trait SilverBackwardInterpreter[S <: State[S]]
   extends SilverInterpreter[S]
     with LazyLogging {
 
+  /**
+    * Look up the bottom state for a cfg.
+    *
+    * @param cfg The control flow graph
+    * @return The bottom state for a given cfg.
+    */
   def bottom(cfg: SampleCfg): S = initial(cfg).bottom()
 
-  //TODO @flurin block.elements.size is quite costly. fix this
+  //BEGIN TODO @flurin these helper methods are to later memoize calls to elements.size because those numbers never change. or do they?
+  def lastIndex(current: BlockPosition): Int = lastIndex(current.block)
+
+  def lastIndex(block: SampleBlock): Int = numElementsInBlock(block) - 1
+
+  def numElementsInBlock(block: SampleBlock): Int = block.elements.size
+
+  //END TODO @flurin
+
   /**
     * Is called everytime the entry block of a CFG was executed
     *
@@ -303,7 +317,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
   protected def onEntryBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {}
 
   def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e: SampleEdge) if current.index == current.block.elements.size - 1 => cfgResult.getStates(e.target).head
+    case Left(e: SampleEdge) if current.index == lastIndex(current) => cfgResult.getStates(e.target).head
     case _ => cfgResult.postStateAt(current)
   }
 
@@ -316,7 +330,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
-    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue((BlockPosition(c.exit.get, c.exit.get.elements.size - 1), false)))
+    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue((BlockPosition(c.exit.get, lastIndex(c.exit.get)), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
     while (worklist.nonEmpty) {
@@ -351,7 +365,6 @@ trait SilverBackwardInterpreter[S <: State[S]]
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
           cfgResults(currentCfg).postStateAt(current) widening state
-          //cfgResults(currentCfg).getStates(current.block).last widening state //TODO @flurin postStateAt?
         } else {
           state
         }
@@ -359,11 +372,12 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
       // check for termination and execute block
       val oldStates = cfgResults(currentCfg).getStates(current.block)
-      val elemsToTake = current.index + 1 //current.block.elements.size - (current.index + 1) //TODO @flurin document this
+      // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
+      val elemsToTake = current.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
       if (!(exit lessEqual oldExit) || forceReinterpretStmt) {
         // execute block
-        val states = ListBuffer(oldStates.reverse.take(current.block.elements.size - elemsToTake): _*)
+        val states = ListBuffer(oldStates.reverse.take(numElementsInBlock(current.block) - elemsToTake): _*)
         states.append(exit)
         current.block match {
           case StatementBlock(statements) =>
@@ -408,7 +422,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         cfgResults(currentCfg).setStates(current.block, states.reverse.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg(current).predecessors(current.block).map(b => (BlockPosition(b, b.elements.size - 1), false)): _*)
+        worklist.enqueue(cfg(current).predecessors(current.block).map(b => (BlockPosition(b, lastIndex(b)), false)): _*)
         iterations.put(current, iteration + 1)
         //notify (subclasses) about processed entry blocks
         if (currentCfg.entry == current.block) {
@@ -463,7 +477,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
   }
 
   protected def outEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current match {
-    case BlockPosition(_, i) if i == current.block.elements.size - 1 => cfg(current).outEdges(current.block).map(Left(_))
+    case BlockPosition(_, i) if i == lastIndex(current) => cfg(current).outEdges(current.block).map(Left(_))
     case _ => Seq(Right(DummyEdge(current)))
   }
 }
