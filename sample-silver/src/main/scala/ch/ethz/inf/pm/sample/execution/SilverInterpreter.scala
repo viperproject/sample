@@ -402,14 +402,19 @@ trait SilverBackwardInterpreter[S <: State[S]]
               predecessor
             }
           case LoopHeadBlock(invariants, statements) =>
+            // The elements in the LoopHeadBlock are stored as invariants ++ statements
+            // we need to figure out wheter current.index points to a location in the statements or in the
+            // invariants. numStatementsToTake may be negative but that's ok because Seq(....).take(-1) == Nil
+            val numStatementsToTake = elemsToTake - invariants.size
+            val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
-            val intermediate = statements.take(elemsToTake).foldRight(exit) { (statement, successor) =>
+            val intermediate = statements.take(numStatementsToTake).foldRight(exit) { (statement, successor) =>
               val predecessor = executeStatement(statement, successor, worklist, cfgResults)
               states.append(predecessor)
               predecessor
             }
             // process invariants
-            invariants.take(elemsToTake - statements.size).foldRight(intermediate) { (invariant, successor) =>
+            invariants.take(numInvariantsToTake).foldRight(intermediate) { (invariant, successor) =>
               val predecessor = executeCommand(InvariantCommand, invariant, successor)
               states.append(predecessor)
               predecessor
