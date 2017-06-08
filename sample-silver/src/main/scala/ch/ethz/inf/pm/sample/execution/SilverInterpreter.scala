@@ -121,6 +121,7 @@ trait SilverForwardInterpreter[S <: State[S]]
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
     // initialize cfg result
     val cfgResults = initializeProgramResult(cfgs)
+    val starts = cfgs.map(_.entry).toSet
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]()
@@ -133,12 +134,12 @@ trait SilverForwardInterpreter[S <: State[S]]
       val iteration = iterations.getOrElse(current, 0)
 
       // compute entry state state of current block
-      val edges = inEdges(current, cfgResults)
-      val entry = if (current.block == currentCfg.entry && edges.isEmpty) {
+      val entry = if (starts contains current.block) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
         // join incoming states.
+        val edges = inEdges(current, cfgResults)
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(currentCfg), current, edge)
           // filter state if there is a condition
@@ -326,7 +327,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     val cfgResults: CfgResultMapType[S] = initializeProgramResult(cfgs)
 
     // TODO: Compute the list of starting points.
-    val starts = cfgs.flatMap(_.exit).toList
+    val starts = cfgs.flatMap(_.exit).toSet
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
@@ -339,7 +340,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
       val iteration = iterations.getOrElse(current, 0)
 
       // compute exit state of current block
-      val exit = if (starts contains current.block) { //TODO @flurin
+      val exit = if (starts contains current.block) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
