@@ -31,14 +31,14 @@ import scala.collection.mutable.ListBuffer
   */
 trait SilverInterpreter[S <: State[S]] {
   /**
-    * Look up the CFG containing the given blockPosition. Intraprocedural interpreters can always return the same
+    * Look up the CFG for the current worklist element. Intraprocedural interpreters can always return the same
     * CFG (there is only one cfg to analyze). Interprocedural interpreters on the other hand need to look up the
-    * method/cfg depending on the blockPosition.
+    * method/cfg depending on the actual element in the worklist.
     *
-    * @param blockPosition The BlockPosition
+    * @param current The element in the worklist
     * @return The SampleCfg containing this block
     */
-  def cfg(blockPosition: BlockPosition): SampleCfg
+  def cfg(current: WorklistElement): SampleCfg
 
   /**
     * Create or look up the initial state for a given cfg. Intraprocedural interpreters can always return the same
@@ -67,16 +67,29 @@ trait SilverInterpreter[S <: State[S]] {
   protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S]
 }
 
+/**
+  * the worklist of the interpreter consists of a blockposition and a boolean flag "forceReinterpretStmt"
+  * using BlockPosition any index within a block can be enqueued
+  * forceReinterpretStmt=true can be used to force re-interpretation of the enqueued position even though the
+  * successor state did not change. This is useful for example to merge the effect of a method call after the callee
+  * has been analyzed.
+  */
+trait WorklistElement {
+  val pos: BlockPosition
+  val forceReinterpretStmt: Boolean
+}
+
+/**
+  * Default implementation of @see WorklistElement
+  *
+  * @param pos                  enqueued BlockPosition
+  * @param forceReinterpretStmt helper flag to skip checking if inputState "goes up" in the lattice
+  */
+case class SimpleWorklistElement(val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement
+
 object SilverInterpreter {
 
-  /**
-    * the worklist of the (forward) interpreter consists of a blockposition and a boolean flag "forceReinterpretStmt"
-    * using BlockPosition any index within a block can be enqueued
-    * forceReinterpretStmt=true can be used to force re-interpretation of the enqueued position even though the
-    * successor state did not change. This is useful for example to merge the effect of a method call after the callee
-    * has been analyzed.
-    */
-  type InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]
+  type InterpreterWorklist = mutable.Queue[WorklistElement]
 
   /**
     * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map is used
@@ -104,7 +117,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {}
+  protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
@@ -124,17 +137,17 @@ trait SilverForwardInterpreter[S <: State[S]]
     val starts = cfgs.map(_.entry).toSet
 
     // prepare data structures
-    val worklist: InterpreterWorklist = mutable.Queue[(BlockPosition, Boolean)]()
-    cfgs.foreach(c => worklist.enqueue((BlockPosition(c.entry, 0), false)))
+    val worklist: InterpreterWorklist = mutable.Queue()
+    cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
     while (worklist.nonEmpty) {
-      val (current, forceReinterpretStmt) = worklist.dequeue()
+      val current = worklist.dequeue()
       val currentCfg = cfg(current)
-      val iteration = iterations.getOrElse(current, 0)
+      val iteration = iterations.getOrElse(current.pos, 0)
 
       // compute entry state state of current block
-      val entry = if (starts contains current.block) {
+      val entry = if (starts contains current.pos.block) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
@@ -159,21 +172,21 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(currentCfg).preStateAt(current) widening state
+          cfgResults(currentCfg).preStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(currentCfg).getStates(current.block)
-      val numToSkip = current.index
-      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(currentCfg).preStateAt(current)
-      if (!(entry lessEqual oldEntry) || forceReinterpretStmt) {
+      val oldStates = cfgResults(currentCfg).getStates(current.pos.block)
+      val numToSkip = current.pos.index
+      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(currentCfg).preStateAt(current.pos)
+      if (!(entry lessEqual oldEntry) || current.forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.take(numToSkip): _*)
         states.append(entry)
-        current.block match {
+        current.pos.block match {
           case StatementBlock(statements) =>
             // execute statements
             var predecessor = entry
@@ -215,13 +228,13 @@ trait SilverForwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.block, states.toList)
+        cfgResults(currentCfg).setStates(current.pos.block, states.toList)
         // update worklist and iteration count
-        worklist.enqueue(currentCfg.successors(current.block).map(b => (BlockPosition(b, 0), false)): _*)
-        iterations.put(current, iteration + 1)
+        worklist.enqueue(currentCfg.successors(current.pos.block).map(b => SimpleWorklistElement(BlockPosition(b, 0), false)): _*)
+        iterations.put(current.pos, iteration + 1)
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
-        if (exitBlock.isDefined && exitBlock.get == current.block) {
+        if (exitBlock.isDefined && exitBlock.get == current.pos.block) {
           onExitBlockExecuted(current, worklist)
         }
       }
@@ -239,11 +252,9 @@ trait SilverForwardInterpreter[S <: State[S]]
     */
   def bottom(cfg: SampleCfg): S = initial(cfg).bottom()
 
-  protected def inEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
-    current match {
-      case BlockPosition(_, 0) => cfg(current).inEdges(current.block).map(Left(_))
-      case _ => Seq(Right(DummyEdge(current))) // just let the interpreter know that we jump to current for any reason
-    }
+  protected def inEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
+    case BlockPosition(_, 0) => cfg(current).inEdges(current.pos.block).map(Left(_))
+    case _ => Seq(Right(DummyEdge(current))) // just let the interpreter know that we jump to current for any reason
   }
 
   private def assumeCondition(condition: Statement, state: S): S = {
@@ -255,9 +266,9 @@ trait SilverForwardInterpreter[S <: State[S]]
     successor
   }
 
-  protected def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e) if current.index == 0 => cfgResult.getStates(e.source).last
-    case _ => cfgResult.preStateAt(current)
+  protected def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+    case Left(e) if current.pos.index == 0 => cfgResult.getStates(e.source).last
+    case _ => cfgResult.preStateAt(current.pos)
   }
 
   protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
@@ -302,6 +313,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   /**
     * Helper that computes the last position in a block that can be enqueued to the worklist
+    *
     * @param current A position anywhere in a block
     * @return The index of the last existing position in the block
     */
@@ -309,6 +321,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   /**
     * Helper that computes the last position in a block that can be enqueued to the worklist
+    *
     * @param block The block to look at
     * @return The index of the last existing position in the block
     */
@@ -336,11 +349,11 @@ trait SilverBackwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  protected def onEntryBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {}
+  protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {}
 
-  def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e: SampleEdge) if current.index == lastIndex(current) => cfgResult.getStates(e.target).head
-    case _ => cfgResult.postStateAt(current)
+  def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+    case Left(e: SampleEdge) if current.pos.index == lastIndex(current.pos) => cfgResult.getStates(e.target).head
+    case _ => cfgResult.postStateAt(current.pos)
   }
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
@@ -352,16 +365,16 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
-    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue((BlockPosition(c.exit.get, lastIndex(c.exit.get)), false)))
+    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), false)))
     val iterations = mutable.Map[BlockPosition, Int]()
 
     while (worklist.nonEmpty) {
-      val (current, forceReinterpretStmt) = worklist.dequeue()
+      val current = worklist.dequeue()
       val currentCfg = cfg(current)
-      val iteration = iterations.getOrElse(current, 0)
+      val iteration = iterations.getOrElse(current.pos, 0)
 
       // compute exit state of current block
-      val exit = if (starts contains current.block) {
+      val exit = if (starts contains current.pos.block) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
@@ -386,22 +399,22 @@ trait SilverBackwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(currentCfg).postStateAt(current) widening state
+          cfgResults(currentCfg).postStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(currentCfg).getStates(current.block)
+      val oldStates = cfgResults(currentCfg).getStates(current.pos.block)
       // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
-      val elemsToTake = current.index + 1
+      val elemsToTake = current.pos.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
-      if (!(exit lessEqual oldExit) || forceReinterpretStmt) {
+      if (!(exit lessEqual oldExit) || current.forceReinterpretStmt) {
         // execute block
-        val states = ListBuffer(oldStates.reverse.take(numElementsInBlock(current.block) - elemsToTake): _*)
+        val states = ListBuffer(oldStates.reverse.take(numElementsInBlock(current.pos.block) - elemsToTake): _*)
         states.append(exit)
-        current.block match {
+        current.pos.block match {
           case StatementBlock(statements) =>
             // execute statements
             statements.take(elemsToTake).foldRight(exit) { (statement, successor) =>
@@ -446,13 +459,13 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.block, states.reverse.toList)
+        cfgResults(currentCfg).setStates(current.pos.block, states.reverse.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg(current).predecessors(current.block).map(b => (BlockPosition(b, lastIndex(b)), false)): _*)
-        iterations.put(current, iteration + 1)
+        worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => SimpleWorklistElement(BlockPosition(b, lastIndex(b)), false)): _*)
+        iterations.put(current.pos, iteration + 1)
         //notify (subclasses) about processed entry blocks
-        if (currentCfg.entry == current.block) {
+        if (currentCfg.entry == current.pos.block) {
           onEntryBlockExecuted(current, worklist)
         }
       }
@@ -503,8 +516,8 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def outEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current match {
-    case BlockPosition(_, i) if i == lastIndex(current) => cfg(current).outEdges(current.block).map(Left(_))
+  protected def outEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
+    case BlockPosition(_, i) if i == lastIndex(current.pos) => cfg(current).outEdges(current.pos.block).map(Left(_))
     case _ => Seq(Right(DummyEdge(current)))
   }
 }
@@ -528,7 +541,7 @@ case class FinalResultForwardInterpreter[S <: State[S]](cfg: SampleCfg, initial:
 
   override def initial(cfg: SampleCfg): S = initial
 
-  override def cfg(blockPosition: BlockPosition): SampleCfg = cfg
+  override def cfg(blockPosition: WorklistElement): SampleCfg = cfg
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
@@ -554,7 +567,7 @@ case class FinalResultBackwardInterpreter[S <: State[S]](cfg: SampleCfg, initial
 
   override def initial(cfg: SampleCfg): S = initial
 
-  override def cfg(blockPosition: BlockPosition): SampleCfg = cfg
+  override def cfg(blockPosition: WorklistElement): SampleCfg = cfg
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))

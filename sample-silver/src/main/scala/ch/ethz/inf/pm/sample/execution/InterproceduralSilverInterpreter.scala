@@ -105,6 +105,8 @@ trait InterprocHelpers[S <: State[S]] {
     res
   }
 
+  protected def findMethod(current: WorklistElement): SilverMethodDeclaration = findMethod(current.pos)
+
   protected def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
     methods(Right(blockPosition.block))
   }
@@ -137,7 +139,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     programResult
   }
 
-  override protected def inEdges(current: BlockPosition, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  override protected def inEdges(current: WorklistElement, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     /**
       * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
       * we'll add a MethodCallEdge. The number of edges should equal the number of calls. But it's possible that
@@ -148,7 +150,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
       lazy val method = findMethod(current)
-      if (cfg(current).entry == current.block // only entry-blocks can have incoming MethodCall edges
+      if (cfg(current).entry == current.pos.block // only entry-blocks can have incoming MethodCall edges
         && callsInProgram.contains(method.name)) {
         val numInEdgesShould = callsInProgram(method.name).size
         val numInEdgesIs = methodTransferStates(method.name).size
@@ -162,13 +164,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       }
     }
 
-    current match {
+    current.pos match {
       case BlockPosition(_, 0) => super.inEdges(current, cfgResult) ++ createMethodCallEdges()
       case _ => super.inEdges(current, cfgResult)
     }
   }
 
-  override protected def onExitBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {
+  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {
     /**
       * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
       * of this method. This way the new analysis results will be merged into the caller state.
@@ -179,18 +181,18 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
-      .foreach(b => worklist.enqueue((b, true)))
+      .foreach(b => worklist.enqueue(SimpleWorklistElement(b, true)))
   }
 
   override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
-  override def cfg(blockPosition: BlockPosition): SampleCfg = {
+  override def cfg(blockPosition: WorklistElement): SampleCfg = {
     findMethod(blockPosition).body
   }
 
-  override def getPredecessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+  override def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     // For MethodCallEdges use an empty state with the arguments from the call
     case Right(edge: MethodCallEdge[S]) =>
       val callingContext = edge.inputState
@@ -240,7 +242,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       //context insensitive analysis: analyse the called method with the join of all calling states
       methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue((BlockPosition(methodDeclaration.body.entry, 0), false))
+      worklist.enqueue(SimpleWorklistElement(BlockPosition(methodDeclaration.body.entry, 0), false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -315,15 +317,15 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     builder.build(program, findMethod(BlockPosition(cfg.exit.get, 0)))
   }
 
-  override def cfg(blockPosition: BlockPosition): SampleCfg = {
+  override def cfg(blockPosition: WorklistElement): SampleCfg = {
     findMethod(blockPosition).body
   }
 
-  override protected def outEdges(current: BlockPosition, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  override protected def outEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
       lazy val method = findMethod(current)
       val currentCfg = cfg(current)
-      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.block // only add edges for exit-blocks
+      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block // only add edges for exit-blocks
         && callsInProgram.contains(method.name)) {
         val numEdgesShould = callsInProgram(method.name).size
         val numEdgesIs = methodTransferStates(method.name).size
@@ -337,8 +339,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       }
     }
 
-    current match {
-      case BlockPosition(_, i) if i == lastIndex(current) => super.outEdges(current, cfgResult) ++ createMethodReturnEdges()
+    current.pos match {
+      case BlockPosition(_, i) if i == lastIndex(current.pos) => super.outEdges(current, cfgResult) ++ createMethodReturnEdges()
       case _ => super.outEdges(current, cfgResult)
     }
   }
@@ -374,7 +376,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //context insensitive analysis: analyse the called method with the join of all calling states
       methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue((BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+      worklist.enqueue(SimpleWorklistElement(BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -408,7 +410,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  override protected def onEntryBlockExecuted(current: BlockPosition, worklist: InterpreterWorklist): Unit = {
+  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {
     /**
       * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
       * of this method. This way the new analysis results will be merged into the caller state.
@@ -419,10 +421,10 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
-      .foreach(b => worklist.enqueue((b, true)))
+      .foreach(b => worklist.enqueue(SimpleWorklistElement(b, true)))
   }
 
-  override def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+  override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Right(edge: MethodReturnEdge[S]) =>
       val exitContext = edge.exitState
       val methodDeclaration = findMethod(current)
