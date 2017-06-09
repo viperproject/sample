@@ -288,6 +288,148 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
 }
 
 /**
+  * Tests for the context sensitive interprocedural analysis
+  * Similar to the context-Insensitive tests. But here precise results are expected.
+  *
+  * @author Flurin Rindisbacher
+  */
+class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
+
+  private def checkVariableInExitState(programResult: ProgramResult[IntegerIntervalAnalysisState],
+                                       method: String, variable: String, expected: IntegerInterval, reason: String): Unit = {
+    val interval = programResult.getResult(SilverIdentifier(method)).exitState().domain.get(VariableIdentifier(variable)(DummyIntegerType))
+    assert(expected.equivalent(interval), s"$variable is: $interval but: $reason")
+  }
+
+  test("nop") {
+    val programResult = run(
+      """
+        method foo() {
+          var z : Int := 1
+          var i : Int := 2
+          i := nop(i)
+          i := i + 1
+        }
+
+        method nop(i: Int) returns (k: Int) {
+          k := i
+        }
+      """.stripMargin
+    )
+    checkVariableInExitState(programResult, "foo", "z", IntegerInterval.Inner(1, 1), "z should not change")
+    checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(3, 3), "i should be 3")
+  }
+
+  test("precise-recursion") {
+    val programResult = run(
+      """
+        method foo()
+        {
+            var i: Int := 10
+            i := bar(i)
+        } // expected exitState: i -> [0, 0]
+
+        method bar(j: Int) returns (k: Int)
+        {
+            if(j > 0) {
+                k := bar(j - 1)
+            } else {
+                k := j
+            }
+        } // expected exitState: j -> [-inf, 10], k -> [-inf, 0]
+      """.stripMargin
+    )
+    checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(0, 0), "i should be [0, 0]")
+  }
+
+  test("multiple-callers") {
+    val programResult = run(
+      """
+        method foo(this: Ref)
+        {
+            var i: Int := 0
+            i := bar(this, i)
+        }
+
+        method bar(this: Ref, i: Int) returns (k: Int)
+        {
+            k := i + 1
+        }
+
+        method test(this: Ref) {
+          var i: Int := 2
+          i := bar(this, i)
+          i := i
+        }
+      """.stripMargin
+    )
+    checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(1, 1), "i should be [1,1]")
+    checkVariableInExitState(programResult, "test", "i", IntegerInterval.Inner(1, 3), "i should be [3,3]")
+  }
+
+  test("dummy-main-recursive") {
+    // Test for:
+    // https://bitbucket.org/viperproject/sample/pull-requests/12/context-insensitive-forward-analysis/activity#comment-37181754
+    val programResult = run(
+      """
+        //
+        // foo() has one in-edge (MethodCallEdge) that doesn't contribute anything to the incoming state (it's bottom at the beginning)
+        // In that case we expect to analysis to start with the "initial" state instead of merging all the in-edges.
+        // foo() is "promoted to be a main method"
+        //
+        method foo(a: Int) returns (x: Int) {
+            if (a > 0) {
+                x := foo(a - 1)
+            } else {
+                x := 0
+            }
+        }
+      """.stripMargin
+    )
+    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(0, 0), "x should be [0, 0]")
+  }
+
+  test("dummy-main-connected-component") {
+    // Test for:
+    // https://bitbucket.org/viperproject/sample/pull-requests/12/context-insensitive-forward-analysis/activity#comment-37181754
+    val programResult = run(
+      """
+        //
+        // Similar test to dummy-main-recursive above. Here the two methods build a strongly connected component
+        // at the top of the call graph. Both methods should therefore be promoted to "main methods" and be analysed
+        // using the "initial" state.
+        //
+        method foo(a: Int) returns (x: Int) { // for a main-method a is expected to be Top
+            if (a > 0) {
+                x := bar(-a)                  // bar([-inf, -1]) => x -> [-inf, -1]
+            } else {
+                x := a                        // x -> [-inf, 0]
+            }
+        }                                     // expected result is x -> [-inf, 0]
+
+        method bar(b: Int) returns (y: Int) { // for a main-method b is expected to be Top
+            if (b > 0) {
+              y := foo(-b)                    // foo([-inf, -1]) => y -> [-inf, -1]
+            } else {
+              y := b                          // y -> [-inf, 0]
+            }
+        }                                     // expected result is y -> [-inf, 0]
+      """.stripMargin
+    )
+    checkVariableInExitState(programResult, "foo", "a", IntegerInterval.Top, "a should be Top")
+    checkVariableInExitState(programResult, "bar", "b", IntegerInterval.Top, "b should be Top")
+    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(Int.MinValue, 0), "x should be [-inf, 0]")
+    checkVariableInExitState(programResult, "bar", "y", IntegerInterval.Inner(Int.MinValue, 0), "y should be [-inf, 0]")
+  }
+
+  def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
+    InterproceduralIntegerIntervalAnalysis.run(
+      Compilable.Code("(no name)", s)
+    )
+  }
+}
+
+/**
   * Tests the context-insensitive backward analysis by running a couple of interproc strongly live variable analyses
   *
   * Interproc-Strongly-Live-Variant:
