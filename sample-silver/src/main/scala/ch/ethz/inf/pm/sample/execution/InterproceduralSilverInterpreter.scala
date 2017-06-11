@@ -80,6 +80,17 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
   */
 case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
+
+case class TaggedWorklistElement(val callString: Seq[ProgramPoint],
+                                 override val pos: BlockPosition,
+                                 override val forceReinterpretStmt: Boolean) extends WorklistElement {
+
+  override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
+    copy(pos = newPos, forceReinterpretStmt = newForceReinterpretStmt)
+  }
+
+}
+
 trait InterprocHelpers[S <: State[S]] {
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
@@ -181,7 +192,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
-      .foreach(b => worklist.enqueue(SimpleWorklistElement(b, true)))
+      .foreach(b => worklist.enqueue(current.createSuccessorForEnqeueue(b, true)))
   }
 
   override def initial(cfg: SampleCfg): S = {
@@ -207,7 +218,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -240,9 +251,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-      //context insensitive analysis: analyse the called method with the join of all calling states
+      //Enqueue the called method for analysis and grow the callstring
+      val callString = current match {
+        case tagged: TaggedWorklistElement => tagged.callString :+ statement.getPC()
+        case _ => Seq(statement.getPC())
+      }
+      //TODO @flurin tag the transfer state also with the callstring
       methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue(SimpleWorklistElement(BlockPosition(methodDeclaration.body.entry, 0), false))
+      worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -254,7 +270,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
       resultState
-    case _ => super.executeStatement(statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, worklist, programResult)
   }
 }
 
@@ -345,7 +361,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -374,9 +390,14 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-      //context insensitive analysis: analyse the called method with the join of all calling states
+      //Enqueue the called method for analysis and grow the callstring
+      val callString = current match {
+        case tagged: TaggedWorklistElement => tagged.callString :+ statement.getPC()
+        case _ => Seq(statement.getPC())
+      }
+      //TODO @flurin tag the transfer state also with the callstring
       methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
-      worklist.enqueue(SimpleWorklistElement(BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+      worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -400,7 +421,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
       resultState
-    case _ => super.executeStatement(statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, worklist, programResult)
   }
 
 
@@ -421,7 +442,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         // only enqueue blocks that have been analysed before
         .contains(b.block.elements(b.index).merge.getPC())
       )
-      .foreach(b => worklist.enqueue(SimpleWorklistElement(b, true)))
+      .foreach(b => worklist.enqueue(current.createSuccessorForEnqeueue(b, true)))
   }
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {

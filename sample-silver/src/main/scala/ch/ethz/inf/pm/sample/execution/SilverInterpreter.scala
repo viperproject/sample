@@ -77,15 +77,31 @@ trait SilverInterpreter[S <: State[S]] {
 trait WorklistElement {
   val pos: BlockPosition
   val forceReinterpretStmt: Boolean
+
+  /**
+    * Creates a new WorklistElement. This method can be used to introduce a relationship between the elements in the
+    * worklist and the then-current element that added them to the wl.
+    * A useful example could be when we need to tag all worklist elements (e.g. call-strings) and want to preserve
+    * the tag throughout the whole analysis.
+    *
+    * @param newPos
+    * @param newForceReinterpretStmt
+    * @return
+    */
+  def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
 }
 
 /**
-  * Default implementation of @see WorklistElement
+  * A default implementation for @see WorklistElement
   *
   * @param pos                  enqueued BlockPosition
   * @param forceReinterpretStmt helper flag to skip checking if inputState "goes up" in the lattice
   */
-case class SimpleWorklistElement(val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement
+case class SimpleWorklistElement private (val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement {
+  override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
+    copy(pos=newPos, forceReinterpretStmt=newForceReinterpretStmt)
+  }
+}
 
 object SilverInterpreter {
 
@@ -191,7 +207,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = entry
             statements.drop(numToSkip).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist, cfgResults)
+              val successor = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
             })
@@ -219,7 +235,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = intermediate
             statements.drop(numToSkip - invariants.size).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist, cfgResults)
+              val successor = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
             })
@@ -230,7 +246,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         cfgResults(currentCfg).setStates(current.pos.block, states.toList)
         // update worklist and iteration count
-        worklist.enqueue(currentCfg.successors(current.pos.block).map(b => SimpleWorklistElement(BlockPosition(b, 0), false)): _*)
+        worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
         iterations.put(current.pos, iteration + 1)
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
@@ -271,7 +287,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current.pos)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -418,7 +434,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             statements.take(elemsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(statement, successor, worklist, cfgResults)
+              val predecessor = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
               predecessor
             }
@@ -444,7 +460,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
             val intermediate = statements.take(numStatementsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(statement, successor, worklist, cfgResults)
+              val predecessor = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
               predecessor
             }
@@ -462,7 +478,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         cfgResults(currentCfg).setStates(current.pos.block, states.reverse.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => SimpleWorklistElement(BlockPosition(b, lastIndex(b)), false)): _*)
+        worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
         iterations.put(current.pos, iteration + 1)
         //notify (subclasses) about processed entry blocks
         if (currentCfg.entry == current.pos.block) {
@@ -496,7 +512,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     logger.trace(successor.toString)
