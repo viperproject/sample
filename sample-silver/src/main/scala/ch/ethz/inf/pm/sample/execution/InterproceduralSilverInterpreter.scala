@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, CallString, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -26,7 +26,7 @@ object InterproceduralSilverInterpreter {
     *
     * @tparam S the type of the state
     */
-  type MethodTransferStatesMap[S] = mutable.Map[SilverIdentifier, mutable.Map[ProgramPoint, S]]
+  type MethodTransferStatesMap[S] = mutable.Map[(CallString, SilverIdentifier), S]
 
   /**
     * The CallGraphMap maps each method(SilverIdentifiers) to a set of it's callees.
@@ -35,6 +35,12 @@ object InterproceduralSilverInterpreter {
     * the next instruction after the method call.
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+
+  /**
+    * Type to represent a call-string for interprocedural analysis
+    * TODO @flurin should we append to the left or right for growing the call-string?
+    */
+  type CallString = Seq[ProgramPoint]
 
   /**
     * Prefix to be used for temporary method arguments.
@@ -81,7 +87,7 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
 
-case class TaggedWorklistElement(val callString: Seq[ProgramPoint],
+case class TaggedWorklistElement(val callString: CallString,
                                  override val pos: BlockPosition,
                                  override val forceReinterpretStmt: Boolean) extends WorklistElement {
 
@@ -97,7 +103,7 @@ trait InterprocHelpers[S <: State[S]] {
   /** this map is used to store entry (forward) or exit (backward) states for method calls
     * executeStatement() stores the states here and in-/outEdges then uses them to create MethodCall / MethodReturn edges
     */
-  val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map().withDefault(_ => mutable.Map())
+  val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map()
   val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
   /*
@@ -163,13 +169,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       lazy val method = findMethod(current)
       if (cfg(current).entry == current.pos.block // only entry-blocks can have incoming MethodCall edges
         && callsInProgram.contains(method.name)) {
-        val numInEdgesShould = callsInProgram(method.name).size
-        val numInEdgesIs = methodTransferStates(method.name).size
-        val initialState = initial(cfg(current))
-        val bottom = initialState.bottom()
-        (for (entryState <- methodTransferStates(method.name).values) yield {
-          Right(MethodCallEdge(entryState))
-        }).toSeq ++ Seq.fill(numInEdgesShould - numInEdgesIs)(Right(MethodCallEdge(bottom)))
+        current match {
+          case TaggedWorklistElement(callString, _, _) =>
+            val initialState = initial(cfg(current))
+            val bottom = initialState.bottom()
+            if (methodTransferStates contains(callString, method.name))
+              Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
+            else
+              Seq(Right(MethodCallEdge(bottom)))
+        }
       } else {
         Nil
       }
@@ -188,11 +196,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       */
     val method = findMethod(current)
     callsInProgram(method.name)
-      .filter(b => methodTransferStates(method.name)
-        // only enqueue blocks that have been analysed before
-        .contains(b.block.elements(b.index).merge.getPC())
-      )
-      .foreach(b => worklist.enqueue(current.createSuccessorForEnqeueue(b, true)))
+      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
+      // only enqueue blocks that have been analysed before
+      //  .contains(b.block.elements(b.index).merge.getPC())
+      //)
+      .foreach(b => {
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString.length > 0 && b.block.elements(b.index).merge.getPC() == callString.reverse.head => // TODO @flurin fix this!
+          worklist.enqueue(TaggedWorklistElement(callString.reverse.drop(1).reverse, b, true))
+        case _ =>
+      }
+    })
   }
 
   override def initial(cfg: SampleCfg): S = {
@@ -257,14 +271,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case _ => Seq(statement.getPC())
       }
       //TODO @flurin tag the transfer state also with the callstring
-      methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
+      methodTransferStates((callString, methodIdentifier)) = tmpVariableState
       worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val exitState = programResult(current, methodDeclaration.body).exitState()
+      val analyzed = TaggedWorklistElement(callString, null, false) //TODO @flurin that's ugly
+    val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
@@ -302,11 +317,18 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
 
-    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+    def lookup(res: mutable.Map[(CallString, SampleCfg), CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = current match {
+      case TaggedWorklistElement(callString, _, _) =>
+        if (!(res contains(callString, cfg)))
+          res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg))) //TODO @flurin should clone the result here?
+        res((callString, cfg))
+      case _ =>
+        res((Nil, cfg))
+    }
 
-    lookup((for (method <- program.methods) yield {
-      method.body -> programResult.getResult(method.name)
-    }).toMap)
+    lookup(mutable.Map((for (method <- program.methods) yield {
+      (Nil, method.body) -> programResult.getResult(method.name)
+    }): _*))
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
@@ -346,13 +368,15 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val currentCfg = cfg(current)
       if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block // only add edges for exit-blocks
         && callsInProgram.contains(method.name)) {
-        val numEdgesShould = callsInProgram(method.name).size
-        val numEdgesIs = methodTransferStates(method.name).size
-        val initialState = initial(currentCfg)
-        val bottom = initialState.bottom()
-        (for (entryState <- methodTransferStates(method.name).values) yield {
-          Right(MethodReturnEdge(entryState))
-        }).toSeq ++ Seq.fill(numEdgesShould - numEdgesIs)(Right(MethodCallEdge(bottom)))
+        current match {
+          case TaggedWorklistElement(callString, _, _) =>
+            val initialState = initial(currentCfg)
+            val bottom = initialState.bottom()
+            if (methodTransferStates contains(callString, method.name))
+              Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
+            else
+              Seq(Right(MethodCallEdge(bottom)))
+        }
       } else {
         Nil
       }
@@ -399,7 +423,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case _ => Seq(statement.getPC())
       }
       //TODO @flurin tag the transfer state also with the callstring
-      methodTransferStates(methodIdentifier) = methodTransferStates(methodIdentifier) + (statement.getPC() -> tmpVariableState)
+      methodTransferStates((callString, methodIdentifier)) = tmpVariableState
       worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
 
       //
@@ -441,11 +465,17 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       */
     val method = findMethod(current)
     callsInProgram(method.name)
-      .filter(b => methodTransferStates(method.name)
-        // only enqueue blocks that have been analysed before
-        .contains(b.block.elements(b.index).merge.getPC())
-      )
-      .foreach(b => worklist.enqueue(current.createSuccessorForEnqeueue(b, true)))
+      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
+      // only enqueue blocks that have been analysed before
+      //  .contains(b.block.elements(b.index).merge.getPC())
+      //)
+      .foreach(b => {
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString.length > 0 => // TODO @flurin do not enqueue for empty callstrings. right?
+          worklist.enqueue(TaggedWorklistElement(callString.reverse.drop(1).reverse, b, true))
+        case _ =>
+      }
+    })
   }
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
