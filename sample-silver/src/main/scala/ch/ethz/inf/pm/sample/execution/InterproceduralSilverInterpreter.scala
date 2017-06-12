@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.{CallMethodBackwardsCommand, ReturnFromMethodCommand}
@@ -150,7 +150,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     programResult
   }
 
-  override protected def inEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  override protected def inEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     /**
       * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
       * we'll add a MethodCallEdge. The number of edges should equal the number of calls. But it's possible that
@@ -218,7 +218,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -264,7 +264,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val exitState = programResult(methodDeclaration.body).exitState()
+      val exitState = programResult(current, methodDeclaration.body).exitState()
       val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
@@ -295,15 +295,18 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
   // using "cfgs". (This is needed to initialize all callees too)
   //
-  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
     // initialize each CfgResult with its bottom state.
     programResult.initialize(c => {
       val stForCfg = bottom(c)
       initializeResult(c, stForCfg)
     })
-    (for (method <- program.methods) yield {
+
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+
+    lookup((for (method <- program.methods) yield {
       method.body -> programResult.getResult(method.name)
-    }).toMap
+    }).toMap)
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
@@ -337,7 +340,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     findMethod(blockPosition).body
   }
 
-  override protected def outEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  override protected def outEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
       lazy val method = findMethod(current)
       val currentCfg = cfg(current)
@@ -361,7 +364,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -403,7 +406,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val entryState = programResult(methodDeclaration.body).entryState()
+      val entryState = programResult(current, methodDeclaration.body).entryState()
 
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
@@ -472,15 +475,18 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
   // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
   // using "cfgs". (This is needed to initialize all callees too)
   //
-  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
     // initialize each CfgResult with its bottom state.
     programResult.initialize(c => {
       val stForCfg = bottom(c)
       initializeResult(c, stForCfg)
     })
-    (for (method <- program.methods) yield {
+
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+
+    lookup((for (method <- program.methods) yield {
       method.body -> programResult.getResult(method.name)
-    }).toMap
+    }).toMap)
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {

@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultMapType, InterpreterWorklist}
+import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import com.typesafe.scalalogging.LazyLogging
@@ -97,9 +97,9 @@ trait WorklistElement {
   * @param pos                  enqueued BlockPosition
   * @param forceReinterpretStmt helper flag to skip checking if inputState "goes up" in the lattice
   */
-case class SimpleWorklistElement private (val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement {
+case class SimpleWorklistElement private(val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement {
   override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
-    copy(pos=newPos, forceReinterpretStmt=newForceReinterpretStmt)
+    copy(pos = newPos, forceReinterpretStmt = newForceReinterpretStmt)
   }
 }
 
@@ -108,12 +108,14 @@ object SilverInterpreter {
   type InterpreterWorklist = mutable.Queue[WorklistElement]
 
   /**
-    * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map is used
-    * and later depending on the use case this can be converted into either a CfgResult or a ProgramResult
+    * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map/lookup functions is used
+    * and later depending on the use case this can be converted into either a CfgResult or a ProgramResult. For some
+    * (interprocedural) analyses the CfgResult depends on the current worklist element (e.g. call-string).
+    * That's why the result type is a Function from (WorklistElement, SampleCfg) to CfgResult
     *
     * @tparam S The type of the states
     */
-  type CfgResultMapType[S <: State[S]] = Map[SampleCfg, CfgResult[S]]
+  type CfgResultsType[S <: State[S]] = Function2[WorklistElement, SampleCfg, CfgResult[S]]
 }
 
 /**
@@ -139,15 +141,17 @@ trait SilverForwardInterpreter[S <: State[S]]
     * Create and initialize all CfgResults for the given cfgs
     *
     * @param cfgs the cfgs for which CfgResults should be created
-    * @return a map of all initialized CfgResults
+    * @return a map from cfg to CfgResult. The "worklist" argument is not necessary in the intraprocedural case
     */
-  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
-    (for (cfg <- cfgs) yield {
+  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+
+    lookup((for (cfg <- cfgs) yield {
       cfg -> initializeResult(cfg, bottom(cfg))
-    }).toMap
+    }).toMap)
   }
 
-  def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+  def execute(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
     // initialize cfg result
     val cfgResults = initializeProgramResult(cfgs)
     val starts = cfgs.map(_.entry).toSet
@@ -170,7 +174,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         // join incoming states.
         val edges = inEdges(current, cfgResults)
         for (edge <- edges) {
-          val predecessor = getPredecessorState(cfgResults(currentCfg), current, edge)
+          val predecessor = getPredecessorState(cfgResults(current, currentCfg), current, edge)
           // filter state if there is a condition
           val filtered = edge match {
             case Left(ConditionalEdge(condition, _, _, _)) => assumeCondition(condition, predecessor)
@@ -188,16 +192,16 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(currentCfg).preStateAt(current.pos) widening state
+          cfgResults(current, currentCfg).preStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(currentCfg).getStates(current.pos.block)
+      val oldStates = cfgResults(current, currentCfg).getStates(current.pos.block)
       val numToSkip = current.pos.index
-      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(currentCfg).preStateAt(current.pos)
+      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(current, currentCfg).preStateAt(current.pos)
       if (!(entry lessEqual oldEntry) || current.forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.take(numToSkip): _*)
@@ -244,7 +248,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.pos.block, states.toList)
+        cfgResults(current, currentCfg).setStates(current.pos.block, states.toList)
         // update worklist and iteration count
         worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
         iterations.put(current.pos, iteration + 1)
@@ -268,7 +272,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     */
   def bottom(cfg: SampleCfg): S = initial(cfg).bottom()
 
-  protected def inEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
+  protected def inEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
     case BlockPosition(_, 0) => cfg(current).inEdges(current.pos.block).map(Left(_))
     case _ => Seq(Right(DummyEdge(current))) // just let the interpreter know that we jump to current for any reason
   }
@@ -287,7 +291,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current.pos)
   }
 
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -372,9 +376,9 @@ trait SilverBackwardInterpreter[S <: State[S]]
     case _ => cfgResult.postStateAt(current.pos)
   }
 
-  def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
+  def execute(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
     // initialize cfg result
-    val cfgResults: CfgResultMapType[S] = initializeProgramResult(cfgs)
+    val cfgResults: CfgResultsType[S] = initializeProgramResult(cfgs)
 
     // TODO: Compute the list of starting points.
     val starts = cfgs.flatMap(_.exit).toSet
@@ -397,7 +401,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         // join outgoing states
         val edges = outEdges(current, cfgResults)
         for (edge <- edges) {
-          val successor = getSuccessorState(cfgResults(currentCfg), current, edge)
+          val successor = getSuccessorState(cfgResults(current, currentCfg), current, edge)
           // handle in and out edges
           val adapted = if (edge.isLeft) edge.left.get.kind match {
             case Kind.In => successor.command(EnterLoopCommand())
@@ -415,14 +419,14 @@ trait SilverBackwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(currentCfg).postStateAt(current.pos) widening state
+          cfgResults(current, currentCfg).postStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(currentCfg).getStates(current.pos.block)
+      val oldStates = cfgResults(current, currentCfg).getStates(current.pos.block)
       // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
       val elemsToTake = current.pos.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
@@ -475,7 +479,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.pos.block, states.reverse.toList)
+        cfgResults(current, currentCfg).setStates(current.pos.block, states.reverse.toList)
 
         // update worklist and iteration count
         worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
@@ -495,12 +499,14 @@ trait SilverBackwardInterpreter[S <: State[S]]
     * Create and initialize all CfgResults for the given cfgs
     *
     * @param cfgs the cfgs for which CfgResults should be created
-    * @return a map of all initialized CfgResults
+    * @return a map from cfg to CfgResult. The "worklist" argument is not necessary in the intraprocedural case
     */
-  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
-    (for (cfg <- cfgs) yield {
+  protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+
+    lookup((for (cfg <- cfgs) yield {
       cfg -> initializeResult(cfg, bottom(cfg))
-    }).toMap
+    }).toMap)
   }
 
   private def assumeCondition(condition: Statement, state: S): S = {
@@ -512,7 +518,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     logger.trace(successor.toString)
@@ -532,7 +538,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def outEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
+  protected def outEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = current.pos match {
     case BlockPosition(_, i) if i == lastIndex(current.pos) => cfg(current).outEdges(current.pos.block).map(Left(_))
     case _ => Seq(Right(DummyEdge(current)))
   }
@@ -561,7 +567,7 @@ case class FinalResultForwardInterpreter[S <: State[S]](cfg: SampleCfg, initial:
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
-    result(cfg)
+    result(null, cfg) //TODO @flurin "null"
   }
 }
 
@@ -587,6 +593,6 @@ case class FinalResultBackwardInterpreter[S <: State[S]](cfg: SampleCfg, initial
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
-    result(cfg)
+    result(null, cfg) //TODO @flurin "null"
   }
 }
