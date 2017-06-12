@@ -364,7 +364,7 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
       """.stripMargin
     )
     checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(1, 1), "i should be [1,1]")
-    checkVariableInExitState(programResult, "test", "i", IntegerInterval.Inner(1, 3), "i should be [3,3]")
+    checkVariableInExitState(programResult, "test", "i", IntegerInterval.Inner(3, 3), "i should be [3,3]")
   }
 
   test("dummy-main-recursive") {
