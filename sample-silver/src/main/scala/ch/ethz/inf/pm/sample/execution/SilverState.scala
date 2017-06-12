@@ -6,8 +6,10 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet, Lattice, SimpleState}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethodDeclaration
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall}
 import ch.ethz.inf.pm.sample.permissionanalysis._
 
 /**
@@ -21,6 +23,8 @@ import ch.ethz.inf.pm.sample.permissionanalysis._
 trait SilverState[S <: SilverState[S]]
   extends SimpleState[S] {
   this: S =>
+
+  import InterproceduralSilverInterpreter.ReturnPrefix
 
   /** Executes the given command.
     *
@@ -36,6 +40,7 @@ trait SilverState[S <: SilverState[S]]
       case InvariantCommand(expression) => invariant(expression)
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
+      case cmd: ReturnFromMethodCommand[S] => returnFromMethod(cmd.methodDeclaration, cmd.methodCall, cmd.targetExpressions, cmd.exitState)
     }
     case _ => super.command(cmd)
   }
@@ -172,4 +177,33 @@ trait SilverState[S <: SilverState[S]]
     * @return The state after leaving the loop.
     */
   def leaveLoop(): S = this
+
+  /**
+    * Returns a state where methodCall.targets gets the values of the the called methods returns.
+    * methodCall.targets.head would "get" "ReturnPrefix"1 and so on
+    *
+    * @param methodDeclaration The method declaration of the callee
+    * @param methodCall        The statement in the caller that calls the method
+    * @param targetExpressions The target expressions that will receive the callee's returns
+    * @param exitState         The exit state of the callee (from a previous analysis)
+    * @return
+    */
+  def returnFromMethod(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S): S = {
+    var index = 0
+    var st = exitState
+    val returnVariableMapping = for ((formalRetVar, targetVar) <- methodDeclaration.returns.zip(targetExpressions)) yield {
+      // formalRetVar = the variable declared in returns(...) of the method
+      // targetVar = the target-expression which we'll assign to later
+      val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(formalRetVar.typ))
+      index += 1
+      st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
+      (targetVar, exp)
+    }
+    st = st.ids.toSetOrFail // let's remove all non temporary-ret-variables
+      .filter(id => !id.getName.startsWith(ReturnPrefix))
+      .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+    // map return values to temp variables and remove all temporary ret variables
+    val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
+  }
 }
