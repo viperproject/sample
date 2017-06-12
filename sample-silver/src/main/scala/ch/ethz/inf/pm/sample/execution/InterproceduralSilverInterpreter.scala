@@ -150,7 +150,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     programResult
   }
 
-  override protected def inEdges(current: WorklistElement, cfgResult: Map[SampleCfg, CfgResult[S]]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
+  override protected def inEdges(current: WorklistElement, cfgResult: CfgResultMapType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     /**
       * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
       * we'll add a MethodCallEdge. The number of edges should equal the number of calls. But it's possible that
