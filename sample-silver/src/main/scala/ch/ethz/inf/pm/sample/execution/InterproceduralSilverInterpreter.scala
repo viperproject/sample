@@ -224,7 +224,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       }
       //
       // transfer arguments to methodEntryState
-      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
@@ -358,11 +357,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       }
       //
       // transfer arguments to method exit state
-      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
-      //var tmpVariableState = currentState
       for ((param, index) <- targetExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(param.typ))
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
@@ -429,9 +426,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val tmpReturns = for ((retVar, index) <- methodDeclaration.returns.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier(ReturnPrefix + index)(retVar.typ))
       }
-      var inputState = exitContext
+      var inputState = bottom(methodDeclaration.body) lub exitContext
       // assign the methods actual returns to the temporary returns and remove the temp variables
-      inputState = methodDeclaration.returns.zip(tmpReturns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._2, ExpressionSet(tuple._1.variable.id)))
+      inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
       tmpReturns.foldLeft(inputState)((st, tmpRet) => st.removeVariable(tmpRet))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }
