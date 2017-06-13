@@ -337,8 +337,16 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   }
 
   // The entrypoint for an interprocedural analysis is executeInterprocedural()
-  // return the result of a/the main method when execute() is run
-  override def execute(): CfgResult[S] = executeInterprocedural().getResult(mainMethods.head)
+  // For programs with multiple methods calling execute() cannot work as expected because it's not clear
+  // which CfgResult should be returned.
+  override def execute(): CfgResult[S] = {
+    if (program.methods.size == 1) {
+      val result = executeInterprocedural()
+      result.getResult(result.identifiers.head)
+    } else {
+      throw new RuntimeException("Cannot return one CfgResult for multiple methods. Use executeInterprocedural().")
+    }
+  }
 }
 
 trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
@@ -523,6 +531,14 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
   }
 
   // The entrypoint for an interprocedural analysis is executeInterprocedural()
-  // return the result of a/the main method when execute() is run
-  override def execute(): CfgResult[S] = executeInterprocedural().getResult(mainMethods.head)
+  // For programs with multiple methods calling execute() cannot work as expected because it's not clear
+  // which CfgResult should be returned.
+  override def execute(): CfgResult[S] = {
+    if (program.methods.size == 1) {
+      val result = executeInterprocedural()
+      result.getResult(result.identifiers.head)
+    } else {
+      throw new RuntimeException("Cannot return one CfgResult for multiple methods. Use executeInterprocedural().")
+    }
+  }
 }
