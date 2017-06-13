@@ -429,9 +429,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val tmpReturns = for ((retVar, index) <- methodDeclaration.returns.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier(ReturnPrefix + index)(retVar.typ))
       }
-      var inputState = exitContext
+      var inputState = bottom(methodDeclaration.body) lub exitContext
       // assign the methods actual returns to the temporary returns and remove the temp variables
-      inputState = methodDeclaration.returns.zip(tmpReturns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._2, ExpressionSet(tuple._1.variable.id)))
+      inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
       tmpReturns.foldLeft(inputState)((st, tmpRet) => st.removeVariable(tmpRet))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }

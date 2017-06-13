@@ -87,7 +87,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
 
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): S = {
     logger.trace(s"createVariableForArgument($x)")
-    copy(domain = domain + x)
+    this
   }
 
   override def assignVariable(x: Expression, right: Expression): S = {
@@ -193,7 +193,7 @@ object LiveVariableAnalysisEntryState
     method.returns.foldLeft(top) { case (state, parameter) =>
       val result = parameter.variable.forwardSemantics(state)
       val expression = result.expr
-      result.removeExpression().createVariableForArgument(expression, parameter.typ)
+      result.setVariableToTop(expression)
     }
   }
 }
