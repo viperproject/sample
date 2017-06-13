@@ -224,7 +224,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       }
       //
       // transfer arguments to methodEntryState
-      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
@@ -358,11 +357,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       }
       //
       // transfer arguments to method exit state
-      // TODO @flurin: this could (should?) be moved into a Command
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create arg_# variables and assign the value to them. then remove all non arg_# variables
-      //var tmpVariableState = currentState
       for ((param, index) <- targetExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(param.typ))
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
