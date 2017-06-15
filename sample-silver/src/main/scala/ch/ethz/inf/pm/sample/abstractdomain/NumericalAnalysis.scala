@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{BoxedNonRelationalNumericalDomain, IntegerInterval, NonRelationalNumericalDomain, NumericalDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution.{SilverAnalysis, SilverState, SimpleEntryStateBuilder, SimpleSilverForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
@@ -205,6 +205,16 @@ trait NonRelationalNumericalAnalysisState[S <: NonRelationalNumericalAnalysisSta
 }
 
 /**
+  * A runner for a numerical analysis.
+  *
+  * @tparam S The type of the state.
+  * @tparam D The type of the numerical domain.
+  * @author Jerome Dohrau
+  */
+trait NumericalAnalysisRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
+  extends SilverAnalysisRunner[S]
+
+/**
   * A runner for a non-relational numerical analysis.
   *
   * @tparam S The type of the state.
@@ -212,7 +222,7 @@ trait NonRelationalNumericalAnalysisState[S <: NonRelationalNumericalAnalysisSta
   * @author Jerome Dohrau
   */
 trait NonRelationalNumericalAnalysisRunner[S <: NonRelationalNumericalAnalysisState[S, D], D <: NonRelationalNumericalDomain[D]]
-  extends SilverAnalysisRunner[S]
+  extends NumericalAnalysisRunner[S, BoxedNonRelationalNumericalDomain[D]]
 
 /**
   * A very simple state used for a numerical analysis using the integer interval
@@ -254,6 +264,45 @@ object IntegerIntervalAnalysisEntryState
 }
 
 /**
+  * A very simple state used for a numerical analysis using the integer octagon
+  * domain.
+  *
+  * @param pp       The program point before the statement.
+  * @param expr     The expression representing the current result.
+  * @param domain   The element of the octagon domain.
+  * @param isTop    The top flag.
+  * @param isBottom The bottom flag.
+  * @author Jerome Dohrau
+  */
+case class IntegerOctagonAnalysisState(pp: ProgramPoint,
+                                       expr: ExpressionSet,
+                                       domain: IntegerOctagons,
+                                       isTop: Boolean,
+                                       isBottom: Boolean)
+  extends NumericalAnalysisState[IntegerOctagonAnalysisState, IntegerOctagons] {
+  override def copy(pp: ProgramPoint, expr: ExpressionSet, domain: IntegerOctagons, isTop: Boolean, isBottom: Boolean): IntegerOctagonAnalysisState = {
+    val b = isBottom || (!isTop && domain.isBottom)
+    IntegerOctagonAnalysisState(pp, expr, domain, isTop, b)
+  }
+}
+
+/**
+  * The entry state for a numerical analysis using the integer octagon domain.
+  *
+  * @author Jerome Dohrau
+  */
+object IntegerOctagonAnalysisEntryState
+  extends SimpleEntryStateBuilder[IntegerOctagonAnalysisState] {
+  override def top: IntegerOctagonAnalysisState = IntegerOctagonAnalysisState(
+    pp = DummyProgramPoint,
+    expr = ExpressionSet(),
+    domain = IntegerOctagons.Top,
+    isTop = false,
+    isBottom = false
+  )
+}
+
+/**
   * A numerical analysis using the integer interval domain.
   *
   * @author Jerome Dohrau
@@ -261,4 +310,12 @@ object IntegerIntervalAnalysisEntryState
 object IntegerIntervalAnalysis
   extends NonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
   override val analysis: SilverAnalysis[IntegerIntervalAnalysisState] = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+}
+
+/**
+  * A numerical analysis using the integer octagon domain.
+  */
+object IntegerOctagonAnalysis
+  extends NumericalAnalysisRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
+  override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = SimpleSilverForwardAnalysis(IntegerOctagonAnalysisEntryState)
 }
