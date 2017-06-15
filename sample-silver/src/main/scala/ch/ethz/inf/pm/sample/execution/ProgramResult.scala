@@ -44,10 +44,17 @@ trait ProgramResult[S <: State[S]] {
   /**
     * Initializes the cfg results for all methods using the given helper function
     *
-    * @param initialize helper called for each result to be initialized
+    * @param cfgResultInitializer helper called for each result to be initialized
     * @param state      State to use for the initialization
     */
-  def initialize(initialize: (SampleCfg, S) => CfgResult[S], state: S): Unit
+  def initialize(cfgResultInitializer: (SampleCfg, S) => CfgResult[S], state: S): Unit
+
+  /**
+    * Initializes the cfg results for all methods using the given helper function
+    *
+    * @param cfgResultInitializer helper called for each result to be initialized
+    */
+  def initialize(cfgResultInitializer: SampleCfg => CfgResult[S]): Unit
 }
 
 class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
@@ -55,9 +62,15 @@ class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
 
   var results: Map[SilverIdentifier, CfgResult[S]] = Map.empty
 
-  override def initialize(initialize: (SampleCfg, S) => CfgResult[S], state: S) {
+  override def initialize(i: (SampleCfg, S) => CfgResult[S], state: S) {
     for (method <- program.methods) {
-      setResult(method.name, initialize(method.body, state))
+      setResult(method.name, i(method.body, state))
+    }
+  }
+
+  override def initialize(i: (SampleCfg) => CfgResult[S]): Unit = {
+    for (method <- program.methods) {
+      setResult(method.name, i(method.body))
     }
   }
 

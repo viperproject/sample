@@ -1,0 +1,15 @@
+// assuming a widening limit of 3 widening will be used for this analysis
+method foo()
+{
+    var i: Int := 10
+    i := bar(i)
+} // expected exitState: i -> [-inf, 0]
+
+method bar(j: Int) returns (k: Int)
+{
+    if(j > 0) {
+        k := bar(j - 1)
+    } else {
+        k := j
+    }
+} // expected exitState: j -> [-inf, 10], k -> [-inf, 0]

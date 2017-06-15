@@ -25,9 +25,11 @@ class SilverFunctionDeclaration(val programPoint: ProgramPoint,
 
 class SilverMethodDeclaration(val programPoint: ProgramPoint,
                               val name: SilverIdentifier,
-                              val parameters: List[VariableDeclaration],
-                              val returnType: Type,
+                              val arguments: List[VariableDeclaration],
+                              val returns: List[VariableDeclaration],
+                              val returnType: List[Type],
                               val body: SampleCfg) {
+
   /**
     * Returns the precondition of the method.
     *
@@ -52,7 +54,7 @@ class SilverMethodDeclaration(val programPoint: ProgramPoint,
 
   def initializeArgument[S <: State[S]](state: S): S = {
     // create a variable for each parameter
-    parameters.foldLeft(state) { case (state, parameter) =>
+    (arguments ++ returns).foldLeft(state) { case (state, parameter) =>
       val result = parameter.variable.forwardSemantics(state)
       val expression = result.expr
       result.removeExpression().createVariableForArgument(expression, parameter.typ)
