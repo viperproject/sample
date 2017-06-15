@@ -47,7 +47,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
                          isTop: Boolean = false): T
 
   /**
-   * Adds [key->value] to the domain 
+   * Adds [key->value] to the domain
    * @param key The key
    * @param value The value
    * @return The state of the domain after the assignment
@@ -66,7 +66,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   def get(key: K): V
 
   /**
-   * Removes the key from the domain. 
+   * Removes the key from the domain.
    * @param key The key to be removed
    * @return The state of the domain after the key has been removed
    */
@@ -534,6 +534,8 @@ object SetDomain {
 
     def glbInner(other: I) =        factory(value intersect other.value)
 
+    // using the least upper bound as widening is okay since we assume that
+    // there are a finite number of elements.
     def wideningInner(other: I) =   lubInner(other)
 
     def lubInner(other: I) = factory(value ++ other.value)
@@ -546,7 +548,7 @@ object SetDomain {
     override def toString = ToStringUtilities.setToString(value)
 
   }
-  
+
   /**
    * A set domain which is bounded by a given function
    *
@@ -577,7 +579,7 @@ object SetDomain {
       extends Default[V] with SetDomain.Top[V, Default[V]]
 
   }
-  
+
   object Bounded {
 
     trait Bottom[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Bottom[V,T] {
@@ -626,7 +628,7 @@ object SetDomain {
     }
 
   }
-  
+
 }
 
 /**
