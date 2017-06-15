@@ -7,8 +7,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.execution.{SilverAnalysis, SilverState, SimpleEntryStateBuilder, SimpleSilverForwardAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnalysisRunner, SilverAnalysisRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
@@ -224,6 +224,27 @@ trait NumericalAnalysisRunner[S <: NumericalAnalysisState[S, D], D <: NumericalD
 trait NonRelationalNumericalAnalysisRunner[S <: NonRelationalNumericalAnalysisState[S, D], D <: NonRelationalNumericalDomain[D]]
   extends NumericalAnalysisRunner[S, BoxedNonRelationalNumericalDomain[D]]
 
+
+/**
+  * A runner for an interprocedural numerical analysis.
+  *
+  * @tparam S The type of the state.
+  * @tparam D The type of the numerical domain.
+  * @author Flurin Rindisbacher
+  */
+trait InterproceduralNumericalAnalysisRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
+  extends InterproceduralSilverAnalysisRunner[S]
+
+/**
+  * A runner for an interprocedural non-relational numerical analysis.
+  *
+  * @tparam S The type of the state.
+  * @tparam D The type of the non-relational numerical domain.
+  * @author Flurin Rindisbacher
+  */
+trait InterproceduralNonRelationalNumericalAnalysisRunner[S <: NonRelationalNumericalAnalysisState[S, D], D <: NonRelationalNumericalDomain[D]]
+  extends InterproceduralNumericalAnalysisRunner[S, BoxedNonRelationalNumericalDomain[D]]
+
 /**
   * A very simple state used for a numerical analysis using the integer interval
   * domain.
@@ -310,6 +331,16 @@ object IntegerOctagonAnalysisEntryState
 object IntegerIntervalAnalysis
   extends NonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
   override val analysis: SilverAnalysis[IntegerIntervalAnalysisState] = SimpleSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+}
+
+/**
+  * An interprocedural numerical analysis using the integer interval domain.
+  *
+  * @author Flurin Rindisbacher
+  */
+object InterproceduralIntegerIntervalAnalysis
+  extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
 }
 
 /**
