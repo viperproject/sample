@@ -350,3 +350,13 @@ object IntegerOctagonAnalysis
   extends NumericalAnalysisRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = SimpleSilverForwardAnalysis(IntegerOctagonAnalysisEntryState)
 }
+
+/**
+  * An interprocedural numerical analysis using the integer octagon domain.
+  *
+  * @author Jerome Dohrau
+  */
+object InterproceduralIntegerOctagonAnalysis
+  extends InterproceduralNumericalAnalysisRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerOctagonAnalysisEntryState)
+}
