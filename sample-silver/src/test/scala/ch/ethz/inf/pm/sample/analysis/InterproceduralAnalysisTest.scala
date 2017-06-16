@@ -367,27 +367,28 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
     checkVariableInExitState(programResult, "test", "i", IntegerInterval.Inner(3, 3), "i should be [3,3]")
   }
 
-  test("dummy-main-recursive") {
-    // Test for:
-    // https://bitbucket.org/viperproject/sample/pull-requests/12/context-insensitive-forward-analysis/activity#comment-37181754
-    val programResult = run(
-      """
-        //
-        // foo() has one in-edge (MethodCallEdge) that doesn't contribute anything to the incoming state (it's bottom at the beginning)
-        // In that case we expect to analysis to start with the "initial" state instead of merging all the in-edges.
-        // foo() is "promoted to be a main method"
-        //
-        method foo(a: Int) returns (x: Int) {
-            if (a > 0) {
-                x := foo(a - 1)
-            } else {
-                x := 0
-            }
-        }
-      """.stripMargin
-    )
-    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(0, 0), "x should be [0, 0]")
-  }
+  //TODO @flurin disabled because for full-precision this does not make sense. infinite domain and full call-string length!
+//  test("dummy-main-recursive") {
+//    // Test for:
+//    // https://bitbucket.org/viperproject/sample/pull-requests/12/context-insensitive-forward-analysis/activity#comment-37181754
+//    val programResult = run(
+//      """
+//        //
+//        // foo() has one in-edge (MethodCallEdge) that doesn't contribute anything to the incoming state (it's bottom at the beginning)
+//        // In that case we expect to analysis to start with the "initial" state instead of merging all the in-edges.
+//        // foo() is "promoted to be a main method"
+//        //
+//        method foo(a: Int) returns (x: Int) {
+//            if (a > 0) {
+//                x := foo(a - 1)
+//            } else {
+//                x := 0
+//            }
+//        }
+//      """.stripMargin
+//    )
+//    checkVariableInExitState(programResult, "foo", "x", IntegerInterval.Inner(0, 0), "x should be [0, 0]")
+//  }
 
   test("dummy-main-connected-component") {
     // Test for:
