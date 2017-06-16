@@ -7,10 +7,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.property.{DivisionByZero, Property, SingleStatementProperty}
 
 
 case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
@@ -88,6 +88,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case BinaryArithmeticExpression(left, right, ArithmeticOperator./) => eval(left).divide(eval(right))
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.-) => eval(left).subtract(eval(right))
       case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
+      case UnaryArithmeticExpression(operand, ArithmeticOperator.-, _) => dom.evalConstant(0).subtract(eval(operand))
       case BinaryBooleanExpression(left, right, _) => evalBoolean(expr)
       case NegatedBooleanExpression(left) => evalBoolean(expr)
       case BinaryArithmeticExpression(left, right, op) => dom.top()
