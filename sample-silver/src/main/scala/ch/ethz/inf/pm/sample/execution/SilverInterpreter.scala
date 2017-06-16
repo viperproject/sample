@@ -159,12 +159,11 @@ trait SilverForwardInterpreter[S <: State[S]]
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
     cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), false)))
-    val iterations = mutable.Map[BlockPosition, Int]()
-
+    val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
     while (worklist.nonEmpty) {
       val current = worklist.dequeue()
       val currentCfg = cfg(current)
-      val iteration = iterations.getOrElse(current.pos, 0)
+      val iteration = iterations.getOrElse(current, 0)
 
       // compute entry state state of current block
       val entry = if (starts contains current.pos.block) {
@@ -251,7 +250,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, states.toList)
         // update worklist and iteration count
         worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
-        iterations.put(current.pos, iteration + 1)
+        iterations.put(current, iteration + 1)
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
         if (exitBlock.isDefined && exitBlock.get == current.pos.block) {
