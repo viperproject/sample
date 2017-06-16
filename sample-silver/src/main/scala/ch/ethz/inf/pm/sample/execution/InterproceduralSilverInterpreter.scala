@@ -169,13 +169,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       lazy val method = findMethod(current)
       if (cfg(current).entry == current.pos.block) { // only entry-blocks can have incoming MethodCall edges
         current match {
-          case TaggedWorklistElement(callString, _, _) =>
+          case TaggedWorklistElement(callString, _, _) if methodTransferStates.contains((callString, method.name)) =>
             val initialState = initial(cfg(current))
             val bottom = initialState.bottom()
-            if (methodTransferStates.contains((callString, method.name)))
-              Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
-            else
-              Seq(Right(MethodCallEdge(bottom)))
+            Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
+          case _ => Nil
         }
       } else {
         Nil
@@ -231,7 +229,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -269,8 +267,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case _ => Seq(statement.getPC())
       }
       //TODO @flurin tag the transfer state also with the callstring
+      val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
       methodTransferStates((callString, methodIdentifier)) = tmpVariableState
-      worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
+      if (!(tmpVariableState lessEqual old)) {
+        worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
+      }
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -282,9 +283,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
-      resultState
+      (resultState, !exitState.isBottom) //TODO @flurin
     case _ => super.executeStatement(current, statement, state, worklist, programResult)
   }
+
 }
 
 /**
