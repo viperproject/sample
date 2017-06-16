@@ -166,12 +166,12 @@ trait SilverForwardInterpreter[S <: State[S]]
       val iteration = iterations.getOrElse(current, 0)
 
       // compute entry state state of current block
-      val entry = if (starts contains current.pos.block) {
+      val edges = inEdges(current, cfgResults)
+      val entry = if ((starts contains current.pos.block) && edges.isEmpty) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
         // join incoming states.
-        val edges = inEdges(current, cfgResults)
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(current, currentCfg), current, edge)
           // filter state if there is a condition
@@ -201,6 +201,7 @@ trait SilverForwardInterpreter[S <: State[S]]
       val oldStates = cfgResults(current, currentCfg).getStates(current.pos.block)
       val numToSkip = current.pos.index
       val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(current, currentCfg).preStateAt(current.pos)
+      var canContinueBlock = true
       if (!(entry lessEqual oldEntry) || current.forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.take(numToSkip): _*)
@@ -209,10 +210,11 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             var predecessor = entry
-            statements.drop(numToSkip).foreach(st => {
-              val successor = executeStatement(current, st, predecessor, worklist, cfgResults)
+            statements.drop(numToSkip).takeWhile(_ => canContinueBlock).foreach(st => {
+              val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
+              canContinueBlock = continue
             })
           case PreconditionBlock(preconditions) =>
             // process preconditions
@@ -237,10 +239,11 @@ trait SilverForwardInterpreter[S <: State[S]]
             }
             // execute statements
             var predecessor = intermediate
-            statements.drop(numToSkip - invariants.size).foreach(st => {
-              val successor = executeStatement(current, st, predecessor, worklist, cfgResults)
+            statements.drop(numToSkip - invariants.size).takeWhile(_ => canContinueBlock).foreach(st => {
+              val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
+              canContinueBlock = continue
             })
           case ConstrainingBlock(variables, body) =>
             // execute constraining block
@@ -248,9 +251,11 @@ trait SilverForwardInterpreter[S <: State[S]]
             ???
         }
         cfgResults(current, currentCfg).setStates(current.pos.block, states.toList)
-        // update worklist and iteration count
-        worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
-        iterations.put(current, iteration + 1)
+        // update worklist and iteration count if the whole block has been executed
+        if (canContinueBlock) {
+          worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
+          iterations.put(current, iteration + 1)
+        }
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
         if (exitBlock.isDefined && exitBlock.get == current.pos.block) {
@@ -290,13 +295,13 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current.pos)
   }
 
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
     logger.trace(statement.toString)
     logger.trace(successor.toString)
-    successor
+    (successor, true) // true = always continue execeuting the statements in the block
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
