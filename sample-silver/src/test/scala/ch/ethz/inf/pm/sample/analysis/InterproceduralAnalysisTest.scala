@@ -14,7 +14,13 @@ import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.test.SampleTest
 import org.scalatest.{FunSuite, Matchers}
 
-trait InterproceduralAnalysisTest extends FunSuite with SampleTest with Matchers
+trait InterproceduralAnalysisTest extends FunSuite with SampleTest with Matchers {
+  def checkVariableInExitState(programResult: ProgramResult[IntegerIntervalAnalysisState],
+                               method: String, variable: String, expected: IntegerInterval, reason: String): Unit = {
+    val interval = programResult.getResult(SilverIdentifier(method)).exitState().domain.get(VariableIdentifier(variable)(DummyIntegerType))
+    assert(expected.equivalent(interval), s"$variable is: $interval but: $reason")
+  }
+}
 
 /**
   * Tests for the trivial interprocedural analysis (just go to Top)
@@ -115,12 +121,6 @@ class TrivialInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
   * @author Flurin Rindisbacher
   */
 class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
-
-  private def checkVariableInExitState(programResult: ProgramResult[IntegerIntervalAnalysisState],
-                                       method: String, variable: String, expected: IntegerInterval, reason: String): Unit = {
-    val interval = programResult.getResult(SilverIdentifier(method)).exitState().domain.get(VariableIdentifier(variable)(DummyIntegerType))
-    assert(expected.equivalent(interval), s"$variable is: $interval but: $reason")
-  }
 
   test("nop") {
     val programResult = run(
@@ -297,12 +297,6 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
   * @author Flurin Rindisbacher
   */
 class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
-
-  private def checkVariableInExitState(programResult: ProgramResult[IntegerIntervalAnalysisState],
-                                       method: String, variable: String, expected: IntegerInterval, reason: String): Unit = {
-    val interval = programResult.getResult(SilverIdentifier(method)).exitState().domain.get(VariableIdentifier(variable)(DummyIntegerType))
-    assert(expected.equivalent(interval), s"$variable is: $interval but: $reason")
-  }
 
   test("nop") {
     val programResult = run(
