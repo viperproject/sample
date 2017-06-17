@@ -171,7 +171,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         current match {
           case TaggedWorklistElement(callString, _, _) if methodTransferStates.contains((callString, method.name)) =>
             val initialState = initial(cfg(current))
-            val bottom = initialState.bottom()
             Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
           case _ => Nil
         }
@@ -374,16 +373,13 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
       lazy val method = findMethod(current)
       val currentCfg = cfg(current)
-      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block // only add edges for exit-blocks
-        && callsInProgram.contains(method.name)) {
+      if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block) {
+        // only add edges for exit-blocks
         current match {
-          case TaggedWorklistElement(callString, _, _) =>
+          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains(callString, method.name) =>
             val initialState = initial(currentCfg)
-            val bottom = initialState.bottom()
-            if (methodTransferStates contains(callString, method.name))
-              Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
-            else
-              Seq(Right(MethodCallEdge(bottom)))
+            Seq(Right(MethodReturnEdge(methodTransferStates((callString, method.name)))))
+          case _ => Nil
         }
       } else {
         Nil
@@ -396,7 +392,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -428,15 +424,18 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString :+ statement.getPC()
         case _ => Seq(statement.getPC())
       }
-      //TODO @flurin tag the transfer state also with the callstring
+      val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
       methodTransferStates((callString, methodIdentifier)) = tmpVariableState
-      worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+      if (!(tmpVariableState lessEqual old)) {
+        worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+      }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val entryState = programResult(current, methodDeclaration.body).entryState()
+      val analyzed = TaggedWorklistElement(callString, null, false) //TODO @flurin that's ugly
+    val entryState = programResult(analyzed, methodDeclaration.body).entryState()
 
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
@@ -453,7 +452,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
-      resultState
+      (resultState, !resultState.isBottom) //TODO @flurin
     case _ => super.executeStatement(current, statement, state, worklist, programResult)
   }
 
@@ -477,7 +476,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       //)
       .foreach(b => {
       current match {
-        case TaggedWorklistElement(callString, _, _) if callString.length > 0 => // TODO @flurin do not enqueue for empty callstrings. right?
+        case TaggedWorklistElement(callString, _, _) if callString.length > 0 && b.block.elements(b.index).merge.getPC() == callString.reverse.head => // TODO @flurin check again
           worklist.enqueue(TaggedWorklistElement(callString.reverse.drop(1).reverse, b, true))
         case _ =>
       }
