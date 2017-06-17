@@ -390,12 +390,12 @@ trait SilverBackwardInterpreter[S <: State[S]]
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
     cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), false)))
-    val iterations = mutable.Map[BlockPosition, Int]()
+    val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
 
     while (worklist.nonEmpty) {
       val current = worklist.dequeue()
       val currentCfg = cfg(current)
-      val iteration = iterations.getOrElse(current.pos, 0)
+      val iteration = iterations.getOrElse(current, 0)
 
       // compute exit state of current block
       val exit = if (starts contains current.pos.block) {
@@ -434,6 +434,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
       // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
       val elemsToTake = current.pos.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
+      var canContinueBlock = true
       if (!(exit lessEqual oldExit) || current.forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.reverse.take(numElementsInBlock(current.pos.block) - elemsToTake): _*)
@@ -441,11 +442,13 @@ trait SilverBackwardInterpreter[S <: State[S]]
         current.pos.block match {
           case StatementBlock(statements) =>
             // execute statements
-            statements.take(elemsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(current, statement, successor, worklist, cfgResults)
+            var successor = exit
+            statements.take(elemsToTake).reverse.takeWhile(_ => canContinueBlock).foreach(statement => {
+              val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
-              predecessor
-            }
+              successor = predecessor
+              canContinueBlock = continue
+            })
           case PreconditionBlock(preconditions) =>
             // process preconditions
             preconditions.take(elemsToTake).foldRight(exit) { (precondition, successor) =>
@@ -467,16 +470,21 @@ trait SilverBackwardInterpreter[S <: State[S]]
             val numStatementsToTake = elemsToTake - invariants.size
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
-            val intermediate = statements.take(numStatementsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(current, statement, successor, worklist, cfgResults)
+            var successor = exit
+            statements.take(elemsToTake).reverse.takeWhile(_ => canContinueBlock).foreach(statement => {
+              val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
-              predecessor
-            }
+              successor = predecessor
+              canContinueBlock = continue
+            })
+            val intermediate = successor
             // process invariants
-            invariants.take(numInvariantsToTake).foldRight(intermediate) { (invariant, successor) =>
-              val predecessor = executeCommand(InvariantCommand, invariant, successor)
-              states.append(predecessor)
-              predecessor
+            if (canContinueBlock) {
+              invariants.take(numInvariantsToTake).foldRight(intermediate) { (invariant, successor) =>
+                val predecessor = executeCommand(InvariantCommand, invariant, successor)
+                states.append(predecessor)
+                predecessor
+              }
             }
           case ConstrainingBlock(variables, body) =>
             // execute constraining block
@@ -486,8 +494,10 @@ trait SilverBackwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, states.reverse.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
-        iterations.put(current.pos, iteration + 1)
+        if (canContinueBlock) {
+          worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
+          iterations.put(current, iteration + 1)
+        }
         //notify (subclasses) about processed entry blocks
         if (currentCfg.entry == current.pos.block) {
           onEntryBlockExecuted(current, worklist)
@@ -522,13 +532,13 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): S = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     logger.trace(successor.toString)
     logger.trace(statement.toString)
     logger.trace(predecessor.toString)
-    predecessor
+    (predecessor, true)
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
