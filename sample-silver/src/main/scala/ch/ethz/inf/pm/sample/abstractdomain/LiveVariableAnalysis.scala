@@ -173,7 +173,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
   override def toString: String = {
     if (isTop) "⊤"
     else if (isBottom) "⊥"
-    else s"live variables: $domain"
+    else s"State neither Top nor Bottom. Live variables: $domain."
   }
 
 }
@@ -183,7 +183,7 @@ object LiveVariableAnalysisEntryState
   override def top: SimpleLiveVariableAnalysisState = SimpleLiveVariableAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    domain = IdentifierSet.Inner(Set()),
+    domain = IdentifierSet.Bottom,
     isTop = false,
     isBottom = false
   )
@@ -205,8 +205,7 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
                                            isBottom: Boolean)
   extends LiveVariableAnalysisState[SimpleLiveVariableAnalysisState] {
   override def copy(pp: ProgramPoint, expr: ExpressionSet, domain: IdentifierSet, isTop: Boolean, isBottom: Boolean): SimpleLiveVariableAnalysisState = {
-    val b = isBottom || (!isTop && domain.isBottom)
-    SimpleLiveVariableAnalysisState(pp, expr, domain, isTop, b)
+    SimpleLiveVariableAnalysisState(pp, expr, domain, isTop, isBottom)
   }
 }
 
