@@ -252,7 +252,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         cfgResults(current, currentCfg).setStates(current.pos.block, states.toList)
         // update worklist and iteration count if the whole block has been executed
-        if (canContinueBlock) {
+        if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
           worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
           iterations.put(current, iteration + 1)
         }
@@ -295,13 +295,26 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current.pos)
   }
 
+  /**
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param current       The currently processed element of the worklist
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         successor statement can continue or not.
+    */
   protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
     logger.trace(statement.toString)
     logger.trace(successor.toString)
-    (successor, true) // true = always continue execeuting the statements in the block
+    (successor, true) // true = always continue executing the statements in the block
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
@@ -494,7 +507,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, states.reverse.toList)
 
         // update worklist and iteration count
-        if (canContinueBlock) {
+        if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
           worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
           iterations.put(current, iteration + 1)
         }
@@ -532,6 +545,19 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
+  /**
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param current       The currently processed element of the worklist
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         predecessor statement can continue or not.
+    */
   protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
