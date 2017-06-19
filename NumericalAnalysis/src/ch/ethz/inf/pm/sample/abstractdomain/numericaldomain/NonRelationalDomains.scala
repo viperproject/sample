@@ -88,6 +88,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case BinaryArithmeticExpression(left, right, ArithmeticOperator./) => eval(left).divide(eval(right))
       case BinaryArithmeticExpression(left, right, ArithmeticOperator.-) => eval(left).subtract(eval(right))
       case BinaryArithmeticExpression(left, right, op) if ArithmeticOperator.isComparison(op) => evalBoolean(expr)
+      case UnaryArithmeticExpression(operand, ArithmeticOperator.+, _) => eval(operand)
       case UnaryArithmeticExpression(operand, ArithmeticOperator.-, _) => dom.evalConstant(0).subtract(eval(operand))
       case BinaryBooleanExpression(left, right, _) => evalBoolean(expr)
       case NegatedBooleanExpression(left) => evalBoolean(expr)
