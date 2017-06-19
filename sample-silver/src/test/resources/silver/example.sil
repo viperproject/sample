@@ -1,17 +1,9 @@
-method foo(this: Ref)
-{
-    var i: Int := 0
-    i := bar(this, i)
-    i := i
-}
+method foo(a: Int) returns (r: Int) {
 
-method bar(this: Ref, i: Int) returns (k: Int)
-{
-    k := i + 1
-}
+   var t: Int
 
-method test(this: Ref) {
-  var i: Int := 2
-  i := bar(this, i)
-  i := i
+   t := a
+
+   r := a + t
+
 }
