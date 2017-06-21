@@ -205,7 +205,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = statement match {
+  override protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       //
       // prepare calling context (evaluate method targets and parameters)
@@ -246,11 +246,12 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
       val exitState = programResult(methodDeclaration.body).exitState()
+      val canContinue = !exitState.isBottom
       val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
-      resultState
+      (resultState, canContinue)
     case _ => super.executeStatement(statement, state, worklist, programResult)
   }
 }

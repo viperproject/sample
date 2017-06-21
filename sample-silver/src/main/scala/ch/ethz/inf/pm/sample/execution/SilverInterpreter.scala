@@ -178,7 +178,7 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             var predecessor = entry
-            statements.drop(numToSkip).takeWhile(_ => canContinueBlock).foreach(st => {
+            statements.drop(numToSkip).foreach(st => if (canContinueBlock) {
               val (successor, continue) = executeStatement(st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
@@ -207,7 +207,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             }
             // execute statements
             var predecessor = intermediate
-            statements.drop(numToSkip - invariants.size).takeWhile(_ => canContinueBlock).foreach(st => {
+            statements.drop(numToSkip - invariants.size).foreach(st => if (canContinueBlock) {
               val (successor, continue) = executeStatement(st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
