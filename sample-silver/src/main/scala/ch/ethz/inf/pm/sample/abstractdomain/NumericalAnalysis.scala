@@ -8,10 +8,11 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnalysisRunner, SilverAnalysisRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnalysisRunner, SilverAnalysisRunner, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
+import viper.silver.ast.TrueLit
 
 /**
   * A very simple state used for numerical analysis. Only the values of
@@ -23,6 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
   */
 trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends SilverState[S]
+    with SilverSpecification[Set[Expression]]
     with StateWithRefiningAnalysisStubs[S]
     with LazyLogging {
   this: S =>
@@ -182,6 +184,16 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
   }
 
   /* ------------------------------------------------------------------------- *
+   * SILVER SPECIFICATION FUNCTIONS
+   */
+
+  override def specifications: Set[Expression] = {
+    val ids = domain.ids
+    if (ids.isTop || ids.isBottom) Set()
+    else domain.getConstraints(ids.toSetOrFail)
+  }
+
+  /* ------------------------------------------------------------------------- *
    * COPY FUNCTION
    */
 
@@ -317,7 +329,7 @@ object IntegerOctagonAnalysisEntryState
   override def top: IntegerOctagonAnalysisState = IntegerOctagonAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    domain = IntegerOctagons.Top,
+    domain = IntegerOctagons.Top.factory(Set.empty[Identifier]),
     isTop = false,
     isBottom = false
   )
