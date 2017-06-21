@@ -329,7 +329,7 @@ object IntegerOctagonAnalysisEntryState
   override def top: IntegerOctagonAnalysisState = IntegerOctagonAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    domain = IntegerOctagons.Top,
+    domain = IntegerOctagons.Top.factory(Set.empty[Identifier]),
     isTop = false,
     isBottom = false
   )
