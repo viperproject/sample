@@ -134,11 +134,11 @@ trait SilverForwardInterpreter[S <: State[S]]
       val iteration = iterations.getOrElse(current, 0)
 
       // compute entry state state of current block
-      val edges = inEdges(current, cfgResults)
-      val entry = if ((starts contains current.block) && edges.isEmpty) {
+      val entry = if (starts contains current.block) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
+        val edges = inEdges(current, cfgResults)
         // join incoming states.
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(currentCfg), current, edge)
