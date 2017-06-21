@@ -47,14 +47,9 @@ object Octagons
   {
     this: S =>
 
-    override def assign(variable: Identifier, expr: Expression): S =
-      factory(Environment(expr.ids + variable)).assign(variable, expr)
+    override def assign(variable: Identifier, expr: Expression): S = this
 
-    override def assumeSimplified(expression: Expression): S = expression.ids match {
-      case IdentifierSet.Top => top()
-      case IdentifierSet.Bottom => bottom()
-      case ids => factory(Environment(ids)).assume(expression)
-    }
+    override def assumeSimplified(expression: Expression): S = this
   }
 
   /**
