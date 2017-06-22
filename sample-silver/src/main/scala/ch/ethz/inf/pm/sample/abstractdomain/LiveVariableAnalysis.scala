@@ -179,8 +179,8 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
 }
 
 object LiveVariableAnalysisEntryState
-  extends SimpleEntryStateBuilder[SimpleLiveVariableAnalysisState] {
-  override def top: SimpleLiveVariableAnalysisState = SimpleLiveVariableAnalysisState(
+  extends SilverEntryStateBuilder[SimpleLiveVariableAnalysisState] {
+  override def default: SimpleLiveVariableAnalysisState = SimpleLiveVariableAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     domain = IdentifierSet.Bottom,
@@ -188,12 +188,41 @@ object LiveVariableAnalysisEntryState
     isBottom = false
   )
 
+  /**
+    * By default sets the returns of the method to being "live"
+    *
+    * @param program The program.
+    * @param method  The method.
+    * @return The entry state.
+    */
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleLiveVariableAnalysisState = {
-    // we'll just set all returns to being "strongly live"
-    method.returns.foldLeft(top) { case (state, parameter) =>
-      val result = parameter.variable.forwardSemantics(state)
+    val declarations = method.arguments ++ method.returns
+    declarations.foldLeft(default) { case (state, declaration) =>
+      val result = declaration.variable.backwardSemantics(state)
       val expression = result.expr
-      result.setVariableToTop(expression)
+      if (method.returns contains declaration) {
+        result.removeExpression().createVariableForArgument(expression, declaration.typ)
+        result.setVariableToTop(expression) // we'll just set all returns to being "strongly live"
+      }
+      else {
+        result.removeExpression().createVariableForArgument(expression, declaration.typ)
+      }
+    }
+  }
+
+  /**
+    * For callee's we do not set the returns to being live. This depends on the calling context now.
+    *
+    * @param program The program.
+    * @param method  The method.
+    * @return The entry state.
+    */
+  override def buildForMethodCallEntry(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleLiveVariableAnalysisState = {
+    val declarations = method.arguments ++ method.returns
+    declarations.foldLeft(default) { case (state, declaration) =>
+      val result = declaration.variable.backwardSemantics(state)
+      val expression = result.expr
+      result.removeExpression().createVariableForArgument(expression, declaration.typ)
     }
   }
 }

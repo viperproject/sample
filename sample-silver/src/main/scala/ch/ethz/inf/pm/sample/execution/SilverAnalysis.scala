@@ -135,4 +135,17 @@ trait SilverEntryStateBuilder[S <: State[S]] {
         evaluated.removeExpression().createVariableForArgument(argument, declaration.typ)
     }
   }
+
+  /**
+    * Builds and returns an entry state for the analysis of the given method of
+    * the given program under the assumption that the analyzed method is a callee.
+    *
+    * This builder can be used if the entrystate for a method should be different depending on whether the method
+    * is called by other methods or analysed "at the top of the callgraph".
+    *
+    * @param program The program.
+    * @param method  The method.
+    * @return The entry state.
+    */
+  def buildForMethodCallEntry(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S = build(program, method)
 }
