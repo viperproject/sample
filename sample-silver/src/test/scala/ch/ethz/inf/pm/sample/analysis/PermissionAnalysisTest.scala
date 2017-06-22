@@ -105,5 +105,5 @@ class CarbonWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = N
   * @author Caterina Urban
   */
 class PermissionAnalysisLatticeTest extends LatticeTest[SimplePermissionAnalysisState] {
-  override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.top
+  override def factory: SimplePermissionAnalysisState = PermissionAnalysisEntryState.default
 }
