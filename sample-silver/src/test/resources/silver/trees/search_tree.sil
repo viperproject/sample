@@ -1,0 +1,34 @@
+field value: Int
+field left: Ref
+field right: Ref
+
+method m(root: Ref) returns (res: Int)
+{
+    var current: Ref
+    current := root
+    while (current.left != null)
+    {
+        current := current.left
+    }
+    res := current.value
+}
+
+method contains(root: Ref, val: Int) returns (res: Bool)
+{
+    var current: Ref
+    current := root
+    res := false
+    while (current != null)
+    {
+        if (val < current.value) {
+            current := current.left
+        } else {
+            if (current.value < val) {
+                current := current.right
+            } else {
+                res := true
+                current := null
+            }
+        }
+    }
+}

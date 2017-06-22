@@ -1,17 +1,10 @@
-method foo(this: Ref)
+method foo(n: Int)
 {
     var i: Int := 0
-    i := bar(this, i)
-    i := i
-}
+    var j: Int := 10
 
-method bar(this: Ref, i: Int) returns (k: Int)
-{
-    k := i + 1
-}
-
-method test(this: Ref) {
-  var i: Int := 2
-  i := bar(this, i)
-  i := i
+    while (i < n) {
+        i := i + 1
+        j := j - 1
+    }
 }
