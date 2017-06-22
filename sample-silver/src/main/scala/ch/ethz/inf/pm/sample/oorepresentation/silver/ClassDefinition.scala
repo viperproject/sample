@@ -6,7 +6,6 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.SampleCfg
 import ch.ethz.inf.pm.sample.oorepresentation._
 import viper.silver.cfg._
@@ -50,14 +49,5 @@ class SilverMethodDeclaration(val programPoint: ProgramPoint,
   def postcondition(): Seq[Statement] = body.exit match {
     case Some(PostconditionBlock(posts)) => posts
     case _ => Seq.empty
-  }
-
-  def initializeArgument[S <: State[S]](state: S): S = {
-    // create a variable for each parameter
-    (arguments ++ returns).foldLeft(state) { case (state, parameter) =>
-      val result = parameter.variable.forwardSemantics(state)
-      val expression = result.expr
-      result.removeExpression().createVariableForArgument(expression, parameter.typ)
-    }
   }
 }

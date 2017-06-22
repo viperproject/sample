@@ -1737,9 +1737,8 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
 
     val may = MayAliasGraph().initialize(fields)
     val must = MustAliasGraph().initialize(fields)
-    val initial = top.copy(may = may, must = must)
 
-    method.initializeArgument(initial)
+    super.build(program, method).copy(may = may, must = must)
   }
 }
 
@@ -1750,7 +1749,7 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
   */
 object AliasAnalysisEntryState
   extends AliasAnalysisStateBuilder[SimpleAliasAnalysisState] {
-  override def top: SimpleAliasAnalysisState = SimpleAliasAnalysisState()
+  override def default: SimpleAliasAnalysisState = SimpleAliasAnalysisState()
 }
 
 /** An alias analysis runner.

@@ -286,8 +286,8 @@ case class IntegerIntervalAnalysisState(pp: ProgramPoint,
   * @author Jerome Dohrau
   */
 object IntegerIntervalAnalysisEntryState
-  extends SimpleEntryStateBuilder[IntegerIntervalAnalysisState] {
-  override def top: IntegerIntervalAnalysisState = IntegerIntervalAnalysisState(
+  extends SilverEntryStateBuilder[IntegerIntervalAnalysisState] {
+  override def default: IntegerIntervalAnalysisState = IntegerIntervalAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     domain = BoxedNonRelationalNumericalDomain[IntegerInterval](IntegerInterval.Top, isTop = true),
@@ -325,8 +325,8 @@ case class IntegerOctagonAnalysisState(pp: ProgramPoint,
   * @author Jerome Dohrau
   */
 object IntegerOctagonAnalysisEntryState
-  extends SimpleEntryStateBuilder[IntegerOctagonAnalysisState] {
-  override def top: IntegerOctagonAnalysisState = IntegerOctagonAnalysisState(
+  extends SilverEntryStateBuilder[IntegerOctagonAnalysisState] {
+  override def default: IntegerOctagonAnalysisState = IntegerOctagonAnalysisState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     domain = IntegerOctagons.Top.factory(Set.empty[Identifier]),
