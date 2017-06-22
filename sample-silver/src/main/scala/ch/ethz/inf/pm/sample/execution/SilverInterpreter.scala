@@ -371,10 +371,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Left(e: SampleEdge) if current.index == lastIndex(current) => cfgResult.getStates(e.target).head
-    case _ =>
-      if (current.index == 2)
-        println(current)
-      cfgResult.postStateAt(current)
+    case _ => cfgResult.postStateAt(current)
   }
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
