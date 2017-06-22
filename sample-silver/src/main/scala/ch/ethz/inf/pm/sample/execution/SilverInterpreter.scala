@@ -138,8 +138,8 @@ trait SilverForwardInterpreter[S <: State[S]]
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
-        // join incoming states.
         val edges = inEdges(current, cfgResults)
+        // join incoming states.
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(currentCfg), current, edge)
           // filter state if there is a condition
@@ -169,6 +169,7 @@ trait SilverForwardInterpreter[S <: State[S]]
       val oldStates = cfgResults(currentCfg).getStates(current.block)
       val numToSkip = current.index
       val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(currentCfg).preStateAt(current)
+      var canContinueBlock = true
       if (!(entry lessEqual oldEntry) || forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.take(numToSkip): _*)
@@ -177,10 +178,11 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             var predecessor = entry
-            statements.drop(numToSkip).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist, cfgResults)
+            statements.drop(numToSkip).foreach(st => if (canContinueBlock) {
+              val (successor, continue) = executeStatement(st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
+              canContinueBlock = continue
             })
           case PreconditionBlock(preconditions) =>
             // process preconditions
@@ -205,20 +207,33 @@ trait SilverForwardInterpreter[S <: State[S]]
             }
             // execute statements
             var predecessor = intermediate
-            statements.drop(numToSkip - invariants.size).foreach(st => {
-              val successor = executeStatement(st, predecessor, worklist, cfgResults)
+            statements.drop(numToSkip - invariants.size).foreach(st => if (canContinueBlock) {
+              val (successor, continue) = executeStatement(st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
+              canContinueBlock = continue
             })
           case ConstrainingBlock(variables, body) =>
             // execute constraining block
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.block, states.toList)
+        // If we aborted a StatementBlock early we'll have less states than we should have.
+        // Fill the gap with bottom. These bottom states will be replaced by the actual state when
+        // the interpreter continues at this BlockPosition.
+        val gapFiller = if (!canContinueBlock) {
+          // some statements have been skipped!
+          val btm = bottom(currentCfg)
+          Seq.fill(oldStates.size - states.size)(btm)
+        } else {
+          Nil
+        }
+        cfgResults(currentCfg).setStates(current.block, states.toList ++ gapFiller)
         // update worklist and iteration count
-        worklist.enqueue(currentCfg.successors(current.block).map(b => (BlockPosition(b, 0), false)): _*)
-        iterations.put(current, iteration + 1)
+        if (canContinueBlock) {
+          worklist.enqueue(currentCfg.successors(current.block).map(b => (BlockPosition(b, 0), false)): _*)
+          iterations.put(current, iteration + 1)
+        }
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
         if (exitBlock.isDefined && exitBlock.get == current.block) {
@@ -260,13 +275,27 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current)
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  /**
+    *
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         successor statement can continue or not.
+    *
+    */
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): (S, Boolean) = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
     logger.trace(statement.toString)
     logger.trace(successor.toString)
-    successor
+    (successor, true) // true = always continue executing the statements in the block
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
@@ -302,6 +331,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   /**
     * Helper that computes the last position in a block that can be enqueued to the worklist
+    *
     * @param current A position anywhere in a block
     * @return The index of the last existing position in the block
     */
@@ -309,6 +339,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   /**
     * Helper that computes the last position in a block that can be enqueued to the worklist
+    *
     * @param block The block to look at
     * @return The index of the last existing position in the block
     */
@@ -340,7 +371,10 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Left(e: SampleEdge) if current.index == lastIndex(current) => cfgResult.getStates(e.target).head
-    case _ => cfgResult.postStateAt(current)
+    case _ =>
+      if (current.index == 2)
+        println(current)
+      cfgResult.postStateAt(current)
   }
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultMapType[S] = {
@@ -397,6 +431,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
       // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
       val elemsToTake = current.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
+      var canContinueBlock = true
       if (!(exit lessEqual oldExit) || forceReinterpretStmt) {
         // execute block
         val states = ListBuffer(oldStates.reverse.take(numElementsInBlock(current.block) - elemsToTake): _*)
@@ -404,11 +439,13 @@ trait SilverBackwardInterpreter[S <: State[S]]
         current.block match {
           case StatementBlock(statements) =>
             // execute statements
-            statements.take(elemsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(statement, successor, worklist, cfgResults)
+            var successor = exit
+            statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
+              val (predecessor, continue) = executeStatement(statement, successor, worklist, cfgResults)
               states.append(predecessor)
-              predecessor
-            }
+              successor = predecessor
+              canContinueBlock = continue
+            })
           case PreconditionBlock(preconditions) =>
             // process preconditions
             preconditions.take(elemsToTake).foldRight(exit) { (precondition, successor) =>
@@ -430,27 +467,44 @@ trait SilverBackwardInterpreter[S <: State[S]]
             val numStatementsToTake = elemsToTake - invariants.size
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
-            val intermediate = statements.take(numStatementsToTake).foldRight(exit) { (statement, successor) =>
-              val predecessor = executeStatement(statement, successor, worklist, cfgResults)
+            var successor = exit
+            statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
+              val (predecessor, continue) = executeStatement(statement, successor, worklist, cfgResults)
               states.append(predecessor)
-              predecessor
-            }
+              successor = predecessor
+              canContinueBlock = continue
+            })
+            val intermediate = successor
             // process invariants
-            invariants.take(numInvariantsToTake).foldRight(intermediate) { (invariant, successor) =>
-              val predecessor = executeCommand(InvariantCommand, invariant, successor)
-              states.append(predecessor)
-              predecessor
+            if (canContinueBlock) {
+              invariants.take(numInvariantsToTake).foldRight(intermediate) { (invariant, successor) =>
+                val predecessor = executeCommand(InvariantCommand, invariant, successor)
+                states.append(predecessor)
+                predecessor
+              }
             }
           case ConstrainingBlock(variables, body) =>
             // execute constraining block
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(currentCfg).setStates(current.block, states.reverse.toList)
+        // If we aborted a StatementBlock early we'll have less states than we should have.
+        // Fill the gap with bottom. These bottom states will be replaced by the actual state when
+        // the interpreter continues at this BlockPosition.
+        val gapFiller = if (!canContinueBlock) {
+          // some statements have been skipped!
+          val btm = bottom(currentCfg)
+          Seq.fill(oldStates.size - states.size)(btm)
+        } else {
+          Nil
+        }
+        cfgResults(currentCfg).setStates(current.block, gapFiller ++ states.reverse.toList)
 
         // update worklist and iteration count
-        worklist.enqueue(cfg(current).predecessors(current.block).map(b => (BlockPosition(b, lastIndex(b)), false)): _*)
-        iterations.put(current, iteration + 1)
+        if (canContinueBlock) {
+          worklist.enqueue(cfg(current).predecessors(current.block).map(b => (BlockPosition(b, lastIndex(b)), false)): _*)
+          iterations.put(current, iteration + 1)
+        }
         //notify (subclasses) about processed entry blocks
         if (currentCfg.entry == current.block) {
           onEntryBlockExecuted(current, worklist)
@@ -483,13 +537,27 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
-  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): S = {
+  /**
+    *
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         successor statement can continue or not.
+    *
+    */
+  protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): (S, Boolean) = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     logger.trace(successor.toString)
     logger.trace(statement.toString)
     logger.trace(predecessor.toString)
-    predecessor
+    (predecessor, true) // true = always continue executing the statements in the block
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
