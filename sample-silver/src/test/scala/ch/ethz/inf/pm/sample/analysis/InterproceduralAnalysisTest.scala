@@ -450,7 +450,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
   private def checkLiveVariableInEntryState(programResult: ProgramResult[SimpleLiveVariableAnalysisState],
                                             method: String, expectedLive: Seq[String]): Unit = {
     val entryState = programResult.getResult(SilverIdentifier(method)).entryState()
-    val liveVariablesActual = if (entryState.isBottom) Seq() else entryState.domain.toSetOrFail.map(_.getName)
+    val liveVariablesActual = entryState.domain.toSetOrFail.map(_.getName)
 
     liveVariablesActual should contain theSameElementsAs expectedLive
   }
@@ -498,6 +498,21 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
     )
     checkLiveVariableInEntryState(programResult, "caller", Seq("x", "y", "z"))
     checkLiveVariableInEntryState(programResult, "callee", Seq("x", "y", "z"))
+  }
+
+  test("non-bottom-state-with-bottom-domani") {
+    // in the following program no variable at the entryState is live
+    // nevertheless the state itself should NOT be bottom
+    val programResult = run(
+      """
+        |method f1(a: Int) returns (r: Int)
+        |{
+        |    r := 42
+        |}
+      """.stripMargin
+    )
+    checkLiveVariableInEntryState(programResult, "f1", Nil) // we expect no live variables. the domain will be bottom
+    assert(!programResult.getResult(SilverIdentifier("f1")).entryState().isBottom, "State should not be bottom")
   }
 
   def run(s: String): ProgramResult[SimpleLiveVariableAnalysisState] = {

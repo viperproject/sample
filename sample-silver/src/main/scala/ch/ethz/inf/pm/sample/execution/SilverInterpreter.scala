@@ -171,6 +171,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
+        val edges = inEdges(current, cfgResults)
         // join incoming states.
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(current, currentCfg), current, edge)
@@ -210,7 +211,7 @@ trait SilverForwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             var predecessor = entry
-            statements.drop(numToSkip).takeWhile(_ => canContinueBlock).foreach(st => {
+            statements.drop(numToSkip).foreach(st => if (canContinueBlock) {
               val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
@@ -239,7 +240,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             }
             // execute statements
             var predecessor = intermediate
-            statements.drop(numToSkip - invariants.size).takeWhile(_ => canContinueBlock).foreach(st => {
+            statements.drop(numToSkip - invariants.size).foreach(st => if (canContinueBlock) {
               val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
               states.append(successor)
               predecessor = successor
@@ -250,7 +251,17 @@ trait SilverForwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(current, currentCfg).setStates(current.pos.block, states.toList)
+        // If we aborted a StatementBlock early we'll have less states than we should have.
+        // Fill the gap with bottom. These bottom states will be replaced by the actual state when
+        // the interpreter continues at this BlockPosition.
+        val gapFiller = if (!canContinueBlock) {
+          // some statements have been skipped!
+          val btm = bottom(currentCfg)
+          Seq.fill(oldStates.size - states.size)(btm)
+        } else {
+          Nil
+        }
+        cfgResults(current, currentCfg).setStates(current.pos.block, states.toList ++ gapFiller)
         // update worklist and iteration count if the whole block has been executed
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
           worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
@@ -456,7 +467,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
           case StatementBlock(statements) =>
             // execute statements
             var successor = exit
-            statements.take(elemsToTake).reverse.takeWhile(_ => canContinueBlock).foreach(statement => {
+            statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
               val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
               successor = predecessor
@@ -484,7 +495,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
             var successor = exit
-            statements.take(elemsToTake).reverse.takeWhile(_ => canContinueBlock).foreach(statement => {
+            statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
               val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
               states.append(predecessor)
               successor = predecessor
@@ -504,7 +515,17 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // TODO: We might want to not support constraining blocks in Sample.
             ???
         }
-        cfgResults(current, currentCfg).setStates(current.pos.block, states.reverse.toList)
+        // If we aborted a StatementBlock early we'll have less states than we should have.
+        // Fill the gap with bottom. These bottom states will be replaced by the actual state when
+        // the interpreter continues at this BlockPosition.
+        val gapFiller = if (!canContinueBlock) {
+          // some statements have been skipped!
+          val btm = bottom(currentCfg)
+          Seq.fill(oldStates.size - states.size)(btm)
+        } else {
+          Nil
+        }
+        cfgResults(current, currentCfg).setStates(current.pos.block, gapFiller ++ states.reverse.toList)
 
         // update worklist and iteration count
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
@@ -564,7 +585,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     logger.trace(successor.toString)
     logger.trace(statement.toString)
     logger.trace(predecessor.toString)
-    (predecessor, true)
+    (predecessor, true) // true = always continue executing the statements in the block
   }
 
   private def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {

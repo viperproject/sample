@@ -79,6 +79,7 @@ case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: Si
   }
 }
 
+
 trait SilverBackwardAnalysis[S <: State[S]]
   extends IntraproceduralSilverAnalysis[S] {
   protected def analyze(method: SilverMethodDeclaration, initial: S): CfgResult[S] = {
@@ -101,22 +102,50 @@ case class SimpleInterproceduralSilverBackwardAnalysis[S <: State[S]](builder: S
   }
 }
 
-trait SilverEntryStateBuilder[S <: State[S]] {
-  def top: S
-
-  def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S
-}
-
 /**
-  * A simple entry state builder that starts with the top state and initializes
-  * the arguments.
+  * An entry state builder that provides the entry state of an analysis.
   *
   * @tparam S The type of the state.
   * @author Jerome Dohrau
   */
-trait SimpleEntryStateBuilder[S <: State[S]]
-  extends SilverEntryStateBuilder[S] {
-  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S = {
-    method.initializeArgument(top)
+trait SilverEntryStateBuilder[S <: State[S]] {
+  /**
+    * The default state used to build the entry state of an analysis.
+    *
+    * @return The default state.
+    */
+  def default: S
+
+  /**
+    * Builds and returns an entry state for the analysis of the given method of
+    * the given program.
+    *
+    * By default the this method takes the default state an ...
+    *
+    * @param program The program.
+    * @param method  The method.
+    * @return The entry state.
+    */
+  def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S = {
+    val declarations = method.arguments ++ method.returns
+    declarations.foldLeft(default) {
+      case (state, declaration) =>
+        val evaluated = declaration.variable.forwardSemantics(state)
+        val argument = evaluated.expr
+        evaluated.removeExpression().createVariableForArgument(argument, declaration.typ)
+    }
   }
+
+  /**
+    * Builds and returns an entry state for the analysis of the given method of
+    * the given program under the assumption that the analyzed method is a callee.
+    *
+    * This builder can be used if the entrystate for a method should be different depending on whether the method
+    * is called by other methods or analysed "at the top of the callgraph".
+    *
+    * @param program The program.
+    * @param method  The method.
+    * @return The entry state.
+    */
+  def buildForMethodCallEntry(program: SilverProgramDeclaration, method: SilverMethodDeclaration): S = build(program, method)
 }

@@ -694,13 +694,13 @@ object PermissionAnalysisState {
 }
 
 object PermissionAnalysisEntryState
-  extends SimpleEntryStateBuilder[SimplePermissionAnalysisState] {
-  override def top: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
+  extends SilverEntryStateBuilder[SimplePermissionAnalysisState] {
+  override def default: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
 case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
 (aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
- permissionAnalysisStateBuilder: SimpleEntryStateBuilder[T])
+ permissionAnalysisStateBuilder: SilverEntryStateBuilder[T])
   extends SilverAnalysis[T] {
   override def analyze(program: SilverProgramDeclaration): ProgramResult[T] = {
     // initialize context
