@@ -74,11 +74,9 @@ trait HeapNode extends Identifier.HeapIdentifier {
 
 object HeapNode {
   /**
-    * The wildcard heap node that represents all possible heap locations.
-    *
-    * TODO: Rename to "TopNode".
+    * The top heap node that represents all possible heap locations.
     */
-  case object WildcardNode extends HeapNode {
+  case object TopNode extends HeapNode {
     override def getName: String = "⊤"
 
     override def representsSingleVariable: Boolean = false
@@ -416,14 +414,14 @@ trait AliasGraph[T <: AliasGraph[T]] {
     if (path.isEmpty) this
     else if (path.length == 1) {
       val variable = path.head
-      val newStore = store + (variable -> Set(WildcardNode: HeapNode))
+      val newStore = store + (variable -> Set(TopNode: HeapNode))
       copy(store = newStore)
     } else {
       val receivers = evaluateReceiver(path)
       val field = path.last
       val newHeap = receivers.foldLeft(heap) { (heap, receiver) =>
         val fieldMap = heap.getOrElse(receiver, Map.empty)
-        val newFieldMap = fieldMap + (field -> Set(WildcardNode: HeapNode))
+        val newFieldMap = fieldMap + (field -> Set(TopNode: HeapNode))
         heap + (receiver -> newFieldMap)
       }
       copy(heap = newHeap)
@@ -473,7 +471,7 @@ trait AliasGraph[T <: AliasGraph[T]] {
     val values = store.getOrElse(variable, Set.empty)
 
     // it should not happen that the summary node gets materialized
-    if (values contains WildcardNode) {
+    if (values contains TopNode) {
       if (materialization) {
         // only materialize wildcard node in the may alias graph
         if (isMayAliasGraph) {
@@ -509,7 +507,7 @@ trait AliasGraph[T <: AliasGraph[T]] {
     val values = heap.getOrElse(receiver, Map.empty).getOrElse(field, Set.empty)
 
     // it should not happen that the summary node gets materialized
-    if (values contains WildcardNode) {
+    if (values contains TopNode) {
       if (materialization) {
         // only materialize wildcard node in the may alias graph
         if (isMayAliasGraph) {
@@ -706,7 +704,7 @@ trait AliasGraph[T <: AliasGraph[T]] {
   }
 
   def defaultValue(): Set[HeapNode] = this match {
-    case _: MayAliasGraph => Set(WildcardNode)
+    case _: MayAliasGraph => Set(TopNode)
     case _: MustAliasGraph => Set(UnknownNode)
   }
 
@@ -766,7 +764,7 @@ object AliasGraph {
     override def pathsAlias(first: Path, second: Path): Boolean = {
       def evaluate(path: Path): Set[HeapNode] = {
         val eval = evaluatePath(path)
-        if ((eval contains WildcardNode) || !(eval contains UnknownNode)) eval
+        if ((eval contains TopNode) || !(eval contains UnknownNode)) eval
         else copy(materialization = true).materialize(path).evaluatePath(path)
       }
 
@@ -776,7 +774,7 @@ object AliasGraph {
 
       def intersection = firstEval & secondEval
 
-      intersection.nonEmpty || (firstEval contains WildcardNode) || (secondEval contains WildcardNode)
+      intersection.nonEmpty || (firstEval contains TopNode) || (secondEval contains TopNode)
     }
 
     /** Returns the least upper bound of this and the other alias graph.
@@ -797,7 +795,7 @@ object AliasGraph {
             case (Some(values1), Some(values2)) =>
               // we keep the unknown node only if there is no summary node
               val union = values1 ++ values2
-              val values = if (union contains WildcardNode) union - UnknownNode else union
+              val values = if (union contains TopNode) union - UnknownNode else union
               map + (field -> values)
           }
         }
@@ -878,8 +876,8 @@ object AliasGraph {
       def compare(map1: FieldMap, map2: FieldMap): Boolean = {
         map1.forall { case (field, values1) =>
           val values2 = map2.getOrElse(field, Set.empty)
-          val otherWildcard = values2 contains WildcardNode
-          val otherUnknown = otherWildcard || ((values2 contains UnknownNode) && !(values1 contains WildcardNode))
+          val otherWildcard = values2 contains TopNode
+          val otherUnknown = otherWildcard || ((values2 contains UnknownNode) && !(values1 contains TopNode))
           val isSubset = otherUnknown || (values1 subsetOf values2)
           otherWildcard || otherUnknown || isSubset
         }
@@ -936,8 +934,8 @@ object AliasGraph {
       * @return True if the given access paths may / must alias.
       */
     override def pathsAlias(first: Path, second: Path): Boolean = {
-      val leftEval = evaluatePath(first) -- Set(UnknownNode, WildcardNode)
-      val rightEval = evaluatePath(second) -- Set(UnknownNode, WildcardNode)
+      val leftEval = evaluatePath(first) -- Set(UnknownNode, TopNode)
+      val rightEval = evaluatePath(second) -- Set(UnknownNode, TopNode)
       val intersection = leftEval & rightEval
       intersection.nonEmpty
     }
