@@ -57,94 +57,81 @@ object AliasAnalysisTypes {
   def FieldMap(): FieldMap = Map.empty
 }
 
-/** A heap node used in the alias graph.
+/**
+  * A heap node used by the alias analysis to represent heap locations in the
+  * alias graph.
   *
-  * @param name The name of the node.
   * @author Caterina Urban
   * @author Jerome Dohrau
   */
-case class HeapNode(name: String,
-                    typ: Type = DummyRefType,
-                    pp: ProgramPoint = DummyProgramPoint)
-  extends Identifier {
-  /** Returns the name of the identifier.
-    *
-    * @return The name of the identifier.
-    */
-  override def getName: String = name
-
-  /** Returns the name of the field that is represented by the identifier.
-    *
-    * @return The name of the field that is represented by the identifier.
-    */
+trait HeapNode extends Identifier.HeapIdentifier {
   override def getField: Option[String] = None
 
-  /** Returns true if the identifier represents exactly one variable.
-    *
-    * @return True if the identifier represents exactly one variable.
-    */
-  override def representsSingleVariable: Boolean = true
+  override def pp: ProgramPoint = DummyProgramPoint
 
-  override def equals(other: Any) = other match {
-    case node: HeapNode => name equals node.name
-    case _ => false
-  }
-
-  override def hashCode(): Int = name.hashCode
+  override def typ: Type = DummyRefType
 }
 
 object HeapNode {
-
-  /** The unique wildcard node.
+  /**
+    * The wildcard heap node that represents all possible heap locations.
+    *
+    * TODO: Rename to "TopNode".
     */
-  object WildcardNode
-    extends HeapNode("*") {
-    /** Returns true if the identifier represents exactly one variable.
-      *
-      * @return True if the identifier represents exactly one variable.
-      */
+  case object WildcardNode extends HeapNode {
+    override def getName: String = "⊤"
+
     override def representsSingleVariable: Boolean = false
   }
 
   /**
-    * The unique summary node.
+    * The unknown node that represents all heap locations that are not
+    * materialized.
     */
-  object SummaryNode
-    extends HeapNode("Σ") {
-    /** Returns true if the identifier represents exactly one variable.
-      *
-      * @return True if the identifier represents exactly one variable.
-      */
+  case object UnknownNode extends HeapNode {
+    override def getName: String = "?"
+
+    override def representsSingleVariable: Boolean = false
+}
+
+  /**
+    * The summary node.
+    */
+  case object SummaryNode extends HeapNode {
+    override def getName: String = "Σ"
+
     override def representsSingleVariable: Boolean = false
   }
 
-  /** The unique unknown node.
+  /**
+    * The null node that represents the null value.
     */
-  object UnknownNode
-    extends HeapNode("?") {
-    /** Returns true if the identifier represents exactly one variable.
-      *
-      * @return True if the identifier represents exactly one variable.
-      */
+  case object NullNode extends HeapNode {
+    override def getName: String = "null"
+
+    // TODO: Check whether this is correct.
     override def representsSingleVariable: Boolean = false
   }
 
-  /** The unique null node.
+  /**
+    * The new node that represents a newly created heap location.
     */
-  object NullNode
-    extends HeapNode("null") {
-    /** Returns true if the identifier represents exactly one variable.
-      *
-      * @return True if the identifier represents exactly one variable.
-      */
-    override def representsSingleVariable: Boolean = false
+  case object NewNode extends HeapNode {
+    override def getName: String = "new"
+
+    override def representsSingleVariable: Boolean = true
   }
 
-  /** The unique new node used to represent a newly created heap location.
+  /**
+    * A heap node representing a single heap location.
+    *
+    * @param name The name of the heap location.
     */
-  object NewNode
-    extends HeapNode("new")
+  case class SimpleNode(name: String) extends HeapNode {
+    override def getName: String = name
 
+    override def representsSingleVariable: Boolean = true
+  }
 }
 
 /** A graph representing alias information.
@@ -260,12 +247,12 @@ trait AliasGraph[T <: AliasGraph[T]] {
 
   /** Adds a node with the given name to the heap.
     *
-    * @param name The name of the node.
+    * @param name The name of the heap location.
     * @return The alias graph with the node added
     */
   def addNode(name: String): T = {
     // create node and initialize its fields
-    val node = HeapNode(name)
+    val node = SimpleNode(name)
     val fieldMap = Context.getFields()
       .map(_.variable.getName)
       .foldLeft(FieldMap()) { (map, field) => map + (field -> initialValue()) }
@@ -387,8 +374,8 @@ trait AliasGraph[T <: AliasGraph[T]] {
         case VariableIdentifier(variable, _) =>
           if (values contains NewNode) {
             // update store and heap
-            val node = HeapNode(variable, target.typ, target.pp)
-            val newStore = store + (variable -> Set(node))
+            val node = SimpleNode(variable)
+            val newStore = store + (variable -> Set(node: HeapNode))
             val newHeap = heap + (node -> heap.getOrElse(NewNode, Map.empty))
             // update state
             copy(store = newStore, heap = newHeap)
@@ -498,12 +485,12 @@ trait AliasGraph[T <: AliasGraph[T]] {
       } else (this, values)
     } else if (values contains UnknownNode) {
       // create fresh heap node
-      val fresh = HeapNode(variable)
+      val fresh = SimpleNode(variable)
       // remove unknown node and add fresh node
       val newValues = values - UnknownNode + fresh
       val newStore = store + (variable -> newValues)
       // update heap with the fresh node
-      val newHeap = heap + (fresh -> heap(UnknownNode))
+      val newHeap = heap + (fresh -> heap(UnknownNode: HeapNode))
       (copy(store = newStore, heap = newHeap), newValues)
     } else {
       // there is nothing to materialize
@@ -536,7 +523,7 @@ trait AliasGraph[T <: AliasGraph[T]] {
     } else if (values contains UnknownNode) {
       if (materialization) {
         // create fresh heap node
-        val fresh = HeapNode(s"${receiver.name}.$field")
+        val fresh = SimpleNode(s"${receiver.getName}.$field")
         // remove unknown node and add fresh node and update heap with fresh node
         val newValues = values - UnknownNode + fresh
         val newFieldMap = heap.getOrElse(receiver, Map.empty) + (field -> newValues)
@@ -1287,9 +1274,10 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T]]
     logger.trace(s"createObject($typ, $pp)")
 
     // add node to may and must alias graphs
+    // TODO: Why don't we add the node itself?
     val node = NewNode
-    val newMay = may.addNode(node.name)
-    val newMust = must.addNode(node.name)
+    val newMay = may.addNode(node.getName)
+    val newMust = must.addNode(node.getName)
     // new result
     val result = ExpressionSet(node)
     // update result and may and must alias graphs
