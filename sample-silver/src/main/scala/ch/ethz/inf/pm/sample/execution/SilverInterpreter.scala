@@ -398,10 +398,10 @@ trait SilverBackwardInterpreter[S <: State[S]]
     * @param worklist The interpreters worklist
     */
   protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {}
-  
-  def getSuccessorState(cfgResult: CfgResult[S], current: BlockPosition, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
-    case Left(e: SampleEdge) if current.index == lastIndex(current) => cfgResult.getStates(e.target).head
-    case _ => cfgResult.postStateAt(current)
+
+  def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
+    case Left(e: SampleEdge) if current.pos.index == lastIndex(current.pos) => cfgResult.getStates(e.target).head
+    case _ => cfgResult.postStateAt(current.pos)
   }
 
   def execute(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
