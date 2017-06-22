@@ -275,6 +275,20 @@ trait SilverForwardInterpreter[S <: State[S]]
     case _ => cfgResult.preStateAt(current)
   }
 
+  /**
+    *
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         successor statement can continue or not.
+    *
+    */
   protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): (S, Boolean) = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
@@ -523,6 +537,20 @@ trait SilverBackwardInterpreter[S <: State[S]]
     predecessor
   }
 
+  /**
+    *
+    * Execute the statement. Can tell the caller whether the interpreter should continue executing statements or whether
+    * it should abort. For method calls it is for example not useful to continue with the next statement unless
+    * the effect of the method is actually available.
+    *
+    * @param statement     The statement to execute
+    * @param state         The state to execute the statement on
+    * @param worklist      The interpreter's worklist
+    * @param programResult The programResult for this analysis
+    * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
+    *         successor statement can continue or not.
+    *
+    */
   protected def executeStatement(statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultMapType[S]): (S, Boolean) = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
