@@ -26,7 +26,7 @@ object InterproceduralSilverInterpreter {
     *
     * @tparam S the type of the state
     */
-  type MethodTransferStatesMap[S] = mutable.Map[(CallString, SilverIdentifier), S]
+  type MethodTransferStatesMap[S] = mutable.Map[CallString, S]
 
   /**
     * The CallGraphMap maps each method(SilverIdentifiers) to a set of it's callees.
@@ -52,16 +52,18 @@ object InterproceduralSilverInterpreter {
   val ReturnPrefix = "ret_#"
 }
 
-case class SimpleCallString(callStack: List[ProgramPoint]){
+case class SimpleCallString(callStack: List[ProgramPoint]) {
 
   /**
     * Represents the position of the last method call
+    *
     * @return
     */
   def lastCaller: ProgramPoint = callStack.head
 
   /**
     * Shrink the call-string. This represents a return from a callee.
+    *
     * @return
     */
   def pop: SimpleCallString = copy(callStack = callStack.tail)
@@ -76,6 +78,7 @@ case class SimpleCallString(callStack: List[ProgramPoint]){
 
   /**
     * Denotes that we're inside a called method
+    *
     * @return True if callstring relates to a callee
     */
   def inCallee: Boolean = callStack.size > 0
@@ -205,9 +208,9 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       lazy val method = findMethod(current)
       if (cfg(current).entry == current.pos.block) { // only entry-blocks can have incoming MethodCall edges
         current match {
-          case TaggedWorklistElement(callString, _, _) if methodTransferStates.contains((callString, method.name)) =>
+          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains callString =>
             val initialState = initial(cfg(current))
-            Seq(Right(MethodCallEdge(methodTransferStates((callString, method.name)))))
+            Seq(Right(MethodCallEdge(methodTransferStates(callString))))
           case _ => Nil
         }
       } else {
@@ -306,8 +309,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case _ => SimpleCallString(List(call.getPC()))
       }
       //TODO @flurin tag the transfer state also with the callstring
-      val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
-      methodTransferStates((callString, methodIdentifier)) = tmpVariableState
+      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
+      methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
         worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
       }
@@ -423,9 +426,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block) {
         // only add edges for exit-blocks
         current match {
-          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains(callString, method.name) =>
-            val initialState = initial(currentCfg)
-            Seq(Right(MethodReturnEdge(methodTransferStates((callString, method.name)))))
+          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains callString =>
+            Seq(Right(MethodReturnEdge(methodTransferStates(callString))))
           case _ => Nil
         }
       } else {
@@ -471,8 +473,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(call)
         case _ => SimpleCallString(List(call.getPC()))
       }
-      val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
-      methodTransferStates((callString, methodIdentifier)) = tmpVariableState
+      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
+      methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
         worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
       }
