@@ -38,9 +38,8 @@ object InterproceduralSilverInterpreter {
 
   /**
     * Type to represent a call-string for interprocedural analysis
-    * TODO @flurin should we append to the left or right for growing the call-string?
     */
-  type CallString = Seq[ProgramPoint]
+  type CallString = SimpleCallString
 
   /**
     * Prefix to be used for temporary method arguments.
@@ -51,6 +50,35 @@ object InterproceduralSilverInterpreter {
     * Prefix to bused for temporary method returns.
     */
   val ReturnPrefix = "ret_#"
+}
+
+case class SimpleCallString(callStack: List[ProgramPoint]){
+
+  /**
+    * Represents the position of the last method call
+    * @return
+    */
+  def lastCaller: ProgramPoint = callStack.head
+
+  /**
+    * Shrink the call-string. This represents a return from a callee.
+    * @return
+    */
+  def pop: SimpleCallString = copy(callStack = callStack.tail)
+
+  /**
+    * Grow the call-string accoding to the given methodCall
+    *
+    * @param methodCall The MethodCall statement that causes the call-string to grow
+    * @return a new callstring that represents this stack of calls
+    */
+  def push(methodCall: MethodCall) = copy(callStack = methodCall.getPC() :: callStack)
+
+  /**
+    * Denotes that we're inside a called method
+    * @return True if callstring relates to a callee
+    */
+  def inCallee: Boolean = callStack.size > 0
 }
 
 /**
@@ -206,8 +234,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       //)
       .foreach(b => {
       current match {
-        case TaggedWorklistElement(callString, _, _) if callString.length > 0 && b.block.elements(b.index).merge.getPC() == callString.reverse.head => // TODO @flurin fix this!
-          worklist.enqueue(TaggedWorklistElement(callString.reverse.drop(1).reverse, b, true))
+        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin fix this!
+          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
         case _ =>
       }
     })
@@ -274,8 +302,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString :+ statement.getPC()
-        case _ => Seq(statement.getPC())
+        case tagged: TaggedWorklistElement => tagged.callString.push(call)
+        case _ => SimpleCallString(List(call.getPC()))
       }
       //TODO @flurin tag the transfer state also with the callstring
       val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
@@ -337,11 +365,11 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
           res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg))) //TODO @flurin should clone the result here?
         res((callString, cfg))
       case _ =>
-        res((Nil, cfg))
+        res((SimpleCallString(Nil), cfg))
     }
 
     lookup(mutable.Map((for (method <- program.methods) yield {
-      (Nil, method.body) -> programResult.getResult(method.name)
+      (SimpleCallString(Nil), method.body) -> programResult.getResult(method.name)
     }): _*))
   }
 
@@ -440,8 +468,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString :+ statement.getPC()
-        case _ => Seq(statement.getPC())
+        case tagged: TaggedWorklistElement => tagged.callString.push(call)
+        case _ => SimpleCallString(List(call.getPC()))
       }
       val old = if (methodTransferStates contains(callString, methodIdentifier)) methodTransferStates((callString, methodIdentifier)) else tmpVariableState.bottom()
       methodTransferStates((callString, methodIdentifier)) = tmpVariableState
@@ -496,8 +524,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       //)
       .foreach(b => {
       current match {
-        case TaggedWorklistElement(callString, _, _) if callString.length > 0 && b.block.elements(b.index).merge.getPC() == callString.reverse.head => // TODO @flurin check again
-          worklist.enqueue(TaggedWorklistElement(callString.reverse.drop(1).reverse, b, true))
+        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin check again
+          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
         case _ =>
       }
     })
