@@ -118,6 +118,9 @@ class TrivialInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
   * Tests for the naive/context insensitive interprocedural analysis
   * Run an interprocedural interval analysis and checks the exit states of the methods
   *
+  * In the context insensitive analysis calling-context of different call-locations are merged together. The result
+  * of a method-call is used reused at each call location.
+  *
   * @author Flurin Rindisbacher
   */
 class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnalysisTest {
@@ -281,7 +284,7 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
   }
 
   def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
-    InterproceduralIntegerIntervalAnalysis.run(
+    ContextInsensitiveInterproceduralIntegerIntervalAnalysis.run(
       Compilable.Code("(no name)", s)
     )
   }

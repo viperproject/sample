@@ -356,6 +356,16 @@ object InterproceduralIntegerIntervalAnalysis
 }
 
 /**
+  * An interprocedural numerical analysis using the integer interval domain.
+  *
+  * @author Flurin Rindisbacher
+  */
+object ContextInsensitiveInterproceduralIntegerIntervalAnalysis
+  extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState, Some(0))
+}
+
+/**
   * A numerical analysis using the integer octagon domain.
   */
 object IntegerOctagonAnalysis

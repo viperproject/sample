@@ -82,6 +82,14 @@ case class SimpleCallString(callStack: List[ProgramPoint]) {
     * @return True if callstring relates to a callee
     */
   def inCallee: Boolean = callStack.size > 0
+
+  /**
+    * Returns a call-string shoretend tho the last k calls.
+    *
+    * @param k Length of the shortened call-string
+    * @return The shortened call-string consisting of (at most) k calls.
+    */
+  def suffix(k: Int): SimpleCallString = copy(callStack = callStack.take(k))
 }
 
 /**
@@ -142,6 +150,8 @@ trait InterprocHelpers[S <: State[S]] {
    * A main method is analyzed using "initial" as the entry state.
    */
   val mainMethods: Set[SilverIdentifier]
+
+  val callStringLength: Option[Int]
 
   private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
     var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
@@ -335,19 +345,21 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 }
 
 /**
-  * Forward interpreter that handles method calls using a context insensitive approach.
+  * Forward interpreter that handles method calls using a call-string approach.
   *
   * @param program        The program that is analysed
   * @param mainMethods    A set of methods that should be treated as main-methos (i.e. use initial as entry state)
   * @param builder        A builder to create initial states for each cfg to analyse
   * @param callsInProgram The call graph of the program
+  * @param callStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val program: SilverProgramDeclaration,
                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
-                                                                        override val callsInProgram: CallGraphMap)
+                                                                        override val callsInProgram: CallGraphMap,
+                                                                        override val callStringLength: Option[Int] = None)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -548,11 +560,22 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   }
 }
 
+/**
+  * Backward interpreter that handles method calls using a call-string approach.
+  *
+  * @param program        The program that is analysed
+  * @param mainMethods    A set of methods that should be treated as main-methos (i.e. use initial as entry state)
+  * @param builder        A builder to create initial states for each cfg to analyse
+  * @param callsInProgram The call graph of the program
+  * @param callStringLength an optional upper bound for the call-string length
+  * @tparam S The type of the states.
+  */
 case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val program: SilverProgramDeclaration,
                                                                          override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
-                                                                         override val callsInProgram: CallGraphMap)
+                                                                         override val callsInProgram: CallGraphMap,
+                                                                         override val callStringLength: Option[Int] = None)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //
