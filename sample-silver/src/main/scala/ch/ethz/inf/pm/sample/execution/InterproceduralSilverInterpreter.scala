@@ -52,29 +52,37 @@ object InterproceduralSilverInterpreter {
   val ReturnPrefix = "ret_#"
 }
 
-case class SimpleCallString(callStack: List[ProgramPoint]) {
+case class SimpleCallString(callStack: List[ProgramPoint] = Nil) {
 
   /**
     * Represents the position of the last method call
     *
     * @return
     */
-  def lastCaller: ProgramPoint = callStack.head
+  def lastCaller: ProgramPoint = callStack.tail.head
+
+  /**
+    * Returns the ProgramPoint of the current method that this call-string calles into
+    *
+    * @return
+    */
+  def currentMethod: ProgramPoint = callStack.head //TODO @flurin doesn't work for main method
 
   /**
     * Shrink the call-string. This represents a return from a callee.
     *
     * @return
     */
-  def pop: SimpleCallString = copy(callStack = callStack.tail)
+  def pop: SimpleCallString = copy(callStack = callStack.tail.tail)
 
   /**
     * Grow the call-string accoding to the given methodCall
     *
-    * @param methodCall The MethodCall statement that causes the call-string to grow
+    * @param callee   The called Method
+    * @param callStmt The MethodCall statement that causes the call-string to grow
     * @return a new callstring that represents this stack of calls
     */
-  def push(methodCall: MethodCall) = copy(callStack = methodCall.getPC() :: callStack)
+  def push(callee: SilverMethodDeclaration, callStmt: MethodCall) = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
 
   /**
     * Denotes that we're inside a called method
@@ -84,12 +92,19 @@ case class SimpleCallString(callStack: List[ProgramPoint]) {
   def inCallee: Boolean = callStack.size > 0
 
   /**
-    * Returns a call-string shoretend tho the last k calls.
+    * Returns a call-string shortened to the last k calls.
     *
-    * @param k Length of the shortened call-string
+    * @param k Max length of the shortened call-string
     * @return The shortened call-string consisting of (at most) k calls.
     */
-  def suffix(k: Int): SimpleCallString = copy(callStack = callStack.take(k))
+  def suffix(k: Option[Int]): SimpleCallString = k match {
+    case Some(length) => copy(callStack = callStack.take(2 * length))
+    case _ => this
+  }
+}
+
+object SimpleCallString {
+  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): SimpleCallString = new SimpleCallString(List(callee.programPoint, callStmt.getPC()))
 }
 
 /**
@@ -215,12 +230,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       * @return
       */
     def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
-      lazy val method = findMethod(current)
       if (cfg(current).entry == current.pos.block) { // only entry-blocks can have incoming MethodCall edges
         current match {
-          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains callString =>
-            val initialState = initial(cfg(current))
-            Seq(Right(MethodCallEdge(methodTransferStates(callString))))
+          case TaggedWorklistElement(callString, _, _) =>
+            lazy val method = findMethod(current)
+            lazy val currentCallStringShortened = callString.suffix(callStringLength)
+            // create an edge for each call string with the same k-length suffix
+            val inEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
+              .filter(_.suffix(callStringLength) == currentCallStringShortened)
+              .map(st => Right(MethodCallEdge(methodTransferStates(st))))
+              .toSeq
+            inEdgesBySuffix
           case _ => Nil
         }
       } else {
@@ -236,22 +256,37 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {
     /**
-      * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
-      * of this method. This way the new analysis results will be merged into the caller state.
+      * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
+      * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
+      * We enqueue all callers that have the same suffix.
       */
-    val method = findMethod(current)
-    callsInProgram(method.name)
-      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
-      // only enqueue blocks that have been analysed before
-      //  .contains(b.block.elements(b.index).merge.getPC())
-      //)
-      .foreach(b => {
-      current match {
-        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin fix this!
-          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
-        case _ =>
-      }
-    })
+    current match {
+      case TaggedWorklistElement(callString, _, _) =>
+        val method = findMethod(current)
+        val shortenedCallString = callString.suffix(callStringLength)
+        methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
+          .filter(_.suffix(callStringLength) == shortenedCallString)
+          .foreach(caller => {
+            val b = callsInProgram(method.name).find(pos => { //TODO @flurin this is really ugly
+              pos.block.elements(pos.index).merge.getPC() == caller.lastCaller
+            }).get
+            worklist.enqueue(TaggedWorklistElement(caller.pop, b, true))
+          })
+      case _ =>
+    }
+
+    //    callsInProgram(method.name)
+    //      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
+    //      // only enqueue blocks that have been analysed before
+    //      //  .contains(b.block.elements(b.index).merge.getPC())
+    //      //)
+    //      .foreach(b => {
+    //      current match {
+    //        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin fix this!
+    //          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
+    //        case _ =>
+    //      }
+    //    })
   }
 
   override def initial(cfg: SampleCfg): S = {
@@ -315,21 +350,21 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString.push(call)
-        case _ => SimpleCallString(List(call.getPC()))
+        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
+        case _ => SimpleCallString(methodDeclaration, call)
       }
       //TODO @flurin tag the transfer state also with the callstring
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.entry, 0), false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.entry, 0), false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString, null, false) //TODO @flurin that's ugly
+      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false) //TODO @flurin that's ugly
     val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
@@ -347,10 +382,10 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 /**
   * Forward interpreter that handles method calls using a call-string approach.
   *
-  * @param program        The program that is analysed
-  * @param mainMethods    A set of methods that should be treated as main-methos (i.e. use initial as entry state)
-  * @param builder        A builder to create initial states for each cfg to analyse
-  * @param callsInProgram The call graph of the program
+  * @param program          The program that is analysed
+  * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
+  * @param builder          A builder to create initial states for each cfg to analyse
+  * @param callsInProgram   The call graph of the program
   * @param callStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
@@ -482,8 +517,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString.push(call)
-        case _ => SimpleCallString(List(call.getPC()))
+        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
+        case _ => SimpleCallString(methodDeclaration, call)
       }
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
@@ -563,10 +598,10 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 /**
   * Backward interpreter that handles method calls using a call-string approach.
   *
-  * @param program        The program that is analysed
-  * @param mainMethods    A set of methods that should be treated as main-methos (i.e. use initial as entry state)
-  * @param builder        A builder to create initial states for each cfg to analyse
-  * @param callsInProgram The call graph of the program
+  * @param program          The program that is analysed
+  * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
+  * @param builder          A builder to create initial states for each cfg to analyse
+  * @param callsInProgram   The call graph of the program
   * @param callStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
