@@ -7,7 +7,8 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, CallString, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.CallString.SimpleCallString
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -37,11 +38,6 @@ object InterproceduralSilverInterpreter {
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
 
   /**
-    * Type to represent a call-string for interprocedural analysis
-    */
-  type CallString = SimpleCallString
-
-  /**
     * Prefix to be used for temporary method arguments.
     */
   val ArgumentPrefix = "arg_#"
@@ -52,44 +48,43 @@ object InterproceduralSilverInterpreter {
   val ReturnPrefix = "ret_#"
 }
 
-case class SimpleCallString(callStack: List[ProgramPoint] = Nil) {
-
+trait CallString {
   /**
     * Represents the position of the last method call
     *
     * @return
     */
-  def lastCaller: ProgramPoint = callStack.tail.head
+  def lastCaller: ProgramPoint
 
   /**
-    * Returns the ProgramPoint of the current method that this call-string calles into
+    * Returns the ProgramPoint of the current method that this call-string calls into
     *
     * @return
     */
-  def currentMethod: ProgramPoint = callStack.head //TODO @flurin doesn't work for main method
+  def currentMethod: ProgramPoint
 
   /**
     * Shrink the call-string. This represents a return from a callee.
     *
     * @return
     */
-  def pop: SimpleCallString = copy(callStack = callStack.tail.tail)
+  def pop: CallString
 
   /**
-    * Grow the call-string accoding to the given methodCall
+    * Grow the call-string according to the given methodCall
     *
     * @param callee   The called Method
     * @param callStmt The MethodCall statement that causes the call-string to grow
     * @return a new callstring that represents this stack of calls
     */
-  def push(callee: SilverMethodDeclaration, callStmt: MethodCall) = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
+  def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString
 
   /**
     * Denotes that we're inside a called method
     *
     * @return True if callstring relates to a callee
     */
-  def inCallee: Boolean = callStack.size > 0
+  def inCallee: Boolean
 
   /**
     * Returns a call-string shortened to the last k calls.
@@ -97,14 +92,33 @@ case class SimpleCallString(callStack: List[ProgramPoint] = Nil) {
     * @param k Max length of the shortened call-string
     * @return The shortened call-string consisting of (at most) k calls.
     */
-  def suffix(k: Option[Int]): SimpleCallString = k match {
-    case Some(length) => copy(callStack = callStack.take(2 * length))
-    case _ => this
-  }
+  def suffix(k: Option[Int]): CallString
 }
 
-object SimpleCallString {
-  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): SimpleCallString = new SimpleCallString(List(callee.programPoint, callStmt.getPC()))
+object CallString {
+
+  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = SimpleCallString(List(callee.programPoint, callStmt.getPC()))
+
+  def Empty: CallString = SimpleCallString(Nil)
+
+  private case class SimpleCallString(callStack: List[ProgramPoint] = Nil) extends CallString {
+
+    def lastCaller: ProgramPoint = callStack.tail.head
+
+    def currentMethod: ProgramPoint = callStack.head //TODO @flurin doesn't work for main method
+
+    def pop: CallString = copy(callStack = callStack.tail.tail)
+
+    def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
+
+    def inCallee: Boolean = callStack.size > 0
+
+    def suffix(k: Option[Int]): CallString = k match {
+      case Some(length) => copy(callStack = callStack.take(2 * length))
+      case _ => this
+    }
+  }
+
 }
 
 /**
@@ -351,7 +365,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
-        case _ => SimpleCallString(methodDeclaration, call)
+        case _ => CallString(methodDeclaration, call)
       }
       //TODO @flurin tag the transfer state also with the callstring
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
@@ -415,11 +429,11 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
           res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg))) //TODO @flurin should clone the result here?
         res((callString, cfg))
       case _ =>
-        res((SimpleCallString(Nil), cfg))
+        res((CallString.Empty, cfg))
     }
 
     lookup(mutable.Map((for (method <- program.methods) yield {
-      (SimpleCallString(Nil), method.body) -> programResult.getResult(method.name)
+      (CallString.Empty, method.body) -> programResult.getResult(method.name)
     }): _*))
   }
 
@@ -518,7 +532,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
-        case _ => SimpleCallString(methodDeclaration, call)
+        case _ => CallString(methodDeclaration, call)
       }
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
