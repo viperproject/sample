@@ -192,6 +192,16 @@ trait InterprocHelpers[S <: State[S]] {
     res
   }
 
+  /**
+    * A map from ProgramPoint to BlockPosition
+    * This allows us the enqueue a callee to the interpreter by knowing the ProgramPoint of the MethodCall.
+    */
+  protected lazy val calleePositions: Map[ProgramPoint, BlockPosition] = {
+    (for (call <- callsInProgram.values.flatMap(identity(_))) yield {
+      call.block.elements(call.index).merge.getPC() -> call
+    }).toMap
+  }
+
   protected def findMethod(current: WorklistElement): SilverMethodDeclaration = findMethod(current.pos)
 
   protected def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
@@ -281,10 +291,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
           .filter(_.suffix(callStringLength) == shortenedCallString)
           .foreach(caller => {
-            val b = callsInProgram(method.name).find(pos => { //TODO @flurin this is really ugly
-              pos.block.elements(pos.index).merge.getPC() == caller.lastCaller
-            }).get
-            worklist.enqueue(TaggedWorklistElement(caller.pop, b, true))
+            val position = calleePositions(caller.lastCaller)
+            worklist.enqueue(TaggedWorklistElement(caller.pop, position, true))
           })
       case _ =>
     }
