@@ -118,8 +118,7 @@ trait SilverEntryStateBuilder[S <: State[S]] {
       case (state, declaration) =>
         val evaluated = declaration.variable.forwardSemantics(state)
         val argument = evaluated.expr
-        val result = evaluated.removeExpression().createVariableForArgument(argument, declaration.typ)
-        result
+        evaluated.removeExpression().createVariableForArgument(argument, declaration.typ)
     }
   }
 }
