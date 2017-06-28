@@ -219,9 +219,9 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     exhale(expression).saveSpecifications()
 
   override def invariant(expression: Expression): T = {
-    // TODO: "assert" invariant rather than exhale it.
-    val exhaled = exhale(expression)
-    setSpecifications(exhaled.stack)
+    // TODO: "assert" the invariant instead of exhaling and inhaling it.
+    val inhaled = inhale(expression)
+    setSpecifications(inhaled.stack).exhale(expression)
   }
 
   override def enterLoop(): T = copy(stack = stack.pop)
