@@ -224,6 +224,31 @@ trait InterprocHelpers[S <: State[S]] {
     * @return The initial state
     */
   def initialForCallee(cfg: SampleCfg): S
+
+  /**
+    * Enqueue callers to the worklist.
+    * A caller is enqueued if the suffix of the call-string matches the current call-string.
+    *
+    * @param current the current worklist element
+    * @param worklist the worklist to enqueue to
+    */
+  protected def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist): Unit = current match {
+    /**
+      * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
+      * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
+      * we enqueue all callers that have the same suffix.
+      */
+    case TaggedWorklistElement(callString, _, _) =>
+      val method = findMethod(current)
+      val shortenedCallString = callString.suffix(callStringLength)
+      methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
+        .filter(_.suffix(callStringLength) == shortenedCallString)
+        .foreach(caller => {
+          val position = calleePositions(caller.lastCaller)
+          worklist.enqueue(TaggedWorklistElement(caller.pop, position, true))
+        })
+    case _ =>
+  }
 }
 
 /**
@@ -278,25 +303,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {
-    /**
-      * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
-      * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
-      * we enqueue all callers that have the same suffix.
-      */
-    current match {
-      case TaggedWorklistElement(callString, _, _) =>
-        val method = findMethod(current)
-        val shortenedCallString = callString.suffix(callStringLength)
-        methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
-          .filter(_.suffix(callStringLength) == shortenedCallString)
-          .foreach(caller => {
-            val position = calleePositions(caller.lastCaller)
-            worklist.enqueue(TaggedWorklistElement(caller.pop, position, true))
-          })
-      case _ =>
-    }
-  }
+  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist)
 
   override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
@@ -476,13 +483,19 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
   override protected def outEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     def createMethodReturnEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
-      lazy val method = findMethod(current)
       val currentCfg = cfg(current)
       if (currentCfg.exit.isDefined && currentCfg.exit.get == current.pos.block) {
         // only add edges for exit-blocks
         current match {
-          case TaggedWorklistElement(callString, _, _) if methodTransferStates contains callString =>
-            Seq(Right(MethodReturnEdge(methodTransferStates(callString))))
+          case TaggedWorklistElement(callString, _, _) =>
+            lazy val method = findMethod(current)
+            lazy val currentCallStringShortened = callString.suffix(callStringLength)
+            // create an edge for each call string with the same k-length suffix
+            val outEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
+              .filter(_.suffix(callStringLength) == currentCallStringShortened)
+              .map(st => Right(MethodReturnEdge(methodTransferStates(st))))
+              .toSeq
+            outEdgesBySuffix
           case _ => Nil
         }
       } else {
@@ -531,15 +544,15 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString, null, false) //TODO @flurin that's ugly
-    val entryState = programResult(analyzed, methodDeclaration.body).entryState()
+      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false)
+      val entryState = programResult(analyzed, methodDeclaration.body).entryState()
       val canContinue = !entryState.isBottom
 
       // current state now holds the previous state with evaluated assignments of the targets
@@ -568,25 +581,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {
-    /**
-      * In the context insensitive analysis everytime a method has been analysed we enqueue all call locations
-      * of this method. This way the new analysis results will be merged into the caller state.
-      */
-    val method = findMethod(current)
-    callsInProgram(method.name)
-      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
-      // only enqueue blocks that have been analysed before
-      //  .contains(b.block.elements(b.index).merge.getPC())
-      //)
-      .foreach(b => {
-      current match {
-        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin check again
-          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
-        case _ =>
-      }
-    })
-  }
+  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist)
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Right(edge: MethodReturnEdge[S]) =>
