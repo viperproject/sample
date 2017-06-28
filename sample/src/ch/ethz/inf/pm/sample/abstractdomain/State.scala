@@ -833,6 +833,15 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 trait Command {
 }
 
+/**
+  * A command issued when two states should be unified/merged.
+  *
+  * @param other The other state that should be merged into the state the command is executed on
+  *
+  *@author Flurin Rindisbacher
+  */
+case class UnifyCommand[S <: State[S]](other: S) extends Command
+
 /** Some trivial helper functions that execute forward/backward semantics on single and list of states.
   *
   * @author Pietro Ferrara

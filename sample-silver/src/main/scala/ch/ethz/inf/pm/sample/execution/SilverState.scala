@@ -204,7 +204,7 @@ trait SilverState[S <: SilverState[S]]
       .filter(id => !id.getName.startsWith(ReturnPrefix))
       .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret variables
-    val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    val joinedState = returnVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
   }
 
@@ -234,7 +234,7 @@ trait SilverState[S <: SilverState[S]]
       .filter(id => ! id.getName.startsWith(ArgumentPrefix))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
-    val joinedState = argVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    val joinedState = argVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     argVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._1))
   }
 

@@ -278,6 +278,19 @@ case class IntegerIntervalAnalysisState(pp: ProgramPoint,
     val b = isBottom || (!isTop && domain.isBottom)
     IntegerIntervalAnalysisState(pp, expr, domain, isTop, b)
   }
+
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  override def command(cmd: Command): IntegerIntervalAnalysisState = cmd match {
+    case UnifyCommand(other) => other match {
+      case o: IntegerIntervalAnalysisState => this lub o
+      case _ => super.command(cmd)
+    }
+    case _ => super.command(cmd)
+  }
 }
 
 /**

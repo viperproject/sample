@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, UtilitiesOnStates, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CallString.SimpleCallString
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
@@ -226,10 +226,19 @@ trait InterprocHelpers[S <: State[S]] {
   def initialForCallee(cfg: SampleCfg): S
 
   /**
+    * Unifies two states
+    *
+    * @param state The state we merge into
+    * @param other The state that is merged
+    * @return a unified state of state and other
+    */
+  def unify(state: S, other: S): S = state.command(UnifyCommand(other))
+
+  /**
     * Enqueue callers to the worklist.
     * A caller is enqueued if the suffix of the call-string matches the current call-string.
     *
-    * @param current the current worklist element
+    * @param current  the current worklist element
     * @param worklist the worklist to enqueue to
     */
   protected def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist): Unit = current match {
@@ -325,7 +334,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
-      var inputState = initialForCallee(methodDeclaration.body) lub callingContext
+      var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters and remove the temp args
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
       tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
@@ -590,7 +599,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val tmpReturns = for ((retVar, index) <- methodDeclaration.returns.zipWithIndex) yield {
         ExpressionSet(VariableIdentifier(ReturnPrefix + index)(retVar.typ))
       }
-      var inputState = initialForCallee(methodDeclaration.body) lub exitContext
+      var inputState = unify(initialForCallee(methodDeclaration.body), exitContext)
       // assign the methods actual returns to the temporary returns and remove the temp variables
       inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
       tmpReturns.foldLeft(inputState)((st, tmpRet) => st.removeVariable(tmpRet))
