@@ -282,7 +282,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     /**
       * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
       * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
-      * We enqueue all callers that have the same suffix.
+      * we enqueue all callers that have the same suffix.
       */
     current match {
       case TaggedWorklistElement(callString, _, _) =>
@@ -296,19 +296,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
           })
       case _ =>
     }
-
-    //    callsInProgram(method.name)
-    //      //.filter(b => methodTransferStates((current.asInstanceOf[TaggedWorklistElement].callString, method.name)) //TODO @flurin
-    //      // only enqueue blocks that have been analysed before
-    //      //  .contains(b.block.elements(b.index).merge.getPC())
-    //      //)
-    //      .foreach(b => {
-    //      current match {
-    //        case TaggedWorklistElement(callString, _, _) if callString.inCallee && b.block.elements(b.index).merge.getPC() == callString.lastCaller => // TODO @flurin fix this!
-    //          worklist.enqueue(TaggedWorklistElement(callString.pop, b, true))
-    //        case _ =>
-    //      }
-    //    })
   }
 
   override def initial(cfg: SampleCfg): S = {
@@ -375,7 +362,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      //TODO @flurin tag the transfer state also with the callstring
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
@@ -386,8 +372,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false) //TODO @flurin that's ugly
-    val exitState = programResult(analyzed, methodDeclaration.body).exitState()
+      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false)
+      val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
       val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
@@ -434,7 +420,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     def lookup(res: mutable.Map[(CallString, SampleCfg), CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = current match {
       case TaggedWorklistElement(callString, _, _) =>
         if (!(res contains(callString, cfg)))
-          res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg))) //TODO @flurin should clone the result here?
+          res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg)))
         res((callString, cfg))
       case _ =>
         res((CallString.Empty, cfg))
