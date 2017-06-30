@@ -117,6 +117,9 @@ object CallString {
       case Some(length) => copy(callStack = callStack.take(2 * length))
       case _ => this
     }
+
+    //TODO @flurin make this better
+    override def toString: String = callStack.map(_.description).mkString("").replace(" ", "")
   }
 
 }
@@ -329,10 +332,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   override def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     // For MethodCallEdges use an empty state with the arguments from the call
     case Right(edge: MethodCallEdge[S]) =>
+      val callString = current match {
+        case TaggedWorklistElement(cs, _, _) => cs
+      }
       val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+        ExpressionSet(VariableIdentifier(ArgumentPrefix + callString.toString + "_" + index)(param.typ))
       }
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters and remove the temp args
@@ -344,11 +350,16 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
+      val methodIdentifier = SilverIdentifier(v.getName)
+      val methodDeclaration = findMethod(methodIdentifier)
+      val callString = current match {
+        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
+        case _ => CallString(methodDeclaration, call)
+      }
       //
       // prepare calling context (evaluate method targets and parameters)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      val methodIdentifier = SilverIdentifier(v.getName)
       var currentState = predecessor
       val parameterExpressions = for (parameter <- call.parameters) yield {
         currentState = parameter.forwardSemantics[S](currentState)
@@ -362,23 +373,19 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       //
       // transfer arguments to methodEntryState
       //
-      val methodDeclaration = findMethod(methodIdentifier)
+
       // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
       //var tmpVariableState = currentState
       for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + callString.suffix(callStringLength).toString + "_" + index)(param.typ))
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
         currentState = currentState.assignVariable(exp, param)
       }
       val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith(ArgumentPrefix))
+        .filter(id => !id.getName.startsWith(ArgumentPrefix + callString.suffix(callStringLength).toString + "_" ))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //Enqueue the called method for analysis and grow the callstring
-      val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
-        case _ => CallString(methodDeclaration, call)
-      }
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
       methodTransferStates(callString) = tmpVariableState
       if (!(tmpVariableState lessEqual old)) {
@@ -395,7 +402,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       var resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
       //TODO @flurin remove args
-      resultState = resultState.ids.toSetOrFail.filter(id => id.getName.startsWith(ArgumentPrefix)).foldLeft(resultState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      resultState = resultState.ids.toSetOrFail.filter(id => id.getName.startsWith(ArgumentPrefix + callString.toString + "_")).foldLeft(resultState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
