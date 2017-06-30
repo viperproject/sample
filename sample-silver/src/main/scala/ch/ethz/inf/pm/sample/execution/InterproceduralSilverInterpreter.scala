@@ -337,7 +337,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters and remove the temp args
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-      tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
+      //tmpArguments.foldLeft(inputState)((st, tmpArg) => st.removeVariable(tmpArg))
+      inputState
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
@@ -363,15 +364,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       //
       val methodDeclaration = findMethod(methodIdentifier)
       // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
-      var tmpVariableState = currentState
+      //var tmpVariableState = currentState
       for ((param, index) <- parameterExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
-        tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
-        tmpVariableState = tmpVariableState.assignVariable(exp, param)
+        currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
+        currentState = currentState.assignVariable(exp, param)
       }
-      tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
+      val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
-        .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+        .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //Enqueue the called method for analysis and grow the callstring
       val callString = current match {
@@ -392,7 +393,9 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
-      val resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
+      var resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
+      //TODO @flurin remove args
+      resultState = resultState.ids.toSetOrFail.filter(id => id.getName.startsWith(ArgumentPrefix)).foldLeft(resultState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
