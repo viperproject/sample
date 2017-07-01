@@ -330,6 +330,22 @@ case class IntegerOctagonAnalysisState(pp: ProgramPoint,
     val b = isBottom || (!isTop && domain.isBottom)
     IntegerOctagonAnalysisState(pp, expr, domain, isTop, b)
   }
+
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  override def command(cmd: Command): IntegerOctagonAnalysisState = cmd match {
+    case UnifyCommand(other) => other match {
+        //TODO @flurin move this up in the hierarchy?
+      case o: IntegerOctagonAnalysisState => {
+        copy(domain = domain.unify(o.domain))
+      }
+      case _ => super.command(cmd)
+    }
+    case _ => super.command(cmd)
+  }
 }
 
 /**
