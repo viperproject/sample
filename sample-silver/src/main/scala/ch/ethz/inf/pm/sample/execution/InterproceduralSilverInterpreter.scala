@@ -6,9 +6,9 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{Replacement, _}
 import ch.ethz.inf.pm.sample.execution.CallString.SimpleCallString
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -117,9 +117,6 @@ object CallString {
       case Some(length) => copy(callStack = callStack.take(2 * length))
       case _ => this
     }
-
-    //TODO @flurin make this better
-    override def toString: String = callStack.map(_.description).mkString("").replace(" ", "")
   }
 
 }
@@ -261,6 +258,49 @@ trait InterprocHelpers[S <: State[S]] {
         })
     case _ =>
   }
+
+  /**
+    * Backups all identifiers whose name starts with argument_# by assigning them to a variable named
+    * BACKUP_argument_# of the same type.
+    * The original argument_# variable is then removed from the state
+    *
+    * @param state The state whose temporary-argument-variables should be backuped
+    * @return A tuple of State and Replacement. \
+    *         The State contains the variable backup and the original argument_# variables are removed \
+    *         The Replacement can be used to recover the renaming/backup done by this method.
+    */
+  def backupTemporaryArguments(state: S): (S, Replacement) = {
+    var renamings = mutable.HashMap[Set[Identifier], Set[Identifier]]()
+    val renamedState = state.ids.toSetOrFail.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(state)((st, ident) => {
+      val newIdent: Identifier = VariableIdentifier("BACKUP_" + ident.getName)(ident.typ)
+      renamings += (Set(newIdent) -> Set(ident))
+      // replace the existing variable by its BACKUP
+      st.createVariable(ExpressionSet(newIdent), ident.typ, ident.pp)
+        .assignVariable(ExpressionSet(newIdent), ExpressionSet(ident))
+        .removeVariable(ExpressionSet(ident))
+    })
+    (renamedState, new Replacement(renamings, isPureRenaming = true))
+  }
+
+  /**
+    * Recover a state by replacing the BACKUP_ variable-names by their original name
+    *
+    * @param state     The state containing the BACKUP_ variables
+    * @param renamings The replacement. It is assumed that each replacements only contains only one value (Set(source) -> Set(target))
+    * @return The renamed state
+    */
+  def recoverTemporaryArguments(state: S, renamings: Replacement) = {
+    renamings.value.foldLeft(state)((st, entry) => entry match {
+      case (key, value) =>
+        //TODO @flurin switch to Map[Identifier, Identifier] instead of a set? Replacement does not make that much sense here
+        val toReplace = key.head
+        val replacement = value.head
+        st.createVariable(ExpressionSet(replacement), toReplace.typ, toReplace.pp)
+          .assignVariable(ExpressionSet(replacement), ExpressionSet(toReplace))
+          .removeVariable(ExpressionSet(toReplace))
+    })
+  }
+
 }
 
 /**
@@ -338,7 +378,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
-        ExpressionSet(VariableIdentifier(ArgumentPrefix + callString.toString + "_" + index)(param.typ))
+        ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
       }
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters and remove the temp args
@@ -352,10 +392,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
-      val callString = current match {
-        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
-        case _ => CallString(methodDeclaration, call)
-      }
       //
       // prepare calling context (evaluate method targets and parameters)
       //
@@ -373,22 +409,28 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       //
       // transfer arguments to methodEntryState
       //
+      // first rename any existing argument variables
+      var (renamedState, renamings) = backupTemporaryArguments(currentState)
 
       // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
-      //var tmpVariableState = currentState
-      for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + callString.suffix(callStringLength).toString + "_" + index)(param.typ))
-        currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
-        currentState = currentState.assignVariable(exp, param)
+      val addedTmpVariables = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
+        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+        renamedState = renamedState.createVariable(exp, param.typ, DummyProgramPoint)
+        renamedState = renamedState.assignVariable(exp, param)
+        exp
       }
-      val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
-        .filter(id => !id.getName.startsWith(ArgumentPrefix + callString.suffix(callStringLength).toString + "_" ))
-        .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      val calleeEntryState = renamedState.ids.toSetOrFail // The entry state should only contain argument_# variables
+        .filter(id => !id.getName.startsWith(ArgumentPrefix))
+        .foldLeft(renamedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //Enqueue the called method for analysis and grow the callstring
-      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else tmpVariableState.bottom()
-      methodTransferStates(callString) = tmpVariableState
-      if (!(tmpVariableState lessEqual old)) {
+      val callString = current match {
+        case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
+        case _ => CallString(methodDeclaration, call)
+      }
+      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
+      methodTransferStates(callString) = calleeEntryState
+      if (!(calleeEntryState lessEqual old)) {
         worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.entry, 0), false))
       }
 
@@ -400,9 +442,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
-      var resultState = currentState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
-      //TODO @flurin remove args
-      resultState = resultState.ids.toSetOrFail.filter(id => id.getName.startsWith(ArgumentPrefix + callString.toString + "_")).foldLeft(resultState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      var resultState = renamedState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
+
+      //
+      //  CLEANUP
+      //  remove temp variables and recover backed up variables
+      //
+      resultState = addedTmpVariables.foldLeft(resultState)((st, exp) => st.removeVariable(exp))
+      resultState = recoverTemporaryArguments(resultState, renamings)
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
