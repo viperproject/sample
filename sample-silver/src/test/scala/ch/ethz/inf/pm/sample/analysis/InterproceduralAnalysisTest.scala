@@ -12,9 +12,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyIntegerType}
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.test.SampleTest
-import org.scalatest.FunSuite
+import org.scalatest.{FunSuite, Matchers}
 
-trait InterproceduralAnalysisTest extends FunSuite with SampleTest
+trait InterproceduralAnalysisTest extends FunSuite with SampleTest with Matchers
 
 /**
   * Tests for the trivial interprocedural analysis (just go to Top)
@@ -282,6 +282,102 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
 
   def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
     InterproceduralIntegerIntervalAnalysis.run(
+      Compilable.Code("(no name)", s)
+    )
+  }
+}
+
+/**
+  * Tests the context-insensitive backward analysis by running a couple of interproc strongly live variable analyses
+  *
+  * Interproc-Strongly-Live-Variant:
+  * Here the returns of the main-methods (top of the call graph) are considered to be strongly live. Other variables
+  * are only strongly live if they are assigned to a strongly live variable or if they are used in the condition
+  * of an if statement. Arguments to a method are only strongly live if they are assigned to variables
+  * that are also strongly live inside the callee.
+  *
+  * @author Flurin Rindisbacher
+  */
+class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
+
+  /**
+    * Compares the list of live variables at the enryState of the method with the given list of expectedLive.
+    * The test fails if more or less variables are actually live.
+    *
+    * @param programResult programResult to use
+    * @param method        The name of the method
+    * @param expectedLive  Nil if entryState expected to be bottom Seq of live variable names otherwise
+    */
+  private def checkLiveVariableInEntryState(programResult: ProgramResult[SimpleLiveVariableAnalysisState],
+                                            method: String, expectedLive: Seq[String]): Unit = {
+    val entryState = programResult.getResult(SilverIdentifier(method)).entryState()
+    val liveVariablesActual = entryState.domain.toSetOrFail.map(_.getName)
+
+    liveVariablesActual should contain theSameElementsAs expectedLive
+  }
+
+  test("no-ret-uses") {
+    val programResult = run(
+      """
+      //
+      // In the following example the returns of callee are not used and therefore dead.
+      // Due to this the only live variable at the entry state of caller is "ret" which is live due to the starting
+      // assumption.
+      //
+      method caller(x: Int, y: Int, z: Int) returns(ret: Int) { // ret exprected to be live
+        var r1: Int := 0
+        var r2: Int := 0
+        r1, r2 := callee(x, y, z)
+        // r1 and r2 are dead. therefore all mvariables used in callee are dead too
+      }   // RET ASSUMED TO BE LIVE
+
+      method callee(x: Int, y: Int, z: Int) returns(r1: Int, r2: Int) { // NOTHING expected to be live
+        r1 := x
+        r2 := y + z
+      }   // r1 and r2 only live depending on caller
+    """.stripMargin
+    )
+    checkLiveVariableInEntryState(programResult, "caller", Seq("ret"))
+    checkLiveVariableInEntryState(programResult, "callee", Nil)
+  }
+
+  test("all-ret-uses") {
+    val programResult = run(
+      """
+      method caller(x: Int, y: Int, z: Int) returns(ret: Int) {   // expected that x, y and z are live
+        var r1: Int := 0
+        var r2: Int := 0
+        r1, r2 := callee(x, y, z)
+        ret := r1 + r2                // r1 and r2 are now strongly live but ret is "killed"
+      }   // RET ASSUMED TO BE LIVE
+
+      method callee(x: Int, y: Int, z: Int) returns(r1: Int, r2: Int) {
+        r1 := x
+        r2 := y + z
+      }   // r1 and r2 only live depending on caller
+    """.stripMargin
+    )
+    checkLiveVariableInEntryState(programResult, "caller", Seq("x", "y", "z"))
+    checkLiveVariableInEntryState(programResult, "callee", Seq("x", "y", "z"))
+  }
+
+  test("non-bottom-state-with-bottom-domani") {
+    // in the following program no variable at the entryState is live
+    // nevertheless the state itself should NOT be bottom
+    val programResult = run(
+      """
+        |method f1(a: Int) returns (r: Int)
+        |{
+        |    r := 42
+        |}
+      """.stripMargin
+    )
+    checkLiveVariableInEntryState(programResult, "f1", Nil) // we expect no live variables. the domain will be bottom
+    assert(!programResult.getResult(SilverIdentifier("f1")).entryState().isBottom, "State should not be bottom")
+  }
+
+  def run(s: String): ProgramResult[SimpleLiveVariableAnalysisState] = {
+    LiveVariableAnalysis.run(
       Compilable.Code("(no name)", s)
     )
   }

@@ -76,9 +76,9 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
 
     // return extended method
     method.copy(
-      _pres = extendedPreconditions,
-      _posts = extendedPostconditions,
-      _body = extendedBody
+      pres = extendedPreconditions,
+      posts = extendedPostconditions,
+      body = extendedBody
     )(method.pos, method.info, method.errT)
   }
 
