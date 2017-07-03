@@ -90,13 +90,9 @@ class CarbonWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = N
     val allMethods = extendedProgram.methods ++ preMethods ++ postMethods
     val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info, extendedProgram.errT)
 
-    try {
-      // use silicon to verify the extended program with the checks
-      start()
-      super.verify(extendedProgramWithChecks)
-    } catch {
-      case _: Throwable => Success // something went wrong with the verifier (not our fault)
-    }
+    // use silicon to verify the extended program with the checks
+    start()
+    super.verify(extendedProgramWithChecks)
   }
 }
 
