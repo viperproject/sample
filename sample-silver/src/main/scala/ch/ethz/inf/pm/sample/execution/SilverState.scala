@@ -230,8 +230,8 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalArgVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalArgVar.variable.id), exp)
       (exp, argVar)
     }
-    st = st.ids.toSetOrFail // let's remove all non ret_# variables
-      .filter(id => ! id.getName.startsWith(ArgumentPrefix))
+    st = st.ids.toSetOrFail // let's remove all non temporary variables
+      .filter(id => !(id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = argVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
