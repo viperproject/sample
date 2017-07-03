@@ -30,6 +30,13 @@ trait PermissionTree extends Lattice[PermissionTree] {
   def permission(): Permission
 
   /**
+    * Returns the children of the root.
+    *
+    * @return The children.
+    */
+  def children(): Map[Identifier, PermissionTree]
+
+  /**
     * Returns whether the permission tree is empty, i.e., does not contain any
     * permissions.
     *
@@ -89,6 +96,8 @@ trait PermissionTree extends Lattice[PermissionTree] {
     */
   def implant(path: AccessPath, other: PermissionTree): PermissionTree
 
+  def makeSelfFraming(): PermissionTree
+
   def map(path: AccessPath = Nil)(f: (AccessPath, PermissionTree) => Permission): PermissionTree
 
   def fold[R](z: R, path: AccessPath = Nil)(f: (R, (AccessPath, PermissionTree)) => R): R
@@ -108,15 +117,19 @@ object PermissionTree {
       case (field, subtree) => PermissionTree(Permission.none, Map(field -> subtree))
     }
 
-  def apply(permission: Permission, children: Map[Identifier, PermissionTree]): PermissionTree =
+  def apply(permission: Permission, children: Map[Identifier, PermissionTree]): PermissionTree = {
+    //assert(children.values.forall(_.nonEmpty()))
     if (permission.isBottom || children.values.exists(_.isBottom)) PermissionTree.Bottom
     else PermissionTree.Inner(permission, children)
+  }
 
   /**
     * The top permission tree.
     */
   case object Top extends PermissionTree with Lattice.Top[PermissionTree] {
     override def permission(): Permission = Permission.Top
+
+    override def children(): Map[Identifier, PermissionTree] = ???
 
     override def isEmpty(): Boolean = false
 
@@ -129,6 +142,8 @@ object PermissionTree {
     override def extract(path: AccessPath): (PermissionTree, PermissionTree) = (this, this)
 
     override def implant(path: AccessPath, other: PermissionTree): PermissionTree = this
+
+    override def makeSelfFraming(): PermissionTree = this
 
     override def map(path: AccessPath)(f: (AccessPath, PermissionTree) => Permission): PermissionTree = this
 
@@ -144,6 +159,8 @@ object PermissionTree {
   case object Bottom extends PermissionTree with Lattice.Bottom[PermissionTree] {
     override def permission(): Permission = Permission.Bottom
 
+    override def children(): Map[Identifier, PermissionTree] = ???
+
     override def isEmpty(): Boolean = true
 
     override def plus(other: PermissionTree): PermissionTree = other
@@ -155,6 +172,8 @@ object PermissionTree {
     override def extract(path: AccessPath): (PermissionTree, PermissionTree) = (this, this)
 
     override def implant(path: AccessPath, other: PermissionTree): PermissionTree = this
+
+    override def makeSelfFraming(): PermissionTree = this
 
     override def map(path: AccessPath)(f: (AccessPath, PermissionTree) => Permission): PermissionTree = this
 
@@ -299,6 +318,12 @@ object PermissionTree {
         }
         PermissionTree(permission, children + (path.head -> updated))
       }
+
+    override def makeSelfFraming(): PermissionTree = {
+      val selfFramedChildren = children.mapValues(_.makeSelfFraming())
+      if (permission.isNone && nonEmpty()) PermissionTree(Permission.read, selfFramedChildren)
+      else PermissionTree(permission, selfFramedChildren)
+    }
 
     override def map(path: AccessPath)(f: (AccessPath, PermissionTree) => Permission): PermissionTree = {
       val permission = f(path, this)

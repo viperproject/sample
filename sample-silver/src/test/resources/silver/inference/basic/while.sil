@@ -1,7 +1,8 @@
 
 field f: Int
 
-method t5_pre(n: Int, r: Ref) returns ()
+method t5_pre(n: Int, r: Ref, read: Perm) returns ()
+    requires none < read && read < write
     requires acc(r.f, write)
 {}
 
@@ -10,23 +11,9 @@ method t5(n: Int, r: Ref) returns ()
     var i: Int := 2
 
     while (i < r.f)
-        //invariant acc(r.f, write)
+        //invariant acc(r.f, read)
     {
         i := i + 1
     }
-}
-
-method t9_pre(r: Ref) returns ()
-    requires acc(r.f, write)
-{}
-
-method t9(r: Ref) returns ()
-{
-    var j: Int := 2
-    while (j < r.f)
-        //invariant acc(r.f, write)
-    {
-        j := j + 1
-    }
-    //assert j >= r.f
+    assert i >= r.f
 }

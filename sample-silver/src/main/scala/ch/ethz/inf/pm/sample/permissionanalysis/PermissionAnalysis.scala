@@ -160,9 +160,38 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
    * SILVER STATE FUNCTIONS
    */
 
-  def inhale(acc: Expression): T = {
-    logger.trace(s"inhale($acc)")
-    acc match {
+  def inhale(expression: Expression): T =
+    _inhale(expression).makeSelfFraming()
+
+  def exhale(expression: Expression): T =
+    _exhale(expression).makeSelfFraming()
+
+  def makeSelfFraming(): T = {
+    copy(stack = stack.mapTrees(_.makeSelfFraming()))
+  }
+
+  override def precondition(expression: Expression): T =
+    _inhale(expression).saveSpecifications()
+
+  override def postcondition(expression: Expression): T =
+    exhale(expression).saveSpecifications()
+
+  override def invariant(expression: Expression): T = {
+    // TODO: "assert" the invariant instead of exhaling and inhaling it.
+    val inhaled = inhale(expression)
+    inhaled.setSpecifications(inhaled.stack).exhale(expression)
+  }
+
+  override def enterLoop(): T = copy(stack = stack.pop)
+
+  override def leaveLoop(): T = copy(stack = stack.push)
+
+  /**
+    * Inhales the given expression but does not make the state self-framing.
+    */
+  private def _inhale(expression: Expression): T = {
+    logger.trace(s"inhale($expression)")
+    expression match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         inhale(right).inhale(left)
       case FieldAccessPredicate(identifier, numerator, denominator, _) =>
@@ -171,21 +200,29 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         // get the amount of permission that is inhaled
         val inhaled = permission(numerator, denominator)
         // add permission to all paths that must alias
+
         val updated = stack.mapPermissions { (path, tree) =>
-          if (mustBeSame(postAliases, path, location)) tree.permission minus inhaled
-          else tree.permission
+          val p = path
+          val t = tree
+          if (mustBeSame(postAliases, p, location))
+            (t.permission minus inhaled) lub Permission.none
+          else
+            tree.permission
         }
         copy(stack = updated).read(location.dropRight(1))
-      case _ => assume(acc)
+      case _ => assume(expression)
     }
   }
 
-  def exhale(acc: Expression): T = {
-    logger.trace(s"exhale($acc)")
-    acc match {
+  /**
+    * Exhales the given expression but does not make the state self-framing.
+    */
+  private def _exhale(expression: Expression): T = {
+    logger.trace(s"exhale($expression)")
+    expression match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         // inhale both sides of the conjunction
-        exhale(left).exhale(right)
+        _exhale(left)._exhale(right)
       case FieldAccessPredicate(identifier, numerator, denominator, _) =>
         // get access path
         val location = path(identifier)
@@ -211,22 +248,6 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         throw new IllegalArgumentException("An exhale must occur via a boolean or a permission expression.")
     }
   }
-
-  override def precondition(expression: Expression): T =
-    inhale(expression).saveSpecifications()
-
-  override def postcondition(expression: Expression): T =
-    exhale(expression).saveSpecifications()
-
-  override def invariant(expression: Expression): T = {
-    // TODO: "assert" invariant rather than exhale it.
-    val exhaled = exhale(expression)
-    setSpecifications(exhaled.stack)
-  }
-
-  override def enterLoop(): T = copy(stack = stack.pop)
-
-  override def leaveLoop(): T = copy(stack = stack.push)
 
   /* ------------------------------------------------------------------------- *
    * STATE FUNCTIONS
@@ -329,11 +350,11 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
           val leftPath = path(left)
           val rightPath = path(right)
           // assign rhs path to lhs path
-          assign(leftPath, rightPath).write(leftPath).read(rightPath)
+          assign(leftPath, rightPath).write(leftPath).read(rightPath).makeSelfFraming()
         } else {
           // case 2: assigned variable is not a reference
           // add read permission for all access paths appearing in rhs
-          read(right)
+          read(right).makeSelfFraming()
         }
       case _ => throw new IllegalArgumentException("A variable assignment must occur via a variable identifier.")
     }
@@ -380,11 +401,11 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
                   else res lub res.assign(path, rightPath)
                 else res
             }
-          assigned.write(leftPath).read(rightPath)
+          assigned.write(leftPath).read(rightPath).makeSelfFraming()
         } else {
           // case 2: the assigned field is not a reference
           // add write permission for lhs and write permission for all access paths on rhs
-          write(leftPath).read(right)
+          write(leftPath).read(right).makeSelfFraming()
         }
       case _ => throw new IllegalArgumentException("A field assignment must occur via an access path identifier.")
     }
@@ -576,13 +597,11 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   private def access(path: AccessPath, permission: Permission): T = {
     if (path.length < 2)
-    // in this case no permission is needed
+      // in this case no permission is needed
       this
     else {
       // build permission tree for the wanted permission
-      val want = permission minus collect(path)
-      val tree = PermissionTree.create(path, want)
-
+      val tree = PermissionTree.create(path, permission)
       copy(stack = stack.updateTree(_ lub tree))
     }
   }
