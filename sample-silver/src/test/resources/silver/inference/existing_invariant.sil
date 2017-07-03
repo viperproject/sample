@@ -1,12 +1,26 @@
-
 field f: Ref
 
-method foo_pre(a: Ref, b: Ref)
+method foo_pre(a: Ref)
+    requires acc(a.f, write)
+{
+}
+
+method foo(a: Ref)
+{
+    while (true)
+        invariant acc(a.f)
+    {
+        a.f := null
+    }
+}
+
+method bar_pre(a: Ref, b: Ref)
     requires acc(a.f, write)
     requires acc(b.f, write)
-{}
+{
+}
 
-method foo(a: Ref, b: Ref)
+method bar(a: Ref, b: Ref)
 {
     while (true)
         invariant acc(a.f)
@@ -16,12 +30,14 @@ method foo(a: Ref, b: Ref)
     }
 }
 
-method bar_pre(a: Ref, read: Perm)
+method baz_pre(a: Ref, read: Perm)
     requires none < read && read < write
-    requires acc(a.f, read) && acc(a.f.f, write)
-{}
+    requires acc(a.f, read)
+    requires acc(a.f.f, write)
+{
+}
 
-method bar(a: Ref)
+method baz(a: Ref)
 {
     while (true)
         invariant acc(a.f.f)
