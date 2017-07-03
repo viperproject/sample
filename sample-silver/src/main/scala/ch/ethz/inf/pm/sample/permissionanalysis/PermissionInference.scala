@@ -55,7 +55,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       val preconditions = condition ++ extended.pres
       // update method
       extended.copy(
-        _pres = preconditions,
+        pres = preconditions,
         formalArgs = arguments
       )(extended.pos, extended.info, extended.errT)
     } else extended
