@@ -120,7 +120,7 @@ trait SilverEntryStateBuilder[S <: State[S]] {
     * Builds and returns an entry state for the analysis of the given method of
     * the given program.
     *
-    * By default the this method takes the default state and initializes the
+    * By default this method takes the default state and initializes the
     * variables for the arguments of the given method in the given program.
     *
     * @param program The program.
