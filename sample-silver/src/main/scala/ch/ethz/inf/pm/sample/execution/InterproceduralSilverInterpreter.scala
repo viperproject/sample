@@ -111,7 +111,7 @@ object CallString {
 
     def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
 
-    def inCallee: Boolean = callStack.size > 0
+    def inCallee: Boolean = callStack.nonEmpty
 
     def suffix(k: Option[Int]): CallString = k match {
       case Some(length) => copy(callStack = callStack.take(2 * length))
@@ -155,7 +155,7 @@ case class MethodCallEdge[S](inputState: S) extends AuxiliaryEdge
 case class MethodReturnEdge[S](exitState: S) extends AuxiliaryEdge
 
 
-case class TaggedWorklistElement(val callString: CallString,
+case class TaggedWorklistElement(callString: CallString,
                                  override val pos: BlockPosition,
                                  override val forceReinterpretStmt: Boolean) extends WorklistElement {
 
@@ -197,7 +197,7 @@ trait InterprocHelpers[S <: State[S]] {
     * This allows us the enqueue a callee to the interpreter by knowing the ProgramPoint of the MethodCall.
     */
   protected lazy val calleePositions: Map[ProgramPoint, BlockPosition] = {
-    (for (call <- callsInProgram.values.flatMap(identity(_))) yield {
+    (for (call <- callsInProgram.values.flatten) yield {
       call.block.elements(call.index).merge.getPC() -> call
     }).toMap
   }
@@ -254,7 +254,7 @@ trait InterprocHelpers[S <: State[S]] {
         .filter(_.suffix(callStringLength) == shortenedCallString)
         .foreach(caller => {
           val position = calleePositions(caller.lastCaller)
-          worklist.enqueue(TaggedWorklistElement(caller.pop, position, true))
+          worklist.enqueue(TaggedWorklistElement(caller.pop, position, forceReinterpretStmt = true))
         })
     case _ =>
   }
@@ -290,7 +290,7 @@ trait InterprocHelpers[S <: State[S]] {
     * @param renamings The replacement. It is assumed that each replacements only contains only one value (Set(source) -> Set(target))
     * @return The renamed state
     */
-  def recoverTemporaryArguments(state: S, renamings: Replacement) = {
+  def recoverTemporaryArguments(state: S, renamings: Replacement): S = {
     renamings.value.foldLeft(state)((st, entry) => entry match {
       case (key, value) =>
         //TODO @flurin switch to Map[Identifier, Identifier] instead of a set? Replacement does not make that much sense here
@@ -373,9 +373,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   override def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     // For MethodCallEdges use an empty state with the arguments from the call
     case Right(edge: MethodCallEdge[S]) =>
-      val callString = current match {
-        case TaggedWorklistElement(cs, _, _) => cs
-      }
       val callingContext = edge.inputState
       val methodDeclaration = findMethod(current)
       val tmpArguments = for ((param, index) <- methodDeclaration.arguments.zipWithIndex) yield {
@@ -431,14 +428,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       if (!(calleeEntryState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.entry, 0), false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false)
+      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, forceReinterpretStmt = false)
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
@@ -612,14 +609,14 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       if (!(calleeExitState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, false)
+      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, forceReinterpretStmt = false)
       val entryState = programResult(analyzed, methodDeclaration.body).entryState()
       val canContinue = !entryState.isBottom
 
