@@ -171,7 +171,6 @@ trait SilverForwardInterpreter[S <: State[S]]
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)
-        val edges = inEdges(current, cfgResults)
         // join incoming states.
         for (edge <- edges) {
           val predecessor = getPredecessorState(cfgResults(current, currentCfg), current, edge)
