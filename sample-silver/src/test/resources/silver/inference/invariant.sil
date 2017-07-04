@@ -1,4 +1,3 @@
-
 field data: Int
 
 method foo_pre(this: Ref)

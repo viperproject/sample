@@ -11,11 +11,11 @@ method foo_pre(this: Ref, read: Perm)
 
 method foo(this: Ref)
 {
-	inhale acc(this.parrot)
-	if (this.rabbit) {
-		this.data := this.data + this.parrot
-	} else {
-		this.data := 0
-	}
-	exhale acc(this.parrot)
+    inhale acc(this.parrot)
+    if (this.rabbit) {
+        this.data := this.data + this.parrot
+    } else {
+        this.data := 0
+    }
+    exhale acc(this.parrot)
 }

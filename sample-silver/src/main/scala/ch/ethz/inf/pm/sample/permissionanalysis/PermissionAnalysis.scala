@@ -202,10 +202,8 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
         // add permission to all paths that must alias
 
         val updated = stack.mapPermissions { (path, tree) =>
-          val p = path
-          val t = tree
-          if (mustBeSame(postAliases, p, location))
-            (t.permission minus inhaled) lub Permission.none
+          if (mustBeSame(postAliases, path, location))
+            (tree.permission minus inhaled) lub Permission.none
           else
             tree.permission
         }

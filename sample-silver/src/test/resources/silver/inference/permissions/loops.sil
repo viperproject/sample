@@ -1,4 +1,3 @@
-
 field f: Int
 
 method test1_pre(x: Ref)

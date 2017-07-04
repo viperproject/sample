@@ -1,4 +1,3 @@
-
 field f: Ref
 
 method foo_pre(a: Ref)
@@ -23,8 +22,8 @@ method bar(a: Ref)
 }
 
 method baz_pre(a: Ref)
-    requires acc(a.f, 1/2)
-    requires acc(a.f.f, 1/2)
+    requires acc(a.f, 1 / 2)
+    requires acc(a.f.f, 1 / 2)
 {}
 
 method baz(a: Ref)
@@ -34,9 +33,9 @@ method baz(a: Ref)
 }
 
 method qux_pre(a: Ref, read: Perm)
-    requires none < read && read < 1/2
-    requires acc(a.f, read + 1/2)
-    requires acc(a.f.f, 1/2)
+    requires none < read && read < 1 / 2
+    requires acc(a.f, read + 1 / 2)
+    requires acc(a.f.f, 1 / 2)
 
 method qux(a: Ref)
 {

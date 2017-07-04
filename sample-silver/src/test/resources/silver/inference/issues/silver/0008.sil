@@ -1,4 +1,3 @@
-
 field integer: Int
 
 method foo(x: Ref) returns (n: Int)

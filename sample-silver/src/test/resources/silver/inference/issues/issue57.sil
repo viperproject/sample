@@ -1,4 +1,3 @@
-
 field f: Ref
 
 method foo(this: Ref, that: Ref)
