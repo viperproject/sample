@@ -1,6 +1,6 @@
 field f: Ref
 
-method Foo(a: Ref, b: Ref)
+method foo(a: Ref, b: Ref)
     //requires acc(b.f, write)
 {
     exhale acc(b.f)

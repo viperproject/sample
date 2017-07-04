@@ -1724,7 +1724,8 @@ trait AliasAnalysisStateBuilder[T <: AliasAnalysisState[T]]
     val may = MayAliasGraph().initialize(fields)
     val must = MustAliasGraph().initialize(fields)
 
-    super.build(program, method).copy(may = may, must = must)
+    val initial = default.copy(may = may, must = must)
+    initializeArguments(initial, program, method)
   }
 }
 

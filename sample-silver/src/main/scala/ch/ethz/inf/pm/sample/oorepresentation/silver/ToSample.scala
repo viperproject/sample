@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.execution.SampleCfg
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodCall, Statement, TaggedProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint, VariableDeclaration}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 

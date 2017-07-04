@@ -102,6 +102,8 @@ trait SilverAnalysisRunner[S <: State[S]]
     for (w <- Reporter.genericWarnings) {
       println(w)
     } // warning report
+    println("\n***************\n* Entry States *\n***************\n")
+    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).entryState()))
     println("\n***************\n* Exit States *\n***************\n")
     result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).exitState()))
   }
@@ -118,7 +120,7 @@ trait SilverAnalysisRunner[S <: State[S]]
 trait InterproceduralSilverAnalysisRunner[S <: State[S]]
   extends SilverAnalysisRunner[S] {
 
-  override val analysis: InterproceduralSilverForwardAnalysis[S]
+  override val analysis: InterproceduralSilverAnalysis[S]
 
   override protected def _run(): ProgramResult[S] = {
     prepareContext()

@@ -24,7 +24,7 @@ trait SilverState[S <: SilverState[S]]
   extends SimpleState[S] {
   this: S =>
 
-  import InterproceduralSilverInterpreter.ReturnPrefix
+  import InterproceduralSilverInterpreter.{ArgumentPrefix, ReturnPrefix}
 
   /** Executes the given command.
     *
@@ -41,6 +41,7 @@ trait SilverState[S <: SilverState[S]]
       case EnterLoopCommand() => enterLoop()
       case LeaveLoopCommand() => leaveLoop()
       case cmd: ReturnFromMethodCommand[S] => returnFromMethod(cmd.methodDeclaration, cmd.methodCall, cmd.targetExpressions, cmd.exitState)
+      case cmd: CallMethodBackwardsCommand[S] => callMethodBackwards(cmd.methodDeclaration, cmd.methodCall, cmd.parameterExpressions, cmd.entryState)
     }
     case _ => super.command(cmd)
   }
@@ -206,4 +207,35 @@ trait SilverState[S <: SilverState[S]]
     val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
   }
+
+  /**
+    * Returns a state where parameterExpressions gets the values of the the called method's entry state.
+    * This is used in the backward analysis and it's the dual to returnFromMethod() in the forward analysis.
+    *
+    *
+    * @param methodDeclaration The method declaration of the callee
+    * @param methodCall        The statement in the caller that calls the method
+    * @param parameterExpressions The parameter expressions that will receive the callee's arguments
+    * @param entryState         The entry state of the callee (from a previous analysis)
+    * @return
+    */
+  def callMethodBackwards(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, parameterExpressions: Seq[ExpressionSet], entryState: S): S = {
+    var index = 0
+    var st = entryState
+    val argVariableMapping = for((formalArgVar, argVar) <- methodDeclaration.arguments.zip(parameterExpressions)) yield {
+      // formalArgVar = the variable declared in arguments(...) of the method
+      // argVar = the argument/parameter-expression which is assigned to the temporary variable later
+      val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index )(formalArgVar.typ))
+      index += 1
+      st = st.createVariable(exp, formalArgVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalArgVar.variable.id), exp)
+      (exp, argVar)
+    }
+    st = st.ids.toSetOrFail // let's remove all non ret_# variables
+      .filter(id => ! id.getName.startsWith(ArgumentPrefix))
+      .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+    // map return values to temp variables and remove all temporary ret_# variables
+    val joinedState = argVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    argVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._1))
+  }
+
 }

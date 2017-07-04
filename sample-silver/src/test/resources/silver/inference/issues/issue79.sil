@@ -1,10 +1,23 @@
 field f: Ref
 
+method foo_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+    requires acc(a.f.f, write)
+{}
+
 method foo(a: Ref)
 {
-    inhale acc(a.f, write)
+    inhale acc(a.f, 1 / 2)
     a.f.f := null
 }
+
+method bar_pre(a: Ref, read: Perm)
+    requires none < read && read < write
+    requires acc(a.f, read)
+    requires acc(a.f.f, write)
+    requires acc(a.f.f.f, write)
+{}
 
 method bar(a: Ref)
     requires acc(a.f.f)

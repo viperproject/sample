@@ -55,7 +55,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       val preconditions = condition ++ extended.pres
       // update method
       extended.copy(
-        _pres = preconditions,
+        pres = preconditions,
         formalArgs = arguments
       )(extended.pos, extended.info, extended.errT)
     } else extended
@@ -68,7 +68,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
 
   override def postconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.postStateAt(position)
-    extendSpecifications(existing, state)
+    extendSpecifications(existing, state, true)
   }
 
   override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
@@ -134,24 +134,29 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * Extends the list of expressions using specifications provided by the given
     * state.
     *
+    * NOTE:
+    * The flag that indicates whether the specifications should be made self-
+    * framing is a bit of a hack to deal with postconditions. Maybe this can be
+    * solved more elegantly.
+    *
     * @param existing The list of expressions.
     * @param state    The state providing the specifications.
     * @return The extended list of expressions.
     */
-  private def extendSpecifications(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] = {
+  private def extendSpecifications(existing: Seq[sil.Exp], state: T, makeSelfFraming: Boolean = false): Seq[sil.Exp] = {
     val inferredSpecifications = state.specifications
     val (existingSpecifications, unknown) = extractSpecifications(existing, state)
     val specifications = inferredSpecifications.headTree plus existingSpecifications
 
-    read = read || specifications.fold(false) {
-      case (result, (_, tree)) =>
-        result || (tree.permission() match {
-          case Fractional(_, _, rd) => rd > 0
-          case _ => false
-        })
-    }
+    val framed = if (makeSelfFraming) {
+      specifications.map() { case (_, tree) =>
+        val permission = tree.permission()
+        if (permission.isSome || tree.isEmpty) permission
+        else Permission.read
+      }
+    } else specifications
 
-    createSilverSpecifications(specifications, state) ++ unknown
+    createSilverSpecifications(framed, state) ++ unknown
   }
 
   /**
@@ -220,12 +225,22 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A list of Silver specifications.
     */
   private def createSilverSpecifications(specifications: PermissionTree, state: T): Seq[sil.Exp] = {
-    val framed = specifications.map() { case (_, tree) =>
-      val permission = tree.permission()
-      if (permission.isSome || tree.isEmpty) permission
-      else Permission.read
+    read = read || specifications.fold(false) {
+      case (result, (path, tree)) =>
+        val xp = path
+        val xt = tree
+        result || (xp.length > 1 && (xt.permission() match {
+          case Fractional(_, _, rd) =>
+            val x = rd > 0
+            println(x)
+            //  println(rd)
+            // println(tree)
+            x
+          case _ => false
+        }))
     }
-    framed.tuples().flatMap {
+
+    specifications.tuples().flatMap {
       case (location, permission) if location.length >= 2 =>
         Some(createSilverFieldAccessPredicate(location, permission, state))
       case _ => None

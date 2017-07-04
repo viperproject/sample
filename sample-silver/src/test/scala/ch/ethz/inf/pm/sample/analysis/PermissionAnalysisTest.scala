@@ -77,26 +77,22 @@ class CarbonWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = N
     val preMethods = extendedProgram.methods.filter(preMap contains _.name).map {
       method =>
         val preMethod = preMap(method.name)
-        preMethod.copy(_posts = method.pres)(preMethod.pos, preMethod.info, preMethod.errT)
+        preMethod.copy(posts = method.pres)(preMethod.pos, preMethod.info, preMethod.errT)
     }
     // methods that check against expected postconditions
     val postMethods = extendedProgram.methods.filter(postMap contains _.name).map {
       method =>
         val postMethod = postMap(method.name)
-        postMethod.copy(_pres = method.posts)(postMethod.pos, postMethod.info, postMethod.errT)
+        postMethod.copy(pres = method.posts)(postMethod.pos, postMethod.info, postMethod.errT)
     }
 
     // program with checks against expected pre- and postconditions added
     val allMethods = extendedProgram.methods ++ preMethods ++ postMethods
     val extendedProgramWithChecks = extendedProgram.copy(methods = allMethods)(extendedProgram.pos, extendedProgram.info, extendedProgram.errT)
 
-    try {
-      // use silicon to verify the extended program with the checks
-      start()
-      super.verify(extendedProgramWithChecks)
-    } catch {
-      case _: Throwable => Success // something went wrong with the verifier (not our fault)
-    }
+    // use silicon to verify the extended program with the checks
+    start()
+    super.verify(extendedProgramWithChecks)
   }
 }
 

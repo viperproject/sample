@@ -1,4 +1,3 @@
-
 field f: Int
 
 method Foo(r: Ref)

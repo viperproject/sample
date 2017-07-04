@@ -76,6 +76,20 @@ case class LeaveLoopCommand() extends SilverCommand
   */
 case class ReturnFromMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S) extends SilverCommand
 
+/**
+  * A command issued when a method is called in the BACKWARD analysis. This command is issued when a callee
+  * has been fully analyzed and the entry state should be merged back into the caller. This is the dual to ReturnFromMethodCommand
+  * in the forward analysis.
+  *
+  * @param methodDeclaration the method declaration of the called method
+  * @param methodCall the statement that called the method
+  * @param parameterExpressions The parameters expressions that will receive the states of the callee's parameters.
+  * @param entryState the exit state of the called method. E.g CfgResult.exitState()
+  *
+  * @author Flurin Rindisbacher
+  */
+case class CallMethodBackwardsCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, parameterExpressions: Seq[ExpressionSet], entryState: S) extends SilverCommand
+
 /** Object adding Inhale/Exhale semantics.
   *
   * @author Caterina Urban, Jerome Dohrau
