@@ -331,7 +331,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       *
       * @return
       */
-    def createMethodCallEdges(): Seq[Either[SampleEdge, MethodCallEdge[S]]] = {
+    def createMethodCallEdges(): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
       if (cfg(current).entry == current.pos.block) { // only entry-blocks can have incoming MethodCall edges
         current match {
           case TaggedWorklistElement(callString, _, _) =>
@@ -342,7 +342,13 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
               .filter(_.suffix(callStringLength) == currentCallStringShortened)
               .map(st => Right(MethodCallEdge(methodTransferStates(st))))
               .toSeq
-            inEdgesBySuffix
+            // for the context-insensitive case make sure mainMethods are called with the initial state
+            // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
+            if (callStringLength.getOrElse(0) == 0 && !inEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+              inEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
+            } else {
+              inEdgesBySuffix
+            }
           case _ => Nil
         }
       } else {
@@ -558,7 +564,13 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
               .filter(_.suffix(callStringLength) == currentCallStringShortened)
               .map(st => Right(MethodReturnEdge(methodTransferStates(st))))
               .toSeq
-            outEdgesBySuffix
+            // for the context-insensitive case make sure mainMethods are called with the initial state
+            // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
+            if (callStringLength.getOrElse(0) == 0 && !outEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+              outEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
+            } else {
+              outEdgesBySuffix
+            }
           case _ => Nil
         }
       } else {
