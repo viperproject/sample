@@ -1,4 +1,3 @@
-
 field f: Ref
 
 method no_pre(a: Ref, b: Ref)
@@ -8,10 +7,10 @@ method no_pre(a: Ref, b: Ref)
 
 method no(a: Ref, b: Ref)
 {
-	if (a.f == b.f) {
-		a.f := null
-		b.f := null
-	}
+    if (a.f == b.f) {
+    a.f := null
+    b.f := null
+    }
 }
 
 method yes_pre(a: Ref, b: Ref)
@@ -20,10 +19,10 @@ method yes_pre(a: Ref, b: Ref)
 {}
 
 method yes(a: Ref, b: Ref)
-	// requires acc(a.f, write)
+    // requires acc(a.f, write)
 {
-	if (a == b) {
-		a.f := null
-		b.f := null
-	}
+    if (a == b) {
+    a.f := null
+    b.f := null
+    }
 }

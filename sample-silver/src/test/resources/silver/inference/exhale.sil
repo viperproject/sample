@@ -1,23 +1,22 @@
-
 field f: Ref
 
 method foo_pre(b: Ref, d: Ref, read: Perm)
-    requires none < read && read < 1/2
-    requires acc(b.f, read + 1/2)
+    requires none < read && read < 1 / 2
+    requires acc(b.f, read + 1 / 2)
     requires acc(b.f.f, write)
 {}
 
 method foo(b: Ref, d: Ref)
-	//requires acc(b.f, p) && p > 1/2
-	//requires acc(b.f.f, write)
+    //requires acc(b.f, p) && p > 1 / 2
+    //requires acc(b.f.f, write)
 {
-	var a: Ref
-	a := b
+    var a: Ref
+    a := b
 
-	exhale acc(b.f, 1/2)
-	inhale acc(b.f, 1/2)
+    exhale acc(b.f, 1 / 2)
+    inhale acc(b.f, 1 / 2)
 
-	a.f.f := d
+    a.f.f := d
 }
 
 method bar_pre(b: Ref, d: Ref)
@@ -25,13 +24,13 @@ method bar_pre(b: Ref, d: Ref)
 {}
 
 method bar(b: Ref, d: Ref)
-	//requires acc(b.f, write)
+    //requires acc(b.f, write)
 {
-	var a: Ref
-	a := b
+    var a: Ref
+    a := b
 
-	exhale acc(b.f, write)
-	inhale acc(b.f, write)
+    exhale acc(b.f, write)
+    inhale acc(b.f, write)
 
-	a.f := d
+    a.f := d
 }

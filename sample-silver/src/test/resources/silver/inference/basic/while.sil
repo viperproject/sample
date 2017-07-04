@@ -1,12 +1,11 @@
-
 field f: Int
 
-method t5_pre(n: Int, r: Ref, read: Perm) returns ()
+method t5_pre(n: Int, r: Ref, read: Perm)
     requires none < read && read < write
     requires acc(r.f, write)
 {}
 
-method t5(n: Int, r: Ref) returns ()
+method t5(n: Int, r: Ref)
 {
     var i: Int := 2
 

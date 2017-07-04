@@ -1,4 +1,3 @@
-
 field next: Ref
 
 method foo_pre(y: Ref, z: Ref, read: Perm)

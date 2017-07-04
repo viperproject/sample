@@ -1,11 +1,10 @@
-
 field test: Bool
 
-method t1_pre(b: Bool, d: Int, r: Ref) returns ()
+method t1_pre(b: Bool, d: Int, r: Ref)
     requires acc(r.test, write)
 {}
 
-method t1(b: Bool, d: Int, r: Ref) returns ()
+method t1(b: Bool, d: Int, r: Ref)
 {
     r.test := b
     assert b == (r.test)
