@@ -180,7 +180,7 @@ trait InterprocHelpers[S <: State[S]] {
    */
   val mainMethods: Set[SilverIdentifier]
 
-  val callStringLength: Option[Int]
+  val CallStringLength: Option[Int]
 
   private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
     var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
@@ -249,9 +249,9 @@ trait InterprocHelpers[S <: State[S]] {
       */
     case TaggedWorklistElement(callString, _, _) =>
       val method = findMethod(current)
-      val shortenedCallString = callString.suffix(callStringLength)
+      val shortenedCallString = callString.suffix(CallStringLength)
       methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
-        .filter(_.suffix(callStringLength) == shortenedCallString)
+        .filter(_.suffix(CallStringLength) == shortenedCallString)
         .foreach(caller => {
           val position = calleePositions(caller.lastCaller)
           worklist.enqueue(TaggedWorklistElement(caller.pop, position, forceReinterpretStmt = true))
@@ -336,15 +336,15 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         current match {
           case TaggedWorklistElement(callString, _, _) =>
             lazy val method = findMethod(current)
-            lazy val currentCallStringShortened = callString.suffix(callStringLength)
+            lazy val currentCallStringShortened = callString.suffix(CallStringLength)
             // create an edge for each call string with the same k-length suffix
             val inEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
-              .filter(_.suffix(callStringLength) == currentCallStringShortened)
+              .filter(_.suffix(CallStringLength) == currentCallStringShortened)
               .map(st => Right(MethodCallEdge(methodTransferStates(st))))
               .toSeq
             // for the context-insensitive case make sure mainMethods are called with the initial state
             // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (callStringLength.getOrElse(0) == 0 && !inEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+            if (CallStringLength.getOrElse(0) == 0 && !inEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
               inEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
             } else {
               inEdgesBySuffix
@@ -434,14 +434,14 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       if (!(calleeEntryState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(CallStringLength), BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callString.suffix(CallStringLength), null, forceReinterpretStmt = false)
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = !exitState.isBottom
 
@@ -470,7 +470,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
   * @param callsInProgram   The call graph of the program
-  * @param callStringLength an optional upper bound for the call-string length
+  * @param CallStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
@@ -478,7 +478,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
                                                                         override val callsInProgram: CallGraphMap,
-                                                                        override val callStringLength: Option[Int] = None)
+                                                                        override val CallStringLength: Option[Int] = None)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -558,15 +558,15 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         current match {
           case TaggedWorklistElement(callString, _, _) =>
             lazy val method = findMethod(current)
-            lazy val currentCallStringShortened = callString.suffix(callStringLength)
+            lazy val currentCallStringShortened = callString.suffix(CallStringLength)
             // create an edge for each call string with the same k-length suffix
             val outEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
-              .filter(_.suffix(callStringLength) == currentCallStringShortened)
+              .filter(_.suffix(CallStringLength) == currentCallStringShortened)
               .map(st => Right(MethodReturnEdge(methodTransferStates(st))))
               .toSeq
             // for the context-insensitive case make sure mainMethods are called with the initial state
             // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (callStringLength.getOrElse(0) == 0 && !outEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+            if (CallStringLength.getOrElse(0) == 0 && !outEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
               outEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
             } else {
               outEdgesBySuffix
@@ -621,14 +621,14 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       if (!(calleeExitState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(callStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
+        worklist.enqueue(TaggedWorklistElement(callString.suffix(CallStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(callStringLength), null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callString.suffix(CallStringLength), null, forceReinterpretStmt = false)
       val entryState = programResult(analyzed, methodDeclaration.body).entryState()
       val canContinue = !entryState.isBottom
 
@@ -684,7 +684,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
   * @param callsInProgram   The call graph of the program
-  * @param callStringLength an optional upper bound for the call-string length
+  * @param CallStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
@@ -692,7 +692,7 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
                                                                          override val callsInProgram: CallGraphMap,
-                                                                         override val callStringLength: Option[Int] = None)
+                                                                         override val CallStringLength: Option[Int] = None)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //
