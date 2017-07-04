@@ -1,4 +1,3 @@
-
 field f: Ref
 
 method foo(this: Ref, that: Ref)
@@ -12,7 +11,7 @@ method foo(this: Ref, that: Ref)
     this.f := that
 
     while (i < 10)
-        //invariant acc(this.f, 1/2)
+        //invariant acc(this.f, 1 / 2)
         //invariant acc(this.f.f, write)
     {
         x := new()

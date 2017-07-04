@@ -1,21 +1,20 @@
-
 field f: Ref
 
 method foo_pre(b: Ref, c: Ref, d: Ref, t: Bool)
-	requires acc(b.f, write)
+    requires acc(b.f, write)
     requires acc(c.f, write)
 {}
 
 method foo(b: Ref, c: Ref, d: Ref, t: Bool)
 {
-	var a: Ref
-	a := b
-	if (t) {
-		a.f := c
-	} else {
-		a.f := b
-	}
-	a.f.f := d
+    var a: Ref
+    a := b
+    if (t) {
+        a.f := c
+    } else {
+        a.f := b
+    }
+    a.f.f := d
 }
 
 method bar_pre(b: Ref, c: Ref, d: Ref, t: Bool)
@@ -25,31 +24,33 @@ method bar_pre(b: Ref, c: Ref, d: Ref, t: Bool)
 
 method bar(b: Ref, c: Ref, d: Ref, t: Bool)
 {
-	var a: Ref
-	if (t) {
-		a := b
-		b.f := a.f
-	} else {
-		a := c
-		c.f := a.f
-	}
-	a.f := d
+    var a: Ref
+    if (t) {
+        a := b
+        b.f := a.f
+    } else {
+        a := c
+        c.f := a.f
+    }
+    a.f := d
 }
 
 method qux_pre(b: Ref, c: Ref, d: Ref, t: Bool)
-  	requires acc(b.f, write) && acc(b.f.f, write)
-  	requires acc(c.f, write) && acc(c.f.f, write)
+    requires acc(b.f, write)
+    requires acc(b.f.f, write)
+    requires acc(c.f, write)
+    requires acc(c.f.f, write)
 {}
 
 method qux(b: Ref, c: Ref, d: Ref, t: Bool)
 {
-	var a: Ref
-	if (t) {
-		a := b
-		a.f := c.f
-	} else {
-		a := c
-		a.f := b.f
-	}
-	a.f.f := d
+    var a: Ref
+    if (t) {
+        a := b
+        a.f := c.f
+    } else {
+        a := c
+        a.f := b.f
+    }
+    a.f.f := d
 }

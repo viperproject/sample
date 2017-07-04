@@ -16,7 +16,8 @@ method foo(a: Ref, b: Ref, c: Ref)
 
 method bar_pre(a: Ref, read: Perm)
     requires none < read && read < write
-    requires acc(a.f, read) && acc(a.f.f, write)
+    requires acc(a.f, read)
+    requires acc(a.f.f, write)
 {}
 
 method bar(a: Ref)
