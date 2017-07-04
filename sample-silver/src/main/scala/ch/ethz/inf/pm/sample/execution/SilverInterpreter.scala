@@ -84,9 +84,9 @@ trait WorklistElement {
     * A useful example could be when we need to tag all worklist elements (e.g. call-strings) and want to preserve
     * the tag throughout the whole analysis.
     *
-    * @param newPos
-    * @param newForceReinterpretStmt
-    * @return
+    * @param newPos                  The BlockPosition that should be enqueued
+    * @param newForceReinterpretStmt Flag to force the interpreter to (re-) interpret the statement at newPos even though the entryState of the block may not have changed.
+    * @return A new worklist element that can be added to the worklist
     */
   def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
 }
@@ -97,7 +97,7 @@ trait WorklistElement {
   * @param pos                  enqueued BlockPosition
   * @param forceReinterpretStmt helper flag to skip checking if inputState "goes up" in the lattice
   */
-case class SimpleWorklistElement private(val pos: BlockPosition, val forceReinterpretStmt: Boolean) extends WorklistElement {
+case class SimpleWorklistElement private(pos: BlockPosition, forceReinterpretStmt: Boolean) extends WorklistElement {
   override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
     copy(pos = newPos, forceReinterpretStmt = newForceReinterpretStmt)
   }
@@ -115,7 +115,7 @@ object SilverInterpreter {
     *
     * @tparam S The type of the states
     */
-  type CfgResultsType[S <: State[S]] = Function2[WorklistElement, SampleCfg, CfgResult[S]]
+  type CfgResultsType[S <: State[S]] = (WorklistElement, SampleCfg) => CfgResult[S]
 }
 
 /**
@@ -158,7 +158,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
-    cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), false)))
+    cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
     while (worklist.nonEmpty) {
       val current = worklist.dequeue()
@@ -263,7 +263,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, states.toList ++ gapFiller)
         // update worklist and iteration count if the whole block has been executed
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
-          worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), false)): _*)
+          worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), newForceReinterpretStmt = false)): _*)
           iterations.put(current, iteration + 1)
         }
         //notify (subclasses) about processed exit blocks
@@ -412,7 +412,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
-    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), false)))
+    cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
 
     while (worklist.nonEmpty) {
@@ -490,7 +490,6 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // The elements in the LoopHeadBlock are stored as invariants ++ statements
             // we need to figure out wheter current.index points to a location in the statements or in the
             // invariants. numStatementsToTake may be negative but that's ok because Seq(....).take(-1) == Nil
-            val numStatementsToTake = elemsToTake - invariants.size
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
             var successor = exit
@@ -528,7 +527,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
         // update worklist and iteration count
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
-          worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), false)): _*)
+          worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), newForceReinterpretStmt = false)): _*)
           iterations.put(current, iteration + 1)
         }
         //notify (subclasses) about processed entry blocks
