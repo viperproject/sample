@@ -166,22 +166,29 @@ case class TaggedWorklistElement(callString: CallString,
 }
 
 trait InterprocHelpers[S <: State[S]] {
+  //
+  // "global" values passed to the interpreter from the analysis runner
+  //
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
+  val callsInProgram: CallGraphMap
+  val CallStringLength: Option[Int]
+  // A main method is analyzed using "initial" as the entry state.
+  val mainMethods: Set[SilverIdentifier]
+
+  //
+  // variables that track the state of the analysis. E.g. values transferred into calles or CfgResults
+  //
+
   /** this map is used to store entry (forward) or exit (backward) states for method calls
     * executeStatement() stores the states here and in-/outEdges then uses them to create MethodCall / MethodReturn edges
     */
   val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map()
-  val callsInProgram: CallGraphMap
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
-  /*
-   * A set of methods that will be treated as main-methods.
-   * A main method is analyzed using "initial" as the entry state.
-   */
-  val mainMethods: Set[SilverIdentifier]
 
-  val CallStringLength: Option[Int]
-
+  //
+  // helper methods to lookup Methods, Blockpositions etc.
+  //
   private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
     var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
     for (m <- program.methods) {
@@ -190,6 +197,20 @@ trait InterprocHelpers[S <: State[S]] {
         res += (Right(b) -> m)
     }
     res
+  }
+
+  def findMethod(current: WorklistElement): SilverMethodDeclaration = findMethod(current.pos)
+
+  def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
+    methods(Right(blockPosition.block))
+  }
+
+  def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
+    findMethod(name.name)
+  }
+
+  def findMethod(name: String): SilverMethodDeclaration = {
+    methods(Left(name))
   }
 
   /**
@@ -202,19 +223,9 @@ trait InterprocHelpers[S <: State[S]] {
     }).toMap
   }
 
-  protected def findMethod(current: WorklistElement): SilverMethodDeclaration = findMethod(current.pos)
-
-  protected def findMethod(blockPosition: BlockPosition): SilverMethodDeclaration = {
-    methods(Right(blockPosition.block))
-  }
-
-  protected def findMethod(name: SilverIdentifier): SilverMethodDeclaration = {
-    findMethod(name.name)
-  }
-
-  protected def findMethod(name: String): SilverMethodDeclaration = {
-    methods(Left(name))
-  }
+  //
+  // various methods shared between the forward and backward interpreters
+  //
 
   /**
     * Return the initial/default state for the given cfg under the assumption that
@@ -241,7 +252,7 @@ trait InterprocHelpers[S <: State[S]] {
     * @param current  the current worklist element
     * @param worklist the worklist to enqueue to
     */
-  protected def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist): Unit = current match {
+  def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist): Unit = current match {
     /**
       * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
       * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
@@ -301,7 +312,6 @@ trait InterprocHelpers[S <: State[S]] {
           .removeVariable(ExpressionSet(toReplace))
     })
   }
-
 }
 
 /**
