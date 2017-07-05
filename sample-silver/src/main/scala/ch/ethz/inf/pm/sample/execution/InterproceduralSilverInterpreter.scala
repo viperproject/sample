@@ -185,6 +185,9 @@ trait InterprocHelpers[S <: State[S]] {
     */
   val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map()
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
+  // tracks whehter the result of a CallString/Cfg combination is already available. They are if
+  // the exit- (forward) / entry-block (backward) has been interpreted
+  val analysisResultReady: mutable.Set[(CallString, SampleCfg)] = mutable.Set()
 
   //
   // helper methods to lookup Methods, Blockpositions etc.
@@ -251,14 +254,15 @@ trait InterprocHelpers[S <: State[S]] {
     *
     * @param current  the current worklist element
     * @param worklist the worklist to enqueue to
+    * @param cfg      the cfg belonging to the current worklist element
     */
-  def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist): Unit = current match {
+  def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist, cfg: SampleCfg): Unit = current match {
     /**
       * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
       * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
       * we enqueue all callers that have the same suffix.
       */
-    case TaggedWorklistElement(callString, _, _) =>
+    case TaggedWorklistElement(callString, pos, _) =>
       val method = findMethod(current)
       val shortenedCallString = callString.suffix(CallStringLength)
       methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
@@ -267,6 +271,8 @@ trait InterprocHelpers[S <: State[S]] {
           val position = calleePositions(caller.lastCaller)
           worklist.enqueue(TaggedWorklistElement(caller.pop, position, forceReinterpretStmt = true))
         })
+      // mark the result as available
+      analysisResultReady += ((callString, cfg))
     case _ =>
   }
 
@@ -372,7 +378,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist)
+  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
@@ -443,17 +449,18 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       }
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
+      val callStringInCallee = callString.suffix(CallStringLength)
       if (!(calleeEntryState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(CallStringLength), BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
+        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(CallStringLength), null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
-      val canContinue = !exitState.isBottom
+      val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       var resultState = renamedState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
 
@@ -630,17 +637,18 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       }
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
+      val callStringInCallee = callString.suffix(CallStringLength)
       if (!(calleeExitState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callString.suffix(CallStringLength), BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
+        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
       }
 
       //
       // if callee has been analyzed, merge results back into our state
       // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
       //
-      val analyzed = TaggedWorklistElement(callString.suffix(CallStringLength), null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
       val entryState = programResult(analyzed, methodDeclaration.body).entryState()
-      val canContinue = !entryState.isBottom
+      val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
@@ -670,7 +678,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
     */
-  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist)
+  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Right(edge: MethodReturnEdge[S]) =>
