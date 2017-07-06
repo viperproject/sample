@@ -13,3 +13,4 @@ apron.sbt
 
 # Folder with temporary files created by Silicon
 tmp/
+docker.sh
