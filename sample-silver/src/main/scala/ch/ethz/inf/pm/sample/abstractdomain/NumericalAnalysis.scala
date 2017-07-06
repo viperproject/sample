@@ -338,7 +338,6 @@ case class IntegerOctagonAnalysisState(pp: ProgramPoint,
     */
   override def command(cmd: Command): IntegerOctagonAnalysisState = cmd match {
     case UnifyCommand(other) => other match {
-        //TODO @flurin move this up in the hierarchy?
       case o: IntegerOctagonAnalysisState => {
         copy(domain = domain.unify(o.domain))
       }
@@ -391,7 +390,7 @@ object InterproceduralIntegerIntervalAnalysis
   */
 object ContextInsensitiveInterproceduralIntegerIntervalAnalysis
   extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
-  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState, Some(0))
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState, CallString.ContextInsensitive)
 }
 
 /**

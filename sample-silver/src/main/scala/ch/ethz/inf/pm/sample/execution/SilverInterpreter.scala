@@ -159,7 +159,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
     cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), forceReinterpretStmt = false)))
-    val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
+    val iterations = mutable.Map[WorklistElement, Int]()
     while (worklist.nonEmpty) {
       val current = worklist.dequeue()
       val currentCfg = cfg(current)
@@ -415,7 +415,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     // prepare data structures
     val worklist: InterpreterWorklist = mutable.Queue()
     cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), forceReinterpretStmt = false)))
-    val iterations = mutable.Map[WorklistElement, Int]() //TODO @flurin
+    val iterations = mutable.Map[WorklistElement, Int]()
 
     while (worklist.nonEmpty) {
       val current = worklist.dequeue()

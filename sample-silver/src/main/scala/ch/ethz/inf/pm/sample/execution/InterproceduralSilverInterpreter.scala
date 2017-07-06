@@ -57,6 +57,7 @@ trait CallString {
 
   /**
     * Returns the ProgramPoint of the current method that this call-string calls into
+    * There is no currentMethod for CallString.Empty
     *
     * @return
     */
@@ -98,13 +99,42 @@ object CallString {
 
   def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = SimpleCallString(List(callee.programPoint, callStmt.getPC()))
 
-  def Empty: CallString = SimpleCallString(Nil)
+  /**
+    * Represents an empty call-string
+    */
+  val Empty: CallString = SimpleCallString(Nil)
 
+  /**
+    * FullPrecision will analyse the whole call-string length
+    */
+  val FullPrecision: Option[Int] = None
+
+  /**
+    * ContextInsensitive sets the call-string length to 0
+    */
+  val ContextInsensitive: Option[Int] = Some(0)
+
+  /**
+    * Returns a CallStringLength of length k
+    *
+    * @param k The call-string length to be used
+    * @return
+    */
+  def approximate(k: Int): Option[Int] = Some(k)
+
+  /**
+    * The default implementation of a call-string
+    * For every method call the call-string grows by two elements. The method that was called, and the location
+    * that called the method. Due to this, the actual implementation works with a call-string list double the size
+    * of CallStringLength. Calling suffix(k=2) can internally work with a callStack of size <= 4.
+    *
+    * @param callStack The stack of method calls in the call-string
+    */
   private case class SimpleCallString(callStack: List[ProgramPoint] = Nil) extends CallString {
 
     def lastCaller: ProgramPoint = callStack.tail.head
 
-    def currentMethod: ProgramPoint = callStack.head //TODO @flurin doesn't work for main method
+    def currentMethod: ProgramPoint = callStack.head
 
     def pop: CallString = copy(callStack = callStack.tail.tail)
 
@@ -464,7 +494,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
                                                                         override val callsInProgram: CallGraphMap,
-                                                                        override val CallStringLength: Option[Int] = None)
+                                                                        override val CallStringLength: Option[Int] = CallString.FullPrecision)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -673,7 +703,7 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
                                                                          override val callsInProgram: CallGraphMap,
-                                                                         override val CallStringLength: Option[Int] = None)
+                                                                         override val CallStringLength: Option[Int] = CallString.FullPrecision)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //
