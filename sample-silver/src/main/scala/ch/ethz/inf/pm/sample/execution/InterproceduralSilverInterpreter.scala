@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.execution
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Replacement, _}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
@@ -276,45 +276,22 @@ trait InterprocHelpers[S <: State[S]] {
   }
 
   /**
-    * Backups all identifiers whose name starts with $namePrefixToBackup by assigning them to a variable named
-    * BACKUP_$namePrefixToBackup_... of the same type.
-    * The original $namePrefixToBackup variable is then removed from the state
+    * Renames the given variables into variables named $newNamePrefix + id where id starts at zero.
     *
-    * @param state              The state whose temporary-argument-variables should be backed up
-    * @param namePrefixToBackup The prefix of all variables that should be backed up. Usually ArgumentPrefix or ReturnPrefix
-    * @return A tuple of State and Replacement. \
-    *         The State contains the variable backup and the original $namePrefixToBackup variables are removed \
-    *         The Replacement can be used to recover the renaming/backup done by this method.
-    */
-  def backupTemporaryArguments(state: S, namePrefixToBackup: String): (S, Replacement) = {
-    var renamings = mutable.HashMap[Set[Identifier], Set[Identifier]]()
-    val renamedState = state.ids.toSetOrFail.filter(_.getName.startsWith(namePrefixToBackup)).foldLeft(state)((st, ident) => {
-      val newIdent: Identifier = VariableIdentifier("BACKUP_" + ident.getName)(ident.typ)
-      renamings += (Set(newIdent) -> Set(ident))
-      // replace the existing variable by its BACKUP
-      st.createVariable(ExpressionSet(newIdent), ident.typ, ident.pp)
-        .assignVariable(ExpressionSet(newIdent), ExpressionSet(ident))
-        .removeVariable(ExpressionSet(ident))
-    })
-    (renamedState, new Replacement(renamings, isPureRenaming = true))
-  }
-
-  /**
-    * Recover a state by replacing the BACKUP_ variable-names by their original name
-    *
-    * @param state     The state containing the BACKUP_ variables
-    * @param renamings The replacement. It is assumed that each replacements only contains only one value (Set(source) -> Set(target))
+    * @param state         The state that should be renamed
+    * @param variables     The Sequence of variables to be renamed (usually methoddeclaration.arguments or returns)
+    * @param newNamePrefix The prefix for the temporary variables (see ArgumentPrefix ReturnPrefix)
     * @return The renamed state
     */
-  def recoverTemporaryArguments(state: S, renamings: Replacement): S = {
-    renamings.value.foldLeft(state)((st, entry) => entry match {
-      case (key, value) =>
-        //TODO @flurin switch to Map[Identifier, Identifier] instead of a set? Replacement does not make that much sense here
-        val toReplace = key.head
-        val replacement = value.head
-        st.createVariable(ExpressionSet(replacement), toReplace.typ, toReplace.pp)
-          .assignVariable(ExpressionSet(replacement), ExpressionSet(toReplace))
-          .removeVariable(ExpressionSet(toReplace))
+  def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = {
+    var id = 0
+    variables.foldLeft(state)((st, v) => {
+      val newName = ExpressionSet(VariableIdentifier(newNamePrefix + id)(v.typ))
+      id += 1
+      val old = ExpressionSet(v.variable.id)
+      st.createVariable(newName, v.typ, DummyProgramPoint)
+        .assignVariable(newName, old)
+        .removeVariable(old)
     })
   }
 }
@@ -402,7 +379,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-      inputState
+      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
@@ -414,32 +391,30 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // prepare calling context (evaluate method targets and parameters)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      var currentState = predecessor
+      var methodCallStateInCaller = predecessor
       val parameterExpressions = for (parameter <- call.parameters) yield {
-        currentState = parameter.forwardSemantics[S](currentState)
-        currentState.expr
+        methodCallStateInCaller = parameter.forwardSemantics[S](methodCallStateInCaller)
+        methodCallStateInCaller.expr
       }
       val targetExpressions = for (target <- call.targets) yield {
-        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(currentState, target)
-        currentState = st
+        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(methodCallStateInCaller, target)
+        methodCallStateInCaller = st
         exp
       }
+
       //
       // transfer arguments to methodEntryState
       //
-      // first rename any existing argument variables
-      var (renamedState, renamings) = backupTemporaryArguments(currentState, ArgumentPrefix)
 
-      // create temp argument variables and assign the value to them. then remove all non temp-arg-variables
-      val addedTmpVariables = for ((param, index) <- parameterExpressions.zipWithIndex) yield {
+      // create temp argument variables and assign the arguments to them
+      for ((param, index) <- parameterExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
-        renamedState = renamedState.createVariable(exp, param.typ, DummyProgramPoint)
-        renamedState = renamedState.assignVariable(exp, param)
-        exp
+        methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
+        methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
       }
-      val calleeEntryState = renamedState.ids.toSetOrFail // The entry state should only contain argument_# variables
+      val calleeEntryState = methodCallStateInCaller.ids.toSetOrFail // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
-        .foldLeft(renamedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+        .foldLeft(methodCallStateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //Enqueue the called method for analysis and grow the call-string
       val callString = current match {
@@ -455,20 +430,21 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       //
       // if callee has been analyzed, merge results back into our state
-      // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
+      // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
       val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
-      var resultState = renamedState.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, exitState))
+      val resultState = if (canContinue) {
+        // rename the methods arguments to temporary variables to relate method call state to exit state of the calle
+        val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
+        // merge the renamed exit state into the state of the caller and remove all temporary variables
+        methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
+      } else {
+        methodCallStateInCaller.bottom()
+      }
 
-      //
-      //  CLEANUP
-      //  remove temp variables and recover backed up variables
-      //
-      resultState = addedTmpVariables.foldLeft(resultState)((st, exp) => st.removeVariable(exp))
-      resultState = recoverTemporaryArguments(resultState, renamings)
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
@@ -602,32 +578,32 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
+      val methodIdentifier = SilverIdentifier(v.getName)
+      val methodDeclaration = findMethod(methodIdentifier)
       //
       // prepare calling context (evaluate method targets and parameters)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      val methodIdentifier = SilverIdentifier(v.getName)
-      var currentState = predecessor
+      var stateInCaller = predecessor
       val targetExpressions = for (target <- call.targets) yield {
-        val (exp, st) = UtilitiesOnStates.backwardExecuteStatement(currentState, target)
-        currentState = st
+        val (exp, st) = UtilitiesOnStates.backwardExecuteStatement(stateInCaller, target)
+        stateInCaller = st
         exp
       }
       //
       // transfer arguments to method exit state
       //
-      val methodDeclaration = findMethod(methodIdentifier)
-      // create ret_# variables and assign the value to them. then remove all non ret_# variables
-      var (renamedState, renamings) = backupTemporaryArguments(currentState, ReturnPrefix)
-      val addedTmpVariables = for ((param, index) <- targetExpressions.zipWithIndex) yield {
+      // create ret_# variables and assign the value to them.
+      for ((param, index) <- targetExpressions.zipWithIndex) {
         val exp = ExpressionSet(VariableIdentifier(ReturnPrefix + index)(param.typ))
-        renamedState = renamedState.createVariable(exp, param.typ, DummyProgramPoint)
-        renamedState = renamedState.assignVariable(param, exp)
+        stateInCaller = stateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
+        stateInCaller = stateInCaller.assignVariable(param, exp)
         exp
       }
-      val calleeExitState = renamedState.ids.toSetOrFail // let's remove them
+      // only transfer temporary ret_# variables into the callee. remove everything else
+      val calleeExitState = stateInCaller.ids.toSetOrFail
         .filter(id => !id.getName.startsWith(ReturnPrefix))
-        .foldLeft(renamedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+        .foldLeft(stateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
       //Enqueue the called method for analysis and grow the call-string
       val callString = current match {
@@ -643,26 +619,26 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       //
       // if callee has been analyzed, merge results back into our state
-      // (otherwise currentState.command() will return bottom (which is valid until the called method is analyzed))
+      // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
       val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
       val entryState = programResult(analyzed, methodDeclaration.body).entryState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
-      // current state now holds the previous state with evaluated assignments of the targets
-      // we can safely remove arg_ now
-      currentState = currentState.ids.toSetOrFail
-        .filter(_.getName.startsWith(ReturnPrefix))
-        .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
-
-      var st = currentState
+      var st = stateInCaller
       val parameterExpressions = for (parameter <- call.parameters) yield {
         st = parameter.backwardSemantics[S](st)
         st.expr
       }
-      var resultState = renamedState.command(CallMethodBackwardsCommand(methodDeclaration, call, parameterExpressions, entryState))
-      resultState = addedTmpVariables.foldLeft(resultState)((st, exp) => st.removeVariable(exp))
-      resultState = recoverTemporaryArguments(resultState, renamings)
+      val resultState = if (canContinue) {
+        // rename the state such that the callee's formal return variables are named return_#1,2,3,4 etc.
+        val renamed = renameToTemporaryVariable(entryState, methodDeclaration.returns, ReturnPrefix)
+        // merge the (renamed) callee entry state into our caller state and then remove all temporary ret_ or arg_ variables
+        // the renaming is necessary for relational domains to keep the relationship between callee arguments and returns
+        stateInCaller.command(CallMethodBackwardsCommand(methodDeclaration, call, parameterExpressions, renamed))
+      } else {
+        stateInCaller.bottom()
+      }
       logger.trace(predecessor.toString)
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
@@ -687,9 +663,9 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         ExpressionSet(VariableIdentifier(ReturnPrefix + index)(retVar.typ))
       }
       var inputState = unify(initialForCallee(methodDeclaration.body), exitContext)
-      // assign the methods actual returns to the temporary returns
+      // assign the methods actual returns to the temporary returns and then remove the temporary variables
       inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
-      inputState
+      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ReturnPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }
 }
