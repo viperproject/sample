@@ -68,7 +68,7 @@ trait SilverInterpreter[S <: State[S]] {
 }
 
 /**
-  * the worklist of the interpreter consists of a blockposition and a boolean flag "forceReinterpretStmt"
+  * the worklist of the interpreter consists of a BlockPosition and a boolean flag "forceReinterpretStmt"
   * using BlockPosition any index within a block can be enqueued
   * forceReinterpretStmt=true can be used to force re-interpretation of the enqueued position even though the
   * successor state did not change. This is useful for example to merge the effect of a method call after the callee
@@ -88,7 +88,7 @@ trait WorklistElement {
     * @param newForceReinterpretStmt Flag to force the interpreter to (re-) interpret the statement at newPos even though the entryState of the block may not have changed.
     * @return A new worklist element that can be added to the worklist
     */
-  def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
+  def createSuccessorForEnqueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
 }
 
 /**
@@ -98,7 +98,7 @@ trait WorklistElement {
   * @param forceReinterpretStmt helper flag to skip checking if inputState "goes up" in the lattice
   */
 case class SimpleWorklistElement private(pos: BlockPosition, forceReinterpretStmt: Boolean) extends WorklistElement {
-  override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
+  override def createSuccessorForEnqueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
     copy(pos = newPos, forceReinterpretStmt = newForceReinterpretStmt)
   }
 }
@@ -130,7 +130,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     with LazyLogging {
 
   /**
-    * Is called everytime the exit block of a CFG was executed
+    * Is called every time the exit block of a CFG was executed
     *
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
@@ -263,7 +263,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, states.toList ++ gapFiller)
         // update worklist and iteration count if the whole block has been executed
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
-          worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, 0), newForceReinterpretStmt = false)): _*)
+          worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqueue(BlockPosition(b, 0), newForceReinterpretStmt = false)): _*)
           iterations.put(current, iteration + 1)
         }
         //notify (subclasses) about processed exit blocks
@@ -391,7 +391,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
   }
 
   /**
-    * Is called everytime the entry block of a CFG was executed
+    * Is called every time the entry block of a CFG was executed
     *
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
@@ -488,7 +488,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             }
           case LoopHeadBlock(invariants, statements) =>
             // The elements in the LoopHeadBlock are stored as invariants ++ statements
-            // we need to figure out wheter current.index points to a location in the statements or in the
+            // we need to figure out whether current.index points to a location in the statements or in the
             // invariants. numStatementsToTake may be negative but that's ok because Seq(....).take(-1) == Nil
             val numInvariantsToTake = if (invariants.size > elemsToTake) elemsToTake else invariants.size
             // execute statements
@@ -526,8 +526,8 @@ trait SilverBackwardInterpreter[S <: State[S]]
         cfgResults(current, currentCfg).setStates(current.pos.block, gapFiller ++ states.reverse.toList)
 
         // update worklist and iteration count
-        if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
-          worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqeueue(BlockPosition(b, lastIndex(b)), newForceReinterpretStmt = false)): _*)
+        if (canContinueBlock) { // Only enqueue successors if we interpreter the whole block
+          worklist.enqueue(cfg(current).predecessors(current.pos.block).map(b => current.createSuccessorForEnqueue(BlockPosition(b, lastIndex(b)), newForceReinterpretStmt = false)): _*)
           iterations.put(current, iteration + 1)
         }
         //notify (subclasses) about processed entry blocks

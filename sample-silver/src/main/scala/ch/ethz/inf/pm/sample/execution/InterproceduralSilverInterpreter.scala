@@ -7,8 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Replacement, _}
-import ch.ethz.inf.pm.sample.execution.CallString.SimpleCallString
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -75,14 +74,14 @@ trait CallString {
     *
     * @param callee   The called Method
     * @param callStmt The MethodCall statement that causes the call-string to grow
-    * @return a new callstring that represents this stack of calls
+    * @return a new call-string that represents this stack of calls
     */
   def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString
 
   /**
     * Denotes that we're inside a called method
     *
-    * @return True if callstring relates to a callee
+    * @return True if call-string relates to a callee
     */
   def inCallee: Boolean
 
@@ -159,7 +158,7 @@ case class TaggedWorklistElement(callString: CallString,
                                  override val pos: BlockPosition,
                                  override val forceReinterpretStmt: Boolean) extends WorklistElement {
 
-  override def createSuccessorForEnqeueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
+  override def createSuccessorForEnqueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement = {
     copy(pos = newPos, forceReinterpretStmt = newForceReinterpretStmt)
   }
 
@@ -177,7 +176,7 @@ trait InterprocHelpers[S <: State[S]] {
   val mainMethods: Set[SilverIdentifier]
 
   //
-  // variables that track the state of the analysis. E.g. values transferred into calles or CfgResults
+  // variables that track the state of the analysis. E.g. values transferred into callees or CfgResults
   //
 
   /** this map is used to store entry (forward) or exit (backward) states for method calls
@@ -185,12 +184,12 @@ trait InterprocHelpers[S <: State[S]] {
     */
   val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map()
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
-  // tracks whehter the result of a CallString/Cfg combination is already available. They are if
+  // tracks whether the result of a CallString/Cfg combination is already available. They are if
   // the exit- (forward) / entry-block (backward) has been interpreted
   val analysisResultReady: mutable.Set[(CallString, SampleCfg)] = mutable.Set()
 
   //
-  // helper methods to lookup Methods, Blockpositions etc.
+  // helper methods to lookup Methods, BlockPositions etc.
   //
   private lazy val methods: Map[Either[String, SampleBlock], SilverMethodDeclaration] = {
     var res: Map[Either[String, SampleBlock], SilverMethodDeclaration] = Map()
@@ -259,10 +258,10 @@ trait InterprocHelpers[S <: State[S]] {
   def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist, cfg: SampleCfg): Unit = current match {
     /**
       * Enqueue the callee(s) of the method. To find them we look at all existing call-strings.
-      * For full-length callstrings we can simply enqueue the last caller. For aproximate solutions (call-string-length bounded)
+      * For full-length call-strings we can simply enqueue the last caller. For approximate solutions (call-string-length bounded)
       * we enqueue all callers that have the same suffix.
       */
-    case TaggedWorklistElement(callString, pos, _) =>
+    case TaggedWorklistElement(callString, _, _) =>
       val method = findMethod(current)
       val shortenedCallString = callString.suffix(CallStringLength)
       methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
@@ -281,8 +280,8 @@ trait InterprocHelpers[S <: State[S]] {
     * BACKUP_$namePrefixToBackup_... of the same type.
     * The original $namePrefixToBackup variable is then removed from the state
     *
-    * @param state              The state whose temporary-argument-variables should be backuped
-    * @param namePrefixToBackup The prefix of all variables that should be backuped. Usually ArgumentPrefix or ReturnPrefix
+    * @param state              The state whose temporary-argument-variables should be backed up
+    * @param namePrefixToBackup The prefix of all variables that should be backed up. Usually ArgumentPrefix or ReturnPrefix
     * @return A tuple of State and Replacement. \
     *         The State contains the variable backup and the original $namePrefixToBackup variables are removed \
     *         The Replacement can be used to recover the renaming/backup done by this method.
@@ -340,7 +339,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
   override protected def inEdges(current: WorklistElement, cfgResult: CfgResultsType[S]): Seq[Either[SampleEdge, AuxiliaryEdge]] = {
     /**
-      * If the current block is an entrypoint of the cfg and this block (method) is called throughout the program
+      * If the current block is an entry-point of the cfg and this block (method) is called throughout the program
       * we'll add a MethodCallEdge. The number of edges should equal the number of calls. But it's possible that
       * methodEntryStates does not yet contain calling-contexts of all call locations. If the number of known entry states
       * is less than the number of calls, we'll add additional edges with bottom as calling context.
@@ -360,7 +359,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
               .toSeq
             // for the context-insensitive case make sure mainMethods are called with the initial state
             // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (CallStringLength.getOrElse(0) == 0 && !inEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+            if (CallStringLength.getOrElse(0) == 0 && inEdgesBySuffix.nonEmpty && (mainMethods contains method.name)) {
               inEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
             } else {
               inEdgesBySuffix
@@ -442,7 +441,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(renamedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-      //Enqueue the called method for analysis and grow the callstring
+      //Enqueue the called method for analysis and grow the call-string
       val callString = current match {
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
@@ -530,7 +529,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     cfgResult
   }
 
-  // The entrypoint for an interprocedural analysis is executeInterprocedural()
+  // The entry-point for an interprocedural analysis is executeInterprocedural()
   // For programs with multiple methods calling execute() cannot work as expected because it's not clear
   // which CfgResult should be returned.
   override def execute(): CfgResult[S] = {
@@ -583,7 +582,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
               .toSeq
             // for the context-insensitive case make sure mainMethods are called with the initial state
             // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (CallStringLength.getOrElse(0) == 0 && !outEdgesBySuffix.isEmpty && (mainMethods contains method.name)) {
+            if (CallStringLength.getOrElse(0) == 0 && outEdgesBySuffix.nonEmpty && (mainMethods contains method.name)) {
               outEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
             } else {
               outEdgesBySuffix
@@ -630,7 +629,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(renamedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
-      //Enqueue the called method for analysis and grow the callstring
+      //Enqueue the called method for analysis and grow the call-string
       val callString = current match {
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
@@ -673,7 +672,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
 
   /**
-    * Is called everytime the entry block of a CFG was executed
+    * Is called every time the entry block of a CFG was executed
     *
     * @param current  The Block that was interpreted last
     * @param worklist The interpreters worklist
@@ -699,7 +698,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   * Backward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
+  * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
   * @param callsInProgram   The call graph of the program
   * @param CallStringLength an optional upper bound for the call-string length
@@ -738,7 +737,7 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
     cfgResult
   }
 
-  // The entrypoint for an interprocedural analysis is executeInterprocedural()
+  // The entry-point for an interprocedural analysis is executeInterprocedural()
   // For programs with multiple methods calling execute() cannot work as expected because it's not clear
   // which CfgResult should be returned.
   override def execute(): CfgResult[S] = {
