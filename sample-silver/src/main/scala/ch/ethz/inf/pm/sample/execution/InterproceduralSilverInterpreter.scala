@@ -334,13 +334,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
               .filter(_.suffix(CallStringLength) == currentCallStringShortened)
               .map(st => Right(MethodCallEdge(methodTransferStates(st))))
               .toSeq
-            // for the context-insensitive case make sure mainMethods are called with the initial state
-            // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (CallStringLength.getOrElse(0) == 0 && inEdgesBySuffix.nonEmpty && (mainMethods contains method.name)) {
-              inEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
-            } else {
-              inEdgesBySuffix
-            }
+            inEdgesBySuffix
           case _ => Nil
         }
       } else {
@@ -556,13 +550,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
               .filter(_.suffix(CallStringLength) == currentCallStringShortened)
               .map(st => Right(MethodReturnEdge(methodTransferStates(st))))
               .toSeq
-            // for the context-insensitive case make sure mainMethods are called with the initial state
-            // see the dummy-main-connected-component test in ContextInsensitiveInterproceduralAnalysisTest
-            if (CallStringLength.getOrElse(0) == 0 && outEdgesBySuffix.nonEmpty && (mainMethods contains method.name)) {
-              outEdgesBySuffix :+ Right(DummyEdge(initial(cfg(current))))
-            } else {
-              outEdgesBySuffix
-            }
+            outEdgesBySuffix
           case _ => Nil
         }
       } else {
