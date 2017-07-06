@@ -143,7 +143,7 @@ class ContextInsensitiveInterproceduralAnalysisTest extends InterproceduralAnaly
     checkVariableInExitState(programResult, "foo", "z", IntegerInterval.Inner(1, 1), "z should not change")
     checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(3, 3), "i should be 3")
     checkVariableInExitState(programResult, "nop", "i", IntegerInterval.Inner(2, 2), "nop(2) should set i to 2")
-    checkVariableInExitState(programResult, "nop", "k", IntegerInterval.Inner(2, 2), "nop(2) shoudl set k to 2")
+    checkVariableInExitState(programResult, "nop", "k", IntegerInterval.Inner(2, 2), "nop(2) should set k to 2")
   }
 
   test("recursion-without-widening") {
@@ -441,7 +441,7 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
 class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
 
   /**
-    * Compares the list of live variables at the enryState of the method with the given list of expectedLive.
+    * Compares the list of live variables at the entry state of the method with the given list of expectedLive.
     * The test fails if more or less variables are actually live.
     *
     * @param programResult programResult to use
@@ -464,11 +464,11 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
       // Due to this the only live variable at the entry state of caller is "ret" which is live due to the starting
       // assumption.
       //
-      method caller(x: Int, y: Int, z: Int) returns(ret: Int) { // ret exprected to be live
+      method caller(x: Int, y: Int, z: Int) returns(ret: Int) { // ret expected to be live
         var r1: Int := 0
         var r2: Int := 0
         r1, r2 := callee(x, y, z)
-        // r1 and r2 are dead. therefore all mvariables used in callee are dead too
+        // r1 and r2 are dead. therefore all variables used in callee are dead too
       }   // RET ASSUMED TO BE LIVE
 
       method callee(x: Int, y: Int, z: Int) returns(r1: Int, r2: Int) { // NOTHING expected to be live
@@ -501,7 +501,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
     checkLiveVariableInEntryState(programResult, "callee", Seq("x", "y", "z"))
   }
 
-  test("non-bottom-state-with-bottom-domani") {
+  test("non-bottom-state-with-bottom-domain") {
     // in the following program no variable at the entryState is live
     // nevertheless the state itself should NOT be bottom
     val programResult = run(
