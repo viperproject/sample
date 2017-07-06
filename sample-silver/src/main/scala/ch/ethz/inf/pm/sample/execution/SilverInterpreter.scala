@@ -628,7 +628,9 @@ case class FinalResultForwardInterpreter[S <: State[S]](cfg: SampleCfg, initial:
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
-    result(null, cfg) //TODO @flurin "null"
+    // the intraprocedural case actually does not use the first argument (WorklistElement)
+    // We'll pass a valid worklist element anyway
+    result(SimpleWorklistElement(BlockPosition(cfg.entry, 0), forceReinterpretStmt = false), cfg)
   }
 }
 
@@ -654,6 +656,8 @@ case class FinalResultBackwardInterpreter[S <: State[S]](cfg: SampleCfg, initial
 
   override def execute(): CfgResult[S] = {
     val result = execute(Seq(cfg))
-    result(null, cfg) //TODO @flurin "null"
+    // the intraprocedural case actually does not use the first argument (WorklistElement)
+    // We'll pass a valid worklist element anyway
+    result(SimpleWorklistElement(BlockPosition(cfg.exit.get, lastIndex(cfg.exit.get)), forceReinterpretStmt = false), cfg)
   }
 }
