@@ -73,6 +73,7 @@ trait HeapNode extends Identifier.HeapIdentifier {
 }
 
 object HeapNode {
+
   /**
     * The top heap node that represents all possible heap locations.
     */
@@ -90,7 +91,7 @@ object HeapNode {
     override def getName: String = "?"
 
     override def representsSingleVariable: Boolean = false
-}
+  }
 
   /**
     * The summary node.
@@ -130,6 +131,7 @@ object HeapNode {
 
     override def representsSingleVariable: Boolean = true
   }
+
 }
 
 /** A graph representing alias information.
@@ -488,7 +490,15 @@ trait AliasGraph[T <: AliasGraph[T]] {
       val newValues = values - UnknownNode + fresh
       val newStore = store + (variable -> newValues)
       // update heap with the fresh node
-      val newHeap = heap + (fresh -> heap(UnknownNode: HeapNode))
+      val existingMap = heap.getOrElse(fresh, Map.empty)
+      val unknownMap = heap(UnknownNode: HeapNode)
+      val mergedMap = (existingMap.keySet ++ unknownMap.keySet).foldLeft(FieldMap()) {
+        case (acc, key) =>
+          val existingValue = existingMap.getOrElse(key, Set.empty)
+          val unknownValue = unknownMap.getOrElse(key, Set.empty)
+          acc + (key -> (existingValue ++ unknownValue))
+      }
+      val newHeap = heap + (fresh -> mergedMap)
       (copy(store = newStore, heap = newHeap), newValues)
     } else {
       // there is nothing to materialize
