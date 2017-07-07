@@ -1,0 +1,8 @@
+field f: Ref
+
+method foo(a: Ref, b: Ref, c: Bool)
+{
+    if (c) {
+        a.f := b
+    }
+}
