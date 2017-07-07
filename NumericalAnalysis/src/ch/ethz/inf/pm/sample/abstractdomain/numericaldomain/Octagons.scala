@@ -7,10 +7,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons.{DoubleDbm, Environment, IntegerDbm, Interval}
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyBooleanType, DummyIntegerType, DummyTypeMap, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 
 /** The common super trait of integer octagons and double octagons.
   *
@@ -425,7 +424,7 @@ object Octagons
     // STRING REPRESENTATION
     override def toString: String = s"Octagon(" +
       s"\n\tenvironment: ${env.ids}" +
-      s"\n\tconstraints: ${getConstraints(env.ids.toSet).mkString}" +
+      s"\n\tconstraints: \n\t\t${getConstraints(env.ids.toSet).mkString("\n\t\t")}" +
       s"\n)"
 
     // HELPERS
@@ -553,7 +552,7 @@ object Octagons
   {
     this: S =>
 
-    import Dbm.{Infinity, size, index, lower, topArr}
+    import Dbm._
 
     require(arr.length == size(dim))
 

@@ -449,12 +449,12 @@ case class MethodCall(
     }; //return state
     body match {
       case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
-      case body: Variable => forwardAnalzyeMethodCallOnVariable(body, state)
+      case body: Variable => forwardAnalyzeMethodCallOnVariable(body, state)
 
     }
   }
 
-  private def forwardAnalzyeMethodCallOnVariable[S <: State[S]](body: Variable, state: S): S = {
+  private def forwardAnalyzeMethodCallOnVariable[S <: State[S]](body: Variable, state: S): S = {
     var curState = state
     val parameterExpressions = for (parameter <- parameters) yield {
       curState = parameter.forwardSemantics[S](curState)
