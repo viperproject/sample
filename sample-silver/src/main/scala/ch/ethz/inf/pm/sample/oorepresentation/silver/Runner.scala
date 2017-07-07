@@ -19,6 +19,7 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
+import viper.silver.ast.Program
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
@@ -293,4 +294,27 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   */
 trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   extends SilverInferenceRunner[T, S] with InterproceduralSilverAnalysisRunner[S] {
+  /**
+    * Extends the given program using the given results of the analysis.
+    *
+    * @param program The program to extend.
+    * @param results The result of the analysis.
+    * @return The
+    */
+  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      //TODO @flurin this is a hack. Need to come up with something useful here (pass all results to extendMethod?)
+      val result = if (results.getTaggedResults(identifier).size > 1) results.getTaggedResults(identifier).filter(p => p._1 match {
+        case CfgResultTag.Untagged => false
+        case _ => true
+      }).head._2
+      else results.getResult(identifier)
+      extendMethod(method, result)
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
 }
