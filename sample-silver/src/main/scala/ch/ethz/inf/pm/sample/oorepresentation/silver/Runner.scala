@@ -284,3 +284,13 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
 
   override def toString = "Specification Inference"
 }
+
+/** Interprocedural Specification Inference for Silver Programs.
+  *
+  * @author Flurin Rindisbacher
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
+  extends SilverInferenceRunner[T, S] with InterproceduralSilverAnalysisRunner[S] {
+}

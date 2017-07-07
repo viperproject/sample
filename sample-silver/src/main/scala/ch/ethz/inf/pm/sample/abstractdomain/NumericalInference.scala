@@ -7,8 +7,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, InterproceduralSilverForwardAnalysis, SilverAnalysis}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, InterproceduralSilverInferenceRunner, SilverInferenceRunner}
 import viper.silver.ast.{Exp, Field}
 
 /**
@@ -25,7 +25,7 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 
   override def postconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
 
-  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] ={
+  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
     existing ++ converted.toSeq
@@ -35,6 +35,16 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 }
 
 /**
+  * An interprocedural inference based on a numerical analysis.
+  *
+  * @tparam S The type of the state.
+  * @tparam D The type of the numerical domain.
+  * @author Flurin Rindisbacher
+  */
+trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
+  extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S]
+
+/**
   * An inference based on the integer octagon analysis.
   *
   * @author Jerome Dohrau
@@ -42,4 +52,15 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 object IntegerOctagonInference
   extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = IntegerOctagonAnalysis.analysis
+}
+
+/**
+  * An interprocedural inference based on the integer octagon analysis
+  * The analysis uses full-length (full precision) call-strings. Use an approximate call-string for recursive methods.
+  *
+  * @author Flurin Rindisbacher
+  */
+object InterproceduralIntegerOctagonInference
+  extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = InterproceduralIntegerOctagonAnalysis.analysis
 }
