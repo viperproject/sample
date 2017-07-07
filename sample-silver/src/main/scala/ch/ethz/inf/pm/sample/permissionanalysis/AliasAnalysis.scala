@@ -768,12 +768,9 @@ object AliasGraph {
         else copy(materialization = true).materialize(path).evaluatePath(path)
       }
 
-      def firstEval = evaluate(first) - NullNode
-
-      def secondEval = evaluate(second) - NullNode
-
-      def intersection = firstEval & secondEval
-
+      val firstEval = evaluate(first) - NullNode
+      val secondEval = evaluate(second) - NullNode
+      val intersection = firstEval & secondEval
       intersection.nonEmpty || (firstEval contains TopNode) || (secondEval contains TopNode)
     }
 
