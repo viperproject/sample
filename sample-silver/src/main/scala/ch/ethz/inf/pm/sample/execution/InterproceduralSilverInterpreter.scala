@@ -56,7 +56,7 @@ object InterproceduralSilverInterpreter {
   * Using the suffix() method it is possible to shorten a call-string and therefore approximate the analysis result.
   * see CallString.FullPrecision, CallString.ContextInsensitive and CallString.approximate
   */
-trait CallString {
+trait CallString extends CfgResultTag {
   /**
     * Represents the position of the last method call
     *
@@ -465,7 +465,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
-      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
       val exitState = programResult(analyzed, methodDeclaration.body).exitState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
@@ -518,18 +518,22 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
 
-    def lookup(res: mutable.Map[(CallString, SampleCfg), CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = current match {
-      case TaggedWorklistElement(callString, _, _) =>
-        if (!(res contains(callString, cfg)))
-          res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg)))
-        res((callString, cfg))
-      case _ =>
-        res((CallString.Empty, cfg))
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement, cfg: SampleCfg): CfgResult[S] = {
+      val ident = findMethod(current).name
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(cfg, bottom(cfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
     }
 
-    lookup(mutable.Map((for (method <- program.methods) yield {
-      (CallString.Empty, method.body) -> programResult.getResult(method.name)
-    }): _*))
+    lookup
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
@@ -648,7 +652,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
-      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
+      val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
       val entryState = programResult(analyzed, methodDeclaration.body).entryState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
@@ -727,11 +731,22 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
 
-    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement, cfg: SampleCfg): CfgResult[S] = {
+      val ident = findMethod(current).name
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(cfg, bottom(cfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
+    }
 
-    lookup((for (method <- program.methods) yield {
-      method.body -> programResult.getResult(method.name)
-    }).toMap)
+    lookup
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
