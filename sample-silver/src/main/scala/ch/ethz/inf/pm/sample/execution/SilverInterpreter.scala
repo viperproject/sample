@@ -300,7 +300,6 @@ trait SilverForwardInterpreter[S <: State[S]]
 
   protected def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Left(e) if current.pos.index == 0 => cfgResult.getStates(e.source).last
-    case Right(DummyEdge(st: S)) => st
     case _ => cfgResult.preStateAt(current.pos)
   }
 
@@ -399,7 +398,6 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
   def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Left(e: SampleEdge) if current.pos.index == lastIndex(current.pos) => cfgResult.getStates(e.target).head
-    case Right(DummyEdge(st: S)) => st
     case _ => cfgResult.postStateAt(current.pos)
   }
 
