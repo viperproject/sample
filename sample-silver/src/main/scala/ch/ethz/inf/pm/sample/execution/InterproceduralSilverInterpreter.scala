@@ -47,6 +47,15 @@ object InterproceduralSilverInterpreter {
   val ReturnPrefix = "ret_#"
 }
 
+/**
+  * A CallString represents the stack of method calls during the interprocedural analysis.
+  *
+  * Entering a callee will push() on the call-string.
+  * Leaving a callee will pop() on the call-string.
+  *
+  * Using the suffix() method it is possible to shorten a call-string and therefore approximate the analysis result.
+  * see CallString.FullPrecision, CallString.ContextInsensitive and CallString.approximate
+  */
 trait CallString {
   /**
     * Represents the position of the last method call
