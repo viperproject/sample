@@ -466,7 +466,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
       val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
-      val exitState = programResult(analyzed, methodDeclaration.body).exitState()
+      val exitState = programResult(analyzed).exitState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       val resultState = if (canContinue) {
@@ -522,12 +522,13 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
     // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
     // Empty call-strings are not tagged (Untagged)
     //
-    def lookup(current: WorklistElement, cfg: SampleCfg): CfgResult[S] = {
+    def lookup(current: WorklistElement): CfgResult[S] = {
       val ident = findMethod(current).name
+      val currentCfg = cfg(current)
       current match {
         case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
           if (!programResult.getTaggedResults(ident).contains(callString))
-            programResult.setResult(ident, initializeResult(cfg, bottom(cfg)), callString)
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
           programResult.getTaggedResults(ident)(callString)
         case _ => programResult.getResult(ident)
       }
@@ -653,7 +654,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
       val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
-      val entryState = programResult(analyzed, methodDeclaration.body).entryState()
+      val entryState = programResult(analyzed).entryState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       var st = stateInCaller
@@ -735,12 +736,13 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
     // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
     // Empty call-strings are not tagged (Untagged)
     //
-    def lookup(current: WorklistElement, cfg: SampleCfg): CfgResult[S] = {
+    def lookup(current: WorklistElement): CfgResult[S] = {
       val ident = findMethod(current).name
+      val currentCfg = cfg(current)
       current match {
         case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
           if (!programResult.getTaggedResults(ident).contains(callString))
-            programResult.setResult(ident, initializeResult(cfg, bottom(cfg)), callString)
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
           programResult.getTaggedResults(ident)(callString)
         case _ => programResult.getResult(ident)
       }

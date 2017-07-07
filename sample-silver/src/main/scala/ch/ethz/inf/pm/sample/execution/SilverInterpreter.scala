@@ -109,13 +109,11 @@ object SilverInterpreter {
 
   /**
     * The interpreter may have to store CfgResults for multiple Cfgs. During interpretation a map/lookup functions is used
-    * and later depending on the use case this can be converted into either a CfgResult or a ProgramResult. For some
-    * (interprocedural) analyses the CfgResult depends on the current worklist element (e.g. call-string).
-    * That's why the result type is a Function from (WorklistElement, SampleCfg) to CfgResult
+    * and later depending on the use case this can be converted into either a CfgResult or a ProgramResult.
     *
     * @tparam S The type of the states
     */
-  type CfgResultsType[S <: State[S]] = (WorklistElement, SampleCfg) => CfgResult[S]
+  type CfgResultsType[S <: State[S]] = WorklistElement => CfgResult[S]
 }
 
 /**
@@ -144,7 +142,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @return a map from cfg to CfgResult. The "worklist" argument is not necessary in the intraprocedural case
     */
   protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
-    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement) = res(cfg(current))
 
     lookup((for (cfg <- cfgs) yield {
       cfg -> initializeResult(cfg, bottom(cfg))
@@ -173,7 +171,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         var state = bottom(currentCfg)
         // join incoming states.
         for (edge <- edges) {
-          val predecessor = getPredecessorState(cfgResults(current, currentCfg), current, edge)
+          val predecessor = getPredecessorState(cfgResults(current), current, edge)
           // filter state if there is a condition
           val filtered = edge match {
             case Left(ConditionalEdge(condition, _, _, _)) => assumeCondition(condition, predecessor)
@@ -191,16 +189,16 @@ trait SilverForwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(current, currentCfg).preStateAt(current.pos) widening state
+          cfgResults(current).preStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(current, currentCfg).getStates(current.pos.block)
+      val oldStates = cfgResults(current).getStates(current.pos.block)
       val numToSkip = current.pos.index
-      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(current, currentCfg).preStateAt(current.pos)
+      val oldEntry = if (oldStates.isEmpty) bottom(currentCfg) else cfgResults(current).preStateAt(current.pos)
       var canContinueBlock = true
       if (!(entry lessEqual oldEntry) || current.forceReinterpretStmt) {
         // execute block
@@ -260,7 +258,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         } else {
           Nil
         }
-        cfgResults(current, currentCfg).setStates(current.pos.block, states.toList ++ gapFiller)
+        cfgResults(current).setStates(current.pos.block, states.toList ++ gapFiller)
         // update worklist and iteration count if the whole block has been executed
         if (canContinueBlock) { // Only enqueue sueccessors if we interpreter the whole block
           worklist.enqueue(currentCfg.successors(current.pos.block).map(b => current.createSuccessorForEnqueue(BlockPosition(b, 0), newForceReinterpretStmt = false)): _*)
@@ -430,7 +428,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         // join outgoing states
         val edges = outEdges(current, cfgResults)
         for (edge <- edges) {
-          val successor = getSuccessorState(cfgResults(current, currentCfg), current, edge)
+          val successor = getSuccessorState(cfgResults(current), current, edge)
           // handle in and out edges
           val adapted = if (edge.isLeft) edge.left.get.kind match {
             case Kind.In => successor.command(EnterLoopCommand())
@@ -448,14 +446,14 @@ trait SilverBackwardInterpreter[S <: State[S]]
         }
         // widening
         if (edges.size > 1 && iteration > SystemParameters.wideningLimit) {
-          cfgResults(current, currentCfg).postStateAt(current.pos) widening state
+          cfgResults(current).postStateAt(current.pos) widening state
         } else {
           state
         }
       }
 
       // check for termination and execute block
-      val oldStates = cfgResults(current, currentCfg).getStates(current.pos.block)
+      val oldStates = cfgResults(current).getStates(current.pos.block)
       // index is zero-based. When interpreting backwards from the Kth index we have to interpret k+1 statements in the block
       val elemsToTake = current.pos.index + 1
       val oldExit = if (oldStates.isEmpty) bottom(currentCfg) else oldStates.last
@@ -525,7 +523,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         } else {
           Nil
         }
-        cfgResults(current, currentCfg).setStates(current.pos.block, gapFiller ++ states.reverse.toList)
+        cfgResults(current).setStates(current.pos.block, gapFiller ++ states.reverse.toList)
 
         // update worklist and iteration count
         if (canContinueBlock) { // Only enqueue successors if we interpreter the whole block
@@ -550,7 +548,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     * @return a map from cfg to CfgResult. The "worklist" argument is not necessary in the intraprocedural case
     */
   protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
-    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement) = res(cfg(current))
 
     lookup((for (cfg <- cfgs) yield {
       cfg -> initializeResult(cfg, bottom(cfg))
@@ -630,7 +628,7 @@ case class FinalResultForwardInterpreter[S <: State[S]](cfg: SampleCfg, initial:
     val result = execute(Seq(cfg))
     // the intraprocedural case actually does not use the first argument (WorklistElement)
     // We'll pass a valid worklist element anyway
-    result(SimpleWorklistElement(BlockPosition(cfg.entry, 0), forceReinterpretStmt = false), cfg)
+    result(SimpleWorklistElement(BlockPosition(cfg.entry, 0), forceReinterpretStmt = false))
   }
 }
 
@@ -658,6 +656,6 @@ case class FinalResultBackwardInterpreter[S <: State[S]](cfg: SampleCfg, initial
     val result = execute(Seq(cfg))
     // the intraprocedural case actually does not use the first argument (WorklistElement)
     // We'll pass a valid worklist element anyway
-    result(SimpleWorklistElement(BlockPosition(cfg.exit.get, lastIndex(cfg.exit.get)), forceReinterpretStmt = false), cfg)
+    result(SimpleWorklistElement(BlockPosition(cfg.exit.get, lastIndex(cfg.exit.get)), forceReinterpretStmt = false))
   }
 }
