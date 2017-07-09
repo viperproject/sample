@@ -1,0 +1,15 @@
+method main(i: Int) {
+    var j: Int
+    var k: Int
+
+    j := increment(i)
+    k := increment(j)
+
+    assert j == i + 1
+    assert k == i + 2
+}
+
+method increment(i: Int) returns (r: Int)
+{
+    r := i + 1
+}

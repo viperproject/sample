@@ -1,0 +1,34 @@
+method main(n: Int)
+{
+    var i: Int
+    var j: Int
+    var k: Int
+
+    i := is_even(4)
+    j := is_odd(4)
+    // k := is_even(n)
+
+    assert i == 1
+    assert j == 0
+    // assert 0 <= k && k <= 1
+}
+
+method is_even(i: Int) returns (r: Int)
+    requires 0 <= i
+{
+    if (i == 0) {
+        r := 1
+    } else {
+        r := is_odd(i - 1)
+    }
+}
+
+method is_odd(i: Int) returns (r: Int)
+    requires 0 <= i
+{
+    if (i == 0) {
+        r := 0
+    } else {
+        r := is_even(i - 1)
+    }
+}
