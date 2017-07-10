@@ -1,0 +1,17 @@
+method main(i: Int)
+    requires 0 <= i && i <= 10
+{
+    var j: Int
+    var k: Int
+
+    j := increment(i)
+    k := increment(j)
+
+    assert 1 <= j && j <= 11
+    assert 2 <= k && k <= 12
+}
+
+method increment(i: Int) returns (r: Int)
+{
+    r := i + 1
+}

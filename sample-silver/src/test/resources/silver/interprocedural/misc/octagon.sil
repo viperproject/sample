@@ -1,0 +1,50 @@
+method main(n: Int) {
+    var i: Int
+    var j: Int
+
+    i := negate(5)
+    i := triple(i)
+
+    j := increment(n)
+    j := decrement(j)
+    j := decrement(j)
+
+    assert i == -15
+    assert j == n - 1
+}
+
+method add(a: Int, b: Int) returns (r: Int)
+{
+    r := a + b
+}
+
+method subtract(a: Int, b: Int) returns (r: Int)
+{
+    r := add(a, -b)
+}
+
+method increment(a: Int) returns (r: Int)
+{
+    r := add(a, 1)
+}
+
+method decrement(a: Int) returns (r: Int)
+{
+    r := subtract(a, 1)
+}
+
+method double(a: Int) returns (r: Int)
+{
+    r := add(a, a)
+}
+
+method triple(a: Int) returns (r: Int)
+{
+    r := double(a)
+    r := add(r, a)
+}
+
+method negate(a: Int) returns (r: Int)
+{
+    r := subtract(0, a)
+}

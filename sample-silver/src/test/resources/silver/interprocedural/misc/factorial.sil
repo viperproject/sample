@@ -1,0 +1,21 @@
+method main(i: Int)
+{
+    var j: Int
+    var k: Int
+
+    j := factorial(4)
+    k := factorial(i)
+
+    assert j == 24
+    assert 1 <= k
+}
+
+method factorial(i: Int) returns (r: Int)
+{
+    if (i == 0) {
+        r := 1
+    } else {
+        r := factorial(i - 1)
+        r := r * i
+    }
+}
