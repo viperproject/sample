@@ -1,9 +1,10 @@
-method foo(a: Int) returns (r: Int) {
+method foo(n: Int)
+{
+    var i: Int := 0
+    var j: Int := 10
 
-   var t: Int
-
-   t := a
-
-   r := a + t
-
+    while (i < n) {
+        i := i + 1
+        j := j - 1
+    }
 }
