@@ -458,8 +458,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       methodTransferStates(callString) = calleeEntryState
       val callStringInCallee = callString.suffix(CallStringLength)
       if (!(calleeEntryState lessEqual old)) {
-      worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
-      //}
+        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
+      }
 
       //
       // if callee has been analyzed, merge results back into our state
