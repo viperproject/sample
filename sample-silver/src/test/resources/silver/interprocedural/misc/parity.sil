@@ -6,11 +6,11 @@ method main(n: Int)
 
     i := is_even(4)
     j := is_odd(4)
-    // k := is_even(n)
+    k := is_even(n)
 
     assert i == 1
     assert j == 0
-    // assert 0 <= k && k <= 1
+    assert 0 <= k && k <= 1
 }
 
 method is_even(i: Int) returns (r: Int)
