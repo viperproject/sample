@@ -13,4 +13,6 @@ apron.sbt
 
 # Folder with temporary files created by Silicon
 tmp/
+
 docker.sh
+sample-silver/src/test/resources/silver/exampleX.sil
