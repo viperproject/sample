@@ -1,9 +1,27 @@
-method foo(a: Int) returns (r: Int) {
+//
+// source http://pop-art.inrialpes.fr/interproc/interproc_examples/ackerman.txt
+//
+method ack(x: Int, y: Int) returns (res: Int)
+    requires x >= 0 && y >= 0
+    {
+    var t : Int
+    var t1 : Int
+    if (x<=0) {
+        res := y + 1;
+    } else {
+        if (y<=0) {
+            t1 := x-1;
+            t := 1;
+            res := ack(t1, t);
+        } else {
+            t1 := y-1;
+            t := ack(x, t1);
+            t1 := x-1;
+            res := ack(t1, t);
+        }
+    }
+}
 
-   var t: Int
-
-   t := a
-
-   r := a + t
-
+method main(a: Int, b: Int) returns(r: Int) {
+    r := ack(3, 7)
 }

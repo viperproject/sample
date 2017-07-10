@@ -408,5 +408,5 @@ object IntegerOctagonAnalysis
   */
 object InterproceduralIntegerOctagonAnalysis
   extends InterproceduralNumericalAnalysisRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
-  override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerOctagonAnalysisEntryState)
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerOctagonAnalysisEntryState, Some(3))
 }
