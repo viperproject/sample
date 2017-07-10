@@ -305,13 +305,8 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
     // extend methods
     val extendedMethods = program.methods.map { method =>
       val identifier = SilverIdentifier(method.name)
-      //TODO @flurin this is a hack. Need to come up with something useful here (pass all results to extendMethod?)
-      val result = if (results.getTaggedResults(identifier).size > 1) results.getTaggedResults(identifier).filter(p => p._1 match {
-        case CfgResultTag.Untagged => false
-        case _ => true
-      }).head._2
-      else results.getResult(identifier)
-      extendMethod(method, result)
+      val resultsToWorkWith = results.getTaggedResults(identifier).map(_._2)
+      extendMethod(method, resultsToWorkWith.head) //TODO @flurin use all results not juts the first
     }
 
     // return extended program
