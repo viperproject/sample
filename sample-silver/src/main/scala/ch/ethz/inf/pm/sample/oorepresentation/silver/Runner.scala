@@ -19,11 +19,12 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
-import viper.silver.ast.Program
+import viper.silver.ast.{Exp, Program}
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
 
+import scala.collection.AbstractSet
 import scala.collection.JavaConverters._
 
 //import viper.silicon.Silicon
@@ -294,6 +295,10 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   */
 trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   extends SilverInferenceRunner[T, S] with InterproceduralSilverAnalysisRunner[S] {
+
+  // TODO @flurin kinda hacky, keep the list of all CfgResults for the currently processed method
+  var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
+
   /**
     * Extends the given program using the given results of the analysis.
     *
@@ -305,8 +310,8 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
     // extend methods
     val extendedMethods = program.methods.map { method =>
       val identifier = SilverIdentifier(method.name)
-      val resultsToWorkWith = results.getTaggedResults(identifier).map(_._2)
-      extendMethod(method, resultsToWorkWith.head) //TODO @flurin use all results not juts the first
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      extendMethod(method, resultsToWorkWith.head) //TODO @flurin
     }
 
     // return extended program

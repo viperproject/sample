@@ -42,7 +42,20 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
   * @author Flurin Rindisbacher
   */
 trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
-  extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S]
+  extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S] {
+
+  override def preconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    val inferred = resultsToWorkWith.map(_.preStateAt(position)).reduce(_ lub _).specifications
+    val converted = inferred.map(DefaultSampleConverter.convert)
+    existing ++ converted.toSeq
+  }
+
+  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    val inferred = resultsToWorkWith.map(_.preStateAt(position)).reduce(_ lub _).specifications
+    val converted = inferred.map(DefaultSampleConverter.convert)
+    existing ++ converted.toSeq
+  }
+}
 
 /**
   * An inference based on the integer octagon analysis.
