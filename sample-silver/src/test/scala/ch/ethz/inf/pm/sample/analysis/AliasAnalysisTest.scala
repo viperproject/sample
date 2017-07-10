@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.analysis
 
-import java.io.File
+import java.nio.file.Paths
 
 import ch.ethz.inf.pm.sample.execution.{CfgResult, ProgramResult}
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
@@ -19,7 +19,7 @@ import org.scalatest.FunSuite
 class AliasAnalysisTest extends FunSuite {
   type S = SimpleAliasAnalysisState
 
-  val directory = "sample-silver/src/test/resources/silver/alias_analysis/"
+  val directory = "silver/alias_analysis/"
 
   test("issue_87") {
     val result = analyze("issue_87", "foo")
@@ -36,8 +36,9 @@ class AliasAnalysisTest extends FunSuite {
   }
 
   def analyze(filename: String): ProgramResult[S] = {
-    val file = new File(directory + filename + ".sil")
-    val path = file.toPath
+    val resource = getClass.getClassLoader.getResource(directory + filename + ".sil")
+    assert(resource != null, s"File $directory$filename.sil not found")
+    val path = Paths.get(resource.toURI)
     val compilable = Compilable.Path(path)
     AliasAnalysis.run(compilable)
   }
