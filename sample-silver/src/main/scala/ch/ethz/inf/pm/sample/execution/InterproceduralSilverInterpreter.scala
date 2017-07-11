@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.execution
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
@@ -122,6 +123,11 @@ object CallString {
     * ContextInsensitive sets the call-string length to 0
     */
   val ContextInsensitive: Option[Int] = Some(0)
+
+  /**
+    * The default (approximate) length controlled by the global system parameter
+    */
+  val DefaultLength: Option[Int] = Some(SystemParameters.callStringLength)
 
   /**
     * Returns a CallStringLength of length k
@@ -503,7 +509,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
                                                                         override val callsInProgram: CallGraphMap,
-                                                                        override val CallStringLength: Option[Int] = CallString.FullPrecision)
+                                                                        override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -712,7 +718,7 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
                                                                          override val callsInProgram: CallGraphMap,
-                                                                         override val CallStringLength: Option[Int] = CallString.FullPrecision)
+                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //
