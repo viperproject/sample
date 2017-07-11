@@ -393,7 +393,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
+  override protected def onExitBlockExecuted(current: WorklistElement): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
@@ -422,7 +422,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
@@ -489,7 +489,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       logger.trace(resultState.toString)
 
       (resultState, canContinue)
-    case _ => super.executeStatement(current, statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, programResult)
   }
 
 }
@@ -609,7 +609,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
@@ -676,7 +676,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
       (resultState, canContinue)
-    case _ => super.executeStatement(current, statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, programResult)
   }
 
 
@@ -684,9 +684,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     * Is called every time the entry block of a CFG was executed
     *
     * @param current  The Block that was interpreted last
-    * @param worklist The interpreters worklist
     */
-  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
+  override protected def onEntryBlockExecuted(current: WorklistElement): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Right(edge: MethodReturnEdge[S]) =>
