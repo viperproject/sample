@@ -44,6 +44,7 @@ object SystemParameters {
 
   /**
     * The maximum length of call-strings for interprocedural analysis
+    * To completely disable bounding the call-string length pass CallString.FullPrecision to the analysis
     */
   var callStringLength: Int = 5
 
