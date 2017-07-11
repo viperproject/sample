@@ -108,8 +108,7 @@ trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWr
   override def +(v: V): T = wrapperFactory(wrapped.+(v))
   override def ++(v: T): T = wrapperFactory(wrapped.++(v.wrapped))
   override def contains(v: V):Boolean = wrapped.contains(v)
-  override def toSet(universe: Set[V]):Set[V] = wrapped.toSet(universe)
-  override def toSetOrFail:Set[V] = wrapped.toSetOrFail
+  override def toSet:Set[V] = wrapped.toSet
   override def map[B](f: V => B) = wrapped.map(f)
 }
 

@@ -334,7 +334,7 @@ object FindCloud {
     }
 
     def visitExpr(expr: Expression) {
-      val x = retState.toSet(Set.empty).find {
+      val x = retState.toSet.find {
         _._1 == expr
       }
       if (x.isDefined) {

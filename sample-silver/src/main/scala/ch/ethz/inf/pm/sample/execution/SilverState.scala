@@ -200,13 +200,13 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
       (targetVar, exp)
     }
-    st = st.ids.toSetOrFail // let's remove all non temporary variables
+    st = st.ids.toSet // let's remove all non temporary variables
       .filter(id => !(id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables
     val joinedState = returnVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
     // and remove all temporary ret/arg variables
-    joinedState.ids.toSetOrFail
+    joinedState.ids.toSet
       .filter(id => (id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(joinedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
   }
@@ -232,12 +232,12 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalArgVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalArgVar.variable.id), exp)
       (exp, argVar)
     }
-    st = st.ids.toSetOrFail // let's remove all non temporary variables
+    st = st.ids.toSet // let's remove all non temporary variables
       .filter(id => !(id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
     val joinedState = argVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
-    joinedState.ids.toSetOrFail
+    joinedState.ids.toSet
       .filter(id => (id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(joinedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
   }
