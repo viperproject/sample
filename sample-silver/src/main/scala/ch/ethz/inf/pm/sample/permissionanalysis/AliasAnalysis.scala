@@ -1093,8 +1093,7 @@ object AliasGraph {
   * @author Jerome Dohrau
   */
 trait AliasAnalysisState[T <: AliasAnalysisState[T]]
-  extends SimpleState[T]
-    with SilverState[T]
+  extends SilverState[T]
     with StateWithRefiningAnalysisStubs[T]
     with LazyLogging {
   this: T =>
