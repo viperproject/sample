@@ -88,7 +88,7 @@ case class CallString(callStack: List[ProgramPoint] = Nil) {
     *
     * @return
     */
-  def pop: CallString = copy(callStack = callStack.tail.tail)
+  def pop: CallString = copy(callStack = callStack.drop(2)) // drop the current method and the caller location
 
   /**
     * Grow the call-string according to the given methodCall
