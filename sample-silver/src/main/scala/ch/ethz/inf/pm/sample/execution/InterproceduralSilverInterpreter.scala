@@ -244,7 +244,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         tmpVariableState = tmpVariableState.createVariable(exp, param.typ, DummyProgramPoint)
         tmpVariableState = tmpVariableState.assignVariable(exp, param)
       }
-      tmpVariableState = tmpVariableState.ids.toSetOrFail // let's remove them
+      tmpVariableState = tmpVariableState.ids.toSet // let's remove them
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(tmpVariableState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -388,7 +388,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         currentState = currentState.createVariable(exp, param.typ, DummyProgramPoint)
         currentState = currentState.assignVariable(param, exp)
       }
-      val tmpVariableState = currentState.ids.toSetOrFail // let's remove them
+      val tmpVariableState = currentState.ids.toSet // let's remove them
         .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -405,7 +405,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 
       // current state now holds the previous state with evaluated assignments of the targets
       // we can safely remove arg_ now
-      currentState = currentState.ids.toSetOrFail
+      currentState = currentState.ids.toSet
         .filter(_.getName.startsWith(ReturnPrefix))
         .foldLeft(currentState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 

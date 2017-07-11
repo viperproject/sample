@@ -200,7 +200,7 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
       (targetVar, exp)
     }
-    st = st.ids.toSetOrFail // let's remove all non temporary-ret-variables
+    st = st.ids.toSet // let's remove all non temporary-ret-variables
       .filter(id => !id.getName.startsWith(ReturnPrefix))
       .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret variables
@@ -230,7 +230,7 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalArgVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalArgVar.variable.id), exp)
       (exp, argVar)
     }
-    st = st.ids.toSetOrFail // let's remove all non ret_# variables
+    st = st.ids.toSet // let's remove all non ret_# variables
       .filter(id => ! id.getName.startsWith(ArgumentPrefix))
       .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables

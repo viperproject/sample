@@ -427,24 +427,12 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     */
   def contains(v: V): Boolean
 
-  /** Converts a set domain into a set. For that, we have to know the universe,
-    * so that we can represent top.
-    *
-    * Note that sometimes, the result of this
-    * function can be very large (e.g. all possible identifiers), so
-    * its use is generally not advised
-    *
-    * @param universe All possible values of V
-    * @return A representation of this domain as a set
-    */
-  def toSet(universe:Set[V]):Set[V]
-
   /** Converts a set domain into a set. Here, we assume that the domain element is
     * not top. If the domain element is top, this will fail.
     *
     * @return A representation of this domain as a set
     */
-  def toSetOrFail:Set[V]
+  def toSet: Set[V]
 
   /** Converts a set domain into a set. Here, we assume that the domain element is
     * not top. If the domain element is top, this will fail.
@@ -485,8 +473,7 @@ object SetDomain {
     def +(v: V)    = this
     def ++(v: T): T = this
     def contains(v: V) = true
-    def toSet(universe:Set[V]) = universe
-    def toSetOrFail = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
+    def toSet = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
     def map[B](f: V => B) = SetDomain.Default.Top[B]()
 
   }
@@ -501,8 +488,7 @@ object SetDomain {
     def +(v: V) =    factory(Set(v))
     def ++(v: T): T = v
     def contains(v: V) = false
-    def toSet(universe:Set[V]) = Set.empty
-    def toSetOrFail = Set.empty
+    def toSet = Set.empty
     def map[B](f: V => B) = SetDomain.Default.Bottom[B]()
 
   }
@@ -541,8 +527,7 @@ object SetDomain {
     def lubInner(other: I) = factory(value ++ other.value)
 
     def lessEqualInner(other: I) =  value subsetOf other.value
-    def toSet(universe:Set[V]) =    value
-    def toSetOrFail =               value
+    def toSet =               value
     def map[B](f: V => B) =         SetDomain.Default.Inner[B]( value.map(f) )
 
     override def toString = ToStringUtilities.setToString(value)
