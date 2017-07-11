@@ -318,6 +318,8 @@ trait InterprocHelpers[S <: State[S]] {
       // mark the result as available
       analysisResultReady += ((callString, cfg))
     case _ =>
+      // If the current worklist element is not tagged with a call-string, then we're not in a callee
+      // and there's no caller to enqueue. This is the case when we process the exit block of the main method.
   }
 
   /**
