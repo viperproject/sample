@@ -55,15 +55,25 @@ object InterproceduralSilverInterpreter {
   * Leaving a callee will pop() on the call-string.
   *
   * Using the suffix() method it is possible to shorten a call-string and therefore approximate the analysis result.
-  * see CallString.FullPrecision, CallString.ContextInsensitive and CallString.approximate
+  *
+  * The default implementation grows the call-string by two elements for every method call. The method that was called, and the location
+  * that called the method. Due to this, the actual implementation works with a call-string list double the size
+  * of CallStringLength. Calling suffix(k=2) can internally work with a callStack of size <= 4.
+  *
+  * @see CallString.FullPrecision
+  * @see CallString.ContextInsensitive
+  * @see CallString.approximate
+  * @see CallString.Empty
+  * @see CallString.apply
+  *
   */
-trait CallString {
+case class CallString(callStack: List[ProgramPoint] = Nil) {
   /**
     * Represents the position of the last method call
     *
     * @return
     */
-  def lastCaller: ProgramPoint
+  def lastCaller: ProgramPoint = callStack.tail.head
 
   /**
     * Returns the ProgramPoint of the current method that this call-string calls into
@@ -71,14 +81,14 @@ trait CallString {
     *
     * @return
     */
-  def currentMethod: ProgramPoint
+  def currentMethod: ProgramPoint = callStack.head
 
   /**
     * Shrink the call-string. This represents a return from a callee.
     *
     * @return
     */
-  def pop: CallString
+  def pop: CallString = copy(callStack = callStack.tail.tail)
 
   /**
     * Grow the call-string according to the given methodCall
@@ -87,14 +97,14 @@ trait CallString {
     * @param callStmt The MethodCall statement that causes the call-string to grow
     * @return a new call-string that represents this stack of calls
     */
-  def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString
+  def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
 
   /**
     * Denotes that we're inside a called method
     *
     * @return True if call-string relates to a callee
     */
-  def inCallee: Boolean
+  def inCallee: Boolean = callStack.nonEmpty
 
   /**
     * Returns a call-string shortened to the last k calls.
@@ -102,17 +112,20 @@ trait CallString {
     * @param k Max length of the shortened call-string
     * @return The shortened call-string consisting of (at most) k calls.
     */
-  def suffix(k: Option[Int]): CallString
+  def suffix(k: Option[Int]): CallString = k match {
+    case Some(length) => copy(callStack = callStack.take(2 * length))
+    case _ => this
+  }
 }
 
 object CallString {
 
-  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = SimpleCallString(List(callee.programPoint, callStmt.getPC()))
+  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = CallString(List(callee.programPoint, callStmt.getPC()))
 
   /**
     * Represents an empty call-string
     */
-  val Empty: CallString = SimpleCallString(Nil)
+  val Empty: CallString = CallString(Nil)
 
   /**
     * FullPrecision will analyse the whole call-string length
@@ -136,33 +149,6 @@ object CallString {
     * @return
     */
   def approximate(k: Int): Option[Int] = Some(k)
-
-  /**
-    * The default implementation of a call-string
-    * For every method call the call-string grows by two elements. The method that was called, and the location
-    * that called the method. Due to this, the actual implementation works with a call-string list double the size
-    * of CallStringLength. Calling suffix(k=2) can internally work with a callStack of size <= 4.
-    *
-    * @param callStack The stack of method calls in the call-string
-    */
-  private case class SimpleCallString(callStack: List[ProgramPoint] = Nil) extends CallString {
-
-    def lastCaller: ProgramPoint = callStack.tail.head
-
-    def currentMethod: ProgramPoint = callStack.head
-
-    def pop: CallString = copy(callStack = callStack.tail.tail)
-
-    def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
-
-    def inCallee: Boolean = callStack.nonEmpty
-
-    def suffix(k: Option[Int]): CallString = k match {
-      case Some(length) => copy(callStack = callStack.take(2 * length))
-      case _ => this
-    }
-  }
-
 }
 
 /**
@@ -318,8 +304,8 @@ trait InterprocHelpers[S <: State[S]] {
       // mark the result as available
       analysisResultReady += ((callString, cfg))
     case _ =>
-      // If the current worklist element is not tagged with a call-string, then we're not in a callee
-      // and there's no caller to enqueue. This is the case when we process the exit block of the main method.
+    // If the current worklist element is not tagged with a call-string, then we're not in a callee
+    // and there's no caller to enqueue. This is the case when we process the exit block of the main method.
   }
 
   /**
@@ -685,7 +671,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   /**
     * Is called every time the entry block of a CFG was executed
     *
-    * @param current  The Block that was interpreted last
+    * @param current The Block that was interpreted last
     */
   override protected def onEntryBlockExecuted(current: WorklistElement): Unit = enqueueCallers(current, worklist, cfg(current))
 
