@@ -836,8 +836,6 @@ trait Command {
 /**
   * A command issued when two states should be unified/merged.
   *
-  * Assumption: the environments of this and other are disjoint.
-  *
   * @param other The other state that should be merged into the state the command is executed on
   *
   *@author Flurin Rindisbacher

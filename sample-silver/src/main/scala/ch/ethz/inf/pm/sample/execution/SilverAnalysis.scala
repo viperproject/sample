@@ -71,7 +71,7 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
     analyze(method, builder.build(program, method))
 }
 
-case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.FullPrecision)
+case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
     val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, mainMethods, builder, callsInProgram, callStringLength)
@@ -94,7 +94,7 @@ case class SimpleSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryState
     analyze(method, builder.build(program, method))
 }
 
-case class SimpleInterproceduralSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.FullPrecision)
+case class SimpleInterproceduralSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
     val interpreter = FinalResultInterproceduralBackwardInterpreter[S](program, mainMethods, builder, callsInProgram, callStringLength)
