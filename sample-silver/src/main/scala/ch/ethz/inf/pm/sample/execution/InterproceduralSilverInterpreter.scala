@@ -312,20 +312,33 @@ trait InterprocHelpers[S <: State[S]] {
     * Renames the given variables into variables named $newNamePrefix + id where id starts at zero.
     *
     * @param state         The state that should be renamed
-    * @param variables     The Sequence of variables to be renamed (usually methoddeclaration.arguments or returns)
+    * @param variables     The Sequence of variables to be renamed (usually MethodDeclaration.arguments or returns)
     * @param newNamePrefix The prefix for the temporary variables (see ArgumentPrefix ReturnPrefix)
     * @return The renamed state
     */
-  def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = {
-    var id = 0
-    variables.foldLeft(state)((st, v) => {
-      val newName = ExpressionSet(VariableIdentifier(newNamePrefix + id)(v.typ))
-      id += 1
-      val old = ExpressionSet(v.variable.id)
-      st.createVariable(newName, v.typ, DummyProgramPoint)
-        .assignVariable(newName, old)
-        .removeVariable(old)
-    })
+  def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = state match {
+    //TODO instead of checking for octagons this should match all states that use a domain "with MergeDomain"
+    //I didn't get something like "case s: NumericalAnalysisState[S, _] if s.domain.isInstanceOf[MergeDomain[_]] =>" to compile
+    case s: IntegerOctagonAnalysisState =>
+      val replacement: Replacement = new Replacement(isPureRenaming = true)
+      var id = 0
+      for (variable <- variables) {
+        val newName = VariableIdentifier(newNamePrefix + id)(variable.typ)
+        id += 1
+        replacement.value(Set(variable.variable.id)) = Set(newName)
+      }
+      s.copy(domain = s.domain.merge(replacement)).asInstanceOf[S]
+    case _ =>
+      // for non-MergeDomains we add new variables, assign old to new and remove the now "renamed" old variables
+      var id = 0
+      variables.foldLeft(state)((st, v) => {
+        val newName = ExpressionSet(VariableIdentifier(newNamePrefix + id)(v.typ))
+        id += 1
+        val old = ExpressionSet(v.variable.id)
+        st.createVariable(newName, v.typ, DummyProgramPoint)
+          .assignVariable(newName, old)
+          .removeVariable(old)
+      })
   }
 }
 
