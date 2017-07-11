@@ -311,7 +311,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
   private def checkLiveVariableInEntryState(programResult: ProgramResult[SimpleLiveVariableAnalysisState],
                                             method: String, expectedLive: Seq[String]): Unit = {
     val entryState = programResult.getResult(SilverIdentifier(method)).entryState()
-    val liveVariablesActual = entryState.domain.toSetOrFail.map(_.getName)
+    val liveVariablesActual = entryState.domain.toSet.map(_.getName)
 
     liveVariablesActual should contain theSameElementsAs expectedLive
   }

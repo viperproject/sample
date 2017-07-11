@@ -190,7 +190,7 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
   override def specifications: Set[Expression] = {
     val ids = domain.ids
     if (ids.isTop || ids.isBottom) Set()
-    else domain.getConstraints(ids.toSetOrFail)
+    else domain.getConstraints(ids.toSet)
   }
 
   /* ------------------------------------------------------------------------- *

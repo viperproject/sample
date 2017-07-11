@@ -152,7 +152,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
         implicit val pp = DummyProgramPoint
 
         Some(BigOr(
-          (for (c <- constants.toSetOrFail) yield toExpression(id equal c)).toList
+          (for (c <- constants.toSet) yield toExpression(id equal c)).toList
         ))
       } else {
         None
