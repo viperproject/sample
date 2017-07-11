@@ -419,7 +419,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      inputState.ids.toSet.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
@@ -452,7 +452,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
         methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
       }
-      val calleeEntryState = methodCallStateInCaller.ids.toSetOrFail // The entry state should only contain argument_# variables
+      val calleeEntryState = methodCallStateInCaller.ids.toSet // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(methodCallStateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -635,7 +635,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         exp
       }
       // only transfer temporary ret_# variables into the callee. remove everything else
-      val calleeExitState = stateInCaller.ids.toSetOrFail
+      val calleeExitState = stateInCaller.ids.toSet
         .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(stateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -698,7 +698,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), exitContext)
       // assign the methods actual returns to the temporary returns and then remove the temporary variables
       inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
-      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ReturnPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      inputState.ids.toSet.filter(_.getName.startsWith(ReturnPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }
 }
