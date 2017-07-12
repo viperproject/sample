@@ -8,7 +8,6 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
@@ -318,9 +317,7 @@ trait InterprocHelpers[S <: State[S]] {
     * @return The renamed state
     */
   def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = state match {
-    //TODO instead of only matching IntegerOctagons we should match here every domain with the MergeDomain trait
-    // didn't find a way to do that
-    case s: NumericalAnalysisState[S, IntegerOctagons] if s.domain.isInstanceOf[MergeDomain[S]] =>
+    case s: NumericalAnalysisState[S, _] if s.domain.isInstanceOf[MergeDomain[_]] =>
       val replacement: Replacement = new Replacement(isPureRenaming = true)
       var id = 0
       for (variable <- variables) {
@@ -328,7 +325,7 @@ trait InterprocHelpers[S <: State[S]] {
         id += 1
         replacement.value(Set(variable.variable.id)) = Set(newName)
       }
-      s.copy(domain = s.domain.merge(replacement))
+      s.copy(domain = s.domain.merge(replacement)) // the scala compiler accepts this. IntelliJ doesn't?
     case _ =>
       // for non-MergeDomains we add new variables, assign old to new and remove the now "renamed" old variables
       var id = 0
