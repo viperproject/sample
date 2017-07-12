@@ -5,10 +5,9 @@
  */
 package ch.ethz.inf.pm.sample.analysis
 
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerInterval
-import ch.ethz.inf.pm.sample.execution.{CfgResult, ProgramResult}
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyIntegerType}
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
@@ -422,14 +421,16 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
   }
 
   def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
-    // make sure the call-string length limit is high enough for our precise tests
-    val backup = SystemParameters.callStringLength
-    SystemParameters.callStringLength = 20
-    val result = InterproceduralIntegerIntervalAnalysis.run(
+    // For the tests we use our own analysis with full precision (full-length) callstrings.
+    // simply setting SystemParameters.callStringLength for this test is not enough because sbt runs tests in parallel
+    // and some of the tests may then be run with a callStringLength too small.
+    object FullPrecisionIntegerIntervalAnalysis
+      extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
+      override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState, CallString.FullPrecision)
+    }
+    val result = FullPrecisionIntegerIntervalAnalysis.run(
       Compilable.Code("(no name)", s)
     )
-    // restore default call string length for other tests
-    SystemParameters.callStringLength = backup
     result
   }
 }
