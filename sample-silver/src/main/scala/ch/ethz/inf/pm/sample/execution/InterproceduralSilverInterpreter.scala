@@ -462,9 +462,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       val callStringInCallee = callString.suffix(CallStringLength)
-      if (!(calleeEntryState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
-      }
+      worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -645,9 +643,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       val callStringInCallee = callString.suffix(CallStringLength)
-      if (!(calleeExitState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
-      }
+      worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
 
       //
       // if callee has been analyzed, merge results back into our state
