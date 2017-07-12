@@ -42,10 +42,29 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: Identifier]
   * A domain that keeps track of alias information.
   *
   * @tparam T The type of an alias domain element.
+  * @tparam L The type of a location.
   * @tparam I The type of the identifiers used by the domain.
   * @author Jerome Dohrau
   */
-trait AliasDomain[T <: AliasDomain[T, I], I <: Identifier]
+trait AliasDomain[T <: AliasDomain[T, L, I], L, I <: Identifier]
   extends HeapDomain[T, I] {
   this: T =>
+
+  /**
+    * Returns whether the two given locations may alias.
+    *
+    * @param first  The first location.
+    * @param second The second location.
+    * @return True if the two given locations may alias.
+    */
+  def mayAlias(first: L, second: L): Boolean
+
+  /**
+    * Returns whether the two given locations must alias.
+    *
+    * @param first  The first location.
+    * @param second The second location.
+    * @return True if the two given locations must alias.
+    */
+  def mustAlias(first: L, second: L): Boolean
 }
