@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.UndirectedGraph
 
+import scala.collection.mutable
 
 /**
  * A <code>Replacement</code> is a map from sets of identifiers to sets of identifiers.
@@ -38,7 +39,7 @@ import ch.ethz.inf.pm.sample.util.UndirectedGraph
  * @version 0.1
  */
 
-class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]] = new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]](),
+class Replacement(val value: mutable.Map[Set[Identifier], Set[Identifier]] = new mutable.HashMap[Set[Identifier], Set[Identifier]](),
                   val isPureRenaming: Boolean = false,
                   val isPureExpanding: Boolean = false,
                   val isPureRemoving: Boolean = false) {
@@ -463,7 +464,7 @@ object HeapIdSetDomain {
     def top() = MayBe.Top()
     def factory(v:Set[I]) = MayBe.Inner(pp,v)
 
-    def convert(add: I): HeapIdSetDomain[I] = MayBe.Inner(add.pp).+(add)
+    def convert(add: I): HeapIdSetDomain[I] = MayBe.Inner(add.pp, Set(add))
 
     def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.lub(s2)
 
@@ -489,7 +490,7 @@ object HeapIdSetDomain {
     def top() = Definite.Top()
     def factory(v:Set[I]) = Definite.Inner(pp,v)
 
-    def convert(add: I): HeapIdSetDomain[I] = Definite.Inner(add.pp).+(add)
+    def convert(add: I): HeapIdSetDomain[I] = Definite.Inner(add.pp, Set(add))
 
     def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
 

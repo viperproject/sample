@@ -5,6 +5,7 @@
  */
 package ch.ethz.inf.pm.sample.analysis
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerInterval
 import ch.ethz.inf.pm.sample.execution.{CfgResult, ProgramResult}
@@ -421,9 +422,15 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
   }
 
   def run(s: String): ProgramResult[IntegerIntervalAnalysisState] = {
-    InterproceduralIntegerIntervalAnalysis.run(
+    // make sure the call-string length limit is high enough for our precise tests
+    val backup = SystemParameters.callStringLength
+    SystemParameters.callStringLength = 20
+    val result = InterproceduralIntegerIntervalAnalysis.run(
       Compilable.Code("(no name)", s)
     )
+    // restore default call string length for other tests
+    SystemParameters.callStringLength = backup
+    result
   }
 }
 
@@ -451,7 +458,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
   private def checkLiveVariableInEntryState(programResult: ProgramResult[SimpleLiveVariableAnalysisState],
                                             method: String, expectedLive: Seq[String]): Unit = {
     val entryState = programResult.getResult(SilverIdentifier(method)).entryState()
-    val liveVariablesActual = entryState.domain.toSetOrFail.map(_.getName)
+    val liveVariablesActual = entryState.domain.toSet.map(_.getName)
 
     liveVariablesActual should contain theSameElementsAs expectedLive
   }

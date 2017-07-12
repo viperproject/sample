@@ -230,12 +230,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
         val xp = path
         val xt = tree
         result || (xp.length > 1 && (xt.permission() match {
-          case Fractional(_, _, rd) =>
-            val x = rd > 0
-            println(x)
-            //  println(rd)
-            // println(tree)
-            x
+          case Fractional(_, _, rd) => rd > 0
           case _ => false
         }))
     }

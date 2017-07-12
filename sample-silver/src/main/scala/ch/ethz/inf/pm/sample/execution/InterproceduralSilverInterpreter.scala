@@ -6,7 +6,9 @@
 
 package ch.ethz.inf.pm.sample.execution
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
@@ -54,15 +56,25 @@ object InterproceduralSilverInterpreter {
   * Leaving a callee will pop() on the call-string.
   *
   * Using the suffix() method it is possible to shorten a call-string and therefore approximate the analysis result.
-  * see CallString.FullPrecision, CallString.ContextInsensitive and CallString.approximate
+  *
+  * The default implementation grows the call-string by two elements for every method call. The method that was called, and the location
+  * that called the method. Due to this, the actual implementation works with a call-string list double the size
+  * of CallStringLength. Calling suffix(k=2) can internally work with a callStack of size <= 4.
+  *
+  * @see CallString.FullPrecision
+  * @see CallString.ContextInsensitive
+  * @see CallString.approximate
+  * @see CallString.Empty
+  * @see CallString.apply
+  *
   */
-trait CallString extends CfgResultTag {
+case class CallString(callStack: List[ProgramPoint] = Nil) extends CfgResultTag  {
   /**
     * Represents the position of the last method call
     *
     * @return
     */
-  def lastCaller: ProgramPoint
+  def lastCaller: ProgramPoint = callStack.tail.head
 
   /**
     * Returns the ProgramPoint of the current method that this call-string calls into
@@ -70,14 +82,14 @@ trait CallString extends CfgResultTag {
     *
     * @return
     */
-  def currentMethod: ProgramPoint
+  def currentMethod: ProgramPoint = callStack.head
 
   /**
     * Shrink the call-string. This represents a return from a callee.
     *
     * @return
     */
-  def pop: CallString
+  def pop: CallString = copy(callStack = callStack.drop(2)) // drop the current method and the caller location
 
   /**
     * Grow the call-string according to the given methodCall
@@ -86,14 +98,14 @@ trait CallString extends CfgResultTag {
     * @param callStmt The MethodCall statement that causes the call-string to grow
     * @return a new call-string that represents this stack of calls
     */
-  def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString
+  def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
 
   /**
     * Denotes that we're inside a called method
     *
     * @return True if call-string relates to a callee
     */
-  def inCallee: Boolean
+  def inCallee: Boolean = callStack.nonEmpty
 
   /**
     * Returns a call-string shortened to the last k calls.
@@ -101,17 +113,20 @@ trait CallString extends CfgResultTag {
     * @param k Max length of the shortened call-string
     * @return The shortened call-string consisting of (at most) k calls.
     */
-  def suffix(k: Option[Int]): CallString
+  def suffix(k: Option[Int]): CallString = k match {
+    case Some(length) => copy(callStack = callStack.take(2 * length))
+    case _ => this
+  }
 }
 
 object CallString {
 
-  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = SimpleCallString(List(callee.programPoint, callStmt.getPC()))
+  def apply(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = CallString(List(callee.programPoint, callStmt.getPC()))
 
   /**
     * Represents an empty call-string
     */
-  val Empty: CallString = SimpleCallString(Nil)
+  val Empty: CallString = CallString(Nil)
 
   /**
     * FullPrecision will analyse the whole call-string length
@@ -124,39 +139,17 @@ object CallString {
   val ContextInsensitive: Option[Int] = Some(0)
 
   /**
+    * The default (approximate) length controlled by the global system parameter
+    */
+  val DefaultLength: Option[Int] = Some(SystemParameters.callStringLength)
+
+  /**
     * Returns a CallStringLength of length k
     *
     * @param k The call-string length to be used
     * @return
     */
   def approximate(k: Int): Option[Int] = Some(k)
-
-  /**
-    * The default implementation of a call-string
-    * For every method call the call-string grows by two elements. The method that was called, and the location
-    * that called the method. Due to this, the actual implementation works with a call-string list double the size
-    * of CallStringLength. Calling suffix(k=2) can internally work with a callStack of size <= 4.
-    *
-    * @param callStack The stack of method calls in the call-string
-    */
-  private case class SimpleCallString(callStack: List[ProgramPoint] = Nil) extends CallString {
-
-    def lastCaller: ProgramPoint = callStack.tail.head
-
-    def currentMethod: ProgramPoint = callStack.head
-
-    def pop: CallString = copy(callStack = callStack.tail.tail)
-
-    def push(callee: SilverMethodDeclaration, callStmt: MethodCall): CallString = copy(callStack = callee.programPoint :: callStmt.getPC() :: callStack)
-
-    def inCallee: Boolean = callStack.nonEmpty
-
-    def suffix(k: Option[Int]): CallString = k match {
-      case Some(length) => copy(callStack = callStack.take(2 * length))
-      case _ => this
-    }
-  }
-
 }
 
 /**
@@ -312,26 +305,41 @@ trait InterprocHelpers[S <: State[S]] {
       // mark the result as available
       analysisResultReady += ((callString, cfg))
     case _ =>
+    // If the current worklist element is not tagged with a call-string, then we're not in a callee
+    // and there's no caller to enqueue. This is the case when we process the exit block of the main method.
   }
 
   /**
     * Renames the given variables into variables named $newNamePrefix + id where id starts at zero.
     *
     * @param state         The state that should be renamed
-    * @param variables     The Sequence of variables to be renamed (usually methoddeclaration.arguments or returns)
+    * @param variables     The Sequence of variables to be renamed (usually MethodDeclaration.arguments or returns)
     * @param newNamePrefix The prefix for the temporary variables (see ArgumentPrefix ReturnPrefix)
     * @return The renamed state
     */
-  def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = {
-    var id = 0
-    variables.foldLeft(state)((st, v) => {
-      val newName = ExpressionSet(VariableIdentifier(newNamePrefix + id)(v.typ))
-      id += 1
-      val old = ExpressionSet(v.variable.id)
-      st.createVariable(newName, v.typ, DummyProgramPoint)
-        .assignVariable(newName, old)
-        .removeVariable(old)
-    })
+  def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = state match {
+    //TODO instead of only matching IntegerOctagons we should match here every domain with the MergeDomain trait
+    // didn't find a way to do that
+    case s: NumericalAnalysisState[S, IntegerOctagons] if s.domain.isInstanceOf[MergeDomain[S]] =>
+      val replacement: Replacement = new Replacement(isPureRenaming = true)
+      var id = 0
+      for (variable <- variables) {
+        val newName = VariableIdentifier(newNamePrefix + id)(variable.typ)
+        id += 1
+        replacement.value(Set(variable.variable.id)) = Set(newName)
+      }
+      s.copy(domain = s.domain.merge(replacement))
+    case _ =>
+      // for non-MergeDomains we add new variables, assign old to new and remove the now "renamed" old variables
+      var id = 0
+      variables.foldLeft(state)((st, v) => {
+        val newName = ExpressionSet(VariableIdentifier(newNamePrefix + id)(v.typ))
+        id += 1
+        val old = ExpressionSet(v.variable.id)
+        st.createVariable(newName, v.typ, DummyProgramPoint)
+          .assignVariable(newName, old)
+          .removeVariable(old)
+      })
   }
 }
 
@@ -387,7 +395,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
+  override protected def onExitBlockExecuted(current: WorklistElement): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def initial(cfg: SampleCfg): S = {
     builder.build(program, findMethod(BlockPosition(cfg.entry, 0)))
@@ -412,11 +420,11 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), callingContext)
       // assign (temporary) arguments to parameters
       inputState = methodDeclaration.arguments.zip(tmpArguments).foldLeft(inputState)((st, tuple) => st.assignVariable(ExpressionSet(tuple._1.variable.id), tuple._2))
-      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      inputState.ids.toSet.filter(_.getName.startsWith(ArgumentPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
@@ -445,7 +453,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
         methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
       }
-      val calleeEntryState = methodCallStateInCaller.ids.toSetOrFail // The entry state should only contain argument_# variables
+      val calleeEntryState = methodCallStateInCaller.ids.toSet // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(methodCallStateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -483,7 +491,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       logger.trace(resultState.toString)
 
       (resultState, canContinue)
-    case _ => super.executeStatement(current, statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, programResult)
   }
 
 }
@@ -503,7 +511,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
                                                                         override val callsInProgram: CallGraphMap,
-                                                                        override val CallStringLength: Option[Int] = CallString.FullPrecision)
+                                                                        override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -608,7 +616,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
     }
   }
 
-  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
@@ -633,7 +641,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         exp
       }
       // only transfer temporary ret_# variables into the callee. remove everything else
-      val calleeExitState = stateInCaller.ids.toSetOrFail
+      val calleeExitState = stateInCaller.ids.toSet
         .filter(id => !id.getName.startsWith(ReturnPrefix))
         .foldLeft(stateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
 
@@ -675,17 +683,16 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       logger.trace(statement.toString)
       logger.trace(resultState.toString)
       (resultState, canContinue)
-    case _ => super.executeStatement(current, statement, state, worklist, programResult)
+    case _ => super.executeStatement(current, statement, state, programResult)
   }
 
 
   /**
     * Is called every time the entry block of a CFG was executed
     *
-    * @param current  The Block that was interpreted last
-    * @param worklist The interpreters worklist
+    * @param current The Block that was interpreted last
     */
-  override protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = enqueueCallers(current, worklist, cfg(current))
+  override protected def onEntryBlockExecuted(current: WorklistElement): Unit = enqueueCallers(current, worklist, cfg(current))
 
   override def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Right(edge: MethodReturnEdge[S]) =>
@@ -697,7 +704,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       var inputState = unify(initialForCallee(methodDeclaration.body), exitContext)
       // assign the methods actual returns to the temporary returns and then remove the temporary variables
       inputState = tmpReturns.zip(methodDeclaration.returns).foldLeft(inputState)((st, tuple) => st.assignVariable(tuple._1, ExpressionSet(tuple._2.variable.id)))
-      inputState.ids.toSetOrFail.filter(_.getName.startsWith(ReturnPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
+      inputState.ids.toSet.filter(_.getName.startsWith(ReturnPrefix)).foldLeft(inputState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     case _ => super.getSuccessorState(cfgResult, current, edge)
   }
 }
@@ -717,7 +724,7 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
                                                                          override val callsInProgram: CallGraphMap,
-                                                                         override val CallStringLength: Option[Int] = CallString.FullPrecision)
+                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //

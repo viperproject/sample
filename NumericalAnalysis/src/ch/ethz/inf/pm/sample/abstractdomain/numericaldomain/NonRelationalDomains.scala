@@ -14,12 +14,12 @@ import ch.ethz.inf.pm.sample.property.{DivisionByZero, Property, SingleStatement
 
 
 case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
-                                                                              map: Map[Identifier, N] = Map.empty[Identifier, N],
-                                                                              isBottom: Boolean = false,
-                                                                              isTop: Boolean = false)
+                                                                                   map: Map[Identifier, N] = Map.empty[Identifier, N],
+                                                                                   isBottom: Boolean = false,
+                                                                                   isTop: Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
-  with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
-  with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
+    with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
+    with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
 
   def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
     new BoxedNonRelationalNumericalDomain[N](dom, _value, _isBottom, _isTop)
@@ -75,7 +75,7 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
 
   def evalBoolean(expr: Expression): N = {
     // Implicit conversion from boolean types
-    val mayBeTrue =  if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
+    val mayBeTrue = if (!this.assume(expr).isBottom) dom.evalConstant(1) else dom.bottom()
     val mayBeFalse = if (!this.assume(NegatedBooleanExpression(expr)).isBottom) dom.evalConstant(0) else dom.bottom()
     mayBeTrue.lub(mayBeFalse)
   }
@@ -111,10 +111,10 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     expr match {
 
       // Boolean constants
-      case Constant("true",_,_) => this
-      case Constant("false",_,_) => this.bottom()
-      case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
-      case NegatedBooleanExpression(Constant("false",_,_)) => this
+      case Constant("true", _, _) => this
+      case Constant("false", _, _) => this.bottom()
+      case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false", _, _)) => this
       case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) =>
         if (a == b) this else bottom()
 
@@ -179,18 +179,24 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
               val l: N = this.eval(left)
               val r: N = this.eval(right)
 
-              val (newLeft,newRight) = op match {
-                case ArithmeticOperator.== => (l.glb(r),r.glb(l))
-                case ArithmeticOperator.<= => (l.glb(r.valueLEQ),r.glb(l.valueGreater))
-                case ArithmeticOperator.>= => (l.glb(r.valueGEQ),r.glb(l.valueLess))
-                case ArithmeticOperator.> =>  (l.glb(r.valueGreater),r.glb(l.valueLEQ))
-                case ArithmeticOperator.< =>  (l.glb(r.valueLess),r.glb(l.valueGEQ))
+              val (newLeft, newRight) = op match {
+                case ArithmeticOperator.== => (l.glb(r), r.glb(l))
+                case ArithmeticOperator.<= => (l.glb(r.valueLEQ), r.glb(l.valueGreater))
+                case ArithmeticOperator.>= => (l.glb(r.valueGEQ), r.glb(l.valueLess))
+                case ArithmeticOperator.> => (l.glb(r.valueGreater), r.glb(l.valueLEQ))
+                case ArithmeticOperator.< => (l.glb(r.valueLess), r.glb(l.valueGEQ))
                 case _ => return this
               }
 
               var curState = this
-              left  match { case lId:Identifier => curState = curState.add(lId,newLeft); case _ => () }
-              right match { case rId:Identifier => curState = curState.add(rId,newRight); case _ => () }
+              left match {
+                case lId: Identifier => curState = curState.add(lId, newLeft);
+                case _ => ()
+              }
+              right match {
+                case rId: Identifier => curState = curState.add(rId, newRight);
+                case _ => ()
+              }
               return curState
             case _ => return this
           }
@@ -268,36 +274,36 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
   def divide(rightExpr: N): N
 
   /**
-   * Returns a value representing (an overapproximation of) all values greater or equal than this value
-   */
+    * Returns a value representing (an overapproximation of) all values greater or equal than this value
+    */
   def valueGEQ: N
 
   /**
-   * Returns a value representing (an overapproximation of) all values less or equal than this value
-   */
+    * Returns a value representing (an overapproximation of) all values less or equal than this value
+    */
   def valueLEQ: N
 
   /**
-   * Returns a value representing (an overapproximation of) all values less than this value
-   */
+    * Returns a value representing (an overapproximation of) all values less than this value
+    */
   def valueLess: N
 
   /**
-   * Returns a value representing (an overapproximation of) all values greater than this value
-   */
+    * Returns a value representing (an overapproximation of) all values greater than this value
+    */
   def valueGreater: N
 
   /**
-   * Returns true if value ranges overlap
-   */
+    * Returns true if value ranges overlap
+    */
   def overlapsWith(value: N): Boolean
 
   /**
-   * Encodes non-relational information as a constraint
+    * Encodes non-relational information as a constraint
     *
     * @param id the identifier this domain restricts
-   * @return a constraint, for example 1<id<5 for the interval (1,5), None in case of top or bottom
-   */
+    * @return a constraint, for example 1<id<5 for the interval (1,5), None in case of top or bottom
+    */
   def asConstraint(id: Identifier): Option[Expression]
 
   def getPossibleConstants: SetDomain.Default[Constant]
@@ -308,17 +314,23 @@ object NonRelationalNumericalDomain {
 
   trait Bottom[S <: NonRelationalNumericalDomain[S]]
     extends NonRelationalNumericalDomain[S]
-    with Lattice.Bottom[S] {
-    this:S =>
+      with Lattice.Bottom[S] {
+    this: S =>
 
     def multiply(rightExpr: S) = this
+
     def divide(rightExpr: S) = this
+
     def subtract(rightExpr: S) = this
+
     def sum(rightExpr: S) = this
 
     def valueGEQ: S = this
+
     def valueLEQ: S = this
+
     def valueLess: S = this
+
     def valueGreater: S = this
 
     def overlapsWith(value: S) = false
@@ -331,20 +343,26 @@ object NonRelationalNumericalDomain {
 
   trait Top[S <: NonRelationalNumericalDomain[S]]
     extends NonRelationalNumericalDomain[S]
-    with Lattice.Top[S] {
-    this:S =>
+      with Lattice.Top[S] {
+    this: S =>
 
     /** Gives the element representing exactly Zero */
-    def zero:S
+    def zero: S
 
     def multiply(rightExpr: S) = if (rightExpr == zero) zero else this
+
     def divide(rightExpr: S) = if (rightExpr == zero) bottom() else this
+
     def subtract(rightExpr: S) = this
+
     def sum(rightExpr: S) = this
 
     def valueGEQ: S = this
+
     def valueLEQ: S = this
+
     def valueLess: S = this
+
     def valueGreater: S = this
 
     def overlapsWith(value: S) = true
@@ -355,15 +373,14 @@ object NonRelationalNumericalDomain {
 
   }
 
-  trait Inner[S <: NonRelationalNumericalDomain[S], I <: Inner[S,I]]
+  trait Inner[S <: NonRelationalNumericalDomain[S], I <: Inner[S, I]]
     extends NonRelationalNumericalDomain[S]
-    with Lattice.Inner[S,I] {
-    this:S =>
+      with Lattice.Inner[S, I] {
+    this: S =>
 
   }
 
 }
-
 
 
 sealed trait Sign extends NonRelationalNumericalDomain[Sign] {
@@ -392,17 +409,20 @@ sealed trait Sign extends NonRelationalNumericalDomain[Sign] {
 
 object Sign {
 
-  sealed trait Inner extends Sign with NonRelationalNumericalDomain.Inner[Sign,Inner] {
+  sealed trait Inner extends Sign with NonRelationalNumericalDomain.Inner[Sign, Inner] {
 
     def overlapsWith(other: Sign): Boolean = other match {
       case Bottom => false
       case Top => true
-      case c:Inner => c == this
+      case c: Inner => c == this
     }
 
     def lubInner(other: Inner): Sign = if (other == this) this else Top
+
     def glbInner(other: Inner): Sign = if (other == this) this else Top
+
     def wideningInner(other: Inner): Sign = lub(other)
+
     def lessEqualInner(other: Inner): Boolean = other == this
 
   }
@@ -440,9 +460,13 @@ object Sign {
     }
 
     def valueGEQ = Plus
+
     def valueLEQ = Top
+
     def valueLess = Top
+
     def valueGreater = Plus
+
     override def toString = "+"
 
     override def asConstraint(id: Identifier): Option[Expression] =
@@ -480,9 +504,13 @@ object Sign {
     }
 
     def valueGEQ = Top
+
     def valueLEQ = Minus
+
     def valueLess = Minus
+
     def valueGreater = Top
+
     override def toString = "-"
 
     override def asConstraint(id: Identifier): Option[Expression] =
@@ -514,9 +542,13 @@ object Sign {
     }
 
     def valueGEQ = Top
+
     def valueLEQ = Top
+
     def valueLess = Minus
+
     def valueGreater = Plus
+
     override def toString = "0"
 
     override def asConstraint(id: Identifier): Option[Expression] =
@@ -554,7 +586,7 @@ object IntegerInterval {
 
   case class Inner(left: Int, right: Int)
     extends IntegerInterval
-    with NonRelationalNumericalDomain.Inner[IntegerInterval,Inner] {
+      with NonRelationalNumericalDomain.Inner[IntegerInterval, Inner] {
 
     if (SystemParameters.DEBUG) {
       assert(left <= right)
@@ -562,20 +594,20 @@ object IntegerInterval {
     }
 
     def lubInner(other: Inner) = other match {
-      case Inner(oLeft,oRight) =>
+      case Inner(oLeft, oRight) =>
         factory(Math.min(left, oLeft), Math.max(right, oRight))
     }
 
     def glbInner(other: Inner) = other match {
-      case Inner(oLeft,oRight) =>
+      case Inner(oLeft, oRight) =>
         factory(Math.max(left, oLeft), Math.min(right, oRight))
     }
 
     def wideningInner(other: Inner) = other match {
-      case Inner(oLeft,oRight) =>
+      case Inner(oLeft, oRight) =>
         val l = if (oLeft < left) Int.MinValue else Math.min(left, oLeft)
         val r = if (oRight > right) Int.MaxValue else Math.max(right, oRight)
-        factory(l,r)
+        factory(l, r)
     }
 
     def lessEqualInner(other: Inner): Boolean = other match {
@@ -621,15 +653,9 @@ object IntegerInterval {
     }
 
     private def managedMultiply(a: Int, b: Int): Int = {
-      if (a == 0 || b == 0) return 0
-      var result: Int = a * b
-      if (result / a != b) {
-        //Overflow
-        if (a >= 0 && b >= 0) result = Int.MaxValue
-        else if (a <= 0 && b <= 0) result = Int.MaxValue
-        else result = Int.MinValue
-      }
-      result
+      val result = a.toLong * b.toLong
+      if (result.toInt == result) result.toInt
+      else if (result > 0) Int.MaxValue else Int.MinValue
     }
 
     private def max(a: Int, b: Int, c: Int, d: Int): Int = Math.max(Math.max(a, b), Math.max(c, d))
@@ -714,7 +740,9 @@ object IntegerInterval {
 sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval] {
 
   def factory() = DoubleInterval.Top
+
   def top() = DoubleInterval.Top
+
   def bottom() = DoubleInterval.Bottom
 
   def evalConstant(value: Constant) = {
@@ -733,18 +761,28 @@ sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval]
 
 object DoubleInterval {
 
-  val Zero = Inner(0,0)
+  val Zero = Inner(0, 0)
 
   case class Inner(left: Double, right: Double)
     extends DoubleInterval
-    with NonRelationalNumericalDomain.Inner[DoubleInterval,Inner] {
+      with NonRelationalNumericalDomain.Inner[DoubleInterval, Inner] {
 
     if (SystemParameters.DEBUG) {
-      assert {left <= right}
-      assert {!right.isPosInfinity || !left.isNegInfinity}
-      assert {!left.isNaN && !right.isNaN}
-      assert {!right.isNegInfinity}
-      assert {!left.isPosInfinity}
+      assert {
+        left <= right
+      }
+      assert {
+        !right.isPosInfinity || !left.isNegInfinity
+      }
+      assert {
+        !left.isNaN && !right.isNaN
+      }
+      assert {
+        !right.isNegInfinity
+      }
+      assert {
+        !left.isPosInfinity
+      }
     }
 
     def overlapsWith(other: DoubleInterval): Boolean =

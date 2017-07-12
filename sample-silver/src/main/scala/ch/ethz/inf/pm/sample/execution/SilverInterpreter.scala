@@ -30,6 +30,12 @@ import scala.collection.mutable.ListBuffer
   * @author Caterina Urban
   */
 trait SilverInterpreter[S <: State[S]] {
+
+  /**
+    * A worklist for the execution of the analysis. It is assumed to be empty when execute() is called.
+    */
+  protected val worklist: InterpreterWorklist = mutable.Queue()
+
   /**
     * Look up the CFG for the current worklist element. Intraprocedural interpreters can always return the same
     * CFG (there is only one cfg to analyze). Interprocedural interpreters on the other hand need to look up the
@@ -130,10 +136,9 @@ trait SilverForwardInterpreter[S <: State[S]]
   /**
     * Is called every time the exit block of a CFG was executed
     *
-    * @param current  The Block that was interpreted last
-    * @param worklist The interpreters worklist
+    * @param current The Block that was interpreted last
     */
-  protected def onExitBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {}
+  protected def onExitBlockExecuted(current: WorklistElement): Unit = {}
 
   /**
     * Create and initialize all CfgResults for the given cfgs
@@ -155,7 +160,7 @@ trait SilverForwardInterpreter[S <: State[S]]
     val starts = cfgs.map(_.entry).toSet
 
     // prepare data structures
-    val worklist: InterpreterWorklist = mutable.Queue()
+    assert(worklist.isEmpty)
     cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]()
     while (worklist.nonEmpty) {
@@ -209,7 +214,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = entry
             statements.drop(numToSkip).foreach(st => if (canContinueBlock) {
-              val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
+              val (successor, continue) = executeStatement(current, st, predecessor, cfgResults)
               states.append(successor)
               predecessor = successor
               canContinueBlock = continue
@@ -238,7 +243,7 @@ trait SilverForwardInterpreter[S <: State[S]]
             // execute statements
             var predecessor = intermediate
             statements.drop(numToSkip - invariants.size).foreach(st => if (canContinueBlock) {
-              val (successor, continue) = executeStatement(current, st, predecessor, worklist, cfgResults)
+              val (successor, continue) = executeStatement(current, st, predecessor, cfgResults)
               states.append(successor)
               predecessor = successor
               canContinueBlock = continue
@@ -267,7 +272,7 @@ trait SilverForwardInterpreter[S <: State[S]]
         //notify (subclasses) about processed exit blocks
         val exitBlock = currentCfg.exit
         if (exitBlock.isDefined && exitBlock.get == current.pos.block) {
-          onExitBlockExecuted(current, worklist)
+          onExitBlockExecuted(current)
         }
       }
     }
@@ -311,12 +316,11 @@ trait SilverForwardInterpreter[S <: State[S]]
     * @param current       The currently processed element of the worklist
     * @param statement     The statement to execute
     * @param state         The state to execute the statement on
-    * @param worklist      The interpreter's worklist
     * @param programResult The programResult for this analysis
     * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
     *         successor statement can continue or not.
     */
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
     val successor = statement.forwardSemantics(predecessor)
     logger.trace(predecessor.toString)
@@ -391,10 +395,9 @@ trait SilverBackwardInterpreter[S <: State[S]]
   /**
     * Is called every time the entry block of a CFG was executed
     *
-    * @param current  The Block that was interpreted last
-    * @param worklist The interpreters worklist
+    * @param current The Block that was interpreted last
     */
-  protected def onEntryBlockExecuted(current: WorklistElement, worklist: InterpreterWorklist): Unit = {}
+  protected def onEntryBlockExecuted(current: WorklistElement): Unit = {}
 
   def getSuccessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
     case Left(e: SampleEdge) if current.pos.index == lastIndex(current.pos) => cfgResult.getStates(e.target).head
@@ -409,7 +412,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
     val starts = cfgs.flatMap(_.exit).toSet
 
     // prepare data structures
-    val worklist: InterpreterWorklist = mutable.Queue()
+    assert(worklist.isEmpty)
     cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]()
 
@@ -465,7 +468,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // execute statements
             var successor = exit
             statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
-              val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
+              val (predecessor, continue) = executeStatement(current, statement, successor, cfgResults)
               states.append(predecessor)
               successor = predecessor
               canContinueBlock = continue
@@ -492,7 +495,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
             // execute statements
             var successor = exit
             statements.take(elemsToTake).reverse.foreach(statement => if (canContinueBlock) {
-              val (predecessor, continue) = executeStatement(current, statement, successor, worklist, cfgResults)
+              val (predecessor, continue) = executeStatement(current, statement, successor, cfgResults)
               states.append(predecessor)
               successor = predecessor
               canContinueBlock = continue
@@ -530,7 +533,7 @@ trait SilverBackwardInterpreter[S <: State[S]]
         }
         //notify (subclasses) about processed entry blocks
         if (currentCfg.entry == current.pos.block) {
-          onEntryBlockExecuted(current, worklist)
+          onEntryBlockExecuted(current)
         }
       }
     }
@@ -570,12 +573,11 @@ trait SilverBackwardInterpreter[S <: State[S]]
     * @param current       The currently processed element of the worklist
     * @param statement     The statement to execute
     * @param state         The state to execute the statement on
-    * @param worklist      The interpreter's worklist
     * @param programResult The programResult for this analysis
     * @return The new state with the effect of the statement and a boolean telling the caller whether execution of the
     *         predecessor statement can continue or not.
     */
-  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, worklist: InterpreterWorklist, programResult: CfgResultsType[S]): (S, Boolean) = {
+  protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     logger.trace(successor.toString)
