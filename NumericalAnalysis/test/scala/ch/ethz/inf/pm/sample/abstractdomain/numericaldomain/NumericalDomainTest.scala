@@ -79,6 +79,16 @@ class IntegerIntervalTest extends NonRelationalNumericalDomainTest[IntegerInterv
     IntegerInterval.Inner(0, 0)
   )
 
+  test("issue88") {
+    val left = IntegerInterval.Inner(-1, -1)
+    val right = IntegerInterval.Inner(Int.MinValue, 0)
+    val expected = IntegerInterval.Inner(0, Int.MaxValue)
+    val result = left multiply right
+    assert {
+      result equivalent expected
+    }
+  }
+
   test("[10, 20] / [-2, 2] = [-20, 20]") {
     val a = IntegerInterval.Inner(10, 20)
     val b = IntegerInterval.Inner(-2, 2)
