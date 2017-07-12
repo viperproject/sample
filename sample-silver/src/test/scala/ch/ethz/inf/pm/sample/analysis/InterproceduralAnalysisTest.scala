@@ -335,7 +335,7 @@ class ContextSensitiveInterproceduralAnalysisTest extends InterproceduralAnalysi
             } else {
                 k := j
             }
-        } // expected exitState: j -> [-inf, 10], k -> [-inf, 0]
+        } // expected exitState: j -> [0, 0], k -> [0, 0]
       """.stripMargin
     )
     checkVariableInExitState(programResult, "foo", "i", IntegerInterval.Inner(0, 0), "i should be [0, 0]")

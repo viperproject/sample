@@ -325,7 +325,7 @@ trait InterprocHelpers[S <: State[S]] {
         id += 1
         replacement.value(Set(variable.variable.id)) = Set(newName)
       }
-      s.copy(domain = s.domain.merge(replacement)) // the scala compiler accepts this. IntelliJ doesn't?
+      s.copy(domain = s.domain.merge(replacement))
     case _ =>
       // for non-MergeDomains we add new variables, assign old to new and remove the now "renamed" old variables
       var id = 0
