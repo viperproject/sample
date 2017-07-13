@@ -43,6 +43,12 @@ object SystemParameters {
   var wideningLimit: Int = 2
 
   /**
+    * The maximum length of call-strings for interprocedural analysis
+    * To completely disable bounding the call-string length pass CallString.FullPrecision to the analysis
+    */
+  var callStringLength: Int = 5
+
+  /**
    * The semantics of methods defined by hand
    */
   var nativeMethodsSemantics: List[NativeMethodSemantics] = Nil

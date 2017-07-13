@@ -175,7 +175,6 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
     else if (isBottom) "⊥"
     else s"State neither Top nor Bottom. Live variables: $domain."
   }
-
 }
 
 object LiveVariableAnalysisEntryState
@@ -235,6 +234,16 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
   extends LiveVariableAnalysisState[SimpleLiveVariableAnalysisState] {
   override def copy(pp: ProgramPoint, expr: ExpressionSet, domain: IdentifierSet, isTop: Boolean, isBottom: Boolean): SimpleLiveVariableAnalysisState = {
     SimpleLiveVariableAnalysisState(pp, expr, domain, isTop, isBottom)
+  }
+
+  override def command(cmd: Command): SimpleLiveVariableAnalysisState = cmd match {
+    // we can merge two live variable states by taking the lub. if a identifier is live in any of the states
+    // keep it live in the merged state.
+    case UnifyCommand(other) => other match {
+      case o: SimpleLiveVariableAnalysisState => this lub o
+      case _ => super.command(cmd)
+    }
+    case _ => super.command(cmd)
   }
 }
 
