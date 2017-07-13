@@ -837,7 +837,7 @@ trait Command {
   * A command issued when two states should be unified/merged.
   *
   * The result of the merge should contain the joined environment of both states.
-  * Implementors of this command <b>CANNOT</b> assume that the environments are disjoint. But for shared identifiers it
+  * Implementors of this command '''CANNOT''' assume that the environments are disjoint. But for shared identifiers it
   * can be assumed that either the abstract values of the shared identifiers are the same (non-relational domains) or
   * that the constraints including those shared identifiers do not conflict (relational domains).
   *
