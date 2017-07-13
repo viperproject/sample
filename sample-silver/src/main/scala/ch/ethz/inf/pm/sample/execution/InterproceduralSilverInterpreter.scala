@@ -8,7 +8,6 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
@@ -318,9 +317,7 @@ trait InterprocHelpers[S <: State[S]] {
     * @return The renamed state
     */
   def renameToTemporaryVariable(state: S, variables: Seq[VariableDeclaration], newNamePrefix: String): S = state match {
-    //TODO instead of only matching IntegerOctagons we should match here every domain with the MergeDomain trait
-    // didn't find a way to do that
-    case s: NumericalAnalysisState[S, IntegerOctagons] if s.domain.isInstanceOf[MergeDomain[S]] =>
+    case s: NumericalAnalysisState[S, _] if s.domain.isInstanceOf[MergeDomain[_]] =>
       val replacement: Replacement = new Replacement(isPureRenaming = true)
       var id = 0
       for (variable <- variables) {
@@ -465,9 +462,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       val callStringInCallee = callString.suffix(CallStringLength)
-      if (!(calleeEntryState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
-      }
+      worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
 
       //
       // if callee has been analyzed, merge results back into our state
@@ -653,9 +648,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       val callStringInCallee = callString.suffix(CallStringLength)
-      if (!(calleeExitState lessEqual old)) {
-        worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
-      }
+      worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
 
       //
       // if callee has been analyzed, merge results back into our state
