@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, InterproceduralSilverForwardAnalysis, SilverAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, InterproceduralSilverInferenceRunner, SilverInferenceRunner}
-import viper.silver.ast.{Exp, Field}
+import viper.silver.ast.{And, Exp, Field, Or}
 
 /**
   * An inference based on a numerical analysis.
@@ -44,16 +44,27 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S] {
 
+  //
+  // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
+  //
   override def preconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
-    val inferred = resultsToWorkWith.map(_.preStateAt(position)).reduce(_ lub _).specifications
-    val converted = inferred.map(DefaultSampleConverter.convert)
-    existing ++ converted.toSeq
+    // get a set of inferred preconditions for each method-call (call-string)
+    val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications).filter(_.nonEmpty)
+    // represent each set of preconditions as one And()
+    val conjuctionPerCall: Seq[Exp] = inferred.map(_.map(DefaultSampleConverter.convert).reduce((left, right) => And(left, right)()))
+    // Or() alls the possible preconditions
+    if (conjuctionPerCall.nonEmpty) {
+      val additionalPreconditions: Exp = conjuctionPerCall.reduce((left, right) => Or(left, right)())
+      existing :+ additionalPreconditions
+    } else {
+      existing
+    }
   }
 
   override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferred = resultsToWorkWith.map(_.preStateAt(position)).reduce(_ lub _).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
-    existing ++ converted.toSeq
+    existing ++ converted
   }
 }
 
