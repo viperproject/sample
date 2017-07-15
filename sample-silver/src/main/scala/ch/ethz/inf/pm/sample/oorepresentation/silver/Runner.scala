@@ -19,12 +19,11 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
-import viper.silver.ast.{Exp, Program}
+import viper.silver.ast.Program
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
 
-import scala.collection.AbstractSet
 import scala.collection.JavaConverters._
 
 //import viper.silicon.Silicon
@@ -148,10 +147,11 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
     * set(foo, bar) -> set(baz)
     *
-    * @param program The program to be analyzed
+    * @param program     The program to be analyzed
+    * @param invertEdges Whether the condensed call should invert the edges or not (default: false)
     * @return Tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  protected def analyzeCallGraph(program: SilverProgramDeclaration, invertEdges: Boolean = false): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
@@ -163,7 +163,10 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     def process(m: SilverMethodDeclaration, e: Statement) {
       e match {
         case MethodCall(_, method: Variable, _, _, _, _) =>
-          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          if (invertEdges)
+            callGraph.addEdge(program.methods.filter(_.name.name == method.getName).head, m)
+          else
+            callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
           val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
           val methodIdent = SilverIdentifier(method.getName)
           callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
@@ -201,6 +204,40 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     }
     (condensedCallGraph, callsInProgram)
   }
+}
+
+/**
+  * Interprocedural bottom up analysis runner for Silver programs.
+  *
+  * Methods at the  bottom of the callGraph (callee's) are analyzed first. Then their analysis result is reused for
+  * the analysis of the callers
+  *
+  * @author Flurin Rindisbacher
+  *
+  **/
+trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
+  extends InterproceduralSilverAnalysisRunner[S] {
+
+  override val analysis: InterproceduralSilverAnalysis[S] with BottomUpAnalysis[S]
+
+  override protected def _run(): ProgramResult[S] = {
+    prepareContext()
+
+    // Analyze the program and create an inverted condensed call-graph.
+    // See the InterproceduralSilverAnalysisRunner for an explanation of the condensed call-graph.
+    // Here we invert the edges to get the methods at the bottom of the call-graph.
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program, invertEdges = true)
+
+    var callees = Set[SilverIdentifier]()
+    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
+         if condensedCallGraph.inDegreeOf(condensation) == 0) {
+      for (method <- condensation.asScala)
+        callees += method.name
+    }
+    // run the analysis starting at the bottom of the call-graph
+    analysis.analyze(program, callees, callsInProgram)
+  }
+
 }
 
 /** Specification Inference for Silver Programs.
