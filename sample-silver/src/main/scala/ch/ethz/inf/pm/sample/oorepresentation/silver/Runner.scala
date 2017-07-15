@@ -218,7 +218,7 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
   extends InterproceduralSilverAnalysisRunner[S] {
 
-  override val analysis: InterproceduralSilverAnalysis[S] with BottomUpAnalysis[S]
+  override val analysis: BottomUpAnalysis[S]
 
   override protected def _run(): ProgramResult[S] = {
     prepareContext()

@@ -67,7 +67,7 @@ object InterproceduralSilverInterpreter {
   * @see CallString.apply
   *
   */
-case class CallString(callStack: List[ProgramPoint] = Nil) extends CfgResultTag  {
+case class CallString(callStack: List[ProgramPoint] = Nil) extends CfgResultTag {
   /**
     * Represents the position of the last method call
     *
@@ -489,6 +489,19 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.executeStatement(current, statement, state, programResult)
   }
 
+}
+
+/**
+  * A trait that can be mixed-in to make the forward interpreter work bottom-up.
+  *
+  * @tparam S The type of the states.
+  */
+trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverForwardInterpreter[S] {
+  //TODO @flurin make this useful
+  override def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist, cfg: SampleCfg): Unit = {
+    //assert(false)
+    super.enqueueCallers(current, worklist, cfg)
+  }
 }
 
 /**

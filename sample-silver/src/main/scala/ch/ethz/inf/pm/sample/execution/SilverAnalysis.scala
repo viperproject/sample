@@ -49,6 +49,12 @@ trait InterproceduralSilverAnalysis[S <: State[S]]
   def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S]
 }
 
+/**
+  * Trait to mark the analysis as bottom-up
+  * @tparam S
+  */
+trait BottomUpAnalysis[S <: State[S]] extends InterproceduralSilverAnalysis[S]
+
 trait SilverForwardAnalysis[S <: State[S]]
   extends IntraproceduralSilverAnalysis[S] {
   protected def analyze(method: SilverMethodDeclaration, initial: S): CfgResult[S] = {
@@ -79,6 +85,14 @@ case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: Si
   }
 }
 
+case class SimpleInterproceduralSilverForwardBottomUpAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
+  extends InterproceduralSilverForwardAnalysis[S] with BottomUpAnalysis[S] {
+  override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
+    // Similar to SimpleInterproceduralSilverForwardAnalysis but we mixin the bottom-up interpreter
+    val interpreter = new FinalResultInterproceduralForwardInterpreter[S](program, mainMethods, builder, callsInProgram, callStringLength) with BottomUpForwardInterpreter[S]
+    interpreter.executeInterprocedural()
+  }
+}
 
 trait SilverBackwardAnalysis[S <: State[S]]
   extends IntraproceduralSilverAnalysis[S] {

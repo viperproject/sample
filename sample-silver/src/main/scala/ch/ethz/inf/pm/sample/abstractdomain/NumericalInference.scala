@@ -7,8 +7,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, InterproceduralSilverForwardAnalysis, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, InterproceduralSilverInferenceRunner, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, InterproceduralSilverBottomUpAnalysisRunner, InterproceduralSilverInferenceRunner, SilverInferenceRunner}
 import viper.silver.ast._
 
 /**
@@ -103,12 +103,23 @@ object IntegerOctagonInference
 }
 
 /**
-  * An interprocedural inference based on the integer octagon analysis
-  * The analysis uses full-length (full precision) call-strings. Use an approximate call-string for recursive methods.
+  * An interprocedural inference based on the integer octagon analysis.
+  * The analysis uses call-strings with the length bounded to SystemParameters.callStringLength.
   *
   * @author Flurin Rindisbacher
   */
 object InterproceduralIntegerOctagonInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = InterproceduralIntegerOctagonAnalysis.analysis
+}
+
+/**
+  * An interprocedural bottom-up inference based on the integer octagon analysis.
+  * The analysis first analysies all callees and then reuses then reuses the result in the callers.
+  */
+object InterproceduralIntegerOctagonBottomUpInference
+  extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
+    // run the analysis bottom-up
+    with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
+  override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 }
