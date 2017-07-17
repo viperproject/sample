@@ -21,9 +21,9 @@ import viper.silver.ast._
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends SilverInferenceRunner[Set[Expression], S] {
 
-  override def preconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def preconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
 
-  override def postconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def postconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
 
   override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferred = result.preStateAt(position).specifications
@@ -54,7 +54,7 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //
   // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
   //
-  override def preconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def preconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
     // represent each set of preconditions as a conjunction
@@ -66,6 +66,39 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
     } else {
       existing
     }
+  }
+
+  //
+  //  Similar to invariants() we add postconditions in the form
+  //    ensures pre1 => post1
+  //    ...
+  //
+  //  For a bottom-up analysis there will be no precondition and the postconditions will be:
+  //  ensures post1
+  //  ensures post2 ...
+  //
+  override def postconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    // we only allow postconditions that talk about formalArgs and formalReturns
+    val allowedIdentifiers = method.formalReturns.map(_.name).toSet ++ method.formalArgs.map(_.name).toSet
+
+    val inferredPostconditions: Seq[Exp] = {
+      for (result <- resultsToWorkWith) yield {
+        val precondition = asConjunction(result.entryState().specifications)
+        val inferred = result.postStateAt(position).specifications
+          // make sure we don't use expressions containing local variables
+          .filter(_.ids.map(_.getName).toSet subsetOf allowedIdentifiers)
+        val converted = inferred.map(DefaultSampleConverter.convert)
+        // add (precondition => postcondition) for every encountered call-string
+        precondition match {
+          case Some(p) =>
+            converted.map(Implies(p, _)())
+          case None =>
+            converted
+        }
+      }
+    }.flatten
+
+    existing ++ inferredPostconditions
   }
 
   //
