@@ -466,7 +466,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      val (methodCallStateInCaller, targetExpressions) = createCallingContext(statement, call, predecessor)
+      val (methodCallStateInCaller, targetExpressions) = createCallingContext(call, predecessor)
 
       val calleeEntryState = methodCallStateInCaller.ids.toSet // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
@@ -559,7 +559,7 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
           // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
           //
           val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-          val (methodCallStateInCaller, targetExpressions) = createCallingContext(statement, call, predecessor)
+          val (methodCallStateInCaller, targetExpressions) = createCallingContext(call, predecessor)
 
           //
           // for bottom-up we assume the analysis result of the callee to be available

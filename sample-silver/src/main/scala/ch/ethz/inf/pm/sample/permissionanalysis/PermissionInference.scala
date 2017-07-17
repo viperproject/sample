@@ -17,6 +17,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPa
 import ch.ethz.inf.pm.sample.permissionanalysis.util.ExpressionGenerator
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
+import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
@@ -61,12 +62,12 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     } else extended
   }
 
-  override def preconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def preconditions(method: Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.preStateAt(position)
     extendSpecifications(existing, state)
   }
 
-  override def postconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def postconditions(method: Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.postStateAt(position)
     extendSpecifications(existing, state, true)
   }
