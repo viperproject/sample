@@ -455,10 +455,26 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
     * @param programResult programResult to use
     * @param method        The name of the method
     * @param expectedLive  Nil if entryState expected to be bottom Seq of live variable names otherwise
+    * @param inCallee      Flag whether we want to check the entryState of a caller or calle.
+    *                      The CfgResults of calelrs are Unteagged (aka no call-stack) whereas for callees we need to
+    *                      use the tagged results.
     */
   private def checkLiveVariableInEntryState(programResult: ProgramResult[SimpleLiveVariableAnalysisState],
-                                            method: String, expectedLive: Seq[String]): Unit = {
-    val entryState = programResult.getResult(SilverIdentifier(method)).entryState()
+                                            method: String, expectedLive: Seq[String], inCallee: Boolean = false): Unit = {
+    
+    assert(programResult.getTaggedResults(SilverIdentifier(method)).size <= 2, // 2 = Untagged plus 1 tagged result
+      """
+        |The current implementation (of this test) can only differentiate between caller and callee.
+        |If you want to test the states for multiple different call-strings then you'll have to adapt this method
+      """.stripMargin)
+
+    val entryState = if (inCallee)
+      programResult.getTaggedResults(SilverIdentifier(method)).filter(_ match {
+        case (CfgResultTag.Untagged, _) => false
+        case _ => true
+      }).head._2.entryState()
+    else
+      programResult.getResult(SilverIdentifier(method)).entryState()
     val liveVariablesActual = entryState.domain.toSet.map(_.getName)
 
     liveVariablesActual should contain theSameElementsAs expectedLive
@@ -486,7 +502,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
     """.stripMargin
     )
     checkLiveVariableInEntryState(programResult, "caller", Seq("ret"))
-    checkLiveVariableInEntryState(programResult, "callee", Nil)
+    checkLiveVariableInEntryState(programResult, "callee", Nil, inCallee = true)
   }
 
   test("all-ret-uses") {
@@ -506,7 +522,7 @@ class InterproceduralBackwardAnalysisTest extends InterproceduralAnalysisTest {
     """.stripMargin
     )
     checkLiveVariableInEntryState(programResult, "caller", Seq("x", "y", "z"))
-    checkLiveVariableInEntryState(programResult, "callee", Seq("x", "y", "z"))
+    checkLiveVariableInEntryState(programResult, "callee", Seq("x", "y", "z"), inCallee = true)
   }
 
   test("non-bottom-state-with-bottom-domain") {
