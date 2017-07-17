@@ -19,7 +19,6 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
-import viper.silver.ast.Program
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
@@ -343,7 +342,7 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
     * @param results The result of the analysis.
     * @return The
     */
-  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+  override def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
     // extend methods
     val extendedMethods = program.methods.map { method =>
       val identifier = SilverIdentifier(method.name)
@@ -353,5 +352,51 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
 
     // return extended program
     program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
+
+}
+
+/**
+  * Mixin to collect how a program has been extended. Afterwards export() can be used to get all changes
+  * in json format.
+  *
+  * @tparam T The type of the inferred specification.
+  * @tparam S The type of the state.
+  */
+trait InferenceExporter[T, S <: State[S] with SilverSpecification[T]]
+  extends SilverExtender[T, S] {
+
+  private val Pre = "Preconditions"
+  private val Post = "Postconditions"
+  private val Inv = "Invariants"
+
+  private var changes: Map[String, Map[sil.Position, Seq[sil.Exp]]] = Map.empty.withDefault(_ => Map.empty)
+
+  private def extendAndSaveResult(typeOfExtension: String, position: sil.Position, fun: () => Seq[sil.Exp]): Seq[sil.Exp] = {
+    val inferred = fun()
+    // We don't expect to see multiple changes to the same position and type (pre/post/inv)
+    //assert(!(changes(typeOfExtension) contains (position))) //TODO re-enable when invariant-position issue is fixed
+    if (inferred.nonEmpty)
+      changes += (typeOfExtension -> (changes(typeOfExtension) + (position -> inferred)))
+    inferred
+  }
+
+  abstract override def preconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+    extendAndSaveResult(Pre, method.pos, () => super.preconditions(method, existing, position, result))
+  }
+
+  abstract override def postconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+    extendAndSaveResult(Post, method.pos, () => super.postconditions(method, existing, position, result))
+  }
+
+  abstract override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+    //val posInSource = ProgramPointUtils.identifyingPP(position.block.elements(position.index).merge)
+    extendAndSaveResult(Inv, sil.NoPosition, () => super.invariants(existing, position, result))
+    //TODO @flurin it's unclear how to get the position of the invariant. --> ask at meeting
+    super.invariants(existing, position, result)
+  }
+
+  def export(): String = {
+    changes.toString
   }
 }

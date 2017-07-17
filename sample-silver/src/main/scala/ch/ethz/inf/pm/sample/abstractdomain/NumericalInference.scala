@@ -6,9 +6,12 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import java.io.{File, PrintWriter}
+
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, InterproceduralSilverBottomUpAnalysisRunner, InterproceduralSilverInferenceRunner, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
+import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silver.ast._
 
 /**
@@ -155,4 +158,46 @@ object InterproceduralIntegerOctagonBottomUpInference
     // run the analysis bottom-up
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
+}
+
+object BottomUpInferenceJsonPrototype
+  extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
+    with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState]
+    with InferenceExporter[Set[Expression], IntegerOctagonAnalysisState] {
+  override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
+
+  override def main(args: Array[String]): Unit = {
+    // run the analysis
+    val extended = extend(args)
+
+    // report errors and warnings
+    System.err.println("\n******************\n* AnalysisResult *\n******************\n")
+    if (Reporter.assertionViolations.isEmpty) System.err.println("No errors")
+    for (e <- Reporter.assertionViolations) {
+      System.err.println(e)
+    } // error report
+    System.err.println()
+    if (Reporter.genericWarnings.isEmpty) System.err.println("No warnings")
+    for (w <- Reporter.genericWarnings) {
+      System.err.println(w)
+    } // warning report
+
+    // report extended program
+    System.err.println("\n********************\n* Extended Program *\n********************\n\n" + extended)
+    // create a file with the extended program
+    //val copyName = args(0).split('.')(0) + ".sil.orig"
+    //val cw = new PrintWriter(new File(copyName))
+    //cw.write(DefaultSilverConverter.prog.toString); cw.close
+    val outName = args(0).split('.')(0) + "X.sil"
+    val ow = new PrintWriter(new File(outName))
+    ow.write(extended.toString())
+    ow.close()
+
+    //TODO @flurin verifier has been disabled
+
+    // print collected changes to stdout
+    println()
+    println("Changes to be exported to IDE:")
+    println(export())
+  }
 }
