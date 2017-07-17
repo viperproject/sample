@@ -170,7 +170,7 @@ trait SilverForwardInterpreter[S <: State[S]]
 
       // compute entry state state of current block
       val edges = inEdges(current, cfgResults)
-      val entry = if ((starts contains current.pos.block) && edges.isEmpty) {
+      val entry = if (edges.isEmpty) {
         initial(currentCfg)
       } else {
         var state = bottom(currentCfg)

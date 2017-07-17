@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
@@ -402,8 +402,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     builder.buildForMethodCallEntry(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
-  override def cfg(blockPosition: WorklistElement): SampleCfg = {
-    findMethod(blockPosition).body
+  override def cfg(current: WorklistElement): SampleCfg = {
+    findMethod(current).body
   }
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
@@ -421,35 +421,53 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
+  /**
+    * Create a state in the caller before a method-call. Arguments and targets are evaluated, temporary variables
+    * have been added to the state and the arguments have been assigned to the temporary variables.
+    *
+    * @param call        The currently evaluated MethodCall
+    * @param predecessor The state in the caller before the method call
+    * @return A tuple of state and parameterExpressions.
+    *         The state in the caller before calling the method. Also contains temporary variables to transfer the arguments into the callee.
+    */
+  protected def createCallingContext(call: MethodCall, predecessor: S): (S, Seq[ExpressionSet]) = {
+    //
+    // prepare calling context (evaluate method targets and parameters)
+    //
+    var methodCallStateInCaller = predecessor
+    val parameterExpressions = for (parameter <- call.parameters) yield {
+      methodCallStateInCaller = parameter.forwardSemantics[S](methodCallStateInCaller)
+      methodCallStateInCaller.expr
+    }
+    val targetExpressions = for (target <- call.targets) yield {
+      val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(methodCallStateInCaller, target)
+      methodCallStateInCaller = st
+      exp
+    }
+
+    //
+    // transfer arguments to methodEntryState
+    //
+
+    // create temp argument variables and assign the arguments to them
+    for ((param, index) <- parameterExpressions.zipWithIndex) {
+      val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+      methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
+      methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
+    }
+    (methodCallStateInCaller, targetExpressions)
+  }
+
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
       //
-      // prepare calling context (evaluate method targets and parameters)
+      // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      var methodCallStateInCaller = predecessor
-      val parameterExpressions = for (parameter <- call.parameters) yield {
-        methodCallStateInCaller = parameter.forwardSemantics[S](methodCallStateInCaller)
-        methodCallStateInCaller.expr
-      }
-      val targetExpressions = for (target <- call.targets) yield {
-        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(methodCallStateInCaller, target)
-        methodCallStateInCaller = st
-        exp
-      }
+      val (methodCallStateInCaller, targetExpressions) = createCallingContext(statement, call, predecessor)
 
-      //
-      // transfer arguments to methodEntryState
-      //
-
-      // create temp argument variables and assign the arguments to them
-      for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
-        methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
-        methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
-      }
       val calleeEntryState = methodCallStateInCaller.ids.toSet // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(methodCallStateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
@@ -459,7 +477,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
@@ -473,7 +490,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       val resultState = if (canContinue) {
-        // rename the methods arguments to temporary variables to relate method call state to exit state of the calle
+        // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
         val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
         // merge the renamed exit state into the state of the caller and remove all temporary variables
         methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
@@ -493,14 +510,78 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
 /**
   * A trait that can be mixed-in to make the forward interpreter work bottom-up.
+  * The Bottom-Up interpreter assumes that the analysis is started at the bottom of the call graph.
   *
+  * @see InterproceduralSilverBottomUpAnalysisRunner
   * @tparam S The type of the states.
   */
 trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverForwardInterpreter[S] {
-  //TODO @flurin make this useful
-  override def enqueueCallers(current: WorklistElement, worklist: InterpreterWorklist, cfg: SampleCfg): Unit = {
-    //assert(false)
-    super.enqueueCallers(current, worklist, cfg)
+
+  //
+  // In the bottom-up case we enqueue callers starting at the beginning of the method
+  // Recursive calls are still analyzed the usual way.
+  //
+  override protected def onExitBlockExecuted(current: WorklistElement): Unit = {
+    current match {
+      case _: TaggedWorklistElement =>
+        // Existing call-string? Probably analysing a recursive function. Let parent handle that.
+        super.onExitBlockExecuted(current)
+      case _ =>
+        // Otherwise we'll enqueue (non-recursive) callers AND START AT THE ENTRY OF THE METHOD
+        val toEnqueue = callsInProgram(findMethod(current).name).map(findMethod)
+          .map(caller => SimpleWorklistElement(BlockPosition(caller.body.entry, 0), forceReinterpretStmt = false)).toSeq
+        //TODO @flurin make sure analysis is still run bottom-up (filter what is enqueued)
+        worklist.enqueue(toEnqueue: _*)
+    }
+    // There's no need to mark a result as "available" as the forward interpreter does.
+    // (See InterproceduralSilverForwardInterpreter.onExitBlockExecuted)
+    // Reason:
+    // case "recursive calls" => super() will mark results as available
+    // case _ => bottom-up assumes the result to be available. so no need to mark a callee as analyzed
+  }
+
+  //
+  //  For the recursive case MethodCall statements are analyzed the usual way. Otherwise it is assumed that
+  //  callees have been analyzed and the result is reused. We use the analysis result that doesn't assume anything about
+  //  the arguments to the callee.
+  //
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = current match {
+    case _: TaggedWorklistElement =>
+      super.executeStatement(current, statement, state, programResult)
+    case _ =>
+      statement match {
+        case call@MethodCall(_, v: Variable, _, _, _, _)
+          // let super() handle recursive calls
+          if v.getName != findMethod(current).name.name =>
+          val methodIdentifier = SilverIdentifier(v.getName)
+          val methodDeclaration = findMethod(methodIdentifier)
+          //
+          // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
+          //
+          val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
+          val (methodCallStateInCaller, targetExpressions) = createCallingContext(statement, call, predecessor)
+
+          //
+          // for bottom-up we assume the analysis result of the callee to be available
+          //
+          val analyzed = TaggedWorklistElement(
+            CallString.Empty, // we want the analysis result that doesn't assume anything about the arguments (therefore the call-stack is empty)
+            BlockPosition(methodDeclaration.body.entry, 0),
+            forceReinterpretStmt = false)
+          val exitState = programResult(analyzed).exitState()
+
+          // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
+          val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
+          // merge the renamed exit state into the state of the caller and remove all temporary variables
+          val resultState = methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
+
+          logger.trace(predecessor.toString)
+          logger.trace(statement.toString)
+          logger.trace(resultState.toString)
+
+          (resultState, true) // true: always continue after the MethodCall stmt since we did not enqueue the analysis of the callee
+        case _ => super.executeStatement(current, statement, state, programResult)
+      }
   }
 }
 
@@ -508,7 +589,7 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   * Forward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
+  * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
   * @param callsInProgram   The call graph of the program
   * @param CallStringLength an optional upper bound for the call-string length
@@ -658,7 +739,6 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
