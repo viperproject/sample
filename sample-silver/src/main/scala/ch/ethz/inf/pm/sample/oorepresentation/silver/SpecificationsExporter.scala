@@ -27,9 +27,9 @@ import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
   extends SilverExtender[T, S] {
 
-  val Pre = "Preconditions"
-  val Post = "Postconditions"
-  val Inv = "Invariants"
+  val Pre = "preconditions"
+  val Post = "postconditions"
+  val Inv = "invariants"
 
   private var specifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = Map.empty.withDefault(_ => Map.empty)
 
