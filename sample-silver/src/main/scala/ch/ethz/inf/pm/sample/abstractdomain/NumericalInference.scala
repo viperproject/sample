@@ -169,6 +169,6 @@ object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   override def main(args: Array[String]): Unit = {
     // run the analysis and print result as json
     val extended = extend(args)
-    println(specificationsAsJson())
+    println(specificationsAsJson)
   }
 }

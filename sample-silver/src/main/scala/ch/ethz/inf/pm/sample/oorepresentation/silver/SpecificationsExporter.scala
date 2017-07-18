@@ -65,7 +65,7 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
     *
     * @return
     */
-  protected def getSpecifications(): Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = {
+  protected def getSpecifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = {
     specifications
   }
 }
@@ -83,15 +83,15 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
   //TODO prettyRender is for humans. For an actual IDE integration you may want to change this to compactRender
   private def render = prettyRender _
 
-  def specificationsAsJson(): String = {
-    val specs = getSpecifications()
+  def specificationsAsJson: String = {
+    val specs = getSpecifications
     // check whether the original program contained specifications
     val existingSpec = specs.values.find(_.values.exists(_._1.nonEmpty))
 
     if (existingSpec.isDefined) {
-      val pos = existingSpec.get.find(_ match {
+      val pos = existingSpec.get.find {
         case (_, (existingSpecs, _)) => existingSpecs.nonEmpty
-      }).get._1
+      }.get._1
       render(
         ("error" -> true) ~
           ("errorMessage" -> "Program already contains specifications!") ~
@@ -102,9 +102,9 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
         * Convert Seq[Exp] to the JValue for json export.
         * arg consists of (position, (old specifications, new specifications))
         *
-        * @param keyword
-        * @param arg
-        * @return
+        * @param keyword They keyword to prefix the specs. Usually "invariant", "requires" or "ensures"
+        * @param arg     (position, (old specifications, new specifications))
+        * @return A JValue representing the list of specifications
         */
       def specToJsonDSL(keyword: String)(arg: (sil.Position, (Seq[sil.Exp], Seq[sil.Exp]))): JValue = arg match {
         case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) => pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
