@@ -332,7 +332,10 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
 trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   extends SilverInferenceRunner[T, S] with InterproceduralSilverAnalysisRunner[S] {
 
-  // TODO @flurin kinda hacky, keep the list of all CfgResults for the currently processed method
+  //
+  // The SilverExtender usually only works with one CFG
+  // But for the interprocedural case we need to access all the available CfgResults
+  //
   var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
 
   /**
@@ -347,7 +350,7 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
     val extendedMethods = program.methods.map { method =>
       val identifier = SilverIdentifier(method.name)
       resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
-      extendMethod(method, resultsToWorkWith.head) //TODO @flurin
+      extendMethod(method, results.getResult(identifier))
     }
 
     // return extended program
