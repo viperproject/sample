@@ -36,7 +36,7 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
   private def extendAndSaveResult(typeOfExtension: String, position: sil.Position, existing: Seq[sil.Exp], fun: () => Seq[sil.Exp]): Seq[sil.Exp] = {
     val inferred = fun()
     // We don't expect to see multiple changes to the same position and type (pre/post/inv)
-    //assert(!(changes(typeOfExtension) contains (position))) //TODO re-enable when invariant-position issue is fixed
+    assert(!(specifications(typeOfExtension) contains position))
     if (inferred.nonEmpty)
       specifications += (typeOfExtension -> (specifications(typeOfExtension) + (position -> (existing, inferred))))
     inferred
@@ -50,11 +50,8 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
     extendAndSaveResult(Post, method.pos, existing, () => super.postconditions(method, existing, position, result))
   }
 
-  abstract override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    //val posInSource = ProgramPointUtils.identifyingPP(position.block.elements(position.index).merge)
-    extendAndSaveResult(Inv, sil.NoPosition, existing, () => super.invariants(existing, position, result))
-    //TODO @flurin it's unclear how to get the position of the invariant. --> ask at meeting
-    super.invariants(existing, position, result)
+  abstract override def invariants(loop: sil.While, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+    extendAndSaveResult(Inv, loop.pos, existing, () => super.invariants(loop, existing, position, result))
   }
 
   /**
@@ -107,7 +104,8 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
         * @return A JValue representing the list of specifications
         */
       def specToJsonDSL(keyword: String)(arg: (sil.Position, (Seq[sil.Exp], Seq[sil.Exp]))): JValue = arg match {
-        case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) => pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
+        case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) =>
+          pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
       }
 
       render(

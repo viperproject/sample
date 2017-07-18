@@ -103,7 +103,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       // get the position of the loop
       val position = getLoopPosition(loop, results.cfg)
       // extend while loop
-      val extendedInvariants = invariants(originalInvariants, position, results)
+      val extendedInvariants = invariants(loop, originalInvariants, position, results)
       val extendedBody = extendStatement(originalBody, results)
       sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
     case sil.NewStmt(lhs, originalFields) =>
@@ -150,12 +150,13 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
   /**
     * Modifies the list of invariants using the given analysis result.
     *
+    * @param loop     The while statement for which invariants are modified
     * @param existing The list of existing invariants.
     * @param position The position of the first invariant.
     * @param result   The analysis result.
     * @return The modified list of invariants.
     */
-  def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def invariants(loop: sil.While, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of fields of a new statement using the given analysis result.

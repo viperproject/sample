@@ -72,7 +72,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     extendSpecifications(existing, state, true)
   }
 
-  override def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def invariants(loop: sil.While, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val aliases = Context.getAliases[A]
     val state = result.preStateAt(position)
     val tree = state.stack.foldLeftTrees(PermissionTree.empty)(_ lub _)

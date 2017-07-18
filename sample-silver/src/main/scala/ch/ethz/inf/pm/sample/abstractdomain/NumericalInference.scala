@@ -28,7 +28,7 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 
   override def postconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
 
-  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def invariants(loop: While, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
     existing ++ converted.toSeq
@@ -109,7 +109,7 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //    method-precondition => invariant
   // for all the call-strings we saw during analysis
   //
-  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def invariants(loop: While, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferredInvariants: Seq[Exp] = {
       for (result <- resultsToWorkWith) yield {
         val precondition = asConjunction(result.entryState().specifications)
