@@ -80,12 +80,25 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
   //TODO prettyRender is for humans. For an actual IDE integration you may want to change this to compactRender
   private def render = prettyRender _
 
+  /**
+    * Convert Seq[Exp] to the JValue for json export.
+    * arg consists of (position, (old specifications, new specifications))
+    *
+    * @param keyword They keyword to prefix the specs. Usually "invariant", "requires" or "ensures"
+    * @param arg     (position, (old specifications, new specifications))
+    * @return A JValue representing the list of specifications
+    */
+  private def specToJsonDSL(keyword: String)(arg: (sil.Position, (Seq[sil.Exp], Seq[sil.Exp]))): JValue = arg match {
+    case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) =>
+      pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
+  }
+
   def specificationsAsJson: String = {
     val specs = getSpecifications
     // check whether the original program contained specifications
     val existingSpec = specs.values.find(_.values.exists(_._1.nonEmpty))
-
     if (existingSpec.isDefined) {
+      // Some specifications exist. Just point the user to one of them
       val pos = existingSpec.get.find {
         case (_, (existingSpecs, _)) => existingSpecs.nonEmpty
       }.get._1
@@ -95,19 +108,6 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
           ("errorPosition" -> pos.toString)
       )
     } else {
-      /**
-        * Convert Seq[Exp] to the JValue for json export.
-        * arg consists of (position, (old specifications, new specifications))
-        *
-        * @param keyword They keyword to prefix the specs. Usually "invariant", "requires" or "ensures"
-        * @param arg     (position, (old specifications, new specifications))
-        * @return A JValue representing the list of specifications
-        */
-      def specToJsonDSL(keyword: String)(arg: (sil.Position, (Seq[sil.Exp], Seq[sil.Exp]))): JValue = arg match {
-        case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) =>
-          pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
-      }
-
       render(
         ("error" -> false) ~
           (Pre -> specs(Pre).map(specToJsonDSL("requires"))) ~
