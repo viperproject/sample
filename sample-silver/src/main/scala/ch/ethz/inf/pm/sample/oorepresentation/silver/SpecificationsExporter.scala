@@ -16,7 +16,7 @@ import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 
 /**
   * Mixin to collect how a program has been extended. Afterwards getSpecifications() can be used to get all changes
-  * in json format.
+  * as a map from Position to (previous-specifictions, new-specifications)
   *
   * This trait assumes that for EVERY extended program a new SilverExtender() with SpecificationsExporter is created.
   * (since it stores the changes to the program)
@@ -68,9 +68,9 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
 }
 
 /**
-  * Returns the collected specifications as a json to be integrated into Viper IDE.
-  * We only infer specifications for programs without specifications. If specifications already exist a json
-  * with an error message is returned.
+  * Exports the changes to an extended program as json. For programs that did already contains some specifications
+  * we do not export new specifications but report an error (in json format).
+  * All changes and errors are accompanied by a SourcePoisition in the original silver program.
   *
   * @tparam T The type of the inferred specification.
   * @tparam S The type of the state.
@@ -93,6 +93,13 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
       pos.toString -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}")
   }
 
+  /**
+    * Exports the specifications for the extended program or an error message. Both in JSON format.
+    *
+    * @return A JSON-string containing at least the key "error".
+    *         error == true => The keys errorMessage and errorPosition will be available
+    *         error == false => The JSON will contain the keys "preconditions", "invariants" and "postconditions"
+    */
   def specificationsAsJson: String = {
     val specs = getSpecifications
     // check whether the original program contained specifications
