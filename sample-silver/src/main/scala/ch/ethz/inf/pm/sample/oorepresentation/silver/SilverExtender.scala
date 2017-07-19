@@ -68,8 +68,8 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     val entry = firstPosition(result.cfg.entry)
     val exit = lastPosition(result.cfg.exit.get)
 
-    val extendedPreconditions = preconditions(method.pres, entry, result)
-    val extendedPostconditions = postconditions(method.posts, exit, result)
+    val extendedPreconditions = preconditions(method, method.pres, entry, result)
+    val extendedPostconditions = postconditions(method, method.posts, exit, result)
     val extendedBody = extendStatement(method.body, result)
 
     // TODO: Handle arguments.
@@ -103,7 +103,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       // get the position of the loop
       val position = getLoopPosition(loop, results.cfg)
       // extend while loop
-      val extendedInvariants = invariants(originalInvariants, position, results)
+      val extendedInvariants = invariants(loop, originalInvariants, position, results)
       val extendedBody = extendStatement(originalBody, results)
       sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
     case sil.NewStmt(lhs, originalFields) =>
@@ -128,32 +128,35 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
   /**
     * Modifies the list of preconditions using the given analysis result.
     *
+    * @param method   The method that should be extended.
     * @param existing The list of existing preconditions.
     * @param position The position of the first precondition.
     * @param result   The analysis result.
     * @return The modified list of preconditions.
     */
-  def preconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def preconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of postconditions using the given analysis result.
     *
+    * @param method   The method that should be extended.
     * @param existing The list of existing postconditions.
     * @param position The position of the last postcondition.
     * @param result   The analysis result.
     * @return The modified list of postconditions.
     */
-  def postconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def postconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of invariants using the given analysis result.
     *
+    * @param loop     The while statement for which invariants are modified
     * @param existing The list of existing invariants.
     * @param position The position of the first invariant.
     * @param result   The analysis result.
     * @return The modified list of invariants.
     */
-  def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def invariants(loop: sil.While, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of fields of a new statement using the given analysis result.

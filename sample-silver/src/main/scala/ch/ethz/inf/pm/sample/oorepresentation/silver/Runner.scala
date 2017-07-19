@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, TopologicalOrderOfCallGraph}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -19,6 +19,7 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
+import viper.silver.ast.Program
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
@@ -149,7 +150,7 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     * @param program The program to be analyzed
     * @return Tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  protected def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
@@ -199,6 +200,36 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     }
     (condensedCallGraph, callsInProgram)
   }
+}
+
+/**
+  * Interprocedural bottom up analysis runner for Silver programs.
+  *
+  * Methods at the  bottom of the topologically ordered call-graph (callee's) are analyzed first. Then their analysis result is reused for
+  * the analysis of the callers
+  *
+  * @author Flurin Rindisbacher
+  *
+  **/
+trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
+  extends InterproceduralSilverAnalysisRunner[S] {
+
+  override val analysis: BottomUpAnalysis[S]
+
+  override protected def _run(): ProgramResult[S] = {
+    prepareContext()
+
+    // Analyze the program and create a condensed call-graph.
+    // See the InterproceduralSilverAnalysisRunner for an explanation of the condensed call-graph.
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
+
+    val methodsInTopologicalOrder: TopologicalOrderOfCallGraph = (for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala) yield condensation.asScala.toSet).toSeq
+    val callees = methodsInTopologicalOrder.last.map(_.name)
+
+    // run the analysis starting at the bottom of the topological order
+    analysis.analyze(program, callees, callsInProgram, Some(methodsInTopologicalOrder))
+  }
+
 }
 
 /** Specification Inference for Silver Programs.
@@ -283,4 +314,67 @@ trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
   }
 
   override def toString = "Specification Inference"
+}
+
+/** Interprocedural Specification Inference for Silver Programs.
+  *
+  * @author Flurin Rindisbacher
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
+  extends SilverInferenceRunner[T, S] with InterproceduralSilverAnalysisRunner[S] {
+
+  //
+  // The SilverExtender usually only works with one CFG
+  // But for the interprocedural case we need to access all the available CfgResults
+  //
+  var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
+
+  /**
+    * Extends the given program using all results (meaning for different call-strings) seen in the analysis.
+    *
+    * @param program The program to extend.
+    * @param results The result of the analysis.
+    * @return The extended program
+    */
+  override def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      extendMethod(method, results.getResult(identifier))
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
+}
+
+/**
+  * Extend the given program using the results of a bottom-up analysis. In bottom-up analysis
+  * we're not interested in all CfgResults but only those that are untagged or tagged with an empty call-string.
+  * Example:
+  * for the recursive function foo() the following CfgResults may exist:
+  * (Untagged, Result1)
+  * (foo, Result2)
+  * (foo.foo, Result3)
+  * etc.
+  * We're only interested in the Untagged result. Meaning the result that assumes entryState = initial-state.
+  *
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverBottomUpInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
+  extends InterproceduralSilverInferenceRunner[T, S] {
+  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = Seq(results.getResult(identifier))
+      extendMethod(method, results.getResult(identifier))
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
 }
