@@ -8,14 +8,21 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap, TopologicalOrderOfCallGraph}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.{CallMethodBackwardsCommand, ReturnFromMethodCommand}
 import com.typesafe.scalalogging.LazyLogging
+import org.jgrapht.DirectedGraph
+import org.jgrapht.alg.StrongConnectivityInspector
+import org.jgrapht.graph.DefaultDirectedGraph
+import org.jgrapht.traverse.TopologicalOrderIterator
+import viper.silver.ast.utility.Functions
+import viper.silver.ast.utility.Functions.Factory
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 object InterproceduralSilverInterpreter {
@@ -36,6 +43,8 @@ object InterproceduralSilverInterpreter {
     * the next instruction after the method call.
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+
+  type TopologicalOrderOfCallGraph = Seq[Set[SilverMethodDeclaration]]
 
   /**
     * Prefix to be used for temporary method arguments.
@@ -517,27 +526,112 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   */
 trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverForwardInterpreter[S] {
 
+  val methodsInTopologicalOrder: TopologicalOrderOfCallGraph
+
+  /**
+    * resultAvailable contains identifiers for all method for which the result WITH AN EMPTY call-string is available
+    * Results with an empty call-string are those that will be used by a caller when a method-call to a callee is
+    * executed.
+    */
+  private var resultAvailable: Set[SilverIdentifier] = Set.empty
+
+  /**
+    * Returns the parent connected component in the topologically ordered call-graph. These parents
+    * (may) call the current method or not. If they call the current method then they can be enqueued as soon
+    * as the current methods analysis result is available. If they don't call the current method then the can be enqeueued
+    * anyway.
+    *
+    * @param current The currently analysed method
+    * @return A possibly (empty) set of predecessors in the topologically ordered call-graph. "Predecessor" doesn't imply
+    *         that it's a caller!
+    */
+  private def findParentComponent(current: SilverMethodDeclaration): Set[SilverMethodDeclaration] = {
+    val index = methodsInTopologicalOrder.zipWithIndex.find(_ match {
+      case (component, _) => component.contains(current)
+    }).get._2
+    if (index > 0)
+      methodsInTopologicalOrder(index - 1)
+    else
+      Set.empty[SilverMethodDeclaration]
+  }
+
+  /**
+    * Build a call-graph for the current program. This is very similar to what the AnalysisRunner does to find the
+    * main methods.
+    *
+    * @param program The program for which we want to build a call graph
+    * @return A directed graph representing the calls in the program
+    */
+  private def buildCallGraph(program: SilverProgramDeclaration): DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]] = {
+    // Most code below was taken from ast.utility.Functions in silver repo!
+    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+
+    for (f <- program.methods) {
+      callGraph.addVertex(f)
+    }
+
+    def process(m: SilverMethodDeclaration, e: Statement) {
+      e match {
+        case MethodCall(_, method: Variable, _, _, _, _) =>
+          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
+          val methodIdent = SilverIdentifier(method.getName)
+        case _ => e.getChildren foreach (process(m, _))
+      }
+    }
+
+    for (m <- program.methods;
+         block <- m.body.blocks;
+         statement <- block.elements) {
+      process(m, statement.merge)
+    }
+
+    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
+    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
+
+    /* Add each SCC as a vertex to the condensed call-graph */
+    for (v <- stronglyConnectedSets) {
+      condensedCallGraph.addVertex(v)
+    }
+
+    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
+      stronglyConnectedSets.find(_ contains m).get
+
+    /* Add edges from the call-graph (between individual functions) as edges
+     * between their corresponding SCCs in the condensed call-graph, but only
+     * if this does not result in a cycle.
+     */
+    for (e <- callGraph.edgeSet().asScala) {
+      val sourceSet = condensationOf(e.source)
+      val targetSet = condensationOf(e.target)
+
+      if (sourceSet != targetSet)
+        condensedCallGraph.addEdge(sourceSet, targetSet)
+    }
+    condensedCallGraph
+  }
+
   //
   // In the bottom-up case we enqueue callers starting at the beginning of the method
   // Recursive calls are still analyzed the usual way.
   //
   override protected def onExitBlockExecuted(current: WorklistElement): Unit = {
     current match {
-      case _: TaggedWorklistElement =>
+      case TaggedWorklistElement(cs, _, _) =>
         // Existing call-string? Probably analysing a recursive function. Let parent handle that.
         super.onExitBlockExecuted(current)
+        // But if call-String was empty we can mark the result as available
+        if (!cs.inCallee)
+          resultAvailable += findMethod(current).name
       case _ =>
-        // Otherwise we'll enqueue (non-recursive) callers AND START AT THE ENTRY OF THE METHOD
-        val toEnqueue = callsInProgram(findMethod(current).name).map(findMethod)
+        // Otherwise we'll enqueue (non-recursive) the parent methods in the topological order
+        // (meaning: methods that may use the result of this method)
+        val toEnqueue = findParentComponent(findMethod(current))
           .map(caller => SimpleWorklistElement(BlockPosition(caller.body.entry, 0), forceReinterpretStmt = false)).toSeq
-        //TODO @flurin make sure analysis is still run bottom-up (filter what is enqueued)
-        worklist.enqueue(toEnqueue: _*)
+        // We'll enqueue to the secondaryWorklist to make sure that the current connected-component has been fully analysed
+        secondaryWorklist.enqueue(toEnqueue: _*)
+        resultAvailable += findMethod(current).name
     }
-    // There's no need to mark a result as "available" as the forward interpreter does.
-    // (See InterproceduralSilverForwardInterpreter.onExitBlockExecuted)
-    // Reason:
-    // case "recursive calls" => super() will mark results as available
-    // case _ => bottom-up assumes the result to be available. so no need to mark a callee as analyzed
   }
 
   //
@@ -552,7 +646,8 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
       statement match {
         case call@MethodCall(_, v: Variable, _, _, _, _)
           // let super() handle recursive calls
-          if v.getName != findMethod(current).name.name =>
+          if v.getName != findMethod(current).name.name
+            && resultAvailable(SilverIdentifier(v.getName)) =>
           val methodIdentifier = SilverIdentifier(v.getName)
           val methodDeclaration = findMethod(methodIdentifier)
           //
@@ -592,7 +687,7 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
   * @param callsInProgram   The call graph of the program
-  * @param CallStringLength an optional upper bound for the call-string length
+  * @param CallStringLength An optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
@@ -603,6 +698,81 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardInterpreter[S] {
 
+  //
+  // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
+  // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
+  // using "cfgs". (This is needed to initialize all callees too)
+  //
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
+    // initialize each CfgResult with its bottom state.
+    programResult.initialize(c => {
+      val stForCfg = bottom(c)
+      initializeResult(c, stForCfg)
+    })
+
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement): CfgResult[S] = {
+      val ident = findMethod(current).name
+      val currentCfg = cfg(current)
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
+    }
+
+    lookup
+  }
+
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
+    val cfgResult = FinalCfgResult[S](cfg)
+    cfgResult.initialize(state)
+    cfgResult
+  }
+
+  // The entry-point for an interprocedural analysis is executeInterprocedural()
+  // For programs with multiple methods calling execute() cannot work as expected because it's not clear
+  // which CfgResult should be returned.
+  override def execute(): CfgResult[S] = {
+    if (program.methods.size == 1) {
+      val result = executeInterprocedural()
+      result.getResult(result.identifiers.head)
+    } else {
+      throw new RuntimeException("Cannot return one CfgResult for multiple methods. Use executeInterprocedural().")
+    }
+  }
+}
+
+/**
+  * Forward interpreter that analyzes a program bottom up. The analysis starts a set of methods at the bottom of the
+  * call-graph. Then it goes bottom up in topological order of the call-graph. Methods in the same connected component of
+  * the topological order or recursive methods are analyzed using call-strings. For all other callers it is assumed
+  * that the result of callee's is availabe since callee's are below in the topological order.
+  *
+  * @param program                   The program that is analysed
+  * @param mainMethods               A set of methods with which the analysis is started
+  * @param builder                   A builder to create initial states for each cfg to analyse
+  * @param callsInProgram            The call graph of the program
+  * @param methodsInTopologicalOrder A sequence of methods in topological order of their callgraph. For each method in a the set
+  *                                  methodsInTopologicalOrder(k) only methods in any of the sets methodsInTopologicalOrder(l) with l <= k
+  *                                  are calling them. For example methods in methodsInTopologicalOrder.head are only called
+  *                                  by other methods in the same set. Whereas methods methodsInTopologicalOrder.last MAY be called
+  *                                  by any method in the program.
+  * @param CallStringLength          An optional upper bound for the call-string length
+  * @tparam S The type of the states.
+  */
+case class FinalResultInterproceduralBottomUpForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration,
+                                                                               override val mainMethods: Set[SilverIdentifier],
+                                                                               override val builder: SilverEntryStateBuilder[S],
+                                                                               override val callsInProgram: CallGraphMap,
+                                                                               override val methodsInTopologicalOrder: TopologicalOrderOfCallGraph,
+                                                                               override val CallStringLength: Option[Int] = CallString.DefaultLength)
+  extends InterproceduralSilverForwardInterpreter[S] with BottomUpForwardInterpreter[S] {
   //
   // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
   // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in

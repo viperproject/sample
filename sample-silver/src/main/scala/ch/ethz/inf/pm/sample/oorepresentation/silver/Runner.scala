@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import java.io.{File, PrintWriter}
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, TopologicalOrderOfCallGraph}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
@@ -146,11 +146,10 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
     * set(foo, bar) -> set(baz)
     *
-    * @param program     The program to be analyzed
-    * @param invertEdges Whether the condensed call should invert the edges or not (default: false)
+    * @param program The program to be analyzed
     * @return Tuple of condensed call graph and map containing all method calls
     */
-  protected def analyzeCallGraph(program: SilverProgramDeclaration, invertEdges: Boolean = false): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  protected def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver repo!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
@@ -162,10 +161,7 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
     def process(m: SilverMethodDeclaration, e: Statement) {
       e match {
         case MethodCall(_, method: Variable, _, _, _, _) =>
-          if (invertEdges)
-            callGraph.addEdge(program.methods.filter(_.name.name == method.getName).head, m)
-          else
-            callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
           val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
           val methodIdent = SilverIdentifier(method.getName)
           callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
@@ -208,7 +204,7 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 /**
   * Interprocedural bottom up analysis runner for Silver programs.
   *
-  * Methods at the  bottom of the callGraph (callee's) are analyzed first. Then their analysis result is reused for
+  * Methods at the  bottom of the topologically ordered call-graph (callee's) are analyzed first. Then their analysis result is reused for
   * the analysis of the callers
   *
   * @author Flurin Rindisbacher
@@ -222,19 +218,15 @@ trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
   override protected def _run(): ProgramResult[S] = {
     prepareContext()
 
-    // Analyze the program and create an inverted condensed call-graph.
+    // Analyze the program and create a condensed call-graph.
     // See the InterproceduralSilverAnalysisRunner for an explanation of the condensed call-graph.
-    // Here we invert the edges to get the methods at the bottom of the call-graph.
-    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program, invertEdges = true)
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
 
-    var callees = Set[SilverIdentifier]()
-    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
-         if condensedCallGraph.inDegreeOf(condensation) == 0) {
-      for (method <- condensation.asScala)
-        callees += method.name
-    }
-    // run the analysis starting at the bottom of the call-graph
-    analysis.analyze(program, callees, callsInProgram)
+    val methodsInTopologicalOrder: TopologicalOrderOfCallGraph = (for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala) yield condensation.asScala.toSet).toSeq
+    val callees = methodsInTopologicalOrder.last.map(_.name)
+
+    // run the analysis starting at the bottom of the topological order
+    analysis.analyze(program, callees, callsInProgram, Some(methodsInTopologicalOrder))
   }
 
 }

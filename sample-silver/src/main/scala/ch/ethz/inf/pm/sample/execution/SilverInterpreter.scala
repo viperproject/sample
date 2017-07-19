@@ -37,6 +37,13 @@ trait SilverInterpreter[S <: State[S]] {
   protected val worklist: InterpreterWorklist = mutable.Queue()
 
   /**
+    * A worklist that can be used to enqeueue tasks that only should be worked on when the execution of the primary
+    * tasks (the main worklist) have been finished. As soon as worklist is empty the task from secondaryWorklist
+    * are copied into it.
+    */
+  protected val secondaryWorklist: InterpreterWorklist = mutable.Queue()
+
+  /**
     * Look up the CFG for the current worklist element. Intraprocedural interpreters can always return the same
     * CFG (there is only one cfg to analyze). Interprocedural interpreters on the other hand need to look up the
     * method/cfg depending on the actual element in the worklist.
@@ -161,9 +168,12 @@ trait SilverForwardInterpreter[S <: State[S]]
 
     // prepare data structures
     assert(worklist.isEmpty)
+    assert(secondaryWorklist.isEmpty)
     cfgs.foreach(c => worklist.enqueue(SimpleWorklistElement(BlockPosition(c.entry, 0), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]()
-    while (worklist.nonEmpty) {
+    while (worklist.nonEmpty || secondaryWorklist.nonEmpty) {
+      if (worklist.isEmpty)
+        worklist.enqueue(secondaryWorklist.dequeueAll(_ => true): _*)
       val current = worklist.dequeue()
       val currentCfg = cfg(current)
       val iteration = iterations.getOrElse(current, 0)
@@ -413,10 +423,13 @@ trait SilverBackwardInterpreter[S <: State[S]]
 
     // prepare data structures
     assert(worklist.isEmpty)
+    assert(secondaryWorklist.isEmpty)
     cfgs.foreach(c => if (c.exit.isDefined) worklist.enqueue(SimpleWorklistElement(BlockPosition(c.exit.get, lastIndex(c.exit.get)), forceReinterpretStmt = false)))
     val iterations = mutable.Map[WorklistElement, Int]()
 
-    while (worklist.nonEmpty) {
+    while (worklist.nonEmpty || secondaryWorklist.nonEmpty) {
+      if (worklist.isEmpty)
+        worklist.enqueue(secondaryWorklist.dequeueAll(_ => true): _*)
       val current = worklist.dequeue()
       val currentCfg = cfg(current)
       val iteration = iterations.getOrElse(current, 0)
