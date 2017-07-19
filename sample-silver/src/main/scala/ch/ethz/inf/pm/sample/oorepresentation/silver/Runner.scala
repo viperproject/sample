@@ -353,14 +353,14 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
 
 /**
   * Extend the given program using the results of a bottom-up analysis. In bottom-up analysis
-  * we're not interested in all CfgResults that are untagged or tagged with an empty call-string.
+  * we're not interested in all CfgResults but only those that are untagged or tagged with an empty call-string.
   * Example:
   * for the recursive function foo() the following CfgResults may exist:
   * (Untagged, Result1)
   * (foo, Result2)
   * (foo.foo, Result3)
   * etc.
-  * We're only interested in the Untagged result. Meaning the result that assumes the inital-state as entryState.
+  * We're only interested in the Untagged result. Meaning the result that assumes entryState = initial-state.
   *
   * @tparam T The type of the specification.
   * @tparam S The type of the state.
