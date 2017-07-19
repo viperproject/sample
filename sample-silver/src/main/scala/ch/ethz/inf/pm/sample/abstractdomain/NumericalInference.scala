@@ -6,12 +6,9 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import java.io.{File, PrintWriter}
-
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
-import ch.ethz.inf.pm.sample.reporting.Reporter
 import viper.silver.ast._
 
 /**
@@ -147,28 +144,39 @@ object IntegerOctagonInference
 object InterproceduralIntegerOctagonInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = InterproceduralIntegerOctagonAnalysis.analysis
+
+  override def main(args: Array[String]): Unit = super.main(args)
 }
 
 /**
   * An interprocedural bottom-up inference based on the integer octagon analysis.
-  * The analysis first analysies all callees and then reuses then reuses the result in the callers.
+  * The analysis first analyses all callees and then reuses the result in the callers.
   */
 object InterproceduralIntegerOctagonBottomUpInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
-    // run the analysis bottom-up
+    with InterproceduralSilverBottomUpInferenceRunner[Set[Expression], IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 }
 
+/**
+  * An interprocedural bottom-up inference based on the integer octagon analysis.
+  * The analysis first analyses all callees and then reuses the result in the callers.
+  *
+  * The analysis returns a JSON-string with the inferred changes to the original program
+  */
 object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
+    with InterproceduralSilverBottomUpInferenceRunner[Set[Expression], IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState]
     with SpecificationsJsonExporter[Set[Expression], IntegerOctagonAnalysisState] {
+
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 
   override def main(args: Array[String]): Unit = {
     // run the analysis and print result as json
     val extended = extend(args)
+    //TODO this main() method skips the verification step. Add it here if we wan't that for the IDE
     println(specificationsAsJson)
   }
 }

@@ -19,6 +19,7 @@ import org.jgrapht.alg.StrongConnectivityInspector
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.carbon.CarbonVerifier
+import viper.silver.ast.Program
 import viper.silver.ast.utility.Functions
 import viper.silver.ast.utility.Functions.Factory
 import viper.silver.{ast => sil}
@@ -331,7 +332,7 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
   var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
 
   /**
-    * Extends the given program using the given results of the analysis.
+    * Extends the given program using all results (meaning for different call-strings) seen in the analysis.
     *
     * @param program The program to extend.
     * @param results The result of the analysis.
@@ -348,5 +349,32 @@ trait InterproceduralSilverInferenceRunner[T, S <: State[S] with SilverSpecifica
     // return extended program
     program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
+}
 
+/**
+  * Extend the given program using the results of a bottom-up analysis. In bottom-up analysis
+  * we're not interested in all CfgResults that are untagged or tagged with an empty call-string.
+  * Example:
+  * for the recursive function foo() the following CfgResults may exist:
+  * (Untagged, Result1)
+  * (foo, Result2)
+  * (foo.foo, Result3)
+  * etc.
+  * We're only interested in the Untagged result. Meaning the result that assumes the inital-state as entryState.
+  *
+  * @tparam T The type of the specification.
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverBottomUpInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
+  extends InterproceduralSilverInferenceRunner[T, S] {
+  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = Seq(results.getResult(identifier))
+      extendMethod(method, results.getResult(identifier))
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
 }
