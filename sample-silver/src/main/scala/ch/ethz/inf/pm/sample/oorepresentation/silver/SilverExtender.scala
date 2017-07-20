@@ -182,7 +182,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * Returns the position after the last element of the given block.
     *
     * @param block The block.
-    * @return The positoin after the last element.
+    * @return The position after the last element.
     */
   protected def lastPosition(block: SampleBlock): BlockPosition =
     BlockPosition(block, block.elements.length - 1)
