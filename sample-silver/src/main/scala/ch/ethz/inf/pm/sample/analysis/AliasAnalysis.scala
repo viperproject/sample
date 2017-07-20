@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.analysis
 
 import java.io.File
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, _}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{AliasDomain, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
