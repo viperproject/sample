@@ -1,0 +1,22 @@
+//
+// maccarthy91
+// taken from http://pop-art.inrialpes.fr/interproc/interproc_examples/maccarthy91.txt
+//
+// exact semantics:
+//   if (n>=101) then n-10 else 91
+//
+method MC(n: Int) returns (r: Int) {
+    var t1 : Int
+    var t2 : Int
+    if (n>100){
+        r := n - 10
+    } else {
+        t1 := n + 11;
+        t2 := MC(t1);
+        r := MC(t2);
+    }
+}
+
+method main(a: Int) returns (b: Int) {
+    b := MC(a)
+}

@@ -223,13 +223,13 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val empty = sample.EmptyStatement(go(s.pos))
       Seq(empty)
 
-    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_) =>
+    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_, _) =>
       ???
 
     case sil.Goto(_) |
          sil.If(_, _, _) |
          sil.Label(_, _) |
-         sil.While(_, _, _, _) =>
+         sil.While(_, _, _) =>
       sys.error(s"unexpected statement $s (should not be part of the CFG)")
   }
 
