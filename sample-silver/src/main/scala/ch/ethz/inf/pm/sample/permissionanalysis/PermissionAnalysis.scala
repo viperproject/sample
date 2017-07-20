@@ -9,11 +9,12 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.analysis.{AliasAnalysisEntryStateBuilder, AliasAnalysisState, SimpleAliasAnalysisState}
+import ch.ethz.inf.pm.sample.domain.{AliasDomain, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes._
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
@@ -25,11 +26,15 @@ import com.typesafe.scalalogging.LazyLogging
   * @author Jerome Dohrau
   */
 object PermissionAnalysisTypes {
-  type AccessPath = AliasAnalysisTypes.AccessPath
+  type AccessPath = List[Identifier]
 
   type Tuple = (AccessPath, Permission)
 
   type Tuples = List[Tuple]
+
+  def toIdentifier(path: AccessPath): Expression =
+    if (path.length == 1) path.head
+    else AccessPathIdentifier(path)
 }
 
 /** Used to represent new objects in access paths.
@@ -63,10 +68,15 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
 }
 
 /**
-  * @tparam T The type of the permission analysis state.
+  * A state of the permission analysis.
+  *
+  * @tparam T    The type of the permission analysis state.
+  * @tparam A    The type of the alias analysis state.
+  * @tparam May  The type of the may alias domain used by the alias analysis.
+  * @tparam Must The type of the must alias domain used by the alias analysis.
   * @author Jerome Dohrau
   */
-trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, _], Must <: AliasDomain[Must, _]]
   extends SilverState[T]
     with SilverSpecification[PermissionStack]
     with StateWithRefiningAnalysisStubs[T]
@@ -379,7 +389,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   override def assignField(obj: Expression, field: String, right: Expression): T = {
     logger.trace("assignField")
     obj match {
-      case AccessPathIdentifier(leftPath) =>
+      case left@AccessPathIdentifier(leftPath) =>
         // check whether lhs is a reference
         if (obj.typ.isObject) {
           // case 1: the assigned field is a reference
@@ -391,13 +401,17 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
           val assigned =
             if (rightPath.isEmpty) assign(leftPath, rightPath)
             else accessPaths.foldLeft(this) {
-              case (res, path) =>
-                postAliases
+              case (res, path) if path.nonEmpty =>
+                val p = toIdentifier(path)
                 if (path == leftPath) res.assign(path, rightPath)
-                else if (path.length > 1 && postAliases.pathsMayAlias(path, rightPath))
-                  if (postAliases.pathsMustAlias(path, rightPath)) res.assign(path, rightPath)
-                  else res lub res.assign(path, rightPath)
-                else res
+                else if (path.length > 1 && postAliases.mayAlias(p, right))
+                  if (postAliases.mustAlias(p, right))
+                    res.assign(path, rightPath)
+                  else
+                    res lub res.assign(path, rightPath)
+                else
+                  res
+              case (res, _) => res
             }
           assigned.write(leftPath).read(rightPath).makeSelfFraming()
         } else {
@@ -595,7 +609,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
     */
   private def access(path: AccessPath, permission: Permission): T = {
     if (path.length < 2)
-      // in this case no permission is needed
+    // in this case no permission is needed
       this
     else {
       // build permission tree for the wanted permission
@@ -653,7 +667,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def mayBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
     if (first.length < 2 || second.length < 2) false
     else if (first == second) true
-    else aliases.pathsMayAlias(first.init, second.init) && first.last == second.last
+    else aliases.mayAlias(toIdentifier(first.init), toIdentifier(second.init)) && first.last == second.last
 
   /** Returns true if the two given access paths must refer to the same field on
     * the same receiver object.
@@ -667,7 +681,7 @@ trait PermissionAnalysisState[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   private def mustBeSame(aliases: A, first: AccessPath, second: AccessPath): Boolean =
     if (first.length < 2 || second.length < 2) false
     else if (first == second) true
-    else aliases.pathsMustAlias(first.init, second.init) && first.last == second.last
+    else aliases.mustAlias(toIdentifier(first.init), toIdentifier(second.init)) && first.last == second.last
 
   /* ------------------------------------------------------------------------- *
    *
@@ -698,7 +712,7 @@ object PermissionAnalysisState {
                                            inferred: Option[PermissionStack] = None,
                                            isBottom: Boolean = false,
                                            isTop: Boolean = false)
-    extends PermissionAnalysisState[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
+    extends PermissionAnalysisState[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
     override def copy(currentPP: ProgramPoint,
                       result: ExpressionSet,
                       stack: PermissionStack,
@@ -710,13 +724,13 @@ object PermissionAnalysisState {
 
 }
 
-object PermissionAnalysisEntryState
+case class PermissionAnalysisEntryStateBuilder()
   extends SilverEntryStateBuilder[SimplePermissionAnalysisState] {
   override def default: PermissionAnalysisState.SimplePermissionAnalysisState = PermissionAnalysisState.SimplePermissionAnalysisState()
 }
 
-case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-(aliasAnalysisStateBuilder: AliasAnalysisStateBuilder[A],
+case class PermissionAnalysis[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, _], Must <: AliasDomain[Must, _]]
+(aliasAnalysisStateBuilder: SilverEntryStateBuilder[A],
  permissionAnalysisStateBuilder: SilverEntryStateBuilder[T])
   extends SilverAnalysis[T] {
   override def analyze(program: SilverProgramDeclaration): ProgramResult[T] = {
@@ -748,7 +762,7 @@ case class PermissionAnalysis[A <: AliasAnalysisState[A], T <: PermissionAnalysi
   }
 }
 
-trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+trait DebugPermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, _], Must <: AliasDomain[Must, _]]
   extends SilverAnalysisRunner[T] {
   override def main(arguments: Array[String]) {
     // check whether there is a first argument (the path to the file)
@@ -767,7 +781,8 @@ trait DebugPermissionInferenceRunner[A <: AliasAnalysisState[A], T <: Permission
 }
 
 object DebugPermissionInference
-  extends DebugPermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
-  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends DebugPermissionInferenceRunner[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
+  //override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph](AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
 }
 

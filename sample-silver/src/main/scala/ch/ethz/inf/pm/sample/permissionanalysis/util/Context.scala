@@ -6,10 +6,10 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis.util
 
+import ch.ethz.inf.pm.sample.analysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.execution.{CfgResult, DefaultProgramResult, ProgramResult}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.FieldDeclaration
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 
 /**
   * A context object for the permission inference that stores the result of the
@@ -18,6 +18,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
   * @author Jerome Dohrau
   */
 object Context {
+
   /**
     * The program currently being analyzed.
     */
@@ -56,9 +57,8 @@ object Context {
     * Sets the result of the alias analysis.
     *
     * @param aliases The result of the alias analysis to set.
-    * @tparam A The type of the alias analysis state.
     */
-  def setAliases[A <: AliasAnalysisState[A]](aliases: CfgResult[A]): Unit = {
+  def setAliases[A <: AliasAnalysisState[A, _, _]](aliases: CfgResult[A]): Unit = {
     val method = this.method.get
     val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
     results.setResult(method, aliases)
@@ -67,10 +67,9 @@ object Context {
   /**
     * Returns the result of the alias analysis.
     *
-    * @tparam A The type of the alias analysis state.
     * @return The result of the alias analysis.
     */
-  def getAliases[A <: AliasAnalysisState[A]]: CfgResult[A] = {
+  def getAliases[A <: AliasAnalysisState[A, _, _]]: CfgResult[A] = {
     val method = this.method.get
     val results = this.aliases.get.asInstanceOf[ProgramResult[A]]
     results.getResult(method)
