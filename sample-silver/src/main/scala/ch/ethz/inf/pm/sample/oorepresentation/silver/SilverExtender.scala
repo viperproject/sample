@@ -70,7 +70,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
 
     val extendedPreconditions = preconditions(method.pres, entry, result)
     val extendedPostconditions = postconditions(method.posts, exit, result)
-    val extendedBody = extendStatement(method.body, result)
+    val extendedBody = extendBody(method.body, result)
 
     // TODO: Handle arguments.
 
@@ -82,6 +82,11 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     )(method.pos, method.info, method.errT)
   }
 
+  def extendBody(body: sil.Seqn, results: CfgResult[S]): sil.Seqn = extendStatement(body, results) match {
+    case seqn: sil.Seqn => seqn
+    case _ => ???
+  }
+
   /**
     * Extends the given statement using the given result of the analysis.
     *
@@ -90,22 +95,22 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     * @return The extended statement.
     */
   def extendStatement(statement: sil.Stmt, results: CfgResult[S]): sil.Stmt = statement match {
-    case sil.Seqn(originalStatements) =>
+    case sil.Seqn(originalStatements, scopedDecls) =>
       // recursively extend all statements of the sequence
       val extendedStatements = originalStatements.map(statement => extendStatement(statement, results))
-      sil.Seqn(extendedStatements)(statement.pos, statement.info)
+      sil.Seqn(extendedStatements, scopedDecls)(statement.pos, statement.info)
     case sil.If(condition, originalThen, originalElse) =>
       // recursively extend then and else branch of if statement
-      val extendedThen = extendStatement(originalThen, results)
-      val extendedElse = extendStatement(originalElse, results)
+      val extendedThen = extendBody(originalThen, results)
+      val extendedElse = extendBody(originalElse, results)
       sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
-    case loop@sil.While(condition, originalInvariants, locals, originalBody) =>
+    case loop@sil.While(condition, originalInvariants, originalBody) =>
       // get the position of the loop
       val position = getLoopPosition(loop, results.cfg)
       // extend while loop
       val extendedInvariants = invariants(originalInvariants, position, results)
-      val extendedBody = extendStatement(originalBody, results)
-      sil.While(condition, extendedInvariants, locals, extendedBody)(statement.pos, statement.info)
+      val extendedBody = extendBody(originalBody, results)
+      sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
     case sil.NewStmt(lhs, originalFields) =>
       // get the position of the new statement
       val position = getPosition(statement, results.cfg).asInstanceOf[BlockPosition]
@@ -114,7 +119,7 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       sil.NewStmt(lhs, extendedFields)(statement.pos, statement.info)
     case sil.Constraining(vars, originalBody) =>
       // recursively extend body of constraining statement
-      val extendedBody = extendStatement(originalBody, results)
+      val extendedBody = extendBody(originalBody, results)
       sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
     case _ =>
       // do nothing
