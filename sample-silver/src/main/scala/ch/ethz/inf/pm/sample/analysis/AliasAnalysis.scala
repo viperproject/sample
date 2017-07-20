@@ -303,17 +303,27 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
    * ALIAS ANALYSIS STATE METHODS
    */
 
-  def mayAlias(left: Expression, right: Expression): Boolean = {
-    val res = may.mayAlias(left, right)
-    println(s"mayAlias($left, $right) = $res")
-    res
-  }
+  /**
+    * Returns whether the locations corresponding to the two given expressions
+    * may alias.
+    *
+    * @param left  The expression corresponding to the first location.
+    * @param right The expression corresponding to the second location.
+    * @return True if the locations may alias.
+    */
+  def mayAlias(left: Expression, right: Expression): Boolean =
+    may.mayAlias(left, right)
 
-  def mustAlias(left: Expression, right: Expression): Boolean = {
-    val res = must.mustAlias(left, right)
-    println(s"mustAlias($left, $right) = $res")
-    res
-  }
+  /**
+    * Returns whether the locations corresponding to the two given expressions
+    * must alias.
+    *
+    * @param left  The expression corresponding to the first location.
+    * @param right The expression corresponding to the second location.
+    * @return True if the locations must alias.
+    */
+  def mustAlias(left: Expression, right: Expression): Boolean =
+    must.mustAlias(left, right)
 
   /**
     * Copies the state and updates the top flag, bottom flag, may alias domain,
