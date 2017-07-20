@@ -1,0 +1,19 @@
+method main(init: Int, delta: Int)
+{
+    var a: Int
+    var b: Int
+    var c: Int
+
+    a := iterate(0, 1, -100, 100)
+    b := iterate(0, -1, -100, 100)
+    c := iterate(init, delta, -100, 100)
+}
+
+method iterate(init: Int, delta: Int, low: Int, high: Int) returns (res: Int)
+ {
+    res := init
+    while (low < res && res < high)
+    {
+        res := res + delta
+    }
+ }

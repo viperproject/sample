@@ -1,0 +1,18 @@
+//
+// octagons should be able to prove the assert
+//
+method foo(a: Int) returns (r: Int) {
+
+   var t: Int := a + 1
+   var y: Int := 0
+   y := bar(t)
+   assert y == a + 5
+}
+
+method bar(b: Int) returns (k: Int) {
+   k := baz(b + 1)
+}
+
+method baz(c: Int) returns (l: Int) {
+   l := c + 3
+}

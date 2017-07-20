@@ -181,7 +181,7 @@ trait SilverState[S <: SilverState[S]]
 
   /**
     * Returns a state where methodCall.targets gets the values of the the called methods returns.
-    * methodCall.targets.head would "get" "ReturnPrefix"1 and so on
+    * methodCall.targets.head would "get" $ReturnPrefix + 0 and so on
     *
     * @param methodDeclaration The method declaration of the callee
     * @param methodCall        The statement in the caller that calls the method
@@ -200,42 +200,46 @@ trait SilverState[S <: SilverState[S]]
       st = st.createVariable(exp, formalRetVar.typ, DummyProgramPoint).assignVariable(exp, ExpressionSet(formalRetVar.variable.id))
       (targetVar, exp)
     }
-    st = st.ids.toSet // let's remove all non temporary-ret-variables
-      .filter(id => !id.getName.startsWith(ReturnPrefix))
+    st = st.ids.toSet // let's remove all non temporary variables
+      .filter(id => !(id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
       .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
-    // map return values to temp variables and remove all temporary ret variables
-    val joinedState = returnVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
-    returnVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._2))
+    // map return values to temp variables
+    val joinedState = returnVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    // and remove all temporary ret/arg variables
+    joinedState.ids.toSet
+      .filter(id => (id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
+      .foldLeft(joinedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
   }
 
   /**
     * Returns a state where parameterExpressions gets the values of the the called method's entry state.
     * This is used in the backward analysis and it's the dual to returnFromMethod() in the forward analysis.
     *
-    *
-    * @param methodDeclaration The method declaration of the callee
-    * @param methodCall        The statement in the caller that calls the method
+    * @param methodDeclaration    The method declaration of the callee
+    * @param methodCall           The statement in the caller that calls the method
     * @param parameterExpressions The parameter expressions that will receive the callee's arguments
-    * @param entryState         The entry state of the callee (from a previous analysis)
+    * @param entryState           The entry state of the callee (from a previous analysis)
     * @return
     */
   def callMethodBackwards(methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, parameterExpressions: Seq[ExpressionSet], entryState: S): S = {
     var index = 0
     var st = entryState
-    val argVariableMapping = for((formalArgVar, argVar) <- methodDeclaration.arguments.zip(parameterExpressions)) yield {
+    val argVariableMapping = for ((formalArgVar, argVar) <- methodDeclaration.arguments.zip(parameterExpressions)) yield {
       // formalArgVar = the variable declared in arguments(...) of the method
       // argVar = the argument/parameter-expression which is assigned to the temporary variable later
-      val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index )(formalArgVar.typ))
+      val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(formalArgVar.typ))
       index += 1
       st = st.createVariable(exp, formalArgVar.typ, DummyProgramPoint).assignVariable(ExpressionSet(formalArgVar.variable.id), exp)
       (exp, argVar)
     }
-    st = st.ids.toSet // let's remove all non ret_# variables
-      .filter(id => ! id.getName.startsWith(ArgumentPrefix))
-      .foldLeft(st)((st, ident)=> st.removeVariable(ExpressionSet(ident)))
+    st = st.ids.toSet // let's remove all non temporary variables
+      .filter(id => !(id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
+      .foldLeft(st)((st, ident) => st.removeVariable(ExpressionSet(ident)))
     // map return values to temp variables and remove all temporary ret_# variables
-    val joinedState = argVariableMapping.foldLeft(this lub st)((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
-    argVariableMapping.foldLeft(joinedState)((st, tuple) => st.removeVariable(tuple._1))
+    val joinedState = argVariableMapping.foldLeft(this.command(UnifyCommand(st)))((st: State[S], tuple) => (st.assignVariable _).tupled(tuple))
+    joinedState.ids.toSet
+      .filter(id => (id.getName.startsWith(ReturnPrefix) || id.getName.startsWith(ArgumentPrefix)))
+      .foldLeft(joinedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
   }
 
 }

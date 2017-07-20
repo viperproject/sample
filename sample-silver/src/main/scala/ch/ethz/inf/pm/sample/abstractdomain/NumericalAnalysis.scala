@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{InterproceduralSilverAnaly
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast.TrueLit
 
 /**
   * A very simple state used for numerical analysis. Only the values of
@@ -278,6 +277,19 @@ case class IntegerIntervalAnalysisState(pp: ProgramPoint,
     val b = isBottom || (!isTop && domain.isBottom)
     IntegerIntervalAnalysisState(pp, expr, domain, isTop, b)
   }
+
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  override def command(cmd: Command): IntegerIntervalAnalysisState = cmd match {
+    case UnifyCommand(other) => other match {
+      case o: IntegerIntervalAnalysisState => this lub o
+      case _ => super.command(cmd)
+    }
+    case _ => super.command(cmd)
+  }
 }
 
 /**
@@ -317,6 +329,42 @@ case class IntegerOctagonAnalysisState(pp: ProgramPoint,
     val b = isBottom || (!isTop && domain.isBottom)
     IntegerOctagonAnalysisState(pp, expr, domain, isTop, b)
   }
+
+  /** Executes the given command.
+    *
+    * @param cmd The command to execute.
+    * @return The abstract state after the execution of the given command.
+    */
+  override def command(cmd: Command): IntegerOctagonAnalysisState = cmd match {
+    case UnifyCommand(other) => other match {
+      case o: IntegerOctagonAnalysisState => {
+        // we know that ''this'' and ''other'' may not have disjoint envs but that the constraints
+        // do not conflict each other. domain.unify() assumes the environment to be disjoint which is why
+        // we unify the domains ourselves.
+        def unify(that: IntegerOctagons.Inner, other: IntegerOctagons.Inner): IntegerOctagons = {
+          val newEnv = that.env ++ other.env
+          val newClosed = Some(that.getDbm.factory(newEnv.size)
+            .copy(that.getDbm, that.env.getIndices(that.env.ids), newEnv.getIndices(that.env.ids))
+            .copy(other.getDbm, other.env.getIndices(other.env.ids), newEnv.getIndices(other.env.ids))
+            .close())
+          val newOpen = None
+          that.factory(newEnv, newClosed, newOpen)
+        }
+
+        o.domain match {
+          case _: Octagons.Top[IntegerOctagons] => o
+          case _: Octagons.Bottom[IntegerOctagons] => this
+          case other: IntegerOctagons.Inner => domain match {
+            case _: Octagons.Top[IntegerOctagons] => this
+            case _: Octagons.Bottom[IntegerOctagons] => o
+            case that: IntegerOctagons.Inner => copy(domain = unify(that, other))
+          }
+        }
+      }
+      case _ => super.command(cmd)
+    }
+    case _ => super.command(cmd)
+  }
 }
 
 /**
@@ -353,6 +401,16 @@ object IntegerIntervalAnalysis
 object InterproceduralIntegerIntervalAnalysis
   extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
   override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState)
+}
+
+/**
+  * An interprocedural numerical analysis using the integer interval domain.
+  *
+  * @author Flurin Rindisbacher
+  */
+object ContextInsensitiveInterproceduralIntegerIntervalAnalysis
+  extends InterproceduralNonRelationalNumericalAnalysisRunner[IntegerIntervalAnalysisState, IntegerInterval] {
+  override val analysis: InterproceduralSilverForwardAnalysis[IntegerIntervalAnalysisState] = SimpleInterproceduralSilverForwardAnalysis(IntegerIntervalAnalysisEntryState, CallString.ContextInsensitive)
 }
 
 /**
