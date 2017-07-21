@@ -129,7 +129,7 @@ class Replacement(val value: mutable.Map[Set[Identifier], Set[Identifier]] = new
   }
 
   /**
-   * Prett-print replacement in the notation described above
+   * Pretty-print replacement in the notation described above
    */
   override def toString = {
     val lines = for ((k, v) <- value) yield k.mkString("{", ",", "}") + "->" + v.mkString("{", ",", "}")
