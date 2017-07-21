@@ -213,18 +213,16 @@ object Octagons {
 
     override def expand(idA: Identifier, idsB: Set[Identifier]): S = {
       if (numerical(idA)) {
-        val newIds = idsB.filterNot(exists).filter(numerical)
-        if (exists(idA) && newIds.nonEmpty) {
-          val newEnv = env - idA ++ newIds
-          val commonIds = (env.set.getNonTop - idA).toList
-          val from = env.getIndices(commonIds) ++ List.fill(idsB.size)(env.getPositive(idA))
-          val to = newEnv.getIndices(commonIds) ++ newEnv.getIndices(idsB.toList)
+        if (exists(idA)) {
+          val newIds = idsB.filter(numerical).toList
+          val oldIds = (env.set.toSet -- newIds).toList
+          val newEnv = env - idA ++ newIds.toSet
+          val from = env.getIndices(oldIds) ++ List.fill(newIds.size)(env.getPositive(idA))
+          val to = newEnv.getIndices(oldIds) ++ newEnv.getIndices(newIds)
           val newDbm = Some(getDbm.factory(newEnv.size).copy(getDbm, from, to))
           val (newClosed, newOpen) = if (isClosed) (newDbm, None) else (None, newDbm)
           factory(newEnv, newClosed, newOpen)
-        } else {
-          remove(Set(idA)).add(newIds)
-        }
+        } else add(idsB)
       } else this
     }
 
