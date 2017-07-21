@@ -25,7 +25,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: Identifier]
     * @param variable The variable to add.
     * @return The resulting domain and the corresponding replacement.
     */
-  def addVariable(variable: VariableIdentifier): (T, Replacement)
+  def createVariable(variable: VariableIdentifier): (T, Replacement)
 
   /**
     * Removes the given variable from the domain.
