@@ -119,8 +119,8 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def widening(other: T): T = {
     logger.trace(s"widening($this, $other)")
 
-    if (isBottom || other.isTop) this
-    else if (isTop || other.isBottom) other
+    if (isTop || other.isBottom) this
+    else if (isBottom || other.isTop) other
     else {
       // widening of may and must alias graphs
       val newMay = may widening other.may
