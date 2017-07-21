@@ -9,14 +9,14 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult}
 import net.liftweb.json.JsonAST.JValue
-import viper.silver.{ast => sil}
-import net.liftweb.json.prettyRender
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json.prettyRender
 import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
+import viper.silver.{ast => sil}
 
 /**
   * Mixin to collect how a program has been extended. Afterwards getSpecifications() can be used to get all changes
-  * as a map from Position to (previous-specifictions, new-specifications)
+  * as a map from Position to (previous-specifications, new-specifications)
   *
   * This trait assumes that for EVERY extended program a new SilverExtender() with SpecificationsExporter is created.
   * (since it stores the changes to the program)
@@ -70,7 +70,7 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
 /**
   * Exports the changes to an extended program as json. For programs that did already contains some specifications
   * we do not export new specifications but report an error (in json format).
-  * All changes and errors are accompanied by a SourcePoisition in the original silver program.
+  * All changes and errors are accompanied by a SourcePosition in the original silver program.
   *
   * @tparam T The type of the inferred specification.
   * @tparam S The type of the state.
