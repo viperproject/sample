@@ -6,12 +6,13 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{AccessPathIdentifier, Identifier, VariableIdentifier}
+import ch.ethz.inf.pm.sample.analysis.{AliasAnalysisEntryStateBuilder, AliasAnalysisState, SimpleAliasAnalysisState}
+import ch.ethz.inf.pm.sample.domain.HeapNode.NullNode
+import ch.ethz.inf.pm.sample.domain.{AliasDomain, HeapNode, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverInferenceRunner, TopType}
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
-import ch.ethz.inf.pm.sample.permissionanalysis.HeapNode.NullNode
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{RefType, SilverIdentifier, SilverInferenceRunner, TopType}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.ExpressionGenerator
@@ -20,7 +21,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, Permi
 import viper.silver.ast.Method
 import viper.silver.{ast => sil}
 
-trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
+trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
   extends SilverInferenceRunner[PermissionStack, T] {
 
   import ExpressionGenerator._
@@ -88,9 +89,8 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
           // TODO: Handle summary and unknown nodes
           val leftPath = path.map(_.getName)
           val left = access(leftPath, sil.Ref)
-          val equalities = aliasState.may
-            .materialize(leftPath)
-            .evaluatePath(leftPath)
+          val target = if (path.length == 1) path.head else AccessPathIdentifier(path)
+          val equalities = aliasState.may.getValue(target)
             .filter(_ != NullNode)
             .map { node =>
               val rightPath = node.getName.split("\\.")
@@ -191,7 +191,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       // helper function to convert an expression into an access path
       def accessPath(expression: sil.Exp): AccessPath = expression match {
         case sil.LocalVar(name) =>
-          List(VariableIdentifier(name)(DummyRefType))
+          List(VariableIdentifier(name)(RefType()))
         case sil.FieldAccess(receiver, field) =>
           val typ = Context.getField(field.name).map(_.typ).getOrElse(TopType)
           accessPath(receiver) :+ VariableIdentifier(field.name)(typ)
@@ -333,6 +333,6 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
 }
 
 object PermissionInference
-  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
-  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends PermissionInferenceRunner[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph](AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
 }
