@@ -27,6 +27,19 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
   type T = HeapAndSemanticDomain[H, S, I]
 
   /**
+    * Creates an element of the heap and semantic domain with the given fields.
+    *
+    * @param fields The fields.
+    * @return
+    */
+  def factory(fields: Seq[Identifier]): T = {
+    val newHeap = heap.factory(fields)
+    val newSemantic = semantic.factory()
+
+    factory(newHeap, newSemantic)
+  }
+
+  /**
     * A factory method that creates a domain element with the given underlying
     * elements of the heap domain and semantic domain.
     *

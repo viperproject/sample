@@ -326,7 +326,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   /**
     * Copies the state and updates the top flag, bottom flag, may alias domain,
     * must alias domain, expression set, and program point if the corresponding
-    * argument is defined.
+    * arguments are defined.
     *
     * @param isTop    The top flag.
     * @param isBottom The bottom flag.
@@ -382,7 +382,7 @@ case class SimpleAliasAnalysisState(isTop: Boolean,
     * @param pp       The program point.
     * @return The updated state.
     */
-  def copy(isTop: Boolean = isTop,
+  override def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            may: MayAliasGraph = may,
            must: MustAliasGraph = must,
@@ -409,9 +409,7 @@ case class AliasAnalysisEntryStateBuilder()
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleAliasAnalysisState = {
-    val fields = program.fields
-      .map(_.variable.id)
-      .filter(_.typ.isObject)
+    val fields = program.fields.map(_.variable.id)
     val initial = default.factory(fields)
     initializeArguments(initial, program, method)
   }

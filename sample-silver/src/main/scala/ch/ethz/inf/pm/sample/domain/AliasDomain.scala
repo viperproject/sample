@@ -26,14 +26,6 @@ trait AliasDomain[T <: AliasDomain[T, I], I <: Identifier]
   this: T =>
 
   /**
-    * Creates an element of the alias domain with the given fields.
-    *
-    * @param fields The fields
-    * @return The alias graph.
-    */
-  def factory(fields: Seq[Identifier]): T
-
-  /**
     * Returns whether the locations corresponding to the two given expressions
     * may alias.
     *
@@ -166,9 +158,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     */
   def materialization: Boolean
 
-  def factory(fields: Seq[Identifier]): T = {
+  override def factory(fields: Seq[Identifier]): T = {
     // prepare field map
-    val map: Store = fields.foldLeft(Map.empty: Store) {
+    val map: Store = fields.filter(_.typ.isObject).foldLeft(Map.empty: Store) {
       case (map, field) => map + (field -> initialValues)
     }
     // initialize heap
