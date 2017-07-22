@@ -158,9 +158,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     */
   def materialization: Boolean
 
-  def factory(fields: Seq[Identifier]): T = {
+  override def factory(fields: Seq[Identifier]): T = {
     // prepare field map
-    val map: Store = fields.foldLeft(Map.empty: Store) {
+    val map: Store = fields.filter(_.typ.isObject).foldLeft(Map.empty: Store) {
       case (map, field) => map + (field -> initialValues)
     }
     // initialize heap

@@ -409,9 +409,7 @@ case class AliasAnalysisEntryStateBuilder()
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleAliasAnalysisState = {
-    val fields = program.fields
-      .map(_.variable.id)
-      .filter(_.typ.isObject)
+    val fields = program.fields.map(_.variable.id)
     val initial = default.factory(fields)
     initializeArguments(initial, program, method)
   }
