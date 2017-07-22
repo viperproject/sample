@@ -326,7 +326,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   /**
     * Copies the state and updates the top flag, bottom flag, may alias domain,
     * must alias domain, expression set, and program point if the corresponding
-    * argument is defined.
+    * arguments are defined.
     *
     * @param isTop    The top flag.
     * @param isBottom The bottom flag.
