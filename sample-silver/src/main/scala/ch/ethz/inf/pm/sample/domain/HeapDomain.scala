@@ -24,7 +24,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: Identifier]
     * Creates an element of the heap domain with the given fields.
     *
     * @param fields The fields
-    * @return The alias graph.
+    * @return The element of the heap domain.
     */
   def factory(fields: Seq[Identifier]): T
 
