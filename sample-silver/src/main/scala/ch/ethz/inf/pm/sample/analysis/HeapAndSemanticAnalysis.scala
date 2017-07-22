@@ -16,6 +16,9 @@ import com.typesafe.scalalogging.LazyLogging
 /**
   * A state of an analysis that combines a heap domain with a semantic domain.
   *
+  * This state essentially wraps an element of the heap and numerical domain
+  * and adds all the state methods.
+  *
   * @tparam T The type of the heap and semantic analysis state.
   * @tparam H The type of the elements of the heap domain.
   * @tparam S The type of the elements of the semantic domain.
@@ -49,23 +52,42 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * LATTICE METHODS
    */
 
-  override def factory(): T = ???
+  override def factory(): T = top()
 
-  override def top(): T = ???
+  override def top(): T = copy(domain = domain.top())
 
-  override def bottom(): T = ???
+  override def bottom(): T = copy(domain = domain.bottom())
 
-  override def lub(other: T): T = ???
+  override def lub(other: T): T = {
+    logger.trace(s"lub($this, $other)")
 
-  override def glb(other: T): T = ???
+    val newDomain = domain lub other.domain
+    copy(domain = newDomain)
+  }
 
-  override def widening(other: T): T = ???
+  override def glb(other: T): T = {
+    logger.trace(s"glb($this, other)")
 
-  override def lessEqual(other: T): Boolean = ???
+    val newDomain = domain glb other.domain
+    copy(domain = newDomain)
+  }
 
-  override def isBottom: Boolean = ???
+  override def widening(other: T): T = {
+    logger.trace(s"widening($this, other)")
 
-  override def isTop: Boolean = ???
+    val newDomain = domain widening other.domain
+    copy(domain = newDomain)
+  }
+
+  override def lessEqual(other: T): Boolean = {
+    logger.trace(s"lessEqual($this, other)")
+
+    domain lessEqual other.domain
+  }
+
+  override def isBottom: Boolean = domain.isBottom
+
+  override def isTop: Boolean = domain.isTop
 
   /* ------------------------------------------------------------------------- *
    * SILVER STATE METHODS
