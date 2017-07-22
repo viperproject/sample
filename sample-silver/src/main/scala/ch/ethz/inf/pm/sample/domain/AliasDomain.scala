@@ -26,14 +26,6 @@ trait AliasDomain[T <: AliasDomain[T, I], I <: Identifier]
   this: T =>
 
   /**
-    * Creates an element of the alias domain with the given fields.
-    *
-    * @param fields The fields
-    * @return The alias graph.
-    */
-  def factory(fields: Seq[Identifier]): T
-
-  /**
     * Returns whether the locations corresponding to the two given expressions
     * may alias.
     *

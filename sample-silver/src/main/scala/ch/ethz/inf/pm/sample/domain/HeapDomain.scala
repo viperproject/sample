@@ -21,6 +21,14 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: Identifier]
   this: T =>
 
   /**
+    * Creates an element of the heap domain with the given fields.
+    *
+    * @param fields The fields
+    * @return The alias graph.
+    */
+  def factory(fields: Seq[Identifier]): T
+
+  /**
     * Adds the given variable to the domain.
     *
     * @param variable The variable to add.
