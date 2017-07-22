@@ -182,13 +182,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace(s"createVariable($variable)")
 
-    if (typ.isObject) {
-      // create variable in may and must alias graph
-      val (newMay, _) = may.addVariable(variable)
-      val (newMust, _) = must.addVariable(variable)
-      // update state
-      copy(may = newMay, must = newMust)
-    } else this
+    // create variable in may and must alias graph
+    val (newMay, _) = may.createVariable(variable)
+    val (newMust, _) = must.createVariable(variable)
+    // update state
+    copy(may = newMay, must = newMust)
   }
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T =
@@ -197,7 +195,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def assignVariable(target: Expression, value: Expression): T = {
     logger.trace(s"assignVariable($target, $value)")
 
-    if (target.typ.isObject) target match {
+    target match {
       case variable: VariableIdentifier =>
         // perform assignment in may and must alias graph
         val (newMay, _) = may.assignVariable(variable, value)
@@ -211,13 +209,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
         // perform abstract garbage collection
         updated.pruneUnreachableHeap()
       case _ => ???
-    } else this
+    }
   }
 
   override def assignField(target: Expression, field: String, value: Expression): T = {
     logger.trace(s"assignField($target, $value)")
 
-    if (target.typ.isObject) target match {
+    target match {
       case target: AccessPathIdentifier =>
         // perform assignment in may and must alias graph
         val (newMay, _) = may.assignField(target, value)
@@ -231,7 +229,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
         // perform abstract garbage collection
         updated.pruneUnreachableHeap()
       case _ => ???
-    } else this
+    }
   }
 
   override def setVariableToTop(varExpr: Expression): T = ???

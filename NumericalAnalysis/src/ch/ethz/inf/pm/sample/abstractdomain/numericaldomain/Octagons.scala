@@ -18,8 +18,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 sealed trait Octagons[S <: Octagons[S]]
   extends NumericalDomain.Relational[S]
     with SimplifiedSemanticDomain[S]
-    with SimplifiedMergeDomain[S]
-{
+    with SimplifiedMergeDomain[S] {
   this: S =>
 
   override def factory(): S =
@@ -31,8 +30,8 @@ sealed trait Octagons[S <: Octagons[S]]
   def factory(env: Octagons.Environment): S
 }
 
-object Octagons
-{
+object Octagons {
+
   /** The super trait for integer octagons and double octagons that are the top
     * element.
     *
@@ -42,8 +41,7 @@ object Octagons
     extends Octagons[S]
       with NumericalDomain.Relational.Top[S]
       with SimplifiedMergeDomain.Top[S]
-      with BooleanExpressionSimplifier[S]
-  {
+      with BooleanExpressionSimplifier[S] {
     this: S =>
 
     override def assign(variable: Identifier, expr: Expression): S = this
@@ -60,8 +58,7 @@ object Octagons
   sealed trait Bottom[S <: Octagons[S]]
     extends Octagons[S]
       with NumericalDomain.Relational.Bottom[S]
-      with SimplifiedMergeDomain.Bottom[S]
-  {
+      with SimplifiedMergeDomain.Bottom[S] {
     this: S =>
 
     override def createVariable(variable: Identifier, typ: Type): S =
@@ -79,8 +76,7 @@ object Octagons
   sealed trait Inner[S <: Octagons[S], T <: Dbm[T]]
     extends Octagons[S]
       with NumericalDomain.Relational.Inner[S, Inner[S, T]]
-      with BooleanExpressionSimplifier[S]
-  {
+      with BooleanExpressionSimplifier[S] {
     this: S =>
 
     /** Returns the environment that holds all identifiers that are represented
@@ -119,9 +115,9 @@ object Octagons
 
     /** Creates an element of the octagon domain.
       *
-      * @param env The environment containing the identifiers.
+      * @param env    The environment containing the identifiers.
       * @param closed The optional closed DBM.
-      * @param open The optional open DBM.
+      * @param open   The optional open DBM.
       * @return The newly created element of the octagon domain.
       */
     def factory(env: Environment, closed: Option[T], open: Option[T]): S
@@ -217,18 +213,16 @@ object Octagons
 
     override def expand(idA: Identifier, idsB: Set[Identifier]): S = {
       if (numerical(idA)) {
-        val newIds = idsB.filterNot(exists).filter(numerical)
-        if (exists(idA) && newIds.nonEmpty) {
-          val newEnv = env - idA ++ newIds
-          val commonIds = (env.set.getNonTop - idA).toList
-          val from = env.getIndices(commonIds) ++ List.fill(idsB.size)(env.getPositive(idA))
-          val to = newEnv.getIndices(commonIds) ++ newEnv.getIndices(idsB.toList)
+        if (exists(idA)) {
+          val newIds = idsB.filter(numerical).toList
+          val oldIds = (env.set.toSet -- newIds).toList
+          val newEnv = env - idA ++ newIds.toSet
+          val from = env.getIndices(oldIds) ++ List.fill(newIds.size)(env.getPositive(idA))
+          val to = newEnv.getIndices(oldIds) ++ newEnv.getIndices(newIds)
           val newDbm = Some(getDbm.factory(newEnv.size).copy(getDbm, from, to))
           val (newClosed, newOpen) = if (isClosed) (newDbm, None) else (None, newDbm)
           factory(newEnv, newClosed, newOpen)
-        } else {
-          remove(Set(idA)).add(newIds)
-        }
+        } else add(idsB)
       } else this
     }
 
@@ -394,7 +388,7 @@ object Octagons
       case _ => Interval.Top
     }
 
-    def toInterval(s:String):Interval
+    def toInterval(s: String): Interval
 
     /** Evaluates a normalized expression into an interval.
       *
@@ -490,7 +484,7 @@ object Octagons
       * abstract to allow different behavior for integer octagons and double
       * octagons.
       *
-      * @param left The first interval.
+      * @param left  The first interval.
       * @param right The second interval.
       * @return The result of the division.
       */
@@ -548,8 +542,7 @@ object Octagons
     *
     * @author Jerome Dohrau
     */
-  trait Dbm[S <: Dbm[S]]
-  {
+  trait Dbm[S <: Dbm[S]] {
     this: S =>
 
     import Dbm._
@@ -871,7 +864,7 @@ object Octagons
           .map(idx => arr(idx))
           .map(num => if (num == Infinity) "  ." else f"${num.toInt}%3d")
           .reduce(_ + " " + _))
-        .reduce(_ + "\n" +_)
+        .reduce(_ + "\n" + _)
   }
 
   /** A DBM for integer constraints.
@@ -881,8 +874,8 @@ object Octagons
     * @author Jerome Dohrau
     */
   case class IntegerDbm(dim: Int, arr: Array[Double])
-    extends Dbm[IntegerDbm]
-  {
+    extends Dbm[IntegerDbm] {
+
     import Dbm.{index, lower}
 
     override def factory(dim: Int, arr: Array[Double]): IntegerDbm =
@@ -947,8 +940,8 @@ object Octagons
     * @author Jerome Dohrau
     */
   case class DoubleDbm(dim: Int, arr: Array[Double])
-    extends Dbm[DoubleDbm]
-  {
+    extends Dbm[DoubleDbm] {
+
     import Dbm.{index, lower}
 
     override def factory(dim: Int, arr: Array[Double]): DoubleDbm =
@@ -1146,19 +1139,20 @@ object Octagons
       */
     private def cancel(literals: List[Literal]): List[Literal] = {
       literals.foldLeft(Map.empty[Identifier, List[Literal]]) {
-        (map, lit) => map.get(lit.id) match {
-          case Some(Nil) | None => map + (lit.id -> (lit :: Nil))
-          case Some(x :: xs) => (lit, x) match {
-            case (Positive(_), Positive(_)) |
-                 (Negative(_), Negative(_)) =>
-              // The literals have the same sign and do not cancel out
-              map + (lit.id -> (lit :: x :: xs))
-            case (Negative(_), Positive(_)) |
-                 (Positive(_), Negative(_)) =>
-              // The literals have different signs and cancel out
-              map + (lit.id -> xs)
+        (map, lit) =>
+          map.get(lit.id) match {
+            case Some(Nil) | None => map + (lit.id -> (lit :: Nil))
+            case Some(x :: xs) => (lit, x) match {
+              case (Positive(_), Positive(_)) |
+                   (Negative(_), Negative(_)) =>
+                // The literals have the same sign and do not cancel out
+                map + (lit.id -> (lit :: x :: xs))
+              case (Negative(_), Positive(_)) |
+                   (Positive(_), Negative(_)) =>
+                // The literals have different signs and cancel out
+                map + (lit.id -> xs)
+            }
           }
-        }
       }.values.toList.flatten
     }
 
@@ -1365,6 +1359,7 @@ object Octagons
     def Epsilon = Interval(NumericalAnalysisConstants.epsilon, NumericalAnalysisConstants.epsilon)
 
   }
+
 }
 
 /** An element of the integer octagon domain.
@@ -1372,8 +1367,8 @@ object Octagons
   * @author Jerome Dohrau
   */
 sealed trait IntegerOctagons
-  extends Octagons[IntegerOctagons]
-{
+  extends Octagons[IntegerOctagons] {
+
   import Octagons.Dbm.topArr
 
   override def factory(env: Environment): IntegerOctagons =
@@ -1385,8 +1380,7 @@ sealed trait IntegerOctagons
   override def bottom(): IntegerOctagons = IntegerOctagons.Bottom
 }
 
-object IntegerOctagons
-{
+object IntegerOctagons {
 
   /** An element of the integer octagon domain that is neither the top element
     * nor the bottom element.
@@ -1395,9 +1389,9 @@ object IntegerOctagons
     * closed DBM and an optional open DBM; however, at least one of them has to
     * be defined.
     *
-    * @param env The environment containing the identifiers.
+    * @param env    The environment containing the identifiers.
     * @param closed The optional closed DBM.
-    * @param open The optional open DBM.
+    * @param open   The optional open DBM.
     * @author Jerome Dohrau
     */
   case class Inner(env: Environment,
@@ -1435,7 +1429,7 @@ object IntegerOctagons
 
     override def epsilon = Interval.One
 
-    override def toInterval(value:String) = Interval(value.toInt, value.toInt)
+    override def toInterval(value: String) = Interval(value.toInt, value.toInt)
 
     override def getStringOfId(id: Identifier): String = {
       val bounds = getDbm.getBounds(env.getIndex(id))
@@ -1496,6 +1490,7 @@ object IntegerOctagons
   object Bottom
     extends IntegerOctagons
       with Octagons.Bottom[IntegerOctagons]
+
 }
 
 /** An element of the double octagon domain.
@@ -1506,6 +1501,7 @@ object IntegerOctagons
   */
 sealed trait DoubleOctagons
   extends Octagons[DoubleOctagons] {
+
   import Octagons.Dbm.topArr
 
   override def factory(env: Environment): DoubleOctagons =
@@ -1526,9 +1522,9 @@ object DoubleOctagons {
     * closed DBM and an optional open DBM; however, at least one of them has to
     * be defined.
     *
-    * @param env The environment containing the identifiers.
+    * @param env    The environment containing the identifiers.
     * @param closed The optional closed DBM.
-    * @param open The optional open DBM.
+    * @param open   The optional open DBM.
     * @author Jerome Dohrau
     */
   case class Inner(env: Environment,
@@ -1564,7 +1560,7 @@ object DoubleOctagons {
 
     override def epsilon = Interval.Epsilon
 
-    override def toInterval(value:String) = Interval(value.toDouble, value.toDouble)
+    override def toInterval(value: String) = Interval(value.toDouble, value.toDouble)
 
     override def getStringOfId(id: Identifier): String = {
       val bounds = getDbm.getBounds(env.getIndex(id))
@@ -1583,8 +1579,8 @@ object DoubleOctagons {
     override def getDbm: DoubleDbm =
       closed.orElse(open).get
 
-     override def makeConstant(value: Double): Expression =
-       Constant(value.toString, SystemParameters.tm.Int)
+    override def makeConstant(value: Double): Expression =
+      Constant(value.toString, SystemParameters.tm.Int)
 
     override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
@@ -1625,4 +1621,5 @@ object DoubleOctagons {
   object Bottom
     extends DoubleOctagons
       with Octagons.Bottom[DoubleOctagons]
+
 }
