@@ -21,11 +21,9 @@ sealed trait Octagons[S <: Octagons[S]]
     with SimplifiedMergeDomain[S] {
   this: S =>
 
-  override def factory(): S =
-    top()
+  override def factory(): S = factory(Set.empty[Identifier])
 
-  def factory(ids: Set[Identifier]): S =
-    factory(Octagons.Environment(IdentifierSet.Inner(ids)))
+  def factory(ids: Set[Identifier]): S = factory(Octagons.Environment(IdentifierSet.Inner(ids)))
 
   def factory(env: Octagons.Environment): S
 }
