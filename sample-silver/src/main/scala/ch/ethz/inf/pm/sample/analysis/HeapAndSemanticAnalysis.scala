@@ -160,3 +160,29 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
            expr: ExpressionSet = expr,
            pp: ProgramPoint = pp): T
 }
+
+/**
+  * A state of the heap and semantic analysis.
+  *
+  * @param domain The heap and semantic domain.
+  * @param expr   The expression set.
+  * @param pp     The current program point.
+  * @tparam H The type of the elements of the heap domain.
+  * @tparam S The type of the elements of the semantic domain.
+  * @tparam I THe type of the identifiers used by the heap domain.
+  */
+case class SimpleHeapAndSemanticAnalysisState[H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier](domain: HeapAndSemanticDomain[H, S, I],
+                                                                                                              expr: ExpressionSet,
+                                                                                                              pp: ProgramPoint)
+  extends HeapAndSemanticAnalysisState[SimpleHeapAndSemanticAnalysisState[H, S, I], H, S, I] {
+
+  /**
+    * The type of an heap and semantic analysis state.
+    */
+  type T = SimpleHeapAndSemanticAnalysisState[H, S, I]
+
+  override def copy(domain: D,
+                    expr: ExpressionSet,
+                    pp: ProgramPoint): T =
+    SimpleHeapAndSemanticAnalysisState(domain, expr, pp)
+}
