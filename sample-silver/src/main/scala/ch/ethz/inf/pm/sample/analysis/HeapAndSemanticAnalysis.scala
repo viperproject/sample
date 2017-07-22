@@ -127,8 +127,6 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
 
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = ???
 
-  override def expr: ExpressionSet = ???
-
   override def getVariableValue(id: Identifier): T = ???
 
   override def pruneUnreachableHeap(): T = ???
