@@ -382,7 +382,7 @@ case class SimpleAliasAnalysisState(isTop: Boolean,
     * @param pp       The program point.
     * @return The updated state.
     */
-  def copy(isTop: Boolean = isTop,
+  override def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            may: MayAliasGraph = may,
            must: MustAliasGraph = must,
