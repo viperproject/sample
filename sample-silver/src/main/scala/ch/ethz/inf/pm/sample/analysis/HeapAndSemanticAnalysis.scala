@@ -101,21 +101,21 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * SIMPLE STATE METHODS
    */
 
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): T = ???
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = ???
 
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = ???
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = ???
 
-  override def assignVariable(x: Expression, right: Expression): T = ???
+  override def assignVariable(target: Expression, right: Expression): T = ???
 
-  override def assignField(obj: Expression, field: String, right: Expression): T = ???
+  override def assignField(target: Expression, field: String, right: Expression): T = ???
 
-  override def setVariableToTop(varExpr: Expression): T = ???
+  override def setVariableToTop(variable: Expression): T = ???
 
-  override def removeVariable(varExpr: VariableIdentifier): T = ???
+  override def removeVariable(variable: VariableIdentifier): T = ???
 
-  override def getFieldValue(obj: Expression, field: String, typ: Type): T = ???
+  override def getFieldValue(target: Expression, field: String, typ: Type): T = ???
 
-  override def assume(cond: Expression): T = ???
+  override def assume(condition: Expression): T = ???
 
   /* ------------------------------------------------------------------------- *
    * STATE METHODS
