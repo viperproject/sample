@@ -93,6 +93,11 @@ class Replacement(val value: mutable.Map[Set[Identifier], Set[Identifier]] = new
     )
 
   def >>(other: Replacement): Replacement = {
+    // This implementation is broken. Currently no one seems to use this method
+    // but if someone does the three question marks below are supposed to draw
+    // his or her attention to this note.
+    ???
+
     if (this.value.isEmpty) return other
     if (other.value.isEmpty) return this
 
