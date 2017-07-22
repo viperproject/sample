@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.domain.util
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Replacement, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, MergeDomain, Replacement}
 import ch.ethz.inf.pm.sample.domain.util.Substitution.{And, Atom, Identity, Or}
 
 import scala.collection.mutable
@@ -36,11 +36,11 @@ sealed trait Substitution {
     case (left, right) => Or(left, right)
   }
 
-  def apply[S <: State[S]](state: S): S = this match {
-    case Identity => state
-    case Atom(replacement) => state.merge(replacement)
-    case And(left, right) => right(left(state))
-    case Or(left, right) => left(state) lub right(state)
+  def apply[D <: MergeDomain[D]](domain: D): D = this match {
+    case Identity => domain
+    case Atom(replacement) => domain.merge(replacement)
+    case And(left, right) => right(left(domain))
+    case Or(left, right) => left(domain) lub right(domain)
   }
 }
 
