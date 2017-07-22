@@ -10,6 +10,7 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
@@ -150,23 +151,44 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * STATE METHODS
    */
 
-  override def before(pp: ProgramPoint): T = ???
+  override def before(pp: ProgramPoint): T = copy(pp = pp)
 
-  override def createObject(typ: Type, pp: ProgramPoint): T = ???
+  override def createObject(typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"createObject($typ)")
 
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = ???
+    // TODO: This implementation is tailored for the use of the alias graph
+    // and probably does not work in general.
+    copy(expr = ExpressionSet(NewNode))
+  }
 
-  override def getVariableValue(id: Identifier): T = ???
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"evalConstant($value)")
 
-  override def pruneUnreachableHeap(): T = ???
+    val constant = Constant(value, typ, pp)
+    copy(expr = ExpressionSet(constant))
+  }
+
+  override def getVariableValue(identifier: Identifier): T = {
+    logger.trace(s"getVariableValue($identifier)")
+
+    identifier match {
+      case variable: VariableIdentifier => copy(expr = ExpressionSet(variable))
+      case _ => ???
+    }
+  }
+
+  override def pruneUnreachableHeap(): T = {
+    val newDomain = domain.garbageCollect()
+    copy(domain = newDomain)
+  }
 
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
 
-  override def removeExpression(): T = ???
+  override def removeExpression(): T = copy(expr = ExpressionSet())
 
   override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
 
-  override def setExpression(expr: ExpressionSet): T = ???
+  override def setExpression(expr: ExpressionSet): T = copy(expr = expr)
 
   override def throws(t: ExpressionSet): T = ???
 

@@ -90,4 +90,20 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     else if (other.isBottom) false
     else (heap lessEqual other.heap) && (semantic lessEqual other.semantic)
 
+  /* ------------------------------------------------------------------------- *
+   * HEAP AND SEMANTIC DOMAIN METHODS
+   */
+
+  /**
+    * Performs an abstract garbage collection by pruning all unreachable heap
+    * locations and then removes identifiers from the semantic domain if
+    * necessary.
+    *
+    * @return The resulting domain.
+    */
+  def garbageCollect(): T = {
+    // TODO: Substitute
+    val (newHeap, substitution) = heap.garbageCollect()
+    copy(heap = newHeap)
+  }
 }
