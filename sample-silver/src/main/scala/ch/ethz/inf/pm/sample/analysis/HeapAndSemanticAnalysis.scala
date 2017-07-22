@@ -6,10 +6,14 @@
 
 package ch.ethz.inf.pm.sample.analysis
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain}
-import ch.ethz.inf.pm.sample.execution.SilverState
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import com.typesafe.scalalogging.LazyLogging
 
@@ -48,15 +52,40 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
     */
   def pp: ProgramPoint
 
+  /**
+    * Creates an element of the heap and semantic analysis state with the given
+    * fields.
+    *
+    * @param fields The fields.
+    * @return The resulting state.
+    */
+  def factory(fields: Seq[Identifier]): T = copy(
+    domain = domain.factory(fields),
+    expr = ExpressionSet(),
+    pp = DummyProgramPoint
+  )
+
   /* ------------------------------------------------------------------------- *
    * LATTICE METHODS
    */
 
-  override def factory(): T = top()
+  override def factory(): T = copy(
+    domain = domain.factory(),
+    expr = ExpressionSet(),
+    pp = DummyProgramPoint
+  )
 
-  override def top(): T = copy(domain = domain.top())
+  override def top(): T = copy(
+    domain = domain.top(),
+    expr = ExpressionSet(),
+    pp = DummyProgramPoint
+  )
 
-  override def bottom(): T = copy(domain = domain.bottom())
+  override def bottom(): T = copy(
+    domain = domain.bottom(),
+    expr = ExpressionSet(),
+    pp = DummyProgramPoint
+  )
 
   override def lub(other: T): T = {
     logger.trace(s"lub($this, $other)")
@@ -170,6 +199,7 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
   * @tparam H The type of the elements of the heap domain.
   * @tparam S The type of the elements of the semantic domain.
   * @tparam I THe type of the identifiers used by the heap domain.
+  * @author Jerome Dohrau
   */
 case class SimpleHeapAndSemanticAnalysisState[H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier](domain: HeapAndSemanticDomain[H, S, I],
                                                                                                               expr: ExpressionSet,
@@ -185,4 +215,72 @@ case class SimpleHeapAndSemanticAnalysisState[H <: HeapDomain[H, I], S <: Semant
                     expr: ExpressionSet,
                     pp: ProgramPoint): T =
     SimpleHeapAndSemanticAnalysisState(domain, expr, pp)
+}
+
+/**
+  * An entry state builder for a heap and semantic analysis.
+  *
+  * @tparam H The type of the heap domain.
+  * @tparam S The type of the semantic domain.
+  * @tparam I The type of the identifiers used by the heap domain.
+  * @author Jerome Dohrau
+  */
+trait HeapAndSemanticAnalysisEntryStateBuilder[H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier]
+  extends SilverEntryStateBuilder[SimpleHeapAndSemanticAnalysisState[H, S, I]] {
+
+  /**
+    * Returns an element of the heap domain.
+    *
+    * @return An element of the heap domain.
+    */
+  def heap: H
+
+  /**
+    * Returns an element of the semantic domain.
+    *
+    * @return An element of the semantic domain.
+    */
+  def semantic: S
+
+  override def default: SimpleHeapAndSemanticAnalysisState[H, S, I] = SimpleHeapAndSemanticAnalysisState(
+    domain = HeapAndSemanticDomain(heap, semantic),
+    expr = ExpressionSet(),
+    pp = DummyProgramPoint
+  )
+}
+
+/**
+  * The entry state builder for the heap and octagon analysis.
+  *
+  * @author Jerome Dohrau
+  */
+object HeapAndOctagonAnalysisEntryState
+  extends HeapAndSemanticAnalysisEntryStateBuilder[MayAliasGraph, IntegerOctagons, HeapNode] {
+  override def heap: MayAliasGraph = MayAliasGraph()
+
+  override def semantic: IntegerOctagons = IntegerOctagons.Top.factory()
+}
+
+/**
+  * An analysis that combines a heap analysis with an integer octagon analysis.
+  *
+  * @author Jerome Dohrau
+  */
+object HeapAndOctagonAnalysis
+  extends SilverAnalysisRunner[SimpleHeapAndSemanticAnalysisState[MayAliasGraph, IntegerOctagons, HeapNode]] {
+
+  override val analysis: SilverAnalysis[SimpleHeapAndSemanticAnalysisState[MayAliasGraph, IntegerOctagons, HeapNode]] = SimpleSilverForwardAnalysis(HeapAndOctagonAnalysisEntryState)
+
+  override def main(args: Array[String]): Unit = {
+    assert(args.nonEmpty, "No file specified.")
+
+    // run analysis
+    val path = new File(args(0)).toPath
+    val results = run(Compilable.Path(path))
+
+    for (method <- results.identifiers) {
+      println(method)
+      results.getResult(method).print()
+    }
+  }
 }
