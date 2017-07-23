@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.domain.util.Substitution
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /**
@@ -60,11 +61,9 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     val newHeap = heap.factory(fields)
     // initialize semantic domain
     val locations = newHeap.locations
-    val variables = locations.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
-    val newSemantic = variables.foldLeft(semantic.factory()) {
-      case (semantic, variable) => semantic.createVariable(variable)
-    }
-
+    val identifiers = locations.flatMap { location => fields.map { field => FieldIdentifier(location, field): Identifier } }
+    val newSemantic = identifiers.foldLeft(semantic.factory()) { case (domain, variable) => domain.createVariable(variable) }
+    // return domain element
     copy(heap = newHeap, semantic = newSemantic, fields = fields)
   }
 
@@ -110,17 +109,23 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
 
   override def isBottom: Boolean = heap.isBottom || semantic.isBottom
 
-  override def lub(other: T): T = {
-    val newHeap = heap lub other.heap
-    val newSemantic = semantic lub other.semantic
-    copy(heap = newHeap, semantic = newSemantic)
-  }
+  override def lub(other: T): T =
+    if (isTop || other.isBottom) this
+    else if (isBottom || other.isTop) other
+    else {
+      val newHeap = heap lub other.heap
+      val newSemantic = semantic lub other.semantic
+      copy(heap = newHeap, semantic = newSemantic)
+    }
 
-  override def glb(other: T): T = {
-    val newHeap = heap glb other.heap
-    val newSemantic = semantic glb other.semantic
-    copy(heap = newHeap, semantic = newSemantic)
-  }
+  override def glb(other: T): T =
+    if (isBottom || other.isTop) this
+    else if (isTop || other.isBottom) other
+    else {
+      val newHeap = heap glb other.heap
+      val newSemantic = semantic glb other.semantic
+      copy(heap = newHeap, semantic = newSemantic)
+    }
 
   override def widening(other: T): T = {
     val newHeap = heap widening other.heap
@@ -138,6 +143,69 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
    */
 
   /**
+    * Adds the given variable to the domain.
+    *
+    * @param variable The variable to add.
+    * @return The resulting domain.
+    */
+  def createVariable(variable: VariableIdentifier): T = {
+    val (newHeap, substitution) = heap.createVariable(variable)
+    val newSemantic = substitutedSemantic(substitution).createVariable(variable)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
+    * Removes the given variable from the domain.
+    *
+    * @param variable The variable to remove.
+    * @return The resulting domain.
+    */
+  def removeVariable(variable: VariableIdentifier): T = {
+    val (newHeap, substitution) = heap.removeVariable(variable)
+    val newSemantic = substitutedSemantic(substitution).removeVariable(variable)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
+    * Performs a variable assignment of the given expression to the given
+    * variable.
+    *
+    * @param variable   The variable.
+    * @param expression The expression.
+    * @return The resulting domain.
+    */
+  def assignVariable(variable: VariableIdentifier, expression: Expression): T = {
+    val (newHeap, substitution) = heap.assignVariable(variable, expression)
+    val newSemantic = substitutedSemantic(substitution).assign(variable, expression)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
+    * Performs a field assignment of the given expression to the given target.
+    *
+    * @param target     The target.
+    * @param expression The expression.
+    * @return The resulting domain.
+    */
+  def assignField(target: AccessPathIdentifier, expression: Expression): T = {
+    // get receiver and field
+    val receiver = AccessPathIdentifier(target.path.init)
+    val field = target.path.last
+    // perform update in heap domain
+    val (newHeap, substitution) = heap.assignField(target, expression)
+    // get identifiers corresponding to the receiver
+    val receivers = heap.getValue(receiver)
+    val identifiers = receivers.map { receiver => FieldIdentifier(receiver, field) }
+    // perform update in semantic domain
+    val substituted = substitutedSemantic(substitution)
+    val newSemantic = identifiers
+      .map(variable => substituted.assign(variable, expression))
+      .reduce(_ lub _)
+    // return updated domain
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
     * Performs an abstract garbage collection by pruning all unreachable heap
     * locations and then removes identifiers from the semantic domain if
     * necessary.
@@ -145,8 +213,13 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * @return The resulting domain.
     */
   def garbageCollect(): T = {
-    // TODO: Substitute
     val (newHeap, substitution) = heap.garbageCollect()
-    copy(heap = newHeap)
+    val newSemantic = substitutedSemantic(substitution)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  private def substitutedSemantic(substitution: Substitution): S = {
+    val x = substitution.extend(fields)
+    x(semantic)
   }
 }

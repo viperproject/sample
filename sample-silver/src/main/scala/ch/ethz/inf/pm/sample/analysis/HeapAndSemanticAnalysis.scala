@@ -131,19 +131,59 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * SIMPLE STATE METHODS
    */
 
-  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = ???
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"createVariable($variable)")
 
-  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = ???
+    val newDomain = domain.createVariable(variable)
+    copy(domain = newDomain)
+  }
 
-  override def assignVariable(target: Expression, right: Expression): T = ???
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T =
+    createVariable(variable, typ, DummyProgramPoint)
 
-  override def assignField(target: Expression, field: String, right: Expression): T = ???
+  override def assignVariable(target: Expression, expression: Expression): T = {
+    logger.trace(s"assignVariable($target, right)")
+
+    target match {
+      case variable: VariableIdentifier =>
+        val newDomain = domain.assignVariable(variable, expression)
+        copy(domain = newDomain)
+      case _ => ???
+    }
+  }
+
+  override def assignField(target: Expression, field: String, expression: Expression): T = {
+    logger.trace(s"assignField($target, $expression)")
+
+    target match {
+      case target: AccessPathIdentifier =>
+        val newDomain = domain.assignField(target, expression)
+        copy(domain = newDomain)
+      case _ => ???
+    }
+  }
 
   override def setVariableToTop(variable: Expression): T = ???
 
-  override def removeVariable(variable: VariableIdentifier): T = ???
+  override def removeVariable(variable: VariableIdentifier): T = {
+    logger.trace(s"removeVariable($variable)")
 
-  override def getFieldValue(target: Expression, field: String, typ: Type): T = ???
+    val newDomain = domain.removeVariable(variable)
+    copy(domain = newDomain)
+  }
+
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): T = {
+    logger.trace(s"getFieldValue($receiver, $field)")
+
+    val identifier = VariableIdentifier(field)(typ)
+    val value = receiver match {
+      case variable: VariableIdentifier => AccessPathIdentifier(variable :: identifier :: Nil)
+      case AccessPathIdentifier(path) => AccessPathIdentifier(path :+ identifier)
+      case _ => ???
+    }
+
+    copy(expr = ExpressionSet(value))
+  }
 
   override def assume(condition: Expression): T = ???
 
