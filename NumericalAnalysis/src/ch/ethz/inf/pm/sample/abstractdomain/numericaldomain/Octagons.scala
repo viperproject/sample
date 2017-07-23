@@ -143,24 +143,26 @@ object Octagons {
 
     def epsilon: Interval
 
-    override def assumeSimplified(expression: Expression): S = {
-      val nonExisting = expression.ids.getNonTop.filterNot(exists)
-      if (nonExisting.nonEmpty)
-        createVariables(nonExisting).assume(expression)
-      else expression match {
-        case BinaryArithmeticExpression(lhs, rhs, op) =>
-          val left = normalize(lhs)
-          val right = normalize(rhs)
-          op match {
-            case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
-            case ArithmeticOperator.!= => assumeNormalized(left - right + epsilon) lub assumeNormalized(right - left + epsilon)
-            case ArithmeticOperator.<= => assumeNormalized(left - right)
-            case ArithmeticOperator.< => assumeNormalized(left - right + epsilon)
-            case ArithmeticOperator.>= => assumeNormalized(right - left)
-            case ArithmeticOperator.> => assumeNormalized(right - left + epsilon)
-          }
-        case _ => throw new IllegalArgumentException("The argument is expected to be a comparison.")
-      }
+    override def assumeSimplified(expression: Expression): S = expression match {
+      case _: ReferenceComparisonExpression => this
+      case _ =>
+        val nonExisting = expression.ids.getNonTop.filterNot(exists)
+        if (nonExisting.nonEmpty)
+          createVariables(nonExisting).assume(expression)
+        else expression match {
+          case BinaryArithmeticExpression(lhs, rhs, op) =>
+            val left = normalize(lhs)
+            val right = normalize(rhs)
+            op match {
+              case ArithmeticOperator.== => assumeNormalized(left - right) glb assumeNormalized(right - left)
+              case ArithmeticOperator.!= => assumeNormalized(left - right + epsilon) lub assumeNormalized(right - left + epsilon)
+              case ArithmeticOperator.<= => assumeNormalized(left - right)
+              case ArithmeticOperator.< => assumeNormalized(left - right + epsilon)
+              case ArithmeticOperator.>= => assumeNormalized(right - left)
+              case ArithmeticOperator.> => assumeNormalized(right - left + epsilon)
+            }
+          case _ => throw new IllegalArgumentException("The argument is expected to be a comparison.")
+        }
     }
 
     /** Assumes that the value represented by the given normalized expression
@@ -222,7 +224,7 @@ object Octagons {
             // make sure the newly created variables are independent
             for (i <- to; j <- to if i < j) {
               res = res.assignRelational(i, j, Interval.Top)
-              if (isClosed) res.close(i,j)
+              if (isClosed) res.close(i, j)
             }
             res
           }
