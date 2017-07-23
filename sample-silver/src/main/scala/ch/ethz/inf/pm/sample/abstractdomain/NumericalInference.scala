@@ -6,6 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
@@ -176,7 +178,6 @@ object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   override def main(args: Array[String]): Unit = {
     // run the analysis and print result as json
     val extended = extend(args)
-    //TODO this main() method skips the verification step. Add it here if we wan't that for the IDE
-    println(specificationsAsJson)
+    println(specificationsAsJson((new File(args(0)).toPath).toString))
   }
 }
