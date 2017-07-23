@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import com.typesafe.scalalogging.LazyLogging
@@ -269,6 +269,12 @@ trait HeapAndSemanticAnalysisEntryStateBuilder[H <: HeapDomain[H, I], S <: Seman
     expr = ExpressionSet(),
     pp = DummyProgramPoint
   )
+
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleHeapAndSemanticAnalysisState[H, S, I] = {
+    val fields = program.fields.map(_.variable.id)
+    val initial = default.factory(fields)
+    initializeArguments(initial, program, method)
+  }
 }
 
 /**

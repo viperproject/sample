@@ -1,10 +1,7 @@
-method foo(n: Int)
-{
-    var i: Int := 0
-    var j: Int := 10
+field cell: Ref
+field val: Int
 
-    while (i < n) {
-        i := i + 1
-        j := j - 1
-    }
+method foo(a: Ref, v: Int)
+{
+    a.val := v
 }
