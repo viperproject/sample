@@ -367,19 +367,25 @@ trait AliasGraph[T <: AliasGraph[T]]
       case variable: VariableIdentifier =>
         evaluateVariable(variable)
       case AccessPathIdentifier(path) =>
-        val receiver = AccessPathIdentifier(path.init)
-        val field = path.last
-        val (domain, receivers, substitution1) = evaluateReceiver(receiver)
-        val (updated, values, substitution2) = domain.evaluateField(receivers, field)
-        val substitution = substitution1 compose substitution2
-        (updated, values, substitution)
+        if (path.length == 1) evaluate(path.head)
+        else {
+          val receiver = AccessPathIdentifier(path.init)
+          val field = path.last
+          val (domain, receivers, substitution1) = evaluateReceiver(receiver)
+          val (updated, values, substitution2) = domain.evaluateField(receivers, field)
+          val substitution = substitution1 compose substitution2
+          (updated, values, substitution)
+        }
       case _ => ???
     } else expression match {
       case AccessPathIdentifier(path) =>
-        val values = Set.empty[HeapNode]
-        val updated = AccessPathIdentifier(path.init)
-        val (domain, _, substitution) = evaluateReceiver(updated)
-        (domain, values, substitution)
+        if (path.length == 1) evaluate(path.head)
+        else {
+          val values = Set.empty[HeapNode]
+          val receiver = AccessPathIdentifier(path.init)
+          val (updated, _, substitution) = evaluateReceiver(receiver)
+          (updated, values, substitution)
+        }
       case _ =>
         val values = Set.empty[HeapNode]
         (this, values, identity)
