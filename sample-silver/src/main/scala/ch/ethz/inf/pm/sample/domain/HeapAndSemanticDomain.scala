@@ -218,8 +218,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     copy(heap = newHeap, semantic = newSemantic)
   }
 
-  private def substitutedSemantic(substitution: Substitution): S = {
-    val x = substitution.extend(fields)
-    x(semantic)
-  }
+  private def substitutedSemantic(substitution: Substitution): S =
+    substitution.extend(fields)(semantic)
+
 }
