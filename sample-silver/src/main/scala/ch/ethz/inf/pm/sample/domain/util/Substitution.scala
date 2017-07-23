@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.domain.util
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, MergeDomain, Replacement}
+import ch.ethz.inf.pm.sample.domain.FieldIdentifier
 import ch.ethz.inf.pm.sample.domain.util.Substitution.{And, Atom, Identity, Or}
 
 import scala.collection.mutable
@@ -34,6 +35,19 @@ sealed trait Substitution {
   def lub(other: Substitution): Substitution = (this, other) match {
     case (Identity, Identity) => Identity
     case (left, right) => Or(left, right)
+  }
+
+  def extend(fields: Seq[Identifier]): Substitution = this match {
+    case Identity => Identity
+    case Atom(replacement) =>
+      val value = replacement.value.map { case (from, to) =>
+        val newFrom = from.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
+        val newTo = to.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
+        newFrom -> newTo
+      }
+      Atom(new Replacement(value))
+    case And(left, right) => And(left.extend(fields), right.extend(fields))
+    case Or(left, right) => Or(left.extend(fields), right.extend(fields))
   }
 
   def apply[D <: MergeDomain[D]](domain: D): D = this match {
