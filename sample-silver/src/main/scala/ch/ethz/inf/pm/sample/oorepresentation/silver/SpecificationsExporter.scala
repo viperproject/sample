@@ -44,15 +44,15 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
   }
 
   abstract override def preconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Pre, method.pos, existing, () => super.preconditions(method, existing, position, result))
+    extendAndSaveResult(Pre, method.body.pos, existing, () => super.preconditions(method, existing, position, result))
   }
 
   abstract override def postconditions(method: sil.Method, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Post, method.pos, existing, () => super.postconditions(method, existing, position, result))
+    extendAndSaveResult(Post, method.body.pos, existing, () => super.postconditions(method, existing, position, result))
   }
 
   abstract override def invariants(loop: sil.While, existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Inv, loop.pos, existing, () => super.invariants(loop, existing, position, result))
+    extendAndSaveResult(Inv, loop.body.pos, existing, () => super.invariants(loop, existing, position, result))
   }
 
   /**
