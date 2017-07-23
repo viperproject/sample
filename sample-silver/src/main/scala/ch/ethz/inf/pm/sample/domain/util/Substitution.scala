@@ -69,6 +69,22 @@ object Substitution {
   def identity: Substitution = Identity
 
   /**
+    * Returns the substitution that creates the given set of identifiers.
+    *
+    * @param set The set of identifiers to create.
+    * @return The substitution.
+    */
+  def create(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set.empty -> set)))
+
+  /**
+    * Returns the substitution that removes the given set of identifiers.
+    *
+    * @param set The set of identifiers to remove.
+    * @return The substitution.
+    */
+  def remove(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set -> set.empty)))
+
+  /**
     * Returns the substitution that replaces the given identifier with the given
     * set of identifiers.
     *
@@ -78,14 +94,6 @@ object Substitution {
     * @return The substitution.
     */
   def expand(from: Identifier, to: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(Set(from) -> to)))
-
-  /**
-    * Returns the substitution that removes the given set of identifiers.
-    *
-    * @param set The set of identifiers to remove.
-    * @return The substitution.
-    */
-  def remove(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set -> Set.empty)))
 
   /**
     * The identity substitution.
