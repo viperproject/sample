@@ -10,9 +10,10 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverAnalysisRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import com.typesafe.scalalogging.LazyLogging
@@ -130,19 +131,59 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * SIMPLE STATE METHODS
    */
 
-  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = ???
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"createVariable($variable)")
 
-  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = ???
+    val newDomain = domain.createVariable(variable)
+    copy(domain = newDomain)
+  }
 
-  override def assignVariable(target: Expression, right: Expression): T = ???
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T =
+    createVariable(variable, typ, DummyProgramPoint)
 
-  override def assignField(target: Expression, field: String, right: Expression): T = ???
+  override def assignVariable(target: Expression, expression: Expression): T = {
+    logger.trace(s"assignVariable($target, right)")
+
+    target match {
+      case variable: VariableIdentifier =>
+        val newDomain = domain.assignVariable(variable, expression)
+        copy(domain = newDomain)
+      case _ => ???
+    }
+  }
+
+  override def assignField(target: Expression, field: String, expression: Expression): T = {
+    logger.trace(s"assignField($target, $expression)")
+
+    target match {
+      case target: AccessPathIdentifier =>
+        val newDomain = domain.assignField(target, expression)
+        copy(domain = newDomain)
+      case _ => ???
+    }
+  }
 
   override def setVariableToTop(variable: Expression): T = ???
 
-  override def removeVariable(variable: VariableIdentifier): T = ???
+  override def removeVariable(variable: VariableIdentifier): T = {
+    logger.trace(s"removeVariable($variable)")
 
-  override def getFieldValue(target: Expression, field: String, typ: Type): T = ???
+    val newDomain = domain.removeVariable(variable)
+    copy(domain = newDomain)
+  }
+
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): T = {
+    logger.trace(s"getFieldValue($receiver, $field)")
+
+    val identifier = VariableIdentifier(field)(typ)
+    val value = receiver match {
+      case variable: VariableIdentifier => AccessPathIdentifier(variable :: identifier :: Nil)
+      case AccessPathIdentifier(path) => AccessPathIdentifier(path :+ identifier)
+      case _ => ???
+    }
+
+    copy(expr = ExpressionSet(value))
+  }
 
   override def assume(condition: Expression): T = ???
 
@@ -150,23 +191,44 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * STATE METHODS
    */
 
-  override def before(pp: ProgramPoint): T = ???
+  override def before(pp: ProgramPoint): T = copy(pp = pp)
 
-  override def createObject(typ: Type, pp: ProgramPoint): T = ???
+  override def createObject(typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"createObject($typ)")
 
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = ???
+    // TODO: This implementation is tailored for the use of the alias graph
+    // and probably does not work in general.
+    copy(expr = ExpressionSet(NewNode))
+  }
 
-  override def getVariableValue(id: Identifier): T = ???
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
+    logger.trace(s"evalConstant($value)")
 
-  override def pruneUnreachableHeap(): T = ???
+    val constant = Constant(value, typ, pp)
+    copy(expr = ExpressionSet(constant))
+  }
+
+  override def getVariableValue(identifier: Identifier): T = {
+    logger.trace(s"getVariableValue($identifier)")
+
+    identifier match {
+      case variable: VariableIdentifier => copy(expr = ExpressionSet(variable))
+      case _ => ???
+    }
+  }
+
+  override def pruneUnreachableHeap(): T = {
+    val newDomain = domain.garbageCollect()
+    copy(domain = newDomain)
+  }
 
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): T = ???
 
-  override def removeExpression(): T = ???
+  override def removeExpression(): T = copy(expr = ExpressionSet())
 
   override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
 
-  override def setExpression(expr: ExpressionSet): T = ???
+  override def setExpression(expr: ExpressionSet): T = copy(expr = expr)
 
   override def throws(t: ExpressionSet): T = ???
 
@@ -243,10 +305,16 @@ trait HeapAndSemanticAnalysisEntryStateBuilder[H <: HeapDomain[H, I], S <: Seman
   def semantic: S
 
   override def default: SimpleHeapAndSemanticAnalysisState[H, S, I] = SimpleHeapAndSemanticAnalysisState(
-    domain = HeapAndSemanticDomain(heap, semantic),
+    domain = HeapAndSemanticDomain(heap, semantic, Seq.empty),
     expr = ExpressionSet(),
     pp = DummyProgramPoint
   )
+
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleHeapAndSemanticAnalysisState[H, S, I] = {
+    val fields = program.fields.map(_.variable.id)
+    val initial = default.factory(fields)
+    initializeArguments(initial, program, method)
+  }
 }
 
 /**

@@ -6,7 +6,8 @@
 
 package ch.ethz.inf.pm.sample.domain.util
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Replacement, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, MergeDomain, Replacement}
+import ch.ethz.inf.pm.sample.domain.FieldIdentifier
 import ch.ethz.inf.pm.sample.domain.util.Substitution.{And, Atom, Identity, Or}
 
 import scala.collection.mutable
@@ -36,11 +37,26 @@ sealed trait Substitution {
     case (left, right) => Or(left, right)
   }
 
-  def apply[S <: State[S]](state: S): S = this match {
-    case Identity => state
-    case Atom(replacement) => state.merge(replacement)
-    case And(left, right) => right(left(state))
-    case Or(left, right) => left(state) lub right(state)
+  def extend(fields: Seq[Identifier]): Substitution = this match {
+    case Identity => Identity
+    case Atom(replacement) =>
+      val value = replacement.value.flatMap { case (from, to) =>
+        fields.map { field =>
+          val newFrom = from.map { receiver => FieldIdentifier(receiver, field): Identifier }
+          val newTo = to.map { receiver => FieldIdentifier(receiver, field): Identifier }
+          newFrom -> newTo
+        }
+      }
+      Atom(new Replacement(value))
+    case And(left, right) => And(left.extend(fields), right.extend(fields))
+    case Or(left, right) => Or(left.extend(fields), right.extend(fields))
+  }
+
+  def apply[D <: MergeDomain[D]](domain: D): D = this match {
+    case Identity => domain
+    case Atom(replacement) => domain.merge(replacement)
+    case And(left, right) => right(left(domain))
+    case Or(left, right) => left(domain) lub right(domain)
   }
 }
 
@@ -53,6 +69,22 @@ object Substitution {
   def identity: Substitution = Identity
 
   /**
+    * Returns the substitution that creates the given set of identifiers.
+    *
+    * @param set The set of identifiers to create.
+    * @return The substitution.
+    */
+  def create(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set.empty -> set)))
+
+  /**
+    * Returns the substitution that removes the given set of identifiers.
+    *
+    * @param set The set of identifiers to remove.
+    * @return The substitution.
+    */
+  def remove(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set -> set.empty)))
+
+  /**
     * Returns the substitution that replaces the given identifier with the given
     * set of identifiers.
     *
@@ -62,14 +94,6 @@ object Substitution {
     * @return The substitution.
     */
   def expand(from: Identifier, to: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(Set(from) -> to)))
-
-  /**
-    * Returns the substitution that removes the given set of identifiers.
-    *
-    * @param set The set of identifiers to remove.
-    * @return The substitution.
-    */
-  def remove(set: Set[Identifier]): Substitution = Atom(new Replacement(mutable.Map(set -> Set.empty)))
 
   /**
     * The identity substitution.
