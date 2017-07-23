@@ -194,7 +194,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     // perform update in heap domain
     val (newHeap, substitution) = heap.assignField(target, expression)
     // get identifiers corresponding to the receiver
-    val receivers = heap.getValue(receiver)
+    val receivers = newHeap.getValue(receiver)
     val identifiers = receivers.map { receiver => FieldIdentifier(receiver, field) }
     // perform update in semantic domain
     val substituted = substitutedSemantic(substitution)
