@@ -265,7 +265,7 @@ trait HeapAndSemanticAnalysisEntryStateBuilder[H <: HeapDomain[H, I], S <: Seman
   def semantic: S
 
   override def default: SimpleHeapAndSemanticAnalysisState[H, S, I] = SimpleHeapAndSemanticAnalysisState(
-    domain = HeapAndSemanticDomain(heap, semantic),
+    domain = HeapAndSemanticDomain(heap, semantic, Seq.empty),
     expr = ExpressionSet(),
     pp = DummyProgramPoint
   )

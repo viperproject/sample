@@ -6,19 +6,42 @@
 
 package ch.ethz.inf.pm.sample.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Lattice, SemanticDomain}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+
+/**
+  * An identifier representing a field.
+  *
+  * @param receiver The receiver of the field.
+  * @param field    The field.
+  * @author Jerome Dohrau
+  */
+case class FieldIdentifier(receiver: Identifier, field: Identifier)
+  extends Identifier {
+
+  override def getName: String = s"$receiver.$field"
+
+  override def getField: Option[String] = Some(field.getName)
+
+  override def representsSingleVariable: Boolean = receiver.representsSingleVariable
+
+  override def pp: ProgramPoint = field.pp
+
+  override def typ: Type = field.typ
+}
 
 /**
   * A domain that combines a heap domain and a semantic domain.
   *
   * @param heap     The element of the heap domain.
   * @param semantic The element of the semantic domain.
+  * @param fields   The fields.
   * @tparam H The type of the elements of the heap domain.
   * @tparam S The type of the elements of the semantic domain.
   * @tparam I The type of the identifiers used by the heap domain.
   * @author Jerome Dohrau
   */
-case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier](heap: H, semantic: S)
+case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier](heap: H, semantic: S, fields: Seq[Identifier])
   extends Lattice[HeapAndSemanticDomain[H, S, I]] {
 
   /**
@@ -33,10 +56,16 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * @return
     */
   def factory(fields: Seq[Identifier]): T = {
+    // initialize heap domain
     val newHeap = heap.factory(fields)
-    val newSemantic = semantic.factory()
+    // initialize semantic domain
+    val locations = newHeap.locations
+    val variables = locations.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
+    val newSemantic = variables.foldLeft(semantic.factory()) {
+      case (semantic, variable) => semantic.createVariable(variable)
+    }
 
-    factory(newHeap, newSemantic)
+    copy(heap = newHeap, semantic = newSemantic, fields = fields)
   }
 
   /**
@@ -47,21 +76,35 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * @param semantic The element of the semantic domain.
     * @return The element of the domain.
     */
-  def factory(heap: H, semantic: S): T =
-    if (heap.isBottom || semantic.isBottom) HeapAndSemanticDomain(heap.bottom(), semantic.bottom())
-    else HeapAndSemanticDomain(heap, semantic)
+  def factory(heap: H, semantic: S, fields: Seq[Identifier]): T =
+    if (heap.isBottom || semantic.isBottom) HeapAndSemanticDomain(heap.bottom(), semantic.bottom(), Seq.empty)
+    else if (heap.isTop && semantic.isTop) HeapAndSemanticDomain(heap, semantic, Seq.empty)
+    else HeapAndSemanticDomain(heap, semantic, fields)
 
-  def copy(heap: H = heap, semantic: S = semantic): T = factory(heap, semantic)
+  def copy(heap: H = heap,
+           semantic: S = semantic,
+           fields: Seq[Identifier] = fields): T =
+    factory(heap, semantic, fields)
 
   /* ------------------------------------------------------------------------- *
    * LATTICE METHODS
    */
 
-  override def factory(): HeapAndSemanticDomain[H, S, I] = top()
+  override def factory(): HeapAndSemanticDomain[H, S, I] = copy(
+    heap = heap.factory(),
+    semantic = semantic.factory(),
+    fields = Seq.empty
+  )
 
-  override def top(): HeapAndSemanticDomain[H, S, I] = factory(heap.top(), semantic.top())
+  override def top(): HeapAndSemanticDomain[H, S, I] = copy(
+    heap = heap.top(),
+    semantic = semantic.top()
+  )
 
-  override def bottom(): HeapAndSemanticDomain[H, S, I] = factory(heap.bottom(), semantic.bottom())
+  override def bottom(): HeapAndSemanticDomain[H, S, I] = copy(
+    heap = heap.bottom(),
+    semantic = semantic.bottom()
+  )
 
   override def isTop: Boolean = heap.isTop && semantic.isTop
 

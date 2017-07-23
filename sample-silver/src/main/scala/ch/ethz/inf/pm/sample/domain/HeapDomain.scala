@@ -101,4 +101,11 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: Identifier]
     * @return The set of possible values.
     */
   def getValue(expression: Expression): Set[I]
+
+  /**
+    * Returns the set of all heap locations.
+    *
+    * @return The set of all heap locations.
+    */
+  def locations: Set[I]
 }

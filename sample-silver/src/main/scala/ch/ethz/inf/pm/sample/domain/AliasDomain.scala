@@ -323,7 +323,7 @@ trait AliasGraph[T <: AliasGraph[T]]
       }
     }
     // remove all unreachable nodes from the heap
-    val unreachable = heap.keySet -- reachable
+    val unreachable = locations -- reachable
     val newHeap = unreachable.foldLeft(heap) { case (result, node) => result - node }
     // return updated domain and substitution
     val updated = copy(heap = newHeap)
@@ -335,6 +335,8 @@ trait AliasGraph[T <: AliasGraph[T]]
     val (_, values, _) = copy(materialization = true).evaluate(expression)
     values
   }
+
+  override def locations: Set[HeapNode] = heap.keySet
 
   protected def initialValues: Set[HeapNode]
 
