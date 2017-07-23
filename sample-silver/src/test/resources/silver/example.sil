@@ -3,5 +3,10 @@ field val: Int
 
 method foo(a: Ref, v: Int)
 {
-    a.val := v
+    var b: Ref
+    var w: Int
+
+    b := a
+    w := v
+    b.val := w
 }
