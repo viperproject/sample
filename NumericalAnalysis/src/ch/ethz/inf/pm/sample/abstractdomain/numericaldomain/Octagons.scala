@@ -217,7 +217,15 @@ object Octagons {
           val newEnv = env - idA ++ newIds.toSet
           val from = env.getIndices(oldIds) ++ List.fill(newIds.size)(env.getPositive(idA))
           val to = newEnv.getIndices(oldIds) ++ newEnv.getIndices(newIds)
-          val newDbm = Some(getDbm.factory(newEnv.size).copy(getDbm, from, to))
+          val newDbm = Some {
+            var res = getDbm.factory(newEnv.size).copy(getDbm, from, to)
+            // make sure the newly created variables are independent
+            for (i <- to; j <- to if i < j) {
+              res = res.assignRelational(i, j, Interval.Top)
+              if (isClosed) res.close(i,j)
+            }
+            res
+          }
           val (newClosed, newOpen) = if (isClosed) (newDbm, None) else (None, newDbm)
           factory(newEnv, newClosed, newOpen)
         } else add(idsB)
