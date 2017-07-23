@@ -40,10 +40,12 @@ sealed trait Substitution {
   def extend(fields: Seq[Identifier]): Substitution = this match {
     case Identity => Identity
     case Atom(replacement) =>
-      val value = replacement.value.map { case (from, to) =>
-        val newFrom = from.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
-        val newTo = to.flatMap { receiver => fields.map { field => FieldIdentifier(receiver, field): Identifier } }
-        newFrom -> newTo
+      val value = replacement.value.flatMap { case (from, to) =>
+        fields.map { field =>
+          val newFrom = from.map { receiver => FieldIdentifier(receiver, field): Identifier }
+          val newTo = to.map { receiver => FieldIdentifier(receiver, field): Identifier }
+          newFrom -> newTo
+        }
       }
       Atom(new Replacement(value))
     case And(left, right) => And(left.extend(fields), right.extend(fields))
