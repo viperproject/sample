@@ -123,9 +123,19 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
    * SILVER STATE METHODS
    */
 
-  override def inhale(expression: Expression): T = ???
+  override def inhale(condition: Expression): T = {
+    logger.trace(s"inhale($condition)")
 
-  override def exhale(expression: Expression): T = ???
+    val newDomain = domain.inhale(condition)
+    copy(domain = newDomain)
+  }
+
+  override def exhale(condition: Expression): T = {
+    logger.trace(s"exhale($condition)")
+
+    val newDomain = domain.exhale(condition)
+    copy(domain = newDomain)
+  }
 
   /* ------------------------------------------------------------------------- *
    * SIMPLE STATE METHODS
@@ -185,7 +195,7 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
     copy(expr = ExpressionSet(value))
   }
 
-  override def assume(condition: Expression): T = ???
+  override def assume(condition: Expression): T = inhale(condition)
 
   /* ------------------------------------------------------------------------- *
    * STATE METHODS

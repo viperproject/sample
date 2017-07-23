@@ -206,6 +206,30 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
   }
 
   /**
+    * Inhales the given condition.
+    *
+    * @param condition The condition to inhaled.
+    * @return The resulting domain.
+    */
+  def inhale(condition: Expression): T = {
+    val (newHeap, substitution) = heap.inhale(condition)
+    val newSemantic = substitutedSemantic(substitution).assume(condition)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
+    * Exhales the given condition.
+    *
+    * @param condition The condition to exhale.
+    * @return The resulting domain.
+    */
+  def exhale(condition: Expression): T = {
+    val (newHeap, substitution) = heap.exhale(condition)
+    val newSemantic = substitutedSemantic(substitution)
+    copy(heap = newHeap, semantic = newSemantic)
+  }
+
+  /**
     * Performs an abstract garbage collection by pruning all unreachable heap
     * locations and then removes identifiers from the semantic domain if
     * necessary.
