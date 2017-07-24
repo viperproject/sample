@@ -678,7 +678,7 @@ case class MayAliasGraph(isTop: Boolean = false,
   extends AliasGraph[MayAliasGraph] {
 
   override def lub(other: MayAliasGraph): MayAliasGraph =
-    if (isTop || other.isBottom) this
+    if (isTop || other.isBottom || this == other) this
     else if (isBottom || other.isTop) other
     else {
 
@@ -709,7 +709,10 @@ case class MayAliasGraph(isTop: Boolean = false,
       )
     }
 
-  override def glb(other: MayAliasGraph): MayAliasGraph = bottom()
+  override def glb(other: MayAliasGraph): MayAliasGraph =
+    if (isBottom || other.isTop || this == other) this
+    else if (isTop || other.isBottom) other
+    else bottom()
 
   override def widening(other: MayAliasGraph): MayAliasGraph = {
     val domain = this lub other
@@ -850,7 +853,7 @@ case class MustAliasGraph(isTop: Boolean = false,
   extends AliasGraph[MustAliasGraph] {
 
   override def lub(other: MustAliasGraph): MustAliasGraph =
-    if (isTop || other.isBottom) this
+    if (isTop || other.isBottom || this == other) this
     else if (isBottom || other.isTop) other
     else {
 
@@ -880,7 +883,10 @@ case class MustAliasGraph(isTop: Boolean = false,
       )
     }
 
-  override def glb(other: MustAliasGraph): MustAliasGraph = bottom()
+  override def glb(other: MustAliasGraph): MustAliasGraph =
+    if (isBottom || other.isTop || this == other) this
+    else if (isTop || other.isBottom) other
+    else bottom()
 
   override def widening(other: MustAliasGraph): MustAliasGraph = {
     val domain = this lub other
