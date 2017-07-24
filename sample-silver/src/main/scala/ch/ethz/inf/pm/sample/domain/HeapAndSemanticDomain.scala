@@ -175,9 +175,14 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * @return The resulting domain.
     */
   def assignVariable(variable: VariableIdentifier, expression: Expression): T = {
+    // perform assignment in heap domain
     val (newHeap, substitution) = heap.assignVariable(variable, expression)
-    val newSemantic = substitutedSemantic(substitution).assign(variable, expression)
-    copy(heap = newHeap, semantic = newSemantic)
+    val newSemantic = substitutedSemantic(substitution)
+    val domain = copy(heap = newHeap, semantic = newSemantic)
+    // perform assignment in semantic domain
+    val left = Set(variable: Identifier)
+    val right = domain.heapify(expression)
+    domain.assignSemantic(left, right)
   }
 
   /**
@@ -191,18 +196,15 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     // get receiver and field
     val receiver = AccessPathIdentifier(target.path.init)
     val field = target.path.last
-    // perform update in heap domain
+    // perform assignment in heap domain
     val (newHeap, substitution) = heap.assignField(target, expression)
-    // get identifiers corresponding to the receiver
+    val newSemantic = substitutedSemantic(substitution)
+    val domain = copy(heap = newHeap, semantic = newSemantic)
+    // perform assignment in semantic domain
     val receivers = newHeap.getValue(receiver)
-    val identifiers = receivers.map { receiver => FieldIdentifier(receiver, field) }
-    // perform update in semantic domain
-    val substituted = substitutedSemantic(substitution)
-    val newSemantic = identifiers
-      .map(variable => substituted.assign(variable, expression))
-      .reduce(_ lub _)
-    // return updated domain
-    copy(heap = newHeap, semantic = newSemantic)
+    val left = receivers.map { receiver => FieldIdentifier(receiver, field): Identifier }
+    val right = domain.heapify(expression)
+    domain.assignSemantic(left, right)
   }
 
   /**
@@ -244,5 +246,41 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
 
   private def substitutedSemantic(substitution: Substitution): S =
     substitution.extend(fields)(semantic)
+
+  /**
+    * A helper method that performs an assignment in the semantic domain.
+    *
+    * @param left  The set representing all possible targets.
+    * @param right THe set representing all possible values.
+    * @return The resulting domain.
+    */
+  private def assignSemantic(left: Set[Identifier], right: Set[Expression]): T =
+    if (left.isEmpty && right.isEmpty) bottom()
+    else {
+      val results = for (variable <- left; value <- right) yield semantic.assign(variable, value)
+      val newSemantic = results.reduce(_ lub _)
+      copy(semantic = newSemantic)
+    }
+
+  /**
+    * Replaces all access path identifiers in the given right with their
+    * corresponding field identifiers.
+    *
+    * TODO: Rename and implement properly.
+    */
+  private def heapify(expression: Expression): Set[Expression] = expression match {
+    case _: Constant |
+         _: VariableIdentifier =>
+      Set(expression)
+    case AccessPathIdentifier(path) =>
+      if (path.length == 1) Set(path.head)
+      else {
+        val receiver = AccessPathIdentifier(path.init)
+        val field = path.last
+        val receivers = heap.getValue(receiver)
+        receivers.map { receiver => FieldIdentifier(receiver, field) }
+      }
+    case _ => ???
+  }
 
 }
