@@ -685,12 +685,17 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   }
 
   //
-  //  For the recursive case MethodCall statements are analyzed the usual way. Otherwise it is assumed that
-  //  callees have been analyzed and the result is reused. We use the analysis result that doesn't assume anything about
-  //  the arguments to the callee.
+  //  We handle a method-call a bit differently than in the other interpreters:
+  //  case callee is below in the topological order => we reuse the result (resultAvailable should contain the callees identifier)
+  //  case callee is the same as caller => let parent handle recursion
+  //  case callee is in the same connected component than caller => analyse using call-strings (in parent)
+  //  case _ => that would mean the callee is above in the topological order (cannot happen)
   //
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = current match {
-    case _: TaggedWorklistElement =>
+    case cs: TaggedWorklistElement
+      // only let parent handle the call if the call-string is non-empty
+      // (in that case we're either analysing recursive calls or the callee is in the same connected component of the topological order)
+      if cs.callString.inCallee =>
       super.executeStatement(current, statement, state, programResult)
     case _ =>
       statement match {
