@@ -639,7 +639,7 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   /**
     * Bottom-Up we want to start at the bottom of the topological order
     */
-  override lazy val mainMethods = methodsInTopologicalOrder.last.map(_.name)
+  override lazy val mainMethods = if (methodsInTopologicalOrder.nonEmpty) methodsInTopologicalOrder.last.map(_.name) else Set.empty
 
   /**
     * Returns the parent connected component in the topologically ordered call-graph. These parents
