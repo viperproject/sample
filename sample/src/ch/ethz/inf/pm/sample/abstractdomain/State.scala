@@ -402,7 +402,7 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def getVariableValue(id: Identifier): S
 
-  def merge(r:Replacement):S = this
+  def merge(r:Replacement):S = ???
 
   /** Performs abstract garbage collection. */
   def pruneUnreachableHeap(): S

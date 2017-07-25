@@ -93,6 +93,11 @@ class Replacement(val value: mutable.Map[Set[Identifier], Set[Identifier]] = new
     )
 
   def >>(other: Replacement): Replacement = {
+    // This implementation is broken. Currently no one seems to use this method
+    // but if someone does the three question marks below are supposed to draw
+    // his or her attention to this note.
+    ???
+
     if (this.value.isEmpty) return other
     if (other.value.isEmpty) return this
 
@@ -129,7 +134,7 @@ class Replacement(val value: mutable.Map[Set[Identifier], Set[Identifier]] = new
   }
 
   /**
-   * Prett-print replacement in the notation described above
+   * Pretty-print replacement in the notation described above
    */
   override def toString = {
     val lines = for ((k, v) <- value) yield k.mkString("{", ",", "}") + "->" + v.mkString("{", ",", "}")
@@ -226,7 +231,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param typ the type of the accessed cell
    * @return the identifier of accessed cell, the state of the heap after that (since we could create new
    *         abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
-   *         if the heap analyzed has summarize or splitted some cells)
+   *         if the heap analyzed has summarized or split some cells)
    */
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type): (HeapIdSetDomain[I], T, Replacement)
 
@@ -245,18 +250,18 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param expr the expression to be assigned
    * @param state the state of the semantic domain at that point
    * @return the state after this action and the eventual replacements (e.g.,
-   *         if the heap analyzed has summarize or splitted some cells)
+   *         if the heap analyzed has summarized or split some cells)
    */
   def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (T, Replacement)
 
   /**
-   * This method assigns a given field of a given objectto the given expression
+   * This method assigns a given field of a given object to the given expression
    *
    * @param obj the object whose field has to be assigned
    * @param field the field to be assigned
    * @param expr the expression to be assigned
    * @return the state after this action and the eventual replacements (e.g.,
-   *         if the heap analyzed has summarize or splitted some cells)
+   *         if the heap analyzed has summarized or split some cells)
    */
   def assignField(obj: Assignable, field: String, expr: Expression): (T, Replacement)
 
@@ -264,19 +269,19 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
 
 
   /**
-   * This method assigns a given field of a given objectto the given expression
+   * This method assigns a given field of a given object to the given expression
    *
    * @param obj the array whose cell has to be assigned
    * @param index the index to be assigned
    * @param expr the expression to be assigned
    * @param state the state of the semantic domain (useful to refine eventually the splitting of the array)
    * @return the state after this action and the eventual replacements (e.g.,
-   *         if the heap analyzed has summarize or splitted some cells)
+   *         if the heap analyzed has summarized or split some cells)
    */
   def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S): (T, Replacement)
 
   /**
-   * This method set a paramenter (usually the parameter passed to a method) to the given expression
+   * This method set a parameter (usually the parameter passed to a method) to the given expression
    *
    * @param variable the variable to set
    * @param expr the expression to set
