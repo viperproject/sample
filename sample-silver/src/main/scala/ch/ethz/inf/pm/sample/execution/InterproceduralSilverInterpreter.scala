@@ -797,7 +797,7 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val program: SilverProgramDeclaration,
                                                                         override val builder: SilverEntryStateBuilder[S],
-                                                                        override val CallStringLength: Option[Int] = CallString.DefaultLength)
+                                                                        override val CallStringLength: Option[Int])
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -863,7 +863,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   */
 case class FinalResultInterproceduralBottomUpForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration,
                                                                                override val builder: SilverEntryStateBuilder[S],
-                                                                               override val CallStringLength: Option[Int] = CallString.DefaultLength)
+                                                                               override val CallStringLength: Option[Int])
   extends InterproceduralSilverForwardInterpreter[S] with BottomUpForwardInterpreter[S] {
   //
   // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
@@ -1068,7 +1068,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
 case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val program: SilverProgramDeclaration,
                                                                          override val builder: SilverEntryStateBuilder[S],
-                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
+                                                                         override val CallStringLength: Option[Int])
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //

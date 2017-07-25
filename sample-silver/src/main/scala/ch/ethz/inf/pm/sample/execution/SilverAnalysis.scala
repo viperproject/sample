@@ -80,7 +80,7 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
-    val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, builder)
+    val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, builder, callStringLength)
     interpreter.executeInterprocedural()
   }
 }
@@ -89,7 +89,7 @@ case class SimpleInterproceduralSilverForwardBottomUpAnalysis[S <: State[S]](bui
   extends InterproceduralSilverForwardAnalysis[S] with BottomUpAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
     // Analyse using the BottomUp interpreter. Fail the analysis if methodsInTopologicalOrder is not provided
-    val interpreter = new FinalResultInterproceduralBottomUpForwardInterpreter[S](program, builder)
+    val interpreter = new FinalResultInterproceduralBottomUpForwardInterpreter[S](program, builder, callStringLength)
     interpreter.executeInterprocedural()
   }
 }
@@ -111,7 +111,7 @@ case class SimpleSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryState
 case class SimpleInterproceduralSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardAnalysis[S] {
   override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
-    val interpreter = FinalResultInterproceduralBackwardInterpreter[S](program, builder)
+    val interpreter = FinalResultInterproceduralBackwardInterpreter[S](program, builder, callStringLength)
     interpreter.executeInterprocedural()
   }
 }
