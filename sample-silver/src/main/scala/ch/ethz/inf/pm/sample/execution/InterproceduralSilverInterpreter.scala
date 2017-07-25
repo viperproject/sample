@@ -44,6 +44,19 @@ object InterproceduralSilverInterpreter {
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
 
+  /**
+    * The TopologicalOrderOfCallGraph contains all methods in the program ordered by topological order of their call-graph.
+    * The first element is the top of the ordering and the last element the bottom.
+    * Elements in the ordering are sets to model the following use-case:
+    * foo calls bar
+    * foo calls baz
+    * bar calls foo
+    * bar calls baz
+    *
+    * The following topological ordering would be created: (foo, bar) -> (baz)
+    * foo and bar both go into the first position because they build a strongly connected component in the call-graph.
+    * baz is in the last position of the ordering because it is called by both.
+    */
   type TopologicalOrderOfCallGraph = Seq[Set[SilverMethodDeclaration]]
 
   /**
@@ -210,10 +223,15 @@ trait InterprocHelpers[S <: State[S]] {
   //
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
-  val callsInProgram: CallGraphMap
   val CallStringLength: Option[Int]
-  // A main method is analyzed using "initial" as the entry state.
-  val mainMethods: Set[SilverIdentifier]
+
+  //
+  // global values that model the call-graph and the order of analysis
+  //    A topological ordering of the methods with respect to their call-graph
+  //    A map containing all calls in the program
+  //    And a set of methods that are considered to be main-methods (entrypoints to the analysis)
+  //
+  lazy val (methodsInTopologicalOrder, callsInProgram, mainMethods) = buildCallGraphInformation(program)
 
   //
   // variables that track the state of the analysis. E.g. values transferred into callees or CfgResults
@@ -346,6 +364,98 @@ trait InterprocHelpers[S <: State[S]] {
           .assignVariable(newName, old)
           .removeVariable(old)
       })
+  }
+
+
+  /**
+    * Builds an returns all call-graph information. See the documentation on the return types. By default
+    * all methods at the top of the call-graph are considered to be mainMethods (TopDown). For a bottom-up mainMethods
+    * should be redefied.
+    *
+    * @param program The program for which the information should be collected
+    * @return A Tuple of (TopologicalOrderOfCallGraph, CallGraphMap, mainMethods: Set[SilverIdentifier])
+    */
+  private def buildCallGraphInformation(program: SilverProgramDeclaration): (TopologicalOrderOfCallGraph, CallGraphMap, Set[SilverIdentifier]) = {
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
+
+    val methodsInTopologicalOrder = (
+      for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala)
+        yield condensation.asScala.toSet
+      ).toSeq
+
+    // search for "main methods". these are either methods that are not called from other methods,
+    // or they are methods in a strongly connected component where the component itself is not called by other methods
+    //
+    // e.g program has methods foo, bar and baz. foo() calls bar(), bar() calls foo(), bar() calls baz
+    // in this program foo and bar should be treated as main methods. baz is always called from another method
+    // so it won't be added to the set of main methods.
+    var methods = Set[SilverIdentifier]()
+    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
+         if condensedCallGraph.inDegreeOf(condensation) == 0) {
+      for (method <- condensation.asScala)
+        methods += method.name
+    }
+    (methodsInTopologicalOrder, callsInProgram, methods)
+  }
+
+  /**
+    * Analyze the given program and return a tuple of condensed Callgraph and a map containing all calls to each method.
+    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
+    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
+    * set(foo, bar) -> set(baz)
+    *
+    * @param program The program to be analyzed
+    * @return Tuple of condensed call graph and map containing all method calls
+    */
+  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+    // Most code below was taken from ast.utility.Functions in silver re	po!
+    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+    var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
+
+    for (f <- program.methods) {
+      callGraph.addVertex(f)
+    }
+
+    def process(m: SilverMethodDeclaration, e: Statement) {
+      e match {
+        case MethodCall(_, method: Variable, _, _, _, _) =>
+          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
+          val methodIdent = SilverIdentifier(method.getName)
+          callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
+        case _ => e.getChildren foreach (process(m, _))
+      }
+    }
+
+    for (m <- program.methods;
+         block <- m.body.blocks;
+         statement <- block.elements) {
+      process(m, statement.merge)
+    }
+
+    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
+    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
+
+    /* Add each SCC as a vertex to the condensed call-graph */
+    for (v <- stronglyConnectedSets) {
+      condensedCallGraph.addVertex(v)
+    }
+
+    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
+      stronglyConnectedSets.find(_ contains m).get
+
+    /* Add edges from the call-graph (between individual functions) as edges
+     * between their corresponding SCCs in the condensed call-graph, but only
+     * if this does not result in a cycle.
+     */
+    for (e <- callGraph.edgeSet().asScala) {
+      val sourceSet = condensationOf(e.source)
+      val targetSet = condensationOf(e.target)
+
+      if (sourceSet != targetSet)
+        condensedCallGraph.addEdge(sourceSet, targetSet)
+    }
+    (condensedCallGraph, callsInProgram)
   }
 }
 
@@ -526,14 +636,17 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
   */
 trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverForwardInterpreter[S] {
 
-  val methodsInTopologicalOrder: TopologicalOrderOfCallGraph
-
   /**
     * resultAvailable contains identifiers for all method for which the result WITH AN EMPTY call-string is available
     * Results with an empty call-string are those that will be used by a caller when a method-call to a callee is
     * executed.
     */
   private var resultAvailable: Set[SilverIdentifier] = Set.empty
+
+  /**
+    * Bottom-Up we want to start at the bottom of the topological order
+    */
+  override lazy val mainMethods = methodsInTopologicalOrder.last.map(_.name)
 
   /**
     * Returns the parent connected component in the topologically ordered call-graph. These parents
@@ -684,17 +797,13 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   * Forward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
-  * @param callsInProgram   The call graph of the program
   * @param CallStringLength An optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val program: SilverProgramDeclaration,
-                                                                        override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
-                                                                        override val callsInProgram: CallGraphMap,
                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardInterpreter[S] {
 
@@ -754,23 +863,13 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
   * the topological order or recursive methods are analyzed using call-strings. For all other callers it is assumed
   * that the result of callee's is availabe since callee's are below in the topological order.
   *
-  * @param program                   The program that is analysed
-  * @param mainMethods               A set of methods with which the analysis is started
-  * @param builder                   A builder to create initial states for each cfg to analyse
-  * @param callsInProgram            The call graph of the program
-  * @param methodsInTopologicalOrder A sequence of methods in topological order of their callgraph. For each method in a the set
-  *                                  methodsInTopologicalOrder(k) only methods in any of the sets methodsInTopologicalOrder(l) with l <= k
-  *                                  are calling them. For example methods in methodsInTopologicalOrder.head are only called
-  *                                  by other methods in the same set. Whereas methods methodsInTopologicalOrder.last MAY be called
-  *                                  by any method in the program.
-  * @param CallStringLength          An optional upper bound for the call-string length
+  * @param program          The program that is analysed
+  * @param builder          A builder to create initial states for each cfg to analyse
+  * @param CallStringLength An optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralBottomUpForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration,
-                                                                               override val mainMethods: Set[SilverIdentifier],
                                                                                override val builder: SilverEntryStateBuilder[S],
-                                                                               override val callsInProgram: CallGraphMap,
-                                                                               override val methodsInTopologicalOrder: TopologicalOrderOfCallGraph,
                                                                                override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardInterpreter[S] with BottomUpForwardInterpreter[S] {
   //
@@ -969,17 +1068,13 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   * Backward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
-  * @param callsInProgram   The call graph of the program
   * @param CallStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val program: SilverProgramDeclaration,
-                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
-                                                                         override val callsInProgram: CallGraphMap,
                                                                          override val CallStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardInterpreter[S] {
 
