@@ -150,7 +150,7 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
               ("start" -> start) ~
                 ("end" -> end) ~
                 ("tag" -> SampleInferenceErrorTag) ~
-                ("message" -> "Inference omitted since some already exist.")
+                ("message" -> "Inference omitted since some specifications already exist.")
             ))
       )
     } else {
