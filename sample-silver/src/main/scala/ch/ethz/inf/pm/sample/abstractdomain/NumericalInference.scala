@@ -102,7 +102,7 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
       }
     }.flatten
 
-    existing ++ inferredPostconditions
+    existing ++ inferredPostconditions.distinct
   }
 
   //
