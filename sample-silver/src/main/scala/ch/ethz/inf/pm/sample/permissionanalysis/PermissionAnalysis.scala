@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.analysis.{AliasAnalysisEntryStateBuilder, AliasAnalysisState, SimpleAliasAnalysisState}
 import ch.ethz.inf.pm.sample.domain.{AliasDomain, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.inference.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression

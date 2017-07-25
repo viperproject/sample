@@ -8,8 +8,9 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverInferenceRunner}
-import viper.silver.ast.{Exp, Field}
+import ch.ethz.inf.pm.sample.inference.SilverInferenceRunner
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import viper.silver.{ast => sil}
 
 /**
   * An inference based on a numerical analysis.
@@ -19,19 +20,19 @@ import viper.silver.ast.{Exp, Field}
   * @author Jerome Dohrau
   */
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
-  extends SilverInferenceRunner[Set[Expression], S] {
+  extends SilverInferenceRunner[S] {
 
-  override def preconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.pres
 
-  override def postconditions(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.posts
 
-  override def invariants(existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] ={
+  override def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
-    existing ++ converted.toSeq
+    loop.invs ++ converted.toSeq
   }
 
-  override def fields(existing: Seq[Field], position: BlockPosition, result: CfgResult[S]): Seq[Field] = existing
+  override def fields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
 }
 
 /**
