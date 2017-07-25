@@ -46,16 +46,9 @@ object InterproceduralSilverInterpreter {
 
   /**
     * The TopologicalOrderOfCallGraph contains all methods in the program ordered by topological order of their call-graph.
-    * The first element is the top of the ordering and the last element the bottom.
-    * Elements in the ordering are sets to model the following use-case:
-    * foo calls bar
-    * foo calls baz
-    * bar calls foo
-    * bar calls baz
-    *
-    * The following topological ordering would be created: (foo, bar) -> (baz)
-    * foo and bar both go into the first position because they build a strongly connected component in the call-graph.
-    * baz is in the last position of the ordering because it is called by both.
+    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
+    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
+    * set(foo, bar) -> set(baz)
     */
   type TopologicalOrderOfCallGraph = Seq[Set[SilverMethodDeclaration]]
 
@@ -370,7 +363,7 @@ trait InterprocHelpers[S <: State[S]] {
   /**
     * Builds an returns all call-graph information. See the documentation on the return types. By default
     * all methods at the top of the call-graph are considered to be mainMethods (TopDown). For a bottom-up mainMethods
-    * should be redefied.
+    * should be redefined.
     *
     * @param program The program for which the information should be collected
     * @return A Tuple of (TopologicalOrderOfCallGraph, CallGraphMap, mainMethods: Set[SilverIdentifier])
@@ -380,7 +373,7 @@ trait InterprocHelpers[S <: State[S]] {
 
     val methodsInTopologicalOrder = (
       for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala)
-        yield condensation.asScala.toSet
+        yield Set.empty ++ condensation // convert to immutable set
       ).toSeq
 
     // search for "main methods". these are either methods that are not called from other methods,
@@ -392,7 +385,7 @@ trait InterprocHelpers[S <: State[S]] {
     var methods = Set[SilverIdentifier]()
     for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
          if condensedCallGraph.inDegreeOf(condensation) == 0) {
-      for (method <- condensation.asScala)
+      for (method <- condensation)
         methods += method.name
     }
     (methodsInTopologicalOrder, callsInProgram, methods)
@@ -407,7 +400,7 @@ trait InterprocHelpers[S <: State[S]] {
     * @param program The program to be analyzed
     * @return Tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[mutable.Set[SilverMethodDeclaration], Functions.Edge[mutable.Set[SilverMethodDeclaration]]], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver re	po!
     val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
     var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
@@ -433,16 +426,16 @@ trait InterprocHelpers[S <: State[S]] {
       process(m, statement.merge)
     }
 
-    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
-    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
+    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets()
+    val condensedCallGraph = new DefaultDirectedGraph(Factory[mutable.Set[SilverMethodDeclaration]]())
 
     /* Add each SCC as a vertex to the condensed call-graph */
-    for (v <- stronglyConnectedSets) {
-      condensedCallGraph.addVertex(v)
+    for (v <- stronglyConnectedSets.asScala) {
+      condensedCallGraph.addVertex(v.asScala)
     }
 
-    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
-      stronglyConnectedSets.find(_ contains m).get
+    def condensationOf(m: SilverMethodDeclaration): mutable.Set[SilverMethodDeclaration] =
+      stronglyConnectedSets.asScala.find(_ contains m).get.asScala
 
     /* Add edges from the call-graph (between individual functions) as edges
      * between their corresponding SCCs in the condensed call-graph, but only
