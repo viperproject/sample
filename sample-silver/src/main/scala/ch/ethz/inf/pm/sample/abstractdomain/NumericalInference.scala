@@ -61,7 +61,7 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
     // represent each set of preconditions as a conjunction
-    val conjuctionsPerCall: Seq[Exp] = inferred.flatMap(asConjunction)
+    val conjuctionsPerCall: Seq[Exp] = inferred.flatMap(asConjunction).distinct
     // Or() all the possible preconditions
     if (conjuctionsPerCall.nonEmpty) {
       val inferredPreconditions: Exp = conjuctionsPerCall.reduce((left, right) => Or(left, right)())
