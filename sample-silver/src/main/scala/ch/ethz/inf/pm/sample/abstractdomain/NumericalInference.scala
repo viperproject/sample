@@ -23,17 +23,17 @@ import viper.silver.ast._
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends SilverInferenceRunner[Set[Expression], S] {
 
-  override def preconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def preconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = method.pres
 
-  override def postconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = existing
+  override def postconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = method.posts
 
-  override def invariants(loop: While, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def invariants(loop: While, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
-    existing ++ converted.toSeq
+    loop.invs ++ converted.toSeq
   }
 
-  override def fields(existing: Seq[Field], position: BlockPosition, result: CfgResult[S]): Seq[Field] = existing
+  override def fields(newStmt: NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[Field] = newStmt.fields
 }
 
 /**
@@ -56,7 +56,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //
   // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
   //
-  override def preconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def preconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    val existing = method.pres
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
     // represent each set of preconditions as a conjunction
@@ -79,7 +80,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //  ensures post1
   //  ensures post2 ...
   //
-  override def postconditions(method: Method, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def postconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    val existing = method.posts
     // we only allow postconditions that talk about formalArgs and formalReturns
     val allowedIdentifiers = method.formalReturns.map(_.name).toSet ++ method.formalArgs.map(_.name).toSet
 
@@ -108,7 +110,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //    method-precondition => invariant
   // for all the call-strings we saw during analysis
   //
-  override def invariants(loop: While, existing: Seq[Exp], position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def invariants(loop: While, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+    val existing = loop.invs
     val inferredInvariants: Seq[Exp] = {
       for (result <- resultsToWorkWith) yield {
         val precondition = asConjunction(result.entryState().specifications)
