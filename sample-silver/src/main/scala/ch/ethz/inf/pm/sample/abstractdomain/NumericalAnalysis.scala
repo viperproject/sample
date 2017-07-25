@@ -115,6 +115,8 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
 
   override def ids: IdentifierSet = domain.ids
 
+  override def merge(r: Replacement): S = copy(domain = domain.merge(r))
+
   /* ------------------------------------------------------------------------- *
    * SIMPLE STATE FUNCTIONS
    */

@@ -182,13 +182,11 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     logger.trace(s"createVariable($variable)")
 
-    if (typ.isObject) {
-      // create variable in may and must alias graph
-      val (newMay, _) = may.addVariable(variable)
-      val (newMust, _) = must.addVariable(variable)
-      // update state
-      copy(may = newMay, must = newMust)
-    } else this
+    // create variable in may and must alias graph
+    val (newMay, _) = may.createVariable(variable)
+    val (newMust, _) = must.createVariable(variable)
+    // update state
+    copy(may = newMay, must = newMust)
   }
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type): T =
@@ -197,7 +195,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def assignVariable(target: Expression, value: Expression): T = {
     logger.trace(s"assignVariable($target, $value)")
 
-    if (target.typ.isObject) target match {
+    target match {
       case variable: VariableIdentifier =>
         // perform assignment in may and must alias graph
         val (newMay, _) = may.assignVariable(variable, value)
@@ -211,13 +209,13 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
         // perform abstract garbage collection
         updated.pruneUnreachableHeap()
       case _ => ???
-    } else this
+    }
   }
 
   override def assignField(target: Expression, field: String, value: Expression): T = {
     logger.trace(s"assignField($target, $value)")
 
-    if (target.typ.isObject) target match {
+    target match {
       case target: AccessPathIdentifier =>
         // perform assignment in may and must alias graph
         val (newMay, _) = may.assignField(target, value)
@@ -231,7 +229,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
         // perform abstract garbage collection
         updated.pruneUnreachableHeap()
       case _ => ???
-    } else this
+    }
   }
 
   override def setVariableToTop(varExpr: Expression): T = ???
@@ -328,7 +326,7 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   /**
     * Copies the state and updates the top flag, bottom flag, may alias domain,
     * must alias domain, expression set, and program point if the corresponding
-    * argument is defined.
+    * arguments are defined.
     *
     * @param isTop    The top flag.
     * @param isBottom The bottom flag.
@@ -384,7 +382,7 @@ case class SimpleAliasAnalysisState(isTop: Boolean,
     * @param pp       The program point.
     * @return The updated state.
     */
-  def copy(isTop: Boolean = isTop,
+  override def copy(isTop: Boolean = isTop,
            isBottom: Boolean = isBottom,
            may: MayAliasGraph = may,
            must: MustAliasGraph = must,
@@ -411,9 +409,7 @@ case class AliasAnalysisEntryStateBuilder()
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleAliasAnalysisState = {
-    val fields = program.fields
-      .map(_.variable.id)
-      .filter(_.typ.isObject)
+    val fields = program.fields.map(_.variable.id)
     val initial = default.factory(fields)
     initializeArguments(initial, program, method)
   }

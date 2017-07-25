@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.domain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.AliasGraph.{Heap, Store}
 import ch.ethz.inf.pm.sample.domain.HeapNode._
-import ch.ethz.inf.pm.sample.domain.util.Replacements
+import ch.ethz.inf.pm.sample.domain.util.Substitution
 import ch.ethz.inf.pm.sample.oorepresentation.silver.RefType
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 
@@ -24,14 +24,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 trait AliasDomain[T <: AliasDomain[T, I], I <: Identifier]
   extends HeapDomain[T, I] {
   this: T =>
-
-  /**
-    * Creates an element of the alias domain with the given fields.
-    *
-    * @param fields The fields
-    * @return The alias graph.
-    */
-  def factory(fields: Seq[Identifier]): T
 
   /**
     * Returns whether the locations corresponding to the two given expressions
@@ -143,6 +135,8 @@ trait AliasGraph[T <: AliasGraph[T]]
   extends AliasDomain[T, HeapNode] {
   this: T =>
 
+  import Substitution.{identity, expand, remove}
+
   /**
     * Returns the map representing the store of the alias graph.
     *
@@ -164,9 +158,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     */
   def materialization: Boolean
 
-  def factory(fields: Seq[Identifier]): T = {
+  override def factory(fields: Seq[Identifier]): T = {
     // prepare field map
-    val map: Store = fields.foldLeft(Map.empty: Store) {
+    val map: Store = fields.filter(_.typ.isObject).foldLeft(Map.empty: Store) {
       case (map, field) => map + (field -> initialValues)
     }
     // initialize heap
@@ -199,68 +193,75 @@ trait AliasGraph[T <: AliasGraph[T]]
     heap = Map.empty
   )
 
-  override def addVariable(variable: VariableIdentifier): (T, Replacement) = {
-    // create variable
-    val newStore = store + (variable -> initialValues)
-    // return updated domain and replacement
-    val updated = copy(store = newStore)
-    val replacement = Replacements.identity
-    (updated, replacement)
+  override def createVariable(variable: VariableIdentifier): (T, Substitution) = {
+    // create variable if it has an object type
+    val updated = if (variable.typ.isObject) {
+      val newStore = store + (variable -> initialValues)
+      copy(store = newStore)
+    } else this
+    // return updated domain substitution
+    (updated, identity)
   }
 
-  override def removeVariable(variable: VariableIdentifier): (T, Replacement) = {
+  override def removeVariable(variable: VariableIdentifier): (T, Substitution) = {
     // remove variable
     val newStore = store - variable
-    // return updated domain and replacement
+    // return updated domain and substitution
     val updated = copy(store = newStore)
-    val replacement = Replacements.identity
-    (updated, replacement)
+    (updated, identity)
   }
 
-  override def assignVariable(variable: VariableIdentifier, expression: Expression): (T, Replacement) = {
-    // evaluate value
-    val (domain, values, replacement) = evaluate(expression)
-    // update store
-    val newStore = domain.store + (variable -> values)
-    // return updated domain and replacement
-    val updated = domain.copy(store = newStore)
-    (updated, replacement)
+  override def assignVariable(variable: VariableIdentifier, expression: Expression): (T, Substitution) = {
+    // evaluate value; we do this unconditionally to trigger materialization in
+    // all cases
+    val (domain, values, substitution) = evaluate(expression)
+    // perform assignment if variable has an object type
+    val updated = if (variable.typ.isObject) {
+      // update store
+      val newStore = domain.store + (variable -> values)
+      domain.copy(store = newStore)
+    } else domain
+    // return updated domain and substitution
+    (updated, substitution)
   }
 
-  override def assignField(target: AccessPathIdentifier, expression: Expression): (T, Replacement) = {
+  override def assignField(target: AccessPathIdentifier, expression: Expression): (T, Substitution) = {
     // get receiver and field
     val receiver = AccessPathIdentifier(target.path.init)
     val field = target.path.last
-    // evaluate receiver and value
-    val (domain1, receivers, replacement1) = evaluateReceiver(receiver)
-    val (domain2, values, replacement2) = domain1.evaluate(expression)
-    // determine whether a strong update is possible
-    val strong = strongUpdate(receivers) || (values contains TopNode)
-    // update heap
-    val newHeap = receivers.foldLeft(domain2.heap) {
-      case (heap, receiver) =>
-        val map = heap.getOrElse(receiver, Map.empty)
-        val newValue = if (strong) values else values ++ map.getOrElse(field, Set.empty)
-        val newMap = map + (field -> newValue)
-        heap + (receiver -> newMap)
-    }
-    // return updated heap and replacement
-    val updated = domain2.copy(heap = newHeap)
-    val replacement = replacement1 >> replacement2
-
-    (updated, replacement)
+    // evaluate receiver and value; we do this unconditionally to trigger
+    // materialization in all cases
+    val (domain1, receivers, substitution1) = evaluateReceiver(receiver)
+    val (domain2, values, substitution2) = domain1.evaluate(expression)
+    // perform assignment if target has an object type
+    val updated = if (target.typ.isObject) {
+      // determine whether a strong update is possible
+      val strong = strongUpdate(receivers) || (values contains TopNode)
+      // update heap
+      val newHeap = receivers.foldLeft(domain2.heap) {
+        case (heap, receiver) =>
+          val map = heap.getOrElse(receiver, Map.empty)
+          val newValue = if (strong) values else values ++ map.getOrElse(field, Set.empty)
+          val newMap = map + (field -> newValue)
+          heap + (receiver -> newMap)
+      }
+      domain2.copy(heap = newHeap)
+    } else domain2
+    // return updated heap and substitution
+    val substitution = substitution1 compose substitution2
+    (updated, substitution)
   }
 
-  override def havoc(expression: Expression): (T, Replacement) = expression match {
+  override def havoc(expression: Expression): (T, Substitution) = expression match {
     case variable: VariableIdentifier => assignVariable(variable, TopNode)
     case target: AccessPathIdentifier => assignField(target, TopNode)
   }
 
-  override def inhale(condition: Expression): (T, Replacement) = condition match {
-    case Constant("true", _, _) => (this, Replacements.identity)
-    case Constant("false", _, _) => (bottom(), Replacements.identity)
-    case _: Identifier => (this, Replacements.identity)
-    case _: BinaryArithmeticExpression => (this, Replacements.identity)
+  override def inhale(condition: Expression): (T, Substitution) = condition match {
+    case Constant("true", _, _) => (this, identity)
+    case Constant("false", _, _) => (bottom(), identity)
+    case _: Identifier => (this, identity)
+    case _: BinaryArithmeticExpression => (this, identity)
     case NegatedBooleanExpression(argument) => argument match {
       case Constant("true", typ, pp) => inhale(Constant("false", typ, pp))
       case Constant("false", typ, pp) => inhale(Constant("true", typ, pp))
@@ -278,37 +279,37 @@ trait AliasGraph[T <: AliasGraph[T]]
       case _ => inhale(argument)
     }
     case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
-      val (domain, replacement1) = inhale(left)
-      val (updated, replacement2) = domain.inhale(right)
-      val replacement = replacement1 >> replacement2
-      (updated, replacement)
+      val (domain, substitution1) = inhale(left)
+      val (updated, substitution2) = domain.inhale(right)
+      val substitution = substitution1 compose substitution2
+      (updated, substitution)
     case BinaryBooleanExpression(left, right, BooleanOperator.||) =>
-      val (domain1, replacement1) = inhale(left)
-      val (domain2, replacement2) = inhale(right)
+      val (domain1, substitution1) = inhale(left)
+      val (domain2, substitution2) = inhale(right)
       val updated = domain1 lub domain2
-      val replacement = replacement1 lub replacement2
-      (updated, replacement)
+      val substitution = substitution1 lub substitution2
+      (updated, substitution)
     case comparison: ReferenceComparisonExpression =>
       assumeComparison(comparison)
     case FieldAccessPredicate(location, _, _, _) =>
       // evaluate location to trigger its materialization
-      val (updated, _, replacement) = evaluate(location)
-      (updated, replacement)
+      val (updated, _, substitution) = evaluate(location)
+      (updated, substitution)
     case _ => ???
   }
 
-  override def exhale(condition: Expression): (T, Replacement) = condition match {
+  override def exhale(condition: Expression): (T, Substitution) = condition match {
     case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
-      val (domain, replacement1) = exhale(left)
-      val (updated, replacement2) = domain.exhale(right)
-      val replacement = replacement1 >> replacement2
-      (updated, replacement)
+      val (domain, substitution1) = exhale(left)
+      val (updated, substitution2) = domain.exhale(right)
+      val substitution = substitution1 compose substitution2
+      (updated, substitution)
     case FieldAccessPredicate(location, _, _, _) =>
       havoc(location)
     case _ => ???
   }
 
-  override def garbageCollect(): (T, Replacement) = {
+  override def garbageCollect(): (T, Substitution) = {
     // nodes reachable from variables plus unknown node
     var reachable = store.values.foldLeft(Set(UnknownNode: HeapNode))(_ ++ _)
     // nodes reachable via field accesses
@@ -322,18 +323,20 @@ trait AliasGraph[T <: AliasGraph[T]]
       }
     }
     // remove all unreachable nodes from the heap
-    val unreachable = heap.keySet -- reachable
+    val unreachable = locations -- reachable
     val newHeap = unreachable.foldLeft(heap) { case (result, node) => result - node }
-    // return updated domain and replacement
+    // return updated domain and substitution
     val updated = copy(heap = newHeap)
-    val replacement = Replacements.remove(unreachable.collect { case id: Identifier => id })
-    (updated, replacement)
+    val substitution = remove(unreachable.collect { case id: Identifier => id })
+    (updated, substitution)
   }
 
   override def getValue(expression: Expression): Set[HeapNode] = {
     val (_, values, _) = copy(materialization = true).evaluate(expression)
     values
   }
+
+  override def locations: Set[HeapNode] = heap.keySet
 
   protected def initialValues: Set[HeapNode]
 
@@ -348,51 +351,64 @@ trait AliasGraph[T <: AliasGraph[T]]
     * materialization flag is set.
     *
     * @param expression The expression to be evaluated.
-    * @return The updated domain, values, and corresponding replacement.
+    * @return The updated domain, values, and corresponding substitution.
     */
-  protected def evaluate(expression: Expression): (T, Set[HeapNode], Replacement) = expression match {
-    case TopNode =>
-      val values = Set(TopNode: HeapNode)
-      val replacement = Replacements.identity
-      (this, values, replacement)
-    case NewNode =>
-      val values = Set(UnknownNode: HeapNode)
-      val replacement = Replacements.identity
-      (this, values, replacement)
-    case Constant("null", _, _) =>
-      val values = Set(NullNode: HeapNode)
-      val replacement = Replacements.identity
-      (this, values, replacement)
-    case variable: VariableIdentifier =>
-      evaluateVariable(variable)
-    case AccessPathIdentifier(path) =>
-      val receiver = AccessPathIdentifier(path.init)
-      val field = path.last
-      val (domain, receivers, replacement1) = evaluateReceiver(receiver)
-      val (updated, values, replacement2) = domain.evaluateField(receivers, field)
-      val replacement = replacement1 >> replacement2
-      (updated, values, replacement)
-    case _ => ???
-  }
+  protected def evaluate(expression: Expression): (T, Set[HeapNode], Substitution) =
+    if (expression.typ.isObject) expression match {
+      case TopNode =>
+        val values = Set(TopNode: HeapNode)
+        (this, values, identity)
+      case NewNode =>
+        val values = Set(UnknownNode: HeapNode)
+        (this, values, identity)
+      case Constant("null", _, _) =>
+        val values = Set(NullNode: HeapNode)
+        (this, values, identity)
+      case variable: VariableIdentifier =>
+        evaluateVariable(variable)
+      case AccessPathIdentifier(path) =>
+        if (path.length == 1) evaluate(path.head)
+        else {
+          val receiver = AccessPathIdentifier(path.init)
+          val field = path.last
+          val (domain, receivers, substitution1) = evaluateReceiver(receiver)
+          val (updated, values, substitution2) = domain.evaluateField(receivers, field)
+          val substitution = substitution1 compose substitution2
+          (updated, values, substitution)
+        }
+      case _ => ???
+    } else expression match {
+      case AccessPathIdentifier(path) =>
+        if (path.length == 1) evaluate(path.head)
+        else {
+          val values = Set.empty[HeapNode]
+          val receiver = AccessPathIdentifier(path.init)
+          val (updated, _, substitution) = evaluateReceiver(receiver)
+          (updated, values, substitution)
+        }
+      case _ =>
+        val values = Set.empty[HeapNode]
+        (this, values, identity)
+    }
 
   /**
     * Evaluates the receivers and values of the given expression.
     *
     * @param expression The expression.
-    * @return The updated domain, receivers, values, and corresponding replacement.
+    * @return The updated domain, receivers, values, and corresponding substitution.
     */
-  def evaluateWithReceiver(expression: Expression): (T, Set[HeapNode], Set[HeapNode], Replacement) = expression match {
+  def evaluateWithReceiver(expression: Expression): (T, Set[HeapNode], Set[HeapNode], Substitution) = expression match {
     case AccessPathIdentifier(path) =>
       val receiver = AccessPathIdentifier(path.init)
       val field = path.last
-      val (domain, receivers, replacement1) = evaluateReceiver(receiver)
-      val (updated, values, replacement2) = domain.evaluateField(receivers, field)
-      val replacement = replacement1 >> replacement2
-      (updated, receivers, values, replacement)
+      val (domain, receivers, substitution1) = evaluateReceiver(receiver)
+      val (updated, values, substitution2) = domain.evaluateField(receivers, field)
+      val substitution = substitution1 compose substitution2
+      (updated, receivers, values, substitution)
     case _ =>
       val receiver = Set.empty[HeapNode]
-      val (updated, value, replacement) = evaluate(expression)
-      (updated, receiver, value, replacement)
+      val (updated, value, substitution) = evaluate(expression)
+      (updated, receiver, value, substitution)
   }
 
   /**
@@ -402,13 +418,13 @@ trait AliasGraph[T <: AliasGraph[T]]
     * materialization flag is set.
     *
     * @param expression The expression to be evaluated.
-    * @return The updated domain, value, and corresponding replacement.
+    * @return The updated domain, value, and corresponding substitution.
     */
-  protected def evaluateReceiver(expression: Expression): (T, Set[HeapNode], Replacement) = expression match {
+  protected def evaluateReceiver(expression: Expression): (T, Set[HeapNode], Substitution) = expression match {
     case variable: VariableIdentifier =>
       assumeNonNull(variable).evaluateVariable(variable)
     case AccessPathIdentifier(variable :: fields) =>
-      fields.foldLeft(assumeNonNull(variable).evaluateVariable(variable)) { case ((domain, receivers, replacement), field) =>
+      fields.foldLeft(assumeNonNull(variable).evaluateVariable(variable)) { case ((domain, receivers, substitution), field) =>
         val nonNull = receivers.foldLeft(domain) { (x, receiver) => x.assumeNonNull(receiver, field) }
         nonNull.evaluateField(receivers, field)
       }
@@ -420,9 +436,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     * This method materializes the variable if the materialization flag is set.
     *
     * @param identifier The variable to be evaluated.
-    * @return The updated domain, value, and corresponding replacement
+    * @return The updated domain, value, and corresponding substitution
     */
-  protected def evaluateVariable(identifier: Identifier): (T, Set[HeapNode], Replacement) = {
+  protected def evaluateVariable(identifier: Identifier): (T, Set[HeapNode], Substitution) = {
     // get value of the variable
     val values = store.getOrElse(identifier, Set.empty)
     // materialize
@@ -430,9 +446,9 @@ trait AliasGraph[T <: AliasGraph[T]]
       // update store
       val result = topValues
       val newStore = store + (identifier -> result)
-      // return updated domain, value, and replacement
+      // return updated domain, value, and substitution
       val updated = copy(store = newStore)
-      (updated, result, Replacements.identity)
+      (updated, result, identity)
     } else if ((values contains UnknownNode) && materialization) {
       // create heap node
       val node = SimpleNode(identifier.getName)
@@ -446,13 +462,13 @@ trait AliasGraph[T <: AliasGraph[T]]
       val result = values - UnknownNode + node
       val newStore = store + (identifier -> result)
       val newHeap = heap + (node -> merged)
-      // return updated domain, value, and replacement
+      // return updated domain, value, and substitution
       val updated = copy(store = newStore, heap = newHeap)
-      val replacement = Replacements.expand(UnknownNode, Set(UnknownNode, node))
-      (updated, result, replacement)
+      val substitution = expand(UnknownNode, Set(UnknownNode, node))
+      (updated, result, substitution)
     } else {
-      // return unchanged domain, value, and replacement
-      (this, values, Replacements.identity)
+      // return unchanged domain, value, and substitution
+      (this, values, identity)
     }
   }
 
@@ -461,12 +477,12 @@ trait AliasGraph[T <: AliasGraph[T]]
     *
     * @param receivers The set of receivers.
     * @param field     The field.
-    * @return The updated domain, value, and corresponding replacement.
+    * @return The updated domain, value, and corresponding substitution.
     */
-  protected def evaluateField(receivers: Set[HeapNode], field: Identifier): (T, Set[HeapNode], Replacement) = {
-    receivers.foldLeft((this, Set.empty: Set[HeapNode], Replacements.identity)) { case ((domain, result, replacement1), receiver) =>
-      val (updated, values, replacement2) = domain.evaluateField(receiver, field)
-      (updated, result ++ values, replacement1 >> replacement2)
+  protected def evaluateField(receivers: Set[HeapNode], field: Identifier): (T, Set[HeapNode], Substitution) = {
+    receivers.foldLeft((this, Set.empty: Set[HeapNode], identity)) { case ((domain, result, substitution1), receiver) =>
+      val (updated, values, substitution2) = domain.evaluateField(receiver, field)
+      (updated, result ++ values, substitution1 compose substitution2)
     }
   }
 
@@ -475,9 +491,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     *
     * @param receiver The receiver.
     * @param field    The field.
-    * @return The updated domain, value, and corresponding replacement.
+    * @return The updated domain, value, and corresponding substitution.
     */
-  protected def evaluateField(receiver: HeapNode, field: Identifier): (T, Set[HeapNode], Replacement) = {
+  protected def evaluateField(receiver: HeapNode, field: Identifier): (T, Set[HeapNode], Substitution) = {
     // get value of the field
     val map = heap.getOrElse(receiver, Map.empty)
     val values = map.getOrElse(field, Set.empty)
@@ -487,9 +503,9 @@ trait AliasGraph[T <: AliasGraph[T]]
       val result = topValues
       val newMap = map + (field -> result)
       val newHeap = heap + (receiver -> newMap)
-      // return updated domain, value, and replacement
+      // return updated domain, value, and substitution
       val updated = copy(heap = newHeap)
-      (updated, result, Replacements.identity)
+      (updated, result, identity)
     } else if (values contains UnknownNode) {
       if (materialization) {
         // create heap node
@@ -504,10 +520,10 @@ trait AliasGraph[T <: AliasGraph[T]]
         val result = values - UnknownNode + node
         val newMap = map + (field -> result)
         val newHeap = heap + (receiver -> newMap) + (node -> merged)
-        // return updated domain, value, and replacement
+        // return updated domain, value, and substitution
         val updated = copy(heap = newHeap)
-        val replacement = Replacements.expand(UnknownNode, Set(UnknownNode, node))
-        (updated, result, replacement)
+        val substitution = expand(UnknownNode, Set(UnknownNode, node))
+        (updated, result, substitution)
       } else {
         // add summary node if it does not exist
         val summaryHeap = heap.get(SummaryNode) match {
@@ -523,14 +539,14 @@ trait AliasGraph[T <: AliasGraph[T]]
         val result = values - UnknownNode + SummaryNode
         val newMap = map + (field -> result)
         val newHeap = summaryHeap + (receiver -> newMap)
-        // return updated domain, value, and replacement
+        // return updated domain, value, and substitution
         val updated = copy(heap = newHeap)
-        val replacement = Replacements.expand(UnknownNode, Set(UnknownNode, SummaryNode))
-        (updated, result, replacement)
+        val substitution = expand(UnknownNode, Set(UnknownNode, SummaryNode))
+        (updated, result, substitution)
       }
     } else {
-      // return unchanged domain, value, and replacement
-      (this, values, Replacements.identity)
+      // return unchanged domain, value, and substitution
+      (this, values, identity)
     }
   }
 
@@ -566,9 +582,9 @@ trait AliasGraph[T <: AliasGraph[T]]
     * Assumes that the given reference comparison holds.
     *
     * @param comparison The comparision to be assumed.
-    * @return The updated domain and the corresponding replacement.
+    * @return The updated domain and the corresponding substitution.
     */
-  protected def assumeComparison(comparison: ReferenceComparisonExpression): (T, Replacement)
+  protected def assumeComparison(comparison: ReferenceComparisonExpression): (T, Substitution)
 
   /**
     * Helper method to merge two stores. This method can also be used to merge
@@ -662,7 +678,7 @@ case class MayAliasGraph(isTop: Boolean = false,
   extends AliasGraph[MayAliasGraph] {
 
   override def lub(other: MayAliasGraph): MayAliasGraph =
-    if (isTop || other.isBottom) this
+    if (isTop || other.isBottom || this == other) this
     else if (isBottom || other.isTop) other
     else {
 
@@ -693,7 +709,10 @@ case class MayAliasGraph(isTop: Boolean = false,
       )
     }
 
-  override def glb(other: MayAliasGraph): MayAliasGraph = bottom()
+  override def glb(other: MayAliasGraph): MayAliasGraph =
+    if (isBottom || other.isTop || this == other) this
+    else if (isTop || other.isBottom) other
+    else bottom()
 
   override def widening(other: MayAliasGraph): MayAliasGraph = {
     val domain = this lub other
@@ -760,10 +779,10 @@ case class MayAliasGraph(isTop: Boolean = false,
   override protected def strongUpdate(target: Set[HeapNode]): Boolean =
     target.size == 1 && target.head.representsSingleVariable
 
-  override protected def assumeComparison(comparison: ReferenceComparisonExpression): (MayAliasGraph, Replacement) = {
+  override protected def assumeComparison(comparison: ReferenceComparisonExpression): (MayAliasGraph, Substitution) = {
     val ReferenceComparisonExpression(left, right, operator) = comparison
-    val (domain1, receivers1, values1, replacement1) = evaluateWithReceiver(left)
-    val (domain2, receivers2, values2, replacement2) = domain1.evaluateWithReceiver(right)
+    val (domain1, receivers1, values1, substitution1) = evaluateWithReceiver(left)
+    val (domain2, receivers2, values2, substitution2) = domain1.evaluateWithReceiver(right)
 
     val (mask1, mask2) = operator match {
       case ReferenceOperator.== => (values2, values1)
@@ -773,9 +792,9 @@ case class MayAliasGraph(isTop: Boolean = false,
     val updated = domain2
       .filter(left, receivers1, mask1)
       .filter(right, receivers2, mask2)
-    val replacement = replacement1 >> replacement2
+    val substitution = substitution1 compose substitution2
 
-    (updated, replacement)
+    (updated, substitution)
   }
 
   private def filter(target: Expression, receivers: Set[HeapNode], mask: Set[HeapNode]): MayAliasGraph = {
@@ -834,7 +853,7 @@ case class MustAliasGraph(isTop: Boolean = false,
   extends AliasGraph[MustAliasGraph] {
 
   override def lub(other: MustAliasGraph): MustAliasGraph =
-    if (isTop || other.isBottom) this
+    if (isTop || other.isBottom || this == other) this
     else if (isBottom || other.isTop) other
     else {
 
@@ -864,7 +883,10 @@ case class MustAliasGraph(isTop: Boolean = false,
       )
     }
 
-  override def glb(other: MustAliasGraph): MustAliasGraph = bottom()
+  override def glb(other: MustAliasGraph): MustAliasGraph =
+    if (isBottom || other.isTop || this == other) this
+    else if (isTop || other.isBottom) other
+    else bottom()
 
   override def widening(other: MustAliasGraph): MustAliasGraph = {
     val domain = this lub other
@@ -913,10 +935,10 @@ case class MustAliasGraph(isTop: Boolean = false,
 
   override protected def strongUpdate(target: Set[HeapNode]): Boolean = true
 
-  override protected def assumeComparison(comparison: ReferenceComparisonExpression): (MustAliasGraph, Replacement) = {
+  override protected def assumeComparison(comparison: ReferenceComparisonExpression): (MustAliasGraph, Substitution) = {
     val ReferenceComparisonExpression(left, right, operator) = comparison
-    val (domain1, receivers1, values1, replacement1) = evaluateWithReceiver(left)
-    val (domain2, receivers2, values2, replacement2) = domain1.evaluateWithReceiver(right)
+    val (domain1, receivers1, values1, substitution1) = evaluateWithReceiver(left)
+    val (domain2, receivers2, values2, substitution2) = domain1.evaluateWithReceiver(right)
 
     val (mask1, mask2) = operator match {
       case ReferenceOperator.== => (values2, values1)
@@ -926,9 +948,9 @@ case class MustAliasGraph(isTop: Boolean = false,
     val updated = domain2
       .filter(left, receivers1, mask1)
       .filter(right, receivers2, mask2)
-    val replacement = replacement1 >> replacement2
+    val substitution = substitution1 compose substitution2
 
-    (updated, replacement)
+    (updated, substitution)
   }
 
   private def filter(target: Expression, receivers: Set[HeapNode], mask: Set[HeapNode]): MustAliasGraph =
