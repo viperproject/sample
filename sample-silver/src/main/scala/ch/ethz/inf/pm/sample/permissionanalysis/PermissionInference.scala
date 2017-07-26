@@ -331,6 +331,7 @@ trait PermissionInferenceSilverExtender[T <: PermissionAnalysisState[T, A, May, 
 }
 
 object PermissionInference
-  extends PermissionInferenceSilverExtender[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
+  extends PermissionInferenceRunner[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph]
+    with PermissionInferenceSilverExtender[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
   override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph](AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
 }

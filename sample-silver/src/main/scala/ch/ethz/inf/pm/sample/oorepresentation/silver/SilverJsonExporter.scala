@@ -15,15 +15,16 @@ import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 import viper.silver.{ast => sil}
 
 /**
-  * Mixin to collect how a program has been extended. Afterwards getSpecifications() can be used to get all changes
-  * as a map from Position to (previous-specifications, new-specifications)
+  * Exports the changes to an extended program as json. For programs that did already contain some specifications
+  * we do not export new specifications but report an error (in json format).
+  * All changes and errors are accompanied by a Position in the original silver program.
   *
-  * This trait assumes that for EVERY extended program a new SilverExtender() with SpecificationsExporter is created.
-  * (since it stores the changes to the program)
+  * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the JSON output.
   *
   * @tparam S The type of the state.
+  * @author Flurin Rindisbacher
   */
-trait SpecificationsExporter[S <: State[S]]
+trait SilverJsonExporter[S <: State[S]]
   extends SilverExporter[S] {
 
   val Pre = "preconditions"
@@ -58,21 +59,7 @@ trait SpecificationsExporter[S <: State[S]]
     *
     * @return
     */
-  protected def getSpecifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = {
-    specifications
-  }
-}
-
-/**
-  * Exports the changes to an extended program as json. For programs that did already contain some specifications
-  * we do not export new specifications but report an error (in json format).
-  * All changes and errors are accompanied by a Position in the original silver program.
-  *
-  * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the JSON output.
-  *
-  * @tparam S The type of the state.
-  */
-trait SpecificationsJsonExporter[S <: State[S]] extends SpecificationsExporter[S] {
+  private def getSpecifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = specifications
 
   // For debugging/development you may want to enable prettyRender to have a look at the JSON
   //private def render = prettyRender _

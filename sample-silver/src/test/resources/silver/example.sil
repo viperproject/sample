@@ -1,8 +1,6 @@
-method foo(a: Int) returns (r: Int)
+field val: Int
+
+method set_val(a: Ref, v: Int)
 {
-    r := 0
-    while (r < 5)
-    {
-        r := r + 1
-    }
+    a.val := v
 }
