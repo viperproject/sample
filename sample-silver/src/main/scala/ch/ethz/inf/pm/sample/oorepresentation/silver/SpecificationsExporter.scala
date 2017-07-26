@@ -7,12 +7,11 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult}
+import ch.ethz.inf.pm.sample.inference.SilverExporter
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.compactRender
 import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
-import viper.silver.ast.{HasLineColumn, Position, SourcePosition}
 import viper.silver.{ast => sil}
 
 /**
@@ -22,11 +21,10 @@ import viper.silver.{ast => sil}
   * This trait assumes that for EVERY extended program a new SilverExtender() with SpecificationsExporter is created.
   * (since it stores the changes to the program)
   *
-  * @tparam T The type of the inferred specification.
   * @tparam S The type of the state.
   */
-trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
-  extends SilverExtender[T, S] {
+trait SpecificationsExporter[S <: State[S]]
+  extends SilverExporter[S] {
 
   val Pre = "preconditions"
   val Post = "postconditions"
@@ -43,17 +41,16 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
     inferred
   }
 
-  abstract override def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Pre, method.body.pos, method.pres, () => super.preconditions(method, position, result))
-  }
+  override def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp]): Unit =
+    extendAndSaveResult(Pre, method.body.pos, method.pres, () => preconditions)
 
-  abstract override def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Post, method.body.pos, method.posts, () => super.postconditions(method, position, result))
-  }
+  override def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp]): Unit =
+    extendAndSaveResult(Post, method.body.pos, method.posts, () => postconditions)
 
-  abstract override def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
-    extendAndSaveResult(Inv, loop.body.pos, loop.invs, () => super.invariants(loop, position, result))
-  }
+  override def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp]): Unit =
+    extendAndSaveResult(Inv, loop.body.pos, loop.invs, () => invariants)
+
+  override def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = ???
 
   /**
     * Returns a Map of the collected specifications. For pre-/postconditions and invariants
@@ -75,10 +72,9 @@ trait SpecificationsExporter[T, S <: State[S] with SilverSpecification[T]]
   *
   * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the JSON output.
   *
-  * @tparam T The type of the inferred specification.
   * @tparam S The type of the state.
   */
-trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] extends SpecificationsExporter[T, S] {
+trait SpecificationsJsonExporter[S <: State[S]] extends SpecificationsExporter[S] {
 
   // For debugging/development you may want to enable prettyRender to have a look at the JSON
   //private def render = prettyRender _
@@ -114,15 +110,15 @@ trait SpecificationsJsonExporter[T, S <: State[S] with SilverSpecification[T]] e
     * @param pos The position to format
     * @return A tuple containing the formatted start and end locations as a string.
     */
-  private def formatPosition(pos: Position): (String, String) = pos match {
-    case sourcePos@SourcePosition(_, start, end) =>
+  private def formatPosition(pos: sil.Position): (String, String) = pos match {
+    case sourcePos@sil.SourcePosition(_, start, end) =>
       (s"${start.line}:${start.column}",
         if (end.isDefined)
           s"${end.get.line}:${end.get.column}"
         else
           "<unknown line>:<unknown column>")
 
-    case s: HasLineColumn => (s"${s.line}:${s.column}", "<unknown line>:<unknown column>")
+    case s: sil.HasLineColumn => (s"${s.line}:${s.column}", "<unknown line>:<unknown column>")
     case _ => ("<unknown line>:<unknown column>", "<unknown line>:<unknown column>")
   }
 

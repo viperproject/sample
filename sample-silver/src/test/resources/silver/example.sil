@@ -1,25 +1,8 @@
-method a(x: Int, c: Bool) returns (r: Int)
+method foo(a: Int) returns (r: Int)
 {
-    if (c)
+    r := 0
+    while (r < 5)
     {
-        r := 0
-    }
-    else
-    {
-        r := b(x, c)
         r := r + 1
-    }
-}
-
-method b(x: Int, c: Bool) returns (r: Int)
-{
-    if (c)
-    {
-        r := 0
-    }
-    else
-    {
-        r := a(x, c)
-        r := r - 1
     }
 }

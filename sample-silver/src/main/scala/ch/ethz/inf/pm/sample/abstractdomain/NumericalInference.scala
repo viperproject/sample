@@ -10,8 +10,10 @@ import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
-import viper.silver.ast._
+import viper.silver.{ast => sil}
 
 /**
   * An inference based on a numerical analysis.
@@ -21,19 +23,13 @@ import viper.silver.ast._
   * @author Jerome Dohrau
   */
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
-  extends SilverInferenceRunner[Set[Expression], S] {
+  extends SilverInferenceRunner[S] {
 
-  override def preconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = method.pres
-
-  override def postconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = method.posts
-
-  override def invariants(loop: While, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
     loop.invs ++ converted.toSeq
   }
-
-  override def fields(newStmt: NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[Field] = newStmt.fields
 }
 
 /**
@@ -44,27 +40,27 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
   * @author Flurin Rindisbacher
   */
 trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
-  extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S] {
+  extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[S] {
 
-  private def asConjunction(specifications: Set[Expression]): Exp = {
+  private def asConjunction(specifications: Set[Expression]): sil.Exp = {
     if (specifications.nonEmpty)
-      specifications.map(DefaultSampleConverter.convert).reduce((left, right) => And(left, right)())
+      specifications.map(DefaultSampleConverter.convert).reduce((left, right) => sil.And(left, right)())
     else
-      TrueLit()()
+      sil.TrueLit()()
   }
 
   //
   // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
   //
-  override def preconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val existing = method.pres
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
     // represent each set of preconditions as a conjunction
-    val conjuctionsPerCall: Seq[Exp] = inferred.map(asConjunction).distinct
+    val conjuctionsPerCall: Seq[sil.Exp] = inferred.map(asConjunction).distinct
     // Or() all the possible preconditions
     if (conjuctionsPerCall.nonEmpty) {
-      val inferredPreconditions: Exp = conjuctionsPerCall.reduce((left, right) => Or(left, right)())
+      val inferredPreconditions: sil.Exp = conjuctionsPerCall.reduce((left, right) => sil.Or(left, right)())
       existing :+ inferredPreconditions
     } else {
       existing
@@ -80,12 +76,12 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //  ensures post1
   //  ensures post2 ...
   //
-  override def postconditions(method: Method, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val existing = method.posts
     // we only allow postconditions that talk about formalArgs and formalReturns
     val allowedIdentifiers = method.formalReturns.map(_.name).toSet ++ method.formalArgs.map(_.name).toSet
 
-    val inferredPostconditions: Seq[Exp] = {
+    val inferredPostconditions: Seq[sil.Exp] = {
       for (result <- resultsToWorkWith) yield {
         val precondition = asConjunction(result.entryState().specifications)
         val inferred = result.postStateAt(position).specifications
@@ -94,8 +90,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
         val converted = inferred.map(DefaultSampleConverter.convert)
         // add (precondition => postcondition) for every encountered call-string
         precondition match {
-          case _: TrueLit => converted
-          case p => converted.map(Implies(p, _)())
+          case _: sil.TrueLit => converted
+          case p => converted.map(sil.Implies(p, _)())
         }
       }
     }.flatten
@@ -108,32 +104,22 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //    method-precondition => invariant
   // for all the call-strings we saw during analysis
   //
-  override def invariants(loop: While, position: BlockPosition, result: CfgResult[S]): Seq[Exp] = {
+  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val existing = loop.invs
-    val inferredInvariants: Seq[Exp] = {
+    val inferredInvariants: Seq[sil.Exp] = {
       for (result <- resultsToWorkWith) yield {
         val precondition = asConjunction(result.entryState().specifications)
         val inferred = result.preStateAt(position).specifications
         val converted = inferred.map(DefaultSampleConverter.convert)
         // add (precondition => invariant) for every encountered call-string
         precondition match {
-          case _: TrueLit => converted
-          case p => converted.map(Implies(p, _)())
+          case _: sil.TrueLit => converted
+          case p => converted.map(sil.Implies(p, _)())
         }
       }
     }.flatten
     existing ++ inferredInvariants
   }
-}
-
-/**
-  * An inference based on the integer octagon analysis.
-  *
-  * @author Jerome Dohrau
-  */
-object IntegerOctagonInference
-  extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
-  override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = IntegerOctagonAnalysis.analysis
 }
 
 /**
@@ -155,7 +141,7 @@ object InterproceduralIntegerOctagonInference
   */
 object InterproceduralIntegerOctagonBottomUpInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
-    with InterproceduralSilverBottomUpInferenceRunner[Set[Expression], IntegerOctagonAnalysisState]
+    with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 }
@@ -168,15 +154,38 @@ object InterproceduralIntegerOctagonBottomUpInference
   */
 object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
-    with InterproceduralSilverBottomUpInferenceRunner[Set[Expression], IntegerOctagonAnalysisState]
+    with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState]
-    with SpecificationsJsonExporter[Set[Expression], IntegerOctagonAnalysisState] {
+    with SpecificationsJsonExporter[IntegerOctagonAnalysisState] {
 
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 
   override def main(args: Array[String]): Unit = {
     // run the analysis and print result as json
-    val extended = extend(args)
+    val extended = export(args)
     println(specificationsAsJson((new File(args(0)).toPath).toString))
+  }
+}
+
+/**
+  * An inference based on the integer octagon analysis.
+  *
+  * @author Jerome Dohrau
+  */
+object IntegerOctagonInference
+  extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
+    with SilverExtender[IntegerOctagonAnalysisState] {
+  override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = IntegerOctagonAnalysis.analysis
+
+  override def main(args: Array[String]): Unit = {
+    require(args.nonEmpty, "No file specified")
+
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val program = compile(compilable)
+
+    val result = run(program)
+    val extended = extendProgram(program, result)
+
+    println(extended)
   }
 }
