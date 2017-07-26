@@ -244,6 +244,28 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     copy(heap = newHeap, semantic = newSemantic)
   }
 
+  /**
+    * Returns the set of identifiers contained in the domain.
+    *
+    * @return The set of identifiers.
+    */
+  def ids = semantic.ids
+
+  /**
+    * Returns a set of possible constraints.
+    *
+    * @param ids The identifiers that should be mentioned in the constraints.
+    * @return The set of constraints.
+    */
+  def getConstraints(ids: Set[Identifier]): Set[Expression] = semantic.getConstraints(ids)
+
+  /**
+    * Applies the given substitution to the semantic domain and returns the
+    * result.
+    *
+    * @param substitution The substitution to apply.
+    * @return The substituted semantic domain.
+    */
   private def substitutedSemantic(substitution: Substitution): S =
     substitution.extend(fields)(semantic)
 
@@ -251,7 +273,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * A helper method that performs an assignment in the semantic domain.
     *
     * @param left  The set representing all possible targets.
-    * @param right THe set representing all possible values.
+    * @param right The set representing all possible values.
     * @return The resulting domain.
     */
   private def assignSemantic(left: Set[Identifier], right: Set[Expression]): T =
