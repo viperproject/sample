@@ -43,44 +43,48 @@ trait SilverInferenceRunner[S <: State[S]] extends
   SilverAnalysisRunner[S] {
 
   /**
-    * Modifies the list of preconditions using the given analysis result.
+    * Infers a list of preconditions for the given method using the given
+    * analysis result.
     *
-    * @param method   The method for which the preconditions is inferred.
+    * @param method   The method for which the preconditions are inferred.
     * @param position The position of the first precondition.
     * @param result   The analysis result.
     * @return The inferred preconditions.
     */
-  def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.pres
 
   /**
-    * Modifies the list of postconditions using the given analysis result.
+    * Infers a list of postconditions for the given method using the given
+    * analysis result.
     *
-    * @param method   The method for which the postconditions is inferred.
+    * @param method   The method for which the postconditions are inferred.
     * @param position The position of the last postcondition.
     * @param result   The analysis result.
     * @return The inferred postconditions.
     */
-  def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.posts
 
   /**
-    * Modifies the list of invariants using the given analysis result.
+    * Infers a list of invariants for the given while loop using the given
+    * analysis result.
     *
     * @param loop     The while loop for which the invariants are inferred.
     * @param position The position of the first invariant.
     * @param result   The analysis result.
     * @return The inferred invariants.
     */
-  def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = loop.invs
 
   /**
-    * Modifies the list of fields of a new statement using the given analysis result.
+    * Infers a list of fields for a new statement using the given analysis
+    * result.
     *
     * @param newStmt  The new statement for with the fields are inferred.
     * @param position The position of the new statement.
     * @param result   The analysis result.
     * @return The inferred fields.
     */
-  def fields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field]
+  def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
 }
 
 /**
@@ -132,8 +136,8 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
     val entry = firstPosition(result.cfg.entry)
     val exit = lastPosition(result.cfg.exit.get)
 
-    val extendedPreconditions = preconditions(method, entry, result)
-    val extendedPostconditions = postconditions(method, exit, result)
+    val extendedPreconditions = inferPreconditions(method, entry, result)
+    val extendedPostconditions = inferPostconditions(method, exit, result)
     val extendedBody = extendBody(method.body, result)
 
     // TODO: Handle arguments.
@@ -179,14 +183,14 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
       // get the position of the loop
       val position = getLoopPosition(loop, results.cfg)
       // extend while loop
-      val extendedInvariants = invariants(loop, position, results)
+      val extendedInvariants = inferInvariants(loop, position, results)
       val extendedBody = extendBody(originalBody, results)
       sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
     case newStmt: sil.NewStmt =>
       // get the position of the new statement
       val position = getPosition(statement, results.cfg).asInstanceOf[BlockPosition]
       // extend new statement
-      val extendedFields = fields(newStmt, position, results)
+      val extendedFields = inferFields(newStmt, position, results)
       sil.NewStmt(newStmt.lhs, extendedFields)(statement.pos, statement.info)
     case sil.Constraining(vars, originalBody) =>
       // recursively extend body of constraining statement

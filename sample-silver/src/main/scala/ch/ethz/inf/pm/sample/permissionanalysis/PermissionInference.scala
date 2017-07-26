@@ -63,17 +63,17 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     } else extended
   }
 
-  override def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.preStateAt(position)
     extendSpecifications(method.pres, state)
   }
 
-  override def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.postStateAt(position)
     extendSpecifications(method.posts, state, true)
   }
 
-  override def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val aliases = Context.getAliases[A]
     val state = result.preStateAt(position)
     val tree = state.stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
@@ -112,7 +112,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     extendSpecifications(loop.invs, state) ++ Seq(constraints)
   }
 
-  override def fields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
+  override def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
     // extract specifications from state
     val state = result.preStateAt(position)
     val specifications = state.specifications.foldLeftTrees[PermissionTree](PermissionTree.Bottom)(_ lub _)

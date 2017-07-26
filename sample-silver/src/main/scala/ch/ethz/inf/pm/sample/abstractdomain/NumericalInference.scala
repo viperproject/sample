@@ -22,17 +22,11 @@ import viper.silver.{ast => sil}
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends SilverInferenceRunner[S] {
 
-  override def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.pres
-
-  override def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.posts
-
-  override def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
     loop.invs ++ converted.toSeq
   }
-
-  override def fields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
 }
 
 /**
