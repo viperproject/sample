@@ -1,12 +1,25 @@
-field cell: Ref
-field val: Int
-
-method foo(a: Ref, v: Int)
+method a(x: Int, c: Bool) returns (r: Int)
 {
-    var b: Ref
-    var w: Int
+    if (c)
+    {
+        r := 0
+    }
+    else
+    {
+        r := b(x, c)
+        r := r + 1
+    }
+}
 
-    b := a
-    w := v
-    b.val := w
+method b(x: Int, c: Bool) returns (r: Int)
+{
+    if (c)
+    {
+        r := 0
+    }
+    else
+    {
+        r := a(x, c)
+        r := r - 1
+    }
 }

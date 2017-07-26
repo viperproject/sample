@@ -46,11 +46,11 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
 trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends NumericalInferenceRunner[S, D] with InterproceduralSilverInferenceRunner[Set[Expression], S] {
 
-  private def asConjunction(specifications: Set[Expression]): Option[Exp] = {
+  private def asConjunction(specifications: Set[Expression]): Exp = {
     if (specifications.nonEmpty)
-      Some(specifications.map(DefaultSampleConverter.convert).reduce((left, right) => And(left, right)()))
+      specifications.map(DefaultSampleConverter.convert).reduce((left, right) => And(left, right)())
     else
-      None
+      TrueLit()()
   }
 
   //
@@ -61,7 +61,7 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
     // represent each set of preconditions as a conjunction
-    val conjuctionsPerCall: Seq[Exp] = inferred.flatMap(asConjunction)
+    val conjuctionsPerCall: Seq[Exp] = inferred.map(asConjunction).distinct
     // Or() all the possible preconditions
     if (conjuctionsPerCall.nonEmpty) {
       val inferredPreconditions: Exp = conjuctionsPerCall.reduce((left, right) => Or(left, right)())
@@ -94,15 +94,13 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
         val converted = inferred.map(DefaultSampleConverter.convert)
         // add (precondition => postcondition) for every encountered call-string
         precondition match {
-          case Some(p) =>
-            converted.map(Implies(p, _)())
-          case None =>
-            converted
+          case _: TrueLit => converted
+          case p => converted.map(Implies(p, _)())
         }
       }
     }.flatten
 
-    existing ++ inferredPostconditions
+    existing ++ inferredPostconditions.distinct
   }
 
   //
@@ -119,10 +117,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
         val converted = inferred.map(DefaultSampleConverter.convert)
         // add (precondition => invariant) for every encountered call-string
         precondition match {
-          case Some(p) =>
-            converted.map(Implies(p, _)())
-          case None =>
-            converted
+          case _: TrueLit => converted
+          case p => converted.map(Implies(p, _)())
         }
       }
     }.flatten

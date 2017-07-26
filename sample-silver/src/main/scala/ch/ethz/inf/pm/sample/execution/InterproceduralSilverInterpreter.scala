@@ -661,62 +661,6 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
       Set.empty[SilverMethodDeclaration]
   }
 
-  /**
-    * Build a call-graph for the current program. This is very similar to what the AnalysisRunner does to find the
-    * main methods.
-    *
-    * @param program The program for which we want to build a call graph
-    * @return A directed graph representing the calls in the program
-    */
-  private def buildCallGraph(program: SilverProgramDeclaration): DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]] = {
-    // Most code below was taken from ast.utility.Functions in silver repo!
-    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
-
-    for (f <- program.methods) {
-      callGraph.addVertex(f)
-    }
-
-    def process(m: SilverMethodDeclaration, e: Statement) {
-      e match {
-        case MethodCall(_, method: Variable, _, _, _, _) =>
-          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
-          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
-          val methodIdent = SilverIdentifier(method.getName)
-        case _ => e.getChildren foreach (process(m, _))
-      }
-    }
-
-    for (m <- program.methods;
-         block <- m.body.blocks;
-         statement <- block.elements) {
-      process(m, statement.merge)
-    }
-
-    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
-    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
-
-    /* Add each SCC as a vertex to the condensed call-graph */
-    for (v <- stronglyConnectedSets) {
-      condensedCallGraph.addVertex(v)
-    }
-
-    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
-      stronglyConnectedSets.find(_ contains m).get
-
-    /* Add edges from the call-graph (between individual functions) as edges
-     * between their corresponding SCCs in the condensed call-graph, but only
-     * if this does not result in a cycle.
-     */
-    for (e <- callGraph.edgeSet().asScala) {
-      val sourceSet = condensationOf(e.source)
-      val targetSet = condensationOf(e.target)
-
-      if (sourceSet != targetSet)
-        condensedCallGraph.addEdge(sourceSet, targetSet)
-    }
-    condensedCallGraph
-  }
-
   //
   // In the bottom-up case we enqueue callers starting at the beginning of the method
   // Recursive calls are still analyzed the usual way.
@@ -741,12 +685,17 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
   }
 
   //
-  //  For the recursive case MethodCall statements are analyzed the usual way. Otherwise it is assumed that
-  //  callees have been analyzed and the result is reused. We use the analysis result that doesn't assume anything about
-  //  the arguments to the callee.
+  //  We handle a method-call a bit differently than in the other interpreters:
+  //  case callee is below in the topological order => we reuse the result (resultAvailable should contain the callees identifier)
+  //  case callee is the same as caller => let parent handle recursion
+  //  case callee is in the same connected component than caller => analyse using call-strings (in parent)
+  //  case _ => that would mean the callee is above in the topological order (cannot happen)
   //
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = current match {
-    case _: TaggedWorklistElement =>
+    case cs: TaggedWorklistElement
+      // only let parent handle the call if the call-string is non-empty
+      // (in that case we're either analysing recursive calls or the callee is in the same connected component of the topological order)
+      if cs.callString.inCallee =>
       super.executeStatement(current, statement, state, programResult)
     case _ =>
       statement match {
