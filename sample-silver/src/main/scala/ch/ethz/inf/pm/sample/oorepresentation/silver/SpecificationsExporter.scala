@@ -32,23 +32,21 @@ trait SpecificationsExporter[S <: State[S]]
 
   private var specifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = Map.empty.withDefault(_ => Map.empty)
 
-  private def extendAndSaveResult(typeOfExtension: String, position: sil.Position, existing: Seq[sil.Exp], fun: () => Seq[sil.Exp]): Seq[sil.Exp] = {
-    val inferred = fun()
+  private def saveResult(typeOfExtension: String, position: sil.Position, existing: Seq[sil.Exp], inferred: Seq[sil.Exp]): Unit = {
     // We don't expect to see multiple changes to the same position and type (pre/post/inv)
     assert(!(specifications(typeOfExtension) contains position))
     if (inferred.nonEmpty)
       specifications += (typeOfExtension -> (specifications(typeOfExtension) + (position -> (existing, inferred))))
-    inferred
   }
 
   override def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp]): Unit =
-    extendAndSaveResult(Pre, method.body.pos, method.pres, () => preconditions)
+    saveResult(Pre, method.body.pos, method.pres, preconditions)
 
   override def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp]): Unit =
-    extendAndSaveResult(Post, method.body.pos, method.posts, () => postconditions)
+    saveResult(Post, method.body.pos, method.posts, postconditions)
 
   override def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp]): Unit =
-    extendAndSaveResult(Inv, loop.body.pos, loop.invs, () => invariants)
+    saveResult(Inv, loop.body.pos, loop.invs, invariants)
 
   override def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = ???
 
