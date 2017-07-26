@@ -16,9 +16,9 @@ import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
-import ch.ethz.inf.pm.sample.permissionanalysis.util.ExpressionGenerator
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
-import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionStack, PermissionTree}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
+import ch.ethz.inf.pm.sample.permissionanalysis.util._
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]

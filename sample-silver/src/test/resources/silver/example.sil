@@ -1,12 +1,8 @@
-field cell: Ref
-field val: Int
-
-method foo(a: Ref, v: Int)
+method foo(a: Int) returns (r: Int)
 {
-    var b: Ref
-    var w: Int
-
-    b := a
-    w := v
-    b.val := w
+    r := 0
+    while (r < 5)
+    {
+        r := r + 1
+    }
 }

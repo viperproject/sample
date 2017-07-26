@@ -9,22 +9,13 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.inference.{SilverExporter, SilverExtender, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
-import org.jgrapht.DirectedGraph
-import org.jgrapht.alg.StrongConnectivityInspector
-import org.jgrapht.graph.DefaultDirectedGraph
-import org.jgrapht.traverse.TopologicalOrderIterator
-import viper.silver.ast.utility.Functions
-import viper.silver.ast.utility.Functions.Factory
+import viper.silver.ast.Program
 import viper.silver.{ast => sil}
-
-import scala.collection.JavaConverters._
-
-//import viper.silicon.Silicon
 
 trait AbstractAnalysisRunner[S <: State[S]] {
   val compiler: SilverCompiler
@@ -112,79 +103,111 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 
   override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
-    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
-    // search for "main methods". these are either methods that are not called from other methods,
-    // or they are methods in a strongly connected component where the component itself is not called by other methods
-    //
-    // e.g program has methods foo, bar and baz. foo() calls bar(), bar() calls foo(), bar() calls baz
-    // in this program foo and bar should be treated as main methods. baz is always called from another method
-    // so it won't be added to the set of main methods.
-    var mainMethods = Set[SilverIdentifier]()
-    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
-         if condensedCallGraph.inDegreeOf(condensation) == 0) {
-      for (method <- condensation.asScala)
-        mainMethods += method.name
-    }
-    analysis.analyze(program, mainMethods, callsInProgram)
+    analysis.analyze(program)
+  }
+}
+
+/**
+  * Interprocedural bottom up analysis runner for Silver programs.
+  *
+  * Methods at the  bottom of the topologically ordered call-graph (callee's) are analyzed first. Then their analysis result is reused for
+  * the analysis of the callers
+  *
+  * @author Flurin Rindisbacher
+  *
+  **/
+trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
+  extends InterproceduralSilverAnalysisRunner[S] {
+
+  override val analysis: BottomUpAnalysis[S]
+
+  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
+    prepareContext()
+    // run the analysis starting at the bottom of the topological order
+    analysis.analyze(program)
   }
 
+}
+
+/** Interprocedural Specification Inference for Silver Programs.
+  *
+  * @author Flurin Rindisbacher
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverInferenceRunner[S <: State[S]]
+  extends SilverInferenceRunner[S]
+    with SilverExtender[S]
+    with SilverExporter[S]
+    with InterproceduralSilverAnalysisRunner[S] {
+
+  //
+  // The SilverExtender usually only works with one CFG
+  // But for the interprocedural case we need to access all the available CfgResults
+  //
+  var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
+
   /**
-    * Analyze the given program and return a tuple of condensed Callgraph and a map containing all calls to each method.
-    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
-    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
-    * set(foo, bar) -> set(baz)
+    * Extends the given program using all results (meaning for different call-strings) seen in the analysis.
     *
-    * @param program The program to be analyzed
-    * @return Tuple of condensed call graph and map containing all method calls
+    * @param program The program to extend.
+    * @param results The result of the analysis.
+    * @return The extended program
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[java.util.Set[SilverMethodDeclaration], Functions.Edge[java.util.Set[SilverMethodDeclaration]]], CallGraphMap) = {
-    // Most code below was taken from ast.utility.Functions in silver repo!
-    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
-    var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
-
-    for (f <- program.methods) {
-      callGraph.addVertex(f)
+  override def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      extendMethod(method, results.getResult(identifier))
     }
 
-    def process(m: SilverMethodDeclaration, e: Statement) {
-      e match {
-        case MethodCall(_, method: Variable, _, _, _, _) =>
-          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
-          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
-          val methodIdent = SilverIdentifier(method.getName)
-          callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
-        case _ => e.getChildren foreach (process(m, _))
-      }
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
+
+  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+    program.methods.foreach { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      exportMethod(method, results.getResult(identifier))
+    }
+  }
+}
+
+/**
+  * Extend the given program using the results of a bottom-up analysis. In bottom-up analysis
+  * we're not interested in all CfgResults but only those that are untagged or tagged with an empty call-string.
+  * Example:
+  * for the recursive function foo() the following CfgResults may exist:
+  * (Untagged, Result1)
+  * (foo, Result2)
+  * (foo.foo, Result3)
+  * etc.
+  * We're only interested in the Untagged result. Meaning the result that assumes entryState = initial-state.
+  *
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverBottomUpInferenceRunner[S <: State[S]]
+  extends InterproceduralSilverInferenceRunner[S] {
+
+  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      resultsToWorkWith = Seq(result)
+      extendMethod(method, result)
     }
 
-    for (m <- program.methods;
-         block <- m.body.blocks;
-         statement <- block.elements) {
-      process(m, statement.merge)
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
+
+  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+    program.methods.foreach { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      resultsToWorkWith = Seq(result)
+      exportMethod(method, result)
     }
-
-    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets().asScala
-    val condensedCallGraph = new DefaultDirectedGraph(Factory[java.util.Set[SilverMethodDeclaration]]())
-
-    /* Add each SCC as a vertex to the condensed call-graph */
-    for (v <- stronglyConnectedSets) {
-      condensedCallGraph.addVertex(v)
-    }
-
-    def condensationOf(m: SilverMethodDeclaration): java.util.Set[SilverMethodDeclaration] =
-      stronglyConnectedSets.find(_ contains m).get
-
-    /* Add edges from the call-graph (between individual functions) as edges
-     * between their corresponding SCCs in the condensed call-graph, but only
-     * if this does not result in a cycle.
-     */
-    for (e <- callGraph.edgeSet().asScala) {
-      val sourceSet = condensationOf(e.source)
-      val targetSet = condensationOf(e.target)
-
-      if (sourceSet != targetSet)
-        condensedCallGraph.addEdge(sourceSet, targetSet)
-    }
-    (condensedCallGraph, callsInProgram)
   }
 }

@@ -268,13 +268,20 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
   */
 trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
 
+  def export(args: Array[String]): Unit = {
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val program = compile(compilable)
+    val results = run(program)
+    exportProgram(program, results)
+  }
+
   /**
     * Exports the inferred preconditions for the given method.
     *
     * @param method        The method for which the preconditions are inferred.
     * @param preconditions The inferred preconditions.
     */
-  def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp])
+  def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp]): Unit = {}
 
   /**
     * Exports the inferred postconditions for the given method.
@@ -282,7 +289,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     * @param method         The method for which the postconditions are inferred.
     * @param postconditions The inferred postconditions.
     */
-  def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp])
+  def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp]): Unit = {}
 
   /**
     * Exports the inferred invariants for the given while loop.
@@ -290,7 +297,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     * @param loop       The while loop for which the invariants are inferred.
     * @param invariants The inferred invariants.
     */
-  def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp])
+  def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp]): Unit = {}
 
   /**
     * Exports the inferred fields for the given new-statement.
@@ -298,7 +305,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     * @param newStmt The new-statement for which the fields are inferred.
     * @param fields  The inferred fields.
     */
-  def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field])
+  def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = {}
 
   /**
     * Recursively infers and exports all inferred specifications for the given
@@ -349,7 +356,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     case newStatement: sil.NewStmt =>
       val position = getPosition(statement, result.cfg).asInstanceOf[BlockPosition]
       exportFields(newStatement, inferFields(newStatement, position, result))
-    case _ => ???
+    case _ =>
   }
 
 }
