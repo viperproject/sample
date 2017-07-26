@@ -194,9 +194,6 @@ object Octagons {
       }
     }
 
-    def makeConstant(value: Boolean): Expression =
-      Constant(value.toString, SystemParameters.tm.Boolean)
-
     /** A helper function that constructs a constant from the given value.
       */
     def makeConstant(value: Double): Expression
@@ -473,8 +470,8 @@ object Octagons {
       val Interval(low, high) = bounds
       if (expression.typ.isBooleanType) {
         if (low == high) {
-          val constant = makeConstant(low != 0)
-          Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
+          if (low == 0) Set(NegatedBooleanExpression(expression))
+          else Set(expression)
         } else Set.empty
       } else {
         if (low == high) {
