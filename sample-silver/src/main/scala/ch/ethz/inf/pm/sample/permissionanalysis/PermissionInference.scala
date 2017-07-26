@@ -22,7 +22,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, Permi
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
-  extends SilverInferenceRunner[T] with SilverExtender[T] {
+  extends SilverInferenceRunner[T] {
 
   import ExpressionGenerator._
 
@@ -30,38 +30,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     * The flag indicating whether there is a read permission mentioned in the
     * specifications.
     */
-  private var read: Boolean = false
-
-  /**
-    * Extends the given method using the given result of the analysis.
-    *
-    * @param method    The method to extend.
-    * @param cfgResult The result of the analysis.
-    * @return The extended program.
-    */
-  override def extendMethod(method: sil.Method, cfgResult: CfgResult[T]): sil.Method = {
-    // update context
-    Context.setMethod(SilverIdentifier(method.name))
-
-    // reset read flag and extend method
-    read = false
-    val extended = super.extendMethod(method, cfgResult)
-
-    if (read) {
-      // add read permission to arguments
-      val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
-      val arguments = (extended.formalArgs ++ argument).distinct
-      // add constraint for read permission to precondition
-      val variable = sil.LocalVar("read")(sil.Perm)
-      val condition = Seq(sil.And(sil.PermLtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
-      val preconditions = condition ++ extended.pres
-      // update method
-      extended.copy(
-        pres = preconditions,
-        formalArgs = arguments
-      )(extended.pos, extended.info, extended.errT)
-    } else extended
-  }
+  protected var read: Boolean = false
 
   override def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
     val state = result.preStateAt(position)
@@ -332,7 +301,36 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
   }
 }
 
+trait PermissionInferenceSilverExtender[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
+  extends PermissionInferenceRunner[T, A, May, Must] with SilverExtender[T] {
+
+  override def extendMethod(method: sil.Method, cfgResult: CfgResult[T]): sil.Method = {
+    // update context
+    Context.setMethod(SilverIdentifier(method.name))
+
+    // reset read flag and extend method
+    read = false
+    val extended = super.extendMethod(method, cfgResult)
+
+    if (read) {
+      // add read permission to arguments
+      val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
+      val arguments = (extended.formalArgs ++ argument).distinct
+      // add constraint for read permission to precondition
+      val variable = sil.LocalVar("read")(sil.Perm)
+      val condition = Seq(sil.And(sil.PermLtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
+      val preconditions = condition ++ extended.pres
+      // update method
+      extended.copy(
+        pres = preconditions,
+        formalArgs = arguments
+      )(extended.pos, extended.info, extended.errT)
+    } else extended
+  }
+
+}
+
 object PermissionInference
-  extends PermissionInferenceRunner[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
+  extends PermissionInferenceSilverExtender[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
   override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph](AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
 }
