@@ -136,7 +136,7 @@ trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
 
   override val analysis: BottomUpAnalysis[S]
 
-  override protected def _run(): ProgramResult[S] = {
+  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
     // run the analysis starting at the bottom of the topological order
     analysis.analyze(program)
