@@ -467,25 +467,33 @@ object Octagons {
       * that is bounded by the given interval.
       */
     private def makeConstraints(expression: Expression, bounds: Interval): Set[Expression] = {
-      if (bounds.low == bounds.high) {
-        // return an equality
-        val constant = makeConstant(bounds.low)
-        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
+      val Interval(low, high) = bounds
+      if (expression.typ.isBooleanType) {
+        if (low == high) {
+          if (low == 0) Set(NegatedBooleanExpression(expression))
+          else Set(expression)
+        } else Set.empty
       } else {
-        // construct lower bound if it is not negative infinity
-        val lower = if (bounds.low.isNegInfinity) None else {
+        if (low == high) {
+          // return an equality
           val constant = makeConstant(bounds.low)
-          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=)
-          Some(inequality)
+          Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
+        } else {
+          // construct lower bound if it is not negative infinity
+          val lower = if (bounds.low.isNegInfinity) None else {
+            val constant = makeConstant(bounds.low)
+            val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=)
+            Some(inequality)
+          }
+          // construct upper bound if it is not positive infinity
+          val upper = if (bounds.high.isPosInfinity) None else {
+            val constant = makeConstant(bounds.high)
+            val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=)
+            Some(inequality)
+          }
+          // return constraints
+          lower.toSet ++ upper.toSet
         }
-        // construct upper bound if it is not positive infinity
-        val upper = if (bounds.high.isPosInfinity) None else {
-          val constant = makeConstant(bounds.high)
-          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=)
-          Some(inequality)
-        }
-        // return constraints
-        lower.toSet ++ upper.toSet
       }
     }
 
