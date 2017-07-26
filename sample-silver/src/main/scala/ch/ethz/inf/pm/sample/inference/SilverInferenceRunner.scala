@@ -35,6 +35,11 @@ trait SilverSpecification[T] {
 /**
   * A specification inference runner for silver programs.
   *
+  * TODO:
+  * We can probably remove the position from the list of arguments to the
+  * inferPrecondition, inferPostcondition, inferInvariants, and inferFields
+  * methods.
+  *
   * @tparam S The type of the state.
   * @author Caterina Urban
   * @author Jerome Dohrau
@@ -85,121 +90,6 @@ trait SilverInferenceRunner[S <: State[S]] extends
     * @return The inferred fields.
     */
   def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
-}
-
-/**
-  * A program extender that modifies a program using inferred specifications.
-  *
-  * @tparam S The type of the state.
-  * @author Caterina Urban
-  * @author Jerome Dohrau
-  */
-trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
-
-  def extend(args: Array[String]): sil.Program = {
-    // TODO: Improve.
-    val compilable = Compilable.Path(new File(args(0)).toPath)
-    val results = run(compilable)
-    // extend the Silver program with inferred permission
-    val program = DefaultSilverConverter.prog
-    extendProgram(program, results)
-  }
-
-  /**
-    * Extends the given program using the given results of the analysis.
-    *
-    * @param program The program to extend.
-    * @param results The result of the analysis.
-    * @return The extended program.
-    */
-  def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
-    // extend methods
-    val extendedMethods = program.methods.map { method =>
-      val identifier = SilverIdentifier(method.name)
-      val result = results.getResult(identifier)
-      extendMethod(method, result)
-    }
-
-    // return extended program
-    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
-  }
-
-  /**
-    * Extends the given method using the given result of the analysis.
-    *
-    * @param method The method to extend.
-    * @param result The result of the analysis.
-    * @return The extended method.
-    */
-  def extendMethod(method: sil.Method, result: CfgResult[S]): sil.Method = {
-    // TODO: Handle CFGs without exit blocks?
-    val entry = firstPosition(result.cfg.entry)
-    val exit = lastPosition(result.cfg.exit.get)
-
-    val extendedPreconditions = inferPreconditions(method, entry, result)
-    val extendedPostconditions = inferPostconditions(method, exit, result)
-    val extendedBody = extendBody(method.body, result)
-
-    // TODO: Handle arguments.
-
-    // return extended method
-    method.copy(
-      pres = extendedPreconditions,
-      posts = extendedPostconditions,
-      body = extendedBody
-    )(method.pos, method.info, method.errT)
-  }
-
-  /**
-    * Extends the body of a method or a while loop.
-    *
-    * @param body    The body to extend.
-    * @param results The result of the analysis.
-    * @return The extended body.
-    */
-  def extendBody(body: sil.Seqn, results: CfgResult[S]): sil.Seqn = extendStatement(body, results) match {
-    case seqn: sil.Seqn => seqn
-    case _ => ???
-  }
-
-  /**
-    * Extends the given statement using the given result of the analysis.
-    *
-    * @param statement The statement to extend.
-    * @param results   The result of the analysis.
-    * @return The extended statement.
-    */
-  def extendStatement(statement: sil.Stmt, results: CfgResult[S]): sil.Stmt = statement match {
-    case sil.Seqn(originalStatements, scopedDecls) =>
-      // recursively extend all statements of the sequence
-      val extendedStatements = originalStatements.map(statement => extendStatement(statement, results))
-      sil.Seqn(extendedStatements, scopedDecls)(statement.pos, statement.info)
-    case sil.If(condition, originalThen, originalElse) =>
-      // recursively extend then and else branch of if statement
-      val extendedThen = extendBody(originalThen, results)
-      val extendedElse = extendBody(originalElse, results)
-      sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
-    case loop@sil.While(condition, _, originalBody) =>
-      // get the position of the loop
-      val position = getLoopPosition(loop, results.cfg)
-      // extend while loop
-      val extendedInvariants = inferInvariants(loop, position, results)
-      val extendedBody = extendBody(originalBody, results)
-      sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
-    case newStmt: sil.NewStmt =>
-      // get the position of the new statement
-      val position = getPosition(statement, results.cfg).asInstanceOf[BlockPosition]
-      // extend new statement
-      val extendedFields = inferFields(newStmt, position, results)
-      sil.NewStmt(newStmt.lhs, extendedFields)(statement.pos, statement.info)
-    case sil.Constraining(vars, originalBody) =>
-      // recursively extend body of constraining statement
-      val extendedBody = extendBody(originalBody, results)
-      sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
-    case _ =>
-      // do nothing
-      statement
-  }
 
   /* ------------------------------------------------------------------------- *
    * Helper Functions
@@ -249,4 +139,219 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
     val pos = cfg.getEdgePosition(pp)
     BlockPosition(pos.edge.source, 0)
   }
+}
+
+/**
+  * A program extender that modifies a program using inferred specifications.
+  *
+  * This trait is intended to mix into a silver inference runner
+  * [[SilverInferenceRunner]] in order to add the functionality to extend a
+  * silver program. This trait is compatible with the silver exporter
+  * [[SilverExporter]].
+  *
+  * @tparam S The type of the state.
+  * @author Caterina Urban
+  * @author Jerome Dohrau
+  */
+trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
+
+  def extend(args: Array[String]): sil.Program = {
+    // TODO: Improve.
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val results = run(compilable)
+    // extend the Silver program with inferred permission
+    val program = DefaultSilverConverter.prog
+    extendProgram(program, results)
+  }
+
+  /**
+    * Extends the given program using the given results of the analysis.
+    *
+    * @param program The program to extend.
+    * @param results The result of the analysis.
+    * @return The extended program.
+    */
+  def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      extendMethod(method, result)
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
+  }
+
+  /**
+    * Extends the given method using the given result of the analysis.
+    *
+    * @param method The method to extend.
+    * @param result The result of the analysis.
+    * @return The extended method.
+    */
+  def extendMethod(method: sil.Method, result: CfgResult[S]): sil.Method = {
+    val entry = firstPosition(result.cfg.entry)
+    val exit = lastPosition(result.cfg.exit.get)
+
+    // TODO: Handle arguments.
+
+    // return extended method
+    method.copy(
+      pres = inferPreconditions(method, entry, result),
+      posts = inferPostconditions(method, exit, result),
+      body = extendBody(method.body, result)
+    )(method.pos, method.info, method.errT)
+  }
+
+  /**
+    * Extends the body of a method or a while loop.
+    *
+    * @param body    The body to extend.
+    * @param results The result of the analysis.
+    * @return The extended body.
+    */
+  def extendBody(body: sil.Seqn, results: CfgResult[S]): sil.Seqn = extendStatement(body, results) match {
+    case seqn: sil.Seqn => seqn
+    case _ => ???
+  }
+
+  /**
+    * Extends the given statement using the given result of the analysis.
+    *
+    * @param statement The statement to extend.
+    * @param result    The result of the analysis.
+    * @return The extended statement.
+    */
+  def extendStatement(statement: sil.Stmt, result: CfgResult[S]): sil.Stmt = statement match {
+    case sil.Seqn(originalStatements, scopedDecls) =>
+      // recursively extend all statements of the sequence
+      val extendedStatements = originalStatements.map(statement => extendStatement(statement, result))
+      sil.Seqn(extendedStatements, scopedDecls)(statement.pos, statement.info)
+    case sil.If(condition, originalThen, originalElse) =>
+      // recursively extend then and else branch of if statement
+      val extendedThen = extendBody(originalThen, result)
+      val extendedElse = extendBody(originalElse, result)
+      sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
+    case loop@sil.While(condition, _, originalBody) =>
+      // get the position of the loop
+      val position = getLoopPosition(loop, result.cfg)
+      // extend while loop
+      val extendedInvariants = inferInvariants(loop, position, result)
+      val extendedBody = extendBody(originalBody, result)
+      sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
+    case newStmt: sil.NewStmt =>
+      // get the position of the new statement
+      val position = getPosition(statement, result.cfg).asInstanceOf[BlockPosition]
+      // extend new statement
+      val extendedFields = inferFields(newStmt, position, result)
+      sil.NewStmt(newStmt.lhs, extendedFields)(statement.pos, statement.info)
+    case sil.Constraining(vars, originalBody) =>
+      // recursively extend body of constraining statement
+      val extendedBody = extendBody(originalBody, result)
+      sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
+    case _ =>
+      // do nothing
+      statement
+  }
+}
+
+/**
+  * A specification exporter that exports inferred specifications for a silver
+  * program.
+  *
+  * This trait is intended to mix into a silver inference runner
+  * [[SilverInferenceRunner]] in order to add the functionality to export the
+  * inferred specifications of a silver program. This trait is compatible with
+  * the silver extender [[SilverExtender]].
+  *
+  * @tparam S The type of the state.
+  * @author Jerome Dohrau
+  */
+trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
+
+  /**
+    * Exports the inferred preconditions for the given method.
+    *
+    * @param method        The method for which the preconditions are inferred.
+    * @param preconditions The inferred preconditions.
+    */
+  def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp])
+
+  /**
+    * Exports the inferred postconditions for the given method.
+    *
+    * @param method         The method for which the postconditions are inferred.
+    * @param postconditions The inferred postconditions.
+    */
+  def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp])
+
+  /**
+    * Exports the inferred invariants for the given while loop.
+    *
+    * @param loop       The while loop for which the invariants are inferred.
+    * @param invariants The inferred invariants.
+    */
+  def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp])
+
+  /**
+    * Exports the inferred fields for the given new-statement.
+    *
+    * @param newStmt The new-statement for which the fields are inferred.
+    * @param fields  The inferred fields.
+    */
+  def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field])
+
+  /**
+    * Recursively infers and exports all inferred specifications for the given
+    * program using the given analysis result.
+    *
+    * @param program The program.
+    * @param results The analysis result.
+    */
+  def exportProgram(program: sil.Program, results: ProgramResult[S]): Unit =
+    program.methods.foreach { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      exportMethod(method, result)
+    }
+
+  /**
+    * Recursively infers and exports all inferred specifications for the given
+    * method using the given analysis result.
+    *
+    * @param method The method.
+    * @param result The analysis result.
+    */
+  def exportMethod(method: sil.Method, result: CfgResult[S]): Unit = {
+    val entry = firstPosition(result.cfg.entry)
+    val exit = lastPosition(result.cfg.exit.get)
+    exportPreconditions(method, inferPreconditions(method, entry, result))
+    exportPostconditions(method, inferPostconditions(method, exit, result))
+    exportStatement(method.body, result)
+  }
+
+  /**
+    * Recursively infers and exports all inferred specifications for the given
+    * statement using the given analysis result.
+    *
+    * @param statement The statement.
+    * @param result    The analysis result.
+    */
+  def exportStatement(statement: sil.Stmt, result: CfgResult[S]): Unit = statement match {
+    case sil.Seqn(statements, _) =>
+      statements.foreach { statement => exportStatement(statement, result) }
+    case sil.If(_, body1, body2) =>
+      exportStatement(body1, result)
+      exportStatement(body2, result)
+    case loop: sil.While =>
+      val position = getLoopPosition(loop, result.cfg)
+      exportInvariants(loop, inferInvariants(loop, position, result))
+      exportStatement(loop.body, result)
+    case newStatement: sil.NewStmt =>
+      val position = getPosition(statement, result.cfg).asInstanceOf[BlockPosition]
+      exportFields(newStatement, inferFields(newStatement, position, result))
+    case _ => ???
+  }
+
 }
