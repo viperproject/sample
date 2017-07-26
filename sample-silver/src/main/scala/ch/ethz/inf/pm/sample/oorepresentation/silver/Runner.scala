@@ -24,8 +24,6 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   val analysis: SilverAnalysis[S]
 
-  def program: SilverProgramDeclaration = compiler.program
-
   /**
     * Returns the sequence of functions to analyze. By default these are all
     * functions.
@@ -44,7 +42,17 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   def run(compilable: Compilable): ProgramResult[S] = {
     compiler.compile(compilable)
-    _run()
+    _run(compiler.program)
+  }
+
+  def run(program: sil.Program): ProgramResult[S] = {
+    compiler.compileProgram(program)
+    _run(compiler.program)
+  }
+
+  def run(program: SilverProgramDeclaration): ProgramResult[S] = {
+    SystemParameters.tm = SilverTypeMap
+    _run(program)
   }
 
   protected def prepareContext(): Unit = {
@@ -59,7 +67,7 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
   }
 
-  protected def _run(): ProgramResult[S] = {
+  protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
     analysis.analyze(program)
   }
@@ -73,12 +81,6 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 trait SilverAnalysisRunner[S <: State[S]]
   extends AbstractAnalysisRunner[S] {
   val compiler = new SilverCompiler()
-
-  /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): ProgramResult[S] = {
-    compiler.compileProgram(program)
-    _run()
-  }
 
   /** Runs the analysis on the Silver program whose name is passed as first argument and reports errors and warnings. */
   override def main(args: Array[String]): Unit = {
@@ -114,7 +116,7 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
 
   override val analysis: InterproceduralSilverAnalysis[S]
 
-  override protected def _run(): ProgramResult[S] = {
+  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
     analysis.analyze(program)
   }

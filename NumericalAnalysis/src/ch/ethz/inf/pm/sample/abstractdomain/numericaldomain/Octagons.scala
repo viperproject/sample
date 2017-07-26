@@ -217,12 +217,13 @@ object Octagons {
           val newIds = idsB.filter(numerical).toList
           val oldIds = (env.set.toSet -- newIds).toList
           val newEnv = env - idA ++ newIds.toSet
+          val newIndices = newEnv.getIndices(newIds)
           val from = env.getIndices(oldIds) ++ List.fill(newIds.size)(env.getPositive(idA))
-          val to = newEnv.getIndices(oldIds) ++ newEnv.getIndices(newIds)
+          val to = newEnv.getIndices(oldIds) ++ newIndices
           val newDbm = Some {
             var res = getDbm.factory(newEnv.size).copy(getDbm, from, to)
             // make sure the newly created variables are independent
-            for (i <- to; j <- to if i < j) {
+            for (i <- newIndices; j <- newIndices if i < j) {
               res = res.assignRelational(i, j, Interval.Top)
               if (isClosed) res.close(i, j)
             }
@@ -466,25 +467,33 @@ object Octagons {
       * that is bounded by the given interval.
       */
     private def makeConstraints(expression: Expression, bounds: Interval): Set[Expression] = {
-      if (bounds.low == bounds.high) {
-        // return an equality
-        val constant = makeConstant(bounds.low)
-        Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
+      val Interval(low, high) = bounds
+      if (expression.typ.isBooleanType) {
+        if (low == high) {
+          if (low == 0) Set(NegatedBooleanExpression(expression))
+          else Set(expression)
+        } else Set.empty
       } else {
-        // construct lower bound if it is not negative infinity
-        val lower = if (bounds.low.isNegInfinity) None else {
+        if (low == high) {
+          // return an equality
           val constant = makeConstant(bounds.low)
-          val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=)
-          Some(inequality)
+          Set(BinaryArithmeticExpression(expression, constant, ArithmeticOperator.==))
+        } else {
+          // construct lower bound if it is not negative infinity
+          val lower = if (bounds.low.isNegInfinity) None else {
+            val constant = makeConstant(bounds.low)
+            val inequality = BinaryArithmeticExpression(constant, expression, ArithmeticOperator.<=)
+            Some(inequality)
+          }
+          // construct upper bound if it is not positive infinity
+          val upper = if (bounds.high.isPosInfinity) None else {
+            val constant = makeConstant(bounds.high)
+            val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=)
+            Some(inequality)
+          }
+          // return constraints
+          lower.toSet ++ upper.toSet
         }
-        // construct upper bound if it is not positive infinity
-        val upper = if (bounds.high.isPosInfinity) None else {
-          val constant = makeConstant(bounds.high)
-          val inequality = BinaryArithmeticExpression(expression, constant, ArithmeticOperator.<=)
-          Some(inequality)
-        }
-        // return constraints
-        lower.toSet ++ upper.toSet
       }
     }
 
