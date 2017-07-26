@@ -24,14 +24,13 @@ import viper.silver.verifier.ParseError
   * TODO: Make the silver compiler extend the compiler interface once the rest of Sample also uses the new control flow graph
   */
 class SilverCompiler {
-  protected var prog: Option[SilverProgramDeclaration] = None
 
   /**
     * TODO: Does not support directories (multiple files) as input at the moment.
     * TODO: Contains absolutely no error handling.
     */
-  def compile(compilable: Compilable): SilverProgramDeclaration = {
-    val (parseResult,label) = compilable match {
+  def compile(compilable: Compilable): sil.Program = {
+    val (parseResult, label) = compilable match {
       case Compilable.Path(file) =>
         val input = Source.fromInputStream(Files.newInputStream(file)).mkString
         (FastParser.parse(input, file), file)
@@ -56,26 +55,13 @@ class SilverCompiler {
     }
 
     Resolver(parsed).run
-
-    val program = Translator(parsed).translate.get
-    compileProgram(program)
+    Translator(parsed).translate.get
   }
 
-  def compileProgram(program: sil.Program): SilverProgramDeclaration = {
+  def toSample(program: sil.Program): SilverProgramDeclaration = {
     SystemParameters.tm = SilverTypeMap
-    val converted = DefaultSilverConverter.convert(program)
-    this.prog = Some(converted)
-    converted
+    DefaultSilverConverter.convert(program)
   }
-
-  def program: SilverProgramDeclaration =
-    prog.get
-
-  def allFunctions: Seq[SilverFunctionDeclaration] =
-    program.functions
-
-  def allMethods: Seq[SilverMethodDeclaration] =
-    program.methods
 
   def getNativeMethodSemantics: List[NativeMethodSemantics] =
     ArithmeticAndBooleanNativeMethodSemantics :: RichNativeMethodSemantics :: SilverSemantics :: Nil

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import java.io.{File, PrintWriter}
+import java.io.File
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
@@ -31,30 +31,17 @@ trait AbstractAnalysisRunner[S <: State[S]] {
 
   val analysis: SilverAnalysis[S]
 
-  /**
-    * Returns the sequence of functions to analyze. By default these are all
-    * functions.
-    *
-    * @return The sequence of functions to analyze.
-    */
-  def functionsToAnalyze: Seq[SilverFunctionDeclaration] = compiler.allFunctions
-
-  /**
-    * Returns the sequence of methods to analyze. By default these are all
-    * methods.
-    *
-    * @return The sequence of methods to analyze.
-    */
-  def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
+  def compile(compilable: Compilable): sil.Program =
+    compiler.compile(compilable)
 
   def run(compilable: Compilable): ProgramResult[S] = {
-    compiler.compile(compilable)
-    _run(compiler.program)
+    val program = compiler.compile(compilable)
+    run(program)
   }
 
   def run(program: sil.Program): ProgramResult[S] = {
-    compiler.compileProgram(program)
-    _run(compiler.program)
+    val translated = compiler.toSample(program)
+    _run(translated)
   }
 
   def run(program: SilverProgramDeclaration): ProgramResult[S] = {

@@ -156,11 +156,9 @@ trait SilverInferenceRunner[S <: State[S]] extends
 trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
 
   def extend(args: Array[String]): sil.Program = {
-    // TODO: Improve.
     val compilable = Compilable.Path(new File(args(0)).toPath)
-    val results = run(compilable)
-    // extend the Silver program with inferred permission
-    val program = DefaultSilverConverter.prog
+    val program = compile(compilable)
+    val results = run(program)
     extendProgram(program, results)
   }
 

@@ -6,9 +6,12 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.inference.SilverInferenceRunner
+import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import viper.silver.{ast => sil}
 
@@ -35,6 +38,19 @@ trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: Numerical
   * @author Jerome Dohrau
   */
 object IntegerOctagonInference
-  extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
+  extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
+    with SilverExtender[IntegerOctagonAnalysisState] {
   override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = IntegerOctagonAnalysis.analysis
+
+  override def main(args: Array[String]): Unit = {
+    require(args.nonEmpty, "No file specified")
+
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val program = compile(compilable)
+
+    val result = run(program)
+    val extended = extendProgram(program, result)
+
+    println(extended)
+  }
 }
