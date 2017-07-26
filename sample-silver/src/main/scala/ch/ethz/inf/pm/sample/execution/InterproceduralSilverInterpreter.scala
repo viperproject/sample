@@ -8,14 +8,21 @@ package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{CallGraphMap, MethodTransferStatesMap}
+import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.{ArgumentPrefix, CallGraphMap, MethodTransferStatesMap, TopologicalOrderOfCallGraph}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution.SilverInterpreter.{CfgResultsType, InterpreterWorklist}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.{CallMethodBackwardsCommand, ReturnFromMethodCommand}
 import com.typesafe.scalalogging.LazyLogging
+import org.jgrapht.DirectedGraph
+import org.jgrapht.alg.StrongConnectivityInspector
+import org.jgrapht.graph.DefaultDirectedGraph
+import org.jgrapht.traverse.TopologicalOrderIterator
+import viper.silver.ast.utility.Functions
+import viper.silver.ast.utility.Functions.Factory
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 object InterproceduralSilverInterpreter {
@@ -36,6 +43,14 @@ object InterproceduralSilverInterpreter {
     * the next instruction after the method call.
     */
   type CallGraphMap = Map[SilverIdentifier, Set[BlockPosition]]
+
+  /**
+    * The TopologicalOrderOfCallGraph contains all methods in the program ordered by topological order of their call-graph.
+    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
+    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
+    * set(foo, bar) -> set(baz)
+    */
+  type TopologicalOrderOfCallGraph = Seq[Set[SilverMethodDeclaration]]
 
   /**
     * Prefix to be used for temporary method arguments.
@@ -67,7 +82,7 @@ object InterproceduralSilverInterpreter {
   * @see CallString.apply
   *
   */
-case class CallString(callStack: List[ProgramPoint] = Nil) {
+case class CallString(callStack: List[ProgramPoint] = Nil) extends CfgResultTag {
   /**
     * Represents the position of the last method call
     *
@@ -201,10 +216,15 @@ trait InterprocHelpers[S <: State[S]] {
   //
   val program: SilverProgramDeclaration
   val builder: SilverEntryStateBuilder[S]
-  val callsInProgram: CallGraphMap
   val CallStringLength: Option[Int]
-  // A main method is analyzed using "initial" as the entry state.
-  val mainMethods: Set[SilverIdentifier]
+
+  //
+  // global values that model the call-graph and the order of analysis
+  //    A topological ordering of the methods with respect to their call-graph
+  //    A map containing all calls in the program
+  //    And a set of methods that are considered to be main-methods (entrypoints to the analysis)
+  //
+  lazy val (methodsInTopologicalOrder, callsInProgram, mainMethods) = buildCallGraphInformation(program)
 
   //
   // variables that track the state of the analysis. E.g. values transferred into callees or CfgResults
@@ -338,6 +358,98 @@ trait InterprocHelpers[S <: State[S]] {
           .removeVariable(old)
       })
   }
+
+
+  /**
+    * Builds an returns all call-graph information. See the documentation on the return types. By default
+    * all methods at the top of the call-graph are considered to be mainMethods (TopDown). For a bottom-up mainMethods
+    * should be redefined.
+    *
+    * @param program The program for which the information should be collected
+    * @return A Tuple of (TopologicalOrderOfCallGraph, CallGraphMap, mainMethods: Set[SilverIdentifier])
+    */
+  private def buildCallGraphInformation(program: SilverProgramDeclaration): (TopologicalOrderOfCallGraph, CallGraphMap, Set[SilverIdentifier]) = {
+    val (condensedCallGraph, callsInProgram) = analyzeCallGraph(program)
+
+    val methodsInTopologicalOrder = (
+      for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala)
+        yield Set.empty ++ condensation // convert to immutable set
+      ).toSeq
+
+    // search for "main methods". these are either methods that are not called from other methods,
+    // or they are methods in a strongly connected component where the component itself is not called by other methods
+    //
+    // e.g program has methods foo, bar and baz. foo() calls bar(), bar() calls foo(), bar() calls baz
+    // in this program foo and bar should be treated as main methods. baz is always called from another method
+    // so it won't be added to the set of main methods.
+    var methods = Set[SilverIdentifier]()
+    for (condensation <- new TopologicalOrderIterator(condensedCallGraph).asScala
+         if condensedCallGraph.inDegreeOf(condensation) == 0) {
+      for (method <- condensation)
+        methods += method.name
+    }
+    (methodsInTopologicalOrder, callsInProgram, methods)
+  }
+
+  /**
+    * Analyze the given program and return a tuple of condensed Callgraph and a map containing all calls to each method.
+    * The condensed callgraph uses sets of method declarations as nodes. These nodes are the connected components inside a call graph.
+    * E.g. foo() calls bar(), bar() calls foo(), bar() calls baz(). The condensed graph will be:
+    * set(foo, bar) -> set(baz)
+    *
+    * @param program The program to be analyzed
+    * @return Tuple of condensed call graph and map containing all method calls
+    */
+  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[mutable.Set[SilverMethodDeclaration], Functions.Edge[mutable.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+    // Most code below was taken from ast.utility.Functions in silver re	po!
+    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+    var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
+
+    for (f <- program.methods) {
+      callGraph.addVertex(f)
+    }
+
+    def process(m: SilverMethodDeclaration, e: Statement) {
+      e match {
+        case MethodCall(_, method: Variable, _, _, _, _) =>
+          callGraph.addEdge(m, program.methods.filter(_.name.name == method.getName).head)
+          val pp = m.body.getBlockPosition(ProgramPointUtils.identifyingPP(e))
+          val methodIdent = SilverIdentifier(method.getName)
+          callsInProgram += (methodIdent -> (callsInProgram(methodIdent) + pp))
+        case _ => e.getChildren foreach (process(m, _))
+      }
+    }
+
+    for (m <- program.methods;
+         block <- m.body.blocks;
+         statement <- block.elements) {
+      process(m, statement.merge)
+    }
+
+    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets()
+    val condensedCallGraph = new DefaultDirectedGraph(Factory[mutable.Set[SilverMethodDeclaration]]())
+
+    /* Add each SCC as a vertex to the condensed call-graph */
+    for (v <- stronglyConnectedSets.asScala) {
+      condensedCallGraph.addVertex(v.asScala)
+    }
+
+    def condensationOf(m: SilverMethodDeclaration): mutable.Set[SilverMethodDeclaration] =
+      stronglyConnectedSets.asScala.find(_ contains m).get.asScala
+
+    /* Add edges from the call-graph (between individual functions) as edges
+     * between their corresponding SCCs in the condensed call-graph, but only
+     * if this does not result in a cycle.
+     */
+    for (e <- callGraph.edgeSet().asScala) {
+      val sourceSet = condensationOf(e.source)
+      val targetSet = condensationOf(e.target)
+
+      if (sourceSet != targetSet)
+        condensedCallGraph.addEdge(sourceSet, targetSet)
+    }
+    (condensedCallGraph, callsInProgram)
+  }
 }
 
 /**
@@ -402,8 +514,8 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     builder.buildForMethodCallEntry(program, findMethod(BlockPosition(cfg.entry, 0)))
   }
 
-  override def cfg(blockPosition: WorklistElement): SampleCfg = {
-    findMethod(blockPosition).body
+  override def cfg(current: WorklistElement): SampleCfg = {
+    findMethod(current).body
   }
 
   override def getPredecessorState(cfgResult: CfgResult[S], current: WorklistElement, edge: Either[SampleEdge, AuxiliaryEdge]): S = edge match {
@@ -421,35 +533,53 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
     case _ => super.getPredecessorState(cfgResult, current, edge)
   }
 
+  /**
+    * Create a state in the caller before a method-call. Arguments and targets are evaluated, temporary variables
+    * have been added to the state and the arguments have been assigned to the temporary variables.
+    *
+    * @param call        The currently evaluated MethodCall
+    * @param predecessor The state in the caller before the method call
+    * @return A tuple of state and parameterExpressions.
+    *         The state in the caller before calling the method. Also contains temporary variables to transfer the arguments into the callee.
+    */
+  protected def createCallingContext(call: MethodCall, predecessor: S): (S, Seq[ExpressionSet]) = {
+    //
+    // prepare calling context (evaluate method targets and parameters)
+    //
+    var methodCallStateInCaller = predecessor
+    val parameterExpressions = for (parameter <- call.parameters) yield {
+      methodCallStateInCaller = parameter.forwardSemantics[S](methodCallStateInCaller)
+      methodCallStateInCaller.expr
+    }
+    val targetExpressions = for (target <- call.targets) yield {
+      val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(methodCallStateInCaller, target)
+      methodCallStateInCaller = st
+      exp
+    }
+
+    //
+    // transfer arguments to methodEntryState
+    //
+
+    // create temp argument variables and assign the arguments to them
+    for ((param, index) <- parameterExpressions.zipWithIndex) {
+      val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
+      methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
+      methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
+    }
+    (methodCallStateInCaller, targetExpressions)
+  }
+
   override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = statement match {
     case call@MethodCall(_, v: Variable, _, _, _, _) =>
       val methodIdentifier = SilverIdentifier(v.getName)
       val methodDeclaration = findMethod(methodIdentifier)
       //
-      // prepare calling context (evaluate method targets and parameters)
+      // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
       //
       val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
-      var methodCallStateInCaller = predecessor
-      val parameterExpressions = for (parameter <- call.parameters) yield {
-        methodCallStateInCaller = parameter.forwardSemantics[S](methodCallStateInCaller)
-        methodCallStateInCaller.expr
-      }
-      val targetExpressions = for (target <- call.targets) yield {
-        val (exp, st) = UtilitiesOnStates.forwardExecuteStatement(methodCallStateInCaller, target)
-        methodCallStateInCaller = st
-        exp
-      }
+      val (methodCallStateInCaller, targetExpressions) = createCallingContext(call, predecessor)
 
-      //
-      // transfer arguments to methodEntryState
-      //
-
-      // create temp argument variables and assign the arguments to them
-      for ((param, index) <- parameterExpressions.zipWithIndex) {
-        val exp = ExpressionSet(VariableIdentifier(ArgumentPrefix + index)(param.typ))
-        methodCallStateInCaller = methodCallStateInCaller.createVariable(exp, param.typ, DummyProgramPoint)
-        methodCallStateInCaller = methodCallStateInCaller.assignVariable(exp, param)
-      }
       val calleeEntryState = methodCallStateInCaller.ids.toSet // The entry state should only contain argument_# variables
         .filter(id => !id.getName.startsWith(ArgumentPrefix))
         .foldLeft(methodCallStateInCaller)((st, ident) => st.removeVariable(ExpressionSet(ident)))
@@ -459,7 +589,6 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeEntryState.bottom()
       methodTransferStates(callString) = calleeEntryState
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
@@ -468,12 +597,12 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
-      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
-      val exitState = programResult(analyzed, methodDeclaration.body).exitState()
+      val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
+      val exitState = programResult(analyzed).exitState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       val resultState = if (canContinue) {
-        // rename the methods arguments to temporary variables to relate method call state to exit state of the calle
+        // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
         val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
         // merge the renamed exit state into the state of the caller and remove all temporary variables
         methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
@@ -492,21 +621,132 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 }
 
 /**
+  * A trait that can be mixed-in to make the forward interpreter work bottom-up.
+  * The Bottom-Up interpreter assumes that the analysis is started at the bottom of the call graph.
+  *
+  * @see InterproceduralSilverBottomUpAnalysisRunner
+  * @tparam S The type of the states.
+  */
+trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverForwardInterpreter[S] {
+
+  /**
+    * resultAvailable contains identifiers for all method for which the result WITH AN EMPTY call-string is available
+    * Results with an empty call-string are those that will be used by a caller when a method-call to a callee is
+    * executed.
+    */
+  private var resultAvailable: Set[SilverIdentifier] = Set.empty
+
+  /**
+    * Bottom-Up we want to start at the bottom of the topological order
+    */
+  override lazy val mainMethods = if (methodsInTopologicalOrder.nonEmpty) methodsInTopologicalOrder.last.map(_.name) else Set.empty[SilverIdentifier]
+
+  /**
+    * Returns the parent connected component in the topologically ordered call-graph. These parents
+    * (may) call the current method or not. If they call the current method then they can be enqueued as soon
+    * as the current methods analysis result is available. If they don't call the current method then the can be enqeueued
+    * anyway.
+    *
+    * @param current The currently analysed method
+    * @return A possibly (empty) set of predecessors in the topologically ordered call-graph. "Predecessor" doesn't imply
+    *         that it's a caller!
+    */
+  private def findParentComponent(current: SilverMethodDeclaration): Set[SilverMethodDeclaration] = {
+    val index = methodsInTopologicalOrder.zipWithIndex.find(_ match {
+      case (component, _) => component.contains(current)
+    }).get._2
+    if (index > 0)
+      methodsInTopologicalOrder(index - 1)
+    else
+      Set.empty[SilverMethodDeclaration]
+  }
+
+  //
+  // In the bottom-up case we enqueue callers starting at the beginning of the method
+  // Recursive calls are still analyzed the usual way.
+  //
+  override protected def onExitBlockExecuted(current: WorklistElement): Unit = {
+    current match {
+      case TaggedWorklistElement(cs, _, _) =>
+        // Existing call-string? Probably analysing a recursive function. Let parent handle that.
+        super.onExitBlockExecuted(current)
+        // But if call-String was empty we can mark the result as available
+        if (!cs.inCallee)
+          resultAvailable += findMethod(current).name
+      case _ =>
+        // Otherwise we'll enqueue (non-recursive) the parent methods in the topological order
+        // (meaning: methods that may use the result of this method)
+        val toEnqueue = findParentComponent(findMethod(current))
+          .map(caller => SimpleWorklistElement(BlockPosition(caller.body.entry, 0), forceReinterpretStmt = false)).toSeq
+        // We'll enqueue to the secondaryWorklist to make sure that the current connected-component has been fully analysed
+        secondaryWorklist.enqueue(toEnqueue: _*)
+        resultAvailable += findMethod(current).name
+    }
+  }
+
+  //
+  //  We handle a method-call a bit differently than in the other interpreters:
+  //  case callee is below in the topological order => we reuse the result (resultAvailable should contain the callees identifier)
+  //  case callee is the same as caller => let parent handle recursion
+  //  case callee is in the same connected component than caller => analyse using call-strings (in parent)
+  //  case _ => that would mean the callee is above in the topological order (cannot happen)
+  //
+  override protected def executeStatement(current: WorklistElement, statement: Statement, state: S, programResult: CfgResultsType[S]): (S, Boolean) = current match {
+    case cs: TaggedWorklistElement
+      // only let parent handle the call if the call-string is non-empty
+      // (in that case we're either analysing recursive calls or the callee is in the same connected component of the topological order)
+      if cs.callString.inCallee =>
+      super.executeStatement(current, statement, state, programResult)
+    case _ =>
+      statement match {
+        case call@MethodCall(_, v: Variable, _, _, _, _)
+          // let super() handle recursive calls
+          if v.getName != findMethod(current).name.name
+            && resultAvailable(SilverIdentifier(v.getName)) =>
+          val methodIdentifier = SilverIdentifier(v.getName)
+          val methodDeclaration = findMethod(methodIdentifier)
+          //
+          // prepare calling context (evaluate method targets and parameters, assign arguments to temporary variables)
+          //
+          val predecessor = state.before(ProgramPointUtils.identifyingPP(statement))
+          val (methodCallStateInCaller, targetExpressions) = createCallingContext(call, predecessor)
+
+          //
+          // for bottom-up we assume the analysis result of the callee to be available
+          //
+          val analyzed = TaggedWorklistElement(
+            CallString.Empty, // we want the analysis result that doesn't assume anything about the arguments (therefore the call-stack is empty)
+            BlockPosition(methodDeclaration.body.entry, 0),
+            forceReinterpretStmt = false)
+          val exitState = programResult(analyzed).exitState()
+
+          // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
+          val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
+          // merge the renamed exit state into the state of the caller and remove all temporary variables
+          val resultState = methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
+
+          logger.trace(predecessor.toString)
+          logger.trace(statement.toString)
+          logger.trace(resultState.toString)
+
+          (resultState, true) // true: always continue after the MethodCall stmt since we did not enqueue the analysis of the callee
+        case _ => super.executeStatement(current, statement, state, programResult)
+      }
+  }
+}
+
+/**
   * Forward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methos (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
-  * @param callsInProgram   The call graph of the program
-  * @param CallStringLength an optional upper bound for the call-string length
+  * @param CallStringLength An optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
                                                                         override val program: SilverProgramDeclaration,
-                                                                        override val mainMethods: Set[SilverIdentifier],
                                                                         override val builder: SilverEntryStateBuilder[S],
-                                                                        override val callsInProgram: CallGraphMap,
-                                                                        override val CallStringLength: Option[Int] = CallString.DefaultLength)
+                                                                        override val CallStringLength: Option[Int])
   extends InterproceduralSilverForwardInterpreter[S] {
 
   //
@@ -521,18 +761,88 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
 
-    def lookup(res: mutable.Map[(CallString, SampleCfg), CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = current match {
-      case TaggedWorklistElement(callString, _, _) =>
-        if (!(res contains(callString, cfg)))
-          res += ((callString, cfg) -> initializeResult(cfg, bottom(cfg)))
-        res((callString, cfg))
-      case _ =>
-        res((CallString.Empty, cfg))
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement): CfgResult[S] = {
+      val ident = findMethod(current).name
+      val currentCfg = cfg(current)
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
     }
 
-    lookup(mutable.Map((for (method <- program.methods) yield {
-      (CallString.Empty, method.body) -> programResult.getResult(method.name)
-    }): _*))
+    lookup
+  }
+
+  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
+    val cfgResult = FinalCfgResult[S](cfg)
+    cfgResult.initialize(state)
+    cfgResult
+  }
+
+  // The entry-point for an interprocedural analysis is executeInterprocedural()
+  // For programs with multiple methods calling execute() cannot work as expected because it's not clear
+  // which CfgResult should be returned.
+  override def execute(): CfgResult[S] = {
+    if (program.methods.size == 1) {
+      val result = executeInterprocedural()
+      result.getResult(result.identifiers.head)
+    } else {
+      throw new RuntimeException("Cannot return one CfgResult for multiple methods. Use executeInterprocedural().")
+    }
+  }
+}
+
+/**
+  * Forward interpreter that analyzes a program bottom up. The analysis starts a set of methods at the bottom of the
+  * call-graph. Then it goes bottom up in topological order of the call-graph. Methods in the same connected component of
+  * the topological order or recursive methods are analyzed using call-strings. For all other callers it is assumed
+  * that the result of callee's is availabe since callee's are below in the topological order.
+  *
+  * @param program          The program that is analysed
+  * @param builder          A builder to create initial states for each cfg to analyse
+  * @param CallStringLength An optional upper bound for the call-string length
+  * @tparam S The type of the states.
+  */
+case class FinalResultInterproceduralBottomUpForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration,
+                                                                               override val builder: SilverEntryStateBuilder[S],
+                                                                               override val CallStringLength: Option[Int])
+  extends InterproceduralSilverForwardInterpreter[S] with BottomUpForwardInterpreter[S] {
+  //
+  // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
+  // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
+  // using "cfgs". (This is needed to initialize all callees too)
+  //
+  override protected def initializeProgramResult(cfgs: Seq[SampleCfg]): CfgResultsType[S] = {
+    // initialize each CfgResult with its bottom state.
+    programResult.initialize(c => {
+      val stForCfg = bottom(c)
+      initializeResult(c, stForCfg)
+    })
+
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement): CfgResult[S] = {
+      val ident = findMethod(current).name
+      val currentCfg = cfg(current)
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
+    }
+
+    lookup
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
@@ -640,7 +950,6 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      val old = if (methodTransferStates contains callString) methodTransferStates(callString) else calleeExitState.bottom()
       methodTransferStates(callString) = calleeExitState
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
@@ -649,8 +958,8 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
       // if callee has been analyzed, merge results back into our state
       // otherwise return bottom since the analysis cannot continue without the result of the callee (yet)
       //
-      val analyzed = TaggedWorklistElement(callStringInCallee, null, forceReinterpretStmt = false)
-      val entryState = programResult(analyzed, methodDeclaration.body).entryState()
+      val analyzed = TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false)
+      val entryState = programResult(analyzed).entryState()
       val canContinue = analysisResultReady.contains((callStringInCallee, methodDeclaration.body))
 
       var st = stateInCaller
@@ -701,18 +1010,14 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
   * Backward interpreter that handles method calls using a call-string approach.
   *
   * @param program          The program that is analysed
-  * @param mainMethods      A set of methods that should be treated as main-methods (i.e. use initial as entry state)
   * @param builder          A builder to create initial states for each cfg to analyse
-  * @param callsInProgram   The call graph of the program
   * @param CallStringLength an optional upper bound for the call-string length
   * @tparam S The type of the states.
   */
 case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
                                                                          override val program: SilverProgramDeclaration,
-                                                                         override val mainMethods: Set[SilverIdentifier],
                                                                          override val builder: SilverEntryStateBuilder[S],
-                                                                         override val callsInProgram: CallGraphMap,
-                                                                         override val CallStringLength: Option[Int] = CallString.DefaultLength)
+                                                                         override val CallStringLength: Option[Int])
   extends InterproceduralSilverBackwardInterpreter[S] {
 
   //
@@ -727,11 +1032,23 @@ case class FinalResultInterproceduralBackwardInterpreter[S <: State[S]](
       initializeResult(c, stForCfg)
     })
 
-    def lookup(res: Map[SampleCfg, CfgResult[S]])(current: WorklistElement, cfg: SampleCfg) = res(cfg)
+    //
+    // Save multiple CfgResults in the ProgramResult and tag it with the call-string.
+    // Empty call-strings are not tagged (Untagged)
+    //
+    def lookup(current: WorklistElement): CfgResult[S] = {
+      val ident = findMethod(current).name
+      val currentCfg = cfg(current)
+      current match {
+        case TaggedWorklistElement(callString, _, _) if callString != CallString.Empty =>
+          if (!programResult.getTaggedResults(ident).contains(callString))
+            programResult.setResult(ident, initializeResult(currentCfg, bottom(currentCfg)), callString)
+          programResult.getTaggedResults(ident)(callString)
+        case _ => programResult.getResult(ident)
+      }
+    }
 
-    lookup((for (method <- program.methods) yield {
-      method.body -> programResult.getResult(method.name)
-    }).toMap)
+    lookup
   }
 
   override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {

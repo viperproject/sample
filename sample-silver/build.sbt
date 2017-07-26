@@ -21,3 +21,5 @@ unmanagedJars in Compile <++= baseDirectory map { base =>
 
 // Breeze@ScalaNLP: provides a DSL for solving linear programs, using Apache's Simplex Solver as the backend
 libraryDependencies  += "org.scalanlp" %% "breeze" % "0.11.2" withSources()
+
+libraryDependencies += "net.liftweb" %% "lift-json" % "3.1.0" // Json Library for IDE

@@ -7,8 +7,7 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.execution.InterproceduralSilverInterpreter.CallGraphMap
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverProgramDeclaration}
 
 trait SilverAnalysis[S <: State[S]] {
   /**
@@ -46,8 +45,15 @@ trait InterproceduralSilverAnalysis[S <: State[S]]
     throw new RuntimeException("This method is not applicable for interprocedural analyses")
   }
 
-  def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S]
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[S]
 }
+
+/**
+  * Trait to mark the analysis as bottom-up
+  *
+  * @tparam S
+  */
+trait BottomUpAnalysis[S <: State[S]] extends InterproceduralSilverAnalysis[S]
 
 trait SilverForwardAnalysis[S <: State[S]]
   extends IntraproceduralSilverAnalysis[S] {
@@ -73,12 +79,20 @@ case class SimpleSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateB
 
 case class SimpleInterproceduralSilverForwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverForwardAnalysis[S] {
-  override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
-    val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, mainMethods, builder, callsInProgram, callStringLength)
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
+    val interpreter = FinalResultInterproceduralForwardInterpreter[S](program, builder, callStringLength)
     interpreter.executeInterprocedural()
   }
 }
 
+case class SimpleInterproceduralSilverForwardBottomUpAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
+  extends InterproceduralSilverForwardAnalysis[S] with BottomUpAnalysis[S] {
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
+    // Analyse using the BottomUp interpreter. Fail the analysis if methodsInTopologicalOrder is not provided
+    val interpreter = new FinalResultInterproceduralBottomUpForwardInterpreter[S](program, builder, callStringLength)
+    interpreter.executeInterprocedural()
+  }
+}
 
 trait SilverBackwardAnalysis[S <: State[S]]
   extends IntraproceduralSilverAnalysis[S] {
@@ -96,8 +110,8 @@ case class SimpleSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryState
 
 case class SimpleInterproceduralSilverBackwardAnalysis[S <: State[S]](builder: SilverEntryStateBuilder[S], callStringLength: Option[Int] = CallString.DefaultLength)
   extends InterproceduralSilverBackwardAnalysis[S] {
-  override def analyze(program: SilverProgramDeclaration, mainMethods: Set[SilverIdentifier], callsInProgram: CallGraphMap): ProgramResult[S] = {
-    val interpreter = FinalResultInterproceduralBackwardInterpreter[S](program, mainMethods, builder, callsInProgram, callStringLength)
+  override def analyze(program: SilverProgramDeclaration): ProgramResult[S] = {
+    val interpreter = FinalResultInterproceduralBackwardInterpreter[S](program, builder, callStringLength)
     interpreter.executeInterprocedural()
   }
 }

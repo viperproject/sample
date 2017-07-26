@@ -67,9 +67,9 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
     // TODO: Handle CFGs without exit blocks?
     val entry = firstPosition(result.cfg.entry)
     val exit = lastPosition(result.cfg.exit.get)
-
-    val extendedPreconditions = preconditions(method.pres, entry, result)
-    val extendedPostconditions = postconditions(method.posts, exit, result)
+    
+    val extendedPreconditions = preconditions(method, entry, result)
+    val extendedPostconditions = postconditions(method, exit, result)
     val extendedBody = extendBody(method.body, result)
 
     // TODO: Handle arguments.
@@ -104,18 +104,18 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
       val extendedThen = extendBody(originalThen, results)
       val extendedElse = extendBody(originalElse, results)
       sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
-    case loop@sil.While(condition, originalInvariants, originalBody) =>
+    case loop@sil.While(condition, _, originalBody) =>
       // get the position of the loop
       val position = getLoopPosition(loop, results.cfg)
       // extend while loop
-      val extendedInvariants = invariants(originalInvariants, position, results)
+      val extendedInvariants = invariants(loop, position, results)
       val extendedBody = extendBody(originalBody, results)
       sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
-    case sil.NewStmt(lhs, originalFields) =>
+    case newStmt@sil.NewStmt(lhs, originalFields) =>
       // get the position of the new statement
       val position = getPosition(statement, results.cfg).asInstanceOf[BlockPosition]
       // extend new statement
-      val extendedFields = fields(originalFields, position, results)
+      val extendedFields = fields(newStmt, position, results)
       sil.NewStmt(lhs, extendedFields)(statement.pos, statement.info)
     case sil.Constraining(vars, originalBody) =>
       // recursively extend body of constraining statement
@@ -133,42 +133,42 @@ trait SilverExtender[T, S <: State[S] with SilverSpecification[T]] {
   /**
     * Modifies the list of preconditions using the given analysis result.
     *
-    * @param existing The list of existing preconditions.
+    * @param method   The method that should be extended.
     * @param position The position of the first precondition.
     * @param result   The analysis result.
     * @return The modified list of preconditions.
     */
-  def preconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def preconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of postconditions using the given analysis result.
     *
-    * @param existing The list of existing postconditions.
+    * @param method   The method that should be extended.
     * @param position The position of the last postcondition.
     * @param result   The analysis result.
     * @return The modified list of postconditions.
     */
-  def postconditions(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def postconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of invariants using the given analysis result.
     *
-    * @param existing The list of existing invariants.
+    * @param loop     The while statement for which invariants are modified
     * @param position The position of the first invariant.
     * @param result   The analysis result.
     * @return The modified list of invariants.
     */
-  def invariants(existing: Seq[sil.Exp], position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
+  def invariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp]
 
   /**
     * Modifies the list of fields of a new statement using the given analysis result.
     *
-    * @param existing The list of existing fields.
+    * @param newStmt The sil.NewStmt for which fields should be modified
     * @param position The position of the new statement.
     * @param result   The analysis result.
     * @return The modified list of fields.
     */
-  def fields(existing: Seq[sil.Field], position: BlockPosition, result: CfgResult[S]): Seq[sil.Field]
+  def fields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field]
 
   /* ------------------------------------------------------------------------- *
    * Helper Functions

@@ -10,7 +10,21 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverProgramDeclaration}
 
 /**
-  * A ProgramResult consists of CfgResults for each available identifier. Identifiers are usually
+  * A Tag that can be used to "tag" a CfgResult. This can be used to differentiate multiple CfgResult for the same method
+  */
+trait CfgResultTag
+
+object CfgResultTag {
+  /**
+    * Per default CfgResult are note tagged
+    */
+  val Untagged = new CfgResultTag {
+    override def toString: String = "Untagged"
+  }
+}
+
+/**
+  * A ProgramResult consists of one or many (tagged) CfgResults for each available identifier. Identifiers are usually
   * methods but any valid SilverIdentifier is supported.
   *
   * @tparam S the state to be used in CfgResult
@@ -20,19 +34,29 @@ trait ProgramResult[S <: State[S]] {
 
   /**
     * Get a single CfgResult for one identifier (usually a method)
+    * Per default this returns the "untagged" result if there are multiple
     *
-    * @param ident the identifier (e.g method.name).
+    * @param ident the identifier (e.g method name).
     * @return a CfgResult.
     */
-  def getResult(ident: SilverIdentifier): CfgResult[S]
+  def getResult(ident: SilverIdentifier): CfgResult[S] = getTaggedResults(ident)(CfgResultTag.Untagged)
+
+  /**
+    * Returns all CfgResults and tags that exist for this method.
+    *
+    * @param ident the identifier (e.g. method name).
+    * @return a map containing all tagged CfgResults
+    */
+  def getTaggedResults(ident: SilverIdentifier): Map[CfgResultTag, CfgResult[S]]
 
   /**
     * Set a single CfgResult for an identifier (e.g. a method).
     *
     * @param ident     the identifier (e.g method.name).
     * @param cfgResult the CfgResult.
+    * @param tag       optional tag to store for this CfgResult
     */
-  def setResult(ident: SilverIdentifier, cfgResult: CfgResult[S]): Unit
+  def setResult(ident: SilverIdentifier, cfgResult: CfgResult[S], tag: CfgResultTag = CfgResultTag.Untagged): Unit
 
   /**
     * Available identifiers for which results have been set or initialized.
@@ -45,7 +69,7 @@ trait ProgramResult[S <: State[S]] {
     * Initializes the cfg results for all methods using the given helper function
     *
     * @param cfgResultInitializer helper called for each result to be initialized
-    * @param state      State to use for the initialization
+    * @param state                State to use for the initialization
     */
   def initialize(cfgResultInitializer: (SampleCfg, S) => CfgResult[S], state: S): Unit
 
@@ -60,7 +84,7 @@ trait ProgramResult[S <: State[S]] {
 class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
   extends ProgramResult[S] {
 
-  var results: Map[SilverIdentifier, CfgResult[S]] = Map.empty
+  var results: Map[SilverIdentifier, Map[CfgResultTag, CfgResult[S]]] = Map().withDefault(_ => Map.empty)
 
   override def initialize(i: (SampleCfg, S) => CfgResult[S], state: S) {
     for (method <- program.methods) {
@@ -74,23 +98,11 @@ class DefaultProgramResult[S <: State[S]](program: SilverProgramDeclaration)
     }
   }
 
-  /**
-    * Get a single CfgResult for one identifier (usually a method)
-    *
-    * @param ident the identifier (e.g method.name).
-    * @return a REFERENCE to the CfgResult stored for this identifier.
-    */
-  override def getResult(ident: SilverIdentifier): CfgResult[S] = results(ident)
+  override def getTaggedResults(ident: SilverIdentifier): Map[CfgResultTag, CfgResult[S]] = results(ident)
 
-
-  /**
-    * Set a single CfgResult for an identifier (e.g. a method). Note that getResult() returns a reference and you
-    * may skip calling setResult() again if you only change some states.
-    *
-    * @param ident     the identifier (e.g method.name).
-    * @param cfgResult the CfgResult.
-    */
-  override def setResult(ident: SilverIdentifier, cfgResult: CfgResult[S]): Unit = results += ident -> cfgResult
+  override def setResult(ident: SilverIdentifier, cfgResult: CfgResult[S], tag: CfgResultTag = CfgResultTag.Untagged): Unit = {
+    results += ident -> (results(ident) + (tag -> cfgResult))
+  }
 
   override def identifiers: Iterable[SilverIdentifier] = results.keys
 }

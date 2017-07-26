@@ -14,5 +14,7 @@ apron.sbt
 # Folder with temporary files created by Silicon
 tmp/
 
+# local test scripts and output of inference
 docker.sh
+test_inference.sh
 sample-silver/src/test/resources/silver/exampleX.sil
