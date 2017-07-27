@@ -114,8 +114,8 @@ object Main {
     // jerome's inference
     val permissionResults = permission.run(program)
     permission.exportProgram(program, permissionResults)
-    println(permission.specificationsAsJson(file))
     val numericalResults = numerical.run(program)
+    numerical.extractSpecifications(permission)
     numerical.exportProgram(program, numericalResults)
     println(numerical.specificationsAsJson(file))
   }

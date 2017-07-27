@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.inference.SilverExporter
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.compactRender
+import net.liftweb.json.prettyRender
 import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 import viper.silver.{ast => sil}
 
@@ -27,43 +27,45 @@ import viper.silver.{ast => sil}
 trait SilverJsonExporter[S <: State[S]]
   extends SilverExporter[S] {
 
-  val Pre = "preconditions"
-  val Post = "postconditions"
-  val Inv = "invariants"
-
-  private var specifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = Map.empty.withDefault(_ => Map.empty)
-
-  private def saveResult(typeOfExtension: String, position: sil.Position, existing: Seq[sil.Exp], inferred: Seq[sil.Exp]): Unit = {
-    // We don't expect to see multiple changes to the same position and type (pre/post/inv)
-    assert(!(specifications(typeOfExtension) contains position))
-    if (inferred.nonEmpty)
-      specifications += (typeOfExtension -> (specifications(typeOfExtension) + (position -> (existing, inferred))))
+  def extractSpecifications(other: SilverJsonExporter[_]): Unit = {
+    preconditions = other.preconditions
+    postconditions = other.postconditions
+    invariants = other.invariants
   }
 
-  override def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp]): Unit =
-    saveResult(Pre, method.body.pos, method.pres, preconditions)
+  private var preconditions: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
+  private var postconditions: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
+  private var invariants: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
 
-  override def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp]): Unit =
-    saveResult(Post, method.body.pos, method.posts, postconditions)
+  override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
+    val position = method.body.pos
+    preconditions.get(position) match {
+      case Some(entry) => preconditions = preconditions + (position -> (method.pres, entry._2 ++ inferred))
+      case None => preconditions = preconditions + (position -> (method.pres, inferred))
+    }
+  }
 
-  override def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp]): Unit =
-    saveResult(Inv, loop.body.pos, loop.invs, invariants)
+  override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
+    val position = method.body.pos
+    postconditions.get(position) match {
+      case Some(entry) => postconditions = postconditions + (position -> (method.posts, entry._2 ++ inferred))
+      case None => postconditions = postconditions + (position -> (method.posts, inferred))
+    }
+  }
+
+  override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit = {
+    val position = loop.body.pos
+    invariants.get(position) match {
+      case Some(entry) => invariants = invariants + (position -> (loop.invs, entry._2 ++ inferred))
+      case None => invariants = invariants + (position -> (loop.invs, inferred))
+    }
+  }
 
   override def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = ???
 
-  /**
-    * Returns a Map of the collected specifications. For pre-/postconditions and invariants
-    * a Map from Position -> Tuple() is returned. The first element in the tuple are the "old" specifications
-    * in the original program. The second element in the tuple are the inferred specifications with which
-    * the program has been extended.
-    *
-    * @return
-    */
-  private def getSpecifications: Map[String, Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])]] = specifications
-
   // For debugging/development you may want to enable prettyRender to have a look at the JSON
   //private def render = prettyRender _
-  private def render = compactRender _
+  private def render = prettyRender _
 
   private val ErrorTag = "Error"
   private val SampleInferenceTag = "SpecificationInference"
@@ -114,34 +116,32 @@ trait SilverJsonExporter[S <: State[S]]
     * @return A JSON-string according to the VIPER IDE protocol
     */
   def specificationsAsJson(file: String): String = {
-    val specs = getSpecifications
-    // check whether the original program contained specifications
-    val existingSpec = specs.values.find(_.values.exists(_._1.nonEmpty))
-    if (existingSpec.isDefined) {
-      // Some specifications exist. Just point the user to one of them
-      val errorPosition = existingSpec.get.find {
-        case (_, (existingSpecs, _)) => existingSpecs.nonEmpty
-      }.get._1
-      val (start, end) = formatPosition(errorPosition)
-      render(
-        ("type" -> ErrorTag) ~
-          ("file" -> file) ~
-          ("errors" ->
-            List(
-              ("start" -> start) ~
-                ("end" -> end) ~
-                ("tag" -> SampleInferenceErrorTag) ~
-                ("message" -> "Inference omitted since some specifications already exist.")
-            ))
-      )
-    } else {
-      render(
-        ("type" -> SampleInferenceTag) ~
-          ("file" -> file) ~
-          (JsonKeyPreconditions -> specs(Pre).map(specToJsonDSL("requires"))) ~
-          (JsonKeyPostconditions -> specs(Post).map(specToJsonDSL("ensures"))) ~
-          (JsonKeyInvariants -> specs(Inv).map(specToJsonDSL("invariant")))
-      )
+    val existing = preconditions.values.map(_._1).find(_.nonEmpty)
+      .orElse(postconditions.values.map(_._1).find(_.nonEmpty))
+      .orElse(invariants.values.map(_._1).find(_.nonEmpty))
+
+    existing match {
+      case Some(e) =>
+        val (start, end) = formatPosition(e.head.pos)
+        render(
+          ("type" -> ErrorTag) ~
+            ("file" -> file) ~
+            ("errors" ->
+              List(
+                ("start" -> start) ~
+                  ("end" -> end) ~
+                  ("tag" -> SampleInferenceErrorTag) ~
+                  ("message" -> "Inference omitted since some specifications already exist.")
+              ))
+        )
+      case None =>
+        render(
+          ("type" -> SampleInferenceTag) ~
+            ("file" -> file) ~
+            (JsonKeyPreconditions -> preconditions.map(specToJsonDSL("requires"))) ~
+            (JsonKeyPostconditions -> postconditions.map(specToJsonDSL("ensures"))) ~
+            (JsonKeyInvariants -> invariants.map(specToJsonDSL("invariant")))
+        )
     }
   }
 }

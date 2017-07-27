@@ -296,6 +296,10 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     case _: Constant |
          _: VariableIdentifier =>
       Set(expression)
+    case BinaryArithmeticExpression(left, right, operator) =>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield BinaryArithmeticExpression(newLeft, newRight, operator)
     case AccessPathIdentifier(path) =>
       if (path.length == 1) Set(path.head)
       else {
@@ -311,17 +315,21 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * TODO: Implement properly.
     */
   private def withoutFieldIdentifiers(expression: Expression): Expression = expression match {
+    case _: Constant |
+         _: VariableIdentifier |
+         _: AccessPathIdentifier =>
+      expression
+    case BinaryArithmeticExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      BinaryArithmeticExpression(newLeft, newRight, operator)
     case FieldIdentifier(receiver, field) =>
       val init = receiver.getName
         .split("\\.").toList
         .map(x => VariableIdentifier(x)(RefType()))
       val path = init :+ field
       AccessPathIdentifier(path)
-    case BinaryArithmeticExpression(left, right, operator) =>
-      val newLeft = withoutFieldIdentifiers(left)
-      val newRight = withoutFieldIdentifiers(right)
-      BinaryArithmeticExpression(newLeft, newRight, operator)
-    case _ => expression
+    case _ => ???
   }
 
 }
