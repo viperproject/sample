@@ -156,7 +156,7 @@ object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
     with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState]
-    with SpecificationsJsonExporter[IntegerOctagonAnalysisState] {
+    with SilverJsonExporter[IntegerOctagonAnalysisState] {
 
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 

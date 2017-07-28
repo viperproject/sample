@@ -1,8 +1,15 @@
-method foo(a: Int) returns (r: Int)
+field val: Int
+
+/*method set_val(a: Ref, v: Int)
 {
-    r := 0
-    while (r < 5)
-    {
-        r := r + 1
+    a.val := v
+}*/
+
+method test(a: Ref, v: Int)
+{
+    var i: Int
+    i := 0
+    while (i < a.val) {
+        i := i + 1
     }
 }
