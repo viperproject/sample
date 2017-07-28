@@ -1,6 +1,15 @@
 field val: Int
 
-method set_val(a: Ref, v: Int)
+/*method set_val(a: Ref, v: Int)
 {
     a.val := v
+}*/
+
+method test(a: Ref, v: Int)
+{
+    var i: Int
+    i := 0
+    while (i < a.val) {
+        i := i + 1
+    }
 }
