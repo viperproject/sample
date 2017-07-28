@@ -287,19 +287,36 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     }
 
   /**
-    * Replaces all access path identifiers in the given right with their
-    * corresponding field identifiers.
+    * Replaces all access path identifiers in the given expression with their
+    * corresponding field identifier. Since an access path can evaluate to
+    * multiple possible heap locations a set of expression is returned where
+    * each expression represents one possibility.
     *
-    * TODO: Implement properly.
+    * @param expression The expression to process.
+    * @return The resulting set of expressions.
     */
   private def withFieldIdentifiers(expression: Expression): Set[Expression] = expression match {
     case _: Constant |
          _: VariableIdentifier =>
       Set(expression)
+    case UnaryArithmeticExpression(argument, operator, typ) =>
+      val argumentSet = withFieldIdentifiers(argument)
+      argumentSet.map(UnaryArithmeticExpression(_, operator, typ))
+    case NegatedBooleanExpression(argument) =>
+      val argumentSet = withFieldIdentifiers(argument)
+      argumentSet.map(NegatedBooleanExpression)
     case BinaryArithmeticExpression(left, right, operator) =>
       val leftSet = withFieldIdentifiers(left)
       val rightSet = withFieldIdentifiers(right)
       for (newLeft <- leftSet; newRight <- rightSet) yield BinaryArithmeticExpression(newLeft, newRight, operator)
+    case BinaryBooleanExpression(left, right, operator) =>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield BinaryBooleanExpression(newLeft, newRight, operator)
+    case ReferenceComparisonExpression(left, right, operator)=>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield ReferenceComparisonExpression(newLeft, newRight, operator)
     case AccessPathIdentifier(path) =>
       if (path.length == 1) Set(path.head)
       else {
@@ -312,17 +329,37 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
   }
 
   /**
-    * TODO: Implement properly.
+    * Replaces all field identifiers in the given expression with a
+    * corresponding access path identifier.
+    *
+    * TODO: Introduce old keyword in cases where needed.
+    *
+    * @param expression The expression to process.
+    * @return The resulting expression.
     */
   private def withoutFieldIdentifiers(expression: Expression): Expression = expression match {
     case _: Constant |
          _: VariableIdentifier |
          _: AccessPathIdentifier =>
       expression
+    case UnaryArithmeticExpression(argument, operator, typ) =>
+      val newArgument = withoutFieldIdentifiers(argument)
+      UnaryArithmeticExpression(newArgument, operator, typ)
+    case NegatedBooleanExpression(argument) =>
+      val newArgument = withoutFieldIdentifiers(argument)
+      NegatedBooleanExpression(newArgument)
     case BinaryArithmeticExpression(left, right, operator) =>
       val newLeft = withoutFieldIdentifiers(left)
       val newRight = withoutFieldIdentifiers(right)
       BinaryArithmeticExpression(newLeft, newRight, operator)
+    case BinaryBooleanExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      BinaryBooleanExpression(newLeft, newRight, operator)
+    case ReferenceComparisonExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      ReferenceComparisonExpression(newLeft,newRight, operator)
     case FieldIdentifier(receiver, field) =>
       val init = receiver.getName
         .split("\\.").toList
