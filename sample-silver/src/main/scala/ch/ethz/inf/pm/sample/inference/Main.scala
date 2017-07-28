@@ -74,13 +74,15 @@ object Main {
       builder = HeapAndOctagonAnalysisEntryState
     )
 
-    override def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[V]): Seq[sil.Exp] = {
+    override def inferPostconditions(method: sil.Method, result: CfgResult[V]): Seq[sil.Exp] = {
+      val position = lastPosition(result.cfg.exit.get)
       val inferred = result.postStateAt(position).specifications
       val converted = inferred.map(DefaultSampleConverter.convert)
       method.posts ++ converted
     }
 
-    override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[V]): Seq[sil.Exp] = {
+    override def inferInvariants(loop: sil.While, result: CfgResult[V]): Seq[sil.Exp] = {
+      val position = getLoopPosition(loop, result.cfg)
       val state = result.preStateAt(position)
       loop.invs
     }

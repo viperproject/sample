@@ -32,17 +32,20 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     */
   protected var read: Boolean = false
 
-  override def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferPreconditions(method: sil.Method, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = firstPosition(result.cfg.entry)
     val state = result.preStateAt(position)
     extendSpecifications(method.pres, state)
   }
 
-  override def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferPostconditions(method: sil.Method, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = lastPosition(result.cfg.exit.get)
     val state = result.postStateAt(position)
     extendSpecifications(method.posts, state, true)
   }
 
-  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[T]): Seq[sil.Exp] = {
+  override def inferInvariants(loop: sil.While, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = getLoopPosition(loop, result.cfg)
     val aliases = Context.getAliases[A]
     val state = result.preStateAt(position)
     val tree = state.stack.foldLeftTrees(PermissionTree.empty)(_ lub _)

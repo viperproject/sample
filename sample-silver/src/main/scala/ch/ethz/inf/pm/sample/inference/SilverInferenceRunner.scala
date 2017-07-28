@@ -35,11 +35,6 @@ trait SilverSpecification[T] {
 /**
   * A specification inference runner for silver programs.
   *
-  * TODO:
-  * We can probably remove the position from the list of arguments to the
-  * inferPrecondition, inferPostcondition, inferInvariants, and inferFields
-  * methods.
-  *
   * @tparam S The type of the state.
   * @author Caterina Urban
   * @author Jerome Dohrau
@@ -51,34 +46,31 @@ trait SilverInferenceRunner[S <: State[S]] extends
     * Infers a list of preconditions for the given method using the given
     * analysis result.
     *
-    * @param method   The method for which the preconditions are inferred.
-    * @param position The position of the first precondition.
-    * @param result   The analysis result.
+    * @param method The method for which the preconditions are inferred.
+    * @param result The analysis result.
     * @return The inferred preconditions.
     */
-  def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.pres
+  def inferPreconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp] = method.pres
 
   /**
     * Infers a list of postconditions for the given method using the given
     * analysis result.
     *
-    * @param method   The method for which the postconditions are inferred.
-    * @param position The position of the last postcondition.
-    * @param result   The analysis result.
+    * @param method The method for which the postconditions are inferred.
+    * @param result The analysis result.
     * @return The inferred postconditions.
     */
-  def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = method.posts
+  def inferPostconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp] = method.posts
 
   /**
     * Infers a list of invariants for the given while loop using the given
     * analysis result.
     *
-    * @param loop     The while loop for which the invariants are inferred.
-    * @param position The position of the first invariant.
-    * @param result   The analysis result.
+    * @param loop   The while loop for which the invariants are inferred.
+    * @param result The analysis result.
     * @return The inferred invariants.
     */
-  def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = loop.invs
+  def inferInvariants(loop: sil.While, result: CfgResult[S]): Seq[sil.Exp] = loop.invs
 
   /**
     * Infers a list of fields for a new statement using the given analysis
@@ -196,8 +188,8 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
 
     // return extended method
     method.copy(
-      pres = inferPreconditions(method, entry, result),
-      posts = inferPostconditions(method, exit, result),
+      pres = inferPreconditions(method, result),
+      posts = inferPostconditions(method, result),
       body = extendBody(method.body, result)
     )(method.pos, method.info, method.errT)
   }
@@ -232,10 +224,8 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
       val extendedElse = extendBody(originalElse, result)
       sil.If(condition, extendedThen, extendedElse)(statement.pos, statement.info)
     case loop@sil.While(condition, _, originalBody) =>
-      // get the position of the loop
-      val position = getLoopPosition(loop, result.cfg)
       // extend while loop
-      val extendedInvariants = inferInvariants(loop, position, result)
+      val extendedInvariants = inferInvariants(loop, result)
       val extendedBody = extendBody(originalBody, result)
       sil.While(condition, extendedInvariants, extendedBody)(statement.pos, statement.info)
     case newStmt: sil.NewStmt =>
@@ -329,10 +319,9 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     * @param result The analysis result.
     */
   def exportMethod(method: sil.Method, result: CfgResult[S]): Unit = {
-    val entry = firstPosition(result.cfg.entry)
     val exit = lastPosition(result.cfg.exit.get)
-    exportPreconditions(method, inferPreconditions(method, entry, result))
-    exportPostconditions(method, inferPostconditions(method, exit, result))
+    exportPreconditions(method, inferPreconditions(method, result))
+    exportPostconditions(method, inferPostconditions(method, result))
     exportStatement(method.body, result)
   }
 
@@ -350,8 +339,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
       exportStatement(body1, result)
       exportStatement(body2, result)
     case loop: sil.While =>
-      val position = getLoopPosition(loop, result.cfg)
-      exportInvariants(loop, inferInvariants(loop, position, result))
+      exportInvariants(loop, inferInvariants(loop, result))
       exportStatement(loop.body, result)
     case newStatement: sil.NewStmt =>
       val position = getPosition(statement, result.cfg).asInstanceOf[BlockPosition]

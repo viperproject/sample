@@ -25,7 +25,8 @@ import viper.silver.{ast => sil}
 trait NumericalInferenceRunner[S <: NumericalAnalysisState[S, D], D <: NumericalDomain[D]]
   extends SilverInferenceRunner[S] {
 
-  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+  override def inferInvariants(loop: sil.While, result: CfgResult[S]): Seq[sil.Exp] = {
+    val position = getLoopPosition(loop, result.cfg)
     val inferred = result.preStateAt(position).specifications
     val converted = inferred.map(DefaultSampleConverter.convert)
     loop.invs ++ converted.toSeq
@@ -52,7 +53,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //
   // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
   //
-  override def inferPreconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+  override def inferPreconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp] = {
+    val position = firstPosition(result.cfg.entry)
     val existing = method.pres
     // get a set of inferred preconditions for each method-call (call-string)
     val inferred: Seq[Set[Expression]] = resultsToWorkWith.map(_.preStateAt(position).specifications)
@@ -76,7 +78,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //  ensures post1
   //  ensures post2 ...
   //
-  override def inferPostconditions(method: sil.Method, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+  override def inferPostconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp] = {
+    val position = lastPosition(result.cfg.exit.get)
     val existing = method.posts
     // we only allow postconditions that talk about formalArgs and formalReturns
     val allowedIdentifiers = method.formalReturns.map(_.name).toSet ++ method.formalArgs.map(_.name).toSet
@@ -104,7 +107,8 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
   //    method-precondition => invariant
   // for all the call-strings we saw during analysis
   //
-  override def inferInvariants(loop: sil.While, position: BlockPosition, result: CfgResult[S]): Seq[sil.Exp] = {
+  override def inferInvariants(loop: sil.While, result: CfgResult[S]): Seq[sil.Exp] = {
+    val position = getLoopPosition(loop, result.cfg)
     val existing = loop.invs
     val inferredInvariants: Seq[sil.Exp] = {
       for (result <- resultsToWorkWith) yield {
