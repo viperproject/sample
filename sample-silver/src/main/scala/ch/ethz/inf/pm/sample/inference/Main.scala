@@ -83,8 +83,9 @@ object Main {
 
     override def inferInvariants(loop: sil.While, result: CfgResult[V]): Seq[sil.Exp] = {
       val position = getLoopPosition(loop, result.cfg)
-      val state = result.preStateAt(position)
-      loop.invs
+      val inferred = result.preStateAt(position).specifications
+      val converted = inferred.map(DefaultSampleConverter.convert)
+      loop.invs ++ converted.toSeq
     }
   }
 
