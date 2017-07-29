@@ -114,8 +114,17 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
+      // least upper bound of heap domains
       val newHeap = heap lub other.heap
-      val newSemantic = semantic lub other.semantic
+      // unify environments of semantic domains
+      val ids1 = semantic.ids
+      val ids2 = other.semantic.ids
+      val diff1 = (ids2 -- ids1).toSet
+      val diff2 = (ids1 -- ids2).toSet
+      val semantic1 = diff1.foldLeft(semantic) { case (domain, variable) => domain.createVariable(variable) }
+      val semantic2 = diff2.foldLeft(other.semantic) { case (domain, variable) => domain.createVariable(variable) }
+      // least upper bound of semantic domains
+      val newSemantic = semantic1 lub semantic2
       copy(heap = newHeap, semantic = newSemantic)
     }
 
@@ -313,7 +322,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
       val leftSet = withFieldIdentifiers(left)
       val rightSet = withFieldIdentifiers(right)
       for (newLeft <- leftSet; newRight <- rightSet) yield BinaryBooleanExpression(newLeft, newRight, operator)
-    case ReferenceComparisonExpression(left, right, operator)=>
+    case ReferenceComparisonExpression(left, right, operator) =>
       val leftSet = withFieldIdentifiers(left)
       val rightSet = withFieldIdentifiers(right)
       for (newLeft <- leftSet; newRight <- rightSet) yield ReferenceComparisonExpression(newLeft, newRight, operator)
@@ -359,7 +368,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     case ReferenceComparisonExpression(left, right, operator) =>
       val newLeft = withoutFieldIdentifiers(left)
       val newRight = withoutFieldIdentifiers(right)
-      ReferenceComparisonExpression(newLeft,newRight, operator)
+      ReferenceComparisonExpression(newLeft, newRight, operator)
     case FieldIdentifier(receiver, field) =>
       val init = receiver.getName
         .split("\\.").toList
