@@ -1,0 +1,26 @@
+@startuml
+
+-> SilverAnalysisRunner: main(args: Array[String])
+activate SilverAnalysisRunner
+
+SilverAnalysisRunner -> SilverCompiler: compile(Compilable.Path(new File(args(0)).toPath))
+activate SilverCompiler
+SilverCompiler -> SilverAnalysisRunner: program: SilverProgramDeclaration
+deactivate SilverCompiler
+
+loop method <- program.methods
+    SilverAnalysisRunner -> SilverAnalysis: analyze(program, method)
+    activate SilverAnalysis
+    SilverAnalysis -> SilverEntryStateBuilder: build(program, method)
+    activate SilverEntryStateBuilder
+    SilverEntryStateBuilder -> SilverAnalysis: initialState: State
+    deactivate SilverEntryStateBuilder
+    SilverAnalysis -> SilverInterpreter: execute(method, initialState)
+    activate SilverInterpreter
+    SilverInterpreter -> SilverAnalysis: result: CfgResult
+    deactivate SilverInterpreter
+    SilverAnalysis -> SilverAnalysisRunner: result: CfgResult
+    deactivate SilverAnalysis
+end
+deactivate SilverAnalysisRunner
+@enduml
