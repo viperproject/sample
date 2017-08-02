@@ -13,7 +13,7 @@ loop method <- program.methods
     activate SilverAnalysis
     SilverAnalysis -> SilverEntryStateBuilder: build(program, method)
     activate SilverEntryStateBuilder
-    SilverEntryStateBuilder -> SilverAnalysis: initialState: State
+    SilverEntryStateBuilder -> SilverAnalysis: initialState: S
     deactivate SilverEntryStateBuilder
     SilverAnalysis -> SilverInterpreter: execute(method, initialState)
     activate SilverInterpreter
