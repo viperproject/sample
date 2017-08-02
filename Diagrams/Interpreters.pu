@@ -9,7 +9,7 @@
 "SilverForwardInterpreter[S]" <|-- "InterproceduralSilverForwardInterpreter[S]"
 "SilverForwardInterpreter[S]" : execute(cfgs: Seq[SampleCfg]): CfgResult[S]
 "SilverForwardInterpreter[S]" : #inEdges(...): Seq[Either[SampleEdge, AuxiliaryEdge]]
-"SilverForwardInterpreter[S]" : #getPredecessorState(edge: Either[SampleEdge, AuxiliaryEdge]): S
+"SilverForwardInterpreter[S]" : #getPredecessorState(...): S
 "SilverForwardInterpreter[S]" : #executeStatement(...): (S, Boolean)
 "SilverForwardInterpreter[S]" : #onExitBlockExecuted(...): Unit
 
@@ -27,7 +27,7 @@
 
 "InterproceduralSilverForwardInterpreter[S]" : executeInterprocedural(): ProgramResult[S]
 "InterproceduralSilverForwardInterpreter[S]" : #inEdges(...): Seq[Either[SampleEdge, AuxiliaryEdge]]
-"InterproceduralSilverForwardInterpreter[S]" : #getPredecessorState(edge: Either[SampleEdge, AuxiliaryEdge]): S
+"InterproceduralSilverForwardInterpreter[S]" : #getPredecessorState(...): S
 "InterproceduralSilverForwardInterpreter[S]" : #executeStatement(...): (S, Boolean)
 "InterproceduralSilverForwardInterpreter[S]" : #onExitBlockExecuted(...): Unit
 
