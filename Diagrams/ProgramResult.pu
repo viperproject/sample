@@ -1,0 +1,8 @@
+@startuml
+ProgramResult : identifiers() : Iterable[SilverIdentifier]
+ProgramResult : setResult(ident: SilverIdentifier, result: CfgResult[S], tag: CfgResultTag) : void
+ProgramResult : getResult(ident: SilverIdentifier) : CfgResult[S]
+ProgramResult : getTaggedResults(ident: SilverIdentifier) : Map[CfgResultTag, CfgResult[S]]
+ProgramResult : initialize(init: Function1[SampleCfg, CfgResult[S]) : void
+ProgramResult : initialize(init: Function2[SampleCfg, S, CfgResult[S]], state: S) : void
+@enduml

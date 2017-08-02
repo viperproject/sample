@@ -1,0 +1,11 @@
+@startuml
+CfgResultTag <|.. CallString
+
+CallString : callStack : List[ProgramPoint]
+CallString : lastCaller : ProgramPoint
+CallString : currentMethod : ProgramPoint
+CallString : inCallee : Boolean
+CallString : push(callee: SilverMethodDeclaration, callStmt: MethodCall) : CallString
+CallString : pop() : CallString
+CallString : suffix(k: Option[Int]) : CallString
+@enduml
