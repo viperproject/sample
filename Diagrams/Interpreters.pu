@@ -2,9 +2,8 @@
 
 "SilverInterpreter[S]" <|-- "SilverForwardInterpreter[S]"
 
-"SilverInterpreter[S]" : cfg: SampleCfg
-"SilverInterpreter[S]" : worklist: InterpreterWorklist
-"SilverInterpreter[S]" : secondaryWorklist: InterpreterWorklist
+"SilverInterpreter[S]" : #worklist: InterpreterWorklist
+"SilverInterpreter[S]" : #secondaryWorklist: InterpreterWorklist
 "SilverInterpreter[S]" : execute(): CfgResult[S]
 
 "SilverForwardInterpreter[S]" <|-- "InterproceduralSilverForwardInterpreter[S]"
