@@ -1,0 +1,23 @@
+@startuml
+
+-> InterproceduralSilverAnalysisRunner: main(args: Array[String])
+activate InterproceduralSilverAnalysisRunner
+
+InterproceduralSilverAnalysisRunner -> SilverCompiler: compile(Compilable.Path(new File(args(0)).toPath))
+activate SilverCompiler
+SilverCompiler -> InterproceduralSilverAnalysisRunner: program: SilverProgramDeclaration
+deactivate SilverCompiler
+
+InterproceduralSilverAnalysisRunner -> InterproceduralSilverAnalysis: analyze(program)
+activate InterproceduralSilverAnalysis
+
+create InterproceduralSilverForwardInterpreter
+InterproceduralSilverAnalysis -> InterproceduralSilverForwardInterpreter: new
+InterproceduralSilverAnalysis -> InterproceduralSilverForwardInterpreter: executeInterprocedural()
+activate InterproceduralSilverForwardInterpreter
+InterproceduralSilverForwardInterpreter -> InterproceduralSilverAnalysis: result: ProgramResult[S]
+deactivate InterproceduralSilverForwardInterpreter
+InterproceduralSilverAnalysis -> InterproceduralSilverAnalysisRunner: result: ProgramResult[S]
+
+deactivate InterproceduralSilverAnalysis
+@enduml
