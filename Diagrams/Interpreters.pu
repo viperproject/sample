@@ -1,0 +1,35 @@
+@startuml
+
+"SilverInterpreter[S]" <|-- "SilverForwardInterpreter[S]"
+
+"SilverInterpreter[S]" : cfg: SampleCfg
+"SilverInterpreter[S]" : worklist: InterpreterWorklist
+"SilverInterpreter[S]" : secondaryWorklist: InterpreterWorklist
+"SilverInterpreter[S]" : execute(): CfgResult[S]
+
+"SilverForwardInterpreter[S]" <|-- "InterproceduralSilverForwardInterpreter[S]"
+"SilverForwardInterpreter[S]" : execute(cfgs: Seq[SampleCfg]): CfgResult[S]
+"SilverForwardInterpreter[S]" : #inEdges(...): Seq[Either[SampleEdge, AuxiliaryEdge]]
+"SilverForwardInterpreter[S]" : #getPredecessorState(edge: Either[SampleEdge, AuxiliaryEdge]): S
+"SilverForwardInterpreter[S]" : #executeStatement(...): (S, Boolean)
+"SilverForwardInterpreter[S]" : #onExitBlockExecuted(...): Unit
+
+
+
+"InterprocHelpers[S]" <|-- "InterproceduralSilverForwardInterpreter[S]"
+
+"InterprocHelpers[S]" : program: SilverProgramDeclaration
+"InterprocHelpers[S]" : methodsInTopologicalOrder: TopologicalOrderOfCallGraph
+"InterprocHelpers[S]" : callsInProgram: CallGraphMap
+"InterprocHelpers[S]" : callStringLength: Option[Int]
+"InterprocHelpers[S]" : unify(state: S, other: S): S
+"InterprocHelpers[S]" : enqueueCallers(...): Unit
+"InterprocHelpers[S]" : -buildCallGraphInformation(program: SilverProgramDeclaration)
+
+"InterproceduralSilverForwardInterpreter[S]" : executeInterprocedural(): ProgramResult[S]
+"InterproceduralSilverForwardInterpreter[S]" : #inEdges(...): Seq[Either[SampleEdge, AuxiliaryEdge]]
+"InterproceduralSilverForwardInterpreter[S]" : #getPredecessorState(edge: Either[SampleEdge, AuxiliaryEdge]): S
+"InterproceduralSilverForwardInterpreter[S]" : #executeStatement(...): (S, Boolean)
+"InterproceduralSilverForwardInterpreter[S]" : #onExitBlockExecuted(...): Unit
+
+@enduml

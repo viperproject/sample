@@ -1,0 +1,14 @@
+@startuml
+
+"SilverInterpreter[S]" <|-- "SilverForwardInterpreter[S]"
+"SilverInterpreter[S]" <|-- "SilverBackwardInterpreter[S]"
+
+"SilverInterpreter[S]" : execute(cfg: SampleCfg, initial: S): CfgResult[S]
+"SilverInterpreter[S]" : initializeResult(cfg: SampleCfg, state: S): CfgResult[S]
+
+"SilverForwardInterpreter[S]" : execute(cfg: SampleCfg, initial: S): CfgResult[S]
+"SilverBackwardInterpreter[S]" : execute(cfg: SampleCfg, initial: S): CfgResult[S]
+"SilverForwardInterpreter[S]" : -executeStatement(statement: Statement, state: S): S
+"SilverBackwardInterpreter[S]" : -executeStatement(statement: Statement, state: S): S
+
+@enduml
