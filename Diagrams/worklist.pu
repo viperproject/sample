@@ -1,0 +1,12 @@
+@startuml
+
+WorklistElement : pos : BlockPosition
+WorklistElement : forceReinterpretStatement : Boolean
+WorklistElement : createSuccessorForEnqueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
+
+WorklistElement <|.. SimpleWorklistElement
+WorklistElement <|.. TaggedWorklistElement
+TaggedWorklistElement : callString : CallString
+TaggedWorklistElement : createSuccessorForEnqueue(newPos: BlockPosition, newForceReinterpretStmt: Boolean): WorklistElement
+
+@enduml

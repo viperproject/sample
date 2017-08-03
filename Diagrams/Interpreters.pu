@@ -21,6 +21,8 @@
 "InterprocHelpers[S]" : methodsInTopologicalOrder: TopologicalOrderOfCallGraph
 "InterprocHelpers[S]" : callsInProgram: CallGraphMap
 "InterprocHelpers[S]" : callStringLength: Option[Int]
+"InterprocHelpers[S]" : methodTransferStates: mutable.Map[CallString, S]
+"InterprocHelpers[S]" : analysisResultReady: mutable.Set
 "InterprocHelpers[S]" : unify(state: S, other: S): S
 "InterprocHelpers[S]" : enqueueCallers(...): Unit
 "InterprocHelpers[S]" : -buildCallGraphInformation(program: SilverProgramDeclaration)
