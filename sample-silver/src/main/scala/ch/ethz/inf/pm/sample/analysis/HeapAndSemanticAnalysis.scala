@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.inference.SilverSpecification
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
@@ -33,6 +34,7 @@ import com.typesafe.scalalogging.LazyLogging
 trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I], H <: HeapDomain[H, I], S <: SemanticDomain[S], I <: Identifier]
   extends SilverState[T]
     with StateWithRefiningAnalysisStubs[T]
+    with SilverSpecification[Set[Expression]]
     with LazyLogging {
 
   this: T =>
@@ -243,6 +245,16 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
   override def throws(t: ExpressionSet): T = ???
 
   override def ids: IdentifierSet = ???
+
+  /* ------------------------------------------------------------------------- *
+   * SILVER SPECIFICATION METHODS
+   */
+
+  override def specifications: Set[Expression] = {
+    val ids = domain.ids
+    if (ids.isTop || ids.isBottom) Set()
+    else domain.getConstraints(ids.toSet)
+  }
 
   /* ------------------------------------------------------------------------- *
    * HEAP AND SEMANTIC ANALYSIS STATE METHODS

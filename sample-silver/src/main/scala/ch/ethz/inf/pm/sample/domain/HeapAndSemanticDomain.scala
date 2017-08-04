@@ -8,7 +8,8 @@ package ch.ethz.inf.pm.sample.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.util.Substitution
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.RefType
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 /**
   * An identifier representing a field.
@@ -113,8 +114,17 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
+      // least upper bound of heap domains
       val newHeap = heap lub other.heap
-      val newSemantic = semantic lub other.semantic
+      // unify environments of semantic domains
+      val ids1 = semantic.ids
+      val ids2 = other.semantic.ids
+      val diff1 = (ids2 -- ids1).toSet
+      val diff2 = (ids1 -- ids2).toSet
+      val semantic1 = diff1.foldLeft(semantic) { case (domain, variable) => domain.createVariable(variable) }
+      val semantic2 = diff2.foldLeft(other.semantic) { case (domain, variable) => domain.createVariable(variable) }
+      // least upper bound of semantic domains
+      val newSemantic = semantic1 lub semantic2
       copy(heap = newHeap, semantic = newSemantic)
     }
 
@@ -181,7 +191,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     val domain = copy(heap = newHeap, semantic = newSemantic)
     // perform assignment in semantic domain
     val left = Set(variable: Identifier)
-    val right = domain.heapify(expression)
+    val right = domain.withFieldIdentifiers(expression)
     domain.assignSemantic(left, right)
   }
 
@@ -203,7 +213,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     // perform assignment in semantic domain
     val receivers = newHeap.getValue(receiver)
     val left = receivers.map { receiver => FieldIdentifier(receiver, field): Identifier }
-    val right = domain.heapify(expression)
+    val right = domain.withFieldIdentifiers(expression)
     domain.assignSemantic(left, right)
   }
 
@@ -244,6 +254,29 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     copy(heap = newHeap, semantic = newSemantic)
   }
 
+  /**
+    * Returns the set of identifiers contained in the domain.
+    *
+    * @return The set of identifiers.
+    */
+  def ids = semantic.ids
+
+  /**
+    * Returns a set of possible constraints.
+    *
+    * @param ids The identifiers that should be mentioned in the constraints.
+    * @return The set of constraints.
+    */
+  def getConstraints(ids: Set[Identifier]): Set[Expression] =
+    semantic.getConstraints(ids).map(withoutFieldIdentifiers)
+
+  /**
+    * Applies the given substitution to the semantic domain and returns the
+    * result.
+    *
+    * @param substitution The substitution to apply.
+    * @return The substituted semantic domain.
+    */
   private def substitutedSemantic(substitution: Substitution): S =
     substitution.extend(fields)(semantic)
 
@@ -251,7 +284,7 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     * A helper method that performs an assignment in the semantic domain.
     *
     * @param left  The set representing all possible targets.
-    * @param right THe set representing all possible values.
+    * @param right The set representing all possible values.
     * @return The resulting domain.
     */
   private def assignSemantic(left: Set[Identifier], right: Set[Expression]): T =
@@ -263,15 +296,36 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
     }
 
   /**
-    * Replaces all access path identifiers in the given right with their
-    * corresponding field identifiers.
+    * Replaces all access path identifiers in the given expression with their
+    * corresponding field identifier. Since an access path can evaluate to
+    * multiple possible heap locations a set of expression is returned where
+    * each expression represents one possibility.
     *
-    * TODO: Rename and implement properly.
+    * @param expression The expression to process.
+    * @return The resulting set of expressions.
     */
-  private def heapify(expression: Expression): Set[Expression] = expression match {
+  private def withFieldIdentifiers(expression: Expression): Set[Expression] = expression match {
     case _: Constant |
          _: VariableIdentifier =>
       Set(expression)
+    case UnaryArithmeticExpression(argument, operator, typ) =>
+      val argumentSet = withFieldIdentifiers(argument)
+      argumentSet.map(UnaryArithmeticExpression(_, operator, typ))
+    case NegatedBooleanExpression(argument) =>
+      val argumentSet = withFieldIdentifiers(argument)
+      argumentSet.map(NegatedBooleanExpression)
+    case BinaryArithmeticExpression(left, right, operator) =>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield BinaryArithmeticExpression(newLeft, newRight, operator)
+    case BinaryBooleanExpression(left, right, operator) =>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield BinaryBooleanExpression(newLeft, newRight, operator)
+    case ReferenceComparisonExpression(left, right, operator) =>
+      val leftSet = withFieldIdentifiers(left)
+      val rightSet = withFieldIdentifiers(right)
+      for (newLeft <- leftSet; newRight <- rightSet) yield ReferenceComparisonExpression(newLeft, newRight, operator)
     case AccessPathIdentifier(path) =>
       if (path.length == 1) Set(path.head)
       else {
@@ -280,6 +334,47 @@ case class HeapAndSemanticDomain[H <: HeapDomain[H, I], S <: SemanticDomain[S], 
         val receivers = heap.getValue(receiver)
         receivers.map { receiver => FieldIdentifier(receiver, field) }
       }
+    case _ => ???
+  }
+
+  /**
+    * Replaces all field identifiers in the given expression with a
+    * corresponding access path identifier.
+    *
+    * TODO: Introduce old keyword in cases where needed.
+    *
+    * @param expression The expression to process.
+    * @return The resulting expression.
+    */
+  private def withoutFieldIdentifiers(expression: Expression): Expression = expression match {
+    case _: Constant |
+         _: VariableIdentifier |
+         _: AccessPathIdentifier =>
+      expression
+    case UnaryArithmeticExpression(argument, operator, typ) =>
+      val newArgument = withoutFieldIdentifiers(argument)
+      UnaryArithmeticExpression(newArgument, operator, typ)
+    case NegatedBooleanExpression(argument) =>
+      val newArgument = withoutFieldIdentifiers(argument)
+      NegatedBooleanExpression(newArgument)
+    case BinaryArithmeticExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      BinaryArithmeticExpression(newLeft, newRight, operator)
+    case BinaryBooleanExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      BinaryBooleanExpression(newLeft, newRight, operator)
+    case ReferenceComparisonExpression(left, right, operator) =>
+      val newLeft = withoutFieldIdentifiers(left)
+      val newRight = withoutFieldIdentifiers(right)
+      ReferenceComparisonExpression(newLeft, newRight, operator)
+    case FieldIdentifier(receiver, field) =>
+      val init = receiver.getName
+        .split("\\.").toList
+        .map(x => VariableIdentifier(x)(RefType()))
+      val path = init :+ field
+      AccessPathIdentifier(path)
     case _ => ???
   }
 
