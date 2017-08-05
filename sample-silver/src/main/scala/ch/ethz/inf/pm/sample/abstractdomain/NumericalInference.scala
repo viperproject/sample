@@ -136,7 +136,17 @@ object InterproceduralIntegerOctagonInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = InterproceduralIntegerOctagonAnalysis.analysis
 
-  override def main(args: Array[String]): Unit = super.main(args)
+  override def main(args: Array[String]): Unit = {
+    require(args.nonEmpty, "No file specified")
+
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val program = compile(compilable)
+
+    val result = run(program)
+    val extended = extendProgram(program, result)
+
+    println(extended)
+  }
 }
 
 /**
@@ -148,6 +158,19 @@ object InterproceduralIntegerOctagonBottomUpInference
     with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
     with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
+
+  override def main(args: Array[String]): Unit = {
+    require(args.nonEmpty, "No file specified")
+
+    val compilable = Compilable.Path(new File(args(0)).toPath)
+    val program = compile(compilable)
+
+    val result = run(program)
+    val extended = extendProgram(program, result)
+
+    println(extended)
+  }
+
 }
 
 /**
