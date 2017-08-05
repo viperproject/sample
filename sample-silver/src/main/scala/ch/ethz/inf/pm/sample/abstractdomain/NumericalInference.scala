@@ -50,6 +50,21 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
       sil.TrueLit()()
   }
 
+  /**
+    * Check if any of the expressions is true. We check a Seq[sil.Exp] before reducing the with Or whether
+    * it contains a TrueLit. If that is the case then it can the whole clause could be simplified to True
+    * (and "requires true" could be omitted as a precondition).
+    *
+    * @param constraintsForDisjunction The expressions to check
+    * @return true if TrueLit was found.
+    */
+  private def containsTrueLit(constraintsForDisjunction: Seq[sil.Exp]): Boolean = {
+    constraintsForDisjunction.exists(_ match {
+      case _: sil.TrueLit => true
+      case _ => false
+    })
+  }
+
   //
   // For the interprocedural case we take all possible method-call entry states and extend the program with a disjunction
   //
@@ -61,7 +76,9 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
     // represent each set of preconditions as a conjunction
     val conjuctionsPerCall: Seq[sil.Exp] = inferred.map(asConjunction).distinct
     // Or() all the possible preconditions
-    if (conjuctionsPerCall.nonEmpty) {
+    if (conjuctionsPerCall.nonEmpty
+      // no need to add the precondition if one of the clauses of the disjunction is a "true"
+      && !containsTrueLit(conjuctionsPerCall)) {
       val inferredPreconditions: sil.Exp = conjuctionsPerCall.reduce((left, right) => sil.Or(left, right)())
       existing :+ inferredPreconditions
     } else {
