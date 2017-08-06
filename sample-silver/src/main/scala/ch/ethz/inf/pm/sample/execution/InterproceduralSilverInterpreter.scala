@@ -813,7 +813,7 @@ case class FinalResultInterproceduralForwardInterpreter[S <: State[S]](
 case class FinalResultInterproceduralBottomUpForwardInterpreter[S <: State[S]](override val program: SilverProgramDeclaration,
                                                                                override val builder: SilverEntryStateBuilder[S],
                                                                                override val CallStringLength: Option[Int])
-  extends InterproceduralSilverForwardInterpreter[S] with BottomUpForwardInterpreter[S] {
+  extends BottomUpForwardInterpreter[S] {
   //
   // Store all CfgResults inside the ProgramResult and return a CfgResultMapType to let the intraprocedural
   // interpreter do its work. Note: the interprocedural interpreter initializes ALL methods and not only those passed in
