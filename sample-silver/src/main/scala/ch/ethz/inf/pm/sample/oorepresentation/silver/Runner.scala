@@ -188,7 +188,8 @@ trait InterproceduralSilverInferenceRunner[S <: State[S]]
   * @tparam S The type of the state.
   */
 trait InterproceduralSilverBottomUpInferenceRunner[S <: State[S]]
-  extends InterproceduralSilverInferenceRunner[S] {
+  extends InterproceduralSilverInferenceRunner[S]
+   with InterproceduralSilverBottomUpAnalysisRunner[S]{
 
   override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
     val extendedMethods = program.methods.map { method =>

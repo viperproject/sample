@@ -172,8 +172,7 @@ object InterproceduralIntegerOctagonInference
   */
 object InterproceduralIntegerOctagonBottomUpInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
-    with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
-    with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState] {
+    with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState] {
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 
   override def main(args: Array[String]): Unit = {
@@ -199,7 +198,6 @@ object InterproceduralIntegerOctagonBottomUpInference
 object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
     with InterproceduralSilverBottomUpInferenceRunner[IntegerOctagonAnalysisState]
-    with InterproceduralSilverBottomUpAnalysisRunner[IntegerOctagonAnalysisState]
     with SilverJsonExporter[IntegerOctagonAnalysisState] {
 
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
