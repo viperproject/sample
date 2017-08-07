@@ -1,0 +1,40 @@
+@startuml
+
+SilverAnalysisRunner <|-- SilverInferenceRunner
+SilverInferenceRunner : inferPreconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp]
+SilverInferenceRunner : inferPostconditions(method: sil.Method, result: "CfgResult[S]): Seq[sil.Exp]
+SilverInferenceRunner : inferInvariants(loop: sil.While, result: CfgResult[S]): Seq[sil.Exp]
+SilverInferenceRunner : inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field]
+
+SilverInferenceRunner <|-- NumericalInferenceRunner
+
+NumericalInferenceRunner <|-- InterproceduralNumericalInferenceRunner
+InterproceduralNumericalInferenceRunner : inferPreconditions(method: sil.Method, result: CfgResult[S]): Seq[sil.Exp]
+InterproceduralNumericalInferenceRunner : inferPostconditions(method: sil.Method, result: "CfgResult[S]): Seq[sil.Exp]
+InterproceduralNumericalInferenceRunner : inferInvariants(loop: sil.While, result: CfgResult[S]): Seq[sil.Exp]
+InterproceduralNumericalInferenceRunner : inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field]
+
+SilverInferenceRunner <|-- InterproceduralSilverInferenceRunner
+InterproceduralSilverInferenceRunner <|.. InterproceduralNumericalInferenceRunner
+InterproceduralSilverInferenceRunner : resultsToWorkWith: Seq[CfgResult[S]]
+SilverExtender <|.. InterproceduralSilverInferenceRunner
+SilverExporter <|.. InterproceduralSilverInferenceRunner
+InterproceduralSilverAnalysisRunner <|.. InterproceduralSilverInferenceRunner
+
+SilverInferenceRunner <|-- SilverExtender
+SilverInferenceRunner <|-- SilverExporter
+
+SilverAnalysisRunner <|-- InterproceduralSilverAnalysisRunner
+SilverAnalysisRunner <|-- InterproceduralSilverBottomUpAnalysisRunner
+
+InterproceduralSilverInferenceRunner <|-- InterproceduralSilverBottomUpInferenceRunner
+InterproceduralSilverBottomUpAnalysisRunner <|.. InterproceduralSilverBottomUpInferenceRunner
+
+InterproceduralNumericalInferenceRunner <|-- InterproceduralIntegerOctagonInference
+InterproceduralIntegerOctagonInference : analysis : InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState]
+
+InterproceduralNumericalInferenceRunner <|-- InterproceduralIntegerOctagonBottomUpInference
+InterproceduralSilverBottomUpInferenceRunner <|.. InterproceduralIntegerOctagonBottomUpInference
+InterproceduralIntegerOctagonBottomUpInference : analysis : BottomUpAnalysis[IntegerOctagonAnalysisState]
+
+@enduml
