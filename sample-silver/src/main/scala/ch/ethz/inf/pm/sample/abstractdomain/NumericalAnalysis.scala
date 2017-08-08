@@ -6,6 +6,7 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Octagons.Environment
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverSpecification
@@ -341,14 +342,29 @@ case class IntegerOctagonAnalysisState(pp: ProgramPoint,
   override def command(cmd: Command): IntegerOctagonAnalysisState = cmd match {
     case UnifyCommand(other) => other match {
       case o: IntegerOctagonAnalysisState => {
-        // we know that ''this'' and ''other'' may not have disjoint envs but that the constraints
-        // do not conflict each other. domain.unify() assumes the environment to be disjoint which is why
-        // we unify the domains ourselves.
-        def unify(that: IntegerOctagons.Inner, other: IntegerOctagons.Inner): IntegerOctagons = {
-          val newEnv = that.env ++ other.env
+        // Octagon states are unified by embedding the two states into a common environment and
+        // then computing the meet of the constraints.
+
+        def embed(newEnv: Environment, that: IntegerOctagons.Inner): IntegerOctagons = {
           val newClosed = Some(that.getDbm.factory(newEnv.size)
             .copy(that.getDbm, that.env.getIndices(that.env.ids), newEnv.getIndices(that.env.ids))
-            .copy(other.getDbm, other.env.getIndices(other.env.ids), newEnv.getIndices(other.env.ids))
+            .close())
+          val newOpen = None
+          that.factory(newEnv, newClosed, newOpen)
+        }
+
+        def unify(that: IntegerOctagons.Inner, other: IntegerOctagons.Inner): IntegerOctagons = {
+          // embed both states in a common environment and compute meet
+          val newEnv = that.env ++ other.env
+          val a = embed(newEnv, that)
+          val b = embed(newEnv, other)
+          val meet = a.glbSameEnv(b).asInstanceOf[IntegerOctagons.Inner]
+
+          // we copy the constraints into a new closed state
+          // this will make sure that for the constraints x==y and y==z also the constraint z==x is created
+          val newClosed = Some(that.getDbm.factory(newEnv.size)
+            .copy(that.getDbm, that.env.getIndices(that.env.ids), newEnv.getIndices(that.env.ids))
+            .copy(meet.getDbm, meet.env.getIndices(meet.env.ids), newEnv.getIndices(meet.env.ids))
             .close())
           val newOpen = None
           that.factory(newEnv, newClosed, newOpen)
