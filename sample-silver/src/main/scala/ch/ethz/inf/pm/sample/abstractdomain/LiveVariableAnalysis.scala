@@ -250,10 +250,10 @@ case class SimpleLiveVariableAnalysisState(pp: ProgramPoint,
 /**
   * Interprocedural strongly live variable analysis
   *
-  * Returns of a method are considered to be strongly live. Other variables are only strongly live if they are
+  * Returns of entry-methods are considered to be strongly live. Other variables are only strongly live if they are
   * either assigned to a strongly live variable or if they are used in the condition of an IF statement.
   *
-  * This is a backward analysis that treats method calls in a context-insensitive way.
+  * This is a backward analysis that treats method calls in a context-sensitive way.
   */
 object LiveVariableAnalysis
   extends InterproceduralSilverAnalysisRunner[SimpleLiveVariableAnalysisState] {
