@@ -603,7 +603,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       val resultState = if (canContinue) {
         // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
-        val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix+"1")
+        val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
         // merge the renamed exit state into the state of the caller and remove all temporary variables
         methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
       } else {
