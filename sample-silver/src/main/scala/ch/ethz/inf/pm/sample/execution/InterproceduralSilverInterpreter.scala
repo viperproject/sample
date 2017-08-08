@@ -34,7 +34,7 @@ object InterproceduralSilverInterpreter {
     *
     * @tparam S the type of the state
     */
-  type MethodTransferStatesMap[S] = mutable.Map[CallString, S]
+  type MethodTransferStatesMap[S] = mutable.Map[CallString, Set[S]]
 
   /**
     * The CallGraphMap maps each method(SilverIdentifiers) to a set of it's callees.
@@ -233,7 +233,7 @@ trait InterprocHelpers[S <: State[S]] {
   /** this map is used to store entry (forward) or exit (backward) states for method calls
     * executeStatement() stores the states here and in-/outEdges then uses them to create MethodCall / MethodReturn edges
     */
-  val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map()
+  val methodTransferStates: MethodTransferStatesMap[S] = mutable.Map().withDefault(_ => Set.empty[S])
   val programResult: ProgramResult[S] = DefaultProgramResult(program)
   // tracks whether the result of a CallString/Cfg combination is already available. They are if
   // the exit- (forward) / entry-block (backward) has been interpreted
@@ -488,7 +488,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
             // create an edge for each call string with the same k-length suffix
             val inEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
               .filter(_.suffix(CallStringLength) == currentCallStringShortened)
-              .map(st => Right(MethodCallEdge(methodTransferStates(st))))
+              .flatMap(cs => methodTransferStates(cs).map(st => Right(MethodCallEdge(st))))
               .toSeq
             inEdgesBySuffix
           case _ => Nil
@@ -589,7 +589,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      methodTransferStates(callString) = calleeEntryState
+      methodTransferStates(callString) = methodTransferStates(callString) ++ Set(calleeEntryState)
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.entry, 0), forceReinterpretStmt = false))
 
@@ -603,7 +603,7 @@ trait InterproceduralSilverForwardInterpreter[S <: State[S]]
 
       val resultState = if (canContinue) {
         // rename the methods arguments to temporary variables to relate method call state to exit state of the callee
-        val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix)
+        val renamed = renameToTemporaryVariable(exitState, methodDeclaration.arguments, ArgumentPrefix+"1")
         // merge the renamed exit state into the state of the caller and remove all temporary variables
         methodCallStateInCaller.command(ReturnFromMethodCommand(methodDeclaration, call, targetExpressions, renamed))
       } else {
@@ -900,7 +900,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
             // create an edge for each call string with the same k-length suffix
             val outEdgesBySuffix = methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
               .filter(_.suffix(CallStringLength) == currentCallStringShortened)
-              .map(st => Right(MethodReturnEdge(methodTransferStates(st))))
+              .flatMap(cs => methodTransferStates(cs).map(st => Right(MethodReturnEdge(st))))
               .toSeq
             outEdgesBySuffix
           case _ => Nil
@@ -950,7 +950,7 @@ trait InterproceduralSilverBackwardInterpreter[S <: State[S]]
         case tagged: TaggedWorklistElement => tagged.callString.push(methodDeclaration, call)
         case _ => CallString(methodDeclaration, call)
       }
-      methodTransferStates(callString) = calleeExitState
+      methodTransferStates(callString) = methodTransferStates(callString) ++ Set(calleeExitState)
       val callStringInCallee = callString.suffix(CallStringLength)
       worklist.enqueue(TaggedWorklistElement(callStringInCallee, BlockPosition(methodDeclaration.body.exit.get, lastIndex(methodDeclaration.body.exit.get)), forceReinterpretStmt = false))
 
