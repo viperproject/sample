@@ -22,6 +22,8 @@ method ack(x: Int, y: Int) returns (res: Int)
     }
 }
 
-method main(a: Int, b: Int) returns(r: Int) {
+method main(a: Int, b: Int) returns(r: Int)
+requires a >= 0 && b >= 0
+{
     r := ack(a, b)
 }
