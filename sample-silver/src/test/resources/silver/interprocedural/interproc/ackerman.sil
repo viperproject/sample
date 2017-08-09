@@ -2,7 +2,6 @@
 // source http://pop-art.inrialpes.fr/interproc/interproc_examples/ackerman.txt
 //
 method ack(x: Int, y: Int) returns (res: Int)
-    requires x >= 0 && y >= 0
     {
     var t : Int
     var t1 : Int
