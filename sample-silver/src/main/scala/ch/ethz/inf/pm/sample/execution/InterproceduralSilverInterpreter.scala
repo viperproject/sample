@@ -661,6 +661,19 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
       Set.empty[SilverMethodDeclaration]
   }
 
+  /**
+    * Returns the set of methods that reside in the same component of the topologically ordered callgraph as current
+    * @param current The currently analysed method
+    * @return The set of methods in the current components. This will always include the method current too.
+    */
+  private def findCurrentComponent(current: SilverMethodDeclaration): Set[SilverMethodDeclaration] = {
+    // index of the current connected component
+    val index = methodsInTopologicalOrder.zipWithIndex.find(_ match {
+      case (component, _) => component.contains(current)
+    }).get._2
+    methodsInTopologicalOrder(index)
+  }
+
   //
   // In the bottom-up case we enqueue callers starting at the beginning of the method
   // Recursive calls are still analyzed the usual way.
@@ -671,8 +684,17 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
         // Existing call-string? Probably analysing a recursive function. Let parent handle that.
         super.onExitBlockExecuted(current)
         // But if call-String was empty we can mark the result as available
-        if (!cs.inCallee)
+        // and enqueue all callers in the same connected component for re-analysis.
+        if (!cs.inCallee) {
           resultAvailable += findMethod(current).name
+          // enqueue neighbors in the current component of the topological ordering THAT CALL THIS METHOD.
+          val currentMethod = findMethod(current)
+          callsInProgram(findMethod(current).name).filter(pos =>
+            findCurrentComponent(currentMethod).contains(findMethod(pos))
+          )
+            .filter(_ != currentMethod)
+            .foreach(pos => worklist.enqueue(SimpleWorklistElement(pos, forceReinterpretStmt = true)))
+        }
       case _ =>
         // Otherwise we'll enqueue (non-recursive) the parent methods in the topological order
         // (meaning: methods that may use the result of this method)
