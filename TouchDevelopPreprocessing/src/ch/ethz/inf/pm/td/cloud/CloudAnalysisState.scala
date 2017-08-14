@@ -294,7 +294,7 @@ object CloudAnalysisState {
     // Update the stored local invariant
     if (!events.isTop) {
       invProgramOrder = invProgramOrder +
-        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSetOrFail))
+        (event -> (invProgramOrder.getOrElse(event, Set.empty) ++ events.toSet))
     }
 
     // Update state to include current relation

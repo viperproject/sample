@@ -1,0 +1,14 @@
+field next: Ref
+field val: Ref
+
+method delete_duplicates(head: Ref)
+{
+    var l: Ref := head
+    while (l != null)
+    {
+        while (l.next != null && l.val == l.next.val) {
+            l.next := l.next.next
+        }
+        l := l.next
+    }
+}

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.text.ParseException
 
 import ch.ethz.inf.pm.sample.SystemParameters
@@ -25,53 +25,44 @@ import scala.io.Source
   * TODO: Make the silver compiler extend the compiler interface once the rest of Sample also uses the new control flow graph
   */
 class SilverCompiler {
-  protected var prog: Option[SilverProgramDeclaration] = None
 
   /**
     * TODO: Does not support directories (multiple files) as input at the moment.
     * TODO: Contains absolutely no error handling.
     */
-  def compile(compilable: Compilable): SilverProgramDeclaration = compilable match {
-    case Compilable.Path(file) =>
-      val input = Source.fromInputStream(Files.newInputStream(file)).mkString
-      val parseResult = FastParser.parse(input, file)
-      val parsed = parseResult match {
-        case fastparse.core.Parsed.Success(e: PProgram, _) =>
-          e.initProperties()
-          e
-        case fastparse.core.Parsed.Failure(msg, next, extra) =>
-          throw new ParseException(s"$msg in $file at ${extra.line}:${extra.col}", 0)
-        case ParseError(msg, pos) =>
-          val (line, col) = pos match {
-            case SourcePosition(_, line, col) => (line, col)
-            case FilePosition(_, line, col) => (line, col)
-            case _ => ??? // should never happen
-          }
-          throw new ParseException(s"$msg in $file at $line:$col", 0)
-      }
+  def compile(compilable: Compilable): sil.Program = {
+    val (parseResult, label) = compilable match {
+      case Compilable.Path(file) =>
+        val input = Source.fromInputStream(Files.newInputStream(file)).mkString
+        (FastParser.parse(input, file), file)
+      case Compilable.Code(label, input) =>
+        // input will be parsed but we'll need to pass in a valid Path object anyway. Let's use the working dir for this.
+        (FastParser.parse(input, Paths.get(".").toAbsolutePath().normalize()), label)
+      case _ => throw new UnsupportedOperationException("Compilable " + compilable + " not supported by this compiler")
+    }
+    val parsed = parseResult match {
+      case fastparse.core.Parsed.Success(e: PProgram, _) =>
+        e.initProperties()
+        e
+      case fastparse.core.Parsed.Failure(msg, next, extra) =>
+        throw new ParseException(s"$msg in $label at ${extra.line}:${extra.col}", 0)
+      case ParseError(msg, pos) =>
+        val (line, col) = pos match {
+          case SourcePosition(_, line, col) => (line, col)
+          case FilePosition(_, line, col) => (line, col)
+          case _ => ??? // should never happen
+        }
+        throw new ParseException(s"$msg in $label at $line:$col", 0)
+    }
 
-      Resolver(parsed).run
-
-      val program = Translator(parsed).translate.get
-      compileProgram(program)
-    case _ => throw new UnsupportedOperationException("Compilable " + compilable + " not supported by this compiler")
+    Resolver(parsed).run
+    Translator(parsed).translate.get
   }
 
-  def compileProgram(program: sil.Program): SilverProgramDeclaration = {
+  def toSample(program: sil.Program): SilverProgramDeclaration = {
     SystemParameters.tm = SilverTypeMap
-    val converted = DefaultSilverConverter.convert(program)
-    this.prog = Some(converted)
-    converted
+    DefaultSilverConverter.convert(program)
   }
-
-  def program: SilverProgramDeclaration =
-    prog.get
-
-  def allFunctions: Seq[SilverFunctionDeclaration] =
-    program.functions
-
-  def allMethods: Seq[SilverMethodDeclaration] =
-    program.methods
 
   def getNativeMethodSemantics: List[NativeMethodSemantics] = ArithmeticAndBooleanNativeMethodSemantics :: RichNativeMethodSemantics :: QuantifiedPermissionMethodSemantics :: SilverSemantics :: Nil
 

@@ -1,8 +1,8 @@
-
 field f: Ref
 
 method foo_pre(b: Ref)
     requires true
+{}
 
 method foo(b: Ref)
 {

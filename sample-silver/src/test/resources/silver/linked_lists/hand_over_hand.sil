@@ -1,0 +1,17 @@
+field val: Ref
+field next: Ref
+
+method insert(head: Ref)
+{
+    var c: Ref
+    var n: Ref
+    c := head
+    inhale acc(c.next)
+    while (c.next != null) {
+        n := c.next
+        inhale acc(n.next)
+        exhale acc(c.next)
+        c := n
+    }
+    exhale acc(c.next)
+}

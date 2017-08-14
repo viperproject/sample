@@ -6,136 +6,130 @@
 
 package ch.ethz.inf.pm.sample.permissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
-import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverInferenceRunner, TopType}
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState.SimpleAliasAnalysisState
+import ch.ethz.inf.pm.sample.abstractdomain.{AccessPathIdentifier, Identifier, VariableIdentifier}
+import ch.ethz.inf.pm.sample.analysis.{AliasAnalysisEntryStateBuilder, AliasAnalysisState, SimpleAliasAnalysisState}
+import ch.ethz.inf.pm.sample.domain.HeapNode.NullNode
+import ch.ethz.inf.pm.sample.domain.{AliasDomain, HeapNode, MayAliasGraph, MustAliasGraph}
+import ch.ethz.inf.pm.sample.execution.SampleCfg.SampleEdge
+import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis}
+import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPath
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
-import viper.silver.ast.{LocalVarDecl, Method}
+import ch.ethz.inf.pm.sample.permissionanalysis.util._
 import viper.silver.{ast => sil}
 
-trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnalysisState[A, T]]
-  extends SilverInferenceRunner[PermissionTree, T] {
+trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
+  extends SilverInferenceRunner[T] {
+
+  import ExpressionGenerator._
+
   /**
     * The flag indicating whether there is a read permission mentioned in the
     * specifications.
     */
-  private var read: Boolean = false
+  protected var read: Boolean = false
 
-  /**
-    * Extends the given method using the given result of the analysis.
-    *
-    * @param method    The method to extend.
-    * @param cfgResult The result of the analysis.
-    * @return The extended program.
-    */
-  override def extendMethod(method: Method, cfgResult: CfgResult[T]): Method = {
-    // reset read flag and extend method
-    read = false
-    val extended = super.extendMethod(method, cfgResult)
-
-    if (read) {
-      // add read permission to arguments
-      val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
-      val arguments = (extended.formalArgs ++ argument).distinct
-      // add constraint for read permission to precondition
-      val variable = sil.LocalVar("read")(sil.Perm)
-      val condition = Seq(sil.And(sil.PermGtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
-      val preconditions = condition ++ extended.pres
-      // update method
-      extended.copy(
-        _pres = preconditions,
-        formalArgs = arguments
-      )(extended.pos, extended.info)
-    } else extended
+  override def inferPreconditions(method: sil.Method, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = firstPosition(result.cfg.entry)
+    val state = result.preStateAt(position)
+    extendSpecifications(method.pres, state)
   }
 
-  /**
-    * Modifies the list of preconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing preconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of preconditions.
-    */
-  override def preconditions(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
-    extendSpecifications(existing, state)
+  override def inferPostconditions(method: sil.Method, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = lastPosition(result.cfg.exit.get)
+    val state = result.postStateAt(position)
+    extendSpecifications(method.posts, state, true)
+  }
 
-  /**
-    * Modifies the list of postconditions using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing postconditions.
-    * @param state    The state providing the specifications.
-    * @return The modified list of postconditions.
-    */
-  override def postconditions(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
-    extendSpecifications(existing, state)
+  override def inferInvariants(loop: sil.While, result: CfgResult[T]): Seq[sil.Exp] = {
+    val position = getLoopPosition(loop, result.cfg)
+    val aliases = Context.getAliases[A]
+    val state = result.preStateAt(position)
+    val tree = state.stack.foldLeftTrees(PermissionTree.empty)(_ lub _)
 
-  /**
-    * Modifies the list of invariants using the specifications provided by
-    * the given state.
-    *
-    * @param existing The list of existing invariants.
-    * @param state    The state providing the specifications.
-    * @return The modified list of invariants.
-    */
-  override def invariants(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] =
-    extendSpecifications(existing, state)
+    def getAliasState(edges: Seq[SampleEdge]): A = edges
+      .map(edge => aliases.postStateAt(lastPosition(edge.source)))
+      .fold(aliases.bottom)(_ lub _)
 
-  override def formalArguments(existing: Seq[LocalVarDecl], state: T) = existing
+    def createConstraint(aliasState: A): sil.Exp = {
+      val parts = state.stack.headPaths
+        .filter(path => tree.extract(path)._2.nonEmpty())
+        .map { path =>
+          // TODO: Handle summary and unknown nodes
+          val leftPath = path.map(_.getName)
+          val left = access(leftPath, sil.Ref)
+          val target = if (path.length == 1) path.head else AccessPathIdentifier(path)
+          val equalities = aliasState.may.getValue(target)
+            .filter(_ != NullNode)
+            .map { node =>
+              val rightPath = node.getName.split("\\.")
+              val right =
+                if (rightPath.length == 1) access(rightPath, sil.Ref)
+                else old(access(rightPath, sil.Ref))
+              equal(left, right)
+            }
+          or(equalities)
+        }
+      and(parts)
+    }
 
-  /**
-    * Modifies the list of fields of a new statement using specifications
-    * provided by the given state.
-    *
-    * @param existing The existing list of fields.
-    * @param state    The state providing the specifications.
-    * @return The modified list of fields.
-    */
-  override def fields(existing: Seq[sil.Field], state: T): Seq[sil.Field] = {
+    val edges = result.cfg.inEdges(position.block)
+    val zero = getAliasState(edges.filter(_.isIn))
+    val more = getAliasState(edges.filterNot(_.isIn))
+
+    val constraints = or(createConstraint(zero), createConstraint(more))
+    extendSpecifications(loop.invs, state) ++ Seq(constraints)
+  }
+
+  override def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
     // extract specifications from state
-    val specifications = state.specifications
+    val state = result.preStateAt(position)
+    val specifications = state.specifications.foldLeftTrees[PermissionTree](PermissionTree.Bottom)(_ lub _)
 
     // TODO: Report if infeasible permissions are inferred.
 
     val inferred = specifications match {
       case tree: PermissionTree.Inner =>
         tree.children.flatMap { case (field, subtree) =>
-          val permission = subtree.permission
+          val permission = subtree.permission()
           if (permission.isNone) None
           else Some(createSilverField(field, state))
         }
     }
 
-    (existing ++ inferred).distinct
+    (newStmt.fields ++ inferred).distinct
   }
 
   /**
     * Extends the list of expressions using specifications provided by the given
     * state.
     *
+    * NOTE:
+    * The flag that indicates whether the specifications should be made self-
+    * framing is a bit of a hack to deal with postconditions. Maybe this can be
+    * solved more elegantly.
+    *
     * @param existing The list of expressions.
     * @param state    The state providing the specifications.
     * @return The extended list of expressions.
     */
-  private def extendSpecifications(existing: Seq[sil.Exp], state: T): Seq[sil.Exp] = {
+  private def extendSpecifications(existing: Seq[sil.Exp], state: T, makeSelfFraming: Boolean = false): Seq[sil.Exp] = {
     val inferredSpecifications = state.specifications
     val (existingSpecifications, unknown) = extractSpecifications(existing, state)
-    val specifications = inferredSpecifications plus existingSpecifications
+    val specifications = inferredSpecifications.headTree plus existingSpecifications
 
-    read = read || specifications.fold(false) {
-      case (result, (_, tree)) =>
-        result || (tree.permission match {
-          case Fractional(_, _, read) => read > 0
-          case _ => false
-        })
-    }
+    val framed = if (makeSelfFraming) {
+      specifications.map() { case (_, tree) =>
+        val permission = tree.permission()
+        if (permission.isSome || tree.isEmpty) permission
+        else Permission.read
+      }
+    } else specifications
 
-    createSilverSpecifications(specifications, state) ++ unknown
+    createSilverSpecifications(framed, state) ++ unknown
   }
 
   /**
@@ -169,7 +163,7 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
       // helper function to convert an expression into an access path
       def accessPath(expression: sil.Exp): AccessPath = expression match {
         case sil.LocalVar(name) =>
-          List(VariableIdentifier(name)(DummyRefType))
+          List(VariableIdentifier(name)(RefType()))
         case sil.FieldAccess(receiver, field) =>
           val typ = Context.getField(field.name).map(_.typ).getOrElse(TopType)
           accessPath(receiver) :+ VariableIdentifier(field.name)(typ)
@@ -204,12 +198,17 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A list of Silver specifications.
     */
   private def createSilverSpecifications(specifications: PermissionTree, state: T): Seq[sil.Exp] = {
-    val framed = specifications.map() { case (_, tree) =>
-      val permission = tree.permission
-      if (permission.isSome || tree.isEmpty) permission
-      else Permission.read
+    read = read || specifications.fold(false) {
+      case (result, (path, tree)) =>
+        val xp = path
+        val xt = tree
+        result || (xp.length > 1 && (xt.permission() match {
+          case Fractional(_, _, rd) => rd > 0
+          case _ => false
+        }))
     }
-    framed.tuples().flatMap {
+
+    specifications.tuples().flatMap {
       case (location, permission) if location.length >= 2 =>
         Some(createSilverFieldAccessPredicate(location, permission, state))
       case _ => None
@@ -256,15 +255,15 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
     * @return A Silver expression representing a permission amount.
     */
   private def createSilverPermissionAmount(permission: Permission, state: T): sil.Exp = permission match {
-    case Fractional(numerator, denominator, read) =>
+    case Fractional(numerator, denominator, rd) =>
       val fractionalAmount =
         if (numerator == 0) None
         else if (numerator == denominator) Some(sil.FullPerm()())
         else Some(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())())
       val readAmount =
-        if (read == 0) None
-        else if (read == 1) Some(sil.LocalVar("read")(sil.Perm))
-        else Some(sil.PermMul(sil.IntLit(read)(), sil.LocalVar("read")(sil.Perm))())
+        if (rd == 0) None
+        else if (rd == 1) Some(sil.LocalVar("read")(sil.Perm))
+        else Some(sil.PermMul(sil.IntLit(rd)(), sil.LocalVar("read")(sil.Perm))())
 
       (fractionalAmount, readAmount) match {
         case (Some(left), Some(right)) => sil.PermAdd(left, right)()
@@ -305,7 +304,37 @@ trait PermissionInferenceRunner[A <: AliasAnalysisState[A], T <: PermissionAnaly
   }
 }
 
+trait PermissionInferenceSilverExtender[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
+  extends PermissionInferenceRunner[T, A, May, Must] with SilverExtender[T] {
+
+  override def extendMethod(method: sil.Method, cfgResult: CfgResult[T]): sil.Method = {
+    // update context
+    Context.setMethod(SilverIdentifier(method.name))
+
+    // reset read flag and extend method
+    read = false
+    val extended = super.extendMethod(method, cfgResult)
+
+    if (read) {
+      // add read permission to arguments
+      val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
+      val arguments = (extended.formalArgs ++ argument).distinct
+      // add constraint for read permission to precondition
+      val variable = sil.LocalVar("read")(sil.Perm)
+      val condition = Seq(sil.And(sil.PermLtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
+      val preconditions = condition ++ extended.pres
+      // update method
+      extended.copy(
+        pres = preconditions,
+        formalArgs = arguments
+      )(extended.pos, extended.info, extended.errT)
+    } else extended
+  }
+
+}
+
 object PermissionInference
-  extends PermissionInferenceRunner[SimpleAliasAnalysisState, SimplePermissionAnalysisState] {
-  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis(AliasAnalysisEntryState, PermissionAnalysisEntryState)
+  extends PermissionInferenceRunner[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph]
+    with PermissionInferenceSilverExtender[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph] {
+  override val analysis: SilverAnalysis[SimplePermissionAnalysisState] = PermissionAnalysis[SimplePermissionAnalysisState, SimpleAliasAnalysisState, MayAliasGraph, MustAliasGraph](AliasAnalysisEntryStateBuilder(), PermissionAnalysisEntryStateBuilder())
 }

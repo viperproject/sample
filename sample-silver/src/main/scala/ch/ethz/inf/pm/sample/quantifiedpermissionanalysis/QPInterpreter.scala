@@ -18,7 +18,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
-  * @author Severin MÃ¼nger
+  * @author Severin Münger
   *         Added on 29.11.16.
   */
 sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
@@ -61,11 +61,15 @@ sealed trait QPInterpreter extends SilverInterpreter[QuantifiedPermissionsState]
   }
 }
 
-final class QPBackwardInterpreter extends QPInterpreter {
+case class QPBackwardInterpreter(cfg: SampleCfg, initial: QuantifiedPermissionsState) extends QPInterpreter {
 
-  override def execute(cfg: SampleCfg, finalState: QuantifiedPermissionsState): CfgResult[QuantifiedPermissionsState] = {
+  override def cfg(current: WorklistElement): SampleCfg = cfg
+
+  override def initial(cfg: SampleCfg): QuantifiedPermissionsState = initial
+
+  override def execute(): CfgResult[QuantifiedPermissionsState] = {
     determineBlockTypes(cfg, cfg.entry)
-    val bottom = finalState.bottom()
+    val bottom = initial.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
     val ordering: Ordering[SampleBlock] = Ordering.by(block => (-nestingLevels(block), -sequenceNumbers(block)))
     var worklist: mutable.SortedSet[SampleBlock] = mutable.SortedSet[SampleBlock](cfg.exit.get)(ordering)
@@ -76,7 +80,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
       val currentCount: Int = iterations.getOrElse(currentBlock, 0)
       val exitEdges = cfg.outEdges(currentBlock)
       val currentState: QuantifiedPermissionsState =
-        if (cfg.exit.get == currentBlock) finalState
+        if (cfg.exit.get == currentBlock) initial
         else exitEdges match {
           case onlyEdge :: Nil => cfgResult.getStates(onlyEdge.target).head
           case (edge1: ConditionalEdge[Statement, Statement]) :: (edge2: ConditionalEdge[Statement, Statement]) :: Nil =>
@@ -96,7 +100,7 @@ final class QPBackwardInterpreter extends QPInterpreter {
           case _ => throw new IllegalStateException("A non-leaf node must have at least one and at most two exit edges.")
         }
       val blockStates = cfgResult.getStates(currentBlock)
-      val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) finalState else blockStates.last
+      val oldState: QuantifiedPermissionsState = if (blockStates.isEmpty) initial else blockStates.last
       if (!currentState.lessEqual(oldState)) {
         backwardExecuteBlock(currentState, currentBlock, currentCount, cfgResult)
         worklist ++= cfg.predecessors(currentBlock)

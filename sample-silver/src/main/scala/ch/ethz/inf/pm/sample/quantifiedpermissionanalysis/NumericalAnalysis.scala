@@ -69,11 +69,11 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
       // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignore variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
       var newNumDom = if (!numDom.ids.contains(left)) numDom.createVariable(left) else numDom
       newNumDom =
-        if (right.ids.toSetOrFail.forall {
+        if (right.ids.toSet.forall {
           case _: VariableIdentifier => true
           case _ => false
         }) {
-          right.ids.toSetOrFail.foreach {
+          right.ids.toSet.foreach {
             id => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
           }
           newNumDom.assign(left, right)
@@ -141,10 +141,10 @@ sealed trait NumericalAnalysisState[N <: NumericalDomain[N], T <: NumericalAnaly
         case _: AccessPathIdentifier => true
         case _ => false
       }) {
-        conjunct.ids.toSetOrFail.foreach(id => if (newNumDom.ids.contains(id)) newNumDom = newNumDom.setToTop(id))
+        conjunct.ids.toSet.foreach(id => if (newNumDom.ids.contains(id)) newNumDom = newNumDom.setToTop(id))
       } else {
         // TODO: adding the ids shouldn't be necessary but the current implementation of interpreters somehow ignores variable declarations (i.e. createVariable is never executed). Remove this as soon as fixed
-        conjunct.ids.toSetOrFail.foreach {
+        conjunct.ids.toSet.foreach {
           case id: VariableIdentifier => if (!newNumDom.ids.contains(id)) newNumDom = newNumDom.createVariable(id)
         }
         newNumDom = newNumDom.assume(conjunct)
@@ -351,16 +351,16 @@ object OctagonAnalysisState {
   object Bottom extends OctagonAnalysisState(numDom = IntegerOctagons.Bottom)
 }
 
-trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]] extends SilverEntryStateBuilder[T] {
-  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T = {
-    method.initializeArgument(top.copy())
-  }
+trait NumericalAnalysisStateBuilder[N <: NumericalDomain[N], T <: NumericalAnalysisState[N, T]]
+  extends SilverEntryStateBuilder[T] {
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): T =
+    initializeArguments(default.copy(), program, method)
 }
 
 object PolyhedraAnalysisEntryState extends NumericalAnalysisStateBuilder[Apron.Polyhedra, PolyhedraAnalysisState] {
-  override def top: PolyhedraAnalysisState = PolyhedraAnalysisState()
+  override def default: PolyhedraAnalysisState = PolyhedraAnalysisState()
 }
 
 object OctagonAnalysisEntryState extends NumericalAnalysisStateBuilder[IntegerOctagons, OctagonAnalysisState] {
-  override def top: OctagonAnalysisState = OctagonAnalysisState()
+  override def default: OctagonAnalysisState = OctagonAnalysisState()
 }

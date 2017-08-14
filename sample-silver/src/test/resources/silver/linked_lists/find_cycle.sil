@@ -1,0 +1,39 @@
+field next: Ref
+
+method find_cycle(head: Ref) returns (res: Ref)
+{
+    if (head != null && head.next != null) {
+        var f: Ref := head
+        var s: Ref := head
+        var c: Int := 0
+        var h: Int := 0
+        while (f != null && s != null && h == 0)
+        {
+            f := f.next
+            if (s.next == null) {
+                res := null
+                h := 1
+            } else {
+                s := s.next.next
+
+                if (f == s) {
+                    c := 1
+                    h := 1
+                }
+            }
+        }
+        if (c == 0) {
+            res := null
+        } else {
+            f := head
+            while (f != s) {
+                f := f.next
+                s := s.next
+            }
+            res := f
+        }
+
+    } else {
+        res := null
+    }
+}

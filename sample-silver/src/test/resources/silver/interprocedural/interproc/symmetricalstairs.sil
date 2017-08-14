@@ -1,0 +1,17 @@
+//
+// source http://pop-art.inrialpes.fr/interproc/interproc_examples/symmetricalstairs.txt
+//
+method main() {
+    var x: Int := 0
+    var y: Int := 0
+    while (x<=99) {
+        if (x<=49){
+            x := x + 1
+            y := y + 1
+        } else {
+            x := x + 1
+            y := y - 1
+        }
+    }
+    //if (y < 0) then fail; endif;
+}

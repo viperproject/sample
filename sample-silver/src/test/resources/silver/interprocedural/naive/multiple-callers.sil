@@ -1,0 +1,21 @@
+//
+// bar() is called with i:=0 and i:=2 and therefore with an inputstate of [i -> [0,2]]
+// the exitstate in both foo and baz should be [i -> [1,3]]
+//
+method foo(this: Ref)
+{
+    var i: Int := 0
+    i := bar(this, i)
+    i := i
+}
+
+method bar(this: Ref, i: Int) returns (k: Int)
+{
+    k := i + 1
+}
+
+method test(this: Ref) {
+  var i: Int := 2
+  i := bar(this, i)
+  i := i
+}

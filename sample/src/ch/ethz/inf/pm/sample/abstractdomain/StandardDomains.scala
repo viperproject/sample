@@ -47,7 +47,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
                          isTop: Boolean = false): T
 
   /**
-   * Adds [key->value] to the domain 
+   * Adds [key->value] to the domain
    * @param key The key
    * @param value The value
    * @return The state of the domain after the assignment
@@ -66,7 +66,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   def get(key: K): V
 
   /**
-   * Removes the key from the domain. 
+   * Removes the key from the domain.
    * @param key The key to be removed
    * @return The state of the domain after the key has been removed
    */
@@ -427,24 +427,12 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     */
   def contains(v: V): Boolean
 
-  /** Converts a set domain into a set. For that, we have to know the universe,
-    * so that we can represent top.
-    *
-    * Note that sometimes, the result of this
-    * function can be very large (e.g. all possible identifiers), so
-    * its use is generally not advised
-    *
-    * @param universe All possible values of V
-    * @return A representation of this domain as a set
-    */
-  def toSet(universe:Set[V]):Set[V]
-
   /** Converts a set domain into a set. Here, we assume that the domain element is
     * not top. If the domain element is top, this will fail.
     *
     * @return A representation of this domain as a set
     */
-  def toSetOrFail:Set[V]
+  def toSet: Set[V]
 
   /** Converts a set domain into a set. Here, we assume that the domain element is
     * not top. If the domain element is top, this will fail.
@@ -485,8 +473,7 @@ object SetDomain {
     def +(v: V)    = this
     def ++(v: T): T = this
     def contains(v: V) = true
-    def toSet(universe:Set[V]) = universe
-    def toSetOrFail = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
+    def toSet = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
     def map[B](f: V => B) = SetDomain.Default.Top[B]()
 
   }
@@ -501,8 +488,7 @@ object SetDomain {
     def +(v: V) =    factory(Set(v))
     def ++(v: T): T = v
     def contains(v: V) = false
-    def toSet(universe:Set[V]) = Set.empty
-    def toSetOrFail = Set.empty
+    def toSet = Set.empty
     def map[B](f: V => B) = SetDomain.Default.Bottom[B]()
 
   }
@@ -534,19 +520,20 @@ object SetDomain {
 
     def glbInner(other: I) =        factory(value intersect other.value)
 
+    // using the least upper bound as widening is okay since we assume that
+    // there are a finite number of elements.
     def wideningInner(other: I) =   lubInner(other)
 
     def lubInner(other: I) = factory(value ++ other.value)
 
     def lessEqualInner(other: I) =  value subsetOf other.value
-    def toSet(universe:Set[V]) =    value
-    def toSetOrFail =               value
+    def toSet =               value
     def map[B](f: V => B) =         SetDomain.Default.Inner[B]( value.map(f) )
 
     override def toString = ToStringUtilities.setToString(value)
 
   }
-  
+
   /**
    * A set domain which is bounded by a given function
    *
@@ -577,7 +564,7 @@ object SetDomain {
       extends Default[V] with SetDomain.Top[V, Default[V]]
 
   }
-  
+
   object Bounded {
 
     trait Bottom[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Bottom[V,T] {
@@ -626,7 +613,7 @@ object SetDomain {
     }
 
   }
-  
+
 }
 
 /**

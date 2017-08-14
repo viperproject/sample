@@ -1,4 +1,3 @@
-
 field x: Int
 
 method f(this: Ref)

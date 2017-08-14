@@ -7,13 +7,13 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.analysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.execution.CfgResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.permissionanalysis.AliasAnalysisState
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Utils._
-import viper.silver.ast.Function
+import viper.silver.ast.{Function, LocalVarDecl}
 import viper.silver.{ast => sil}
 
 import scala.collection._
@@ -48,14 +48,14 @@ object Context {
 
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
-  private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_]]]] = Map()
+  private var aliasesPerMethod: Map[String, Option[CfgResult[_ <: AliasAnalysisState[_, _, _]]]] = Map()
 
   private var numericalInfoPerMethod: Map[String, Option[CfgResult[NumericalStateType]]] = Map()
 
   /**
     * Stores the result of the alias analysis.
     */
-  private var aliases: Option[CfgResult[_ <: AliasAnalysisState[_]]] = None
+  private var aliases: Option[CfgResult[_ <: AliasAnalysisState[_, _, _]]] = None
 
   /**
     * Stores the result of the numerical analysis.
@@ -104,7 +104,7 @@ object Context {
     currentMethod = method.name.name
     // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
     identifiers ++= program.fields.map(_.name)
-    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.locals).toSet).map(_.name)
+    identifiers ++= program.methods.flatMap(method => (method.formalArgs ++ method.formalReturns ++ method.scopedDecls.collect {case l: LocalVarDecl => l}).toSet).map(_.name)
     identifiers ++= program.methods.map(_.name)
     identifiers ++= program.domains.map(_.name)
     identifiers ++= program.functions.map(_.name)
@@ -219,7 +219,7 @@ object Context {
     *
     * @param aliases The result of the alias analysis to set.
     */
-  def setAliases(method: String, aliases: Option[CfgResult[_ <: AliasAnalysisState[_]]]): Unit = {
+  def setAliases(method: String, aliases: Option[CfgResult[_ <: AliasAnalysisState[_, _, _]]]): Unit = {
     aliasesPerMethod += method -> aliases
     this.aliases = aliases
   }
@@ -233,7 +233,7 @@ object Context {
     * @tparam A The type of the alias analysis.
     * @return The state of the alias analysis before the given program point.
     */
-  def preAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A = aliases.get.preStateAt(pp).asInstanceOf[A]
+  def preAliases[A <: AliasAnalysisState[A, _, _]](pp: ProgramPoint): A = aliases.get.preStateAt(pp).asInstanceOf[A]
 
   /**
     * Returns the state of the alias analysis after the given program point.
@@ -242,7 +242,7 @@ object Context {
     * @tparam A The type fo the alias analysis.
     * @return The state of the alias analysis after the given program point.
     */
-  def postAliases[A <: AliasAnalysisState[A]](pp: ProgramPoint): A = aliases.get.postStateAt(pp).asInstanceOf[A]
+  def postAliases[A <: AliasAnalysisState[A, _, _]](pp: ProgramPoint): A = aliases.get.postStateAt(pp).asInstanceOf[A]
 
   /**
     * Sets the result of the numerical analysis.

@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation._
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Set
@@ -402,7 +402,7 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def getVariableValue(id: Identifier): S
 
-  def merge(r:Replacement):S = this
+  def merge(r:Replacement):S = ???
 
   /** Performs abstract garbage collection. */
   def pruneUnreachableHeap(): S
@@ -833,6 +833,43 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 trait Command {
 }
 
+/**
+  * A command issued when two states should be unified/merged.
+  *
+  * The result of the merge should contain the joined environment of both states.
+  * Implementors of this command '''CANNOT''' assume that the environments are disjoint. But for shared identifiers it
+  * can be assumed that either the abstract values of the shared identifiers are the same (non-relational domains) or
+  * that the constraints including those shared identifiers do not conflict (relational domains).
+  *
+  * A typical use-case is to merge the result of a method call into the caller state in interprocedural analysis.
+  * In that case the two states will share identifiers representing the temporary arguments (named arg_#1, arg_#2 etc.).
+  * For non-relational domains the abstract-value of those temporary arguments will be the same. And for
+  * relational domains it can be assumed that the two states share some identifiers but that the constraints do not conflict.
+  *
+  * An example in the octagon domain could be:<br/><br/>
+  * Constrains in state 1:
+  * <ul>
+  *   <li> b == 15 </li>
+  *   <li> arg_#0 - b == 0 </li>
+  *   <li> c + b <= 0 </li>
+  * </ul>
+  *
+  * And for state 2:
+  * <ul>
+  *   <li>arg_#0 - ret_#0 == 0</li>
+  * </ul>
+  *
+  * The only shared identifier is arg_#0. Unifying these two states should result in a state in which for example
+  * {{{
+  *   assert ret_#0 === 15
+  * }}} holds.
+  *
+  * @param other The other state that should be merged into the state the command is executed on
+  *
+  *@author Flurin Rindisbacher
+  */
+case class UnifyCommand[S <: State[S]](other: S) extends Command
+
 /** Some trivial helper functions that execute forward/backward semantics on single and list of states.
   *
   * @author Pietro Ferrara
@@ -841,6 +878,12 @@ object UtilitiesOnStates {
 
   def forwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.forwardSemantics[S](state)
+    val expr = finalState.expr
+    (expr, finalState)
+  }
+
+  def backwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
+    val finalState = statement.backwardSemantics[S](state)
     val expr = finalState.expr
     (expr, finalState)
   }

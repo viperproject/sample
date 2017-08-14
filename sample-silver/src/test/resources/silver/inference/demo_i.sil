@@ -1,4 +1,3 @@
-
 field f: Ref
 
 method foo1_pre(this: Ref, that: Ref)
@@ -12,12 +11,13 @@ method foo1(this: Ref, that: Ref)
 
 method foo2_pre(this: Ref, that: Ref, read: Perm)
     requires none < read && read < write
-    requires acc(this.f, read) && acc(this.f.f, write)
+    requires acc(this.f, read)
+    requires acc(this.f.f, write)
 {}
 
 method foo2(this: Ref, that: Ref)
 {
-	this.f.f := that
+    this.f.f := that
 }
 
 method foo3_pre(this: Ref, that: Ref)
@@ -28,5 +28,5 @@ method foo3_pre(this: Ref, that: Ref)
 method foo3(this: Ref, that: Ref)
 {
     this.f := that
-	this.f.f := that
+    this.f.f := that
 }

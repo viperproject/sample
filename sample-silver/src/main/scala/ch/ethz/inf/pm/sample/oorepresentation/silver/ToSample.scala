@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.execution.SampleCfg
-import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, TaggedProgramPoint, VariableDeclaration}
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
 
@@ -99,18 +99,25 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
   }
 
   def convert(f: sil.Function): SilverFunctionDeclaration = {
-    ???
+    new SilverFunctionDeclaration(
+      programPoint = go(f.pos),
+      name = SilverIdentifier(f.name),
+      parameters = f.formalArgs.map(go).toList,
+      returnType = go(f.typ),
+      body = f.body match {
+        case Some(b) => Option(go(b))
+        case None => None
+      }
+    )
   }
 
   def convert(method: sil.Method): SilverMethodDeclaration =
     new SilverMethodDeclaration(
       programPoint = go(method.pos),
       name = SilverIdentifier(method.name),
-      parameters = method.formalArgs.map(go).toList ++ method.formalReturns.map(go).toList,
-      // Method calls in Silver cannot occur in expressions, so it is fine to use
-      // the return type 'null'. Depending on how the semantics is implemented,
-      // it might also make sense not to use the return type for functions either.
-      returnType = null,
+      arguments = method.formalArgs.map(go).toList,
+      returns = method.formalReturns.map(go).toList,
+      returnType = method.formalReturns.map(_.typ).map(go).toList,
       body = method.toCfg().map[SampleCfg, Statement, Statement](SampleCfg())(go, go)
     )
 
@@ -182,11 +189,12 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case sil.MethodCall(method, args, targets) =>
       val call = sample.MethodCall(
-        pp = go(s.pos),
-        method = makeVariable(s.pos, sil.Ref, method),
-        parametricTypes = Nil,
-        parameters = args.map(go).toList,
-        returnedType = sample.TopType)
+          pp = go(s.pos),
+          method = makeVariable(s.pos, sil.Ref, method),
+          parametricTypes = Nil,
+          parameters = args.map(go).toList,
+          returnedType = sample.TopType,
+          targets = targets.map(go).toList)
       Seq(call)
 
     case sil.LocalVarDeclStmt(decl) =>
@@ -219,13 +227,13 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val empty = sample.EmptyStatement(go(s.pos))
       Seq(empty)
 
-    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_) =>
+    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_, _) =>
       ???
 
     case sil.Goto(_) |
          sil.If(_, _, _) |
-         _: sil.Label |
-         sil.While(_, _, _, _) =>
+         sil.Label(_, _) |
+         sil.While(_, _, _) =>
       sys.error(s"unexpected statement $s (should not be part of the CFG)")
   }
 

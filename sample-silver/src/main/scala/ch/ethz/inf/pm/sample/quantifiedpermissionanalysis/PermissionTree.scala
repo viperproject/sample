@@ -75,7 +75,7 @@ trait PermissionTree {
   def condition(cond: Expression, elsePermissions: PermissionTree): PermissionTree = if (isIntegerDependent) Maximum(Seq(propagateCondition(cond), elsePermissions.propagateCondition(not(cond)))) else Condition(cond, this, elsePermissions)
 
   private def propagateCondition(cond: Expression): PermissionTree = transform {
-    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSetOrFail)
+    case PermissionLeaf(f: FunctionExpressionDescription, permission) => PermissionLeaf(f.transformCondition(cond), permission, cond.ids.toSet)
     case other => other
   }
 
@@ -170,7 +170,7 @@ trait PermissionTree {
     val function = extractFunction.get
     if (!isIntegerQuantificationValid(function)) throw new IllegalStateException("The program contains integer dependent heap accesses but they do not conform to the requirements!")
     val permissionExpression = simplifyExpression(and(QuantifierElimination.eliminate(variablesToQuantify, existsPart), not(QuantifierElimination.eliminate(variablesToQuantify, not(forallPart)))))
-    val additionalVars = permissionExpression.ids.toSetOrFail.filter(v => !Set(quantifiedVariable.name, result.name).contains(v.getName)).toSeq
+    val additionalVars = permissionExpression.ids.toSet.filter(v => !Set(quantifiedVariable.name, result.name).contains(v.getName)).toSeq
     val functionWithPostcondition = sil.Function(placeholderFun.name, Seq(silQuantifiedVariable) ++ additionalVars.map(v => sil.LocalVarDecl(v.getName, DefaultSampleConverter.convert(v.typ))()), sil.Perm, Seq(), Seq(DefaultSampleConverter.convert(permissionExpression)), None)()
     Context.replaceFunction(functionWithPostcondition)
     val newPermissionPlaceholder = FunctionCallExpression(placeholderFun.name, Seq(quantifiedVariable) ++ additionalVars, PermType)
@@ -284,7 +284,7 @@ case class FunctionPermissionLeaf(receiver: FunctionExpressionDescription, permi
     }
     val replacedExpression = expression.transform(replacer)
     val replacedInvariants = invariants.map(_.transform(replacer))
-    (Set((equ(quantifiedVariable, replacedExpression), permission.toSampleExpression), (neq(quantifiedVariable, replacedExpression), noneConst)), replacedInvariants, replacements.values.toSet ++ replacedExpression.ids.toSetOrFail, Map())
+    (Set((equ(quantifiedVariable, replacedExpression), permission.toSampleExpression), (neq(quantifiedVariable, replacedExpression), noneConst)), replacedInvariants, replacements.values.toSet ++ replacedExpression.ids.toSet, Map())
   }
   def transformForgetVariable(variable: Identifier): PermissionTree = FunctionPermissionLeaf(receiver, permission, forgottenVariables + variable)
   override def toString: String = s"($receiver, $permission)"
@@ -417,7 +417,7 @@ case object EmptyPermissionTree extends PermissionTree {
 
 case class IntegerQuantifiedPermissionTree(rootExpr: FunctionExpressionDescription, permissionExpression: Expression, permissionPlaceholder: FunctionCallExpression, forgottenPermissions: Map[FunctionCallExpression, Expression]) extends PermissionTree {
   def forgottenVariables: Set[Identifier] = Set()
-  def ids: Set[Identifier] = permissionExpression.ids.toSetOrFail
+  def ids: Set[Identifier] = permissionExpression.ids.toSet
   def toSilExpression(state: QuantifiedPermissionsState, quantifiedVar: sil.LocalVar): sil.Exp = throw new UnsupportedOperationException
   def toSilAssertions(quantifiedVarDecl: sil.LocalVarDecl, field: sil.Field): Seq[sil.Exp] = {
     val quantifiedVar = quantifiedVarDecl.localVar

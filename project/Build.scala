@@ -4,57 +4,74 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import sbt._
-import sbt.Keys._
 import play.twirl.sbt.SbtTwirl
+import sbt.Keys._
+import sbt._
 
 object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
-    base = file(".")) aggregate(core, numerical, apron, touchdevelop,
-    scalapreproc, partitioning, string, valuedrivenheap, sil, silver, viper, web)
+    base = file(".")) aggregate(sample_core, sample_numerical, sample_apron,
+    sample_touchdevelop, sample_scala_processing, sample_partitioning,
+    sample_string, sample_valuedriven_heap, sample_sil, sample_web,
+    sample_silver)
 
-  lazy val core = Project(
+  lazy val sample_core = Project(
     id = "sample-core",
     base = file("sample"))
 
-  lazy val numerical = Project(
+  lazy val sample_numerical = Project(
     id = "sample-numerical",
-    base = file("NumericalAnalysis")) dependsOn core
+    base = file("NumericalAnalysis")
+  ) dependsOn sample_core
 
-  lazy val apron = Project(
+  lazy val sample_apron = Project(
     id = "sample-apron",
-    base = file("Apron")) dependsOn(core, numerical)
+    base = file("Apron")
+  ) dependsOn(sample_core, sample_numerical)
 
-  lazy val touchdevelop = Project(
+  lazy val sample_touchdevelop = Project(
     id = "sample-touchdevelop",
-    base = file("TouchDevelopPreprocessing")) dependsOn(core, numerical, apron, string)
+    base = file("TouchDevelopPreprocessing")
+  ) dependsOn(sample_core, sample_numerical, sample_apron, sample_string)
 
-  lazy val scalapreproc = Project(
+  lazy val sample_scala_processing = Project(
     id = "sample-scala-preprocessing",
-    base = file("ScalaPreprocessing")) dependsOn core
+    base = file("ScalaPreprocessing")
+  ) dependsOn sample_core
 
-  lazy val partitioning = Project(
+  lazy val sample_partitioning = Project(
     id = "sample-partitioning",
-    base = file("Partitioning")) dependsOn(core, scalapreproc)
+    base = file("Partitioning")
+  ) dependsOn(sample_core, sample_scala_processing)
 
-  lazy val string = Project(
+  lazy val sample_string = Project(
     id = "sample-string",
-    base = file("String")) dependsOn(core, numerical, apron)
+    base = file("String")
+  ) dependsOn(sample_core, sample_numerical, sample_apron)
 
-  lazy val valuedrivenheap = Project(
+  lazy val sample_valuedriven_heap = Project(
     id = "sample-valuedriven-heap",
-    base = file("ValueDrivenHeapAnalysis")) dependsOn(core, numerical, apron, scalapreproc)
+    base = file("ValueDrivenHeapAnalysis")
+  ) dependsOn(sample_core, sample_numerical, sample_apron, sample_scala_processing)
 
-  lazy val sil = Project(
+  lazy val sample_sil = Project(
     id = "sample-sil",
-    base = file("SIL")) dependsOn(core, numerical, apron, valuedrivenheap)
+    base = file("SIL")
+  ) dependsOn(sample_core, sample_numerical, sample_apron, sample_valuedriven_heap)
 
-  lazy val silver = Project(
+  lazy val sample_silver = Project(
     id = "sample-silver",
-    base = file("sample-silver")) dependsOn(core, numerical, apron, viper, silicon)
+    base = file("sample-silver")
+  ) dependsOn(sample_core, sample_numerical, silver, silicon, carbon, sample_apron)
 
-  lazy val viper = RootProject(
+  lazy val sample_web = Project(
+    id = "sample-web",
+    base = file("Web"),
+    settings = Defaults.coreDefaultSettings ++ com.earldouglas.xwp.XwpPlugin.jetty()
+  ) enablePlugins(SbtTwirl) dependsOn(sample_core, sample_numerical, sample_apron, sample_valuedriven_heap, sample_sil, sample_touchdevelop)
+
+  lazy val silver = RootProject(
     file("../silver/")
   )
 
@@ -62,11 +79,9 @@ object SampleBuild extends Build {
     file("../silicon/")
   )
 
-  lazy val web = Project(
-    id = "sample-web",
-    base = file("Web"),
-    settings = Defaults.coreDefaultSettings ++ com.earldouglas.xwp.XwpPlugin.jetty()
-  ).enablePlugins(SbtTwirl).dependsOn(core, numerical, apron, valuedrivenheap, sil, touchdevelop)
+  lazy val carbon = RootProject(
+    file("../carbon/")
+  )
 
   // Custom configuration key to specify apron shared library location
   lazy val apronLibPath = SettingKey[String]("apronLibPath",
@@ -96,8 +111,8 @@ object SampleBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.1.7" % "runtime", // Logging Backend % "runtime"
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0", // Logging Frontend
       "org.scalatest" % "scalatest_2.11" % "2.2.1", // Testing Framework
-      "org.scalaz" %% "scalaz-core" % "7.1.5" // Functional Programming
+      "org.scalaz" %% "scalaz-core" % "7.1.5", // Functional Programming
+      "org.jgrapht" % "jgrapht-core" % "0.9.1" // Graph Library used for interproc call graphs
     )
   )
-
 }

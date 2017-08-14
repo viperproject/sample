@@ -1,0 +1,13 @@
+//
+// source: http://pop-art.inrialpes.fr/interproc/interproc_examples/incr.txt
+//
+method incr(x: Int) returns (y: Int) {
+    y := x + 1
+}
+
+method main() {
+    var i : Int := 0
+    while (i<=10) {
+        i := incr(i)
+    }
+}

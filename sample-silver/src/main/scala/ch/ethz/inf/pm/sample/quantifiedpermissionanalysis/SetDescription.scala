@@ -216,7 +216,7 @@ object ReferenceSetDescription {
         case (IntType, _, expr) =>
           val quantifiedVariable = VariableIdentifier(Context.getQuantifiedVarDecl(sil.Int).localVar.name)(IntType)
           val expressionToAssume = BinaryArithmeticExpression(quantifiedVariable, expr, ArithmeticOperator.==)
-          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSetOrFail.map(constant => seq :+ (constant, Seq()))
+          Context.postNumericalInfo(pp).numDom.createVariable(quantifiedVariable).assume(expressionToAssume).removeVariables(variablesToRemove).getPossibleConstants(quantifiedVariable).toSet.map(constant => seq :+ (constant, Seq()))
       })
     }
 
@@ -472,10 +472,10 @@ object IntegerSetDescription {
       val numDom = Context.preNumericalInfo(pp).numDom
       val initConstraints = simplifiedExpr match {
         case Constant(_, IntType, _) => Set[Expression]()
-        case _ => numDom.getConstraints(initExpr.ids.toSetOrFail)
+        case _ => numDom.getConstraints(initExpr.ids.toSet)
       }
       def getClosure(existingConstraints: Set[Expression]): Set[Expression] = {
-        val newConstraints = numDom.getConstraints(existingConstraints.flatMap(_.ids.toSetOrFail))
+        val newConstraints = numDom.getConstraints(existingConstraints.flatMap(_.ids.toSet))
         if (newConstraints.size > existingConstraints.size) getClosure(newConstraints)
         else existingConstraints
       }
@@ -510,7 +510,7 @@ object PositiveIntegerSetDescription {
 
   sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with PositiveIntegerSetDescription {
 
-    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSetOrFail))
+    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSet))
 
     private def copy(pp: ProgramPoint = pp,
                      expr: Expression = expr,
@@ -526,7 +526,7 @@ object PositiveIntegerSetDescription {
 
     override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
       case (setDescription@Inner(_pp, _expr, _constraints), conjunct) => conjunct match {
-        case _ if (conjunct.ids.toSetOrFail & ids.toSetOrFail).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
+        case _ if (conjunct.ids.toSet & ids.toSet).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
         case _ => setDescription
       }
     }
@@ -564,7 +564,7 @@ object NegativeIntegerSetDescription {
 
   sealed case class Inner(pp: ProgramPoint, expr: Expression, constraints: Set[Expression]) extends IntegerSetDescription.Inner with NegativeIntegerSetDescription {
 
-    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSetOrFail))
+    def ids: IdentifierSet = IdentifierSet.Inner(constraints.flatMap(_.ids.toSet))
 
     private def copy(pp: ProgramPoint = pp,
                      expr: Expression = expr,
@@ -580,7 +580,7 @@ object NegativeIntegerSetDescription {
 
     override def transformCondition(cond: Expression): IntegerSetDescription = toCNFConjuncts(cond).foldLeft(this) {
       case (setDescription@Inner(_pp, _expr, _constraints), conjunct) => conjunct match {
-        case _ if (conjunct.ids.toSetOrFail & ids.toSetOrFail).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
+        case _ if (conjunct.ids.toSet & ids.toSet).nonEmpty => Inner(_pp, _expr, _constraints + conjunct)
         case _ => setDescription
       }
     }

@@ -1,19 +1,15 @@
+field val: Int
 
-field data: Int
+/*method set_val(a: Ref, v: Int)
+{
+    a.val := v
+}*/
 
-method foo_pre(this: Ref)
-    requires acc(this.data, write)
-{}
-
-method foo(this: Ref)
-    //ensures acc(this.data, write)
+method test(a: Ref, v: Int)
 {
     var i: Int
     i := 0
-    while (i < 100)
-        //invariant acc(this.data, write)
-    {
-        this.data := this.data + i
+    while (i < a.val) {
         i := i + 1
     }
 }

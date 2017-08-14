@@ -6,44 +6,38 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import java.io.{File, PrintWriter}
+import java.io.File
 
-import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
-import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import viper.silver.{ast => sil}
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.sample.inference.{SilverExporter, SilverExtender, SilverInferenceRunner}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import viper.silicon.Silicon
-
-import scala.collection.mutable
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
+import viper.silver.ast.Program
+import viper.silver.{ast => sil}
 
 trait AbstractAnalysisRunner[S <: State[S]] {
   val compiler: SilverCompiler
 
   val analysis: SilverAnalysis[S]
 
-  def program: SilverProgramDeclaration = compiler.program
-
-  /**
-    * Returns the sequence of functions to analyze. By default these are all
-    * functions.
-    *
-    * @return The sequence of functions to analyze.
-    */
-  def functionsToAnalyze: Seq[SilverFunctionDeclaration] = compiler.allFunctions
-
-  /**
-    * Returns the sequence of methods to analyze. By default these are all
-    * methods.
-    *
-    * @return The sequence of methods to analyze.
-    */
-  def methodsToAnalyze: Seq[SilverMethodDeclaration] = compiler.allMethods
-
-  def run(compilable: Compilable): Map[SilverIdentifier, CfgResult[S]] = {
+  def compile(compilable: Compilable): sil.Program =
     compiler.compile(compilable)
-    _run()
+
+  def run(compilable: Compilable): ProgramResult[S] = {
+    val program = compiler.compile(compilable)
+    run(program)
+  }
+
+  def run(program: sil.Program): ProgramResult[S] = {
+    val translated = compiler.toSample(program)
+    _run(translated)
+  }
+
+  def run(program: SilverProgramDeclaration): ProgramResult[S] = {
+    SystemParameters.tm = SilverTypeMap
+    _run(program)
   }
 
   protected def prepareContext(): Unit = {
@@ -58,12 +52,9 @@ trait AbstractAnalysisRunner[S <: State[S]] {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
   }
 
-  protected def _run(): Map[SilverIdentifier, CfgResult[S]] = {
+  protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
-    val result: mutable.Map[SilverIdentifier, CfgResult[S]] = mutable.Map()
-    //functionsToAnalyze.foreach(function => result.put(function.name, analysis.analyze(function))  )
-    methodsToAnalyze.foreach(method => result.put(method.name, analysis.analyze(program, method)))
-    result.toMap
+    analysis.analyze(program)
   }
 
   def main(args: Array[String]): Unit = {
@@ -76,15 +67,9 @@ trait SilverAnalysisRunner[S <: State[S]]
   extends AbstractAnalysisRunner[S] {
   val compiler = new SilverCompiler()
 
-  /** Runs the analysis on a given Silver program. */
-  def run(program: sil.Program): Map[SilverIdentifier, CfgResult[S]] = {
-    compiler.compileProgram(program)
-    _run()
-  }
-
   /** Runs the analysis on the Silver program whose name is passed as first argument and reports errors and warnings. */
   override def main(args: Array[String]): Unit = {
-    run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
+    val result = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
 
     println("\n******************\n* AnalysisResult *\n******************\n")
     if (Reporter.assertionViolations.isEmpty) println("No errors")
@@ -96,85 +81,133 @@ trait SilverAnalysisRunner[S <: State[S]]
     for (w <- Reporter.genericWarnings) {
       println(w)
     } // warning report
+    println("\n***************\n* Entry States *\n***************\n")
+    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).entryState()))
+    println("\n***************\n* Exit States *\n***************\n")
+    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).exitState()))
   }
 }
 
-/** Specification Inference for Silver Programs.
+/**
+  * Interprocedural analysis runner for Silver programs.
   *
-  * @author Caterina Urban
-  * @tparam T The type of the specification.
+  * Methods are added to the worklist according to the callgraph (top down)
+  *
+  * @author Flurin Rindisbacher
+  *
+  **/
+trait InterproceduralSilverAnalysisRunner[S <: State[S]]
+  extends SilverAnalysisRunner[S] {
+
+  override val analysis: InterproceduralSilverAnalysis[S]
+
+  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
+    prepareContext()
+    analysis.analyze(program)
+  }
+}
+
+/**
+  * Interprocedural bottom up analysis runner for Silver programs.
+  *
+  * Methods at the  bottom of the topologically ordered call-graph (callee's) are analyzed first. Then their analysis result is reused for
+  * the analysis of the callers
+  *
+  * @author Flurin Rindisbacher
+  *
+  **/
+trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
+  extends InterproceduralSilverAnalysisRunner[S] {
+
+  override val analysis: BottomUpAnalysis[S]
+
+  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
+    prepareContext()
+    // run the analysis starting at the bottom of the topological order
+    analysis.analyze(program)
+  }
+
+}
+
+/** Interprocedural Specification Inference for Silver Programs.
+  *
+  * @author Flurin Rindisbacher
   * @tparam S The type of the state.
   */
-trait SilverInferenceRunner[T, S <: State[S] with SilverSpecification[T]]
-  extends SilverAnalysisRunner[S] with SilverExtender[T, S] {
+trait InterproceduralSilverInferenceRunner[S <: State[S]]
+  extends SilverInferenceRunner[S]
+    with SilverExtender[S]
+    with SilverExporter[S]
+    with InterproceduralSilverAnalysisRunner[S] {
 
-  /** Extends a Silver program whose name is passed as first argument with specifications inferred by the analysis. */
-  def extend(args: Array[String]): sil.Program = {
-    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
-    // extend the Silver program with inferred permission
-    extendProgram(DefaultSilverConverter.prog, results)
+  //
+  // The SilverExtender usually only works with one CFG
+  // But for the interprocedural case we need to access all the available CfgResults
+  //
+  var resultsToWorkWith: Seq[CfgResult[S]] = Seq()
+
+  /**
+    * Extends the given program using all results (meaning for different call-strings) seen in the analysis.
+    *
+    * @param program The program to extend.
+    * @param results The result of the analysis.
+    * @return The extended program
+    */
+  override def extendProgram(program: sil.Program, results: ProgramResult[S]): sil.Program = {
+    // extend methods
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      extendMethod(method, results.getResult(identifier))
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
 
-  /** Exports a Silver program extended with inferred specifications. */
-  def export(args: Array[String]): Unit = {
-    val program = extend(args) // extend the program with permission inferred by the analysis
-    println("\n********************\n* Extended Program *\n********************\n\n" + program)
-    // create a file with the extended program
-    val outName = args(0).split('.')(0) + "X.sil"
-    val pw = new PrintWriter(new File(outName))
-    pw.write(program.toString())
-    pw.close()
+  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+    program.methods.foreach { method =>
+      val identifier = SilverIdentifier(method.name)
+      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      exportMethod(method, results.getResult(identifier))
+    }
+  }
+}
+
+/**
+  * Extend the given program using the results of a bottom-up analysis. In bottom-up analysis
+  * we're not interested in all CfgResults but only those that are untagged or tagged with an empty call-string.
+  * Example:
+  * for the recursive function foo() the following CfgResults may exist:
+  * (Untagged, Result1)
+  * (foo, Result2)
+  * (foo.foo, Result3)
+  * etc.
+  * We're only interested in the Untagged result. Meaning the result that assumes entryState = initial-state.
+  *
+  * @tparam S The type of the state.
+  */
+trait InterproceduralSilverBottomUpInferenceRunner[S <: State[S]]
+  extends InterproceduralSilverInferenceRunner[S] {
+
+  override def extendProgram(program: Program, results: ProgramResult[S]): Program = {
+    val extendedMethods = program.methods.map { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      resultsToWorkWith = Seq(result)
+      extendMethod(method, result)
+    }
+
+    // return extended program
+    program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
 
-  /** Verifies a Silver program extended with inferred specifications using the Viper symbolic execution backend. */
-  /*def verify(args: Array[String]): Unit = {
-    val program = extend(args) // extend the program with permission inferred by the analysis
-    // verified the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.config.initialize { case _ => silicon.config.initialized = true }
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(program)
-    println("\n***********************\n* Verification Result * " + result + "\n***********************")
-  }*/
-
-  override def main(args: Array[String]) {
-    // run the analysis
-    val results: Map[SilverIdentifier, CfgResult[S]] = run(Compilable.Path(new File(args(0)).toPath))
-    val extended = extendProgram(DefaultSilverConverter.prog, results)
-
-    // report errors and warnings
-    println("\n******************\n* AnalysisResult *\n******************\n")
-    if (Reporter.assertionViolations.isEmpty) println("No errors")
-    for (e <- Reporter.assertionViolations) {
-      println(e)
-    } // error report
-    println()
-    if (Reporter.genericWarnings.isEmpty) println("No warnings")
-    for (w <- Reporter.genericWarnings) {
-      println(w)
-    } // warning report
-
-    // report extended program
-    println("\n********************\n* Extended Program *\n********************\n\n" + extended)
-    // create a file with the extended program
-    //val copyName = args(0).split('.')(0) + ".sil.orig"
-    //val cw = new PrintWriter(new File(copyName))
-    //cw.write(DefaultSilverConverter.prog.toString); cw.close
-    val outName = args(0).split('.')(0) + "X.sil"
-    val ow = new PrintWriter(new File(outName))
-    ow.write(extended.toString())
-    ow.close()
-
-    // verify the extended program with Silicon
-    val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))
-    silicon.parseCommandLine(Seq("dummy.sil"))
-    silicon.start()
-    val result: viper.silver.verifier.VerificationResult = silicon.verify(extended)
-    println("\n***********************\n* Verification Result *\n***********************\n\n" + result)
-    silicon.stop()
-
+  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+    program.methods.foreach { method =>
+      val identifier = SilverIdentifier(method.name)
+      val result = results.getResult(identifier)
+      resultsToWorkWith = Seq(result)
+      exportMethod(method, result)
+    }
   }
-
-  override def toString = "Specification Inference"
 }

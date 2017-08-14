@@ -56,17 +56,17 @@ object Utils extends LazyLogging {
   def isFunctionInjective(function: sil.FuncLike, expr: Expression, constraints: Expression, program: sil.Program = Context.program): Boolean = {
     val intDecls = Context.getQuantifiedVarDeclsForType(sil.Int, 2)
     val (i1, i2) = (intDecls.head, intDecls.last)
-    val additionalArgs = (constraints.ids.toSetOrFail -- expr.ids.toSetOrFail).toSeq
+    val additionalArgs = (constraints.ids.toSet -- expr.ids.toSet).toSeq
     val formalArgs = function.formalArgs.filter(formalArg => formalArg.typ != sil.Int) ++ intDecls ++ additionalArgs.map(id => sil.LocalVarDecl(id.getName, DefaultSampleConverter.convert(id.typ))())
     val i1Id = VariableIdentifier(i1.name)(IntType)
     val i2Id = VariableIdentifier(i2.name)(IntType)
-    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i1Id, expr), constraints))
-    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSetOrFail, and(equ(i2Id, expr), constraints))
+    val constraints1 = QuantifierElimination.eliminate(expr.ids.toSet, and(equ(i1Id, expr), constraints))
+    val constraints2 = QuantifierElimination.eliminate(expr.ids.toSet, and(equ(i2Id, expr), constraints))
     val precondition = sil.And(sil.NeCmp(i1.localVar, i2.localVar)(), sil.And(DefaultSampleConverter.convert(constraints1), DefaultSampleConverter.convert(constraints2))())()
     val postcondition = sil.NeCmp(
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i1.localVar else formalArg.localVar), Map()),
       sil.FuncLikeApp(function, function.formalArgs.map(formalArg => if (formalArg.typ == sil.Int) i2.localVar else formalArg.localVar), Map()))()
-    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivityTest"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), Seq(), sil.Seqn(Seq())())()
+    val methodToCheck = sil.Method(Context.createNewUniqueFunctionIdentifier("injectivityTest"), formalArgs, Seq(), Seq(precondition), Seq(postcondition), sil.Seqn(Seq(), Seq())())()
     val newProgram: sil.Program = sil.Program(program.domains, program.fields, program.functions, program.predicates, Seq(methodToCheck))()
     logger.trace(newProgram.toString())
     val silicon = new Silicon(Seq(("startedBy", "viper.silicon.SiliconTests")))

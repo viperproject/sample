@@ -17,7 +17,7 @@ object ExpressionSetFactory {
 
   private def expand(parameterExpressions: Seq[ExpressionSet]): Set[Seq[Expression]] = {
     if (parameterExpressions.isEmpty) Set(Seq())
-    else expand(parameterExpressions.init).flatMap(seq => parameterExpressions.last.s.toSetOrFail.map(expr => seq :+ expr))
+    else expand(parameterExpressions.init).flatMap(seq => parameterExpressions.last.s.toSet.map(expr => seq :+ expr))
   }
 
   def createFunctionCallExpression(functionName: String, parameterExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
@@ -181,7 +181,7 @@ case class ExpressionSet(
     new ExpressionSet(typ, set)
   }
 
-  def toSetOrFail: Set[Expression] = this._2.toSetOrFail
+  def toSetOrFail: Set[Expression] = this._2.toSet
 
   def _2: SetDomain.Default[Expression] = s
 

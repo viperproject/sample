@@ -1,0 +1,11 @@
+method foo(this: Ref)
+{
+    var i: Int := 0
+    i := funbar(i)
+    assert i == 1     // this assert is expected to fail for the trivial analysis
+}
+
+function funbar(i: Int) : Int
+{
+    i + 1
+}

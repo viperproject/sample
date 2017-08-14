@@ -117,11 +117,13 @@ trait SingleStatementProperty extends Property {
     case FieldAccess(pp, obj, field, typ) =>
       visitor.checkSingleStatement[S](state, statement, printer)
       checkStatement(className, methodName, visitor, state, obj, printer)
-    case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
+    case MethodCall(pp, method, parametricTypes, parameters, returnedType, targets) =>
       visitor.checkSingleStatement[S](state, statement, printer)
       checkStatement(className, methodName, visitor, state, method, printer)
       for (par <- parameters)
         checkStatement(className, methodName, visitor, state, par, printer)
+      for (target <- targets)
+        checkStatement(className, methodName, visitor, state, target, printer)
     case New(pp, typ) =>
       visitor.checkSingleStatement[S](state, statement, printer)
     case oorepresentation.ConstantStatement(pp, value, typ) =>

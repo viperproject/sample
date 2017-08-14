@@ -1,0 +1,11 @@
+method foo() {
+  var z : Int := 1
+  var i : Int := 2
+  i := nop(i)
+  i := i + 1
+  z := z + 1
+}
+
+method nop(i: Int) returns (k: Int) {
+  k := i
+}

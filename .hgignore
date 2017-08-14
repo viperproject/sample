@@ -9,18 +9,12 @@ Test/test/TouchDevelop/cache
 .idea_modules
 out/
 
+apron.sbt
+
 # Folder with temporary files created by Silicon
 tmp/
 
-*.h
-*.o
-*.a
-*.so
-
-Apron/apron/japron/apron.jar
-Apron/apron/japron/gmp.jar
-Apron/apron/octagons/octtestD
-Apron/apron/octagons/octtestMPQ
-
-X.sil
-*.class
+# local test scripts and output of inference
+docker.sh
+test_inference.sh
+sample-silver/src/test/resources/silver/exampleX.sil
