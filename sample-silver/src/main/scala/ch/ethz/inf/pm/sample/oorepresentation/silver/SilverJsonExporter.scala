@@ -61,8 +61,6 @@ trait SilverJsonExporter[S <: State[S]]
     }
   }
 
-  override def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = ???
-
   // For debugging/development you may want to enable prettyRender to have a look at the JSON
   //private def render = prettyRender _
   private def render = prettyRender _
@@ -98,7 +96,7 @@ trait SilverJsonExporter[S <: State[S]]
     * @return A tuple containing the formatted start and end locations as a string.
     */
   private def formatPosition(pos: sil.Position): (String, String) = pos match {
-    case sourcePos@sil.SourcePosition(_, start, end) =>
+    case sil.SourcePosition(_, start, end) =>
       (s"${start.line}:${start.column}",
         if (end.isDefined)
           s"${end.get.line}:${end.get.column}"
