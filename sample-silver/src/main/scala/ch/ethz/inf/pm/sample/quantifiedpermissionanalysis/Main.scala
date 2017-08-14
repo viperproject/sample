@@ -27,7 +27,8 @@ object Main {
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
     SystemParameters.wideningLimit = 10
-    QuantifiedPermissionsAnalysisRunner.main(args)
+    val program = QuantifiedPermissionsAnalysisRunner.extend(args)
+    println(program)
   }
 }
 
