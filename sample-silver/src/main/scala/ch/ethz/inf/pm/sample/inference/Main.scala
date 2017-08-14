@@ -59,7 +59,10 @@ object Main {
   /**
     * The permission inference.
     */
-  val permission = new PermissionInferenceRunner[P, A, May, Must] with SilverJsonExporter[P] {
+  val permission = new PermissionInferenceRunner[P, A, May, Must]
+    with SilverJsonExporter[P]
+    with SilverExtender[P] {
+
     override val analysis: SilverAnalysis[P] = PermissionAnalysis[P, A, May, Must](
       aliasAnalysisStateBuilder = AliasAnalysisEntryStateBuilder(),
       permissionAnalysisStateBuilder = PermissionAnalysisEntryStateBuilder()
@@ -69,7 +72,10 @@ object Main {
   /**
     * An inference that infers the values of numerical variables and fields.
     */
-  val numerical = new SilverInferenceRunner[V] with SilverJsonExporter[V] {
+  val numerical = new SilverInferenceRunner[V]
+    with SilverJsonExporter[V]
+    with SilverExtender[V] {
+
     override val analysis: SilverAnalysis[V] = SimpleSilverForwardAnalysis(
       builder = HeapAndOctagonAnalysisEntryState
     )
@@ -110,16 +116,21 @@ object Main {
     val program = compiler.compile(compilable)
 
     // flurin's inference
-    /*val interproceduralResults = interprocedural.run(program)
+    val interproceduralResults = interprocedural.run(program)
     interprocedural.exportProgram(program, interproceduralResults)
-    println(interprocedural.specificationsAsJson(file))*/
+    println(interprocedural.specificationsAsJson(file))
 
     // jerome's inference
-    val permissionResults = permission.run(program)
+    /*val permissionResults = permission.run(program)
     permission.exportProgram(program, permissionResults)
     val numericalResults = numerical.run(program)
     numerical.extractSpecifications(permission)
     numerical.exportProgram(program, numericalResults)
-    println(numerical.specificationsAsJson(file))
+    println(numerical.specificationsAsJson(file))*/
+
+    // extend program
+    /*val p1 = permission.extendProgram(program, permissionResults)
+    val p2 = numerical.extendProgram(p1, numericalResults)
+    println(p2)*/
   }
 }
