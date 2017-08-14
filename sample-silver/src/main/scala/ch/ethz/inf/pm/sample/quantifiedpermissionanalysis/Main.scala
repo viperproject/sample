@@ -119,7 +119,7 @@ object QuantifiedPermissionsAnalysisRunner
 
   override def inferInvariants(loop: sil.While, result: CfgResult[QuantifiedPermissionsState]): Seq[sil.Exp] = {
     val position = getLoopPosition(loop, result.cfg)
-    val state = result.postStateAt(position)
+    val state = result.preStateAt(position)
     var newInvariants = loop.invs ++ generateSpecifications(state)
     val numDom: NumericalDomain[_] = Context.preNumericalInfo(state.currentPP).numDom.removeVariables(state.declaredBelowVars)
     val constraints = numDom.getConstraints(numDom.ids.getNonTop)
