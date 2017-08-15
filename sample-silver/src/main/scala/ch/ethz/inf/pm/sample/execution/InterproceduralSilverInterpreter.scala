@@ -324,8 +324,22 @@ trait InterprocHelpers[S <: State[S]] {
       // mark the result as available
       analysisResultReady += ((callString, cfg))
     case _ =>
-    // If the current worklist element is not tagged with a call-string, then we're not in a callee
-    // and there's no caller to enqueue. This is the case when we process the exit block of the main method.
+      // If the current worklist element is not tagged with a call-string, then we're not in a callee.
+      // But in case of recursion and call-string length 0 we need to make sure, that the recursive call-statements are
+      // notified.
+      if(CallStringLength == CallString.ContextInsensitive) {
+        val method = findMethod(current)
+        // callers if there are any. Since the current element in the worklist is NOT a tagged worklist element,
+        // we know for sure that we have not been called by other methods. Therefore the only callers that could
+        // exist will be in the same method.
+        methodTransferStates.keys.filter(_.currentMethod == method.programPoint)
+          .filter(_.suffix(CallStringLength) == CallString.Empty)
+          .foreach(caller => {
+            val position = calleePositions(caller.lastCaller)
+            worklist.enqueue(TaggedWorklistElement(CallString.Empty, position, forceReinterpretStmt = true))
+          })
+      }
+      analysisResultReady += ((CallString.Empty, cfg))
   }
 
   /**
@@ -703,6 +717,9 @@ trait BottomUpForwardInterpreter[S <: State[S]] extends InterproceduralSilverFor
         // We'll enqueue to the secondaryWorklist to make sure that the current connected-component has been fully analysed
         secondaryWorklist.enqueue(toEnqueue: _*)
         resultAvailable += findMethod(current).name
+        // special case: if the call-string is bounded to 0 we need to check whether there might be recursive calls
+        if(CallStringLength == CallString.ContextInsensitive)
+          super.onExitBlockExecuted(current)
     }
   }
 
