@@ -83,6 +83,16 @@ trait SilverInferenceRunner[S <: State[S]] extends
     */
   def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
 
+  /**
+    * Infers a list of arguments for the given method using the given analysis
+    * result.
+    *
+    * @param method The method for which the arguments are inferred.
+    * @param result The analysis result.
+    * @return The inferred arguments.
+    */
+  def inferArguments(method: sil.Method, result: CfgResult[S]): Seq[sil.LocalVarDecl] = method.formalArgs
+
   /* ------------------------------------------------------------------------- *
    * Helper Functions
    */
@@ -146,9 +156,20 @@ trait SilverInferenceRunner[S <: State[S]] extends
   * @author Jerome Dohrau
   */
 trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
+  /**
+    * The main method that runs the analysis with the given arguments.
+    *
+    * @param arguments The arguments.
+    */
+  override def main(arguments: Array[String]): Unit = {
+    require(arguments.nonEmpty, "No file specified")
+    val extended = extend(arguments)
+    printExtended(extended)
+  }
 
-  def extend(args: Array[String]): sil.Program = {
-    val compilable = Compilable.Path(new File(args(0)).toPath)
+  def extend(arguments: Array[String]): sil.Program = {
+    val path = new File(arguments(0)).toPath
+    val compilable = Compilable.Path(path)
     val program = compile(compilable)
     val results = run(program)
     extendProgram(program, results)
@@ -188,6 +209,7 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
 
     // return extended method
     method.copy(
+      formalArgs = inferArguments(method, result),
       pres = inferPreconditions(method, result),
       posts = inferPostconditions(method, result),
       body = extendBody(method.body, result)
@@ -241,6 +263,11 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
     case _ =>
       // do nothing
       statement
+  }
+
+  def printExtended(program: sil.Program): Unit = {
+    printHeader("Extended Program")
+    println(program)
   }
 }
 

@@ -12,79 +12,130 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.{SilverExporter, SilverExtender, SilverInferenceRunner}
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import viper.silver.ast.Program
 import viper.silver.{ast => sil}
 
-trait AbstractAnalysisRunner[S <: State[S]] {
-  val compiler: SilverCompiler
+/**
+  * An analysis runner for silver programs.
+  *
+  * @tparam S The type of the state used by the analysis.
+  * @author Jerome Dohrau
+  */
+trait SilverAnalysisRunner[S <: State[S]] {
+  /**
+    * The compiler.
+    */
+  val compiler: SilverCompiler = new SilverCompiler()
 
+  /**
+    * The analysis to run.
+    */
   val analysis: SilverAnalysis[S]
 
-  def compile(compilable: Compilable): sil.Program =
-    compiler.compile(compilable)
+  /**
+    * The main method that runs the analysis with the given arguments.
+    *
+    * @param arguments The arguments.
+    */
+  def main(arguments: Array[String]): Unit = {
+    require(arguments.nonEmpty, "No file specified")
+    val result = run(arguments)
+    printEntryStates(result)
+    printExitStates(result)
+  }
 
+  /**
+    * Runs the analysis with the given arguments.
+    *
+    * @param arguments The arguments.
+    * @return The result of the analysis.
+    */
+  def run(arguments: Array[String]): ProgramResult[S] = {
+    val path = new File(arguments(0)).toPath
+    val compilable = Compilable.Path(path)
+    run(compilable)
+  }
+
+  /**
+    * Runs the analysis with the given compilable as input.
+    *
+    * @param compilable The compilable.
+    * @return The result of the analysis.
+    */
   def run(compilable: Compilable): ProgramResult[S] = {
     val program = compiler.compile(compilable)
     run(program)
   }
 
+  /**
+    * Runs the analysis with the given program as input.
+    *
+    * @param program The program.
+    * @return The result of the analysis.
+    */
   def run(program: sil.Program): ProgramResult[S] = {
     val translated = compiler.toSample(program)
-    _run(translated)
+    run(translated)
   }
 
+  /**
+    * Runs the analysis with the given program as input.
+    *
+    * @param program The program.
+    * @return The result of the analysis.
+    */
   def run(program: SilverProgramDeclaration): ProgramResult[S] = {
-    SystemParameters.tm = SilverTypeMap
-    _run(program)
-  }
-
-  protected def prepareContext(): Unit = {
-    SystemParameters.analysisOutput = new StringCollector
-    SystemParameters.progressOutput = new StringCollector
-    SystemParameters.resetOutput()
-
-    SystemParameters.wideningLimit = 3
-    //SystemParameters.compiler = compiler
-
-    SystemParameters.resetNativeMethodsSemantics()
-    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
-  }
-
-  protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
     prepareContext()
     analysis.analyze(program)
   }
 
-  def main(args: Array[String]): Unit = {
-    run(Compilable.Path(new File(args(0)).toPath))
+  def compile(path: String): sil.Program = ???
+
+  def compile(compilable: Compilable): sil.Program =
+    compiler.compile(compilable)
+
+  protected def prepareContext(): Unit = {
+    SystemParameters.tm = SilverTypeMap
+    SystemParameters.analysisOutput = new StringCollector
+    SystemParameters.progressOutput = new StringCollector
+    SystemParameters.wideningLimit = 3
+
+    SystemParameters.resetOutput()
+    SystemParameters.resetNativeMethodsSemantics()
+    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodSemantics)
   }
-}
 
-/** Analysis runner for Silver programs. */
-trait SilverAnalysisRunner[S <: State[S]]
-  extends AbstractAnalysisRunner[S] {
-  val compiler = new SilverCompiler()
+  def printHeader(header: String): Unit = {
+    println("--------------------------------------------------")
+    println(header)
+    println("--------------------------------------------------")
+  }
 
-  /** Runs the analysis on the Silver program whose name is passed as first argument and reports errors and warnings. */
-  override def main(args: Array[String]): Unit = {
-    val result = run(Compilable.Path(new File(args(0)).toPath)) // run the analysis
+  /**
+    * Prints all entry states of the given analysis result.
+    *
+    * @param result The result of the analysis.
+    */
+  def printEntryStates(result: ProgramResult[S]): Unit = {
+    printHeader("Entry States")
+    result.identifiers.foreach { identifier =>
+      val entry = result.getResult(identifier).entryState()
+      println(s"$identifier: $entry")
+    }
+  }
 
-    println("\n******************\n* AnalysisResult *\n******************\n")
-    if (Reporter.assertionViolations.isEmpty) println("No errors")
-    for (e <- Reporter.assertionViolations) {
-      println(e)
-    } // error report
-    println()
-    if (Reporter.genericWarnings.isEmpty) println("No warnings")
-    for (w <- Reporter.genericWarnings) {
-      println(w)
-    } // warning report
-    println("\n***************\n* Entry States *\n***************\n")
-    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).entryState()))
-    println("\n***************\n* Exit States *\n***************\n")
-    result.identifiers.foreach(ident => println(ident.name + "() -> " + result.getResult(ident).exitState()))
+  /**
+    * Prints all exit states of the given analysis result.
+    *
+    * @param result The result of the analysis.
+    */
+  def printExitStates(result: ProgramResult[S]): Unit = {
+    printHeader("Exit States")
+    result.identifiers.foreach { identifier =>
+      val exit = result.getResult(identifier).exitState()
+      println(s"$identifier: $exit")
+    }
   }
 }
 
@@ -100,11 +151,6 @@ trait InterproceduralSilverAnalysisRunner[S <: State[S]]
   extends SilverAnalysisRunner[S] {
 
   override val analysis: InterproceduralSilverAnalysis[S]
-
-  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
-    prepareContext()
-    analysis.analyze(program)
-  }
 }
 
 /**
@@ -120,13 +166,6 @@ trait InterproceduralSilverBottomUpAnalysisRunner[S <: State[S]]
   extends InterproceduralSilverAnalysisRunner[S] {
 
   override val analysis: BottomUpAnalysis[S]
-
-  override protected def _run(program: SilverProgramDeclaration): ProgramResult[S] = {
-    prepareContext()
-    // run the analysis starting at the bottom of the topological order
-    analysis.analyze(program)
-  }
-
 }
 
 /** Interprocedural Specification Inference for Silver Programs.
@@ -157,7 +196,7 @@ trait InterproceduralSilverInferenceRunner[S <: State[S]]
     // extend methods
     val extendedMethods = program.methods.map { method =>
       val identifier = SilverIdentifier(method.name)
-      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      resultsToWorkWith = results.getTaggedResults(identifier).values.toSeq
       extendMethod(method, results.getResult(identifier))
     }
 
@@ -168,7 +207,7 @@ trait InterproceduralSilverInferenceRunner[S <: State[S]]
   override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
     program.methods.foreach { method =>
       val identifier = SilverIdentifier(method.name)
-      resultsToWorkWith = results.getTaggedResults(identifier).map(_._2).toSeq
+      resultsToWorkWith = results.getTaggedResults(identifier).values.toSeq
       exportMethod(method, results.getResult(identifier))
     }
   }

@@ -135,8 +135,6 @@ trait InterproceduralNumericalInferenceRunner[S <: NumericalAnalysisState[S, D],
 object InterproceduralIntegerOctagonInference
   extends InterproceduralNumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons] {
   override val analysis: InterproceduralSilverForwardAnalysis[IntegerOctagonAnalysisState] = InterproceduralIntegerOctagonAnalysis.analysis
-
-  override def main(args: Array[String]): Unit = super.main(args)
 }
 
 /**
@@ -180,16 +178,4 @@ object IntegerOctagonInference
   extends NumericalInferenceRunner[IntegerOctagonAnalysisState, IntegerOctagons]
     with SilverExtender[IntegerOctagonAnalysisState] {
   override val analysis: SilverAnalysis[IntegerOctagonAnalysisState] = IntegerOctagonAnalysis.analysis
-
-  override def main(args: Array[String]): Unit = {
-    require(args.nonEmpty, "No file specified")
-
-    val compilable = Compilable.Path(new File(args(0)).toPath)
-    val program = compile(compilable)
-
-    val result = run(program)
-    val extended = extendProgram(program, result)
-
-    println(extended)
-  }
 }

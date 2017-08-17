@@ -10,7 +10,9 @@ import ch.ethz.inf.pm.sample.execution.SampleCfg
 import ch.ethz.inf.pm.sample.oorepresentation._
 import viper.silver.cfg._
 
-case class SilverIdentifier(name: String)
+case class SilverIdentifier(name: String) {
+  override def toString: String = name
+}
 
 class SilverProgramDeclaration(val fields: Seq[FieldDeclaration],
                                val functions: Seq[SilverFunctionDeclaration],
