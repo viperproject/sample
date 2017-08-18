@@ -59,7 +59,7 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
       // Boolean variables
       case x: Identifier =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
-        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        val res = assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
         res
 
       case NegatedBooleanExpression(x: Identifier) =>
