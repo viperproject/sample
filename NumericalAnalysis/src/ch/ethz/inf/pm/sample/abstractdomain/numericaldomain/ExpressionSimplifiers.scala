@@ -11,39 +11,38 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Normalizer.Monomial
 
 /**
- *
- * Extend this if you are too lazy to handle all kinds of weird expressions and
- * instead want to handle only good old monomials
- *
- * @author Lucas Brutschy
- */
+  *
+  * Extend this if you are too lazy to handle all kinds of weird expressions and
+  * instead want to handle only good old monomials
+  *
+  * @author Lucas Brutschy
+  */
 trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain[T] {
-  this:T =>
+  this: T =>
 
   def assumeSimplified(expression: Expression): T
 
   /**
-   * This method assumes that a given expression hold
-   *
-   * @param expr the expression to be assumed
-   * @return the state after this action
-   */
+    * This method assumes that a given expression hold
+    *
+    * @param expr the expression to be assumed
+    * @return the state after this action
+    */
   override def assume(expr: Expression): T = {
 
     // Short-cut to simplified assumptions
     if (expr.canonical) return assumeSimplified(expr)
 
     expr match {
-
       // This must be first -- Shortcut in simplified version
       case b@BinaryArithmeticExpression(left, right, op) if !left.typ.isBooleanType && !right.typ.isBooleanType =>
         assumeSimplified(b)
 
       // Boolean constants
-      case Constant("true",_,_) => this
-      case Constant("false",_,_) => this.bottom()
-      case NegatedBooleanExpression(Constant("true",_,_)) => this.bottom()
-      case NegatedBooleanExpression(Constant("false",_,_)) => this
+      case Constant("true", _, _) => this
+      case Constant("false", _, _) => this.bottom()
+      case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false", _, _)) => this
       case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) if a == b =>
         this
       case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=) if a == b =>
@@ -116,34 +115,34 @@ trait BooleanExpressionSimplifier[T <: SemanticDomain[T]] extends SemanticDomain
 
 }
 
-  /**
- *
- * Extend this if you are too lazy to handle all kinds of weird expressions and
- * instead want to handle only good old monomials
- *
- * @author Lucas Brutschy
- */
+/**
+  *
+  * Extend this if you are too lazy to handle all kinds of weird expressions and
+  * instead want to handle only good old monomials
+  *
+  * @author Lucas Brutschy
+  */
 trait MonomialExpressionSimplifier[T <: SemanticDomain[T]] extends BooleanExpressionSimplifier[T] {
-    this: T =>
+  this: T =>
 
-    def assumeMonomes(tuple: Monomial): T
+  def assumeMonomes(tuple: Monomial): T
 
-    def assumeNonMonomes(expression: Expression): T
+  def assumeNonMonomes(expression: Expression): T
 
-    /**
-     * This method assumes that a given expression hold
-     *
-     * @param expr the expression to be assumed
-     * @return the state after this action
-     */
-    override def assumeSimplified(expr: Expression): T = expr match {
+  /**
+    * This method assumes that a given expression hold
+    *
+    * @param expr the expression to be assumed
+    * @return the state after this action
+    */
+  override def assumeSimplified(expr: Expression): T = expr match {
 
-      // Handling of monomes
-      case _ => Normalizer.conditionalExpressionToMonomial(expr) match {
-        case Some(x) => assumeMonomes(x)
-        case None => assumeNonMonomes(expr)
-      }
-
+    // Handling of monomes
+    case _ => Normalizer.conditionalExpressionToMonomial(expr) match {
+      case Some(x) => assumeMonomes(x)
+      case None => assumeNonMonomes(expr)
     }
 
   }
+
+}
