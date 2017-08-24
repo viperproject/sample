@@ -12,10 +12,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.InterproceduralIntegerOctagonBottomU
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.analysis._
 import ch.ethz.inf.pm.sample.domain.{HeapNode, MayAliasGraph, MustAliasGraph}
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverJsonExporter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverIdentifier, SilverJsonExporter}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
+import ch.ethz.inf.pm.sample.permissionanalysis.util.Context
 import ch.ethz.inf.pm.sample.permissionanalysis.{PermissionAnalysis, PermissionAnalysisEntryStateBuilder, PermissionInferenceRunner}
 import viper.silver.{ast => sil}
 
@@ -62,6 +63,18 @@ object Main {
   val permission = new PermissionInferenceRunner[P, A, May, Must]
     with SilverJsonExporter[P]
     with SilverExtender[P] {
+
+    override def extendMethod(method: sil.Method, result: CfgResult[P]): sil.Method = {
+      // TODO: There might be a better place to set the current method.
+      Context.setMethod(SilverIdentifier(method.name))
+      super.extendMethod(method, result)
+    }
+
+    override def exportMethod(method: sil.Method, result: CfgResult[P]): Unit = {
+      // TODO: There might be a better place to set the current method.
+      Context.setMethod(SilverIdentifier(method.name))
+      super.exportMethod(method, result)
+    }
 
     override val analysis: SilverAnalysis[P] = PermissionAnalysis[P, A, May, Must](
       aliasAnalysisStateBuilder = AliasAnalysisEntryStateBuilder(),
