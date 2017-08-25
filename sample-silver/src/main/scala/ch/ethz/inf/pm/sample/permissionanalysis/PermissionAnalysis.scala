@@ -252,7 +252,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
       case bool if bool.typ.isBooleanType =>
         // we do not assert boolean conditions since the analysis would fail
         // in all cases where we are not able to prove that something holds.
-        this
+        read(bool)
       case _ =>
         throw new IllegalArgumentException("An exhale must occur via a boolean or a permission expression.")
     }

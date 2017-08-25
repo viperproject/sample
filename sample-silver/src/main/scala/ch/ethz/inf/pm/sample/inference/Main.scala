@@ -94,9 +94,14 @@ object Main {
     )
 
     override def inferPostconditions(method: sil.Method, result: CfgResult[V]): Seq[sil.Exp] = {
+      val allowed = method.formalArgs.map(_.name).toSet ++ method.formalReturns.map(_.name).toSet
       val position = lastPosition(result.cfg.exit.get)
       val inferred = result.postStateAt(position).specifications
-      val converted = inferred.map(DefaultSampleConverter.convert)
+      val filtered = inferred.filter { constraint =>
+        val actual = constraint.ids.toSet.map(_.getName.split("\\.")(0))
+        actual subsetOf allowed
+      }
+      val converted = filtered.map(DefaultSampleConverter.convert)
       method.posts ++ converted
     }
 
@@ -122,6 +127,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     assert(args.nonEmpty, "No file specified.")
     val file = args(0)
+    val pretty = args.length > 1 && args(1) == "--pretty"
 
     // compile program
     val compiler = new SilverCompiler()
@@ -129,21 +135,25 @@ object Main {
     val program = compiler.compile(compilable)
 
     // flurin's inference
-    val interproceduralResults = interprocedural.run(program)
+    /*val interproceduralResults = interprocedural.run(program)
     interprocedural.exportProgram(program, interproceduralResults)
-    println(interprocedural.specificationsAsJson(file))
+    println(interprocedural.specificationsAsJson(file))*/
 
     // jerome's inference
-    /*val permissionResults = permission.run(program)
-    permission.exportProgram(program, permissionResults)
     val numericalResults = numerical.run(program)
-    numerical.extractSpecifications(permission)
-    numerical.exportProgram(program, numericalResults)
-    println(numerical.specificationsAsJson(file))*/
+    val numericalProgram = numerical.extendProgram(program, numericalResults)
+    val permissionResults = permission.run(numericalProgram)
 
-    // extend program
-    /*val p1 = permission.extendProgram(program, permissionResults)
-    val p2 = numerical.extendProgram(p1, numericalResults)
-    println(p2)*/
+    if (pretty) {
+      // pretty print extend program
+      val extended = permission.extendProgram(numericalProgram, permissionResults)
+      println(extended)
+    } else {
+      // export as json
+      numerical.exportProgram(program, numericalResults)
+      permission.extractSpecifications(numerical)
+      permission.exportProgram(program, permissionResults)
+      println(permission.specificationsAsJson(file))
+    }
   }
 }
