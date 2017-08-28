@@ -33,8 +33,7 @@ case class QuantifiedPermissionsAnalysis()
 
     //    Context.setNumericalInfo(method.name.name, numericalResult)
 
-    val quantifiedPermissionsEntry = QuantifiedPermissionsState()
-    val quantifiedPermissionsInterpreter = new FinalResultBackwardInterpreter[QuantifiedPermissionsState](method.body, quantifiedPermissionsEntry)
+    val quantifiedPermissionsInterpreter = new QPInterpreter(method.body)
     val quantifiedPermissionsResult = quantifiedPermissionsInterpreter.execute()
 
     quantifiedPermissionsResult
