@@ -7,120 +7,230 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.SilverState
-import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.PermissionTree
 import com.typesafe.scalalogging.LazyLogging
 
 /**
-  * @param pp          The current program point.
-  * @param expr        The expression representing the current result.
-  * @param permissions A map from field names to the permission trees.
-  * @param isTop       The top flag.
-  * @param isBottom    The bottom flag.
   * @author Severin Münger
-  * @author Jerome Dohrau
+  *         Added on 28.08.17.
   */
-case class QuantifiedPermissionsState(pp: ProgramPoint,
-                                      expr: ExpressionSet,
-                                      permissions: Map[String, PermissionTree],
-                                      isTop: Boolean,
-                                      isBottom: Boolean)
-  extends SilverState[QuantifiedPermissionsState]
-    with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
-    with LazyLogging {
+case class QuantifiedPermissionsState(expr: ExpressionSet = ExpressionSet(), permissions: Map[String, PermissionTree] = Map()) extends SimpleState[QuantifiedPermissionsState]
+  with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
+  with LazyLogging {
 
-  /* ------------------------------------------------------------------------- *
-   * LATTICE FUNCTIONS
-   */
+  /** Creates a variable given a `VariableIdentifier`.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x   The name of the variable
+    * @param typ The static type of the variable
+    * @param pp  The program point that creates the variable
+    * @return The abstract state after the creation of the variable
+    */
+  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint) = ???
 
-  override def factory(): QuantifiedPermissionsState = ???
+  /** Creates a variable for an argument given a `VariableIdentifier`.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x   The name of the argument
+    * @param typ The static type of the argument
+    * @return The abstract state after the creation of the argument
+    */
+  override def createVariableForArgument(x: VariableIdentifier, typ: Type) = ???
 
-  override def top(): QuantifiedPermissionsState = {
-    logger.trace("top()")
-    copy(isTop = true, isBottom = false)
-  }
+  /** Assigns an expression to a variable.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param x     The assigned variable
+    * @param right The assigned expression
+    * @return The abstract state after the assignment
+    */
+  override def assignVariable(x: Expression, right: Expression) = ???
 
-  override def bottom(): QuantifiedPermissionsState = {
-    logger.trace("bottom()")
-    copy(isTop = false, isBottom = true)
-  }
+  /** Assigns an expression to a field of an object.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param obj   the object whose field is assigned
+    * @param field the assigned field
+    * @param right the assigned expression
+    * @return the abstract state after the assignment
+    */
+  override def assignField(obj: Expression, field: String, right: Expression) = ???
 
-  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  /** Forgets the value of a variable.
+    *
+    * Implementations can assume this state is non-bottom
+    *
+    * @param varExpr The variable to be forgotten
+    * @return The abstract state obtained after forgetting the variable
+    */
+  override def setVariableToTop(varExpr: Expression) = ???
 
-  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  /** Removes a variable.
+    *
+    * Implementations can assume this state is non-bottom
+    *
+    * @param varExpr The variable to be removed
+    * @return The abstract state obtained after removing the variable
+    */
+  override def removeVariable(varExpr: VariableIdentifier) = ???
 
-  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  /** Accesses a field of an object.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param obj   the object on which the field access is performed
+    * @param field the name of the field
+    * @param typ   the type of the field
+    * @return The abstract state obtained after the field access, that is,
+    *         a new state whose `ExpressionSet` holds the symbolic representation of the value of the given field.
+    */
+  override def getFieldValue(obj: Expression, field: String, typ: Type) = ???
 
-  override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
+  /** Assumes that a boolean expression holds.
+    *
+    * Implementations can already assume that this state is non-bottom.
+    *
+    * @param cond The assumed expression
+    * @return The abstract state after assuming that the expression holds
+    */
+  override def assume(cond: Expression) = ???
 
-  /* ------------------------------------------------------------------------- *
-   *
-   */
+  /** Signals that we are going to analyze the statement at program point `pp`.
+    *
+    * This is particularly important to eventually partition a state following the specified directives.
+    *
+    * @param pp The point of the program that is going to be analyzed
+    * @return The abstract state eventually modified
+    */
+  override def before(pp: ProgramPoint) = ???
 
-  override def createVariableForArgument(x: VariableIdentifier, typ: Type): QuantifiedPermissionsState = ???
+  /** Creates an object
+    *
+    * @param typ The dynamic type of the created object
+    * @param pp  The point of the program that creates the object
+    * @return The abstract state after the creation of the object
+    */
+  override def createObject(typ: Type, pp: ProgramPoint) = ???
 
-  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = ???
+  /** Evaluates a numerical constant.
+    *
+    * @param value The string representing the numerical constant
+    * @param typ   The type of the numerical constant
+    * @param pp    The program point that contains the constant
+    * @return The abstract state after the evaluation of the constant, that is, the
+    *         state that contains an expression representing this constant
+    */
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint) = ???
 
-  override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = ???
+  /** Returns the current expression. */
+  override def expr = ???
 
-  override def assume(condition: Expression): QuantifiedPermissionsState = {
-    val newPermissions = permissions.mapValues(_.assume(condition))
-    copy(permissions = newPermissions)
-  }
+  /** Gets the value of a variable.
+    *
+    * @param id The variable to access
+    * @return The abstract state obtained after accessing the variable, that is, the state that contains
+    *         as expression the symbolic representation of the value of the given variable
+    */
+  override def getVariableValue(id: Identifier) = ???
 
-  override def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = ???
+  /** Performs abstract garbage collection. */
+  override def pruneUnreachableHeap() = ???
 
-  override def assignVariable(x: Expression, right: Expression): QuantifiedPermissionsState = ???
+  /** Removes all variables satisfying filter. */
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean) = ???
 
-  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = ???
+  /** Removes the current expression.
+    *
+    * @return The abstract state after removing the current expression
+    */
+  override def removeExpression() = ???
 
-  override def assignField(obj: Expression, field: String, right: Expression): QuantifiedPermissionsState = ???
+  /** Assigns an expression to an argument.
+    *
+    * @param x     The assigned argument
+    * @param right The expression to be assigned
+    * @return The abstract state after the assignment
+    */
+  override def setArgument(x: ExpressionSet, right: ExpressionSet) = ???
 
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = ???
+  /** Sets the current expression.
+    *
+    * @param expr The current expression
+    * @return The abstract state after changing the current expression with the given one
+    */
+  override def setExpression(expr: ExpressionSet) = ???
 
-  override def removeExpression(): QuantifiedPermissionsState = ???
+  /** Throws an exception.
+    *
+    * @param t The thrown exception
+    * @return The abstract state after the thrown
+    */
+  override def throws(t: ExpressionSet) = ???
 
-  override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
+  override def ids = ???
 
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
+  /** Returns a new instance of the lattice.
+    *
+    * @return A new instance of the current object
+    */
+  override def factory() = ???
 
-  override def ids: IdentifierSet = ???
+  /** Returns the top value of the lattice.
+    *
+    * @return The top value, that is, a value x that is greater than or equal to any other value
+    */
+  override def top() = ???
 
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = ???
+  /** Returns the bottom value of the lattice.
+    *
+    * @return The bottom value, that is, a value x that is less than or to any other value
+    */
+  override def bottom() = ???
 
-  override def before(pp: ProgramPoint): QuantifiedPermissionsState = copy(pp = pp)
+  /** Computes the least upper bound of two elements.
+    *
+    * @param other The other value
+    * @return The least upper bound, that is, an element that is greater than or equal to the two arguments,
+    *         and less than or equal to any other upper bound of the two arguments
+    */
+  override def lub(other: QuantifiedPermissionsState) = ???
 
-  override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
+  /** Computes the greatest lower bound of two elements.
+    *
+    * @param other The other value
+    * @return The greatest upper bound, that is, an element that is less than or equal to the two arguments,
+    *         and greater than or equal to any other lower bound of the two arguments
+    */
+  override def glb(other: QuantifiedPermissionsState) = ???
 
-  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = ???
+  /** Computes the widening of two elements.
+    *
+    * @param other The new value
+    * @return The widening of `this` and `other`
+    */
+  override def widening(other: QuantifiedPermissionsState) = ???
 
-  override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = copy(expr = expr)
+  /** Returns true if and only if `this` is less than or equal to `other`.
+    *
+    * @param other The value to compare
+    * @return true if and only if `this` is less than or equal to `other`
+    */
+  override def lessEqual(other: QuantifiedPermissionsState) = ???
 
-  override def getVariableValue(id: Identifier): QuantifiedPermissionsState = ???
+  /** Checks whether the given domain element is equivalent to bottom.
+    *
+    * @return bottom
+    */
+  override def isBottom = ???
 
-  /* ------------------------------------------------------------------------- *
-   * STATE FUNCTIONS
-   */
-
-  override def inhale(expression: Expression): QuantifiedPermissionsState = {
-    // TODO: assume pure part of expression.
-    ???
-  }
-
-  override def exhale(expression: Expression): QuantifiedPermissionsState = {
-    // TODO: Maybe assert pure part of expression?
-    ???
-  }
-
-  /* ------------------------------------------------------------------------- *
-   * COPY FUNCTION
-   */
-
-  def copy(pp: ProgramPoint = pp,
-           expr: ExpressionSet = expr,
-           permissions: Map[String, PermissionTree] = permissions,
-           isTop: Boolean = isTop,
-           isBottom: Boolean = isBottom): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(pp, expr, permissions, isTop, isBottom)
+  /** Checks whether the given domain element is equivalent to top.
+    *
+    * @return bottom
+    */
+  override def isTop = ???
 }

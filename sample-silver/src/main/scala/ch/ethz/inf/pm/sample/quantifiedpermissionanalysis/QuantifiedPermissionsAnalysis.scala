@@ -33,8 +33,7 @@ case class QuantifiedPermissionsAnalysis()
 
     //    Context.setNumericalInfo(method.name.name, numericalResult)
 
-    val quantifiedPermissionsEntry = QuantifiedPermissionsState()
-    val quantifiedPermissionsInterpreter = new FinalResultBackwardInterpreter[QuantifiedPermissionsState](method.body, quantifiedPermissionsEntry)
+    val quantifiedPermissionsInterpreter = new QPInterpreter(method.body)
     val quantifiedPermissionsResult = quantifiedPermissionsInterpreter.execute()
 
     quantifiedPermissionsResult
@@ -57,13 +56,21 @@ object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPerm
 
   override def inferArguments(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[LocalVarDecl] = super.inferArguments(method, result)
 
-  override def inferFields(newStmt: NewStmt, position: BlockPosition, result: CfgResult[QuantifiedPermissionsState]): Seq[Field] = super.inferFields(newStmt, position, result)
+  override def inferFields(newStmt: NewStmt, position: BlockPosition, result: CfgResult[QuantifiedPermissionsState]): Seq[Field] = {
+    newStmt.fields
+  }
 
-  override def inferPreconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = super.inferPreconditions(method, result)
+  override def inferPreconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
+    method.pres
+  }
 
-  override def inferPostconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = super.inferPostconditions(method, result)
+  override def inferPostconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
+    method.posts
+  }
 
-  override def inferInvariants(loop: While, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = super.inferInvariants(loop, result)
+  override def inferInvariants(loop: While, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
+    loop.invs
+  }
 
   /**
     * The analysis to run.
