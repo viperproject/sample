@@ -12,10 +12,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.InterproceduralIntegerOctagonBottomU
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.analysis._
 import ch.ethz.inf.pm.sample.domain.{HeapNode, MayAliasGraph, MustAliasGraph}
-import ch.ethz.inf.pm.sample.execution.{BlockPosition, CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
+import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverJsonExporter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverIdentifier, SilverJsonExporter}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
+import ch.ethz.inf.pm.sample.permissionanalysis.util.Context
 import ch.ethz.inf.pm.sample.permissionanalysis.{PermissionAnalysis, PermissionAnalysisEntryStateBuilder, PermissionInferenceRunner}
 import viper.silver.{ast => sil}
 
@@ -63,6 +64,18 @@ object Main {
     with SilverJsonExporter[P]
     with SilverExtender[P] {
 
+    override def extendMethod(method: sil.Method, result: CfgResult[P]): sil.Method = {
+      // TODO: There might be a better place to set the current method.
+      Context.setMethod(SilverIdentifier(method.name))
+      super.extendMethod(method, result)
+    }
+
+    override def exportMethod(method: sil.Method, result: CfgResult[P]): Unit = {
+      // TODO: There might be a better place to set the current method.
+      Context.setMethod(SilverIdentifier(method.name))
+      super.exportMethod(method, result)
+    }
+
     override val analysis: SilverAnalysis[P] = PermissionAnalysis[P, A, May, Must](
       aliasAnalysisStateBuilder = AliasAnalysisEntryStateBuilder(),
       permissionAnalysisStateBuilder = PermissionAnalysisEntryStateBuilder()
@@ -81,9 +94,14 @@ object Main {
     )
 
     override def inferPostconditions(method: sil.Method, result: CfgResult[V]): Seq[sil.Exp] = {
+      val allowed = method.formalArgs.map(_.name).toSet ++ method.formalReturns.map(_.name).toSet
       val position = lastPosition(result.cfg.exit.get)
       val inferred = result.postStateAt(position).specifications
-      val converted = inferred.map(DefaultSampleConverter.convert)
+      val filtered = inferred.filter { constraint =>
+        val actual = constraint.ids.toSet.map(_.getName.split("\\.")(0))
+        actual subsetOf allowed
+      }
+      val converted = filtered.map(DefaultSampleConverter.convert)
       method.posts ++ converted
     }
 
@@ -109,6 +127,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     assert(args.nonEmpty, "No file specified.")
     val file = args(0)
+    val pretty = args.length > 1 && args(1) == "--pretty"
 
     // compile program
     val compiler = new SilverCompiler()
@@ -116,21 +135,25 @@ object Main {
     val program = compiler.compile(compilable)
 
     // flurin's inference
-    val interproceduralResults = interprocedural.run(program)
+    /*val interproceduralResults = interprocedural.run(program)
     interprocedural.exportProgram(program, interproceduralResults)
-    println(interprocedural.specificationsAsJson(file))
+    println(interprocedural.specificationsAsJson(file))*/
 
     // jerome's inference
-    /*val permissionResults = permission.run(program)
-    permission.exportProgram(program, permissionResults)
     val numericalResults = numerical.run(program)
-    numerical.extractSpecifications(permission)
-    numerical.exportProgram(program, numericalResults)
-    println(numerical.specificationsAsJson(file))*/
+    val numericalProgram = numerical.extendProgram(program, numericalResults)
+    val permissionResults = permission.run(numericalProgram)
 
-    // extend program
-    /*val p1 = permission.extendProgram(program, permissionResults)
-    val p2 = numerical.extendProgram(p1, numericalResults)
-    println(p2)*/
+    if (pretty) {
+      // pretty print extend program
+      val extended = permission.extendProgram(numericalProgram, permissionResults)
+      println(extended)
+    } else {
+      // export as json
+      numerical.exportProgram(program, numericalResults)
+      permission.extractSpecifications(numerical)
+      permission.exportProgram(program, permissionResults)
+      println(permission.specificationsAsJson(file))
+    }
   }
 }

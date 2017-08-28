@@ -39,8 +39,8 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
   }
 
   override def inferPostconditions(method: sil.Method, result: CfgResult[T]): Seq[sil.Exp] = {
-    val position = lastPosition(result.cfg.exit.get)
-    val state = result.postStateAt(position)
+    val position = firstPosition(result.cfg.exit.get)
+    val state = result.preStateAt(position)
     extendSpecifications(method.posts, state, true)
   }
 

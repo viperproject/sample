@@ -299,6 +299,7 @@ trait AliasGraph[T <: AliasGraph[T]]
   }
 
   override def exhale(condition: Expression): (T, Substitution) = condition match {
+    case _: BinaryArithmeticExpression => (this, identity)
     case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
       val (domain, substitution1) = exhale(left)
       val (updated, substitution2) = domain.exhale(right)

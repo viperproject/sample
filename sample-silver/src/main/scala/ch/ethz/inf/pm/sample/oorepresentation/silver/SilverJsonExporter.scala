@@ -15,11 +15,13 @@ import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 import viper.silver.{ast => sil}
 
 /**
-  * Exports the changes to an extended program as json. For programs that did already contain some specifications
-  * we do not export new specifications but report an error (in json format).
-  * All changes and errors are accompanied by a Position in the original silver program.
+  * Exports the changes to an extended program as json. For programs that did
+  * already contain some specifications we do not export new specifications but
+  * report an error (in json format). All changes and errors are accompanied by
+  * a Position in the original silver program.
   *
-  * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the JSON output.
+  * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the
+  * JSON output.
   *
   * @tparam S The type of the state.
   * @author Flurin Rindisbacher
@@ -40,7 +42,7 @@ trait SilverJsonExporter[S <: State[S]]
   override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
     val position = method.body.pos
     preconditions.get(position) match {
-      case Some(entry) => preconditions = preconditions + (position -> (method.pres, entry._2 ++ inferred))
+      case Some(entry) => preconditions = preconditions + (position -> (method.pres, inferred ++ entry._2))
       case None => preconditions = preconditions + (position -> (method.pres, inferred))
     }
   }
@@ -48,7 +50,7 @@ trait SilverJsonExporter[S <: State[S]]
   override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
     val position = method.body.pos
     postconditions.get(position) match {
-      case Some(entry) => postconditions = postconditions + (position -> (method.posts, entry._2 ++ inferred))
+      case Some(entry) => postconditions = postconditions + (position -> (method.posts, inferred ++ entry._2))
       case None => postconditions = postconditions + (position -> (method.posts, inferred))
     }
   }
@@ -56,7 +58,7 @@ trait SilverJsonExporter[S <: State[S]]
   override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit = {
     val position = loop.body.pos
     invariants.get(position) match {
-      case Some(entry) => invariants = invariants + (position -> (loop.invs, entry._2 ++ inferred))
+      case Some(entry) => invariants = invariants + (position -> (loop.invs, inferred ++ entry._2))
       case None => invariants = invariants + (position -> (loop.invs, inferred))
     }
   }
