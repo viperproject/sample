@@ -6,8 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 /** Arithmetic operators. */
 object ArithmeticOperator extends Enumeration {
@@ -33,10 +33,11 @@ object ArithmeticOperator extends Enumeration {
   }
 
   /**
-   * Negates the given given arithmetic operator if possible.
-   * @param op the operator to negate
-   * @throws MatchError if the operator cannot be negated
-   */
+    * Negates the given given arithmetic operator if possible.
+    *
+    * @param op the operator to negate
+    * @throws MatchError if the operator cannot be negated
+    */
   def negate(op: Value): Value = op match {
     case `<=` => `>`
     case `<` => `>=`
@@ -47,10 +48,11 @@ object ArithmeticOperator extends Enumeration {
   }
 
   /**
-   * Flips the given arithmetic operator if possible.
-   * @param op the operator to flip
-   * @throws MatchError if the operator cannot be flipped
-   */
+    * Flips the given arithmetic operator if possible.
+    *
+    * @param op the operator to flip
+    * @throws MatchError if the operator cannot be flipped
+    */
   def flip(op: Value): Value = op match {
     case `+` => ArithmeticOperator.`+` // Make the compiler happy
     case `*` => `*`
@@ -101,11 +103,11 @@ object ReferenceOperator extends Enumeration {
 
 
 /**
- * Abstract operators that can be used to represent any operations on different types of objects, like string concatenation and type casts
- *
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * Abstract operators that can be used to represent any operations on different types of objects, like string concatenation and type casts
+  *
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 object AbstractOperatorIdentifiers extends Enumeration {
   val isInstanceOf = Value("isInstanceOf")
   val asInstanceOf = Value("asInstanceOf")
@@ -167,6 +169,15 @@ trait Expression {
   /** Checks if function f evaluates to true for any sub-expression. */
   def contains(f: (Expression => Boolean)): Boolean
 
+  /** Applies function f to every sub-expression. */
+  def foreach(f: (Expression => Unit)): Unit = transform(expr => {
+    f(expr)
+    expr
+  })
+
+  /** Finds a sub-expression of this expression satisfying the predicate f, if any. */
+  def find(f: (Expression => Boolean)): Option[Expression] = Some(this).filter(f)
+
 }
 
 
@@ -187,17 +198,17 @@ case class NegatedBooleanExpression(exp: Expression) extends Expression {
 }
 
 /**
- * Represents a generic operation, e.g., concatenation of strings. Usually, at source code level these
- * operations are encoded as method calls. 
- *
- * @param thisExpr The object on which the expression is performed
- * @param parameters A (possibly empty) list of arguments
- * @param typeparameters A (possibly empty) list of generic types
- * @param op The identifier of the operation
- * @param returntyp The type of the value returned by the operation
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * Represents a generic operation, e.g., concatenation of strings. Usually, at source code level these
+  * operations are encoded as method calls.
+  *
+  * @param thisExpr       The object on which the expression is performed
+  * @param parameters     A (possibly empty) list of arguments
+  * @param typeparameters A (possibly empty) list of generic types
+  * @param op             The identifier of the operation
+  * @param returntyp      The type of the value returned by the operation
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class AbstractOperator(
                              thisExpr: Expression,
                              parameters: List[Expression],
@@ -233,18 +244,18 @@ case class AbstractOperator(
 }
 
 /**
- * A binary boolean expression, e.g. B1 && B2
- *
- * @param left One of the operands
- * @param right The other operand
- * @param op The identifier of the operation
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A binary boolean expression, e.g. B1 && B2
+  *
+  * @param left  One of the operands
+  * @param right The other operand
+  * @param op    The identifier of the operation
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class BinaryBooleanExpression(
                                     left: Expression,
                                     right: Expression,
-    op: BooleanOperator.Value) extends Expression {
+                                    op: BooleanOperator.Value) extends Expression {
 
   def pp: ProgramPoint = left.pp
 
@@ -285,18 +296,18 @@ trait BinaryExpression extends Expression {
 
 
 /**
- * A comparison between reference, that is, left == right or left != right
- *
- * @param left One of the operands
- * @param right The other operand
- * @param op The identifier of the operation
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A comparison between reference, that is, left == right or left != right
+  *
+  * @param left  One of the operands
+  * @param right The other operand
+  * @param op    The identifier of the operation
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class ReferenceComparisonExpression(
                                           left: Expression,
                                           right: Expression,
-    op: ReferenceOperator.Value) extends BinaryExpression {
+                                          op: ReferenceOperator.Value) extends BinaryExpression {
 
   require(left.typ.isObject,
     "cannot perform reference comparisons on primitive values")
@@ -314,18 +325,18 @@ case class ReferenceComparisonExpression(
 }
 
 /**
- * A binary arithmetic expression, e.g. A1+A2 or A1>=A2
- *
- * @param left One of the operands
- * @param right The other operand
- * @param op The identifier of the operation
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A binary arithmetic expression, e.g. A1+A2 or A1>=A2
+  *
+  * @param left  One of the operands
+  * @param right The other operand
+  * @param op    The identifier of the operation
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class BinaryArithmeticExpression(
                                        left: Expression,
                                        right: Expression,
-    op: ArithmeticOperator.Value) extends BinaryExpression {
+                                       op: ArithmeticOperator.Value) extends BinaryExpression {
 
   def typ: Type = ArithmeticOperator.returnTyp(op, left.typ, right.typ)
 
@@ -339,13 +350,13 @@ case class BinaryArithmeticExpression(
 object BinaryArithmeticExpression {
 
   /**
-   * Creates an expression that represents the concatenation
-   * of a sequence of expressions with a certain arithmetic operator.
-   *
-   * @param exps the sequence of expressions to concatenate
-   * @param op the arithmetic operator to concatenate the expressions with
-   * @param emptyExp the expression to return if `exps` is empty
-   */
+    * Creates an expression that represents the concatenation
+    * of a sequence of expressions with a certain arithmetic operator.
+    *
+    * @param exps     the sequence of expressions to concatenate
+    * @param op       the arithmetic operator to concatenate the expressions with
+    * @param emptyExp the expression to return if `exps` is empty
+    */
   def apply(exps: Iterable[Expression],
             op: ArithmeticOperator.Value,
             emptyExp: Expression): Expression =
@@ -355,14 +366,14 @@ object BinaryArithmeticExpression {
 }
 
 /**
- * A unary arithmetic expression, e.g. -A1
- *
- * @param left The operand
- * @param op The identifier of the operation
- * @param returntyp The type of the returned value
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A unary arithmetic expression, e.g. -A1
+  *
+  * @param left      The operand
+  * @param op        The identifier of the operation
+  * @param returntyp The type of the returned value
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, returntyp: Type) extends Expression {
 
   def pp: ProgramPoint = left.pp
@@ -381,16 +392,16 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
 }
 
 /**
- * A (usually numeric) constant represented by a string 
- *
- * @param constant The constant
- * @param typ The type of the constant
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * A (usually numeric) constant represented by a string
+  *
+  * @param constant The constant
+  * @param typ      The type of the constant
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class Constant(
                      constant: String,
-    typ: Type,
+                     typ: Type,
                      pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
@@ -412,8 +423,8 @@ case class Constant(
 }
 
 /**
- * An identifier, that could be a variable or a node of the abstract heap.
- */
+  * An identifier, that could be a variable or a node of the abstract heap.
+  */
 trait Identifier extends Expression with Assignable {
 
   def ids = IdentifierSet.Inner(Set(this))
@@ -421,30 +432,31 @@ trait Identifier extends Expression with Assignable {
   def transform(f: (Expression => Expression)): Expression = f(this)
 
   /**
-   * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
-   * if they are the same identifier
-   * @return The name of the identifier
-   */
+    * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+    * if they are the same identifier
+    *
+    * @return The name of the identifier
+    */
   def getName: String
 
   /**
-   * Returns the name of the field that is represented by this identifier if it is a heap identifier.
-   *
-   * @return The name of the field pointed by this identifier
-   */
+    * Returns the name of the field that is represented by this identifier if it is a heap identifier.
+    *
+    * @return The name of the field pointed by this identifier
+    */
   def getField: Option[String]
 
   /**
-   * Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
-   * identifier. This function tells if a node is a summary node.
-   *
-   * @return true iff this identifier represents exactly one variable
-   */
+    * Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+    * identifier. This function tells if a node is a summary node.
+    *
+    * @return true iff this identifier represents exactly one variable
+    */
   def representsSingleVariable: Boolean
 
   override def toString: String = getName
 
-  def sanitizedName: String = getName.replaceAll("[^a-z0-9A-Z]*","")
+  def sanitizedName: String = getName.replaceAll("[^a-z0-9A-Z]*", "")
 
   def contains(f: (Expression => Boolean)): Boolean = f(this)
 }
@@ -455,30 +467,31 @@ object Identifier {
 
   trait FieldIdentifier extends Identifier {
 
-    def obj:Identifier.HeapIdentifier
-    def field:String
+    def obj: Identifier.HeapIdentifier
+
+    def field: String
 
   }
 
 }
 
 /**
- * An identifier for identifying a scope
- */
+  * An identifier for identifying a scope
+  */
 trait ScopeIdentifier
 
 /**
- * If you do not care about scopes.
- */
+  * If you do not care about scopes.
+  */
 object EmptyScopeIdentifier extends ScopeIdentifier {
   override def toString = ""
 }
 
 /**
- * Scopes identified by a program point, e.g. method-scope identified by program point of method declaration
- *
- * @param pp the program point of the beginning of the scope
- */
+  * Scopes identified by a program point, e.g. method-scope identified by program point of method declaration
+  *
+  * @param pp the program point of the beginning of the scope
+  */
 case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier {
 
   override def hashCode(): Int = pp.hashCode()
@@ -493,11 +506,11 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
 }
 
 /**
- * The identifier of a variable.
- *
- * @param name The name of the variable
- * @param typ The type of the variable
- */
+  * The identifier of a variable.
+  *
+  * @param name The name of the variable
+  * @param typ  The type of the variable
+  */
 case class VariableIdentifier
 (name: String, scope: ScopeIdentifier = EmptyScopeIdentifier)
 (val typ: Type, val pp: ProgramPoint = DummyProgramPoint)
@@ -516,17 +529,17 @@ case class VariableIdentifier
 }
 
 /**
- * The heap identifier that has to be implemented by particular heap analyses.
- */
+  * The heap identifier that has to be implemented by particular heap analyses.
+  */
 trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier.HeapIdentifier {}
 
 /**
- * The unit expression, that represents the absence of a concrete expression.
- *
- * @param typ The unit type
- * @author Pietro Ferrara
- * @since 0.1
- */
+  * The unit expression, that represents the absence of a concrete expression.
+  *
+  * @param typ The unit type
+  * @author Pietro Ferrara
+  * @since 0.1
+  */
 case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
   def ids = IdentifierSet.Bottom
 
@@ -581,28 +594,28 @@ object AccessPathIdentifier {
 }
 
 /**
- * Implements non-deterministic operations. These can be used to represent non-deterministic expressions on the
- * stack of the state, e.g. the result of a math.random call.
- *
- * Note that not every numerical domain has direct support for this.
- *
- * @author Lucas Brutschy
- */
+  * Implements non-deterministic operations. These can be used to represent non-deterministic expressions on the
+  * stack of the state, e.g. the result of a math.random call.
+  *
+  * Note that not every numerical domain has direct support for this.
+  *
+  * @author Lucas Brutschy
+  */
 object NondeterministicOperator extends Enumeration {
 
   /**
-   * Represents a nondeterministic choice between two expressions, e.g (a+3) or (b+3) or (invalid)
-   */
+    * Represents a nondeterministic choice between two expressions, e.g (a+3) or (b+3) or (invalid)
+    */
   val or = Value("or")
 
   /**
-   * Represents a nondeterministic choice in a given range (interval), e.g. 1 to (x+y). Includes upper bound
-   */
+    * Represents a nondeterministic choice in a given range (interval), e.g. 1 to (x+y). Includes upper bound
+    */
   val toIncl = Value("toIncl")
 
   /**
-   * Represents a nondeterministic choice in a given range (interval), e.g. 1 to (x+y). Excludes upper bound
-   */
+    * Represents a nondeterministic choice in a given range (interval), e.g. 1 to (x+y). Excludes upper bound
+    */
   val toExcl = Value("toExcl")
 
   def returnTyp(op: Value, left: Type, right: Type): Type = {
@@ -611,9 +624,9 @@ object NondeterministicOperator extends Enumeration {
 }
 
 /**
- * Represents an expression with a nondeterministic operator.
- *
- * @author Lucas Brutschy
+  * Represents an expression with a nondeterministic operator.
+  *
+  * @author Lucas Brutschy
   */
 case class BinaryNondeterministicExpression(left: Expression, right: Expression, op: NondeterministicOperator.Value) extends BinaryExpression {
 
@@ -635,8 +648,7 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
   * @author Caterina Urban
   */
 case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression, typ: Type)
-  extends Expression
-{
+  extends Expression {
   override def transform(f: (Expression) => Expression): Expression = f(FieldAccessPredicate(location.transform(f), numerator.transform(f), denominator.transform(f), typ))
 
   override def ids: IdentifierSet = location.ids ++ numerator.ids ++ denominator.ids
@@ -655,8 +667,7 @@ case class FieldAccessPredicate(location: Expression, numerator: Expression, den
   * @author Jerome Dohrau
   */
 case class CurrentPermission(location: Expression, typ: Type)
-  extends Expression
-{
+  extends Expression {
   override def ids: IdentifierSet = location.ids
 
   override def pp: ProgramPoint = location.pp
@@ -704,6 +715,29 @@ case class FunctionCallExpression(functionName: String, parameters: Seq[Expressi
   override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(functionName, parameters.map(param => param.transform(f)), typ, pp))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
+}
+
+case class FieldExpression(typ: Type, field: String, receiver: Expression) extends Expression {
+
+  /** Point in the program where this expression is located. */
+  override def pp: ProgramPoint = receiver.pp
+
+  /** All identifiers that are part of this expression. */
+  override def ids: IdentifierSet = receiver.ids
+
+  /** Runs f on the expression and all sub-expressions
+    *
+    * This also replaces identifiers inside heap ID sets.
+    *
+    * @param f the transformer
+    * @return the transformed expression
+    */
+  override def transform(f: (Expression) => Expression): Expression = f(FieldExpression(typ, field, receiver.transform(f)))
+
+  /** Checks if function f evaluates to true for any sub-expression. */
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || receiver.contains(f)
+
+  override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else receiver.find(f)
 }
 
 object StringOperator extends Enumeration {
