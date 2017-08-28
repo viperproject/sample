@@ -10,6 +10,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 
 sealed trait PermissionTree {
+
+  def bound(): PermissionTree = Maximum(this, Empty)
+
+  def assume(condition: Expression) = Conditional(condition, this, Empty)
+
   def transform(f: PermissionTree => PermissionTree): PermissionTree = this match {
     case Addition(left, right) => f(Addition(left.transform(f), right.transform(f)))
     case Subtraction(left, right) => f(Subtraction(left.transform(f), right.transform(f)))
@@ -25,8 +30,6 @@ sealed trait PermissionTree {
 }
 
 object PermissionTree {
-  def Bound(tree: PermissionTree): PermissionTree = Maximum(tree, Empty)
-
   /**
     * Represents no permissions.
     */
