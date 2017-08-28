@@ -5,6 +5,7 @@
  */
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
+import ch.ethz.inf.pm.sample.abstractdomain.IntegerOctagonAnalysisState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
@@ -29,6 +30,6 @@ object QuantifiedPermissionsParameters {
 
   type NumericalDomainType = IntegerOctagons
 
-  type NumericalStateType = IntegerOctagons
+  type NumericalStateType = IntegerOctagonAnalysisState
 
 }

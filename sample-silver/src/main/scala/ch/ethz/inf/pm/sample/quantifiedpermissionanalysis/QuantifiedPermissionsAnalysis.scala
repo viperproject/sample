@@ -46,7 +46,7 @@ object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPerm
 
   override def extendProgram(program: sil.Program, results: ProgramResult[QuantifiedPermissionsState]): sil.Program = {
     val tempProg = super.extendProgram(program, results)
-    tempProg.copy(functions = tempProg.functions ++ Context.getAuxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info)
+    tempProg.copy(functions = tempProg.functions ++ Context.getAuxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info, errT = NoTrafos)
   }
 
   override def extendMethod(method: sil.Method, cfgResult: CfgResult[QuantifiedPermissionsState]): sil.Method = {
@@ -68,5 +68,5 @@ object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPerm
     * The analysis to run.
     */
 
-  override val analysis: QuantifiedPermissionsAnalysis.type = QuantifiedPermissionsAnalysis
+  override val analysis: QuantifiedPermissionsAnalysis = QuantifiedPermissionsAnalysis()
 }
