@@ -8,13 +8,14 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.permissionanalysis.util.PermissionTree
 import com.typesafe.scalalogging.LazyLogging
 
 /**
   * @author Severin Münger
   *         Added on 28.08.17.
   */
-case class QuantifiedPermissionsState() extends SimpleState[QuantifiedPermissionsState]
+case class QuantifiedPermissionsState(expr: ExpressionSet = ExpressionSet(), permissions: Map[String, PermissionTree] = Map()) extends SimpleState[QuantifiedPermissionsState]
   with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
   with LazyLogging {
 
@@ -125,9 +126,6 @@ case class QuantifiedPermissionsState() extends SimpleState[QuantifiedPermission
     *         state that contains an expression representing this constant
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint) = ???
-
-  /** Returns the current expression. */
-  override def expr = ???
 
   /** Gets the value of a variable.
     *
