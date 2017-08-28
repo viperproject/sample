@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
   * @author Severin Münger
   *         Added on 28.08.17.
   */
-class QuantifiedPermissionsState extends SimpleState[QuantifiedPermissionsState]
+case class QuantifiedPermissionsState() extends SimpleState[QuantifiedPermissionsState]
   with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
   with LazyLogging {
 
