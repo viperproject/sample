@@ -6,13 +6,19 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 /**
   * @author Severin Münger
   *         Added on 28.08.17.
   */
-class Main {
-
+object Main {
+  def main(args: Array[String]): Unit = {
+    SystemParameters.analysisOutput = new StdOutOutput()
+    SystemParameters.progressOutput = new StdOutOutput()
+    SystemParameters.wideningLimit = 10
+    QuantifiedPermissionsAnalysisRunner.main(args)
+  }
 }
 
 object QuantifiedPermissionsParameters {
