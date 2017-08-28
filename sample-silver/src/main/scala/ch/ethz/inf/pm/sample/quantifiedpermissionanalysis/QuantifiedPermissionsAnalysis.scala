@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.ast._
 import viper.silver.{ast => sil}
@@ -26,9 +27,9 @@ case class QuantifiedPermissionsAnalysis()
 
     Context.setMethodContext(DefaultSilverConverter.prog, method)
 
-    //    val numericalEntry = numericalStateBuilder.build(program, method)
-    //    val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType]()
-    //    val numericalResult = numericalInterpreter.execute(method.body, numericalEntry)
+    val numericalEntry = numericalEntryStateBuilder.build(program, method)
+    val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType](method.body, numericalEntry)
+    val numericalResult = numericalInterpreter.execute()
 
     //    Context.setNumericalInfo(method.name.name, numericalResult)
 

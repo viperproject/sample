@@ -5,8 +5,7 @@
  */
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.IntegerOctagonAnalysisState
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 
 /**
@@ -28,8 +27,10 @@ object QuantifiedPermissionsParameters {
 
   val useQESimplifications = true
 
-  type NumericalDomainType = IntegerOctagons
+  val numericalEntryStateBuilder = ApronPolyhedraAnalysisEntryState
 
-  type NumericalStateType = IntegerOctagonAnalysisState
+  type NumericalDomainType = Apron.Polyhedra
+
+  type NumericalStateType = ApronPolyhedraAnalysisState
 
 }
