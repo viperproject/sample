@@ -18,10 +18,15 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
+  * An interpreter used for the quantified permission inference. It visits every
+  * block only once and traverses the CFG from be exit to the entry block while
+  * prioritizing all blocks from inner loops over the blocks of the outer loops.
+  *
+  * @author Jerome Dohrau
   * @author Severin Münger
-  *         Added on 28.08.17.
   */
-final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
+final class QPInterpreter(val cfg: SampleCfg, val initial: QuantifiedPermissionsState)
+  extends SilverInterpreter[QuantifiedPermissionsState] with LazyLogging {
   /**
     * Look up the CFG for the current worklist element. Intraprocedural interpreters can always return the same
     * CFG (there is only one cfg to analyze). Interprocedural interpreters on the other hand need to look up the
@@ -40,9 +45,7 @@ final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[Quantifi
     * @param cfg The control flow graph
     * @return The initial state for a given cfg.
     */
-  override def initial(cfg: SampleCfg) = QuantifiedPermissionsState()
-
-  def initial(): QuantifiedPermissionsState = initial(cfg)
+  override def initial(cfg: SampleCfg): QuantifiedPermissionsState = initial
 
   /**
     * Executes the control flow graph.
@@ -50,13 +53,13 @@ final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[Quantifi
     * @return The result of the execution.
     */
   override def execute(): CfgResult[QuantifiedPermissionsState] = {
-    val bottom = QuantifiedPermissionsState().bottom()
+    val bottom = initial.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
     val worklist: mutable.Stack[SampleBlock] = mutable.Stack()
     worklist.push(cfg.exit.get)
     while (worklist.nonEmpty) {
       val current = worklist.pop()
-      val outState = if (cfg.exit.get == current) {
+      val exit = if (cfg.exit.get == current) {
         initial(cfg)
       } else {
         var state: QuantifiedPermissionsState = bottom
@@ -80,12 +83,11 @@ final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[Quantifi
         state
       }
 
-      val states: ListBuffer[QuantifiedPermissionsState] = ListBuffer()
-
+      val states: ListBuffer[QuantifiedPermissionsState] = ListBuffer(exit)
       current match {
         case StatementBlock(statements) =>
           // execute statements
-          var successor = outState
+          var successor = exit
           statements.reverse.foreach(statement => {
             val predecessor = executeStatement(statement, successor)
             states.append(predecessor)
@@ -93,21 +95,21 @@ final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[Quantifi
           })
         case PreconditionBlock(preconditions) =>
           // process preconditions
-          preconditions.foldRight(outState) { (precondition, successor) =>
+          preconditions.foldRight(exit) { (precondition, successor) =>
             val predecessor = executeCommand(PreconditionCommand, precondition, successor)
             states.append(predecessor)
             predecessor
           }
         case PostconditionBlock(postconditions) =>
           // process postconditions
-          postconditions.foldRight(outState) { (postcondition, successor) =>
+          postconditions.foldRight(exit) { (postcondition, successor) =>
             val predecessor = executeCommand(PostconditionCommand, postcondition, successor)
             states.append(predecessor)
             predecessor
           }
         case LoopHeadBlock(invariants, statements) =>
           // execute statements
-          var successor = outState
+          var successor = exit
           statements.reverse.foreach(statement => {
             val predecessor = executeStatement(statement, successor)
             states.append(predecessor)
@@ -126,7 +128,7 @@ final class QPInterpreter(val cfg: SampleCfg) extends SilverInterpreter[Quantifi
           ???
       }
 
-      cfgResult.setStates(current, states.toList)
+      cfgResult.setStates(current, states.reverse.toList)
 
       current match {
         case loopHead@LoopHeadBlock(_, _) =>

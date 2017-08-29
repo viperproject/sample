@@ -56,7 +56,7 @@ object Context {
 
   def getFieldAccessFunction(field: String): sil.Function = {
     if (!fieldAccessFunctions.contains(field)) {
-      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get" + field.head.toUpper + field.tail), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None, None)()
+      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get" + field.head.toUpper + field.tail), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None)()
       fieldAccessFunctions += field -> function
       auxiliaryFunctions += function.name -> function
     }
@@ -65,7 +65,7 @@ object Context {
   }
 
   def getPlaceholderFunction(quantifiedVariable: sil.LocalVarDecl): sil.Function = {
-    val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None, None)()
+    val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None)()
     auxiliaryFunctions += function.name -> function
     function
   }
@@ -168,7 +168,7 @@ object Context {
   def getMaxFunction: sil.Function = maxFunction match {
     case Some(existingMaxFunction) => existingMaxFunction
     case None =>
-      val fun = sil.Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), sil.Perm, Seq(), Seq(), None,
+      val fun = sil.Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), sil.Perm, Seq(), Seq(),
         Some(sil.CondExp(sil.PermGtCmp(VarX, VarY)(), VarX, VarY)())
       )()
       maxFunction = Some(fun)
@@ -179,7 +179,7 @@ object Context {
   def getBoundaryFunction: sil.Function = boundaryFunction match {
     case Some(existingBoundaryFunction) => existingBoundaryFunction
     case None =>
-      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(), None, Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)()))()
+      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(), Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)()))()
       boundaryFunction = Some(fun)
       auxiliaryFunctions += ((fun.name, fun))
       fun

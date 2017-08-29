@@ -6,8 +6,10 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSet
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
+import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import com.typesafe.scalalogging.LazyLogging
@@ -15,8 +17,8 @@ import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
+  * @author Jerome Dohrau
   * @author Severin Münger
-  *         Added on 28.08.17.
   */
 case class QuantifiedPermissionsAnalysis()
   extends SilverAnalysis[QuantifiedPermissionsState] with LazyLogging {
@@ -31,12 +33,13 @@ case class QuantifiedPermissionsAnalysis()
     val numericalInterpreter = FinalResultForwardInterpreter[NumericalStateType](method.body, numericalEntry)
     val numericalResult = numericalInterpreter.execute()
 
-    //    Context.setNumericalInfo(method.name.name, numericalResult)
+    // Context.setNumericalInfo(method.name.name, numericalResult)
 
-    val quantifiedPermissionsInterpreter = new QPInterpreter(method.body)
-    val quantifiedPermissionsResult = quantifiedPermissionsInterpreter.execute()
+    val entry = QuantifiedPermissionEntryState.build(program, method)
+    val interpreter = new QPInterpreter(method.body, entry)
+    val result = interpreter.execute()
 
-    quantifiedPermissionsResult
+    result
   }
 }
 
@@ -77,4 +80,22 @@ object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPerm
     */
 
   override val analysis: QuantifiedPermissionsAnalysis = QuantifiedPermissionsAnalysis()
+}
+
+object QuantifiedPermissionEntryState
+  extends SilverEntryStateBuilder[QuantifiedPermissionsState] {
+
+  override def default: QuantifiedPermissionsState = QuantifiedPermissionsState(
+    pp = DummyProgramPoint,
+    expr = ExpressionSet(),
+    permissions = Map.empty,
+    isTop = false,
+    isBottom = false
+  )
+
+  override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): QuantifiedPermissionsState = {
+    val fields = program.fields.map(_.variable.id.name)
+    val permissions = fields.map(field => field -> (PermissionTree.Initial: PermissionTree)).toMap
+    super.build(program, method).copy(permissions = permissions)
+  }
 }
