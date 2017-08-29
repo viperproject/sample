@@ -6,7 +6,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSet
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
@@ -88,14 +88,15 @@ object QuantifiedPermissionEntryState
   override def default: QuantifiedPermissionsState = QuantifiedPermissionsState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    permissions = Map.empty,
+    records = PermissionRecords(),
     isTop = false,
     isBottom = false
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): QuantifiedPermissionsState = {
-    val fields = program.fields.map(_.variable.id.name)
-    val permissions = fields.map(field => field -> (PermissionTree.Initial: PermissionTree)).toMap
-    super.build(program, method).copy(permissions = permissions)
+    val fields = program.fields.map(_.variable.id: Identifier)
+    val map = fields.map(_ -> (PermissionTree.Initial: PermissionTree)).toMap
+    val records = PermissionRecords(map)
+    super.build(program, method).copy(records = records)
   }
 }
