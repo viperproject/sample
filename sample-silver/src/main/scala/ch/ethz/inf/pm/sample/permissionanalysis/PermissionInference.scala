@@ -19,6 +19,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisTypes.AccessPa
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Permission.Fractional
 import ch.ethz.inf.pm.sample.permissionanalysis.util.{Context, Permission, PermissionTree}
 import ch.ethz.inf.pm.sample.permissionanalysis.util._
+import viper.silver.ast.TrueLit
 import viper.silver.{ast => sil}
 
 trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A <: AliasAnalysisState[A, May, Must], May <: AliasDomain[May, HeapNode], Must <: AliasDomain[Must, HeapNode]]
@@ -80,8 +81,12 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     val zero = getAliasState(edges.filter(_.isIn))
     val more = getAliasState(edges.filterNot(_.isIn))
 
-    val constraints = or(createConstraint(zero), createConstraint(more))
-    extendSpecifications(loop.invs, state) ++ Seq(constraints)
+    val constraints = or(createConstraint(zero), createConstraint(more)) match {
+      case _: TrueLit => Seq.empty
+      case constraint => Seq(constraint)
+    }
+
+    extendSpecifications(loop.invs, state) ++ constraints
   }
 
   override def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[T]): Seq[sil.Field] = {
