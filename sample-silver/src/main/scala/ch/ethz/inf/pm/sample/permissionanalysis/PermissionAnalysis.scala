@@ -609,7 +609,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
     * @param permission The amount of permissions to add.
     */
   private def access(path: AccessPath, permission: Permission): T = {
-    val p = if (path.last.getName == "[]") path.init else path
+    val p = if (path.nonEmpty && path.last.getName == "[]") path.init else path
     if (p.length < 2)
     // in this case no permission is needed
       this
