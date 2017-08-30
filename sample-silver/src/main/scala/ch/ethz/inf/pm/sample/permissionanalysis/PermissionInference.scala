@@ -124,7 +124,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
   private def extendSpecifications(existing: Seq[sil.Exp], state: T, makeSelfFraming: Boolean = false): Seq[sil.Exp] = {
     val inferredSpecifications = state.specifications
     val (existingSpecifications, unknown) = extractSpecifications(existing, state)
-    val specifications = inferredSpecifications.headTree plus existingSpecifications
+    val specifications = inferredSpecifications.headTree lub existingSpecifications
 
     val framed = if (makeSelfFraming) {
       specifications.map() { case (_, tree) =>
