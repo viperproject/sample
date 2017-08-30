@@ -50,7 +50,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
     *
     * @return The name of the identifier
     */
-  override def getName: String = ???
+  override def getName: String = "new()"
 
   /**
     * Returns the name of the field that is represented by this identifier if it is a heap identifier.
