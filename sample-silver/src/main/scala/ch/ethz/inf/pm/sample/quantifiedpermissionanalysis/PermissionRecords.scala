@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{AccessPathIdentifier, Expression, Identifier, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.Path
@@ -38,7 +38,12 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   def write(expression: Expression): PermissionRecords = access(expression, Write)
 
   def access(expression: Expression, permission: Permission): PermissionRecords = expression match {
+    case _: Constant => this
     case _: VariableIdentifier => this
+    case BinaryBooleanExpression(left, right, _) => read(left).read(right)
+    case ReferenceComparisonExpression(left, right, _) => read(left).read(right)
+    case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
+    case NegatedBooleanExpression(argument) => read(argument)
     case AccessPathIdentifier(path) =>
       if (path.length <= 1) this
       else {
@@ -83,28 +88,48 @@ object PermissionTree {
     */
   case object Empty
     extends PermissionTree {
+
+    override def toString: String = "none"
   }
 
   /**
     * Represents a placeholder to some arbitrary initial permissions.
     */
   case object Initial
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = "p_0"
+  }
 
   case class Leaf(receiver: Receiver, permission: Permission)
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = s"(q == $receiver ? $permission : none)"
+  }
 
   case class Addition(left: PermissionTree, right: PermissionTree)
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = s"($left + $right)"
+  }
 
   case class Subtraction(left: PermissionTree, right: PermissionTree)
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = s"($left - $right)"
+  }
 
   case class Maximum(left: PermissionTree, right: PermissionTree)
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = s"max($left, $right)"
+  }
 
   case class Conditional(condition: Expression, left: PermissionTree, right: PermissionTree)
-    extends PermissionTree
+    extends PermissionTree {
+
+    override def toString: String = s"($condition ? $left : $right)"
+  }
 
 }
 
@@ -113,7 +138,10 @@ sealed trait Receiver
 object Receiver {
 
   case class Path(path: AccessPathIdentifier)
-    extends Receiver
+    extends Receiver {
+
+    override def toString: String = path.toString
+  }
 
 }
 
@@ -122,9 +150,15 @@ sealed trait Permission
 object Permission {
 
   case object Read
-    extends Permission
+    extends Permission {
+
+    override def toString: String = "read"
+  }
 
   case object Write
-    extends Permission
+    extends Permission {
+
+    override def toString: String = "write"
+  }
 
 }

@@ -109,11 +109,12 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = this
 
-  override def getFieldValue(obj: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
-    obj match {
-      case receiver: VariableIdentifier =>
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
+    logger.trace(s"getFieldValue($receiver, $field)")
+    receiver match {
+      case variable: VariableIdentifier =>
         val identifier = VariableIdentifier(field)(typ)
-        val result = AccessPathIdentifier(List(receiver, identifier))
+        val result = AccessPathIdentifier(List(variable, identifier))
         copy(expr = ExpressionSet(result))
       case AccessPathIdentifier(path) =>
         val identifier = VariableIdentifier(field)(typ)
