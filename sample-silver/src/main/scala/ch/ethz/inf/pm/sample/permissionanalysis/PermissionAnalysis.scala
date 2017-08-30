@@ -50,7 +50,7 @@ case class NewObject(typ: Type, pp: ProgramPoint = DummyProgramPoint) extends Id
     *
     * @return The name of the identifier
     */
-  override def getName: String = ???
+  override def getName: String = "new()"
 
   /**
     * Returns the name of the field that is represented by this identifier if it is a heap identifier.
@@ -609,12 +609,13 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
     * @param permission The amount of permissions to add.
     */
   private def access(path: AccessPath, permission: Permission): T = {
-    if (path.length < 2)
+    val p = if (path.nonEmpty && path.last.getName == "[]") path.init else path
+    if (p.length < 2)
     // in this case no permission is needed
       this
     else {
       // build permission tree for the wanted permission
-      val tree = PermissionTree.create(path, permission)
+      val tree = PermissionTree.create(p, permission)
       copy(stack = stack.updateTree(_ lub tree))
     }
   }

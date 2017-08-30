@@ -9,13 +9,13 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /**
- *
- * Implements a domain that wraps another domain
- * This can be used in certain situations to separate concepts.
- *
- * @author Lucas Brutschy
- *
- */
+  *
+  * Implements a domain that wraps another domain
+  * This can be used in certain situations to separate concepts.
+  *
+  * @author Lucas Brutschy
+  *
+  */
 trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
   extends Lattice[T] {
   self:T =>
@@ -38,13 +38,13 @@ trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
 
 
 /**
- *
- * Implements a domain that wraps another domain, walking the lattice in the inverted direction
- * This can be used in certain situations to separate concepts.
- *
- * @author Lucas Brutschy
- *
- */
+  *
+  * Implements a domain that wraps another domain, walking the lattice in the inverted direction
+  * This can be used in certain situations to separate concepts.
+  *
+  * @author Lucas Brutschy
+  *
+  */
 trait InvertedLatticeWrapper[X <: Lattice[X], T <: InvertedLatticeWrapper[X,T]]
   extends LatticeWrapper[X,T] {
   self:T =>
@@ -68,7 +68,7 @@ trait InvertedLatticeWrapper[X <: Lattice[X], T <: InvertedLatticeWrapper[X,T]]
 
 trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X,T]]
   extends SemanticDomain[T]
-  with LatticeWrapper[X,T] {
+    with LatticeWrapper[X,T] {
   self:T =>
 
   override def merge(f: Replacement): T = wrapperFactory(wrapped.merge(f))

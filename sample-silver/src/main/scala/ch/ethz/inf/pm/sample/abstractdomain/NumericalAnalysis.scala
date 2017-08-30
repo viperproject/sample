@@ -135,7 +135,10 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
   override def assignVariable(left: Expression, right: Expression): S = {
     logger.trace(s"assignVariable($left, $right)")
     left match {
-      case variable: VariableIdentifier => copy(domain = domain.assign(variable, right))
+      case variable: VariableIdentifier =>
+        val invalidRight = right.ids.exists(_.isInstanceOf[AccessPathIdentifier])
+        if (invalidRight) setVariableToTop(variable)
+        else copy(domain = domain.assign(variable, right))
       case _ => throw new IllegalArgumentException(s"$left is not a variable identifier.")
     }
   }
@@ -159,15 +162,54 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
 
   }
 
-  override def getFieldValue(obj: Expression, field: String, typ: Type): S = {
-    logger.trace(s"getFieldValue($obj, field, typ)")
-    this
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): S = {
+    logger.trace(s"getFieldValue($receiver, $field)")
+    receiver match {
+      case variable: VariableIdentifier =>
+        var identifier = VariableIdentifier(field)(typ)
+        val result = AccessPathIdentifier(List(variable, identifier))
+        copy(expr = ExpressionSet(result))
+      case AccessPathIdentifier(path) =>
+        val identifier = VariableIdentifier(field)(typ)
+        val result = AccessPathIdentifier(path :+ identifier)
+        copy(expr = ExpressionSet(result))
+    }
   }
 
-  override def assume(cond: Expression): S = {
-    logger.trace(s"assume($cond)")
-    if (isTop) copy(domain = domain.top().assume(cond), isTop = false)
-    else copy(domain = domain.assume(cond))
+  override def assume(condition: Expression): S = {
+    logger.trace(s"assume($condition)")
+    condition match {
+      case Constant("true", _, _) => this
+      case Constant("false", _, _) => bottom()
+      case _: ReferenceComparisonExpression => this
+      case BinaryBooleanExpression(left, right, operator) => operator match {
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| => assume(left) lub assume(right)
+      }
+      case BinaryArithmeticExpression(left, right, _) =>
+        val invalidLeft = left.ids.exists(_.isInstanceOf[AccessPathIdentifier])
+        val invalidRight = right.ids.exists(_.isInstanceOf[AccessPathIdentifier])
+        if (invalidLeft || invalidRight) this
+        else copy(domain = domain.assume(condition))
+      case NegatedBooleanExpression(argument) => argument match {
+        case Constant("true", typ, pp) => assume(Constant("false", typ, pp))
+        case Constant("false", typ, pp) => assume(Constant("true", typ, pp))
+        case ReferenceComparisonExpression(left, right, operator) =>
+          val negatedOperator = ReferenceOperator.negate(operator)
+          assume(ReferenceComparisonExpression(left, right, negatedOperator))
+        case BinaryBooleanExpression(left, right, operator) =>
+          val negatedLeft = NegatedBooleanExpression(left)
+          val negatedRight = NegatedBooleanExpression(right)
+          val negatedOperator = BooleanOperator.negate(operator)
+          assume(BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator))
+        case BinaryArithmeticExpression(left, right, operator) =>
+          val negatedOperator = ArithmeticOperator.negate(operator)
+          assume(BinaryArithmeticExpression(left, right, negatedOperator))
+        case NegatedBooleanExpression(argument) => assume(argument)
+        case _ => ???
+      }
+      case _ => ???
+    }
   }
 
   /* ------------------------------------------------------------------------- *

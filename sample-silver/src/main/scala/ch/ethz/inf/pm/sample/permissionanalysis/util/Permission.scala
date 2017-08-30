@@ -71,9 +71,8 @@ object Permission {
 
   /**
     * Returns a read permission.
-    * TODO: Change back to "fractional(0, 1, 1)"
     */
-  def read: Permission = fractional(1, 2, 0)
+  def read: Permission = fractional(0, 1, 1)
 
   /** Returns a write permission.
     */
