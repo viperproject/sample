@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverSpecification
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverAnalysisRunner, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import com.typesafe.scalalogging.LazyLogging
@@ -333,7 +333,9 @@ trait HeapAndSemanticAnalysisEntryStateBuilder[H <: HeapDomain[H, I], S <: Seman
   )
 
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): SimpleHeapAndSemanticAnalysisState[H, S, I] = {
-    val fields = program.fields.map(_.variable.id)
+    // TODO: Properly handle sequence accesses
+    val access = VariableIdentifier("[]")(IntType)
+    val fields = program.fields.map(_.variable.id) :+ access
     val initial = default.factory(fields)
     initializeArguments(initial, program, method)
   }

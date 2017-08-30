@@ -306,8 +306,8 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case e: sil.SeqLength => // sequence length, e.g., |this.data|
       makeVariable(e.pos, e.typ, e.toString)
-    case sil.SeqIndex(sil.FieldAccess(rcv, field), _) => // sequence access, e.g., this.data[i]
-      sample.FieldAccess(go(e.pos), go(rcv), field.name, go(field.typ))
+    case sil.SeqIndex(sequence, index) =>
+        sample.FieldAccess(go(e.pos), go(sequence), "[]", go(e.typ))
     case e: sil.SeqExp => throw new NotImplementedError("A sil.SeqExp conversion is missing!")
 
     // Stubs
