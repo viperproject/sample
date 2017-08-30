@@ -7,9 +7,10 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.domain.FieldIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethodDeclaration
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.permissionanalysis._
 
 /**
@@ -17,7 +18,7 @@ import ch.ethz.inf.pm.sample.permissionanalysis._
   * preconditions, postconditions, invariants, entering loops, and leaving
   * loops.
   *
-  * @tparam S the self-type of the state
+  * @tparam S The type of the state.
   * @author Jerome Dohrau
   */
 trait SilverState[S <: SilverState[S]]
@@ -242,4 +243,76 @@ trait SilverState[S <: SilverState[S]]
       .foldLeft(joinedState)((st, ident) => st.removeVariable(ExpressionSet(ident)))
   }
 
+}
+
+/**
+  * A trait that simplifies stuff.
+  *
+  * TODO: Come up with a better name for this trait.
+  *
+  * @tparam S The type of the state.
+  * @author Jerome Dohrau
+  */
+trait Simplifications[S <: SilverState[S]]
+  extends SilverState[S] {
+  this: S =>
+
+  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
+    val result = Constant(value, typ, pp)
+    setExpression(ExpressionSet(result))
+  }
+
+  override def getVariableValue(variable: Identifier): S = {
+    val result = variable
+    setExpression(ExpressionSet(result))
+  }
+
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): S = receiver match {
+    case identifier: Identifier =>
+      val result = FieldIdentifier(identifier, VariableIdentifier(field)(typ))
+      setExpression(ExpressionSet(result))
+  }
+
+  override def assume(condition: Expression): S = condition match {
+    case Constant("true", _, _) => this
+    case Constant("false", _, _) => bottom()
+    case expression: ReferenceComparisonExpression => assumeReferenceExpression(expression)
+    case expression: BinaryArithmeticExpression => assumeArithmeticExpression(expression)
+    case BinaryBooleanExpression(left, right, operator) => operator match {
+      case BooleanOperator.&& => assume(left).assume(right)
+      case BooleanOperator.|| => assume(left) lub assume(right)
+    }
+    case NegatedBooleanExpression(argument) => argument match {
+      case Constant("true", typ, pp) => assume(Constant("false", typ, pp))
+      case Constant("false", typ, pp) => assume(Constant("true", typ, pp))
+      case ReferenceComparisonExpression(left, right, operator) =>
+        val negatedOperator = ReferenceOperator.negate(operator)
+        assume(ReferenceComparisonExpression(left, right, negatedOperator))
+      case BinaryArithmeticExpression(left, right, operator) =>
+        val negatedOperator = ArithmeticOperator.negate(operator)
+        assume(BinaryArithmeticExpression(left, right, negatedOperator))
+      case BinaryBooleanExpression(left, right, operator) =>
+        val negatedLeft = NegatedBooleanExpression(left)
+        val negatedRight = NegatedBooleanExpression(right)
+        val negatedOperator = BooleanOperator.negate(operator)
+        assume(BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator))
+      case NegatedBooleanExpression(argument) => assume(argument)
+    }
+  }
+
+  /**
+    * Assumes that the given reference comparision expression holds.
+    *
+    * @param condition The assumed condition.
+    * @return The state after assuming the condition.
+    */
+  def assumeReferenceExpression(condition: ReferenceComparisonExpression): S = this
+
+  /**
+    * Assumes that the given arithmetic expression holds.
+    *
+    * @param condition The assumed condition.
+    * @return The state after assuming the condition.
+    */
+  def assumeArithmeticExpression(condition: BinaryArithmeticExpression): S = this
 }
