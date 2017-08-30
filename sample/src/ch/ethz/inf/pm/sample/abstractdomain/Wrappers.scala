@@ -9,13 +9,13 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /**
- *
- * Implements a domain that wraps another domain
- * This can be used in certain situations to separate concepts.
- *
- * @author Lucas Brutschy
- *
- */
+  *
+  * Implements a domain that wraps another domain
+  * This can be used in certain situations to separate concepts.
+  *
+  * @author Lucas Brutschy
+  *
+  */
 trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
   extends Lattice[T] {
   self:T =>
@@ -38,13 +38,13 @@ trait LatticeWrapper[X <: Lattice[X], T <: LatticeWrapper[X,T]]
 
 
 /**
- *
- * Implements a domain that wraps another domain, walking the lattice in the inverted direction
- * This can be used in certain situations to separate concepts.
- *
- * @author Lucas Brutschy
- *
- */
+  *
+  * Implements a domain that wraps another domain, walking the lattice in the inverted direction
+  * This can be used in certain situations to separate concepts.
+  *
+  * @author Lucas Brutschy
+  *
+  */
 trait InvertedLatticeWrapper[X <: Lattice[X], T <: InvertedLatticeWrapper[X,T]]
   extends LatticeWrapper[X,T] {
   self:T =>
@@ -68,7 +68,7 @@ trait InvertedLatticeWrapper[X <: Lattice[X], T <: InvertedLatticeWrapper[X,T]]
 
 trait SemanticDomainWrapper[X <: SemanticDomain[X], T <: SemanticDomainWrapper[X,T]]
   extends SemanticDomain[T]
-  with LatticeWrapper[X,T] {
+    with LatticeWrapper[X,T] {
   self:T =>
 
   override def merge(f: Replacement): T = wrapperFactory(wrapped.merge(f))
@@ -108,6 +108,7 @@ trait InvertedSetDomain[V,T <: InvertedSetDomain[V,T]] extends InvertedLatticeWr
   override def +(v: V): T = wrapperFactory(wrapped.+(v))
   override def ++(v: T): T = wrapperFactory(wrapped.++(v.wrapped))
   override def contains(v: V):Boolean = wrapped.contains(v)
+  override def exists(predicate: (V) => Boolean): Boolean = wrapped.exists(predicate)
   override def toSet:Set[V] = wrapped.toSet
   override def map[B](f: V => B) = wrapped.map(f)
 }

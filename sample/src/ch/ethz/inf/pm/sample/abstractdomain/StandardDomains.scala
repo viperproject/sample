@@ -10,19 +10,20 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.Relation
 
 /**
- * Domain that is represented by a function whose codomain is a lattice.
- * The lattice operators are the functional extensions of the lattice operators of
- * the codomain.
- *
- * @tparam K The type of the keys
- * @tparam V The type of the codomain that has to be a lattice
- * @tparam T The type of the current functional domain
- * @author Pietro Ferrara, Lucas Brutschy
- */
+  * Domain that is represented by a function whose codomain is a lattice.
+  * The lattice operators are the functional extensions of the lattice operators of
+  * the codomain.
+  *
+  * @tparam K The type of the keys
+  * @tparam V The type of the codomain that has to be a lattice
+  * @tparam T The type of the current functional domain
+  * @author Pietro Ferrara, Lucas Brutschy
+  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   extends Lattice[T] {
   this: T =>
@@ -34,50 +35,53 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   override def factory(): T = functionalFactory()
 
   /**
-   * Creates a new instance of the functional domain with the given contents.
-   *
-   * @param map The map of values, empty if bottom or top
-   * @param isBottom Domain is bottom
-   * @param isTop Domain is top for all keys
-   * @return A fresh instance
-   */
+    * Creates a new instance of the functional domain with the given contents.
+    *
+    * @param map      The map of values, empty if bottom or top
+    * @param isBottom Domain is bottom
+    * @param isTop    Domain is top for all keys
+    * @return A fresh instance
+    */
   def functionalFactory(
                          map: Map[K, V] = Map.empty[K, V],
                          isBottom: Boolean = false,
                          isTop: Boolean = false): T
 
   /**
-   * Adds [key->value] to the domain
-   * @param key The key
-   * @param value The value
-   * @return The state of the domain after the assignment
-   */
+    * Adds [key->value] to the domain
+    *
+    * @param key   The key
+    * @param value The value
+    * @return The state of the domain after the assignment
+    */
   def add(key: K, value: V): T = functionalFactory(map + ((key, value)))
 
   /**
-   * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
-   * key we have a top value, in some others we have a bottom value. So we decided to let to the particular instance
-   * of the domain the opportunity to define it in order to have a total function (that is more convenient when
-   * defining the other lattice operators).
-   *
-   * @param key The key
-   * @return The value related to the given key
-   */
+    * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
+    * key we have a top value, in some others we have a bottom value. So we decided to let to the particular instance
+    * of the domain the opportunity to define it in order to have a total function (that is more convenient when
+    * defining the other lattice operators).
+    *
+    * @param key The key
+    * @return The value related to the given key
+    */
   def get(key: K): V
 
   /**
-   * Removes the key from the domain.
-   * @param key The key to be removed
-   * @return The state of the domain after the key has been removed
-   */
+    * Removes the key from the domain.
+    *
+    * @param key The key to be removed
+    * @return The state of the domain after the key has been removed
+    */
   def remove(key: K): T = functionalFactory(map - key)
 
   /**
-   * Computes the upper bound between two states. It is defined by:
-   * this \sqcup other = [k -> this(k) \sqcup other(k) : k \in dom(this) \cup dom(other)]
-   * @param other The other operand
-   * @return The upper bound of this and other
-   */
+    * Computes the upper bound between two states. It is defined by:
+    * this \sqcup other = [k -> this(k) \sqcup other(k) : k \in dom(this) \cup dom(other)]
+    *
+    * @param other The other operand
+    * @return The upper bound of this and other
+    */
   def lub(other: T): T = {
     if (isBottom) return other
     if (other.isBottom) return this
@@ -93,11 +97,12 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   /**
-   * Computes the lower bound between two states. It is defined by:
-   * this \sqcap other = [k -> this(k) \sqcap other(k) : k \in dom(this) \cap dom(other)]
-   * @param other The other operand
-   * @return The lower bound of this and other
-   */
+    * Computes the lower bound between two states. It is defined by:
+    * this \sqcap other = [k -> this(k) \sqcap other(k) : k \in dom(this) \cap dom(other)]
+    *
+    * @param other The other operand
+    * @return The lower bound of this and other
+    */
   def glb(other: T): T = {
     if (isBottom) return this
     if (other.isBottom) return other
@@ -115,11 +120,12 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   /**
-   * Computes the widening between two states. It is defined by:
-   * this \nable other = [k -> this(k) \nabla other(k) : k \in dom(this) \cup dom(other)]
-   * @param other The other operand
-   * @return The upper bound of this and other
-   */
+    * Computes the widening between two states. It is defined by:
+    * this \nable other = [k -> this(k) \nabla other(k) : k \in dom(this) \cup dom(other)]
+    *
+    * @param other The other operand
+    * @return The upper bound of this and other
+    */
   override def widening(other: T): T = {
     if (isBottom) return other
     if (other.isBottom) return this
@@ -133,8 +139,8 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)
     *
     * @param r The other operand
-   * @return true iff this is less or equal than t
-   */
+    * @return true iff this is less or equal than t
+    */
   override def lessEqual(r: T): Boolean = {
     // Case we are bottom
     if (isBottom || r.isTop) return true
@@ -151,7 +157,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   override def equals(a: Any): Boolean = a match {
-    case right: T @unchecked =>
+    case right: T@unchecked =>
       if (isBottom && right.isBottom) return true
       if (isBottom || right.isBottom) return false
       if (isTop && right.isTop) return true
@@ -166,15 +172,15 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     case _ => false
   }
 
+  override def top(): T = functionalFactory(isTop = true)
+
+  override def bottom(): T = functionalFactory(isBottom = true)
+
   override def toString: String = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
     else ToStringUtilities.mapToString(map)
   }
-
-  def top(): T = functionalFactory(isTop = true)
-
-  def bottom(): T = functionalFactory(isBottom = true)
 }
 
 object FunctionalDomain {
@@ -191,40 +197,40 @@ object FunctionalDomain {
                                                 defaultValue: V)
     extends FunctionalDomain[K, V, Default[K, V]] {
 
-    def get(key: K): V = map.getOrElse(key, defaultValue)
+    override def get(key: K): V = map.getOrElse(key, defaultValue)
 
-    def functionalFactory(value: Map[K, V], isBottom: Boolean, isTop: Boolean) =
+    override def functionalFactory(value: Map[K, V], isBottom: Boolean, isTop: Boolean) =
       Default(value, isTop, isBottom, defaultValue)
   }
 
 }
 
 trait MergeDomain[T <: MergeDomain[T]] extends Lattice[T] {
-  this : T =>
+  this: T =>
 
   /** For each set of identifiers in the domain of f, this method merges these identifiers into the given one.
-   *
-   * @param f The identifiers to merge
-   * @return the state after the merge
-   */
+    *
+    * @param f The identifiers to merge
+    * @return the state after the merge
+    */
   def merge(f: Replacement): T
 
 }
 
 /**
- * Simplifies the implementation of the merge function by restricting the set of allowed replacements
- */
+  * Simplifies the implementation of the merge function by restricting the set of allowed replacements
+  */
 trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends MergeDomain[T] {
-  this : T =>
+  this: T =>
 
   /**
-   * For each set of identifiers in the domain of f, this method merges these identifiers
-   * into the given one.
-   *
-   * @param f The identifiers to merge
-   * @return the state after the merge
-   */
-  def merge(f: Replacement): T = {
+    * For each set of identifiers in the domain of f, this method merges these identifiers
+    * into the given one.
+    *
+    * @param f The identifiers to merge
+    * @return the state after the merge
+    */
+  override def merge(f: Replacement): T = {
     var cur = this
     for ((from, to) <- f.value) {
       if (from.size == 1 && to.size > 1) cur = cur.expand(from.head, to)
@@ -238,9 +244,13 @@ trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends MergeDomain[T
   }
 
   def expand(idA: Identifier, idsB: Set[Identifier]): T
+
   def rename(idA: Identifier, idB: Identifier): T
+
   def remove(ids: Set[Identifier]): T
+
   def fold(idsA: Set[Identifier], idB: Identifier): T
+
   def add(ids: Set[Identifier]): T
 
 }
@@ -248,20 +258,27 @@ trait SimplifiedMergeDomain[T <: SimplifiedMergeDomain[T]] extends MergeDomain[T
 object SimplifiedMergeDomain {
 
   trait Bottom[T <: SimplifiedMergeDomain[T]] extends Lattice.Bottom[T] with SimplifiedMergeDomain[T] {
-    this:T =>
-    override def fold(idsA: Set[Identifier], idB: Identifier) = this
-    override def remove(ids: Set[Identifier]) = this
-    override def rename(idA: Identifier, idB: Identifier) = this
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = this
+    this: T =>
+    override def fold(idsA: Set[Identifier], idB: Identifier): T = this
+
+    override def remove(ids: Set[Identifier]): T = this
+
+    override def rename(idA: Identifier, idB: Identifier): T = this
+
+    override def expand(idA: Identifier, idsB: Set[Identifier]): T = this
   }
 
   trait Top[T <: SimplifiedMergeDomain[T]] extends Lattice.Top[T] with SimplifiedMergeDomain[T] {
-    this:T =>
-    override def add(ids: Set[Identifier]) = this
-    override def fold(idsA: Set[Identifier], idB: Identifier) = this
-    override def remove(ids: Set[Identifier]) = this
-    override def rename(idA: Identifier, idB: Identifier) = this
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = this
+    this: T =>
+    override def add(ids: Set[Identifier]): T = this
+
+    override def fold(idsA: Set[Identifier], idB: Identifier): T = this
+
+    override def remove(ids: Set[Identifier]): T = this
+
+    override def rename(idA: Identifier, idB: Identifier): T = this
+
+    override def expand(idA: Identifier, idsB: Set[Identifier]): T = this
   }
 
 }
@@ -269,33 +286,33 @@ object SimplifiedMergeDomain {
 object RelationalDomain {
 
   trait Top[T <: RelationalDomain[T]] extends RelationalDomain[T] with SemanticDomain.Top[T] with SimplifiedMergeDomain.Top[T] {
-    this:T =>
+    this: T =>
   }
 
   trait Bottom[T <: RelationalDomain[T]] extends RelationalDomain[T] with SemanticDomain.Bottom[T] with SimplifiedMergeDomain.Bottom[T] {
-    this:T =>
+    this: T =>
   }
 
-  trait Inner[T <: RelationalDomain[T],X <: RelationalDomain.Inner[T,X]] extends RelationalDomain[T] with SemanticDomain.Inner[T,X]  {
-    this:T =>
+  trait Inner[T <: RelationalDomain[T], X <: RelationalDomain.Inner[T, X]] extends RelationalDomain[T] with SemanticDomain.Inner[T, X] {
+    this: T =>
 
     val elements: Relation[Identifier]
 
-    override def lessEqualInner(other: X) = other.elements.subSetOf(elements)
+    override def lessEqualInner(other: X): Boolean = other.elements.subSetOf(elements)
 
-    override def wideningInner(other: X) = lubInner(other)
+    override def wideningInner(other: X): T = lubInner(other)
 
-    override def lubInner(other: X) = factory(elements.intersect(other.elements))
+    override def lubInner(other: X): T = factory(elements.intersect(other.elements))
 
-    override def glbInner(other: X) = factory(elements.union(other.elements))
+    override def glbInner(other: X): T = factory(elements.union(other.elements))
 
-    override def expand(idA: Identifier, idsB: Set[Identifier]): T = factory(elements.expand(idA,idsB))
+    override def expand(idA: Identifier, idsB: Set[Identifier]): T = factory(elements.expand(idA, idsB))
 
-    override def rename(idA: Identifier, idB: Identifier): T = factory(elements.rename(idA,idB))
+    override def rename(idA: Identifier, idB: Identifier): T = factory(elements.rename(idA, idB))
 
     override def remove(ids: Set[Identifier]): T = factory(elements.remove(ids))
 
-    override def fold(idsA: Set[Identifier], idB: Identifier): T = factory(elements.fold(idsA,idB))
+    override def fold(idsA: Set[Identifier], idB: Identifier): T = factory(elements.fold(idsA, idB))
 
     override def add(ids: Set[Identifier]): T = this
 
@@ -309,31 +326,30 @@ object RelationalDomain {
 
 }
 
-trait RelationalDomain[T <: RelationalDomain[T]] extends SemanticDomain[T] with SimplifiedMergeDomain[T]
-{
-  this : T =>
+trait RelationalDomain[T <: RelationalDomain[T]] extends SemanticDomain[T] with SimplifiedMergeDomain[T] {
+  this: T =>
 
-  def factory() = factory(Relation.empty[Identifier])
+  override def factory(): T = factory(Relation.empty[Identifier])
 
-  def factory(rel:Relation[Identifier]): T
+  def factory(rel: Relation[Identifier]): T
 
 }
 
 /**
- * The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
- * or heap) identifiers
- *
- * @tparam V The type of the codomain that has to be a lattice
- * @tparam T The type of the current boxed domain
- * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
- */
+  * The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
+  * or heap) identifiers
+  *
+  * @tparam V The type of the codomain that has to be a lattice
+  * @tparam T The type of the current boxed domain
+  * @author Pietro Ferrara, Lucas Brutschy
+  * @since 0.1
+  */
 trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   extends FunctionalDomain[Identifier, V, T]
-  with SemanticDomain[T] {
+    with SemanticDomain[T] {
   this: T =>
 
-  def merge(r: Replacement): T = {
+  override def merge(r: Replacement): T = {
     if (r.isEmpty()) return this
     var result: T = this
     val removedVariables = r.keySet().flatten
@@ -363,12 +379,12 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
     else this.add(id, v)
   }
 
-  def ids =
+  override def ids: IdentifierSet =
     if (isBottom || map.isEmpty) IdentifierSet.Bottom
     else if (isTop) IdentifierSet.Top
     else IdentifierSet.Inner(map.keySet)
 
-  def getStringOfId(id: Identifier): String = this.get(id).toString
+  override def getStringOfId(id: Identifier): String = this.get(id).toString
 
 }
 
@@ -380,7 +396,9 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   *
   * @tparam V The type of the values contained in the set
   * @tparam T The type of the current set domain
-  * @author Lucas Brutschy, Pietro Ferrara
+  * @author Lucas Brutschy
+  * @author Jerome Dohrau
+  * @author Pietro Ferrara
   */
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   this: T =>
@@ -427,6 +445,22 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     */
   def contains(v: V): Boolean
 
+  /**
+    * Returns whether there is an element that satisfies the given predicate.
+    *
+    * @param predicate The predicate.
+    * @return True if there is an element that satisfies the given predicate.
+    */
+  def exists(predicate: V => Boolean): Boolean
+
+  /**
+    * Returns whether all elements satisfy the given predicate.
+    *
+    * @param predicate The predicate.
+    * @return True if all elements satisfy the given predicate.
+    */
+  def forall(predicate: V => Boolean): Boolean = !exists(!predicate(_))
+
   /** Converts a set domain into a set. Here, we assume that the domain element is
     * not top. If the domain element is top, this will fail.
     *
@@ -439,12 +473,13 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     *
     * @return A representation of this domain as a set
     */
-  def map[B](f: V => B):SetDomain.Default[B]
+  def map[B](f: V => B): SetDomain.Default[B]
 
   override def factory(): T = top()
 
   // Helpers
   def ++(v: Set[V]): T = ++(factory(v))
+
   def --(v: Set[V]): T = --(factory(v))
 
 }
@@ -463,40 +498,56 @@ object SetDomain {
 
   }
 
-  trait Top[V, T <: SetDomain[V,T]]
-    extends SetDomain[V,T]
-    with Lattice.Top[T] {
-    this : T =>
+  trait Top[V, T <: SetDomain[V, T]]
+    extends SetDomain[V, T]
+      with Lattice.Top[T] {
+    this: T =>
 
-    def -(v: V) = this
-    def --(v: T) = if (v.isTop) bottom() else this
-    def +(v: V)    = this
-    def ++(v: T): T = this
-    def contains(v: V) = true
-    def toSet = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
-    def map[B](f: V => B) = SetDomain.Default.Top[B]()
+    override def -(v: V): T = this
 
-  }
+    override def --(v: T): T = if (v.isTop) bottom() else this
 
-  trait Bottom[V, T <: SetDomain[V,T]]
-    extends SetDomain[V,T]
-    with Lattice.Bottom[T] {
-    this : T =>
+    override def +(v: V): T = this
 
-    def -(v: V) = this
-    def --(v: T) = this
-    def +(v: V) =    factory(Set(v))
-    def ++(v: T): T = v
-    def contains(v: V) = false
-    def toSet = Set.empty
-    def map[B](f: V => B) = SetDomain.Default.Bottom[B]()
+    override def ++(v: T): T = this
+
+    override def contains(v: V) = true
+
+    override def exists(predicate: (V) => Boolean): Boolean = true
+
+    override def toSet = throw new UnsupportedOperationException("Called toSetOrFail on a top value")
+
+    override def map[B](f: V => B): SetDomain.Default[B] = SetDomain.Default.Top[B]()
 
   }
 
-  trait Inner[V, T <: SetDomain[V,T], I <: Inner[V,T,I]]
-    extends SetDomain[V,T]
-    with Lattice.Inner[T,I] {
-    this : T =>
+  trait Bottom[V, T <: SetDomain[V, T]]
+    extends SetDomain[V, T]
+      with Lattice.Bottom[T] {
+    this: T =>
+
+    override def -(v: V): T = this
+
+    override def --(v: T): T = this
+
+    override def +(v: V): T = factory(Set(v))
+
+    override def ++(v: T): T = v
+
+    override def contains(v: V) = false
+
+    override def exists(predicate: (V) => Boolean): Boolean = false
+
+    override def toSet: Set[V] = Set.empty
+
+    override def map[B](f: V => B): SetDomain.Default[B] = SetDomain.Default.Bottom[B]()
+
+  }
+
+  trait Inner[V, T <: SetDomain[V, T], I <: Inner[V, T, I]]
+    extends SetDomain[V, T]
+      with Lattice.Inner[T, I] {
+    this: T =>
 
     if (SystemParameters.DEBUG) {
       // This should be bottom
@@ -507,48 +558,55 @@ object SetDomain {
 
     def value: Set[V]
 
-    def --(v: T): T = v match {
-      case a:Bottom[V,T]   => this
-      case a:Top[V,T]      => bottom()
-      case a:Inner[V,T,I]  => factory(value -- a.value)
+    override def --(v: T): T = v match {
+      case a: Bottom[V, T] => this
+      case a: Top[V, T] => bottom()
+      case a: Inner[V, T, I] => factory(value -- a.value)
     }
 
-    def -(v: V) =                   factory(value - v)
-    def +(v: V) =                   factory(value + v)
-    def ++(v: T) =                  lub(v)
-    def contains(v: V) =            value.contains(v)
+    override def -(v: V): T = factory(value - v)
 
-    def glbInner(other: I) =        factory(value intersect other.value)
+    override def +(v: V): T = factory(value + v)
+
+    override def ++(v: T): T = lub(v)
+
+    override def contains(v: V): Boolean = value.contains(v)
+
+    override def exists(predicate: (V) => Boolean): Boolean = value.exists(predicate)
+
+    override def glbInner(other: I): T = factory(value intersect other.value)
 
     // using the least upper bound as widening is okay since we assume that
     // there are a finite number of elements.
-    def wideningInner(other: I) =   lubInner(other)
+    override def wideningInner(other: I): T = lubInner(other)
 
-    def lubInner(other: I) = factory(value ++ other.value)
+    override def lubInner(other: I): T = factory(value ++ other.value)
 
-    def lessEqualInner(other: I) =  value subsetOf other.value
-    def toSet =               value
-    def map[B](f: V => B) =         SetDomain.Default.Inner[B]( value.map(f) )
+    override def lessEqualInner(other: I): Boolean = value subsetOf other.value
 
-    override def toString = ToStringUtilities.setToString(value)
+    override def toSet: Set[V] = value
+
+    override def map[B](f: V => B): SetDomain.Default[B] = SetDomain.Default.Inner[B](value.map(f))
+
+    override def toString: String = ToStringUtilities.setToString(value)
 
   }
 
   /**
-   * A set domain which is bounded by a given function
-   *
-   * @tparam V the values stored
-   * @tparam T the type itself
-   * @author Lucas Brutschy
-   */
+    * A set domain which is bounded by a given function
+    *
+    * @tparam V the values stored
+    * @tparam T the type itself
+    * @author Lucas Brutschy
+    */
   trait Bounded[V, T <: Bounded[V, T]]
     extends SetDomain[V, T] {
     this: T =>
 
     /**
-     * Returns a version of this set which restricts the bounds
-     */
-    def cap:T
+      * Returns a version of this set which restricts the bounds
+      */
+    def cap: T
 
   }
 
@@ -567,35 +625,39 @@ object SetDomain {
 
   object Bounded {
 
-    trait Bottom[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Bottom[V,T] {
-      this:T =>
-      override def cap = this
-    }
-
-    trait Top[V, T <: Bounded[V,T]] extends Bounded[V,T] with SetDomain.Top[V,T] {
+    trait Bottom[V, T <: Bounded[V, T]] extends Bounded[V, T] with SetDomain.Bottom[V, T] {
       this: T =>
-      override def cap = this
+      override def cap: T = this
     }
 
-    trait Inner[V, T <: Bounded[V,T], I <: Inner[V,T,I]] extends Bounded[V,T] with SetDomain.Inner[V,T,I] {
-      this:T =>
+    trait Top[V, T <: Bounded[V, T]] extends Bounded[V, T] with SetDomain.Top[V, T] {
+      this: T =>
+      override def cap: T = this
+    }
 
-      override def lubInner(other: I): T =      super.lubInner(other).cap
+    trait Inner[V, T <: Bounded[V, T], I <: Inner[V, T, I]] extends Bounded[V, T] with SetDomain.Inner[V, T, I] {
+      this: T =>
+
+      override def lubInner(other: I): T = super.lubInner(other).cap
+
       override def wideningInner(other: I): T = super.wideningInner(other).cap
 
-      override def ++(v: T): T =    super.++(v).cap
-      override def +(v: V): T =    super.+(v).cap
+      override def ++(v: T): T = super.++(v).cap
+
+      override def +(v: V): T = super.+(v).cap
 
     }
 
-    trait Default[V] extends Bounded[V,Bounded.Default[V]] {
+    trait Default[V] extends Bounded[V, Bounded.Default[V]] {
 
       /** The bound of the set */
-      val k:Int
+      val k: Int
 
-      override def bottom()                = Bounded.Default.Bottom(k)
-      override def top()                   = Bounded.Default.Top(k)
-      override def factory(value: Set[V])  = Bounded.Default.Inner(k,value)
+      override def bottom() = Bounded.Default.Bottom(k)
+
+      override def top() = Bounded.Default.Top(k)
+
+      override def factory(value: Set[V]) = Bounded.Default.Inner(k, value)
 
     }
 
@@ -603,11 +665,12 @@ object SetDomain {
 
       case class Inner[V](k: Int, value: Set[V]) extends Bounded.Default[V] with Bounded.Inner[V, Bounded.Default[V], Bounded.Default.Inner[V]] {
 
-        override def cap = if (value.size > k) top() else this
+        override def cap: Default[V] = if (value.size > k) top() else this
 
       }
 
       case class Bottom[V](k: Int) extends Bounded.Default[V] with Bounded.Bottom[V, Bounded.Default[V]]
+
       case class Top[V](k: Int) extends Bounded.Default[V] with Bounded.Top[V, Bounded.Default[V]]
 
     }
@@ -617,9 +680,9 @@ object SetDomain {
 }
 
 /**
- * A very commonly used set domain, which implements a merge function
- */
-trait IdentifierSet extends SetDomain[Identifier,IdentifierSet] with SimplifiedMergeDomain[IdentifierSet] {
+  * A very commonly used set domain, which implements a merge function
+  */
+trait IdentifierSet extends SetDomain[Identifier, IdentifierSet] with SimplifiedMergeDomain[IdentifierSet] {
 
   override def factory(value: Set[Identifier]): IdentifierSet =
     if (value.isEmpty) IdentifierSet.Bottom
@@ -629,63 +692,78 @@ trait IdentifierSet extends SetDomain[Identifier,IdentifierSet] with SimplifiedM
 
   override def top(): IdentifierSet = IdentifierSet.Top
 
-  def getNonTop:Set[Identifier]
+  def getNonTop: Set[Identifier]
 
-  def getNonTopUnsafe:Set[Identifier]
+  def getNonTopUnsafe: Set[Identifier]
 
 }
 
 object IdentifierSet {
 
   case class Inner(value: Set[Identifier]) extends SetDomain.Inner[Identifier, IdentifierSet, Inner] with IdentifierSet {
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = factory(value - idA ++ idsB)
+    override def expand(idA: Identifier, idsB: Set[Identifier]): IdentifierSet = factory(value - idA ++ idsB)
 
-    override def rename(idA: Identifier, idB: Identifier) = factory(value - idA + idB)
+    override def rename(idA: Identifier, idB: Identifier): IdentifierSet = factory(value - idA + idB)
 
-    override def remove(ids: Set[Identifier]) = factory(value -- ids)
+    override def remove(ids: Set[Identifier]): IdentifierSet = factory(value -- ids)
 
-    override def fold(idsA: Set[Identifier], idB: Identifier) = factory(value -- idsA + idB)
+    override def fold(idsA: Set[Identifier], idB: Identifier): IdentifierSet = factory(value -- idsA + idB)
 
-    override def add(ids: Set[Identifier]) = factory(value ++ ids)
+    override def add(ids: Set[Identifier]): IdentifierSet = factory(value ++ ids)
 
     override def getNonTop: Set[Identifier] = value
 
     override def getNonTopUnsafe: Set[Identifier] = value
   }
 
-  object Bottom extends SetDomain.Bottom[Identifier,IdentifierSet] with IdentifierSet {
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = this
-    override def rename(idA: Identifier, idB: Identifier) = this
-    override def remove(ids: Set[Identifier]) = this
-    override def fold(idsA: Set[Identifier], idB: Identifier) = this
-    override def add(ids: Set[Identifier]) = factory(ids)
-    override def getNonTop:Set[Identifier] = Set.empty
-    override def getNonTopUnsafe:Set[Identifier] = Set.empty
+  object Bottom extends SetDomain.Bottom[Identifier, IdentifierSet] with IdentifierSet {
+    override def expand(idA: Identifier, idsB: Set[Identifier]): IdentifierSet = this
+
+    override def rename(idA: Identifier, idB: Identifier): IdentifierSet = this
+
+    override def remove(ids: Set[Identifier]): IdentifierSet = this
+
+    override def fold(idsA: Set[Identifier], idB: Identifier): IdentifierSet = this
+
+    override def add(ids: Set[Identifier]): IdentifierSet = factory(ids)
+
+    override def getNonTop: Set[Identifier] = Set.empty
+
+    override def getNonTopUnsafe: Set[Identifier] = Set.empty
   }
 
-  object Top extends SetDomain.Top[Identifier,IdentifierSet] with IdentifierSet {
-    override def expand(idA: Identifier, idsB: Set[Identifier]) = this
-    override def rename(idA: Identifier, idB: Identifier) = this
-    override def remove(ids: Set[Identifier]) = this
-    override def fold(idsA: Set[Identifier], idB: Identifier) = this
-    override def add(ids: Set[Identifier]) = this
-    override def getNonTop:Set[Identifier] = throw new UnsupportedOperationException("Invalid access")
-    override def getNonTopUnsafe:Set[Identifier] = { println("trying to convert top lattice to set --- unsound"); Set.empty }
+  object Top extends SetDomain.Top[Identifier, IdentifierSet] with IdentifierSet {
+    override def expand(idA: Identifier, idsB: Set[Identifier]): IdentifierSet = this
+
+    override def rename(idA: Identifier, idB: Identifier): IdentifierSet = this
+
+    override def remove(ids: Set[Identifier]): IdentifierSet = this
+
+    override def fold(idsA: Set[Identifier], idB: Identifier): IdentifierSet = this
+
+    override def add(ids: Set[Identifier]): IdentifierSet = this
+
+    override def getNonTop: Set[Identifier] = throw new UnsupportedOperationException("Invalid access")
+
+    override def getNonTopUnsafe: Set[Identifier] = {
+      println("trying to convert top lattice to set --- unsound")
+      Set.empty
+    }
   }
 
 }
 
 /**
- * A lattice domain that combines two other lattices without
- * passing information from one to the other. Each domain could track
- * a different type of information, so their combination could lead
- * to more precise results than each domain separately.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- * @author Pietro Ferrara, Lucas Brutschy
- */
+  * A lattice domain that combines two other lattices without
+  * passing information from one to the other. Each domain could track
+  * a different type of information, so their combination could lead
+  * to more precise results than each domain separately.
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  * @author Pietro Ferrara, Lucas Brutschy
+  */
 trait CartesianProductDomain[
 T1 <: Lattice[T1],
 T2 <: Lattice[T2],
@@ -695,9 +773,9 @@ T <: CartesianProductDomain[T1, T2, T]]
 
   def factory(a: T1, b: T2): T
 
-  def set_1(a: T1) = factory(a, _2)
+  def set_1(a: T1): T = factory(a, _2)
 
-  def set_2(b: T2) = factory(_1, b)
+  def set_2(b: T2): T = factory(_1, b)
 
   override def factory(): T = factory(_1.factory(), _2.factory())
 
@@ -709,7 +787,7 @@ T <: CartesianProductDomain[T1, T2, T]]
 
   def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
 
-  def isTop = _1.isTop && _2.isTop
+  def isTop: Boolean = _1.isTop && _2.isTop
 
   override def strictGlb(other: T): T = factory(_1.strictGlb(other._1), _2.strictGlb(other._2))
 
@@ -721,12 +799,11 @@ T <: CartesianProductDomain[T1, T2, T]]
     _1.lessEqual(other._1) && _2.lessEqual(other._2)
   }
 
-  def isBottom = _1.isBottom || _2.isBottom
+  def isBottom: Boolean = _1.isBottom || _2.isBottom
 
-  override def toString =
+  override def toString: String =
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
       "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
-
 
 
 }
@@ -742,13 +819,13 @@ object CartesianProductDomain {
 }
 
 /**
- * Cartesian product that could pass information from one domain to the other.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- * @author Pietro Ferrara, Lucas Brutschy
- */
+  * Cartesian product that could pass information from one domain to the other.
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  * @author Pietro Ferrara, Lucas Brutschy
+  */
 trait ReducedProductDomain[
 T1 <: Lattice[T1],
 T2 <: Lattice[T2],
@@ -757,24 +834,25 @@ T <: ReducedProductDomain[T1, T2, T]]
   this: T =>
 
   /**
-   * Reduce the information contained in the two domains. The returned value
-   * has to be less or equal (that is, more precise) than the initial state.
-   * @return The reduced abstract state
-   */
+    * Reduce the information contained in the two domains. The returned value
+    * has to be less or equal (that is, more precise) than the initial state.
+    *
+    * @return The reduced abstract state
+    */
   def reduce(): T
 }
 
 /**
- * Cartesian product supporting the operations of the semantic domain.
- *
- * It applies operations to neither, one or both domains depending on the
- * identifiers in the expressions that the operations operate upon.
- * Subclasses can define which domain can handle which identifiers.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- */
+  * Cartesian product supporting the operations of the semantic domain.
+  *
+  * It applies operations to neither, one or both domains depending on the
+  * identifiers in the expressions that the operations operate upon.
+  * Subclasses can define which domain can handle which identifiers.
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  */
 trait RoutingSemanticCartesianProductDomain[
 T1 <: SemanticDomain[T1],
 T2 <: SemanticDomain[T2],
@@ -788,7 +866,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
   /** Returns true if the second domain can handle the given identifier. */
   def _2canHandle(id: Identifier): Boolean
 
-  override def ids = _1.ids ++ _2.ids
+  override def ids: IdentifierSet = _1.ids ++ _2.ids
 
   override def setToTop(variable: Identifier): T =
     factory(variable, _1.setToTop, _2.setToTop)
@@ -870,7 +948,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
       case IdentifierSet.Inner(v) => v.forall(_2canHandle)
     }
 
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {
     val (a1, b1) = if (_1canHandle(variable)) _1.createVariableForArgument(variable, typ, path) else (_1, Map.empty[Identifier, List[String]])
     val (a2, b2) = if (_2canHandle(variable)) _2.createVariableForArgument(variable, typ, path) else (_2, Map.empty[Identifier, List[String]])
     (factory(a1, a2), b1 ++ b2)
@@ -886,7 +964,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
 
   /** Analogous to `factory`, but with two expressions passed as arguments. */
   def factory[E1 <: Expression, E2 <: Expression](
-      a: E1, b: E2, op_1: (E1, E2) => T1, op_2: (E1, E2) => T2): T = {
+                                                   a: E1, b: E2, op_1: (E1, E2) => T1, op_2: (E1, E2) => T2): T = {
     factory(
       if (_1canHandle(a, b)) op_1(a, b) else _1,
       if (_2canHandle(a, b)) op_2(a, b) else _2)
@@ -905,7 +983,7 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
 
-  override def getPossibleConstants(id: Identifier) = _1.getPossibleConstants(id) glb _2.getPossibleConstants(id)
+  override def getPossibleConstants(id: Identifier): Default[Constant] = _1.getPossibleConstants(id) glb _2.getPossibleConstants(id)
 
   /**
     * Given a possible set of constraints
@@ -919,13 +997,13 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
 }
 
 /**
- * Cartesian product supporting the operations of the semantic domain.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- * @author Pietro Ferrara
- */
+  * Cartesian product supporting the operations of the semantic domain.
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  * @author Pietro Ferrara
+  */
 trait SemanticCartesianProductDomain[
 T1 <: SemanticDomain[T1],
 T2 <: SemanticDomain[T2],
@@ -950,15 +1028,15 @@ object SemanticCartesianProductDomain {
 
 
 /**
- * Reduced Cartesian product supporting the operations of the semantic domain.
- * After each semantic operation the reduction is applied.
- * Note that this implementation is not particularly efficient.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- * @author Pietro Ferrara
- */
+  * Reduced Cartesian product supporting the operations of the semantic domain.
+  * After each semantic operation the reduction is applied.
+  * Note that this implementation is not particularly efficient.
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  * @author Pietro Ferrara
+  */
 trait ReducedSemanticProductDomain[
 T1 <: SemanticDomain[T1],
 T2 <: SemanticDomain[T2],
@@ -966,20 +1044,20 @@ T <: ReducedSemanticProductDomain[T1, T2, T]]
   extends SelectiveReducedSemanticProductDomain[T1, T2, T] {
   this: T =>
 
-  def reduce(ids:Set[Identifier]): T = reduce()
+  def reduce(ids: Set[Identifier]): T = reduce()
 }
 
 /**
- * Reduced Cartesian product supporting the operations of the semantic domain.
- * After each semantic operation the reduction is applied.
- *
- * This reduced product is selectively applied to the given identifiers
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- * @author Pietro Ferrara
- */
+  * Reduced Cartesian product supporting the operations of the semantic domain.
+  * After each semantic operation the reduction is applied.
+  *
+  * This reduced product is selectively applied to the given identifiers
+  *
+  * @tparam T1 The type of the first domain
+  * @tparam T2 The type of the second domain
+  * @tparam T  The type of the current domain
+  * @author Pietro Ferrara
+  */
 trait SelectiveReducedSemanticProductDomain[
 T1 <: SemanticDomain[T1],
 T2 <: SemanticDomain[T2],
@@ -989,7 +1067,7 @@ T <: SelectiveReducedSemanticProductDomain[T1, T2, T]]
 
   def reduce(): T
 
-  def reduce(ids:IdentifierSet): T
+  def reduce(ids: IdentifierSet): T
 
   override def lub(other: T): T =
     super.lub(other).reduce()
@@ -1012,7 +1090,7 @@ T <: SelectiveReducedSemanticProductDomain[T1, T2, T]]
   override def createVariable(variable: Identifier, typ: Type): T =
     super.createVariable(variable, typ).reduce(IdentifierSet.Inner(Set(variable)))
 
-  override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
+  override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {
     val (result, i) = super.createVariableForArgument(variable, typ, path)
     (result.reduce(IdentifierSet.Inner(Set(variable))), i)
   }
