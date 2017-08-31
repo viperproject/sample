@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator, ReferenceOperator}
 import viper.silver.{ast => sil}
-import viper.silver.ast.SourcePosition
+import viper.silver.ast.{SourcePosition, Type, TypeVar}
 
 trait SampleConverter {
   /** Converts a Sample expression to a SIL expression. */
@@ -65,14 +65,14 @@ object DefaultSampleConverter extends SampleConverter {
       }
       case _ => sys.error(s"unexpected constant type $typ")
     }
-    case id @ sample.VariableIdentifier(name, scope) =>
+    case id@sample.VariableIdentifier(name, scope) =>
       name match {
         case Constants.ResultVariableName =>
           sil.Result()(go(id.typ), go(id.pp))
         case _ =>
           sil.LocalVar(name)(go(id.typ), go(id.pp))
       }
-    case id @ sample.AccessPathIdentifier(path) =>
+    case id@sample.AccessPathIdentifier(path) =>
       val localVar = go(path.head)
 
       path.tail.foldLeft[sil.Exp](localVar)((exp, field) => {
@@ -89,6 +89,8 @@ object DefaultSampleConverter extends SampleConverter {
     case sample.IntType => sil.Int
     case sample.BoolType => sil.Bool
     case sample.RefType(_) => sil.Ref
+    case sample.PermType => sil.Perm
+    case sample.DomType(name) => sil.DomainType(name, Map.empty[TypeVar, Type])(Seq.empty)
   }
 
   // Convenience aliases

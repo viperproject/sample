@@ -9,10 +9,31 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.Path
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.FunctionCall
 import ch.ethz.inf.pm.sample.util.Maps
 
+/**
+  * Maps fields to permission trees.
+  *
+  * @param map The map from fields to permission trees.
+  * @author Jerome Dohrau
+  */
 case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
+  /**
+    * The fields for which there is a permission tree.
+    *
+    * @return The fields.
+    */
+  def fields: Seq[Identifier] = map.keys.toSeq
+
+  /**
+    * Returns the permission tree associated with the given field.
+    *
+    * @param field The field.
+    * @return The permission tree associated with the given field.
+    */
+  def apply(field: Identifier): PermissionTree = map(field)
+
   def lub(other: PermissionRecords): PermissionRecords = {
     val updated = Maps.union(map, other.map, Maximum)
     PermissionRecords(updated)
@@ -44,14 +65,16 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case ReferenceComparisonExpression(left, right, _) => read(left).read(right)
     case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
     case NegatedBooleanExpression(argument) => read(argument)
-    case AccessPathIdentifier(path) =>
-      if (path.length <= 1) this
-      else {
-        val receiver = AccessPathIdentifier(path.init)
-        val field = path.last
-        val leaf = Leaf(Path(receiver), permission)
-        read(receiver).update(field, Maximum(_, leaf))
-      }
+    case FieldAccessExpression(receiver, field) => receiver match {
+      case FunctionCallExpression(name, arguments, _, _) =>
+        val receiver = FunctionCall(name, arguments)
+        val leaf = Leaf(receiver, permission)
+        val updated = update(field, Maximum(_, leaf))
+        arguments.foldLeft(updated) {
+          case (result, parameter) => result.read(parameter)
+        }
+
+    }
     case _ => ???
   }
 
@@ -137,10 +160,10 @@ sealed trait Receiver
 
 object Receiver {
 
-  case class Path(path: AccessPathIdentifier)
+  case class FunctionCall(name: String, arguments: Seq[Expression])
     extends Receiver {
 
-    override def toString: String = path.toString
+    override def toString: String = s"$name(${arguments.mkString(", ")})"
   }
 
 }
@@ -148,6 +171,12 @@ object Receiver {
 sealed trait Permission
 
 object Permission {
+
+  case object Zero
+    extends Permission {
+
+    override def toString: String = "none"
+  }
 
   case object Read
     extends Permission {

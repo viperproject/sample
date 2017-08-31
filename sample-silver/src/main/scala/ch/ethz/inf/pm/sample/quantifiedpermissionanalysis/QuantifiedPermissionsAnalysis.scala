@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import com.typesafe.scalalogging.LazyLogging
-import viper.silver.ast._
 import viper.silver.{ast => sil}
 
 /**
@@ -26,7 +25,6 @@ case class QuantifiedPermissionsAnalysis()
   def analyze(program: SilverProgramDeclaration, method: SilverMethodDeclaration): CfgResult[QuantifiedPermissionsState] = {
 
     Context.clearMethodSpecificInfo()
-
     Context.setMethodContext(DefaultSilverConverter.prog, method)
 
     val numericalEntry = numericalEntryStateBuilder.build(program, method)
@@ -43,13 +41,22 @@ case class QuantifiedPermissionsAnalysis()
   }
 }
 
-/** SIL analysis runner that uses the default QuantifiedPermissions analysis. */
-object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPermissionsState] {
+/**
+  * An analysis runner for the quantified permission inference.
+  *
+  * @author Jerome Dohrau
+  * @author Severin Münger
+  */
+object QuantifiedPermissionsAnalysisRunner
+  extends SilverExtender[QuantifiedPermissionsState] {
+
   SystemParameters.isValueDrivenHeapAnalysis = false
 
+  override val analysis: QuantifiedPermissionsAnalysis = QuantifiedPermissionsAnalysis()
+
   override def extendProgram(program: sil.Program, results: ProgramResult[QuantifiedPermissionsState]): sil.Program = {
-    val tempProg = super.extendProgram(program, results)
-    tempProg.copy(functions = tempProg.functions ++ Context.getAuxiliaryFunctions.values)(pos = tempProg.pos, info = tempProg.info, errT = NoTrafos)
+    val extended = super.extendProgram(program, results)
+    extended.copy(functions = extended.functions ++ Context.getAuxiliaryFunctions.values)(pos = extended.pos, info = extended.info, errT = extended.errT)
   }
 
   override def extendMethod(method: sil.Method, cfgResult: CfgResult[QuantifiedPermissionsState]): sil.Method = {
@@ -57,29 +64,22 @@ object QuantifiedPermissionsAnalysisRunner extends SilverExtender[QuantifiedPerm
     super.extendMethod(method, cfgResult)
   }
 
-  override def inferArguments(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[LocalVarDecl] = super.inferArguments(method, result)
-
-  override def inferFields(newStmt: NewStmt, position: BlockPosition, result: CfgResult[QuantifiedPermissionsState]): Seq[Field] = {
-    newStmt.fields
+  override def inferArguments(method: sil.Method, result: CfgResult[QuantifiedPermissionsState]): Seq[sil.LocalVarDecl] = {
+    // TODO: Add read parameter.
+    // TODO: Add ghost sets parameters.
+    super.inferArguments(method, result)
   }
 
-  override def inferPreconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
-    method.pres
+  override def inferPreconditions(method: sil.Method, result: CfgResult[QuantifiedPermissionsState]): Seq[sil.Exp] = {
+    val position = firstPosition(result.cfg.entry)
+    val state = result.preStateAt(position)
+    val inferred = SpecificationGenerator.generate(state.records)
+    method.pres ++ inferred
   }
 
-  override def inferPostconditions(method: Method, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
-    method.posts
-  }
-
-  override def inferInvariants(loop: While, result: CfgResult[QuantifiedPermissionsState]): Seq[Exp] = {
+  override def inferInvariants(loop: sil.While, result: CfgResult[QuantifiedPermissionsState]): Seq[sil.Exp] = {
     loop.invs
   }
-
-  /**
-    * The analysis to run.
-    */
-
-  override val analysis: QuantifiedPermissionsAnalysis = QuantifiedPermissionsAnalysis()
 }
 
 object QuantifiedPermissionEntryState

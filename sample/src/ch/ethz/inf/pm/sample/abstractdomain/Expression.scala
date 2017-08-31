@@ -723,19 +723,20 @@ case class FunctionCallExpression(name: String, parameters: Seq[Expression] = Se
   * An expression representing a field access.
   *
   * @param receiver The receiver.
-  * @param field    The name of the field being accessed.
-  * @param typ      The type of the field being accessed.
+  * @param field    The field being accessed.
   * @author Jerome Dohrau
   * @author Severin Münger
   */
-case class FieldAccessExpression(receiver: Expression, field: String, typ: Type)
+case class FieldAccessExpression(receiver: Expression, field: VariableIdentifier)
   extends Expression {
 
   override def pp: ProgramPoint = receiver.pp
 
+  override def typ: Type = field.typ
+
   override def ids: IdentifierSet = receiver.ids
 
-  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessExpression(receiver.transform(f), field, typ))
+  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessExpression(receiver.transform(f), field))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || receiver.contains(f)
 

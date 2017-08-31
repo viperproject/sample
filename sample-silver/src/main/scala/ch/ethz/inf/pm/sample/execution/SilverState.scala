@@ -268,7 +268,8 @@ trait Simplifications[S <: SilverState[S]]
   }
 
   override def getFieldValue(receiver: Expression, field: String, typ: Type): S = {
-    val result = FieldAccessExpression(receiver, field, typ)
+    val identifier = VariableIdentifier(field)(typ)
+    val result = FieldAccessExpression(receiver, identifier)
     setExpression(ExpressionSet(result))
   }
 

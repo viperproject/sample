@@ -84,7 +84,7 @@ object Context {
   }
 
   private def extractSetName(expr: Expression): String = expr match {
-    case FieldAccessExpression(rec, field, _) => extractSetName(rec) + "_" + field
+    case FieldAccessExpression(rec, field) => extractSetName(rec) + "_" + field
     case VariableIdentifier(name, _) => name
     case FunctionCallExpression(functionName, _, _, _) => functionName
   }
