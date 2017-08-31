@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.execution.SilverState
+import ch.ethz.inf.pm.sample.execution.{SilverState, Simplifications}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import com.typesafe.scalalogging.LazyLogging
@@ -27,6 +27,7 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
                                       isTop: Boolean,
                                       isBottom: Boolean)
   extends SilverState[QuantifiedPermissionsState]
+    with Simplifications[QuantifiedPermissionsState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
     with LazyLogging {
 
@@ -73,17 +74,6 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = ???
 
-  override def evalConstant(value: String, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = {
-    logger.trace(s"evalConstant($value)")
-    val result = Constant(value, typ, pp)
-    copy(expr = ExpressionSet(result))
-  }
-
-  override def getVariableValue(variable: Identifier): QuantifiedPermissionsState = {
-    logger.trace(s"getVariableValue($variable)")
-    copy(expr = ExpressionSet(variable))
-  }
-
   override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
 
   override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
@@ -108,20 +98,6 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     createVariable(variable, typ, DummyProgramPoint)
 
   override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = this
-
-  override def getFieldValue(receiver: Expression, field: String, typ: Type): QuantifiedPermissionsState = {
-    logger.trace(s"getFieldValue($receiver, $field)")
-    receiver match {
-      case variable: VariableIdentifier =>
-        val identifier = VariableIdentifier(field)(typ)
-        val result = AccessPathIdentifier(List(variable, identifier))
-        copy(expr = ExpressionSet(result))
-      case AccessPathIdentifier(path) =>
-        val identifier = VariableIdentifier(field)(typ)
-        val result = AccessPathIdentifier(path :+ identifier)
-        copy(expr = ExpressionSet(result))
-    }
-  }
 
   override def assume(condition: Expression): QuantifiedPermissionsState = {
     logger.trace(s"assume(condition)")

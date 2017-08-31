@@ -11,16 +11,16 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
- * This class represents a point of the program. It is specific 
- * for a given programming language, so it is defined as an abstract
- * class that should be extended by different parsers
- */
+  * This class represents a point of the program. It is specific
+  * for a given programming language, so it is defined as an abstract
+  * class that should be extended by different parsers
+  */
 trait ProgramPoint {
 
   /**
-   * Gets a description of the program point, for example
-   * "in file somefile.scala at line 1, column 2"
-   */
+    * Gets a description of the program point, for example
+    * "in file somefile.scala at line 1, column 2"
+    */
   def description: String
 
 }
@@ -59,24 +59,24 @@ case class TaggedProgramPoint(base: ProgramPoint, tag: String)
 }
 
 /**
- * This class represents all the sequential statements of 
- * a "standard" OO program
- * Programs written in many different languages (e.g. Scala,
- * Java, C#, F#, and, why not, Java bytecode and MSIL) may
- * be transformed using this representation.
- * These statements are supposed to be the atomic pieces of
- * an OO language
- *
+  * This class represents all the sequential statements of
+  * a "standard" OO program
+  * Programs written in many different languages (e.g. Scala,
+  * Java, C#, F#, and, why not, Java bytecode and MSIL) may
+  * be transformed using this representation.
+  * These statements are supposed to be the atomic pieces of
+  * an OO language
+  *
   * @author Pietro Ferrara
- * @version 0.1
- */
+  * @version 0.1
+  */
 abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresentation {
   /**
-   * The abstract forward semantics of the statement.
-   *
-   * @param state the pre state
-   * @return the state obtained after the execution of the statement
-   */
+    * The abstract forward semantics of the statement.
+    *
+    * @param state the pre state
+    * @return the state obtained after the execution of the statement
+    */
   def forwardSemantics[S <: State[S]](state: S): S
 
   /**
@@ -90,17 +90,17 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
   /**
     * The abstract (refining) backward semantics of the statement.
     *
-    * @param state the post state
+    * @param state       the post state
     * @param oldPreState the pre state to be refined
     * @return the state obtained before the execution of the statement
     */
   def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S
 
   /**
-   * The program point of the statement.
-   *
-   * @return the program point
-   */
+    * The program point of the statement.
+    *
+    * @return the program point
+    */
   def getPC(): ProgramPoint = programpoint
 
   def normalize(): Statement = this match {
@@ -136,23 +136,23 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
 }
 
 /**
- * This class represents an assignment of the form
- * <code>left=right</code>
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents an assignment of the form
+  * <code>left=right</code>
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statement) extends Statement(programpoint: ProgramPoint) {
 
   /**
-   * It applies the method <code>assignVariable</code>
-   * of class <code>State</code>
-   *
-   * @see State.assignVariable(Variable, Expression)
-   * @param state the initial state
-   * @return the state in which <code>left</code> has been
-   *         assigned to <code>right</code>
-   */
+    * It applies the method <code>assignVariable</code>
+    * of class <code>State</code>
+    *
+    * @see State.assignVariable(Variable, Expression)
+    * @param state the initial state
+    * @return the state in which <code>left</code> has been
+    *         assigned to <code>right</code>
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, left)
     val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
@@ -171,10 +171,12 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     * @return the state obtained before the execution of the statement
     */
   override def backwardSemantics[S <: State[S]](state: S): S = {
-    var leftState = left.backwardSemantics(state) // evaluate the left
+    var leftState = left.backwardSemantics(state)
+    // evaluate the left
     val leftExpr = leftState.expr
     leftState = leftState.removeExpression()
-    var rightState = right.backwardSemantics(leftState) // evaluate the right
+    var rightState = right.backwardSemantics(leftState)
+    // evaluate the right
     val rightExpr = rightState.expr
     rightState = rightState.removeExpression()
     left match {
@@ -207,13 +209,13 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
 }
 
 /**
- * Represents the declaration of a variable.
+  * Represents the declaration of a variable.
   *
   * @param programpoint where the variable is declared
- * @param variable the variable being declared
- * @param typ the type of the variable declaration
- * @param right the optional statement assigned to the variable
- */
+  * @param variable     the variable being declared
+  * @param typ          the type of the variable declaration
+  * @param right        the optional statement assigned to the variable
+  */
 case class VariableDeclaration(
                                 programpoint: ProgramPoint,
                                 variable: Variable,
@@ -222,18 +224,18 @@ case class VariableDeclaration(
   extends Statement(programpoint: ProgramPoint) {
 
   /**
-   * It creates the variable relying on the method
-   * <code>createVariable</code> of class <code>State</code>
-   * and it eventually assigns <code>right</code> relying on
-   * the method <code>assignVariable</code> of class
-   * <code>State</code>
-   *
-   * @see State.createVariable(Variable, Type)
-   * @see State.assignVariable(Variable, Expression)
-   * @param state the initial state
-   * @return the state in which <code>variable</code> has been
-   *         created, and eventually it has been assigned to <code>right</code>
-   */
+    * It creates the variable relying on the method
+    * <code>createVariable</code> of class <code>State</code>
+    * and it eventually assigns <code>right</code> relying on
+    * the method <code>assignVariable</code> of class
+    * <code>State</code>
+    *
+    * @see State.createVariable(Variable, Type)
+    * @see State.assignVariable(Variable, Expression)
+    * @param state the initial state
+    * @return the state in which <code>variable</code> has been
+    *         created, and eventually it has been assigned to <code>right</code>
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     var variableEval: S = variable.forwardSemantics[S](state)
     val varExpr = variableEval.expr
@@ -288,23 +290,23 @@ case class VariableDeclaration(
 }
 
 /**
- * This class represents the access of a variable <code>id</code>
- * It extends MethodIdentifier as it may be used to identify a method
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents the access of a variable <code>id</code>
+  * It extends MethodIdentifier as it may be used to identify a method
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends Statement(programpoint) {
 
   def getName: String = id.toString
 
   /**
-   * It does nothing, since the access of a variable does not modify
-   * the state of the computation
-   *
-   * @param state the initial state
-   * @return the initial state
-   */
+    * It does nothing, since the access of a variable does not modify
+    * the state of the computation
+    *
+    * @param state the initial state
+    * @return the initial state
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.getVariableValue(id)
 
   /**
@@ -326,25 +328,25 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
 }
 
 /**
- * This class represents the access of a field of the form
- * <code>variable.field</code> where <code>typ</code> is the
- * type of the accessed field
- * It extends variable as it is seen as a variable access
- *
- * obj is null iff the field access is preceded by a statement that returns a variable
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents the access of a field of the form
+  * <code>variable.field</code> where <code>typ</code> is the
+  * type of the accessed field
+  * It extends variable as it is seen as a variable access
+  *
+  * obj is null iff the field access is preceded by a statement that returns a variable
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Type) extends Statement(pp) {
 
   /**
-   * It does nothing, since the access of a field does not modify
-   * the state of the computation
-   *
-   * @param state the initial state
-   * @return the initial state
-   */
+    * It does nothing, since the access of a field does not modify
+    * the state of the computation
+    *
+    * @param state the initial state
+    * @return the initial state
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     if (SystemParameters.isValueDrivenHeapAnalysis) {
       // I need a List of ExpressionSet
@@ -409,14 +411,14 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
 }
 
 /**
- * This class represents a method call of the form
- * <code>method<parametricTypes>(parameters)</code>
- * where <code>returnedType</code> is the type of the
- * returned value
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents a method call of the form
+  * <code>method<parametricTypes>(parameters)</code>
+  * where <code>returnedType</code> is the type of the
+  * returned value
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class MethodCall(
                        pp: ProgramPoint,
                        method: Statement,
@@ -427,48 +429,43 @@ case class MethodCall(
                      ) extends Statement(pp) {
 
   /**
-   * It analyzes the invocation of <code>method</code>
-   * on <code>variable</code> passing <code>parameters</code>.
-   * It relies on the contracts written on the target method, i.e.
-   * it asserts the preconditions, and it assumes the postconditions
-   * and the class invariants through methods <code>assert</code>
-   * and <code>assume</code> of class <code>State</code>
-   *
-   * @see State.assert(Expression)
-   * @see State.assume(Expression)
-   * @param state the initial state
-   * @return the state in which postconditions and class invariants
-   *         of the target method are assumed to hold
-   */
-  override def forwardSemantics[S <: State[S]](state: S): S = {
-    val body: Statement = method.normalize()
-    // Method call used to represent a goto statement to a while label
-    body match {
-      case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
-      case _ =>
-    }; //return state
-    body match {
-      case body: FieldAccess => forwardAnalyzeMethodCallOnObject[S](body.obj, body.field, state, getPC())
-      case body: Variable => forwardAnalyzeMethodCallOnVariable(body, state)
-
+    * It analyzes the invocation of <code>method</code>
+    * on <code>variable</code> passing <code>parameters</code>.
+    * It relies on the contracts written on the target method, i.e.
+    * it asserts the preconditions, and it assumes the postconditions
+    * and the class invariants through methods <code>assert</code>
+    * and <code>assume</code> of class <code>State</code>
+    *
+    * @see State.assert(Expression)
+    * @see State.assume(Expression)
+    * @param state the initial state
+    * @return the state in which postconditions and class invariants
+    *         of the target method are assumed to hold
+    */
+  override def forwardSemantics[S <: State[S]](state: S): S =
+    method.normalize() match {
+      case variable: Variable =>
+        // TODO: Lucas, do we still need this check?
+        if (variable.getName.startsWith("while")) throw new Exception("This should not appear here!")
+        forwardAnalyzeMethodCallOnVariable(variable, state)
+      case access: FieldAccess => forwardAnalyzeMethodCallOnObject[S](access.obj, access.field, state, getPC())
     }
-  }
 
-  private def forwardAnalyzeMethodCallOnVariable[S <: State[S]](body: Variable, state: S): S = {
+  private def forwardAnalyzeMethodCallOnVariable[S <: State[S]](variable: Variable, state: S): S = {
     var curState = state
     val parameterExpressions = for (parameter <- parameters) yield {
       curState = parameter.forwardSemantics[S](curState)
       curState.expr
     }
-    val rhs = ExpressionSetFactory.createFunctionCallExpression(body.getName, parameterExpressions, returnedType, pp)
+    val rhs = ExpressionSetFactory.createFunctionCallExpression(variable.getName, parameterExpressions, returnedType, pp)
     curState = curState.setExpression(rhs)
-    val targetExpr = for(t <- targets) yield {
+    val targetExpr = for (t <- targets) yield {
       val (expr: ExpressionSet, nextState) = UtilitiesOnStates.forwardExecuteStatement(curState, t)
       curState = nextState
       expr
     }
     targets.zip(targetExpr).foldLeft(curState)((st, t) => t match {
-      case (v: Variable, exp) => st.assignVariable (exp, rhs)
+      case (v: Variable, exp) => st.assignVariable(exp, rhs)
       case (fa: FieldAccess, exp) => st.assignField(exp, fa.field, rhs)
     })
   }
@@ -510,18 +507,12 @@ case class MethodCall(
     state.top()
   }
 
-  /**
-    * The abstract backward semantics of the statement.
-    *
-    * @param state the post state
-    * @return the state obtained before the execution of the statement
-    */
-  override def backwardSemantics[S <: State[S]](state: S): S = {
-    val body: Statement = method.normalize()
-    val castedStatement = body.asInstanceOf[FieldAccess]
-    val calledMethod = castedStatement.field
-    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
-  }
+  override def backwardSemantics[S <: State[S]](state: S): S =
+    method.normalize() match {
+      case variable: Variable => backwardAnalyzeMethodCallOnVariable(variable, state)
+      case access: FieldAccess => backwardAnalyzeMethodCallOnObject(access.obj, access.field, state, getPC())
+    }
+
 
   override def refiningSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val body: Statement = method.normalize()
@@ -530,8 +521,40 @@ case class MethodCall(
     backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
+  private def backwardAnalyzeMethodCallOnVariable[S <: State[S]](variable: Variable, state: S): S = {
+    // keep track of the current state
+    var current = state
+
+    // generate expressions corresponding to parameters
+    val parameterExpressions = parameters.map { parameter =>
+      current = parameter.forwardSemantics(current)
+      current.expr
+    }
+    // build function call
+    val call = ExpressionSetFactory.createFunctionCallExpression(variable.getName, parameterExpressions, returnedType, pp)
+
+    if (targets.isEmpty) {
+      // store function call in state
+      current.setExpression(call)
+    } else {
+      // generate expressions corresponding to targets
+      val targetExpressions = targets.map { target =>
+        val (left, next) = UtilitiesOnStates.backwardExecuteStatement(current, target)
+        current = next
+        (target, left)
+      }
+      // perform assignments to all targets
+      targetExpressions.foldLeft(current) {
+        case (result, (target, left)) => target match {
+          case _: Variable => result.assignVariable(left, call)
+          case FieldAccess(_, _, field, _) => result.assignField(left, field, call)
+        }
+      }
+    }
+  }
+
   private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S,
-      programPoint: ProgramPoint): S = {
+                                                               programPoint: ProgramPoint): S = {
     var currentState = postState
     currentState = obj.backwardSemantics[S](currentState)
     val objExpr = currentState.expr
@@ -581,24 +604,24 @@ case class MethodCall(
 }
 
 /**
- * This class represents the creation of a fresh address of the form
- * <code>new typ</code>
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents the creation of a fresh address of the form
+  * <code>new typ</code>
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
 
   /**
-   * It creates a new reference pointing to something of type
-   * <code>typ</code> through the method
-   * <code>createAddress</code> of class <code>State</code>
-   *
-   * @see State.createAddress(Type)
-   * @param state the initial state
-   * @return the state in which a fresh address pointing to something
-   *         of type <code>typ</code> has been created
-   */
+    * It creates a new reference pointing to something of type
+    * <code>typ</code> through the method
+    * <code>createAddress</code> of class <code>State</code>
+    *
+    * @see State.createAddress(Type)
+    * @param state the initial state
+    * @return the state in which a fresh address pointing to something
+    *         of type <code>typ</code> has been created
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.createObject(typ, pp)
 
   /**
@@ -623,21 +646,21 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
 }
 
 /**
- * This class represents a numerical constant <code>value</code>
- * where <code>type</code> is the type of such value
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents a numerical constant <code>value</code>
+  * where <code>type</code> is the type of such value
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends Statement(pp) {
 
   /**
-   * It does nothing, since a numerical constant does not modify
-   * the state of the computation
-   *
-   * @param state the initial state
-   * @return the initial state
-   */
+    * It does nothing, since a numerical constant does not modify
+    * the state of the computation
+    *
+    * @param state the initial state
+    * @return the initial state
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.evalConstant(value, typ, pp)
 
   /**
@@ -659,21 +682,21 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
 }
 
 /**
- * This class represents a return statement of the form
- * <code>throw expr</code>
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents a return statement of the form
+  * <code>throw expr</code>
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(programpoint: ProgramPoint) {
 
   /**
-   * It applies the method <code>throws</code> of class <code>State</code>
-   *
-   * @see State.throws(Expression)
-   * @param state the initial state
-   * @return the state in which <code>expr</code> has been thrown
-   */
+    * It applies the method <code>throws</code> of class <code>State</code>
+    *
+    * @see State.throws(Expression)
+    * @param state the initial state
+    * @return the state in which <code>expr</code> has been thrown
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     var state1 = expr.forwardSemantics[S](state)
     val thrownExpr = state1.expr
@@ -700,20 +723,20 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
 }
 
 /**
- * This class represents an empty statement
- *
- * @author Pietro Ferrara
- * @version 0.1
- */
+  * This class represents an empty statement
+  *
+  * @author Pietro Ferrara
+  * @version 0.1
+  */
 case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programpoint: ProgramPoint) {
 
   /**
-   * An empty statement does nothing
-   *
-   * @param state the initial state
-   * @return the initial state
-   *         thrown
-   */
+    * An empty statement does nothing
+    *
+    * @param state the initial state
+    * @return the initial state
+    *         thrown
+    */
   override def forwardSemantics[S <: State[S]](state: S): S = state.removeExpression()
 
   /**

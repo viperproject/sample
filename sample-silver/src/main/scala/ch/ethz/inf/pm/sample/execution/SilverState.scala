@@ -267,10 +267,9 @@ trait Simplifications[S <: SilverState[S]]
     setExpression(ExpressionSet(result))
   }
 
-  override def getFieldValue(receiver: Expression, field: String, typ: Type): S = receiver match {
-    case identifier: Identifier =>
-      val result = FieldIdentifier(identifier, VariableIdentifier(field)(typ))
-      setExpression(ExpressionSet(result))
+  override def getFieldValue(receiver: Expression, field: String, typ: Type): S = {
+    val result = FieldAccessExpression(receiver, field, typ)
+    setExpression(ExpressionSet(result))
   }
 
   override def assume(condition: Expression): S = condition match {

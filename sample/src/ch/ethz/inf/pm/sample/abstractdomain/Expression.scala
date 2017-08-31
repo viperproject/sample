@@ -701,40 +701,42 @@ case class BinaryStringExpression(left: Expression, right: Expression, op: Strin
 /**
   * An expression that represents a function call.
   *
-  * @param functionName The name of the called function.
-  * @param parameters   A (possibly empty) sequence of expressions corresponding to the passed parameters in the function call.
-  * @param typ          The return type of the function.
-  * @param pp           The program point identifying the location of the function call.
+  * @param name       The name of the called function.
+  * @param parameters A possibly empty sequence of expressions corresponding to
+  *                   the passed parameters in the function call.
+  * @param typ        The return type of the function.
+  * @param pp         The program point identifying the location of the function
+  *                   call.
   * @author Severin Münger
   */
-case class FunctionCallExpression(functionName: String, parameters: Seq[Expression] = Seq(), typ: Type, pp: ProgramPoint = DummyProgramPoint)
+case class FunctionCallExpression(name: String, parameters: Seq[Expression] = Seq.empty, typ: Type, pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
   override def ids: IdentifierSet = parameters.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
 
-  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(functionName, parameters.map(param => param.transform(f)), typ, pp))
+  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(name, parameters.map(param => param.transform(f)), typ, pp))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
 }
 
-case class FieldExpression(typ: Type, field: String, receiver: Expression) extends Expression {
+/**
+  * An expression representing a field access.
+  *
+  * @param receiver The receiver.
+  * @param field    The name of the field being accessed.
+  * @param typ      The type of the field being accessed.
+  * @author Jerome Dohrau
+  * @author Severin Münger
+  */
+case class FieldAccessExpression(receiver: Expression, field: String, typ: Type)
+  extends Expression {
 
-  /** Point in the program where this expression is located. */
   override def pp: ProgramPoint = receiver.pp
 
-  /** All identifiers that are part of this expression. */
   override def ids: IdentifierSet = receiver.ids
 
-  /** Runs f on the expression and all sub-expressions
-    *
-    * This also replaces identifiers inside heap ID sets.
-    *
-    * @param f the transformer
-    * @return the transformed expression
-    */
-  override def transform(f: (Expression) => Expression): Expression = f(FieldExpression(typ, field, receiver.transform(f)))
+  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessExpression(receiver.transform(f), field, typ))
 
-  /** Checks if function f evaluates to true for any sub-expression. */
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || receiver.contains(f)
 
   override def find(f: (Expression => Boolean)): Option[Expression] = if (f(this)) Some(this) else receiver.find(f)
