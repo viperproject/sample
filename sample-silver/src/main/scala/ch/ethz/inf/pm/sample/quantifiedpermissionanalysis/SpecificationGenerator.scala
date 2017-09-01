@@ -67,7 +67,7 @@ object SpecificationGenerator {
     case FunctionCallExpression(name, arguments, _, _) =>
       val function = getFunction(name)
       val converted = arguments.map(convert)
-      val application = sil.FuncApp(function, converted)()
+      val application = sil.FuncLikeApp(function, converted,Map.empty[sil.TypeVar, sil.Type])
       sil.EqCmp(application, quantified)()
   }
 
@@ -94,13 +94,6 @@ object SpecificationGenerator {
   private def conditional(condition: sil.Exp, left: sil.Exp, right: sil.Exp): sil.Exp =
     sil.CondExp(condition, left, right)()
 
-  private def getFunction(name: String): sil.Function = {
-    // TODO: Get the actual function from the context.
-    val parameters = Seq.empty
-    val typ = sil.Ref
-    val preconditions = Seq.empty
-    val postconditions = Seq.empty
-    val body = None
-    sil.Function(name, parameters, typ, preconditions, postconditions, body)()
-  }
+  private def getFunction(name: String): sil.FuncLike =
+    Context.functions(name)
 }

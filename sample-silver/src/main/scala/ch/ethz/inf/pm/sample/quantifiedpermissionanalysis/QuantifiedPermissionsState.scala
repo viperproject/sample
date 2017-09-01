@@ -64,7 +64,15 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
 
-  override def lessEqual(other: QuantifiedPermissionsState): Boolean = ???
+  override def lessEqual(other: QuantifiedPermissionsState): Boolean = {
+    logger.trace(s"lessEqual($this, $other)")
+    if (isBottom || other.isTop) true
+    else if (isTop || other.isBottom) false
+    else {
+      // TODO: Implement me.
+      false
+    }
+  }
 
   /* ------------------------------------------------------------------------- *
    * STATE FUNCTIONS

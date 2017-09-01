@@ -52,8 +52,7 @@ trait SilverAnalysisRunner[S <: State[S]] {
     * @return The result of the analysis.
     */
   def run(arguments: Array[String]): ProgramResult[S] = {
-    val path = new File(arguments(0)).toPath
-    val compilable = Compilable.Path(path)
+    val compilable = compile(arguments(0))
     run(compilable)
   }
 
@@ -90,7 +89,11 @@ trait SilverAnalysisRunner[S <: State[S]] {
     analysis.analyze(program)
   }
 
-  def compile(path: String): sil.Program = ???
+  def compile(file: String): sil.Program = {
+    val path = new File(file).toPath
+    val compilable = Compilable.Path(path)
+    compile(compilable)
+  }
 
   def compile(compilable: Compilable): sil.Program =
     compiler.compile(compilable)
