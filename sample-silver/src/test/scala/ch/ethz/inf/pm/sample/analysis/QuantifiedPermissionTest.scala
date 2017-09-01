@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.{QuantifiedPermissionsAnalysisRunner, QuantifiedPermissionsState}
 import ch.ethz.inf.pm.sample.util.Verifiers
 import viper.silver.testing._
-import viper.silver.verifier.Verifier
+import viper.silver.verifier._
 
 /**
   * A test suite for inference.
@@ -47,7 +47,13 @@ abstract class InferenceTest[S <: State[S]]
       val verifier = carbon
       val result = verifier.verify(extended)
 
-      Seq.empty
+      result match {
+        case Success => Seq.empty
+        case Failure(errors) => errors.map {
+          case error: AbstractVerificationError => SilOutput(error.transformedError())
+          case error => SilOutput(error)
+        }
+      }
     }
 
     /**
