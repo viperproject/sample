@@ -9,7 +9,6 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.FunctionCall
 import ch.ethz.inf.pm.sample.util.Maps
 
 /**
@@ -46,15 +45,11 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
 
   def assignVariable(target: Expression, value: Expression): PermissionRecords = transform {
     case Leaf(receiver, permission) =>
-      val r = receiver match {
-        case FunctionCall(name, arguments) =>
-          val transformed = arguments.map(_.transform {
-            case variable: VariableIdentifier if variable == target => value
-            case expression => expression
-          })
-          FunctionCall(name, transformed)
+      val transformed = receiver.transform {
+        case variable: VariableIdentifier if variable == target => value
+        case expression => expression
       }
-      Leaf(r, permission)
+      Leaf(transformed, permission)
     case tree => tree
   }
 
@@ -74,16 +69,11 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case ReferenceComparisonExpression(left, right, _) => read(left).read(right)
     case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
     case NegatedBooleanExpression(argument) => read(argument)
-    case FieldAccessExpression(receiver, field) => receiver match {
-      case FunctionCallExpression(name, arguments, _, _) =>
-        val receiver = FunctionCall(name, arguments)
-        val leaf = Leaf(receiver, permission)
-        val updated = update(field, Maximum(_, leaf))
-        arguments.foldLeft(updated) {
-          case (result, parameter) => result.read(parameter)
-        }
-
-    }
+    case FieldAccessExpression(receiver, field) =>
+      val leaf = Leaf(Receiver(receiver), permission)
+      update(field, Maximum(_, leaf)).read(receiver)
+    case FunctionCallExpression(_, arguments, _, _) =>
+      arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
     case _ => ???
   }
 
@@ -170,16 +160,11 @@ object PermissionTree {
 
 }
 
-sealed trait Receiver
+case class Receiver(expression: Expression) {
 
-object Receiver {
+  def transform(f: Expression => Expression): Receiver = Receiver(expression.transform(f))
 
-  case class FunctionCall(name: String, arguments: Seq[Expression])
-    extends Receiver {
-
-    override def toString: String = s"$name(${arguments.mkString(", ")})"
-  }
-
+  override def toString: String = expression.toString
 }
 
 sealed trait Permission

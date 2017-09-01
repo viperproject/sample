@@ -6,12 +6,11 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write, Zero}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree.{Empty, Initial, Leaf, Maximum}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.FunctionCall
 import viper.silver.{ast => sil}
 
 /**
@@ -36,9 +35,9 @@ object SpecificationGenerator {
         case tree => tree
       }
 
-      val variable = sil.LocalVar("q")(sil.Ref)
-      val permission = convert(tree, variable)
-      val location = sil.FieldAccess(variable, sil.Field(field.getName, convert(field.typ))())()
+      val quantified = sil.LocalVar("q")(sil.Ref)
+      val permission = convert(tree, quantified)
+      val location = sil.FieldAccess(quantified, sil.Field(field.getName, convert(field.typ))())()
 
       val variables = Seq(sil.LocalVarDecl("q", sil.Ref)())
       val triggers = Seq.empty
@@ -47,26 +46,29 @@ object SpecificationGenerator {
     }
   }
 
-  private def convert(tree: PermissionTree, variable: sil.Exp): sil.Exp = tree match {
+  private def convert(tree: PermissionTree, quantified: sil.Exp): sil.Exp = tree match {
     case Empty => convert(Zero)
     case Leaf(receiver, permission) =>
-      val condition = convert(receiver, variable)
+      val condition = convert(receiver, quantified)
       val leftExpression = convert(permission)
       val rightExpression = convert(Zero)
       conditional(condition, leftExpression, rightExpression)
     case Maximum(left, right) =>
-      val leftExpression = convert(left, variable)
-      val rightExpression = convert(right, variable)
+      val leftExpression = convert(left, quantified)
+      val rightExpression = convert(right, quantified)
       max(leftExpression, rightExpression)
     case _ => ???
   }
 
-  private def convert(receiver: Receiver, variable: sil.Exp): sil.Exp = receiver match {
-    case FunctionCall(name, arguments) =>
+  private def convert(receiver: Receiver, quantified: sil.Exp): sil.Exp = receiver.expression match {
+    case variable: VariableIdentifier =>
+      val converted = convert(variable)
+      sil.EqCmp(converted, quantified)()
+    case FunctionCallExpression(name, arguments, _, _) =>
       val function = getFunction(name)
       val converted = arguments.map(convert)
       val application = sil.FuncApp(function, converted)()
-      sil.EqCmp(application, variable)()
+      sil.EqCmp(application, quantified)()
   }
 
   private def convert(permission: Permission): sil.Exp = permission match {

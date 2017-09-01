@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator, ReferenceOperator}
+import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator, BooleanOperator, FieldAccessExpression, ReferenceOperator}
 import viper.silver.{ast => sil}
 import viper.silver.ast.{SourcePosition, Type, TypeVar}
 
@@ -78,6 +78,8 @@ object DefaultSampleConverter extends SampleConverter {
       path.tail.foldLeft[sil.Exp](localVar)((exp, field) => {
         sil.FieldAccess(exp, sil.Field(field.getName, go(field.typ))())()
       })
+    case FieldAccessExpression(receiver, field) =>
+      sil.FieldAccess(go(receiver), sil.Field(field.name, go(field.typ))())()
   }
 
   def convert(pp: sample.ProgramPoint): sil.Position = pp match {
