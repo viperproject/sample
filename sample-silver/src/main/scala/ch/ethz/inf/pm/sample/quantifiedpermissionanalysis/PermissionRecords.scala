@@ -44,9 +44,18 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     PermissionRecords(updated)
   }
 
-  def assignVariable(variable: Expression, value: Expression): PermissionRecords = {
-    // TODO: Implement me.
-    this
+  def assignVariable(target: Expression, value: Expression): PermissionRecords = transform {
+    case Leaf(receiver, permission) =>
+      val r = receiver match {
+        case FunctionCall(name, arguments) =>
+          val transformed = arguments.map(_.transform {
+            case variable: VariableIdentifier if variable == target => value
+            case expression => expression
+          })
+          FunctionCall(name, transformed)
+      }
+      Leaf(r, permission)
+    case tree => tree
   }
 
   def assignField(target: Expression, value: Expression): PermissionRecords = {
@@ -81,6 +90,11 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   def update(field: Identifier, f: PermissionTree => PermissionTree): PermissionRecords = {
     val updated = map + (field -> f(map(field)))
     PermissionRecords(updated)
+  }
+
+  def transform(f: PermissionTree => PermissionTree): PermissionRecords = {
+    val transformed = map.mapValues(_.transform(f))
+    PermissionRecords(transformed)
   }
 }
 

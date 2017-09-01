@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write, Zero}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree.{Empty, Initial, Leaf, Maximum}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Receiver.FunctionCall
