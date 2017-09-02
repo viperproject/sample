@@ -1,0 +1,26 @@
+field val: Int
+
+domain Array
+{
+    function loc(a: Array, i: Int): Ref
+    function length(a: Array): Int
+    function get_index(r: Ref): Int
+    function get_array(r: Ref): Array
+
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_length { forall a: Array :: 0 <= length(a) }
+}
+
+method foo_expected(a: Array, i: Int, j: Int)
+    requires forall q: Ref :: (q == loc(a, i + j) || q == loc(a, i + j + 1)) ==> acc(q.val, write)
+    ensures true
+
+method foo(a: Array, i: Int, j: Int) returns (r: Int, s: Int)
+{
+    var t: Int
+    t := i + j
+    r := loc(a, t).val
+    t := t + 1
+    s := loc(a, t).val
+}
