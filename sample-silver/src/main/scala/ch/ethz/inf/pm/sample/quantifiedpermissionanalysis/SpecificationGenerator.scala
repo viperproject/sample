@@ -61,14 +61,14 @@ object SpecificationGenerator {
   }
 
   private def convert(receiver: Receiver, quantified: sil.Exp): sil.Exp = receiver.expression match {
-    case variable: VariableIdentifier =>
-      val converted = convert(variable)
-      sil.EqCmp(converted, quantified)()
     case FunctionCallExpression(name, arguments, _, _) =>
       val function = getFunction(name)
       val converted = arguments.map(convert)
-      val application = sil.FuncLikeApp(function, converted,Map.empty[sil.TypeVar, sil.Type])
+      val application = sil.FuncLikeApp(function, converted, Map.empty[sil.TypeVar, sil.Type])
       sil.EqCmp(application, quantified)()
+    case expression =>
+      val converted = convert(expression)
+      sil.EqCmp(converted, quantified)()
   }
 
   private def convert(permission: Permission): sil.Exp = permission match {

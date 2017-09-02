@@ -659,6 +659,31 @@ case class FieldAccessPredicate(location: Expression, numerator: Expression, den
 }
 
 /**
+  * A conditional expression, i.e., the ternary operator a ? b : c evaluates to
+  * b if the value of a is true, and otherwise to c.
+  *
+  * @param condition The condition.
+  * @param left      the left expression.
+  * @param right     The right expression.
+  * @author Jerome Dohrau
+  */
+case class ConditionalExpression(condition: Expression, left: Expression, right: Expression)
+  extends Expression {
+
+  override def typ: Type = left.typ lub right.typ
+
+  override def pp: ProgramPoint = condition.pp
+
+  override def ids: IdentifierSet = condition.ids ++ left.ids ++ right.ids
+
+  override def transform(f: (Expression) => Expression): Expression =
+    ConditionalExpression(condition.transform(f), left.transform(f), right.transform(f))
+
+  override def contains(f: (Expression) => Boolean): Boolean =
+    f(this) || condition.contains(f) || left.contains(f) || right.contains(f)
+}
+
+/**
   * A permission expression returning the current amount of permission for
   * the location specified in the argument.
   *

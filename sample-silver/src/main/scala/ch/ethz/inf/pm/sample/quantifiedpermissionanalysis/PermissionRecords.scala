@@ -54,8 +54,21 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   }
 
   def assignField(target: Expression, value: Expression): PermissionRecords = {
-    // TODO: Implement me.
-    this
+    val FieldAccessExpression(receiver0, field0) = target
+    transform {
+      case Leaf(receiver, permission) =>
+        val transformed = receiver.transform {
+          case expression@FieldAccessExpression(receiver1, field1) if field0 == field1 =>
+            if (receiver0 == receiver1) value
+            else {
+              val equality = ReferenceComparisonExpression(receiver0, receiver1, ReferenceOperator.==)
+              ConditionalExpression(equality : Expression, value, expression)
+            }
+          case expression => expression
+        }
+        Leaf(transformed, permission)
+      case tree => tree
+    }
   }
 
   def read(expression: Expression): PermissionRecords = access(expression, Read)
