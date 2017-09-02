@@ -13,8 +13,7 @@ domain Array
 }
 
 method swap_expected(a: Array, i: Int, j: Int)
-    requires acc(loc(a, i).val, write)
-    requires acc(loc(a, j).val, write)
+    requires forall r: Ref :: (r == loc(a, i) || r == loc(a, j)) ==> acc(r.val, write)
     ensures true
 
 method swap(a: Array, i: Int, j: Int)
