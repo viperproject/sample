@@ -89,6 +89,7 @@ object QuantifiedPermissionEntryState
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     records = PermissionRecords(),
+    changing = Set.empty,
     isTop = false,
     isBottom = false
   )

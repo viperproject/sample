@@ -16,6 +16,7 @@ import com.typesafe.scalalogging.LazyLogging
   * @param pp       The current program point.
   * @param expr     The expression representing the current result.
   * @param records  A map from field names to the permission trees.
+  * @param changing The set of changing variables.
   * @param isTop    The top flag.
   * @param isBottom The bottom flag.
   * @author Jerome Dohrau
@@ -24,6 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 case class QuantifiedPermissionsState(pp: ProgramPoint,
                                       expr: ExpressionSet,
                                       records: PermissionRecords,
+                                      changing: Set[VariableIdentifier],
                                       isTop: Boolean,
                                       isBottom: Boolean)
   extends SilverState[QuantifiedPermissionsState]
@@ -39,6 +41,7 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     records = PermissionRecords(),
+    changing = Set.empty,
     isTop = false,
     isBottom = false
   )
@@ -57,7 +60,11 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     logger.trace("lub()")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
-    else copy(records = records.lub(other.records))
+    else {
+      val newRecords = records lub other.records
+      val newChanging = changing ++ other.changing
+      copy(records = newRecords, changing = newChanging)
+    }
   }
 
   override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
@@ -113,10 +120,13 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     copy(records = updated)
   }
 
-  override def assignVariable(variable: Expression, value: Expression): QuantifiedPermissionsState = {
-    logger.trace(s"assignVariable($variable, $value)")
-    val updated = records.assignVariable(variable, value).read(value)
-    copy(records = updated)
+  override def assignVariable(target: Expression, value: Expression): QuantifiedPermissionsState = {
+    logger.trace(s"assignVariable($target, $value)")
+    target match {
+      case variable: VariableIdentifier =>
+        val updated = records.assignVariable(variable, value).read(value)
+        copy(records = updated)
+    }
   }
 
   override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = ???
@@ -161,7 +171,8 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
   def copy(pp: ProgramPoint = pp,
            expr: ExpressionSet = expr,
            records: PermissionRecords = records,
+           changing: Set[VariableIdentifier] = changing,
            isTop: Boolean = isTop,
            isBottom: Boolean = isBottom): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(pp, expr, records, isTop, isBottom)
+    QuantifiedPermissionsState(pp, expr, records, changing, isTop, isBottom)
 }
