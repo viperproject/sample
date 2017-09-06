@@ -6,6 +6,8 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import java.util.function.BinaryOperator
+
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier.FieldIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution._
@@ -173,11 +175,19 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
 
   override def inhale(expression: Expression): S = expression match {
     case _: FieldAccessPredicate => this
+    case BinaryBooleanExpression(left, right, operator) => operator match {
+      case BooleanOperator.&& => inhale(left).inhale(right)
+      case BooleanOperator.|| => inhale(left) lub inhale(right)
+    }
     case expression => assume(expression)
   }
 
   override def exhale(expression: Expression): S = expression match {
     case _: FieldAccessPredicate => this
+    case BinaryBooleanExpression(left, right, operator) => operator match {
+      case BooleanOperator.&& => exhale(left).exhale(right)
+      case BooleanOperator.|| => exhale(left) lub exhale(right)
+    }
     case expression =>
       val assumed = assume(expression)
       val assumedFalse = assume(NegatedBooleanExpression(expression))

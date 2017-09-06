@@ -69,6 +69,10 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   }
 
   def inhale(expression: Expression): PermissionRecords = expression match {
+    case BinaryBooleanExpression(left, right, operator) => operator match {
+      case BooleanOperator.&& => inhale(left).inhale(right)
+      case BooleanOperator.|| => inhale(left) lub inhale(right)
+    }
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = Permission.create(numerator, denominator)
@@ -77,6 +81,10 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   }
 
   def exhale(expression: Expression): PermissionRecords = expression match {
+    case BinaryBooleanExpression(left, right, operator) => operator match {
+      case BooleanOperator.&& => exhale(left).exhale(right)
+      case BooleanOperator.|| => exhale(left) lub exhale(right)
+    }
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = Permission.create(numerator, denominator)
