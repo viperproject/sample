@@ -43,7 +43,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     PermissionRecords(updated)
   }
 
-  def assignVariable(target: Expression, value: Expression): PermissionRecords = transform {
+  def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords = transform {
     case Leaf(receiver, permission) =>
       val transformed = receiver.transform {
         case variable: VariableIdentifier if variable == target => value
@@ -53,22 +53,35 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case tree => tree
   }
 
-  def assignField(target: Expression, value: Expression): PermissionRecords = {
-    val FieldAccessExpression(receiver0, field0) = target
-    transform {
-      case Leaf(receiver, permission) =>
-        val transformed = receiver.transform {
-          case expression@FieldAccessExpression(receiver1, field1) if field0 == field1 =>
-            if (receiver0 == receiver1) value
-            else {
-              val equality = ReferenceComparisonExpression(receiver0, receiver1, ReferenceOperator.==)
-              ConditionalExpression(equality : Expression, value, expression)
-            }
-          case expression => expression
-        }
-        Leaf(transformed, permission)
-      case tree => tree
-    }
+  def assignField(target: FieldAccessExpression, value: Expression): PermissionRecords = transform {
+    case Leaf(receiver, permission) =>
+      val transformed = receiver.transform {
+        case expression: FieldAccessExpression if target.field == expression.field =>
+          if (target.receiver == expression.receiver) value
+          else {
+            val equality = ReferenceComparisonExpression(target.receiver, expression.receiver, ReferenceOperator.==)
+            ConditionalExpression(equality: Expression, value, expression)
+          }
+        case expression => expression
+      }
+      Leaf(transformed, permission)
+    case tree => tree
+  }
+
+  def inhale(expression: Expression): PermissionRecords = expression match {
+    case FieldAccessPredicate(location, numerator, denominator, _) =>
+      val FieldAccessExpression(receiver, field) = location
+      val permission = Permission.create(numerator, denominator)
+      val leaf = Leaf(Receiver(receiver), permission)
+      update(field, Subtraction(_, leaf))
+  }
+
+  def exhale(expression: Expression): PermissionRecords = expression match {
+    case FieldAccessPredicate(location, numerator, denominator, _) =>
+      val FieldAccessExpression(receiver, field) = location
+      val permission = Permission.create(numerator, denominator)
+      val leaf = Leaf(Receiver(receiver), permission)
+      update(field, Addition(_, leaf))
   }
 
   def read(expression: Expression): PermissionRecords = access(expression, Read)
@@ -87,6 +100,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
       update(field, Maximum(_, leaf)).read(receiver)
     case FunctionCallExpression(_, arguments, _, _) =>
       arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
+    case FieldAccessPredicate(FieldAccessExpression(receiver, _), _, _, _) => read(receiver)
     case _ => ???
   }
 
@@ -184,6 +198,14 @@ sealed trait Permission
 
 object Permission {
 
+  def create(numerator: Expression, denominator: Expression): Permission = {
+    val a = numerator.asInstanceOf[Constant].constant.toInt
+    val b = denominator.asInstanceOf[Constant].constant.toInt
+    if (a == 0) Zero
+    else if (a == b) Write
+    else Fractional(a, b)
+  }
+
   case object Zero
     extends Permission {
 
@@ -200,6 +222,12 @@ object Permission {
     extends Permission {
 
     override def toString: String = "write"
+  }
+
+  case class Fractional(numerator: Int, denominator: Int)
+    extends Permission {
+
+    override def toString: String = s"$numerator/$denominator"
   }
 
 }

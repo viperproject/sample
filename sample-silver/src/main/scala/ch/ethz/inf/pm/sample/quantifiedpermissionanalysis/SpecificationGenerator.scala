@@ -9,8 +9,8 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write, Zero}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree.{Empty, Initial, Leaf, Maximum}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write, Zero, Fractional}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import viper.silver.{ast => sil}
 
 /**
@@ -57,6 +57,14 @@ object SpecificationGenerator {
       val leftExpression = convert(left, quantified)
       val rightExpression = convert(right, quantified)
       max(leftExpression, rightExpression)
+    case Addition(left, right) =>
+      val leftExpression = convert(left, quantified)
+      val rightExpression = convert(right, quantified)
+      addition(leftExpression, rightExpression)
+    case Subtraction(left, right) =>
+      val leftExpression = convert(left, quantified)
+      val rightExpression = convert(right, quantified)
+      subtraction(leftExpression, rightExpression)
     case _ => ???
   }
 
@@ -77,6 +85,10 @@ object SpecificationGenerator {
       // TODO: Replace with read permission.
       sil.FullPerm()()
     case Write => sil.FullPerm()()
+    case Fractional(numerator, denominator) =>
+      val left = sil.IntLit(numerator)()
+      val right = sil.IntLit(denominator)()
+      sil.FractionalPerm(left, right)()
   }
 
   private def convert(expression: Expression): sil.Exp =
@@ -89,6 +101,15 @@ object SpecificationGenerator {
     val function = Context.getMaxFunction
     val arguments = Seq(left, right)
     sil.FuncApp(function, arguments)()
+  }
+
+  private def addition(left: sil.Exp, right: sil.Exp): sil.Exp =
+    sil.Add(left, right)()
+
+  private def subtraction(left: sil.Exp, right: sil.Exp): sil.Exp = {
+    val zero = sil.IntLit(0)()
+    val difference = sil.Sub(left, right)()
+    max(zero, difference)
   }
 
   private def conditional(condition: sil.Exp, left: sil.Exp, right: sil.Exp): sil.Exp =

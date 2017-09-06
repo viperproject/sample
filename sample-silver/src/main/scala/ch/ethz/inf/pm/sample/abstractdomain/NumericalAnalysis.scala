@@ -171,15 +171,20 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
    * SILVER STATE FUNCTIONS
    */
 
-  override def inhale(expression: Expression): S = assume(expression)
+  override def inhale(expression: Expression): S = expression match {
+    case _: FieldAccessPredicate => this
+    case expression => assume(expression)
+  }
 
-  override def exhale(expression: Expression): S = {
-    val assumed = assume(expression)
-    val assumedFalse = assume(NegatedBooleanExpression(expression))
-    if (!assumedFalse.lessEqual(bottom())) {
-      Reporter.reportAssertionViolation("Possible assertion violation", pp)
-    }
-    assumed
+  override def exhale(expression: Expression): S = expression match {
+    case _: FieldAccessPredicate => this
+    case expression =>
+      val assumed = assume(expression)
+      val assumedFalse = assume(NegatedBooleanExpression(expression))
+      if (!assumedFalse.lessEqual(bottom())) {
+        Reporter.reportAssertionViolation("Possible assertion violation", pp)
+      }
+      assumed
   }
 
   /* ------------------------------------------------------------------------- *

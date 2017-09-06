@@ -133,36 +133,28 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def assignField(target: Expression, field: String, value: Expression): QuantifiedPermissionsState = {
     logger.trace(s"assignField($target, $value)")
-    val updated = records.assignField(target, value).write(target).read(value)
-    copy(records = updated)
+    target match {
+      case expression: FieldAccessExpression =>
+        val updated = records.assignField(expression, value).write(expression).read(value)
+        copy(records = updated)
+    }
   }
 
   /* ------------------------------------------------------------------------- *
-   * STATE FUNCTIONS
+   * SILVER STATE FUNCTIONS
    */
 
   override def inhale(expression: Expression): QuantifiedPermissionsState = {
-    // TODO: assume pure part of expression.
     logger.trace(s"inhale($expression)")
-    expression match {
-      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
-        ???
-    }
+    val updated = records.inhale(expression).read(expression)
+    copy(records = updated)
   }
 
   override def exhale(expression: Expression): QuantifiedPermissionsState = {
-    // TODO: Maybe assert pure part of expression?
     logger.trace(s"exhale($expression)")
-    expression match {
-      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
-        ???
-    }
+    val updated = records.exhale(expression).read(expression)
+    copy(records = updated)
   }
-
-  /* ------------------------------------------------------------------------- *
-   * HELPER FUNCTIONS
-   */
-
 
   /* ------------------------------------------------------------------------- *
    * COPY FUNCTION
