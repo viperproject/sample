@@ -49,7 +49,16 @@ object SpecificationGenerator {
   private def convert(tree: PermissionTree, quantified: sil.Exp): sil.Exp = tree match {
     case Empty => convert(Zero)
     case Leaf(receiver, permission) =>
-      val condition = convert(receiver, quantified)
+      val condition = receiver match {
+        case FunctionCallExpression(name, arguments, _, _) =>
+          val function = getFunction(name)
+          val converted = arguments.map(convert)
+          val application = sil.FuncLikeApp(function, converted, Map.empty[sil.TypeVar, sil.Type])
+          sil.EqCmp(application, quantified)()
+        case expression =>
+          val converted = convert(expression)
+          sil.EqCmp(converted, quantified)()
+      }
       val leftExpression = convert(permission)
       val rightExpression = convert(Zero)
       conditional(condition, leftExpression, rightExpression)
@@ -66,17 +75,6 @@ object SpecificationGenerator {
       val rightExpression = convert(right, quantified)
       subtraction(leftExpression, rightExpression)
     case _ => ???
-  }
-
-  private def convert(receiver: Receiver, quantified: sil.Exp): sil.Exp = receiver.expression match {
-    case FunctionCallExpression(name, arguments, _, _) =>
-      val function = getFunction(name)
-      val converted = arguments.map(convert)
-      val application = sil.FuncLikeApp(function, converted, Map.empty[sil.TypeVar, sil.Type])
-      sil.EqCmp(application, quantified)()
-    case expression =>
-      val converted = convert(expression)
-      sil.EqCmp(converted, quantified)()
   }
 
   private def convert(permission: Permission): sil.Exp = permission match {

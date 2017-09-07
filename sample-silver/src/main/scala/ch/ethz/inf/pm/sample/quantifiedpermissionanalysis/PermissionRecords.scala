@@ -76,7 +76,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = Permission.create(numerator, denominator)
-      val leaf = Leaf(Receiver(receiver), permission)
+      val leaf = Leaf(receiver, permission)
       update(field, Subtraction(_, leaf))
   }
 
@@ -88,7 +88,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = Permission.create(numerator, denominator)
-      val leaf = Leaf(Receiver(receiver), permission)
+      val leaf = Leaf(receiver, permission)
       update(field, Addition(_, leaf))
   }
 
@@ -104,7 +104,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
     case NegatedBooleanExpression(argument) => read(argument)
     case FieldAccessExpression(receiver, field) =>
-      val leaf = Leaf(Receiver(receiver), permission)
+      val leaf = Leaf(receiver, permission)
       update(field, Maximum(_, leaf)).read(receiver)
     case FunctionCallExpression(_, arguments, _, _) =>
       arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
@@ -163,7 +163,7 @@ object PermissionTree {
     override def toString: String = "p_0"
   }
 
-  case class Leaf(receiver: Receiver, permission: Permission)
+  case class Leaf(receiver: Expression, permission: Permission)
     extends PermissionTree {
 
     override def toString: String = s"(q == $receiver ? $permission : none)"
@@ -193,13 +193,6 @@ object PermissionTree {
     override def toString: String = s"($condition ? $left : $right)"
   }
 
-}
-
-case class Receiver(expression: Expression) {
-
-  def transform(f: Expression => Expression): Receiver = Receiver(expression.transform(f))
-
-  override def toString: String = expression.toString
 }
 
 sealed trait Permission
