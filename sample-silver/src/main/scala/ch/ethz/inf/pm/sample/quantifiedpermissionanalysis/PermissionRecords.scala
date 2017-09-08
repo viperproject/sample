@@ -43,29 +43,19 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
     PermissionRecords(updated)
   }
 
-  def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords = transform {
-    case Leaf(receiver, permission) =>
-      val transformed = receiver.transform {
-        case variable: VariableIdentifier if variable == target => value
-        case expression => expression
-      }
-      Leaf(transformed, permission)
-    case tree => tree
+  def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords = transformExpressions {
+    case variable: VariableIdentifier if variable == target => value
+    case expression => expression
   }
 
-  def assignField(target: FieldAccessExpression, value: Expression): PermissionRecords = transform {
-    case Leaf(receiver, permission) =>
-      val transformed = receiver.transform {
-        case expression: FieldAccessExpression if target.field == expression.field =>
-          if (target.receiver == expression.receiver) value
-          else {
-            val equality = ReferenceComparisonExpression(target.receiver, expression.receiver, ReferenceOperator.==)
-            ConditionalExpression(equality: Expression, value, expression)
-          }
-        case expression => expression
+  def assignField(target: FieldAccessExpression, value: Expression): PermissionRecords = transformExpressions {
+    case expression: FieldAccessExpression if target.field == expression.field =>
+      if (target.receiver == expression.receiver) value
+      else {
+        val equality = ReferenceComparisonExpression(target.receiver, expression.receiver, ReferenceOperator.==)
+        ConditionalExpression(equality: Expression, value, expression)
       }
-      Leaf(transformed, permission)
-    case tree => tree
+    case expression => expression
   }
 
   def inhale(expression: Expression): PermissionRecords = expression match {
@@ -115,6 +105,12 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   def update(field: Identifier, f: PermissionTree => PermissionTree): PermissionRecords = {
     val updated = map + (field -> f(map(field)))
     PermissionRecords(updated)
+  }
+
+  def transformExpressions(f: Expression => Expression): PermissionRecords = transform {
+    case Leaf(receiver, permission) => Leaf(receiver.transform(f), permission)
+    case Conditional(condition, left, right) => Conditional(condition.transform(f), left, right)
+    case tree => tree
   }
 
   def transform(f: PermissionTree => PermissionTree): PermissionRecords = {
