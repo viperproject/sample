@@ -62,10 +62,6 @@ object SpecificationGenerator {
       val leftExpression = convert(permission)
       val rightExpression = convert(Zero)
       conditional(condition, leftExpression, rightExpression)
-    case Maximum(left, right) =>
-      val leftExpression = convert(left, quantified)
-      val rightExpression = convert(right, quantified)
-      max(leftExpression, rightExpression)
     case Addition(left, right) =>
       val leftExpression = convert(left, quantified)
       val rightExpression = convert(right, quantified)
@@ -74,7 +70,15 @@ object SpecificationGenerator {
       val leftExpression = convert(left, quantified)
       val rightExpression = convert(right, quantified)
       subtraction(leftExpression, rightExpression)
-    case _ => ???
+    case Maximum(left, right) =>
+      val leftExpression = convert(left, quantified)
+      val rightExpression = convert(right, quantified)
+      max(leftExpression, rightExpression)
+    case Conditional(condition, left, right) =>
+      val conditionExpression = convert(condition)
+      val leftExpression = convert(left, quantified)
+      val rightExpression = convert(right, quantified)
+      conditional(conditionExpression, leftExpression, rightExpression)
   }
 
   private def convert(permission: Permission): sil.Exp = permission match {
@@ -95,12 +99,6 @@ object SpecificationGenerator {
   private def convert(typ: Type): sil.Type =
     DefaultSampleConverter.convert(typ)
 
-  private def max(left: sil.Exp, right: sil.Exp): sil.Exp = {
-    val function = Context.getMaxFunction
-    val arguments = Seq(left, right)
-    sil.FuncApp(function, arguments)()
-  }
-
   private def addition(left: sil.Exp, right: sil.Exp): sil.Exp =
     sil.Add(left, right)()
 
@@ -108,6 +106,12 @@ object SpecificationGenerator {
     val zero = sil.IntLit(0)()
     val difference = sil.Sub(left, right)()
     max(zero, difference)
+  }
+
+  private def max(left: sil.Exp, right: sil.Exp): sil.Exp = {
+    val function = Context.getMaxFunction
+    val arguments = Seq(left, right)
+    sil.FuncApp(function, arguments)()
   }
 
   private def conditional(condition: sil.Exp, left: sil.Exp, right: sil.Exp): sil.Exp =
