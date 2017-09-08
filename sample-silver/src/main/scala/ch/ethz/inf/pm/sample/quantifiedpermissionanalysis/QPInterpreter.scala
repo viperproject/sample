@@ -55,10 +55,17 @@ final class QPInterpreter(val cfg: SampleCfg, val initial: QuantifiedPermissions
   override def execute(): CfgResult[QuantifiedPermissionsState] = {
     val bottom = initial.bottom()
     val cfgResult: CfgResult[QuantifiedPermissionsState] = initializeResult(cfg, bottom)
-    val worklist: mutable.Stack[SampleBlock] = mutable.Stack()
+
+    implicit val visited: mutable.Set[SampleBlock] = mutable.Set()
+    implicit val worklist: mutable.Stack[SampleBlock] = mutable.Stack()
+
+    // push exit block
     worklist.push(cfg.exit.get)
+
     while (worklist.nonEmpty) {
       val current = worklist.pop()
+      visited.add(current)
+
       val exit = if (cfg.exit.get == current) {
         initial(cfg)
       } else {
@@ -122,33 +129,41 @@ final class QPInterpreter(val cfg: SampleCfg, val initial: QuantifiedPermissions
             states.append(predecessor)
             predecessor
           }
-        case ConstrainingBlock(_, _) =>
-          // execute constraining block
-          // TODO: We might want to not support constraining blocks in Sample.
-          ???
       }
 
       cfgResult.setStates(current, states.reverse.toList)
 
       current match {
-        case loopHead@LoopHeadBlock(_, _) =>
-          cfg.inEdges(loopHead) match {
-            // First push the node corresponding to in edge, then the other one.
-            // Reasoning behind this is that we first want to execute inner-most blocks during our analysis.
-            case one :: two :: Nil => (one.kind, two.kind) match {
-              case (Kind.In, Kind.Normal) =>
-                worklist.push(one.source)
-                worklist.push(two.source)
-              case (Kind.Normal, Kind.In) =>
-                worklist.push(two.source)
-                worklist.push(one.source)
-            }
-          }
-        case _ => worklist.pushAll(cfg.predecessors(current))
+        case LoopHeadBlock(_, _) =>
+          // first we push the predecessors corresponding to the in edges then
+          // the predecessors corresponding to the body of the loop. we do this
+          // because we first want to execute inner-most blocks during our
+          // analysis.
+          val edges = cfg.inEdges(current)
+          edges.filter(_.kind == Kind.In).map(_.source).foreach(push)
+          edges.filter(_.kind != Kind.In).map(_.source).foreach(push)
+        case _ => cfg.predecessors(current).foreach(push)
       }
     }
     cfgResult
   }
+
+  /**
+    * Pushes the given block onto the worklist given that all dependencies have
+    * been processed but the block itself has not, otherwise nothing happens.
+    *
+    * @param block    The block.
+    * @param worklist The implicitly passed worklist.
+    * @param visited  The implicitly passed set of visited blocks.
+    */
+  private def push(block: SampleBlock)(implicit worklist: mutable.Stack[SampleBlock], visited: mutable.Set[SampleBlock]): Unit =
+    if (!visited.contains(block)) {
+      val dependencies = block match {
+        case LoopHeadBlock(_, _) => cfg.outEdges(block).filter(_.isOut).map(_.target)
+        case _ => cfg.successors(block)
+      }
+      if (dependencies.forall(visited.contains)) worklist.push(block)
+    }
 
   protected def executeStatement(statement: Statement, state: QuantifiedPermissionsState): QuantifiedPermissionsState = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
@@ -166,7 +181,7 @@ final class QPInterpreter(val cfg: SampleCfg, val initial: QuantifiedPermissions
 
   private def assumeCondition(condition: Statement, state: QuantifiedPermissionsState): QuantifiedPermissionsState = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(condition))
-    condition.forwardSemantics(predecessor).asInstanceOf[QuantifiedPermissionsState].testTrue()
+    condition.forwardSemantics(predecessor).testTrue()
   }
 
   /**
