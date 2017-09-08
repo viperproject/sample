@@ -7,8 +7,8 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
 import viper.silver.{ast => sil}
-import viper.silver.ast.{SourcePosition, Type, TypeVar}
 
 trait SampleConverter {
   /** Converts a Sample expression to a SIL expression. */
@@ -82,11 +82,16 @@ object DefaultSampleConverter extends SampleConverter {
       sil.FieldAccess(go(receiver), sil.Field(field.name, go(field.typ))())()
     case ConditionalExpression(condition, left, right) =>
       sil.CondExp(go(condition), go(left), go(right))()
+    case FunctionCallExpression(name, parameters, typ, pp) =>
+      // TODO: Change to a solution that does not only work for the QP inference.
+      val function = Context.functions(name)
+      sil.FuncLikeApp(function,parameters.map(go), Map.empty[sil.TypeVar, sil.Type])
+    case _ => ???
   }
 
   def convert(pp: sample.ProgramPoint): sil.Position = pp match {
     case sample.DummyProgramPoint => sil.NoPosition
-    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
+    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[sil.SourcePosition]
   }
 
   def convert(typ: sample.Type): sil.Type = typ match {
@@ -94,13 +99,13 @@ object DefaultSampleConverter extends SampleConverter {
     case sample.BoolType => sil.Bool
     case sample.RefType(_) => sil.Ref
     case sample.PermType => sil.Perm
-    case sample.DomType(name) => sil.DomainType(name, Map.empty[TypeVar, Type])(Seq.empty)
+    case sample.DomType(name) => sil.DomainType(name, Map.empty[sil.TypeVar, sil.Type])(Seq.empty)
   }
 
   // Convenience aliases
-  protected def go(e: sample.Expression) = convert(e)
+  protected def go(e: sample.Expression): sil.Exp = convert(e)
 
-  protected def go(pp: sample.ProgramPoint) = convert(pp)
+  protected def go(pp: sample.ProgramPoint): sil.Position = convert(pp)
 
-  protected def go(typ: sample.Type) = convert(typ)
+  protected def go(typ: sample.Type): sil.Type = convert(typ)
 }
