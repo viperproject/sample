@@ -112,20 +112,31 @@ trait CfgResult[S <: State[S]] {
   def postStateAt(pp: ProgramPoint): S = postStateAt(cfg.getPosition(pp))
 
   /**
-    * Returns the entry state.
+    * Returns the entry state of the given block. If no block is specified, the
+    * entry state of the control flow graph is returned.
     *
+    * @param block The block.
     * @return The entry state.
     */
-  def entryState(): S =
-    getStates(cfg.entry).head
+  def entryState(block: SampleBlock = cfg.entry): S =
+    getStates(block).head
 
   /**
-    * Returns the exit state.
+    * Returns the exit state of the control flow graph.
     *
     * @return The exit state.
     */
   def exitState(): S =
-    cfg.exit.map(getStates(_).last).getOrElse(bottom)
+    cfg.exit.map(exitState).getOrElse(bottom)
+
+  /**
+    * Returns the exit state of the given block.
+    *
+    * @param block The block.
+    * @return The exit state.
+    */
+  def exitState(block: SampleBlock): S =
+    getStates(block).last
 
   /**
     * Returns the states corresponding to the given basic block.

@@ -34,7 +34,7 @@ case class QuantifiedPermissionsAnalysis()
     Context.setNumericalInfo(method.name.name, numericalResult)
 
     val entry = QuantifiedPermissionEntryState.build(program, method)
-    val interpreter = new QPInterpreter(method.body, entry)
+    val interpreter = new QuantifiedPermissionInterpreter(method.body, entry)
     val result = interpreter.execute()
 
     result
