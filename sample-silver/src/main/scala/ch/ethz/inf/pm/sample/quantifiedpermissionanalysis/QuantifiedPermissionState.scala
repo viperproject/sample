@@ -23,21 +23,23 @@ import com.typesafe.scalalogging.LazyLogging
   * @author Jerome Dohrau
   * @author Severin Münger
   */
-case class QuantifiedPermissionsState(pp: ProgramPoint,
-                                      expr: ExpressionSet,
-                                      records: List[PermissionRecords],
-                                      isTop: Boolean,
-                                      isBottom: Boolean)
-  extends SilverState[QuantifiedPermissionsState]
-    with Simplifications[QuantifiedPermissionsState]
-    with StateWithRefiningAnalysisStubs[QuantifiedPermissionsState]
+case class QuantifiedPermissionState(pp: ProgramPoint,
+                                     expr: ExpressionSet,
+                                     records: List[PermissionRecords],
+                                     isTop: Boolean,
+                                     isBottom: Boolean)
+  extends SilverState[QuantifiedPermissionState]
+    with Simplifications[QuantifiedPermissionState]
+    with StateWithRefiningAnalysisStubs[QuantifiedPermissionState]
     with LazyLogging {
+
+  type S = QuantifiedPermissionState
 
   /* ------------------------------------------------------------------------- *
    * LATTICE FUNCTIONS
    */
 
-  override def factory(): QuantifiedPermissionsState = copy(
+  override def factory(): S = copy(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
     records = PermissionRecords() :: Nil,
@@ -45,31 +47,32 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     isBottom = false
   )
 
-  override def top(): QuantifiedPermissionsState = {
+  override def top(): S = {
     logger.trace("top()")
     copy(isTop = true, isBottom = false)
   }
 
-  override def bottom(): QuantifiedPermissionsState = {
+  override def bottom(): S = {
     logger.trace("bottom()")
     copy(isTop = false, isBottom = true)
   }
 
-  override def lub(other: QuantifiedPermissionsState): QuantifiedPermissionsState = {
+  override def lub(other: S): S = {
     logger.trace("lub()")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
-      val newHead = records.head lub other.records.head
-      copy(records = newHead :: records.tail)
+      val zipped = records zip other.records
+      val newRecords = zipped.map { case (a, b) => a lub b }
+      copy(records = newRecords)
     }
   }
 
-  override def glb(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  override def glb(other: S): S = ???
 
-  override def widening(other: QuantifiedPermissionsState): QuantifiedPermissionsState = ???
+  override def widening(other: S): S = ???
 
-  override def lessEqual(other: QuantifiedPermissionsState): Boolean = {
+  override def lessEqual(other: S): Boolean = {
     logger.trace(s"lessEqual($this, $other)")
     if (isBottom || other.isTop) true
     else if (isTop || other.isBottom) false
@@ -83,21 +86,21 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
    * STATE FUNCTIONS
    */
 
-  override def before(pp: ProgramPoint): QuantifiedPermissionsState = copy(pp = pp)
+  override def before(pp: ProgramPoint): S = copy(pp = pp)
 
-  override def createObject(typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = ???
+  override def createObject(typ: Type, pp: ProgramPoint): S = ???
 
-  override def pruneUnreachableHeap(): QuantifiedPermissionsState = ???
+  override def pruneUnreachableHeap(): S = ???
 
-  override def pruneVariables(filter: (VariableIdentifier) => Boolean): QuantifiedPermissionsState = ???
+  override def pruneVariables(filter: (VariableIdentifier) => Boolean): S = ???
 
-  override def setExpression(expr: ExpressionSet): QuantifiedPermissionsState = copy(expr = expr)
+  override def setExpression(expr: ExpressionSet): S = copy(expr = expr)
 
-  override def removeExpression(): QuantifiedPermissionsState = copy(expr = ExpressionSet())
+  override def removeExpression(): S = copy(expr = ExpressionSet())
 
-  override def setArgument(x: ExpressionSet, right: ExpressionSet): QuantifiedPermissionsState = ???
+  override def setArgument(x: ExpressionSet, right: ExpressionSet): S = ???
 
-  override def throws(t: ExpressionSet): QuantifiedPermissionsState = ???
+  override def throws(t: ExpressionSet): S = ???
 
   override def ids: IdentifierSet = ???
 
@@ -105,20 +108,20 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
    * SIMPLE STATE FUNCTIONS
    */
 
-  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): QuantifiedPermissionsState = this
+  override def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): S = this
 
-  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): QuantifiedPermissionsState =
+  override def createVariableForArgument(variable: VariableIdentifier, typ: Type): S =
     createVariable(variable, typ, DummyProgramPoint)
 
-  override def removeVariable(varExpr: VariableIdentifier): QuantifiedPermissionsState = this
+  override def removeVariable(varExpr: VariableIdentifier): S = this
 
-  override def assume(condition: Expression): QuantifiedPermissionsState = {
+  override def assume(condition: Expression): S = {
     logger.trace(s"assume(condition)")
     val newHead = records.head.assume(condition).read(condition)
     copy(records = newHead :: records.tail)
   }
 
-  override def assignVariable(target: Expression, value: Expression): QuantifiedPermissionsState = {
+  override def assignVariable(target: Expression, value: Expression): S = {
     logger.trace(s"assignVariable($target, $value)")
     target match {
       case variable: VariableIdentifier =>
@@ -127,9 +130,9 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     }
   }
 
-  override def setVariableToTop(varExpr: Expression): QuantifiedPermissionsState = ???
+  override def setVariableToTop(varExpr: Expression): S = ???
 
-  override def assignField(target: Expression, field: String, value: Expression): QuantifiedPermissionsState = {
+  override def assignField(target: Expression, field: String, value: Expression): S = {
     logger.trace(s"assignField($target, $value)")
     target match {
       case expression: FieldAccessExpression =>
@@ -142,25 +145,25 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
    * SILVER STATE FUNCTIONS
    */
 
-  override def inhale(expression: Expression): QuantifiedPermissionsState = {
+  override def inhale(expression: Expression): S = {
     logger.trace(s"inhale($expression)")
     val newHead = records.head.inhale(expression).read(expression)
     copy(records = newHead :: records.tail)
   }
 
-  override def exhale(expression: Expression): QuantifiedPermissionsState = {
+  override def exhale(expression: Expression): S = {
     logger.trace(s"exhale($expression)")
     val newHead = records.head.exhale(expression).read(expression)
     copy(records = newHead :: records.tail)
   }
 
-  override def enterLoop(): QuantifiedPermissionsState = {
+  override def enterLoop(): S = {
     val inner :: outer :: rest = records
     val newRecords = (inner lub outer) :: rest
     copy(records = newRecords)
   }
 
-  override def leaveLoop(): QuantifiedPermissionsState = {
+  override def leaveLoop(): S = {
     val newRecords = records.head.clear() :: records
     copy(records = newRecords)
   }
@@ -173,6 +176,6 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
            expr: ExpressionSet = expr,
            records: List[PermissionRecords] = records,
            isTop: Boolean = isTop,
-           isBottom: Boolean = isBottom): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(pp, expr, records, isTop, isBottom)
+           isBottom: Boolean = isBottom): S =
+    QuantifiedPermissionState(pp, expr, records, isTop, isBottom)
 }

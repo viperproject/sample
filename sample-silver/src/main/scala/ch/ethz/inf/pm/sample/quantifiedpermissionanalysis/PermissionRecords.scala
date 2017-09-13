@@ -123,7 +123,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
   }
 
   def clear(): PermissionRecords = {
-    val emptyMap = map.mapValues(_ => Empty)
+    val emptyMap = map.mapValues(_ => Initial)
     copy(map = emptyMap, changing = Set.empty)
   }
 

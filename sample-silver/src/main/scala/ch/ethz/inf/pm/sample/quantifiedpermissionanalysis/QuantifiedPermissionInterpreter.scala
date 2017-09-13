@@ -27,10 +27,10 @@ import scala.collection.mutable.ListBuffer
   * @author Jerome Dohrau
   * @author Severin Münger
   */
-case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPermissionsState)
-  extends SilverInterpreter[QuantifiedPermissionsState] {
+case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPermissionState)
+  extends SilverInterpreter[QuantifiedPermissionState] {
 
-  type S = QuantifiedPermissionsState
+  type S = QuantifiedPermissionState
 
   override def cfg(current: WorklistElement): SampleCfg = cfg
 
