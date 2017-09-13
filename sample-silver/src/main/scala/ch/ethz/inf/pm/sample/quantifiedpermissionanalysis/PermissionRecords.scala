@@ -7,17 +7,19 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Fractional}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.Maps
 
 /**
   * Maps fields to permission trees.
   *
-  * @param map The map from fields to permission trees.
+  * @param map      The map from fields to permission trees.
+  * @param changing The set of changing variables.
   * @author Jerome Dohrau
   */
-case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
+case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
+                             changing: Set[VariableIdentifier] = Set.empty) {
   /**
     * The fields for which there is a permission tree.
     *
@@ -34,19 +36,21 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
   def apply(field: Identifier): PermissionTree = map(field)
 
   def lub(other: PermissionRecords): PermissionRecords = {
-    val updated = Maps.union(map, other.map, Maximum)
-    PermissionRecords(updated)
+    val newMap = Maps.union(map, other.map, Maximum)
+    val newChanging = changing ++ other.changing
+    copy(map = newMap, changing = newChanging)
   }
 
   def assume(condition: Expression): PermissionRecords = {
     val updated = map.mapValues(_.assume(condition))
-    PermissionRecords(updated)
+    copy(map = updated)
   }
 
-  def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords = transformExpressions {
-    case variable: VariableIdentifier if variable == target => value
-    case expression => expression
-  }
+  def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords =
+    copy(changing = changing + target).transformExpressions {
+      case variable: VariableIdentifier if variable == target => value
+      case expression => expression
+    }
 
   def assignField(target: FieldAccessExpression, value: Expression): PermissionRecords = transformExpressions {
     case expression: FieldAccessExpression if target.field == expression.field =>
@@ -84,7 +88,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
 
   def read(expression: Expression): PermissionRecords = access(expression, Read)
 
-  def write(expression: Expression): PermissionRecords = access(expression, Write)
+  def write(expression: Expression): PermissionRecords = access(expression, Fractional(1, 1))
 
   def access(expression: Expression, permission: Permission): PermissionRecords = expression match {
     case _: Constant => this
@@ -104,7 +108,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
 
   def update(field: Identifier, f: PermissionTree => PermissionTree): PermissionRecords = {
     val updated = map + (field -> f(map(field)))
-    PermissionRecords(updated)
+    copy(map = updated)
   }
 
   def transformExpressions(f: Expression => Expression): PermissionRecords = transform {
@@ -115,8 +119,17 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty) {
 
   def transform(f: PermissionTree => PermissionTree): PermissionRecords = {
     val transformed = map.mapValues(_.transform(f))
-    PermissionRecords(transformed)
+    copy(map = transformed)
   }
+
+  def clear(): PermissionRecords = {
+    val emptyMap = map.mapValues(_ => Empty)
+    copy(map = emptyMap, changing = Set.empty)
+  }
+
+  def copy(map: Map[Identifier, PermissionTree] = map,
+           changing: Set[VariableIdentifier] = changing): PermissionRecords =
+    PermissionRecords(map, changing)
 }
 
 sealed trait PermissionTree {
@@ -124,6 +137,13 @@ sealed trait PermissionTree {
   def bound(): PermissionTree = Maximum(this, Empty)
 
   def assume(condition: Expression) = Conditional(condition, this, Empty)
+
+  def simplify: PermissionTree = transform {
+    case Maximum(left, Empty) => left
+    case Maximum(Empty, right) => right
+    case Conditional(_, left, right) if left == right => left
+    case tree => tree
+  }
 
   def transform(f: PermissionTree => PermissionTree): PermissionTree = this match {
     case Addition(left, right) => f(Addition(left.transform(f), right.transform(f)))
@@ -191,40 +211,84 @@ object PermissionTree {
 
 }
 
+/**
+  * Represents a permission.
+  *
+  * @author Jerome Dohrau
+  */
 sealed trait Permission
+  extends Lattice[Permission] {
+
+  override def factory(): Permission = Permission.Fractional(0, 1)
+
+  override def top(): Permission = Permission.Top
+
+  override def bottom(): Permission = Permission.Bottom
+
+  override def lub(other: Permission): Permission =
+    if (this lessEqual other) other
+    else if (other lessEqual this) this
+    else top()
+
+  override def glb(other: Permission): Permission =
+    if (this lessEqual other) this
+    else if (other lessEqual this) other
+    else bottom()
+
+  override def widening(other: Permission): Permission = ???
+}
 
 object Permission {
 
   def create(numerator: Expression, denominator: Expression): Permission = {
     val a = numerator.asInstanceOf[Constant].constant.toInt
     val b = denominator.asInstanceOf[Constant].constant.toInt
-    if (a == 0) Zero
-    else if (a == b) Write
-    else Fractional(a, b)
+    Fractional(a, b)
   }
 
-  case object Zero
-    extends Permission {
+  case object Top
+    extends Permission
+      with Lattice.Top[Permission]
 
-    override def toString: String = "none"
-  }
+  case object Bottom
+    extends Permission
+      with Lattice.Bottom[Permission]
 
   case object Read
     extends Permission {
 
+    override def isTop: Boolean = false
+
+    override def isBottom: Boolean = false
+
+    override def lessEqual(other: Permission): Boolean = other match {
+      case Top => true
+      case Bottom => false
+      case Read => true
+      case Fractional(numerator, _) => numerator <= 0
+    }
+
     override def toString: String = "read"
-  }
-
-  case object Write
-    extends Permission {
-
-    override def toString: String = "write"
   }
 
   case class Fractional(numerator: Int, denominator: Int)
     extends Permission {
 
-    override def toString: String = s"$numerator/$denominator"
+    override def isTop: Boolean = false
+
+    override def isBottom: Boolean = false
+
+    override def lessEqual(other: Permission): Boolean = other match {
+      case Top => true
+      case Bottom => false
+      case Read => 0 < numerator
+      case other: Fractional => numerator * other.denominator <= other.numerator * denominator
+    }
+
+    override def toString: String =
+      if (numerator == 0) "none"
+      else if (numerator == denominator) "write"
+      else s"$numerator/$denominator"
   }
 
 }

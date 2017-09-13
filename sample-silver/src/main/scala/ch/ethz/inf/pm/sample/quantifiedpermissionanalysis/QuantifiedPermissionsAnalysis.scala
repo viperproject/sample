@@ -73,7 +73,7 @@ object QuantifiedPermissionsAnalysisRunner
   override def inferPreconditions(method: sil.Method, result: CfgResult[QuantifiedPermissionsState]): Seq[sil.Exp] = {
     val position = firstPosition(result.cfg.entry)
     val state = result.preStateAt(position)
-    val inferred = SpecificationGenerator.generate(state.records)
+    val inferred = SpecificationGenerator.generate(state.records.head)
     method.pres ++ inferred
   }
 
@@ -88,8 +88,7 @@ object QuantifiedPermissionEntryState
   override def default: QuantifiedPermissionsState = QuantifiedPermissionsState(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    records = PermissionRecords(),
-    changing = Set.empty,
+    records = PermissionRecords() :: Nil,
     isTop = false,
     isBottom = false
   )
@@ -97,7 +96,7 @@ object QuantifiedPermissionEntryState
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): QuantifiedPermissionsState = {
     val fields = program.fields.map(_.variable.id: Identifier)
     val map = fields.map(_ -> (PermissionTree.Initial: PermissionTree)).toMap
-    val records = PermissionRecords(map)
+    val records = PermissionRecords(map) :: Nil
     super.build(program, method).copy(records = records)
   }
 }

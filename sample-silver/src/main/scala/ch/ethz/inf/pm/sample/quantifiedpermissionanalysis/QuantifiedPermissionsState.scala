@@ -13,10 +13,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, 
 import com.typesafe.scalalogging.LazyLogging
 
 /**
+  * A stated used for the quantified permission analysis.
+  *
   * @param pp       The current program point.
   * @param expr     The expression representing the current result.
   * @param records  A map from field names to the permission trees.
-  * @param changing The set of changing variables.
   * @param isTop    The top flag.
   * @param isBottom The bottom flag.
   * @author Jerome Dohrau
@@ -24,8 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
   */
 case class QuantifiedPermissionsState(pp: ProgramPoint,
                                       expr: ExpressionSet,
-                                      records: PermissionRecords,
-                                      changing: Set[VariableIdentifier],
+                                      records: List[PermissionRecords],
                                       isTop: Boolean,
                                       isBottom: Boolean)
   extends SilverState[QuantifiedPermissionsState]
@@ -40,8 +40,7 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
   override def factory(): QuantifiedPermissionsState = copy(
     pp = DummyProgramPoint,
     expr = ExpressionSet(),
-    records = PermissionRecords(),
-    changing = Set.empty,
+    records = PermissionRecords() :: Nil,
     isTop = false,
     isBottom = false
   )
@@ -61,9 +60,8 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
-      val newRecords = records lub other.records
-      val newChanging = changing ++ other.changing
-      copy(records = newRecords, changing = newChanging)
+      val newHead = records.head lub other.records.head
+      copy(records = newHead :: records.tail)
     }
   }
 
@@ -76,8 +74,8 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     if (isBottom || other.isTop) true
     else if (isTop || other.isBottom) false
     else {
-      // TODO: Implement me.
-      false
+      // TODO: Implement me if necessary.
+      ???
     }
   }
 
@@ -116,16 +114,16 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def assume(condition: Expression): QuantifiedPermissionsState = {
     logger.trace(s"assume(condition)")
-    val updated = records.assume(condition).read(condition)
-    copy(records = updated)
+    val newHead = records.head.assume(condition).read(condition)
+    copy(records = newHead :: records.tail)
   }
 
   override def assignVariable(target: Expression, value: Expression): QuantifiedPermissionsState = {
     logger.trace(s"assignVariable($target, $value)")
     target match {
       case variable: VariableIdentifier =>
-        val updated = records.assignVariable(variable, value).read(value)
-        copy(records = updated)
+        val newHead = records.head.assignVariable(variable, value).read(value)
+        copy(records = newHead :: records.tail)
     }
   }
 
@@ -135,8 +133,8 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
     logger.trace(s"assignField($target, $value)")
     target match {
       case expression: FieldAccessExpression =>
-        val updated = records.assignField(expression, value).write(expression).read(value)
-        copy(records = updated)
+        val newHead = records.head.assignField(expression, value).write(expression).read(value)
+        copy(records = newHead :: records.tail)
     }
   }
 
@@ -146,14 +144,25 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   override def inhale(expression: Expression): QuantifiedPermissionsState = {
     logger.trace(s"inhale($expression)")
-    val updated = records.inhale(expression).read(expression)
-    copy(records = updated)
+    val newHead = records.head.inhale(expression).read(expression)
+    copy(records = newHead :: records.tail)
   }
 
   override def exhale(expression: Expression): QuantifiedPermissionsState = {
     logger.trace(s"exhale($expression)")
-    val updated = records.exhale(expression).read(expression)
-    copy(records = updated)
+    val newHead = records.head.exhale(expression).read(expression)
+    copy(records = newHead :: records.tail)
+  }
+
+  override def enterLoop(): QuantifiedPermissionsState = {
+    val inner :: outer :: rest = records
+    val newRecords = (inner lub outer) :: rest
+    copy(records = newRecords)
+  }
+
+  override def leaveLoop(): QuantifiedPermissionsState = {
+    val newRecords = records.head.clear() :: records
+    copy(records = newRecords)
   }
 
   /* ------------------------------------------------------------------------- *
@@ -162,9 +171,8 @@ case class QuantifiedPermissionsState(pp: ProgramPoint,
 
   def copy(pp: ProgramPoint = pp,
            expr: ExpressionSet = expr,
-           records: PermissionRecords = records,
-           changing: Set[VariableIdentifier] = changing,
+           records: List[PermissionRecords] = records,
            isTop: Boolean = isTop,
            isBottom: Boolean = isBottom): QuantifiedPermissionsState =
-    QuantifiedPermissionsState(pp, expr, records, changing, isTop, isBottom)
+    QuantifiedPermissionsState(pp, expr, records, isTop, isBottom)
 }

@@ -6,10 +6,10 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Write, Zero, Fractional}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Fractional}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import viper.silver.{ast => sil}
 
@@ -46,8 +46,8 @@ object SpecificationGenerator {
     }
   }
 
-  private def convert(tree: PermissionTree, quantified: sil.Exp): sil.Exp = tree match {
-    case Empty => convert(Zero)
+  private def convert(tree: PermissionTree, quantified: sil.Exp): sil.Exp = tree.simplify match {
+    case Empty => convert(Fractional(0, 1))
     case Leaf(receiver, permission) =>
       val condition = receiver match {
         case FunctionCallExpression(name, arguments, _, _) =>
@@ -60,7 +60,7 @@ object SpecificationGenerator {
           sil.EqCmp(converted, quantified)()
       }
       val leftExpression = convert(permission)
-      val rightExpression = convert(Zero)
+      val rightExpression = convert(Fractional(0, 1))
       conditional(condition, leftExpression, rightExpression)
     case Addition(left, right) =>
       val leftExpression = convert(left, quantified)
@@ -82,15 +82,17 @@ object SpecificationGenerator {
   }
 
   private def convert(permission: Permission): sil.Exp = permission match {
-    case Zero => sil.NoPerm()()
     case Read =>
       // TODO: Replace with read permission.
-      sil.FullPerm()()
-    case Write => sil.FullPerm()()
+      convert(Fractional(1, 100))
     case Fractional(numerator, denominator) =>
-      val left = sil.IntLit(numerator)()
-      val right = sil.IntLit(denominator)()
-      sil.FractionalPerm(left, right)()
+      if (numerator == 0) sil.NoPerm()()
+      else if (numerator == denominator) sil.FullPerm()()
+      else {
+        val left = sil.IntLit(numerator)()
+        val right = sil.IntLit(denominator)()
+        sil.FractionalPerm(left, right)()
+      }
   }
 
   private def convert(expression: Expression): sil.Exp =
