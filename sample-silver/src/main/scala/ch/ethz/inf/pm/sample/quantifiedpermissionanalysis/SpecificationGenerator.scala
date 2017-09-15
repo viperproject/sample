@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Read, Fractional}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Fractional, Read}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import viper.silver.{ast => sil}
 
@@ -69,7 +69,8 @@ object SpecificationGenerator {
     case Subtraction(left, right) =>
       val leftExpression = convert(left, quantified)
       val rightExpression = convert(right, quantified)
-      subtraction(leftExpression, rightExpression)
+      val zero = sil.IntLit(0)()
+      max(subtraction(leftExpression, rightExpression), zero)
     case Maximum(left, right) =>
       val leftExpression = convert(left, quantified)
       val rightExpression = convert(right, quantified)
@@ -120,5 +121,5 @@ object SpecificationGenerator {
     sil.CondExp(condition, left, right)()
 
   private def getFunction(name: String): sil.FuncLike =
-    Context.functions(name)
+    Context.getFunction(name)
 }

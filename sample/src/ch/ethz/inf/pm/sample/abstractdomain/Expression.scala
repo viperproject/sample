@@ -726,22 +726,24 @@ case class BinaryStringExpression(left: Expression, right: Expression, op: Strin
 /**
   * An expression that represents a function call.
   *
-  * @param name       The name of the called function.
-  * @param parameters A possibly empty sequence of expressions corresponding to
-  *                   the passed parameters in the function call.
-  * @param typ        The return type of the function.
-  * @param pp         The program point identifying the location of the function
-  *                   call.
+  * @param name      The name of the called function.
+  * @param arguments A possibly empty sequence of expressions corresponding to
+  *                  the arguments to the function call.
+  * @param typ       The return type of the function.
+  * @param pp        The program point identifying the location of the function
+  *                  call.
   * @author Severin Münger
   */
-case class FunctionCallExpression(name: String, parameters: Seq[Expression] = Seq.empty, typ: Type, pp: ProgramPoint = DummyProgramPoint)
+case class FunctionCallExpression(name: String, arguments: Seq[Expression] = Seq.empty, typ: Type, pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
-  override def ids: IdentifierSet = parameters.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
+  override def ids: IdentifierSet = arguments.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
 
-  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(name, parameters.map(param => param.transform(f)), typ, pp))
+  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(name, arguments.map(param => param.transform(f)), typ, pp))
 
-  override def contains(f: (Expression) => Boolean): Boolean = f(this) || parameters.exists(param => param.contains(f))
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || arguments.exists(param => param.contains(f))
+
+  override def toString: String = s"$name(${arguments.mkString(", ")})"
 }
 
 /**

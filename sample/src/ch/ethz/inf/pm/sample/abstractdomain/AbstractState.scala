@@ -20,9 +20,9 @@ object ExpressionSetFactory {
     else expand(parameterExpressions.init).flatMap(seq => parameterExpressions.last.s.toSet.map(expr => seq :+ expr))
   }
 
-  def createFunctionCallExpression(functionName: String, parameterExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
-    ExpressionSet((for (params <- expand(parameterExpressions)) yield {
-      FunctionCallExpression(functionName, params, typ, pp)
+  def createFunctionCallExpression(functionName: String, argumentExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
+    ExpressionSet((for (arguments <- expand(argumentExpressions)) yield {
+      FunctionCallExpression(functionName, arguments, typ, pp)
     }).toSeq)
   }
 

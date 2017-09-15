@@ -84,7 +84,7 @@ object DefaultSampleConverter extends SampleConverter {
       sil.CondExp(go(condition), go(left), go(right))()
     case FunctionCallExpression(name, parameters, typ, pp) =>
       // TODO: Change to a solution that does not only work for the QP inference.
-      val function = Context.functions(name)
+      val function = Context.getFunction(name)
       sil.FuncLikeApp(function,parameters.map(go), Map.empty[sil.TypeVar, sil.Type])
     case _ => ???
   }

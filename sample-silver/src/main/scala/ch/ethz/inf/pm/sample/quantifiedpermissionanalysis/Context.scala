@@ -16,16 +16,101 @@ import viper.silver.{ast => sil}
 import scala.collection.GenTraversableOnce
 
 /**
+  * @author Jerome Dohrau
   * @author Severin Münger
-  *         Added on 28.08.17.
   */
 object Context {
 
-  var program: sil.Program = _
+  /**
+    * The program that is currently analyzed.
+    */
+  private var program: sil.Program = _
 
-  private var currentMethod: String = _
+  /**
+    * The method that is currently analyzed.
+    */
+  private var method: sil.Method = _
 
+  /**
+    * The set of identifiers.
+    */
   private var identifiers: Set[String] = Set()
+
+  /**
+    * A map
+    */
+  private var receivers: Map[String, Seq[Expression]] = Map()
+
+  /**
+    * The map containing all auxiliary functions.
+    */
+  private var functions: Map[String, sil.Function] = Map()
+
+  /**
+    * Sets the program that is currently analyzed to the given program.
+    *
+    * @param program The program.
+    */
+  def setProgram(program: sil.Program): Unit = {
+    this.program = program
+    // Add all existing identifiers to the identifiers set (fields, domain
+    // names, method names, function names etc.)
+    identifiers ++= program.fields.map(_.name)
+    identifiers ++= program.methods.flatMap(_.formalArgs.map(_.name))
+    identifiers ++= program.methods.flatMap(_.formalReturns.map(_.name))
+    identifiers ++= program.methods.flatMap(_.body.scopedDecls.map(_.name))
+    identifiers ++= program.methods.map(_.name)
+    identifiers ++= program.functions.map(_.name)
+    identifiers ++= program.predicates.map(_.name)
+    identifiers ++= program.domains.map(_.name)
+    identifiers ++= program.domains.flatMap(_.functions.map(_.name))
+    identifiers ++= program.domains.flatMap(_.axioms.map(_.name))
+  }
+
+  /**
+    * Selects the method with the given method as the method that is currently
+    * analyzed.
+    *
+    * @param name The name of the method.
+    */
+  def selectMethod(name: String): Unit =
+    program.methods.find(_.name == name) match {
+      case Some(existing) => method = existing
+      case _ => ???
+    }
+
+  /**
+    * Returns the function with the given name. This method first, searches
+    * through the auxiliary functions, then the program functions, and finally
+    * the domain functions.
+    *
+    * @param name The name of the function.
+    * @return The function.
+    */
+  def getFunction(name: String): sil.FuncLike =
+    functions.get(name)
+      .orElse(program.findFunctionOptionally(name))
+      .getOrElse(program.findDomainFunction(name))
+
+
+  def getBlah(name: String): Seq[Expression] = {
+    receivers.get(name) match {
+      case Some(existing) => existing
+      case None =>
+        val function = getFunction(name)
+        val quantified = function.formalArgs.map { argument =>
+          val name = uniqueIdentifier("q")
+          val typ = DefaultSilverConverter.convert(argument.typ)
+          VariableIdentifier(name)(typ)
+        }
+        receivers += (name -> quantified)
+        quantified
+    }
+  }
+
+  /* ------------------------------------------------------------------------- *
+   * code below has not been cleaned up
+   */
 
   private var boundaryFunction: Option[sil.Function] = None
 
@@ -34,10 +119,6 @@ object Context {
   private var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
   private var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
-
-  private var programFunctions: Map[String, sil.FuncLike] = Map()
-
-  private var auxiliaryFunctions: Map[String, sil.Function] = Map()
 
   private var fieldAccessFunctions: Map[String, sil.Function] = Map()
 
@@ -52,27 +133,27 @@ object Context {
     */
   private var numericalInfo: Option[CfgResult[NumericalStateType]] = None
 
-  def getAuxiliaryFunctions: Map[String, Function] = auxiliaryFunctions
+  def getAuxiliaryFunctions: Map[String, Function] = functions
 
   def getFieldAccessFunction(field: String): sil.Function = {
     if (!fieldAccessFunctions.contains(field)) {
       val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get" + field.head.toUpper + field.tail), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None, None)()
       fieldAccessFunctions += field -> function
-      auxiliaryFunctions += function.name -> function
+      functions += function.name -> function
     }
-    fieldAccessFunctionsInMethod += currentMethod -> (fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set()) + ((field, fieldAccessFunctions(field))))
+    fieldAccessFunctionsInMethod += method.name -> (fieldAccessFunctionsInMethod.getOrElse(method.name, Set()) + ((field, fieldAccessFunctions(field))))
     fieldAccessFunctions(field)
   }
 
   def getPlaceholderFunction(quantifiedVariable: sil.LocalVarDecl): sil.Function = {
     val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None, None)()
-    auxiliaryFunctions += function.name -> function
+    functions += function.name -> function
     function
   }
 
-  def replaceFunction(function: sil.Function): Unit = auxiliaryFunctions += function.name -> function
+  def replaceFunction(function: sil.Function): Unit = functions += function.name -> function
 
-  def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(currentMethod, Set())
+  def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(method.name, Set())
 
   def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
     if (!sets.contains(key))
@@ -90,25 +171,12 @@ object Context {
   }
 
   def setMethodContext(program: sil.Program, method: SilverMethodDeclaration): Unit = {
-    this.program = program
-    currentMethod = method.name.name
-    // Add all existing identifiers to the identifiers set (fields, domain names, method names, function names etc.)
-    identifiers ++= program.fields.map(_.name)
-    identifiers ++= program.methods.flatMap(method => method.formalArgs ++ method.formalReturns).map(_.name)
-    identifiers ++= program.methods.flatMap(method => method.body.scopedDecls.map(_.name))
-    identifiers ++= program.methods.map(_.name)
-    identifiers ++= program.domains.map(_.name)
-    identifiers ++= program.functions.map(_.name)
-    identifiers ++= program.predicates.map(_.name)
-    identifiers ++= program.domains.flatMap(domain => domain.axioms.map(_.name) ++ domain.functions.map(_.name))
-    programFunctions ++= program.functions.map(function => (function.name, function))
-    programFunctions ++= program.domains.flatMap(domain => domain.functions.map(function => (function.name, function)))
+    setProgram(program)
+    selectMethod(method.name.name)
   }
 
-  def functions(name: String): sil.FuncLike = if (auxiliaryFunctions.contains(name)) auxiliaryFunctions(name) else programFunctions(name)
-
   def prepareMethodForExtension(name: String): Unit = {
-    currentMethod = name
+    selectMethod(name)
     loadNumericalInfoForMethod(name)
     identifiers --= sets.values.map(_.name)
     sets = Map()
@@ -131,29 +199,25 @@ object Context {
     case _ => DefaultSilverConverter.convert(typ).name.toLowerCase()(0)
   }
 
-  private def createNewUniqueIdentifier(name: String, markAsTaken: Boolean = true): String = {
-    var identifier: String = ""
-    if (identifiers.contains(name)) {
+  private def uniqueIdentifier(name: String, markAsTaken: Boolean = true): String = {
+    var identifier = if (identifiers.contains(name)) {
       var count = 0
       while (identifiers.contains(name + count)) {
         count += 1
       }
-      identifier = name + count
-    } else {
-      identifier = name
-    }
-    if (markAsTaken)
-      identifiers += identifier
+      name + count
+    } else name
+    if (markAsTaken) identifiers += identifier
     identifier
   }
 
-  def createNewUniqueVarIdentifier(name: String = "_var", markAsTaken: Boolean = true): String = createNewUniqueIdentifier(name, markAsTaken)
+  def createNewUniqueVarIdentifier(name: String = "_var", markAsTaken: Boolean = true): String = uniqueIdentifier(name, markAsTaken)
 
-  def createNewUniqueVarIdentifier(name: Char): String = createNewUniqueIdentifier(name.toString)
+  def createNewUniqueVarIdentifier(name: Char): String = uniqueIdentifier(name.toString)
 
-  def createNewUniqueFunctionIdentifier(name: String = "_func"): String = createNewUniqueIdentifier(name)
+  def createNewUniqueFunctionIdentifier(name: String = "_func"): String = uniqueIdentifier(name)
 
-  private def createNewUniqueSetIdentifier(name: String = "_set"): String = createNewUniqueIdentifier(name)
+  private def createNewUniqueSetIdentifier(name: String = "_set"): String = uniqueIdentifier(name)
 
   def removeIdentifiers(identifiers: GenTraversableOnce[String]): Unit = this.identifiers --= identifiers
 
@@ -171,36 +235,8 @@ object Context {
       val fun = sil.Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), sil.Perm, Seq(), Seq(), None, Some(sil.CondExp(sil.PermGtCmp(VarX, VarY)(), VarX, VarY)())
       )()
       maxFunction = Some(fun)
-      auxiliaryFunctions += ((fun.name, fun))
+      functions += ((fun.name, fun))
       fun
-  }
-
-  def getBoundaryFunction: sil.Function = boundaryFunction match {
-    case Some(existingBoundaryFunction) => existingBoundaryFunction
-    case None =>
-      val fun = sil.Function(createNewUniqueFunctionIdentifier("bound"), Seq(VarXDecl), sil.Perm, Seq(), Seq(), None, Some(sil.CondExp(sil.PermLtCmp(VarX, ZeroPerm)(), ZeroPerm, VarX)()))()
-      boundaryFunction = Some(fun)
-      auxiliaryFunctions += ((fun.name, fun))
-      fun
-  }
-
-  def getQuantifiedVarDecl(typ: sil.Type, exclude: Set[sil.LocalVarDecl] = Set()): sil.LocalVarDecl = {
-    if ((quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).isEmpty)
-      quantifiedVariables += typ -> (quantifiedVariables.getOrElse(typ, Seq()) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(typeToVarPrefix(typ)), typ)())
-    (quantifiedVariables.getOrElse(typ, Seq()).toSet -- exclude).head
-  }
-
-  def getQuantifiedVarDeclsForType(typ: sil.Type, number: Int, exclude: Set[sil.LocalVarDecl] = Set()): Seq[sil.LocalVarDecl] = {
-    if (!quantifiedVariables.contains(typ))
-      quantifiedVariables += typ -> Seq()
-    for (_ <- 0 until Math.max(0, number - (quantifiedVariables(typ).toSet -- exclude).size))
-      quantifiedVariables += typ -> (quantifiedVariables(typ) :+ sil.LocalVarDecl(createNewUniqueVarIdentifier(typeToVarPrefix(typ)), typ)())
-    (quantifiedVariables(typ).toSet -- exclude).toSeq.take(number)
-  }
-
-  def getReplacements(variables: Set[Identifier]): Map[Identifier, Identifier] = variables.foldLeft[Map[Identifier, Identifier]](Map()) { case (existing, identifier) =>
-    val replacement = VariableIdentifier(createNewUniqueVarIdentifier())(identifier.typ)
-    existing + (identifier -> replacement)
   }
 
   /**
@@ -232,20 +268,6 @@ object Context {
   def postNumericalInfo(pp: ProgramPoint): NumericalStateType = numericalInfo.get.postStateAt(pp)
 }
 
-case class FractionalPermissionExpression(numerator: Int, denominator: Int) extends Expression {
-  def pp: ProgramPoint = DummyProgramPoint
-
-  def ids: IdentifierSet = IdentifierSet.Bottom
-
-  def transform(f: (Expression) => Expression): Expression = f(this)
-
-  def contains(f: (Expression) => Boolean): Boolean = f(this)
-
-  override def find(f: (Expression) => Boolean): Option[Expression] = Some(this).filter(f)
-
-  override def typ: Type = PermType
-}
-
 object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()
 
 object VarX extends sil.LocalVar("x")(sil.Perm)
@@ -256,4 +278,3 @@ object VarY extends sil.LocalVar("y")(sil.Perm)
 
 object ZeroPerm extends sil.NoPerm()()
 
-object WritePerm extends sil.FullPerm()()

@@ -1,15 +1,29 @@
 field val: Int
 
-/*method set_val(a: Ref, v: Int)
+domain Array
 {
-    a.val := v
-}*/
+    function loc(a: Array, i: Int): Ref
+    function length(a: Array): Int
+    function get_index(r: Ref): Int
+    function get_array(r: Ref): Array
 
-method test(a: Ref, v: Int)
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_length { forall a: Array :: 0 <= length(a) }
+}
+
+method fill(a: Array, v: Int)
 {
+    var b: Array
+    var l: Int
     var i: Int
+
+    b := a
     i := 0
-    while (i < a.val) {
+    l := length(b)
+
+    while (i < l) {
+        loc(a, i).val := v
         i := i + 1
     }
 }

@@ -13,8 +13,8 @@ domain Array
 }
 
 method lower_expected(a: Array, i: Int, j: Int)
-    requires i < j ==> acc(loc(a, i).val)
-    requires j <= i ==> acc(loc(a, j).val)
+    requires i < j ==> acc(loc(a, i).val, 1 / 100)
+    requires j <= i ==> acc(loc(a, j).val, 1 / 100)
     ensures true
 
 method lower(a: Array, i: Int, j: Int) returns (r: Int)

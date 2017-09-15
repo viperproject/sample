@@ -13,7 +13,7 @@ domain Array
 }
 
 method foo_expected(a: Array, i: Int, j: Int)
-    requires forall q: Ref :: (q == loc(a, i + j) || q == loc(a, i + j + 1)) ==> acc(q.val, write)
+    requires forall q: Ref :: (q == loc(a, i + j) || q == loc(a, i + j + 1)) ==> acc(q.val, 1 / 100)
     ensures true
 
 method foo(a: Array, i: Int, j: Int) returns (r: Int, s: Int)

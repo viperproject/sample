@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.{SilverState, Simplifications}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.util.SampleExpressions
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -32,6 +33,8 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     with Simplifications[QuantifiedPermissionState]
     with StateWithRefiningAnalysisStubs[QuantifiedPermissionState]
     with LazyLogging {
+
+  import SampleExpressions._
 
   type S = QuantifiedPermissionState
 
@@ -159,7 +162,13 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
 
   override def enterLoop(): S = {
     val inner :: outer :: rest = records
-    val newRecords = (inner lub outer) :: rest
+
+    val changing = inner.changing
+    val forgotten = changing.foldLeft(inner) { case (result, variable) =>
+      result.forget(variable, tt)
+    }
+
+    val newRecords = (forgotten lub outer) :: rest
     copy(records = newRecords)
   }
 
