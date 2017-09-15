@@ -93,7 +93,7 @@ object Context {
       .getOrElse(program.findDomainFunction(name))
 
 
-  def getBlah(name: String): Seq[Expression] = {
+  def getQuantified(name: String): Seq[Expression] = {
     receivers.get(name) match {
       case Some(existing) => existing
       case None =>

@@ -96,7 +96,7 @@ object QuantifiedPermissionEntryState
   override def build(program: SilverProgramDeclaration, method: SilverMethodDeclaration): QuantifiedPermissionState = {
     val fields = program.fields.map(_.variable.id: Identifier)
     val map = fields.map(_ -> (PermissionTree.Initial: PermissionTree)).toMap
-    val records = PermissionRecords(map) :: Nil
+    val records = PermissionRecords(map = map) :: Nil
     super.build(program, method).copy(records = records)
   }
 }

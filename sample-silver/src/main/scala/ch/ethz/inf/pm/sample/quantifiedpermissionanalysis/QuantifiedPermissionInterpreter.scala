@@ -130,12 +130,10 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
             val afterBlocks = outEdges.filter(_.isOut).map(_.target)
             if (afterBlocks.forall(visited.contains)) {
               // enqueue inner blocks
-              val loopState = result.exitState(predecessor)
               val innerEdges = cfg.inEdges(predecessor).filterNot(_.isIn)
               innerEdges.foreach { innerEdge =>
                 val innerBlock = innerEdge.source
-                val innerState = processEdge(innerEdge, loopState)
-                updateExitState(innerBlock, innerState)
+                updateExitState(innerBlock, initial)
                 worklist.push(innerBlock)
               }
             }
@@ -156,16 +154,16 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @return The state after processing the edge.
     */
   protected def processEdge(edge: SampleEdge, state: S): S = {
-    // adapt state according to the kind of the edge
-    val adapted = edge.kind match {
-      case Kind.In => state.command(EnterLoopCommand())
-      case Kind.Out => state.command(LeaveLoopCommand())
-      case _ => state
-    }
     // filter state if there is a condition
-    edge match {
-      case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, adapted)
-      case UnconditionalEdge(_, _, _) => adapted
+    val filtered = edge match {
+      case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, state)
+      case UnconditionalEdge(_, _, _) => state
+    }
+    // adapt state according to the kind of the edge
+    edge.kind match {
+      case Kind.In => filtered.command(EnterLoopCommand())
+      case Kind.Out => filtered.command(LeaveLoopCommand())
+      case _ => filtered
     }
   }
 

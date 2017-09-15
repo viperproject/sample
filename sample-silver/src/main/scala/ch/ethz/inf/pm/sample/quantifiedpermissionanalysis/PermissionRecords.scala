@@ -16,10 +16,37 @@ import ch.ethz.inf.pm.sample.util.{Maps, SampleExpressions}
   *
   * @param map      The map from fields to permission trees.
   * @param changing The set of changing variables.
+  * @param isTop The top flag.
+  * @param isBottom the bottom flag.
   * @author Jerome Dohrau
   */
 case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
-                             changing: Set[VariableIdentifier] = Set.empty) {
+                             changing: Set[VariableIdentifier] = Set.empty,
+                             isTop: Boolean = false,
+                             isBottom: Boolean = false)
+extends Lattice[PermissionRecords] {
+
+  override def factory(): PermissionRecords = PermissionRecords()
+
+  override def top(): PermissionRecords = factory().copy(isTop = true)
+
+  override def bottom(): PermissionRecords = factory().copy(isBottom = true)
+
+  override def lub(other: PermissionRecords): PermissionRecords =
+    if (isTop || other.isBottom) this
+    else if (isBottom || other.isTop) other
+    else {
+      val newMap = Maps.union(map, other.map, Maximum)
+      val newChanging = changing ++ other.changing
+      copy(map = newMap, changing = newChanging)
+    }
+
+  override def glb(other: PermissionRecords): PermissionRecords = ???
+
+  override def widening(other: PermissionRecords): PermissionRecords = ???
+
+  override def lessEqual(other: PermissionRecords): Boolean = ???
+
   /**
     * The fields for which there is a permission tree.
     *
@@ -34,12 +61,6 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     * @return The permission tree associated with the given field.
     */
   def apply(field: Identifier): PermissionTree = map(field)
-
-  def lub(other: PermissionRecords): PermissionRecords = {
-    val newMap = Maps.union(map, other.map, Maximum)
-    val newChanging = changing ++ other.changing
-    copy(map = newMap, changing = newChanging)
-  }
 
   def assume(condition: Expression): PermissionRecords = {
     val updated = map.mapValues(_.assume(condition))
@@ -133,6 +154,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
   }
 
   def copy(map: Map[Identifier, PermissionTree] = map,
-           changing: Set[VariableIdentifier] = changing): PermissionRecords =
-    PermissionRecords(map, changing)
+           changing: Set[VariableIdentifier] = changing,
+           isTop: Boolean = isTop,
+           isBottom: Boolean = isBottom): PermissionRecords =
+    PermissionRecords(map, changing, isTop, isBottom)
 }

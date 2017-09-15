@@ -65,16 +65,14 @@ sealed trait PermissionTree {
     case Empty =>
       Set((tt, none))
     case Initial =>
-      val placeholder = VariableIdentifier("p0")(PermType)
+      val placeholder = VariableIdentifier("π")(PermType)
       Set((tt, placeholder))
     case Leaf(receiver, permission) => receiver match {
       case FunctionCallExpression(name, arguments, _, _) =>
         // generate constraint from arguments
-        val c = arguments.map { argument =>
-          val typ = argument.typ
-          val variable = VariableIdentifier(s"q_$typ")(typ)
-          equ(variable, argument)
-        }.reduce(and)
+        val quantified = Context.getQuantified(name)
+        val zipped = arguments zip quantified
+        val c = zipped.map { case (a, b) => equ(a, b) }.reduce(and)
         // translate permission
         val p = permission match {
           case Fractional(numerator, denominator) =>
@@ -131,7 +129,7 @@ object PermissionTree {
   case object Initial
     extends PermissionTree {
 
-    override def toString: String = "p_0"
+    override def toString: String = "π"
   }
 
   case class Leaf(receiver: Expression, permission: Permission)

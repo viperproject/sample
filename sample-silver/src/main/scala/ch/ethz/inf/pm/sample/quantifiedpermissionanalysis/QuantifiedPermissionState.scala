@@ -65,7 +65,8 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
-      val zipped = records zip other.records
+      val bottom = records.head.bottom()
+      val zipped = records.zipAll(other.records, bottom, bottom)
       val newRecords = zipped.map { case (a, b) => a lub b }
       copy(records = newRecords)
     }
@@ -173,7 +174,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
   }
 
   override def leaveLoop(): S = {
-    val newRecords = records.head.clear() :: records
+    val newRecords = records.head.bottom() :: records
     copy(records = newRecords)
   }
 
