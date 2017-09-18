@@ -145,19 +145,19 @@ object QuantifierElimination {
         case Divides(Literal(value: Int), `variable`) => factors += value
         case Comparison(`variable`, right, operator) => operator match {
           case ArithmeticOperator.< =>
-            A += right
+            A += Minus(right, One)
           case ArithmeticOperator.<= =>
-            A += Plus(right, One)
+            A += right
           case ArithmeticOperator.> =>
-            B += right
+            B += Plus(right, One)
           case ArithmeticOperator.>= =>
-            B += Minus(right, One)
+            B += right
           case ArithmeticOperator.== =>
+            A += right
+            B += right
+          case ArithmeticOperator.!= =>
             A += Minus(right, One)
             B += Plus(right, One)
-          case ArithmeticOperator.!= =>
-            A += right
-            B += right
           case _ => // do nothing
         }
         case Comparison(_, `variable`, _) => ???
@@ -167,19 +167,21 @@ object QuantifierElimination {
       val delta = lcm(factors)
       val (projection, expressions) = if (A.size < B.size) (positive, A) else (negative, B)
       // disjuncts corresponding to a unbounded solution
-      val unbounded = for (j <- 1 to delta) yield
+      val unbounded = for (j <- 0 until delta) yield
         projection.transform {
           case `variable` => Literal(j)
           case other => other
         }
       // disjuncts corresponding to a bounded solution
-      val bounded = for (j <- 1 to delta; b <- expressions) yield
+      val bounded = for (j <- 0 until delta; b <- expressions) yield
         expression.transform {
           case `variable` => Plus(b, Literal(j))
           case other => other
         }
       // build and simplify final expression
-      simplify(Or(unbounded ++ bounded), collect = true)
+      val result = Or(unbounded ++ bounded)
+      println(s"raw: $result")
+      simplify(result, collect = true)
     }
   }
 
