@@ -151,24 +151,7 @@ object Context {
     function
   }
 
-  def replaceFunction(function: sil.Function): Unit = functions += function.name -> function
 
-  def getFieldAccessFunctionsForCurrentMethod: Set[(String, sil.Function)] = fieldAccessFunctionsInMethod.getOrElse(method.name, Set())
-
-  def getSetFor(key: (ProgramPoint, Expression)): sil.LocalVarDecl = {
-    if (!sets.contains(key))
-      sets += key -> sil.LocalVarDecl(createNewUniqueSetIdentifier(extractSetName(key._2) match {
-        case name if useShortHelperVariableNames => "s_" + name(0)
-        case name => "set_" + name
-      }), sil.SetType(DefaultSampleConverter.convert(key._2.typ)))()
-    sets(key)
-  }
-
-  private def extractSetName(expr: Expression): String = expr match {
-    case FieldAccessExpression(rec, field) => extractSetName(rec) + "_" + field
-    case VariableIdentifier(name, _) => name
-    case FunctionCallExpression(functionName, _, _, _) => functionName
-  }
 
   def setMethodContext(program: sil.Program, method: SilverMethodDeclaration): Unit = {
     setProgram(program)

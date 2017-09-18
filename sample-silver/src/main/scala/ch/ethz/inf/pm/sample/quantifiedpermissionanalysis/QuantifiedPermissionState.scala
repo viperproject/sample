@@ -166,7 +166,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
 
     val changing = inner.changing
     val forgotten = changing.foldLeft(inner) { case (result, variable) =>
-      result.forget(variable, tt)
+      result.forget(variable, True)
     }
 
     val newRecords = (forgotten lub outer) :: rest

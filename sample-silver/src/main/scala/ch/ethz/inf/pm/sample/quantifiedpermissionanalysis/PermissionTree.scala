@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression, NegatedBooleanExpression, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
@@ -56,27 +56,41 @@ sealed trait PermissionTree {
   }
 
   def forget(variable: VariableIdentifier, invariant: Expression): PermissionTree = {
+    val result = VariableIdentifier("result")(PermType)
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
-    println(rewritten)
+
+    // TODO: Replace with actual invariant
+    val invariant = True
+
+    val exact = rewritten.map { case (c, p) => Implies(c, Equal(result, p)) }
+    val bound = rewritten.map { case (c, p) => And(c, Less(result, p)) }
+
+    val a = And(invariant, And(exact))
+    val b = And(invariant, Or(bound))
+
+    val ela = ???
+    // QuantifierElimination.eliminate(variable, a)
+    val elb = ??? //QuantifierElimination.eliminate(variable, b)
+
     ???
   }
 
   def rewrite: Set[(Expression, Expression)] = this match {
     case Empty =>
-      Set((tt, none))
+      Set((True, No))
     case Initial =>
       val placeholder = VariableIdentifier("π")(PermType)
-      Set((tt, placeholder))
+      Set((True, placeholder))
     case Leaf(receiver, permission) => receiver match {
       case FunctionCallExpression(name, arguments, _, _) =>
         // generate constraint from arguments
         val quantified = Context.getQuantified(name)
         val zipped = arguments zip quantified
-        val c = zipped.map { case (a, b) => equ(a, b) }.reduce(and)
+        val c = And(zipped.map { case (a, b) => Equal(a, b) })
         // translate permission
         val p = permission match {
           case Fractional(numerator, denominator) =>
-            fractional(integer(numerator), integer(denominator))
+            FractionalPermissionExpression(Literal(numerator), Literal(denominator))
         }
         Set((c, p))
       case _ => ???
@@ -86,25 +100,25 @@ sealed trait PermissionTree {
       val rewrittenRight = right.rewrite
       for ((constraint1, permission1) <- rewrittenLeft;
            (constraint2, permission2) <- rewrittenRight)
-        yield (or(constraint1, constraint2), plus(permission1, permission2))
+        yield (Or(constraint1, constraint2), Plus(permission1, permission2))
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
       val set = for ((constraint1, permission1) <- rewrittenLeft;
                      (constraint2, permission2) <- rewrittenRight) yield {
-        val constraint = and(constraint1, constraint2)
-        val expression1: Expression = and(constraint, geq(permission1, permission2))
-        val expression2: Expression = and(constraint, leq(permission1, permission2))
+        val constraint = And(constraint1, constraint2)
+        val expression1: Expression = And(constraint, GreaterEqual(permission1, permission2))
+        val expression2: Expression = And(constraint, Less(permission1, permission2))
         Seq((expression1, permission1), (expression2, permission2))
       }
       set.flatten
     case Conditional(condition, left, right) =>
       val set1 = for ((constraint, permission) <- left.rewrite) yield {
-        val expression: Expression = and(constraint, condition)
+        val expression: Expression = And(constraint, condition)
         (expression, permission)
       }
       val set2 = for ((constraint, permission) <- right.rewrite) yield {
-        val expression: Expression = and(constraint, not(condition))
+        val expression: Expression = And(constraint, Not(condition))
         (expression, permission)
       }
       set1 ++ set2
