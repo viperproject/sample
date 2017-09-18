@@ -39,29 +39,32 @@ trait SilverJsonExporter[S <: State[S]]
   private var postconditions: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
   private var invariants: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
 
-  override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
-    val position = method.body.pos
-    preconditions.get(position) match {
-      case Some(entry) => preconditions = preconditions + (position -> (method.pres, inferred ++ entry._2))
-      case None => preconditions = preconditions + (position -> (method.pres, inferred))
+  override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
+    if (inferred.nonEmpty) {
+      val position = method.body.pos
+      preconditions.get(position) match {
+        case Some(entry) => preconditions = preconditions + (position -> (method.pres, inferred ++ entry._2))
+        case None => preconditions = preconditions + (position -> (method.pres, inferred))
+      }
     }
-  }
 
-  override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {
-    val position = method.body.pos
-    postconditions.get(position) match {
-      case Some(entry) => postconditions = postconditions + (position -> (method.posts, inferred ++ entry._2))
-      case None => postconditions = postconditions + (position -> (method.posts, inferred))
+  override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
+    if (inferred.nonEmpty) {
+      val position = method.body.pos
+      postconditions.get(position) match {
+        case Some(entry) => postconditions = postconditions + (position -> (method.posts, inferred ++ entry._2))
+        case None => postconditions = postconditions + (position -> (method.posts, inferred))
+      }
     }
-  }
 
-  override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit = {
-    val position = loop.body.pos
-    invariants.get(position) match {
-      case Some(entry) => invariants = invariants + (position -> (loop.invs, inferred ++ entry._2))
-      case None => invariants = invariants + (position -> (loop.invs, inferred))
+  override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit =
+    if (inferred.nonEmpty) {
+      val position = loop.body.pos
+      invariants.get(position) match {
+        case Some(entry) => invariants = invariants + (position -> (loop.invs, inferred ++ entry._2))
+        case None => invariants = invariants + (position -> (loop.invs, inferred))
+      }
     }
-  }
 
   // For debugging/development you may want to enable prettyRender to have a look at the JSON
   //private def render = prettyRender _
