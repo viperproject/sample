@@ -288,89 +288,205 @@ object SampleExpressions {
     * @param expression The expression to simplify.
     * @return The simplified expression.
     */
-  def simplify(expression: Expression): Expression = expression.transform {
-    // simplify additions
-    case original@Plus(left, right) => (left, right) match {
-      case (Zero, _) => right
-      case (_, Zero) => left
-      case (Literal(a: Int), Literal(b: Int)) => Literal(a + b)
-      case (Literal(a: Int), Plus(term, Literal(b: Int))) => Plus(term, Literal(a + b))
-      case (Plus(term, Literal(b: Int)), Literal(a: Int)) => Plus(term, Literal(a + b))
-      case (Literal(_), _) => Plus(right, left)
-      case (Negate(argument), _) => Minus(right, argument)
-      case (_, Negate(argument)) => Minus(left, argument)
-      case _ => original
-    }
-    // simplify multiplications
-    case original@Times(left, right) => (left, right) match {
-      case (Zero, _) => Zero
-      case (_, Zero) => Zero
-      case (One, _) => right
-      case (_, One) => left
-      case (Literal(-1), _) => Negate(right)
-      case (_, Literal(-1)) => Negate(left)
-      case _ => original
-    }
-    // simplify unary operators
-    case UnaryArithmeticExpression(argument, ArithmeticOperator.+, _) => argument
-    case original@Negate(argument) => argument match {
-      case Literal(value: Int) => Literal(-value)
-      case Negate(nested) => nested
-      case _ => original
-    }
-    // simplify conjunctions
-    case original@And(left, right) => (left, right) match {
-      // constant folding
-      case (True, _) => right
-      case (_, True) => left
-      case (False, _) => False
-      case (_, False) => False
-      // syntactic simplification
-      case _ if left == right => left
+  def simplify(expression: Expression, collect: Boolean = false): Expression = {
+    // collect variables and constants if corresponding flag is set
+    def collected = if (collect) expression.typ match {
+      case IntType => Collected(expression).toExpression
+      case BoolType => expression.transform {
+        case Comparison(left, right, operator) =>
+          val collected = Collected(left) - Collected(right)
+          Comparison(collected.toExpression, Zero, operator)
+        case other => other
+      }
+      case _ => expression
+    } else expression
+
+    // perform some simplifying rewritings that preserve equivalence
+    collected.transform {
+      // simplify unary operators
+      case UnaryArithmeticExpression(argument, ArithmeticOperator.+, _) => argument
+      case original@Negate(argument) => argument match {
+        case Literal(value: Int) => Literal(-value)
+        case Negate(nested) => nested
+        case _ => original
+      }
+      // simplify additions
+      case original@Plus(left, right) => (left, right) match {
+        case (Zero, _) => right
+        case (_, Zero) => left
+        case (Literal(a: Int), Literal(b: Int)) => Literal(a + b)
+        case (Literal(a: Int), Plus(term, Literal(b: Int))) => Plus(term, Literal(a + b))
+        case (Plus(term, Literal(b: Int)), Literal(a: Int)) => Plus(term, Literal(a + b))
+        case (Literal(_), _) => Plus(right, left)
+        case (Negate(argument), _) => Minus(right, argument)
+        case (_, Negate(argument)) => Minus(left, argument)
+        case _ => original
+      }
+      // simplify multiplications
+      case original@Times(left, right) => (left, right) match {
+        case (Zero, _) => Zero
+        case (_, Zero) => Zero
+        case (One, _) => right
+        case (_, One) => left
+        case (Literal(-1), _) => Negate(right)
+        case (_, Literal(-1)) => Negate(left)
+        case _ => original
+      }
+      // simplify comparisons
+      case Comparison(Literal(left: Int), Literal(right: Int), operator) => operator match {
+        case ArithmeticOperator.< => Literal(left < right)
+        case ArithmeticOperator.<= => Literal(left <= right)
+        case ArithmeticOperator.> => Literal(left > right)
+        case ArithmeticOperator.>= => Literal(left >= right)
+        case ArithmeticOperator.== => Literal(left == right)
+        case ArithmeticOperator.!= => Literal(left != right)
+      }
+      // simplify conjunctions
+      case original@And(left, right) => (left, right) match {
+        // constant folding
+        case (True, _) => right
+        case (_, True) => left
+        case (False, _) => False
+        case (_, False) => False
+        // syntactic simplification
+        case _ if left == right => left
+        // no simplification
+        case _ => original
+      }
+      // simplify disjunctions
+      case original@Or(left, right) => (left, right) match {
+        // constant folding
+        case (True, _) => True
+        case (_, True) => True
+        case (False, _) => right
+        case (_, False) => left
+        // syntactic simplification
+        case _ if left == right => left
+        // no simplification
+        case _ => original
+      }
+      // simplify boolean negations
+      case original@Not(argument) => argument match {
+        // constant folding
+        case True => False
+        case False => True
+        // negate arithmetic operator
+        case Comparison(left, right, operator) =>
+          val negated = ArithmeticOperator.negate(operator)
+          Comparison(left, right, negated)
+        // eliminate double negations
+        case Not(nested) => nested
+        // no simplification
+        case _ => original
+      }
+      // simplify reference comparision expressions
+      case ReferenceComparisonExpression(left, right, operator) if left == right =>
+        Literal(operator == ReferenceOperator.==)
+      // simplify conditional expressions
+      case original@ConditionalExpression(condition, left, right) => condition match {
+        // constant folding
+        case True => left
+        case False => right
+        // syntactic simplification
+        case NegatedBooleanExpression(argument) => ConditionalExpression(argument, right, left)
+        // no simplification
+        case _ => original
+      }
       // no simplification
-      case _ => original
+      case original => original
     }
-    // simplify disjunctions
-    case original@Or(left, right) => (left, right) match {
-      // constant folding
-      case (True, _) => True
-      case (_, True) => True
-      case (False, _) => right
-      case (_, False) => left
-      // syntactic simplification
-      case _ if left == right => left
-      // no simplification
-      case _ => original
+  }
+
+  /**
+    * Represents the sum of the rest and all variables contained in the map
+    * multiplied with their corresponding coefficients.
+    *
+    * @param coefficients The coefficient map.
+    * @param rest         The rest.
+    */
+  case class Collected(coefficients: Map[VariableIdentifier, Int], rest: Expression) {
+    def +(other: Collected): Collected = {
+      val newCoefficients = Maps.union[VariableIdentifier, Int](coefficients, other.coefficients, _ + _)
+      val newRest = (rest, other.rest) match {
+        case (Literal(a: Int), Literal(b: Int)) => Literal(a + b)
+        case (Literal(a: Int), Plus(expression, Literal(b: Int))) => Plus(expression, Literal(a + b))
+        case (Plus(expression, Literal(a: Int)), Literal(b: Int)) => Plus(expression, Literal(a + b))
+        case (Plus(x, Literal(a: Int)), Plus(y, Literal(b: Int))) => Plus(Plus(x, y), Literal(a + b))
+        case _ => Plus(rest, other.rest)
+      }
+      Collected(newCoefficients, newRest)
     }
-    // simplify boolean negations
-    case original@Not(argument) => argument match {
-      // constant folding
-      case True => False
-      case False => True
-      // negate arithmetic operator
-      case Comparison(left, right, operator) =>
-        val negated = ArithmeticOperator.negate(operator)
-        Comparison(left, right, negated)
-      // eliminate double negations
-      case Not(nested) => nested
-      // no simplification
-      case _ => original
+
+    def -(other: Collected): Collected = this + -other
+
+    def *(other: Collected): Collected = {
+      // helper function to scale the rest
+      def scale(factor: Int, rest: Expression): Expression =
+        if (factor == 0) Zero
+        else if (factor == 1) rest
+        else if (factor == -1) Negate(rest)
+        else rest match {
+          case Literal(value: Int) => Literal(factor * value)
+          case Plus(expression, Literal(value: Int)) => Plus(Times(Literal(factor), expression), Literal(factor * value))
+          case Times(Literal(value: Int), expression) => Times(Literal(factor * value), expression)
+          case Times(expression, Literal(value: Int)) => Times(Literal(factor * value), expression)
+          case _ => Times(Literal(factor), rest)
+        }
+
+      // multiply this and other
+      (this, other) match {
+        case (Collected(map, Literal(value: Int)), collected) if map.isEmpty =>
+          val coefficients = collected.coefficients.mapValues(value * _)
+          val rest = scale(value, collected.rest)
+          Collected(coefficients, rest)
+        case (collected, Collected(map, Literal(value: Int))) if map.isEmpty =>
+          val coefficients = collected.coefficients.mapValues(value * _)
+          val rest = scale(value, collected.rest)
+          Collected(coefficients, rest)
+        case (collectedLeft, collectedRight) =>
+          // TODO: Is it better to return the original expression?
+          val leftExpression = collectedLeft.toExpression
+          val rightExpression = collectedRight.toExpression
+          Collected(Map.empty, Times(leftExpression, rightExpression))
+      }
     }
-    // simplify reference comparision expressions
-    case ReferenceComparisonExpression(left, right, operator) if left == right =>
-      Literal(operator == ReferenceOperator.==)
-    // simplify conditional expressions
-    case original@ConditionalExpression(condition, left, right) => condition match {
-      // constant folding
-      case True => left
-      case False => right
-      // syntactic simplification
-      case NegatedBooleanExpression(argument) => ConditionalExpression(argument, right, left)
-      // no simplification
-      case _ => original
+
+    def unary_+(): Collected = this
+
+    def unary_-(): Collected = {
+      val newCoefficients = coefficients.mapValues(-_)
+      val newRest = rest match {
+        case Literal(value: Int) => Literal(-value)
+        case Plus(expression, Literal(constant: Int)) => Plus(Times(Literal(-1), expression), Literal(-constant))
+        case Times(Literal(factor: Int), expression) => Times(Literal(-factor), expression)
+        case _ => Times(Literal(-1), rest)
+      }
+      Collected(newCoefficients, newRest)
     }
-    // no simplification
-    case original => original
+
+    def drop(variable: VariableIdentifier): Collected = {
+      val newCoefficient = coefficients - variable
+      Collected(newCoefficient, rest)
+    }
+
+    def toExpression: Expression = {
+      val filtered = coefficients.filter { case (_, coefficient) => coefficient != 0 }
+      val parts = filtered.map { case (variable, coefficient) => Times(Literal(coefficient), variable) }
+      Plus(Plus(parts), rest)
+    }
+  }
+
+  object Collected {
+    def apply(expression: Expression): Collected = expression match {
+      case Negate(argument) => -Collected(argument)
+      case Plus(left, right) => Collected(left) + Collected(right)
+      case Minus(left, right) => Collected(left) - Collected(right)
+      case Times(left, right) => Collected(left) * Collected(right)
+      case variable: VariableIdentifier => Collected(Map(variable -> 1), Zero)
+      case constant: Constant => Collected(Map.empty, constant)
+      case permission: FractionalPermissionExpression => Collected(Map.empty, permission)
+      case other => Collected(Map.empty, other)
+    }
   }
 
 }

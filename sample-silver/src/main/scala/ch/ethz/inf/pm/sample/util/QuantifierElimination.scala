@@ -92,7 +92,7 @@ object QuantifierElimination {
   def collectVariable(variable: VariableIdentifier, expression: Expression): Expression =
     expression.transform {
       case BinaryArithmeticExpression(left, right, operator) if left.ids.contains(variable) || right.ids.contains(variable) =>
-        val collected = collect(left) - collect(right)
+        val collected = Collected(left) - Collected(right)
         val factor = collected.coefficients.getOrElse(variable, 0)
         val positive = if (factor >= 0) -collected else collected
         val newLeft = Times(Literal(math.abs(factor)), variable)
@@ -134,22 +134,21 @@ object QuantifierElimination {
     // compute projections
     val positive = positiveInfiniteProjection(variable, expression)
     val negative = negativeInfiniteProjection(variable, expression)
-
+    // check whether there is a trivial unbounded solution
     if (positive == True || negative == True) True
     else {
-
-      var deltas = Set.empty[Int]
+      // collect factors and the sets A and B
+      var factors = Set.empty[Int]
       var A = Set.empty[Expression]
       var B = Set.empty[Expression]
-
       expression.foreach {
-        case Divides(Literal(value: Int), `variable`) => deltas += value
+        case Divides(Literal(value: Int), `variable`) => factors += value
         case Comparison(`variable`, right, operator) => operator match {
-          case ArithmeticOperator.> =>
-            A += right
-          case ArithmeticOperator.>= =>
-            A += Plus(right, One)
           case ArithmeticOperator.< =>
+            A += right
+          case ArithmeticOperator.<= =>
+            A += Plus(right, One)
+          case ArithmeticOperator.> =>
             B += right
           case ArithmeticOperator.>= =>
             B += Minus(right, One)
@@ -164,32 +163,23 @@ object QuantifierElimination {
         case Comparison(_, `variable`, _) => ???
         case _ => // do nothing
       }
-
-      val delta = lcm(deltas)
-
-
-      val (projection, expressions) = if (A.size < B.size) {
-        (positive, A)
-      } else {
-        (negative, B)
-      }
-
-      val xs = for (j <- 1 to delta) yield
+      // compute delta and pick either A or B
+      val delta = lcm(factors)
+      val (projection, expressions) = if (A.size < B.size) (positive, A) else (negative, B)
+      // disjuncts corresponding to a unbounded solution
+      val unbounded = for (j <- 1 to delta) yield
         projection.transform {
           case `variable` => Literal(j)
           case other => other
         }
-
-      val ys = for (j <- 1 to delta; b <- expressions) yield
+      // disjuncts corresponding to a bounded solution
+      val bounded = for (j <- 1 to delta; b <- expressions) yield
         expression.transform {
           case `variable` => Plus(b, Literal(j))
           case other => other
         }
-
-      val result = simplify(Or(xs ++ ys))
-
-
-      result
+      // build and simplify final expression
+      simplify(Or(unbounded ++ bounded), collect = true)
     }
   }
 
@@ -216,66 +206,4 @@ object QuantifierElimination {
     }
     simplify(projected)
   }
-
-  def collect(expression: Expression): Collected = expression match {
-    case Plus(left, right) => collect(left) + collect(right)
-    case Minus(left, right) => collect(left) - collect(right)
-    case Times(left, right) =>
-      val Collected(leftCoefficients, leftRest) = collect(left)
-      val Collected(rightCoefficients, rightRest) = collect(right)
-      if (leftCoefficients.isEmpty && leftRest.isInstanceOf[Constant]) {
-        val Literal(value: Int) = leftRest
-        val coefficients = rightCoefficients.mapValues(value * _)
-        val rest = simplify(Times(leftRest, rightRest))
-        Collected(coefficients, rest)
-      } else if (rightCoefficients.isEmpty && rightRest.isInstanceOf[Constant]) {
-        val Literal(value: Int) = rightRest
-        val coefficients = leftCoefficients.mapValues(value * _)
-        val rest = simplify(Times(leftRest, rightRest))
-        Collected(coefficients, rest)
-      } else {
-        // we cannot handle non-linear stuff
-        ???
-      }
-    case variable: VariableIdentifier => Collected(Map(variable -> 1), Zero)
-    case constant: Constant => Collected(Map.empty, constant)
-    case permission: FractionalPermissionExpression => Collected(Map.empty, permission)
-  }
-
-  /**
-    * Represents the sum of the rest and all variables contained in the map
-    * multiplied with their corresponding coefficients.
-    *
-    * @param coefficients The coefficient map.
-    * @param rest         The rest.
-    */
-   case class Collected(coefficients: Map[VariableIdentifier, Int], rest: Expression) {
-    def +(other: Collected): Collected = {
-      val newCoefficients = Maps.union[VariableIdentifier, Int](coefficients, other.coefficients, _ + _)
-      val newRest = simplify(Plus(rest, other.rest))
-      Collected(newCoefficients, newRest)
-    }
-
-    def -(other: Collected): Collected = this + -other
-
-    def unary_+(): Collected = this
-
-    def unary_-(): Collected = {
-      val newCoefficients = coefficients.mapValues(-_)
-      val newRest = simplify(Negate(rest))
-      Collected(newCoefficients, newRest)
-    }
-
-    def drop(variable: VariableIdentifier): Collected = {
-      val newCoefficient = coefficients - variable
-      Collected(newCoefficient, rest)
-    }
-
-    def toExpression: Expression = {
-      val filtered = coefficients.filter { case (_, coefficient) => coefficient != 0 }
-      val parts = filtered.map { case (variable, coefficient) => Times(Literal(coefficient), variable) }
-      simplify(Plus(Plus(parts), rest))
-    }
-  }
-
 }
