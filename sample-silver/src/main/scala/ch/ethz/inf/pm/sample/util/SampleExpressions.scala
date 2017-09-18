@@ -56,7 +56,7 @@ object SampleExpressions {
     def unapply(argument: Expression): Option[Any] = argument match {
       case Constant(value, IntType, _) => Some(value.toInt)
       case Constant(value, BoolType, _) => Some(value.toBoolean)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -66,7 +66,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(String, Type)] = argument match {
       case variable@VariableIdentifier(name, _) => Some(name, variable.typ)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -80,7 +80,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[Expression] = argument match {
       case UnaryArithmeticExpression(expression, ArithmeticOperator.-, _) => Some(expression)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -94,7 +94,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Operation(left, right, ArithmeticOperator.+) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -104,7 +104,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Operation(left, right, ArithmeticOperator.-) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -118,7 +118,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Operation(left, right, ArithmeticOperator.*) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -128,7 +128,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Operation(left, right, ArithmeticOperator.%) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -138,7 +138,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression, ArithmeticOperator.Value)] = argument match {
       case BinaryArithmeticExpression(left, right, operator) if ArithmeticOperator.isArithmetic(operator) => Some(left, right, operator)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -152,7 +152,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.==) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -162,7 +162,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.!=) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -172,7 +172,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.<) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -182,7 +182,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.<=) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -192,7 +192,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.>) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -202,7 +202,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Comparison(left, right, ArithmeticOperator.>=) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -212,7 +212,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression, ArithmeticOperator.Value)] = argument match {
       case BinaryArithmeticExpression(left, right, operator) if ArithmeticOperator.isComparison(operator) => Some(left, right, operator)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -226,7 +226,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[Expression] = argument match {
       case NegatedBooleanExpression(expression) => Some(expression)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -240,7 +240,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -254,7 +254,7 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case BinaryBooleanExpression(left, right, BooleanOperator.||) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
     }
   }
 
@@ -264,7 +264,17 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
       case Or(Not(left), right) => Some(left, right)
-      case _ => Option.empty
+      case _ => None
+    }
+  }
+
+  object Divides {
+    def apply(left: Expression, right: Expression): BinaryArithmeticExpression =
+      Equal(Modulo(right, left), Zero)
+
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case Equal(Modulo(right, left), Zero) => Some(left, right)
+      case _ => None
     }
   }
 
@@ -283,6 +293,10 @@ object SampleExpressions {
     case original@Plus(left, right) => (left, right) match {
       case (Zero, _) => right
       case (_, Zero) => left
+      case (Literal(a: Int), Literal(b: Int)) => Literal(a + b)
+      case (Literal(a: Int), Plus(term, Literal(b: Int))) => Plus(term, Literal(a + b))
+      case (Plus(term, Literal(b: Int)), Literal(a: Int)) => Plus(term, Literal(a + b))
+      case (Literal(_), _) => Plus(right, left)
       case (Negate(argument), _) => Minus(right, argument)
       case (_, Negate(argument)) => Minus(left, argument)
       case _ => original

@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
-import ch.ethz.inf.pm.sample.util.SampleExpressions
+import ch.ethz.inf.pm.sample.util.{QuantifierElimination, SampleExpressions}
 
 /**
   * Represents a non-negative amount of permissions.
@@ -68,9 +68,8 @@ sealed trait PermissionTree {
     val a = And(invariant, And(exact))
     val b = And(invariant, Or(bound))
 
-    val ela = ???
-    // QuantifierElimination.eliminate(variable, a)
-    val elb = ??? //QuantifierElimination.eliminate(variable, b)
+    val ela = QuantifierElimination.eliminate(variable, a)
+    val elb = QuantifierElimination.eliminate(variable, b)
 
     ???
   }
