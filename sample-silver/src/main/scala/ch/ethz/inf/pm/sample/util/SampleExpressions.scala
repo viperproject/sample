@@ -347,8 +347,8 @@ object SampleExpressions {
         case ArithmeticOperator.== => Literal(a == b)
         case ArithmeticOperator.!= => Literal(a != b)
       }
-      case Comparison(Minus(left,right), Zero, operator) =>
-        Comparison(left,right, operator)
+      case Comparison(Minus(left, right), Zero, operator) =>
+        Comparison(left, right, operator)
       // simplify conjunctions
       case original@And(left, right) => (left, right) match {
         // constant folding
@@ -404,6 +404,57 @@ object SampleExpressions {
       case original => original
     }
   }
+
+  /**
+    *
+    * @param expression
+    * @param precedence
+    * @return
+    */
+  def pretty(expression: Expression, precedence: Int = 0): String = {
+    val parentPrecedence = precedence
+
+    def recurse(expression: Expression): String = {
+      val precedence = expression match {
+        case Literal(_) => 100
+        case FractionalPermissionExpression(_, _) => 100
+        case Variable(_, _) => 100
+        case Times(_, _) => 7
+        case Plus(_, _) => 6
+        case Minus(_, _) => 5
+        case Comparison(_, _, _) => 4
+        case Not(_) => 3
+        case And(_, _) => 2
+        case Or(_, _) => 1
+        case _ => 0
+      }
+      if (precedence >= parentPrecedence && precedence != 0) pretty(expression, precedence)
+      else "(" + pretty(expression, precedence) + ")"
+    }
+
+    expression match {
+      // comparisons
+      case Comparison(left, right, operator) =>
+        val operatorString = operator match {
+          case ArithmeticOperator.> => ">"
+          case ArithmeticOperator.>= => "≥"
+          case ArithmeticOperator.< => "<"
+          case ArithmeticOperator.<= => "≤"
+          case ArithmeticOperator.== => "="
+          case ArithmeticOperator.!= => "≠"
+        }
+        recurse(left) + operatorString + recurse(right)
+      // logical
+      case Not(argument) => "¬" + recurse(argument)
+      case And(left, right) => recurse(left) + "∧" + recurse(right)
+      case Or(left, right) => recurse(left) + "∨" + recurse(right)
+      // quantifiers
+      case Exists(variables, body) => "∃" + variables.mkString(",") + ":" + recurse(body)
+      case ForAll(variables, body) => "∀" + variables.mkString(",") + ":" + recurse(body)
+      case other => other.toString
+    }
+  }
+
 
   /**
     * Represents the sum of the rest and all variables contained in the map

@@ -37,7 +37,8 @@ object Context {
   private var identifiers: Set[String] = Set()
 
   /**
-    * A map
+    * Maps name of domain functions to the sequence of the corresponding
+    * quantified variables.
     */
   private var receivers: Map[String, Seq[Expression]] = Map()
 
@@ -109,6 +110,31 @@ object Context {
   }
 
   /* ------------------------------------------------------------------------- *
+   * Numerical Information
+   */
+
+  private var numerical: Map[String, CfgResult[NumericalStateType]] = Map()
+
+  /**
+    * Sets the numerical result corresponding to the method with the given name.
+    *
+    * @param name   The name of the method.
+    * @param result The numerical result.
+    */
+  def setNumericalResult(name: String, result: CfgResult[NumericalStateType]): Unit =
+    numerical += name -> result
+
+  /**
+    * Returns the numerical result corresponding to the method with the given
+    * name.
+    *
+    * @param name The name of the method.
+    * @return The numerical result.
+    */
+  def getNumericalResult(name: String = method.name): CfgResult[NumericalStateType] =
+    numerical(name)
+
+  /* ------------------------------------------------------------------------- *
    * code below has not been cleaned up
    */
 
@@ -125,13 +151,6 @@ object Context {
   private var fieldAccessFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
 
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
-
-  private var numericalInfoPerMethod: Map[String, Option[CfgResult[NumericalStateType]]] = Map()
-
-  /**
-    * Stores the result of the numerical analysis.
-    */
-  private var numericalInfo: Option[CfgResult[NumericalStateType]] = None
 
   def getAuxiliaryFunctions: Map[String, Function] = functions
 
@@ -152,7 +171,6 @@ object Context {
   }
 
 
-
   def setMethodContext(program: sil.Program, method: SilverMethodDeclaration): Unit = {
     setProgram(program)
     selectMethod(method.name.name)
@@ -160,7 +178,6 @@ object Context {
 
   def prepareMethodForExtension(name: String): Unit = {
     selectMethod(name)
-    loadNumericalInfoForMethod(name)
     identifiers --= sets.values.map(_.name)
     sets = Map()
   }
@@ -222,33 +239,6 @@ object Context {
       fun
   }
 
-  /**
-    * Sets the result of the numerical analysis.
-    *
-    * @param numericalInfo The result of the numerical analysis to set.
-    */
-  def setNumericalInfo(method: String, numericalInfo: CfgResult[NumericalStateType]): Unit = {
-    numericalInfoPerMethod += method -> Some(numericalInfo)
-    this.numericalInfo = Some(numericalInfo)
-  }
-
-  def loadNumericalInfoForMethod(method: String): Unit = numericalInfo = numericalInfoPerMethod(method)
-
-  /**
-    * Returns the state of the numerical analysis before the given program point.
-    *
-    * @param pp The program point.
-    * @return The state of the numerical analysis before the given program point.
-    */
-  def preNumericalInfo(pp: ProgramPoint): NumericalStateType = numericalInfo.get.preStateAt(pp)
-
-  /**
-    * Returns the state of the alias analysis after the given program point.
-    *
-    * @param pp The program point.
-    * @return The state of the alias analysis after the given program point.
-    */
-  def postNumericalInfo(pp: ProgramPoint): NumericalStateType = numericalInfo.get.postStateAt(pp)
 }
 
 object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()

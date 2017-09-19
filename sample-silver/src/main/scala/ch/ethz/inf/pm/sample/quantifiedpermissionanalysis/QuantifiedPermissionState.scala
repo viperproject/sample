@@ -164,9 +164,16 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
   override def enterLoop(): S = {
     val inner :: outer :: rest = records
 
-    val changing = inner.changing
+    val changing = inner.changing.toSeq
+
+    // TODO: Filter constraints that do not mention any changing variable.
+    val numerical = Context.getNumericalResult()
+    val domain = numerical.preStateAt(pp).domain
+    val constraints = domain.getConstraints(domain.ids.toSet)
+    val invariant = And(constraints)
+
     val forgotten = changing.foldLeft(inner) { case (result, variable) =>
-      result.forget(variable, True)
+      result.forget(changing, invariant)
     }
 
     val newRecords = (forgotten lub outer) :: rest

@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{Exists, _}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
@@ -21,6 +21,7 @@ import ch.ethz.inf.pm.sample.util.{QuantifierElimination, SampleExpressions}
 sealed trait PermissionTree {
 
   import SampleExpressions._
+  import QuantifierElimination.eliminate
 
   def bound(): PermissionTree = Maximum(this, Empty)
 
@@ -55,21 +56,19 @@ sealed trait PermissionTree {
     case tree => tree
   }
 
-  def forget(variable: VariableIdentifier, invariant: Expression): PermissionTree = {
+  def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionTree = {
     val result = VariableIdentifier("result")(PermType)
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
-
-    // TODO: Replace with actual invariant
-    val invariant = True
 
     val exact = rewritten.map { case (c, p) => Implies(c, Equal(result, p)) }
     val bound = rewritten.map { case (c, p) => And(c, Less(result, p)) }
 
-    val a = Exists(variable, And(invariant, And(exact)))
-    val b = Exists(variable, And(invariant, Or(bound)))
+    val a = Exists(variables, And(invariant, And(exact)))
+    val b = Exists(variables, And(invariant, Or(bound)))
 
-    val ela = QuantifierElimination.eliminate(a)
-    val elb = QuantifierElimination.eliminate(b)
+    val quantified = And(a, b)
+    println(pretty(quantified))
+    val eliminated = eliminate(quantified)
 
     ???
   }

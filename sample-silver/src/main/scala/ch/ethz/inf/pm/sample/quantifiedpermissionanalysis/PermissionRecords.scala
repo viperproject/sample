@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.util.{Maps, SampleExpressions}
   *
   * @param map      The map from fields to permission trees.
   * @param changing The set of changing variables.
-  * @param isTop The top flag.
+  * @param isTop    The top flag.
   * @param isBottom the bottom flag.
   * @author Jerome Dohrau
   */
@@ -24,7 +24,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
                              changing: Set[VariableIdentifier] = Set.empty,
                              isTop: Boolean = false,
                              isBottom: Boolean = false)
-extends Lattice[PermissionRecords] {
+  extends Lattice[PermissionRecords] {
 
   override def factory(): PermissionRecords = PermissionRecords()
 
@@ -127,8 +127,12 @@ extends Lattice[PermissionRecords] {
     case _ => ???
   }
 
-  def forget(variable: VariableIdentifier, invariant: Expression): PermissionRecords = {
-    val updated = map.mapValues(_.simplify.forget(variable, invariant))
+  def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionRecords = {
+    // TODO: Don't replace initial with empty
+    val updated = map.mapValues(_.transform {
+      case Initial => Empty
+      case other => other
+    }.simplify.forget(variables, invariant))
     copy(map = updated)
   }
 
