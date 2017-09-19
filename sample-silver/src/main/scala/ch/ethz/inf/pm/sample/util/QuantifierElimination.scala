@@ -21,6 +21,45 @@ object QuantifierElimination {
   import Math._
 
   /**
+    * Eliminates the quantifiers of the given expression and returns an
+    * expression that does not contain a quantifier anymore but that is
+    * semantically equivalent to the original expression.
+    *
+    * Currently, this method only handles quantifiers if they are the outermost
+    * node of the expression.
+    *
+    * @param expression The expression.
+    * @return The expression without quantifiers.
+    */
+  def eliminate(expression: Expression): Expression = expression match {
+    // handle existential quantifier
+    case Exists(variables, body) =>
+      variables.foldLeft(body) {
+        case (eliminated, variable) =>
+          eliminate(variable, eliminated)
+      }
+    // reduce universal quantifier to existential quantifier
+    case ForAll(variables, body) =>
+      val reduced = Not(Exists(variables, Not(body)))
+      eliminate(reduced)
+    // negations
+    case Not(argument) => Not(eliminate(argument))
+    // conjunctions and disjunctions
+    case And(left, right) => And(eliminate(left), eliminate(right))
+    case Or(left, right) => Or(eliminate(left), eliminate(right))
+    // fall through case
+    case _ =>
+      // check if there is a quantifier
+      val quantified = expression.contains {
+        case Exists(_, _) => true
+        case ForAll(_, _) => true
+        case _ => false
+      }
+      if (quantified) ???
+      else expression
+  }
+
+  /**
     * The method assumes that the given variable is existentially quantified in
     * the given expression and then returns an expression does not contain the
     * quantified variable anymore but that is semantically equivalent to the
@@ -30,18 +69,18 @@ object QuantifierElimination {
     * @param expression The expression.
     * @return The resulting expression.
     */
-  def eliminate(variable: VariableIdentifier, expression: Expression): Expression = {
+  private def eliminate(variable: VariableIdentifier, expression: Expression): Expression = {
     println(s"original: $expression")
     val nnf = toNegatedNormalForm(expression)
     println(s"nnf: $nnf")
     val collected = collectVariable(variable, nnf)
     println(s"collected: $collected")
-    val normalized = normalizeCoefficient(variable, collected)
-    println(s"normalized: $normalized")
+    // TODO: Properly pick a fresh variable. Do we even need a new variable?
     val fresh = Variable("fresh", IntType)
+    val normalized = normalizeCoefficient(variable, fresh, collected)
+    println(s"normalized: $normalized")
     val result = constructEquivalent(fresh, normalized)
     println(s"result: $result")
-
     result
   }
 
@@ -57,7 +96,7 @@ object QuantifierElimination {
     * @param expression The expression.
     * @return The resulting expression.
     */
-  def toNegatedNormalForm(expression: Expression): Expression = expression match {
+  private def toNegatedNormalForm(expression: Expression): Expression = expression match {
     // handle negations
     case Not(argument) => argument match {
       case BinaryBooleanExpression(left, right, operation) =>
@@ -83,38 +122,48 @@ object QuantifierElimination {
   }
 
   /**
+    * Collects the given variable in all comparisons such that it is on the left
+    * hand side and the rest on the right hand side. For instance, 2*x+3 < x+y
+    * will be turned into x < y-3.
+    *
     * TODO: Complete? Modulo?
     *
-    * @param variable
-    * @param expression
-    * @return
+    * @param variable   The variable to collect.
+    * @param expression The expression.
+    * @return The resulting expression.
     */
-  def collectVariable(variable: VariableIdentifier, expression: Expression): Expression =
+  private def collectVariable(variable: VariableIdentifier, expression: Expression): Expression =
     expression.transform {
-      case BinaryArithmeticExpression(left, right, operator) if left.ids.contains(variable) || right.ids.contains(variable) =>
+      case Comparison(left, right, operator) if left.ids.contains(variable) || right.ids.contains(variable) =>
         val collected = Collected(left) - Collected(right)
         val factor = collected.coefficients.getOrElse(variable, 0)
         val positive = if (factor >= 0) -collected else collected
         val newLeft = Times(Literal(math.abs(factor)), variable)
         val newRight = positive.drop(variable).toExpression
-        simplify(Comparison(newLeft, newRight, operator))
+        val newOperator = if (factor >= 0) operator else ArithmeticOperator.negate(operator)
+        simplify(Comparison(newLeft, newRight, newOperator))
       case original => original
     }
 
-  def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = {
-
-    var factors = Set.empty[Int]
+  /**
+    * Normalizes the coefficients of the given variable.
+    *
+    * @param variable
+    * @param fresh
+    * @param expression
+    * @return
+    */
+  private def normalizeCoefficient(variable: VariableIdentifier, fresh: VariableIdentifier, expression: Expression): Expression = {
+    // collect all coefficients
+    var coefficients = Set.empty[Int]
     expression.foreach {
-      case Times(`variable`, Literal(value: Int)) => factors += value
-      case Times(Literal(value: Int), `variable`) => factors += value
+      case Times(`variable`, Literal(value: Int)) => coefficients += value
+      case Times(Literal(value: Int), `variable`) => coefficients += value
       case _ => // do nothing
     }
-
-    val factor = lcm(factors)
-    println(factor)
-
-    val fresh = Variable("fresh", IntType)
-
+    // compute least common multiple
+    val factor = lcm(coefficients)
+    // normalize coefficients
     val transformed = expression.transform {
       case original@Comparison(left, right, operator) => left match {
         case `variable` =>
@@ -125,12 +174,12 @@ object QuantifierElimination {
       }
       case original => original
     }
-
-    val constraint = Divides(Literal(factor), fresh)
+    //
+    val constraint = if (factor == 1) True else Divides(Literal(factor), fresh)
     simplify(And(transformed, constraint))
   }
 
-  def constructEquivalent(variable: VariableIdentifier, expression: Expression): Expression = {
+  private def constructEquivalent(variable: VariableIdentifier, expression: Expression): Expression = {
     // compute projections
     val positive = positiveInfiniteProjection(variable, expression)
     val negative = negativeInfiniteProjection(variable, expression)
@@ -180,7 +229,6 @@ object QuantifierElimination {
         }
       // build and simplify final expression
       val result = Or(unbounded ++ bounded)
-      println(s"raw: $result")
       simplify(result, collect = true)
     }
   }

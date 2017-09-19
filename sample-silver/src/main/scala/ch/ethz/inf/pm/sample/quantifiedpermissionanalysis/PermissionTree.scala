@@ -65,11 +65,11 @@ sealed trait PermissionTree {
     val exact = rewritten.map { case (c, p) => Implies(c, Equal(result, p)) }
     val bound = rewritten.map { case (c, p) => And(c, Less(result, p)) }
 
-    val a = And(invariant, And(exact))
-    val b = And(invariant, Or(bound))
+    val a = Exists(variable, And(invariant, And(exact)))
+    val b = Exists(variable, And(invariant, Or(bound)))
 
-    val ela = QuantifierElimination.eliminate(variable, a)
-    val elb = QuantifierElimination.eliminate(variable, b)
+    val ela = QuantifierElimination.eliminate(a)
+    val elb = QuantifierElimination.eliminate(b)
 
     ???
   }
