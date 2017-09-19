@@ -332,15 +332,23 @@ object SampleExpressions {
         case (_, Literal(-1)) => Negate(left)
         case _ => original
       }
-      // simplify comparisons
-      case Comparison(Literal(left: Int), Literal(right: Int), operator) => operator match {
-        case ArithmeticOperator.< => Literal(left < right)
-        case ArithmeticOperator.<= => Literal(left <= right)
-        case ArithmeticOperator.> => Literal(left > right)
-        case ArithmeticOperator.>= => Literal(left >= right)
-        case ArithmeticOperator.== => Literal(left == right)
-        case ArithmeticOperator.!= => Literal(left != right)
+      // simplify modulo
+      case original@Modulo(left, right) => (left, right) match {
+        case (_, One) => Zero
+        case (Literal(a: Int), Literal(b: Int)) => Literal(a % b)
+        case _ => original
       }
+      // simplify comparisons
+      case Comparison(Literal(a: Int), Literal(b: Int), operator) => operator match {
+        case ArithmeticOperator.< => Literal(a < b)
+        case ArithmeticOperator.<= => Literal(a <= b)
+        case ArithmeticOperator.> => Literal(a > b)
+        case ArithmeticOperator.>= => Literal(a >= b)
+        case ArithmeticOperator.== => Literal(a == b)
+        case ArithmeticOperator.!= => Literal(a != b)
+      }
+      case Comparison(Minus(left,right), Zero, operator) =>
+        Comparison(left,right, operator)
       // simplify conjunctions
       case original@And(left, right) => (left, right) match {
         // constant folding
