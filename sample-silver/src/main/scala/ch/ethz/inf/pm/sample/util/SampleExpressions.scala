@@ -16,6 +16,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
   * @author Jerome Dohrau
   */
 object SampleExpressions {
+
+  import Math._
+
   /**
     * An expression representing a true constant.
     */
@@ -278,6 +281,16 @@ object SampleExpressions {
     }
   }
 
+  object NotDivides {
+    def apply(left: Expression, right: Expression): BinaryArithmeticExpression =
+      NotEqual(Modulo(right, left), Zero)
+
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case NotEqual(Modulo(right, left), Zero) => Some(left, right)
+      case _ => None
+    }
+  }
+
   /* ---------------------------------------------------------------------------
    * Utility Functions
    */
@@ -300,7 +313,6 @@ object SampleExpressions {
       }
       case _ => expression
     } else expression
-
     // perform some simplifying rewritings that preserve equivalence
     collected.transform {
       // simplify unary operators
@@ -320,6 +332,8 @@ object SampleExpressions {
         case (Literal(_), _) => Plus(right, left)
         case (Negate(argument), _) => Minus(right, argument)
         case (_, Negate(argument)) => Minus(left, argument)
+        case (Times(Literal(a: Int), term), _) if a < 0 => Minus(right, Times(Literal(-a), term))
+        case (_, Times(Literal(a: Int), term)) if a < 0 => Minus(left, Times(Literal(-a), term))
         case _ => original
       }
       // simplify multiplications
@@ -336,6 +350,11 @@ object SampleExpressions {
       case original@Modulo(left, right) => (left, right) match {
         case (_, One) => Zero
         case (Literal(a: Int), Literal(b: Int)) => Literal(a % b)
+        case (Times(Literal(a: Int), term), Literal(b: Int)) =>
+          val divisor = gcd(a, b)
+          if (b == divisor) Zero
+          else if (a == divisor) Modulo(term, Literal(b / divisor))
+          else Modulo(Times(Literal(a / divisor), term), Literal(b / divisor))
         case _ => original
       }
       // simplify comparisons
@@ -396,7 +415,7 @@ object SampleExpressions {
         case True => left
         case False => right
         // syntactic simplification
-        case NegatedBooleanExpression(argument) => ConditionalExpression(argument, right, left)
+        case Not(argument) => ConditionalExpression(argument, right, left)
         // no simplification
         case _ => original
       }
