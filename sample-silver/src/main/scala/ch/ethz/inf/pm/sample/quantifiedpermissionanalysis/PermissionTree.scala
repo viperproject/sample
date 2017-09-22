@@ -7,10 +7,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Exists, _}
+import ch.ethz.inf.pm.sample.elimination.QuantifierElimination
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
-import ch.ethz.inf.pm.sample.util.{QuantifierElimination, SampleExpressions}
+import ch.ethz.inf.pm.sample.util.SampleExpressions
 
 /**
   * Represents a non-negative amount of permissions.
