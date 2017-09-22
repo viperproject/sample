@@ -677,10 +677,12 @@ case class ConditionalExpression(condition: Expression, left: Expression, right:
   override def ids: IdentifierSet = condition.ids ++ left.ids ++ right.ids
 
   override def transform(f: (Expression) => Expression): Expression =
-    ConditionalExpression(condition.transform(f), left.transform(f), right.transform(f))
+    f(ConditionalExpression(condition.transform(f), left.transform(f), right.transform(f)))
 
   override def contains(f: (Expression) => Boolean): Boolean =
     f(this) || condition.contains(f) || left.contains(f) || right.contains(f)
+
+  override def toString: String = s"$condition ? $left : $right"
 }
 
 /**

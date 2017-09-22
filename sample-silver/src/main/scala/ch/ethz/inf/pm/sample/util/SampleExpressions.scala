@@ -313,6 +313,7 @@ object SampleExpressions {
       }
       case _ => expression
     } else expression
+
     // perform some simplifying rewritings that preserve equivalence
     collected.transform {
       // simplify unary operators
@@ -359,12 +360,20 @@ object SampleExpressions {
       }
       // simplify comparisons
       case Comparison(Literal(a: Int), Literal(b: Int), operator) => operator match {
+        case ArithmeticOperator.== => Literal(a == b)
+        case ArithmeticOperator.!= => Literal(a != b)
         case ArithmeticOperator.< => Literal(a < b)
         case ArithmeticOperator.<= => Literal(a <= b)
         case ArithmeticOperator.> => Literal(a > b)
         case ArithmeticOperator.>= => Literal(a >= b)
-        case ArithmeticOperator.== => Literal(a == b)
-        case ArithmeticOperator.!= => Literal(a != b)
+      }
+      case Comparison(left, right, operator) if left == right => operator match {
+        case ArithmeticOperator.== => True
+        case ArithmeticOperator.!= => False
+        case ArithmeticOperator.< => False
+        case ArithmeticOperator.<= => True
+        case ArithmeticOperator.> => False
+        case ArithmeticOperator.>= => True
       }
       case Comparison(Minus(left, right), Zero, operator) =>
         Comparison(left, right, operator)

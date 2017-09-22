@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 
 /**
-  * Represents a quantified expression.
+  * A quantified expression.
   *
   * @author Jerome Dohrau
   */
@@ -18,26 +18,26 @@ trait QuantifiedExpression
   extends Expression {
 
   /**
-    * Returns the quantified variables.
+    * Returns the bound variables.
     *
-    * @return The quantified variables.
+    * @return The bound variables.
     */
   def variables: Seq[VariableIdentifier]
 
   /**
-    * Returns the body of the quantifier.
+    * Returns the body in which the variables are bound.
     *
-    * @return The body of the quantifier.
+    * @return The body.
     */
   def body: Expression
 
-  override def ids: IdentifierSet = body.ids ++ variables.toSet[Identifier]
+  override def ids: IdentifierSet = body.ids -- variables.toSet[Identifier]
 
   override def pp: ProgramPoint = variables
     .headOption.map(_.pp)
     .getOrElse(body.pp)
 
-  override def typ: Type = BoolType
+  override def typ: Type = body.typ
 
   override def contains(f: (Expression) => Boolean): Boolean =
     f(this) || body.contains(f)
@@ -48,6 +48,7 @@ trait QuantifiedExpression
   *
   * @param variables The quantified variables.
   * @param body      The body of the quantifier.
+  * @author Jerome Dohrau
   */
 case class Exists(variables: Seq[VariableIdentifier], body: Expression)
   extends QuantifiedExpression {
@@ -68,6 +69,7 @@ object Exists {
   *
   * @param variables The quantified variables.
   * @param body      The body of the quantifier.
+  * @author Jerome Dohrau
   */
 case class ForAll(variables: Seq[VariableIdentifier], body: Expression)
   extends QuantifiedExpression {
