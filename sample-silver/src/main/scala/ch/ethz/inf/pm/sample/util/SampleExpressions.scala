@@ -298,6 +298,8 @@ object SampleExpressions {
   /**
     * Simplifies the given expression.
     *
+    * This method assumes that permission amounts are not negative.
+    *
     * @param expression The expression to simplify.
     * @return The simplified expression.
     */
@@ -415,6 +417,18 @@ object SampleExpressions {
         // no simplification
         case _ => original
       }
+      // simplify minima
+      case Min(Literal(a: Int), Literal(b: Int)) =>
+        if (a < b) Literal(a)
+        else Literal(b)
+      case Min(No, _) => No
+      case Min(_, No) => No
+      // simplify minima
+      case Max(Literal(a: Int), Literal(b: Int)) =>
+        if (a < b) Literal(b)
+        else Literal(a)
+      case Max(No, term) => term
+      case Max(term, No) => term
       // simplify reference comparision expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
         Literal(operator == ReferenceOperator.==)
