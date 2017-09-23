@@ -9,8 +9,8 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Fractional, Read}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
+import ch.ethz.inf.pm.sample.util.SampleExpressions
 import viper.silver.{ast => sil}
 
 /**
@@ -20,6 +20,9 @@ import viper.silver.{ast => sil}
   * @author Jerome Dohrau
   */
 object SpecificationGenerator {
+
+  import SampleExpressions._
+
   /**
     * Generates the specifications corresponding to the given permission
     * records.
@@ -32,68 +35,56 @@ object SpecificationGenerator {
       // get tree and plug in zero as the initial permissions
       val tree = records(field).transform {
         case Initial => Empty
-        case tree => tree
+        case other => other
       }
 
-      val quantified = sil.LocalVar("q")(sil.Ref)
-      val permission = convert(tree, quantified)
-      val location = sil.FieldAccess(quantified, sil.Field(field.getName, convert(field.typ))())()
+      val receiver = Context.getReceiver
+      val quantified = Context.getQuantified(receiver.name)
 
-      val variables = Seq(sil.LocalVarDecl("q", sil.Ref)())
+      val variables = for ((x, y) <- quantified zip receiver.formalArgs)
+        yield sil.LocalVarDecl(x.name, y.typ)()
+      val arguments = variables.map { variable => sil.LocalVar(variable.name)(variable.typ) }
+
+      val permission = convert(tree)
+      val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
+      val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
+
       val triggers = Seq.empty
-      val expression = sil.FieldAccessPredicate(location, permission)()
-      sil.Forall(variables, triggers, expression)()
+      val body = sil.FieldAccessPredicate(location, permission)()
+
+      sil.Forall(variables, triggers, body)()
     }
   }
 
-  private def convert(tree: PermissionTree, quantified: sil.Exp): sil.Exp = tree.simplify match {
-    case Empty => convert(Fractional(0, 1))
-    case Leaf(receiver, permission) =>
-      val condition = receiver match {
-        case FunctionCallExpression(name, arguments, _, _) =>
-          val function = getFunction(name)
-          val converted = arguments.map(convert)
-          val application = sil.FuncLikeApp(function, converted, Map.empty[sil.TypeVar, sil.Type])
-          sil.EqCmp(application, quantified)()
-        case expression =>
-          val converted = convert(expression)
-          sil.EqCmp(converted, quantified)()
-      }
+  /**
+    * @param tree
+    * @return
+    */
+  private def convert(tree: PermissionTree): sil.Exp = tree.simplify match {
+    case Empty => convert(No)
+    case Leaf(condition, permission) =>
+      val conditionExpression = convert(condition)
       val leftExpression = convert(permission)
-      val rightExpression = convert(Fractional(0, 1))
-      conditional(condition, leftExpression, rightExpression)
+      val rightExpression = convert(No)
+      conditional(conditionExpression, leftExpression, rightExpression)
     case Addition(left, right) =>
-      val leftExpression = convert(left, quantified)
-      val rightExpression = convert(right, quantified)
+      val leftExpression = convert(left)
+      val rightExpression = convert(right)
       addition(leftExpression, rightExpression)
     case Subtraction(left, right) =>
-      val leftExpression = convert(left, quantified)
-      val rightExpression = convert(right, quantified)
+      val leftExpression = convert(left)
+      val rightExpression = convert(right)
       val zero = sil.IntLit(0)()
       max(subtraction(leftExpression, rightExpression), zero)
     case Maximum(left, right) =>
-      val leftExpression = convert(left, quantified)
-      val rightExpression = convert(right, quantified)
+      val leftExpression = convert(left)
+      val rightExpression = convert(right)
       max(leftExpression, rightExpression)
     case Conditional(condition, left, right) =>
       val conditionExpression = convert(condition)
-      val leftExpression = convert(left, quantified)
-      val rightExpression = convert(right, quantified)
+      val leftExpression = convert(left)
+      val rightExpression = convert(right)
       conditional(conditionExpression, leftExpression, rightExpression)
-  }
-
-  private def convert(permission: Permission): sil.Exp = permission match {
-    case Read =>
-      // TODO: Replace with read permission.
-      convert(Fractional(1, 100))
-    case Fractional(numerator, denominator) =>
-      if (numerator == 0) sil.NoPerm()()
-      else if (numerator == denominator) sil.FullPerm()()
-      else {
-        val left = sil.IntLit(numerator)()
-        val right = sil.IntLit(denominator)()
-        sil.FractionalPerm(left, right)()
-      }
   }
 
   private def convert(expression: Expression): sil.Exp =

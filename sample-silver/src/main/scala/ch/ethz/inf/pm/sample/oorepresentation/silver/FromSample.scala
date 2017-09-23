@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
+import ch.ethz.inf.pm.sample.util.SampleExpressions
 import viper.silver.{ast => sil}
 
 trait SampleConverter {
@@ -22,6 +23,8 @@ trait SampleConverter {
 }
 
 object DefaultSampleConverter extends SampleConverter {
+
+  import SampleExpressions._
 
   def convert(e: sample.Expression): sil.Exp = e match {
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
@@ -85,7 +88,11 @@ object DefaultSampleConverter extends SampleConverter {
     case FunctionCallExpression(name, parameters, typ, pp) =>
       // TODO: Change to a solution that does not only work for the QP inference.
       val function = Context.getFunction(name)
-      sil.FuncLikeApp(function,parameters.map(go), Map.empty[sil.TypeVar, sil.Type])
+      sil.FuncLikeApp(function, parameters.map(go), Map.empty[sil.TypeVar, sil.Type])
+    case No => sil.NoPerm()()
+    case Full => sil.FullPerm()()
+    case FractionalPermissionExpression(left, right) =>
+      sil.FractionalPerm(go(left), go(right))()
     case _ => ???
   }
 

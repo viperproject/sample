@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.{Fractional, Read}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.{Maps, SampleExpressions}
 
@@ -25,6 +24,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
                              isTop: Boolean = false,
                              isBottom: Boolean = false)
   extends Lattice[PermissionRecords] {
+
+  import SampleExpressions._
 
   override def factory(): PermissionRecords = PermissionRecords()
 
@@ -90,7 +91,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     }
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
-      val permission = Permission.create(numerator, denominator)
+      val permission = FractionalPermissionExpression(numerator, denominator)
+      // TODO: replace receiver by condition
       val leaf = Leaf(receiver, permission)
       update(field, Subtraction(_, leaf))
   }
@@ -102,16 +104,17 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     }
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
-      val permission = Permission.create(numerator, denominator)
+      val permission = FractionalPermissionExpression(numerator, denominator)
+      // TODO: replace receiver by condition
       val leaf = Leaf(receiver, permission)
       update(field, Addition(_, leaf))
   }
 
   def read(expression: Expression): PermissionRecords = access(expression, Read)
 
-  def write(expression: Expression): PermissionRecords = access(expression, Fractional(1, 1))
+  def write(expression: Expression): PermissionRecords = access(expression, Full)
 
-  def access(expression: Expression, permission: Permission): PermissionRecords = expression match {
+  def access(expression: Expression, permission: Expression): PermissionRecords = expression match {
     case _: Constant => this
     case _: VariableIdentifier => this
     case BinaryBooleanExpression(left, right, _) => read(left).read(right)
@@ -119,12 +122,20 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
     case NegatedBooleanExpression(argument) => read(argument)
     case FieldAccessExpression(receiver, field) =>
-      val leaf = Leaf(receiver, permission)
+      val condition = receiverToCondition(receiver)
+      val leaf = Leaf(condition, permission)
       update(field, Maximum(_, leaf)).read(receiver)
     case FunctionCallExpression(_, arguments, _, _) =>
       arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
     case FieldAccessPredicate(FieldAccessExpression(receiver, _), _, _, _) => read(receiver)
     case _ => ???
+  }
+
+  def receiverToCondition(receiver: Expression): Expression = receiver match {
+    case FunctionCallExpression(name, arguments, _, _) =>
+      val quantified = Context.getQuantified(name)
+      val zipped = quantified zip arguments
+      And(zipped.map { case (q, a) => Equal(q, a) })
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionRecords = {

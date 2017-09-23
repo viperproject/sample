@@ -45,6 +45,13 @@ object SampleExpressions {
   val No: FractionalPermissionExpression = FractionalPermissionExpression(Zero, One)
 
   /**
+    * An expression representing a read permission.
+    *
+    * TODO: Replace by symbolic read permission.
+    */
+  val Read: FractionalPermissionExpression = FractionalPermissionExpression(One, Literal(100))
+
+  /**
     * An expression representing full permission.
     */
   val Full: FractionalPermissionExpression = FractionalPermissionExpression(One, One)

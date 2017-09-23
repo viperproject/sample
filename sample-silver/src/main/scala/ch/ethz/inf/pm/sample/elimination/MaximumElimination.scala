@@ -59,7 +59,7 @@ object MaximumElimination
       }
     // build and simplify final expression
     val maximum = Max(unbounded ++ bounded)
-    simplify(maximum, true)
+    simplify(maximum, collect = true)
   }
 
   protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {

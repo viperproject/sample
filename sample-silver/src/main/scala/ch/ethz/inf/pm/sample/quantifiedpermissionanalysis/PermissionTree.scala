@@ -6,10 +6,9 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Exists, _}
-import ch.ethz.inf.pm.sample.elimination.QuantifierElimination
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.elimination.MaximumElimination
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Permission.Fractional
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.SampleExpressions
 
@@ -22,9 +21,7 @@ import ch.ethz.inf.pm.sample.util.SampleExpressions
 sealed trait PermissionTree {
 
   import SampleExpressions._
-  import QuantifierElimination.eliminate
-
-  def bound(): PermissionTree = Maximum(this, Empty)
+  import MaximumElimination.eliminate
 
   def assume(condition: Expression) = Conditional(condition, this, Empty)
 
@@ -38,7 +35,7 @@ sealed trait PermissionTree {
     case original@Conditional(condition, left, right) =>
       if (left == right) left
       else condition match {
-        case NegatedBooleanExpression(argument) => Conditional(argument, right, left)
+        case Not(argument) => Conditional(argument, right, left)
         case _ => original
       }
     case tree => tree
@@ -58,42 +55,26 @@ sealed trait PermissionTree {
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionTree = {
-    val result = VariableIdentifier("result")(PermType)
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
 
-    val exact = rewritten.map { case (c, p) => Implies(c, Equal(result, p)) }
-    val bound = rewritten.map { case (c, p) => And(c, Less(result, p)) }
-
-    val a = Exists(variables, And(invariant, And(exact)))
-    val b = Exists(variables, And(invariant, Or(bound)))
-
-    val quantified = And(a, b)
-    println(pretty(quantified))
-    val eliminated = eliminate(quantified)
-
-    ???
+    rewritten.map { case (c, p) =>
+      val body = ConditionalExpression(And(c, invariant), p, No)
+      val maximum = BigMax(variables, body)
+      val eliminated = eliminate(maximum)
+      println(s"original: $maximum")
+      println(s"eliminated: $eliminated")
+      toTree(eliminated)
+    }.reduce(Maximum)
   }
 
-  def rewrite: Set[(Expression, Expression)] = this match {
+  private def rewrite: Set[(Expression, Expression)] = this match {
     case Empty =>
       Set((True, No))
     case Initial =>
       val placeholder = VariableIdentifier("π")(PermType)
       Set((True, placeholder))
-    case Leaf(receiver, permission) => receiver match {
-      case FunctionCallExpression(name, arguments, _, _) =>
-        // generate constraint from arguments
-        val quantified = Context.getQuantified(name)
-        val zipped = arguments zip quantified
-        val c = And(zipped.map { case (a, b) => Equal(a, b) })
-        // translate permission
-        val p = permission match {
-          case Fractional(numerator, denominator) =>
-            FractionalPermissionExpression(Literal(numerator), Literal(denominator))
-        }
-        Set((c, p))
-      case _ => ???
-    }
+    case Leaf(condition, permission) =>
+      Set((condition, permission))
     case Addition(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
@@ -103,14 +84,16 @@ sealed trait PermissionTree {
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
-      val set = for ((constraint1, permission1) <- rewrittenLeft;
+      // TODO: Is this correct?
+      /*val set = for ((constraint1, permission1) <- rewrittenLeft;
                      (constraint2, permission2) <- rewrittenRight) yield {
         val constraint = And(constraint1, constraint2)
         val expression1: Expression = And(constraint, GreaterEqual(permission1, permission2))
         val expression2: Expression = And(constraint, Less(permission1, permission2))
         Seq((expression1, permission1), (expression2, permission2))
       }
-      set.flatten
+      set.flatten*/
+      rewrittenLeft ++ rewrittenRight
     case Conditional(condition, left, right) =>
       val set1 = for ((constraint, permission) <- left.rewrite) yield {
         val expression: Expression = And(constraint, condition)
@@ -121,6 +104,18 @@ sealed trait PermissionTree {
         (expression, permission)
       }
       set1 ++ set2
+    case _ => ???
+  }
+
+  private def toTree(expression: Expression): PermissionTree = expression match {
+    case ConditionalExpression(condition, left, right) =>
+      // TODO: Left is constant
+      // TODO: Right is zero
+      println(s"left: $left")
+      println(s"right: $right")
+      Leaf(condition, left)
+    case Max(left, right) => Maximum(toTree(left), toTree(right))
+    case No => Empty
     case _ => ???
   }
 }
@@ -145,10 +140,17 @@ object PermissionTree {
     override def toString: String = "π"
   }
 
-  case class Leaf(receiver: Expression, permission: Permission)
+  /**
+    * TODO:  Replace receiver by a condition.
+    * TODO: Change type of permission to expression.
+    *
+    * @param condition
+    * @param permission
+    */
+  case class Leaf(condition: Expression, permission: Expression)
     extends PermissionTree {
 
-    override def toString: String = s"(q == $receiver ? $permission : none)"
+    override def toString: String = s"(q == $condition ? $permission : none)"
   }
 
   case class Addition(left: PermissionTree, right: PermissionTree)

@@ -40,7 +40,7 @@ object Context {
     * Maps name of domain functions to the sequence of the corresponding
     * quantified variables.
     */
-  private var receivers: Map[String, Seq[Expression]] = Map()
+  private var receivers: Map[String, Seq[VariableIdentifier]] = Map()
 
   /**
     * The map containing all auxiliary functions.
@@ -93,8 +93,7 @@ object Context {
       .orElse(program.findFunctionOptionally(name))
       .getOrElse(program.findDomainFunction(name))
 
-
-  def getQuantified(name: String): Seq[Expression] = {
+  def getQuantified(name: String): Seq[VariableIdentifier] = {
     receivers.get(name) match {
       case Some(existing) => existing
       case None =>
@@ -107,6 +106,12 @@ object Context {
         receivers += (name -> quantified)
         quantified
     }
+  }
+
+  def getReceiver: sil.FuncLike = {
+    val names = receivers.keys
+    if (names.size == 1) getFunction(names.head)
+    else ???
   }
 
   /* ------------------------------------------------------------------------- *
