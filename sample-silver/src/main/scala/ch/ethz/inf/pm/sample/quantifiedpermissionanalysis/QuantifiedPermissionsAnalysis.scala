@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -78,7 +78,16 @@ object QuantifiedPermissionsAnalysisRunner
   }
 
   override def inferInvariants(loop: sil.While, result: CfgResult[QuantifiedPermissionState]): Seq[sil.Exp] = {
-    loop.invs
+    val position = getLoopPosition(loop, result.cfg)
+    val state = result.preStateAt(position)
+    val inferred = SpecificationGenerator.generate(state.records.head)
+
+    val numerical = Context.getNumericalResult()
+    val domain = numerical.preStateAt(position).domain
+    val constraints = domain.getConstraints(domain.ids.toSet)
+    val converted = constraints.map(DefaultSampleConverter.convert)
+
+    loop.invs ++ converted ++ inferred
   }
 }
 
