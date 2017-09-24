@@ -163,7 +163,17 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
 
   override def enterLoop(): S = {
     val inner :: outer :: rest = records
+    val newRecords = (inner lub outer) :: rest
+    copy(records = newRecords)
+  }
 
+  override def leaveLoop(): S = {
+    val newRecords = records.head.bottom() :: records
+    copy(records = newRecords)
+  }
+
+  def project: S = {
+    val inner :: rest = records
     val changing = inner.changing.toSeq
 
     // TODO: Filter constraints that do not mention any changing variable.
@@ -176,12 +186,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
       result.forget(changing, invariant)
     }
 
-    val newRecords = (forgotten lub outer) :: rest
-    copy(records = newRecords)
-  }
-
-  override def leaveLoop(): S = {
-    val newRecords = records.head.bottom() :: records
+    val newRecords = forgotten :: rest
     copy(records = newRecords)
   }
 

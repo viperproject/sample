@@ -6,7 +6,7 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet}
+import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
@@ -90,13 +90,15 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
             states.append(predecessor)
             successor = predecessor
           })
-          val intermediate = successor
           // process invariants
-          invariants.foldRight(intermediate) { (invariant, successor) =>
+          successor = invariants.foldRight(successor) { (invariant, successor) =>
             val predecessor = executeCommand(InvariantCommand, invariant, successor)
             states.append(predecessor)
             predecessor
           }
+          // TODO: Maybe we do not want to introduce a new state?
+          val projected = successor.project
+          states.append(projected)
       }
 
       val reversed = states.reverse
