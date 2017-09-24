@@ -182,9 +182,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     val constraints = domain.getConstraints(domain.ids.toSet)
     val invariant = And(constraints)
 
-    val forgotten = changing.foldLeft(inner) { case (result, variable) =>
-      result.forget(changing, invariant)
-    }
+    val forgotten = inner.forget(changing, invariant)
 
     val newRecords = forgotten :: rest
     copy(records = newRecords)

@@ -81,8 +81,10 @@ object MaximumElimination
       val (s2, d2) = booleanMin(variable, negated)
       // TODO: remove all expressions from s2 that make "term" zero
       (s1 ++ s2, lcm(d1, d2))
-    // other expressions
-    case _ => ???
+    // expressions not depending on the variable
+    case _ =>
+      if (expression.contains(_ == variable)) ???
+      else (Set.empty, 1)
   }
 
   protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {
@@ -100,7 +102,9 @@ object MaximumElimination
       val (s1, d1) = arithmeticMax(variable, term)
       val (s2, d2) = booleanMax(variable, negated)
       (s1 ++ s2, lcm(d1, d2))
-    // other expressions
-    case _ => ???
+    // expressions not depending on the variable
+    case _ =>
+      if (expression.contains(_ == variable)) ???
+      else (Set.empty, 1)
   }
 }

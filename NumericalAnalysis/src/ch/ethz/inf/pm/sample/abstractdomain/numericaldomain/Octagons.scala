@@ -146,7 +146,9 @@ object Octagons {
     override def assumeSimplified(expression: Expression): S = expression match {
       case _: ReferenceComparisonExpression => this
       case _ =>
-        val nonExisting = expression.ids.getNonTop.filterNot(exists)
+        val nonExisting = expression.ids.getNonTop
+          .filterNot(exists)
+          .filter(_.typ.isNumericalType)
         if (nonExisting.nonEmpty)
           createVariables(nonExisting).assume(expression)
         else expression match {

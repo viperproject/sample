@@ -128,7 +128,7 @@ trait Elimination {
       val (leftSet, leftDelta) = booleanMin(variable, left)
       val (rightSet, rightDelta) = booleanMin(variable, right)
       (leftSet ++ rightSet, lcm(leftDelta, rightDelta))
-    // handle expressions not depending on the variable
+    // expressions not depending on the variable
     case _ =>
       if (expression.contains(_ == variable)) ???
       else (Set.empty, 1)
@@ -152,7 +152,7 @@ trait Elimination {
       val (leftSet, leftDelta) = booleanMax(variable, left)
       val (rightSet, rightDelta) = booleanMax(variable, right)
       (leftSet ++ rightSet, lcm(leftDelta, rightDelta))
-    // handle expressions not depending on the variable
+    // expressions not depending on the variable
     case _ =>
       if (expression.contains(_ == variable)) ???
       else (Set.empty, 1)
