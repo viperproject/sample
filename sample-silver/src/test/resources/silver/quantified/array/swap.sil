@@ -7,8 +7,8 @@ domain Array
     function get_index(r: Ref): Int
     function get_array(r: Ref): Array
 
-    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
-    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_array { forall a: Array, i: Int :: { loc(a, i) } get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: { loc(a, i) } get_index(loc(a, i)) == i }
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
