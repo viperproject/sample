@@ -6,12 +6,14 @@
 
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Expression, FunctionCallExpression}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.SampleExpressions
 import viper.silver.{ast => sil}
+
+import scala.collection.mutable.ListBuffer
 
 /**
   * An object providing methods to generate specifications for the quantified
@@ -30,76 +32,88 @@ object SpecificationGenerator {
     * @param records The permission records.
     * @return The generated specifications.
     */
-  def generate(records: PermissionRecords): Seq[sil.Exp] = {
+  def generate(records: PermissionRecords): Seq[sil.Exp] =
     records.fields.map { field =>
       // get tree and plug in zero as the initial permissions
       val tree = records(field).transform {
         case Initial => Empty
         case other => other
       }
+      val expression = tree.simplify.toExpression
 
       val receiver = Context.getReceiver
-      val quantified = Context.getQuantified(receiver.name)
+      val variables = Context.getVariables(receiver.name)
 
-      val variables = for ((x, y) <- quantified zip receiver.formalArgs)
-        yield sil.LocalVarDecl(x.name, y.typ)()
-      val arguments = variables.map { variable => sil.LocalVar(variable.name)(variable.typ) }
+      val quantified = ListBuffer[sil.LocalVarDecl]()
+      val arguments = ListBuffer[sil.Exp]()
 
-      val permission = convert(tree)
+      val zipped = variables zip receiver.formalArgs
+      val simplified = zipped.foldLeft(expression) {
+        case (current, (variable, parameter)) =>
+          // collect terms
+          var terms = Option(Set.empty[Expression])
+          current.foreach {
+            case Equal(`variable`, term) =>
+              terms match {
+                case Some(set) => terms = Some(set + term)
+                case None => // do nothing
+              }
+            case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) =>
+              terms = None
+            case _ => // do nothing
+          }
+
+          terms match {
+            case Some(set) if set.size == 1 =>
+              val term = set.head
+              // add argument
+              val argument = convert(term)
+              arguments.append(argument)
+              // return
+              val transformed = current.transform {
+                case `variable` => term
+                case other => other
+              }
+              simplify(transformed)
+            case _ =>
+              // add quantified variable
+              val name = variable.name
+              val typ = parameter.typ
+              val declaration = sil.LocalVarDecl(name, typ)()
+              quantified.append(declaration)
+              // add argument
+              val argument = sil.LocalVar(name)(typ)
+              arguments.append(argument)
+              // return
+              current
+          }
+      }
+
       val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
       val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-
-      val triggers = Seq.empty
+      val permission = convert(simplified)
       val body = sil.FieldAccessPredicate(location, permission)()
 
-      sil.Forall(variables, triggers, body)()
+      val triggers = Seq.empty
+      sil.Forall(quantified, triggers, body)()
     }
-  }
-
-  /**
-    * @param tree
-    * @return
-    */
-  private def convert(tree: PermissionTree): sil.Exp = tree.simplify match {
-    case Empty => convert(No)
-    case Leaf(condition, permission) =>
-      val conditionExpression = convert(condition)
-      val leftExpression = convert(permission)
-      val rightExpression = convert(No)
-      conditional(conditionExpression, leftExpression, rightExpression)
-    case Addition(left, right) =>
-      val leftExpression = convert(left)
-      val rightExpression = convert(right)
-      addition(leftExpression, rightExpression)
-    case Subtraction(left, right) =>
-      val leftExpression = convert(left)
-      val rightExpression = convert(right)
-      val zero = sil.IntLit(0)()
-      max(subtraction(leftExpression, rightExpression), zero)
-    case Maximum(left, right) =>
-      val leftExpression = convert(left)
-      val rightExpression = convert(right)
-      max(leftExpression, rightExpression)
-    case Conditional(condition, left, right) =>
-      val conditionExpression = convert(condition)
-      val leftExpression = convert(left)
-      val rightExpression = convert(right)
-      conditional(conditionExpression, leftExpression, rightExpression)
-  }
 
   private def convert(expression: Expression): sil.Exp =
-    DefaultSampleConverter.convert(expression)
+    Converter.convert(expression)
 
   private def convert(typ: Type): sil.Type =
-    DefaultSampleConverter.convert(typ)
+    Converter.convert(typ)
+}
 
-  private def addition(left: sil.Exp, right: sil.Exp): sil.Exp =
-    sil.Add(left, right)()
+object Converter
+  extends DefaultSampleConverter {
 
-  private def subtraction(left: sil.Exp, right: sil.Exp): sil.Exp = {
-    val zero = sil.IntLit(0)()
-    val difference = sil.Sub(left, right)()
-    max(zero, difference)
+  override def convert(expression: Expression): sil.Exp = expression match {
+    case Max(left, right) => max(convert(left), convert(right))
+    case FunctionCallExpression(name, parameters, typ, pp) =>
+      val function = Context.getFunction(name)
+      sil.FuncLikeApp(function, parameters.map(convert), Map.empty[sil.TypeVar, sil.Type])
+    case _ => super.convert(expression)
   }
 
   private def max(left: sil.Exp, right: sil.Exp): sil.Exp = {
@@ -107,10 +121,4 @@ object SpecificationGenerator {
     val arguments = Seq(left, right)
     sil.FuncApp(function, arguments)()
   }
-
-  private def conditional(condition: sil.Exp, left: sil.Exp, right: sil.Exp): sil.Exp =
-    sil.CondExp(condition, left, right)()
-
-  private def getFunction(name: String): sil.FuncLike =
-    Context.getFunction(name)
 }

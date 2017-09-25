@@ -133,17 +133,21 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
 
   def receiverToCondition(receiver: Expression): Expression = receiver match {
     case FunctionCallExpression(name, arguments, _, _) =>
-      val quantified = Context.getQuantified(name)
+      val quantified = Context.getVariables(name)
       val zipped = quantified zip arguments
       And(zipped.map { case (q, a) => Equal(q, a) })
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionRecords = {
     // TODO: Don't replace initial with empty
-    val updated = map.mapValues(_.transform {
-      case Initial => Empty
-      case other => other
-    }.simplify.forget(variables, invariant))
+    val updated = map.map { case (key, tree) =>
+      val transformed = tree.transform {
+        case Initial => Empty
+        case other => other
+      }
+      val simplified = transformed.simplify
+      key -> simplified.forget(variables, invariant)
+    }
     copy(map = updated)
   }
 

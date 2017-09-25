@@ -93,7 +93,7 @@ object Context {
       .orElse(program.findFunctionOptionally(name))
       .getOrElse(program.findDomainFunction(name))
 
-  def getQuantified(name: String): Seq[VariableIdentifier] = {
+  def getVariables(name: String): Seq[VariableIdentifier] = {
     receivers.get(name) match {
       case Some(existing) => existing
       case None =>

@@ -56,7 +56,6 @@ sealed trait PermissionTree {
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionTree = {
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
-
     rewritten.map { case (c, p) =>
       val body = ConditionalExpression(And(c, invariant), p, No)
       val maximum = BigMax(variables, body)
@@ -111,12 +110,19 @@ sealed trait PermissionTree {
     case ConditionalExpression(condition, left, right) =>
       // TODO: Left is constant
       // TODO: Right is zero
-      println(s"left: $left")
-      println(s"right: $right")
       Leaf(condition, left)
     case Max(left, right) => Maximum(toTree(left), toTree(right))
     case No => Empty
     case _ => ???
+  }
+
+  def toExpression: Expression = this match {
+    case Empty => No
+    case Leaf(condition, permission) => ConditionalExpression(condition, permission, No)
+    case Addition(left, right) => Plus(left.toExpression, right.toExpression)
+    case Subtraction(left, right) => Bound(Minus(left.toExpression, right.toExpression))
+    case Maximum(left, right) => Max(left.toExpression, right.toExpression)
+    case Conditional(condition, left, right) => ConditionalExpression(condition, left.toExpression, right.toExpression)
   }
 }
 
