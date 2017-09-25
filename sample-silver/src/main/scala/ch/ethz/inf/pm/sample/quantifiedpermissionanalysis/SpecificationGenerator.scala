@@ -94,8 +94,11 @@ object SpecificationGenerator {
       val permission = convert(simplified)
       val body = sil.FieldAccessPredicate(location, permission)()
 
-      val triggers = Seq.empty
-      sil.Forall(quantified, triggers, body)()
+      if (quantified.isEmpty) body
+      else {
+        val triggers = Seq.empty
+        sil.Forall(quantified, triggers, body)()
+      }
     }
 
   private def convert(expression: Expression): sil.Exp =
