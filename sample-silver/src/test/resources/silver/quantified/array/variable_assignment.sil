@@ -12,8 +12,9 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method foo_expected(a: Array, i: Int, j: Int)
-    requires forall q: Ref :: (q == loc(a, i + j) || q == loc(a, i + j + 1)) ==> acc(q.val, 1 / 100)
+method foo_expected(a: Array, i: Int, j: Int, read: Perm)
+    requires none < read && read < write
+    requires forall q: Ref :: (q == loc(a, i + j) || q == loc(a, i + j + 1)) ==> acc(q.val, read)
     ensures true
 
 method foo(a: Array, i: Int, j: Int) returns (r: Int, s: Int)

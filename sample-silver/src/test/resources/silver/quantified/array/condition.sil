@@ -12,9 +12,10 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method lower_expected(a: Array, i: Int, j: Int)
-    requires i < j ==> acc(loc(a, i).val, 1 / 100)
-    requires j <= i ==> acc(loc(a, j).val, 1 / 100)
+method lower_expected(a: Array, i: Int, j: Int, read: Perm)
+    requires none < read && read < write
+    requires i < j ==> acc(loc(a, i).val, read)
+    requires j <= i ==> acc(loc(a, j).val, read)
     ensures true
 
 method lower(a: Array, i: Int, j: Int) returns (r: Int)

@@ -12,7 +12,8 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method swap_expected(a: Array, i: Int, j: Int)
+method swap_expected(a: Array, i: Int, j: Int, read: Perm)
+    requires none < read && read < write
     requires forall r: Ref :: (r == loc(a, i) || r == loc(a, j)) ==> acc(r.val, write)
     ensures true
 
