@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.util
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType, PermType}
 
 /**
   * Some utility functions for sample expressions.
@@ -43,13 +43,6 @@ object SampleExpressions {
     * An expression representing no permission.
     */
   val No: FractionalPermissionExpression = FractionalPermissionExpression(Zero, One)
-
-  /**
-    * An expression representing a read permission.
-    *
-    * TODO: Replace by symbolic read permission.
-    */
-  val Read: FractionalPermissionExpression = FractionalPermissionExpression(One, Literal(100))
 
   /**
     * An expression representing full permission.

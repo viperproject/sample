@@ -49,6 +49,16 @@ sealed trait PermissionTree {
     case tree => f(tree)
   }
 
+  def contains(f: PermissionTree => Boolean): Boolean = this match {
+    case Empty => f(this)
+    case Initial => f(this)
+    case Leaf(_, _) => f(this)
+    case Addition(left, right) => f(this) || left.contains(f) || right.contains(f)
+    case Subtraction(left, right) => f(this) || left.contains(f) || right.contains(f)
+    case Maximum(left, right) => f(this) || left.contains(f) || right.contains(f)
+    case Conditional(_, left, right) => f(this) || left.contains(f) || right.contains(f)
+  }
+
   def compose(other: PermissionTree): PermissionTree = transform {
     case Initial => other
     case tree => tree

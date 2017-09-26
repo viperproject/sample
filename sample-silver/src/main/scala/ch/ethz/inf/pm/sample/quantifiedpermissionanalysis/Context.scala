@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.CfgResult
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.ast.Function
 import viper.silver.{ast => sil}
@@ -140,14 +140,52 @@ object Context {
     numerical(name)
 
   /* ------------------------------------------------------------------------- *
+   * Special Functions and Variables
+   */
+
+  private var readVariable: Option[sil.LocalVarDecl] = None
+
+  private var maxFunction: Option[sil.Function] = None
+
+  def getReadVariable: sil.LocalVarDecl = readVariable match {
+    case Some(existing) => existing
+    case None =>
+      // create variable
+      val name = uniqueIdentifier("read")
+      val variable = sil.LocalVarDecl(name, sil.Perm)()
+      // cache and return variable
+      readVariable = Some(variable)
+      variable
+  }
+
+  def getMaxFunction: sil.Function = maxFunction match {
+    case Some(existing) => existing
+    case None =>
+      // create function
+      val dx = sil.LocalVarDecl("x", sil.Perm)()
+      val dy = sil.LocalVarDecl("y", sil.Perm)()
+      val vx = sil.LocalVar("x")(sil.Perm)
+      val vy = sil.LocalVar("y")(sil.Perm)
+      val function = sil.Function(
+        name = uniqueIdentifier("max"),
+        formalArgs = Seq(dx, dy),
+        typ = sil.Perm,
+        pres = Seq(),
+        posts = Seq(),
+        decs = None,
+        body = Some(sil.CondExp(sil.PermGtCmp(vx, vy)(), vx, vy)())
+      )()
+      // cache and return function
+      maxFunction = Some(function)
+      functions += ((function.name, function))
+      function
+  }
+
+  /* ------------------------------------------------------------------------- *
    * code below has not been cleaned up
    */
 
   private var boundaryFunction: Option[sil.Function] = None
-
-  private var maxFunction: Option[sil.Function] = None
-
-  private var rdAmountVariable: Option[sil.LocalVarDecl] = None
 
   private var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
 
@@ -188,10 +226,10 @@ object Context {
   }
 
   def clearMethodSpecificInfo(): Unit = {
-    rdAmountVariable match {
+    readVariable match {
       case Some(varDecl) =>
         identifiers -= varDecl.name
-        rdAmountVariable = None
+        readVariable = None
       case None =>
     }
     identifiers --= quantifiedVariables.values.flatten.map(_.name)
@@ -222,37 +260,6 @@ object Context {
 
   def createNewUniqueFunctionIdentifier(name: String = "_func"): String = uniqueIdentifier(name)
 
-  private def createNewUniqueSetIdentifier(name: String = "_set"): String = uniqueIdentifier(name)
-
   def removeIdentifiers(identifiers: GenTraversableOnce[String]): Unit = this.identifiers --= identifiers
 
-  def getRdAmountVariable: sil.LocalVarDecl = rdAmountVariable match {
-    case Some(existingRdAmountVar) => existingRdAmountVar
-    case None =>
-      val varDecl = sil.LocalVarDecl(createNewUniqueVarIdentifier("rdAmount"), sil.Perm)()
-      rdAmountVariable = Some(varDecl)
-      varDecl
-  }
-
-  def getMaxFunction: sil.Function = maxFunction match {
-    case Some(existingMaxFunction) => existingMaxFunction
-    case None =>
-      val fun = sil.Function(createNewUniqueFunctionIdentifier("max"), Seq(VarXDecl, VarYDecl), sil.Perm, Seq(), Seq(), None, Some(sil.CondExp(sil.PermGtCmp(VarX, VarY)(), VarX, VarY)())
-      )()
-      maxFunction = Some(fun)
-      functions += ((fun.name, fun))
-      fun
-  }
-
 }
-
-object VarXDecl extends sil.LocalVarDecl("x", sil.Perm)()
-
-object VarX extends sil.LocalVar("x")(sil.Perm)
-
-object VarYDecl extends sil.LocalVarDecl("y", sil.Perm)()
-
-object VarY extends sil.LocalVar("y")(sil.Perm)
-
-object ZeroPerm extends sil.NoPerm()()
-

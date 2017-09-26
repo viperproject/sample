@@ -6,11 +6,11 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, VariableIdentifier}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, DefaultSilverConverter, SilverMethodDeclaration, SilverProgramDeclaration}
+import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import com.typesafe.scalalogging.LazyLogging
 import viper.silver.{ast => sil}
@@ -65,16 +65,35 @@ object QuantifiedPermissionsAnalysisRunner
   }
 
   override def inferArguments(method: sil.Method, result: CfgResult[QuantifiedPermissionState]): Seq[sil.LocalVarDecl] = {
-    // TODO: Add read parameter.
     // TODO: Add ghost sets parameters.
-    super.inferArguments(method, result)
+
+    val position = firstPosition(result.cfg.entry)
+    val state = result.preStateAt(position)
+    val hasRead = state.records.head.hasRead
+
+    val existing = method.formalArgs
+    val inferred = if (hasRead) Seq(Context.getReadVariable) else Seq.empty
+
+    existing ++ inferred
   }
 
   override def inferPreconditions(method: sil.Method, result: CfgResult[QuantifiedPermissionState]): Seq[sil.Exp] = {
     val position = firstPosition(result.cfg.entry)
     val state = result.preStateAt(position)
+    val hasRead = state.records.head.hasRead
+
+    val extra = if (hasRead) {
+      val declaration = Context.getReadVariable
+      val variable = sil.LocalVar(declaration.name)(sil.Perm)
+      val lower = sil.PermLtCmp(sil.NoPerm()(), variable)()
+      val upper = sil.PermLtCmp(variable, sil.FullPerm()())()
+      val condition = sil.And(lower, upper)()
+      Seq(condition)
+    } else Seq.empty
+
     val inferred = SpecificationGenerator.generate(state.records.head)
-    method.pres ++ inferred
+
+    method.pres ++ extra ++ inferred
   }
 
   override def inferInvariants(loop: sil.While, result: CfgResult[QuantifiedPermissionState]): Seq[sil.Exp] = {

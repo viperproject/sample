@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.{Maps, SampleExpressions}
 
@@ -110,7 +111,11 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       update(field, Addition(_, leaf))
   }
 
-  def read(expression: Expression): PermissionRecords = access(expression, Read)
+  def read(expression: Expression): PermissionRecords = {
+    val declaration = Context.getReadVariable
+    val variable = VariableIdentifier(declaration.name)(PermType)
+    access(expression, variable)
+  }
 
   def write(expression: Expression): PermissionRecords = access(expression, Full)
 
@@ -151,6 +156,15 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     copy(map = updated)
   }
 
+  lazy val hasRead: Boolean = {
+    val declaration = Context.getReadVariable
+    val variable = VariableIdentifier(declaration.name)(PermType)
+    contains {
+      case PermissionTree.Leaf(_, expression) => expression.contains(_ == variable)
+      case _ => false
+    }
+  }
+
   def update(field: Identifier, f: PermissionTree => PermissionTree): PermissionRecords = {
     val updated = map + (field -> f(map(field)))
     copy(map = updated)
@@ -166,6 +180,9 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     val transformed = map.mapValues(_.transform(f))
     copy(map = transformed)
   }
+
+  def contains(f: PermissionTree => Boolean): Boolean =
+    map.values.exists(_.contains(f))
 
   def clear(): PermissionRecords = {
     val emptyMap = map.mapValues(_ => Initial)
