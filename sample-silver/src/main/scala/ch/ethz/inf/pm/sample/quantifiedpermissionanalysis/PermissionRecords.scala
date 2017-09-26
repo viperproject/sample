@@ -15,13 +15,11 @@ import ch.ethz.inf.pm.sample.util.{Maps, SampleExpressions}
   * Maps fields to permission trees.
   *
   * @param map      The map from fields to permission trees.
-  * @param changing The set of changing variables.
   * @param isTop    The top flag.
   * @param isBottom the bottom flag.
   * @author Jerome Dohrau
   */
 case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
-                             changing: Set[VariableIdentifier] = Set.empty,
                              isTop: Boolean = false,
                              isBottom: Boolean = false)
   extends Lattice[PermissionRecords] {
@@ -39,8 +37,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     else if (isBottom || other.isTop) other
     else {
       val newMap = Maps.union(map, other.map, Maximum)
-      val newChanging = changing ++ other.changing
-      copy(map = newMap, changing = newChanging)
+      copy(map = newMap)
     }
 
   override def glb(other: PermissionRecords): PermissionRecords = ???
@@ -70,7 +67,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
   }
 
   def assignVariable(target: VariableIdentifier, value: Expression): PermissionRecords =
-    copy(changing = changing + target).transformExpressions {
+    transformExpressions {
       case variable: VariableIdentifier if variable == target => value
       case expression => expression
     }
@@ -186,12 +183,11 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
 
   def clear(): PermissionRecords = {
     val emptyMap = map.mapValues(_ => Initial)
-    copy(map = emptyMap, changing = Set.empty)
+    copy(map = emptyMap)
   }
 
   def copy(map: Map[Identifier, PermissionTree] = map,
-           changing: Set[VariableIdentifier] = changing,
            isTop: Boolean = isTop,
            isBottom: Boolean = isBottom): PermissionRecords =
-    PermissionRecords(map, changing, isTop, isBottom)
+    PermissionRecords(map, isTop, isBottom)
 }

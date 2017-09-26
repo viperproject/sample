@@ -6,10 +6,12 @@
 
 package ch.ethz.inf.pm.sample.execution
 
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation.{Assignment, ProgramPointUtils, Statement, Variable}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.ProgramPoint
 import viper.silver.cfg._
+import viper.silver.cfg.utility.LoopDetector
 
 /**
   * A sample control flow graph
@@ -48,6 +50,26 @@ class SampleCfg(val blocks: Seq[SampleBlock], val edges: Seq[SampleEdge], val en
   def getEdgePosition(pp: ProgramPoint): EdgePosition = getPosition(pp) match {
     case position: EdgePosition => position
     case _ => throw new IllegalArgumentException(s"The program point $pp does not refer to an edge position.")
+  }
+
+  def changingVariables(block: SampleBlock): Seq[VariableIdentifier] = {
+    println(block)
+    val backedges = inEdges(block).filterNot(_.isIn)
+    val blocks = backedges.flatMap { backedge => LoopDetector.collectBlocks(this, backedge) }
+    val variables = blocks.distinct.flatMap { block => writtenVariables(block) }
+    println(variables)
+    variables.distinct
+  }
+
+  def writtenVariables(block: SampleBlock): Seq[VariableIdentifier] = block match {
+    case LoopHeadBlock(_, statements) => statements.flatMap(writtenVariables)
+    case StatementBlock(statements) => statements.flatMap(writtenVariables)
+    case _ => ???
+  }
+
+  def writtenVariables(statement: Statement): Seq[VariableIdentifier] = statement match {
+    case Assignment(_, Variable(_, identifier), _) => Seq(identifier)
+    case _ => Seq.empty
   }
 
   override def copy(blocks: Seq[SampleBlock] = blocks,

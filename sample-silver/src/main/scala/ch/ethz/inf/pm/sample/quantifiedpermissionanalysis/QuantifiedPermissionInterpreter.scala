@@ -97,7 +97,8 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
             predecessor
           }
           // TODO: Maybe we do not want to introduce a new state?
-          val projected = successor.project
+          val changing = cfg.changingVariables(current)
+          val projected = successor.project(changing)
           states.append(projected)
       }
 

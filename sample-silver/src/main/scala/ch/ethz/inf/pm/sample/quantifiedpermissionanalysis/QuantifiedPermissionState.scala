@@ -172,9 +172,8 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     copy(records = newRecords)
   }
 
-  def project: S = {
+  def project(changing: Seq[VariableIdentifier]): S = {
     val inner :: rest = records
-    val changing = inner.changing.toSeq
 
     // TODO: Filter constraints that do not mention any changing variable.
     val numerical = Context.getNumericalResult()

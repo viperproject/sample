@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.util
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType, PermType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
 
 /**
   * Some utility functions for sample expressions.

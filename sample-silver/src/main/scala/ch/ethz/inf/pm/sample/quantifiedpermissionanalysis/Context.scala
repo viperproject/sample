@@ -11,6 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.ast.Function
+import viper.silver.cfg.LoopHeadBlock
 import viper.silver.{ast => sil}
 
 import scala.collection.GenTraversableOnce
