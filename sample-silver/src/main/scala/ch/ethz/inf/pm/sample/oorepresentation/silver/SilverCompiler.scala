@@ -55,7 +55,7 @@ class SilverCompiler {
     }
 
     Resolver(parsed).run
-    Translator(parsed).translate.get
+    Translator(parsed, enableFunctionTerminationChecks = false).translate.get
   }
 
   def toSample(program: sil.Program): SilverProgramDeclaration = {
