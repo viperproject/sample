@@ -187,6 +187,11 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     copy(records = newRecords)
   }
 
+  def second: S = {
+    val _ :: outer :: Nil = records
+    copy(records = outer :: Nil)
+  }
+
   /* ------------------------------------------------------------------------- *
    * COPY FUNCTION
    */

@@ -127,16 +127,19 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
           // enqueue predecessor block
           worklist.push(predecessor)
         } else predecessor match {
-          case LoopHeadBlock(_, _) =>
+          case loop@LoopHeadBlock(_, _) =>
             // check if all blocks after the loop have been processed
             val outEdges = cfg.outEdges(predecessor)
             val afterBlocks = outEdges.filter(_.isOut).map(_.target)
             if (afterBlocks.forall(visited.contains)) {
+              // propagate state into the loop
+              val changing = cfg.changingVariables(loop)
+              val innerState = processed.second.project(changing)
               // enqueue inner blocks
               val innerEdges = cfg.inEdges(predecessor).filterNot(_.isIn)
               innerEdges.foreach { innerEdge =>
                 val innerBlock = innerEdge.source
-                updateExitState(innerBlock, initial)
+                updateExitState(innerBlock, innerState)
                 worklist.push(innerBlock)
               }
             }
