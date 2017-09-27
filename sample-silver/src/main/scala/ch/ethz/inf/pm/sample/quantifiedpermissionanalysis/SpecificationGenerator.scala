@@ -91,7 +91,7 @@ object SpecificationGenerator {
 
       val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
       val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-      val permission = convert(simplified)
+      val permission = convert(simplify(simplified))
       val body = sil.FieldAccessPredicate(location, permission)()
 
       if (quantified.isEmpty) body

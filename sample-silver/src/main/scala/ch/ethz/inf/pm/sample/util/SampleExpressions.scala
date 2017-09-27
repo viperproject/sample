@@ -423,16 +423,19 @@ object SampleExpressions {
         else Literal(b)
       case Min(No, _) => No
       case Min(_, No) => No
+      case Min(left, right) if left == right => left
       // simplify minima
       case Max(Literal(a: Int), Literal(b: Int)) =>
         if (a < b) Literal(b)
         else Literal(a)
       case Max(No, term) => term
       case Max(term, No) => term
+      case Max(left, right) if left == right => left
       // simplify reference comparision expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
         Literal(operator == ReferenceOperator.==)
       // simplify conditional expressions
+      case ConditionalExpression(_, left, right) if left == right => left
       case original@ConditionalExpression(condition, left, right) => condition match {
         // constant folding
         case True => left
