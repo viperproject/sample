@@ -52,59 +52,68 @@ object MaximumElimination
         case other => other
       }
     // compute maximum corresponding to bounded solutions
-    val bounded = for (e <- expressions; i <- 0 until delta) yield
+    val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
+      // TODO: Do not ignore condition.
       normalized.transform {
-        case `variable` => Plus(e, Literal(i))
+        case `variable` => Plus(expression, Literal(i))
         case other => other
       }
+    }
     // build and simplify final expression
     val maximum = Max(unbounded ++ bounded)
     simplify(maximum, collect = true)
   }
 
-  protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {
+  protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Set[(Expression, Expression)], Int) = expression match {
     // conditional expressions
     case ConditionalExpression(condition, _, _) =>
       // TODO: Left is constant.
       // TODO: Right is zero.
-      booleanMin(variable, condition)
+      val (expressions, delta) = booleanMin(variable, condition)
+      (toTuples(expressions), delta)
     // additions
     case Plus(left, right) =>
-      val (s1, d1) = arithmeticMin(variable, left)
-      val (s2, d2) = arithmeticMin(variable, right)
-      (s1 ++ s2, lcm(d1, d2))
+      val (tuples1, delta1) = arithmeticMin(variable, left)
+      val (tuples2, delta2) = arithmeticMin(variable, right)
+      (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
     case Minus(term, ConditionalExpression(condition, _, _)) =>
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
-      val (s1, d1) = arithmeticMin(variable, term)
-      val (s2, d2) = booleanMin(variable, negated)
+      val (tuples, delta1) = arithmeticMin(variable, term)
+      val (expressions, delta2) = booleanMin(variable, negated)
       // TODO: remove all expressions from s2 that make "term" zero
-      (s1 ++ s2, lcm(d1, d2))
+      (tuples ++ toTuples(expressions), lcm(delta1, delta2))
     // expressions not depending on the variable
     case _ =>
       if (expression.contains(_ == variable)) ???
       else (Set.empty, 1)
   }
 
-  protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {
+  protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Set[(Expression, Expression)], Int) = expression match {
     // conditional expressions
-    case ConditionalExpression(condition, _, _) => booleanMax(variable, condition)
+    case ConditionalExpression(condition, _, _) =>
+      val (expressions, delta) = booleanMax(variable, condition)
+      (toTuples(expressions), delta)
     // additions
     case Plus(left, right) =>
-      val (s1, d1) = arithmeticMax(variable, left)
-      val (s2, d2) = arithmeticMax(variable, right)
-      (s1 ++ s2, lcm(d1, d2))
+      val (tuples1, delta1) = arithmeticMax(variable, left)
+      val (tuples2, delta2) = arithmeticMax(variable, right)
+      (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
     case Minus(term, ConditionalExpression(condition, _, _)) =>
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
-      val (s1, d1) = arithmeticMax(variable, term)
-      val (s2, d2) = booleanMax(variable, negated)
-      (s1 ++ s2, lcm(d1, d2))
+      val (tuples, delta1) = arithmeticMax(variable, term)
+      val (expressions, delta2) = booleanMax(variable, negated)
+      (tuples ++ toTuples(expressions), lcm(delta1, delta2))
     // expressions not depending on the variable
     case _ =>
       if (expression.contains(_ == variable)) ???
       else (Set.empty, 1)
   }
+
+  @inline
+  protected def toTuples(expressions: Set[Expression]): Set[(Expression, Expression)] =
+    for (expression <- expressions) yield (expression, True)
 }
