@@ -70,8 +70,6 @@ sealed trait PermissionTree {
       val body = ConditionalExpression(And(c, invariant), p, No)
       val maximum = BigMax(variables, body)
       val eliminated = eliminate(maximum)
-      println(s"original: $maximum")
-      println(s"eliminated: $eliminated")
       toTree(eliminated)
     }.reduce(Maximum)
   }

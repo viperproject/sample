@@ -53,11 +53,9 @@ class SampleCfg(val blocks: Seq[SampleBlock], val edges: Seq[SampleEdge], val en
   }
 
   def changingVariables(block: SampleBlock): Seq[VariableIdentifier] = {
-    println(block)
     val backedges = inEdges(block).filterNot(_.isIn)
     val blocks = backedges.flatMap { backedge => LoopDetector.collectBlocks(this, backedge) }
     val variables = blocks.distinct.flatMap { block => writtenVariables(block) }
-    println(variables)
     variables.distinct
   }
 
