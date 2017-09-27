@@ -65,8 +65,16 @@ sealed trait PermissionTree {
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionTree = {
+    // rewrite tree to pairs of conditions and permission amounts
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
-    rewritten.map { case (c, p) =>
+    // filter all uninteresting pairs
+    val filtered = rewritten.filter {
+      case (False, _) => false
+      case (_, No) => false
+      case _ => true
+    }
+    // process remaining pairs
+    filtered.map { case (c, p) =>
       val body = ConditionalExpression(And(c, invariant), p, No)
       val maximum = BigMax(variables, body)
       val eliminated = eliminate(maximum)
@@ -164,7 +172,7 @@ object PermissionTree {
   case class Leaf(condition: Expression, permission: Expression)
     extends PermissionTree {
 
-    override def toString: String = s"(q == $condition ? $permission : none)"
+    override def toString: String = s"($condition ? $permission : none)"
   }
 
   case class Addition(left: PermissionTree, right: PermissionTree)
