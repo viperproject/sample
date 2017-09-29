@@ -109,9 +109,10 @@ object Context {
     }
   }
 
-  def getReceiver: sil.FuncLike = {
+  def getReceiver: Option[sil.FuncLike] = {
     val names = receivers.keys
-    if (names.size == 1) getFunction(names.head)
+    if (names.isEmpty) None
+    else if (names.size == 1) Some(getFunction(names.head))
     else ???
   }
 

@@ -176,6 +176,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     val inner :: rest = records
 
     // TODO: Filter constraints that do not mention any changing variable.
+    // val filtered = constraints.filter(x => (x.ids.toSet intersect changing.toSet).nonEmpty)
     val numerical = Context.getNumericalResult()
     val domain = numerical.preStateAt(pp).domain
     val constraints = domain.getConstraints(domain.ids.toSet)
