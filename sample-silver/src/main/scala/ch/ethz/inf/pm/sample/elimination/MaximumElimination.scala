@@ -42,7 +42,6 @@ object MaximumElimination
     val (minExpressions, minDelta) = arithmeticMin(variable, normalized)
     val (maxExpressions, maxDelta) = arithmeticMax(variable, normalized)
     // pick smaller set of expressions and the corresponding delta and projection
-    // TODO: currently we force the algorithm to select the min expressions
     val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
       (minExpressions, minDelta, negative)
     } else {
