@@ -74,7 +74,8 @@ sealed trait PermissionTree {
       case _ => true
     }
     // process remaining pairs
-    filtered.map { case (c, p) =>
+    if (filtered.isEmpty) Empty
+    else filtered.map { case (c, p) =>
       val body = ConditionalExpression(And(c, invariant), p, No)
       val maximum = BigMax(variables, body)
       val eliminated = eliminate(maximum)
@@ -99,15 +100,6 @@ sealed trait PermissionTree {
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
-      // TODO: Is this correct?
-      /*val set = for ((constraint1, permission1) <- rewrittenLeft;
-                     (constraint2, permission2) <- rewrittenRight) yield {
-        val constraint = And(constraint1, constraint2)
-        val expression1: Expression = And(constraint, GreaterEqual(permission1, permission2))
-        val expression2: Expression = And(constraint, Less(permission1, permission2))
-        Seq((expression1, permission1), (expression2, permission2))
-      }
-      set.flatten*/
       rewrittenLeft ++ rewrittenRight
     case Conditional(condition, left, right) =>
       val set1 = for ((constraint, permission) <- left.rewrite) yield {
@@ -123,9 +115,8 @@ sealed trait PermissionTree {
   }
 
   private def toTree(expression: Expression): PermissionTree = expression match {
-    case ConditionalExpression(condition, left, right) =>
+    case ConditionalExpression(condition, left, No) =>
       // TODO: Left is constant
-      // TODO: Right is zero
       Leaf(condition, left)
     case Max(left, right) => Maximum(toTree(left), toTree(right))
     case No => Empty

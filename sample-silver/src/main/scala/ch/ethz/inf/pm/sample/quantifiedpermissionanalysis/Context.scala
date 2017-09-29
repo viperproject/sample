@@ -100,7 +100,7 @@ object Context {
       case None =>
         val function = getFunction(name)
         val quantified = function.formalArgs.map { argument =>
-          val name = uniqueIdentifier("q")
+          val name = uniqueIdentifier("q", Some(0))
           val typ = DefaultSilverConverter.convert(argument.typ)
           VariableIdentifier(name)(typ)
         }
@@ -198,23 +198,6 @@ object Context {
 
   def getAuxiliaryFunctions: Map[String, Function] = functions
 
-  def getFieldAccessFunction(field: String): sil.Function = {
-    if (!fieldAccessFunctions.contains(field)) {
-      val function = sil.Function(Context.createNewUniqueFunctionIdentifier("get" + field.head.toUpper + field.tail), Seq(sil.LocalVarDecl("x", sil.Ref)()), program.findField(field).typ, Seq(), Seq(), None, None)()
-      fieldAccessFunctions += field -> function
-      functions += function.name -> function
-    }
-    fieldAccessFunctionsInMethod += method.name -> (fieldAccessFunctionsInMethod.getOrElse(method.name, Set()) + ((field, fieldAccessFunctions(field))))
-    fieldAccessFunctions(field)
-  }
-
-  def getPlaceholderFunction(quantifiedVariable: sil.LocalVarDecl): sil.Function = {
-    val function = sil.Function(Context.createNewUniqueFunctionIdentifier("p"), Seq(quantifiedVariable), sil.Perm, Seq(), Seq(), None, None)()
-    functions += function.name -> function
-    function
-  }
-
-
   def setMethodContext(program: sil.Program, method: SilverMethodDeclaration): Unit = {
     setProgram(program)
     selectMethod(method.name.name)
@@ -243,9 +226,10 @@ object Context {
     case _ => DefaultSilverConverter.convert(typ).name.toLowerCase()(0)
   }
 
-  private def uniqueIdentifier(name: String, markAsTaken: Boolean = true): String = {
-    var identifier = if (identifiers.contains(name)) {
-      var count = 0
+  private def uniqueIdentifier(name: String, i: Option[Int] = None, markAsTaken: Boolean = true): String = {
+
+    var identifier = if (i.isDefined || identifiers.contains(name)) {
+      var count = i.getOrElse(0)
       while (identifiers.contains(name + count)) {
         count += 1
       }
@@ -254,13 +238,5 @@ object Context {
     if (markAsTaken) identifiers += identifier
     identifier
   }
-
-  def createNewUniqueVarIdentifier(name: String = "_var", markAsTaken: Boolean = true): String = uniqueIdentifier(name, markAsTaken)
-
-  def createNewUniqueVarIdentifier(name: Char): String = uniqueIdentifier(name.toString)
-
-  def createNewUniqueFunctionIdentifier(name: String = "_func"): String = uniqueIdentifier(name)
-
-  def removeIdentifiers(identifiers: GenTraversableOnce[String]): Unit = this.identifiers --= identifiers
 
 }

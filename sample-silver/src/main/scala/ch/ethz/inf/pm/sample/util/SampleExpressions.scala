@@ -380,17 +380,7 @@ object SampleExpressions {
       case Comparison(Minus(left, right), Zero, operator) =>
         Comparison(left, right, operator)
       // simplify conjunctions
-      case original@And(left, right) => (left, right) match {
-        // constant folding
-        case (True, _) => right
-        case (_, True) => left
-        case (False, _) => False
-        case (_, False) => False
-        // syntactic simplification
-        case _ if left == right => left
-        // no simplification
-        case _ => original
-      }
+      case original@And(left, right) => simplifyConjunction(left, right)
       // simplify disjunctions
       case original@Or(left, right) => (left, right) match {
         // constant folding
@@ -450,6 +440,39 @@ object SampleExpressions {
     }
   }
 
+  def simplifyConjunction(left: Expression, right: Expression): Expression = (left, right) match {
+    // constant folding
+    case (True, _) => right
+    case (_, True) => left
+    case (False, _) => False
+    case (_, False) => False
+    // syntactic simplification
+    case _ if left == right => left
+    // conflicting comparisons
+    case (Comparison(l1, r1, op1), Comparison(l2, r2, op2)) =>
+      if (l1 == l2 && r1 == r2) (op1, op2) match {
+        case (ArithmeticOperator.==, ArithmeticOperator.!=) |
+             (ArithmeticOperator.==, ArithmeticOperator.<) |
+             (ArithmeticOperator.==, ArithmeticOperator.>) |
+             (ArithmeticOperator.!=, ArithmeticOperator.==) |
+             (ArithmeticOperator.<, ArithmeticOperator.==) |
+             (ArithmeticOperator.<, ArithmeticOperator.>) |
+             (ArithmeticOperator.<, ArithmeticOperator.>=) |
+             (ArithmeticOperator.<=, ArithmeticOperator.>) |
+             (ArithmeticOperator.>, ArithmeticOperator.==) |
+             (ArithmeticOperator.>, ArithmeticOperator.<) |
+             (ArithmeticOperator.>, ArithmeticOperator.<=) |
+             (ArithmeticOperator.>=, ArithmeticOperator.<) => False
+        case _ => And(left, right)
+      }
+      else if (l1 == r2 && l2 == r1) {
+        val newOperator = ArithmeticOperator.flip(op2)
+        val newRight = Comparison(r2, l2, newOperator)
+        simplifyConjunction(left, newRight)
+      } else And(left, right)
+    case _ => And(left, right)
+  }
+
   /**
     *
     * @param expression
@@ -499,7 +522,6 @@ object SampleExpressions {
       case other => other.toString
     }
   }
-
 
   /**
     * Represents the sum of the rest and all variables contained in the map

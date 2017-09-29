@@ -20,6 +20,8 @@ object MaximumElimination
 
   import SampleExpressions._
 
+  type Tuples = Set[(Expression, Expression)]
+
   override def eliminate(expression: Expression): Expression = expression match {
     case BigMax(variables, body) =>
       variables.foldLeft(body) {
@@ -40,6 +42,7 @@ object MaximumElimination
     val (minExpressions, minDelta) = arithmeticMin(variable, normalized)
     val (maxExpressions, maxDelta) = arithmeticMax(variable, normalized)
     // pick smaller set of expressions and the corresponding delta and projection
+    // TODO: currently we force the algorithm to select the min expressions
     val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
       (minExpressions, minDelta, negative)
     } else {
@@ -53,31 +56,37 @@ object MaximumElimination
       }
     // compute maximum corresponding to bounded solutions
     val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
-      // TODO: Do not ignore condition.
-      normalized.transform {
+      val result = normalized.transform {
         case `variable` => Plus(expression, Literal(i))
+        case constraint@Comparison(_, _, _) =>
+          // TODO: More aggressive optimisation?
+          val combined = simplify(And(constraint, condition))
+          combined match {
+            case False => False
+            case _ => constraint
+          }
         case other => other
       }
+      result
     }
     // build and simplify final expression
     val maximum = Max(unbounded ++ bounded)
     simplify(maximum, collect = true)
   }
 
-  protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Set[(Expression, Expression)], Int) = expression match {
+  protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Tuples, Int) = expression match {
     // conditional expressions
-    case ConditionalExpression(condition, _, _) =>
-      // TODO: Left is constant.
-      // TODO: Right is zero.
-      val (expressions, delta) = booleanMin(variable, condition)
-      (toTuples(expressions), delta)
+    case ConditionalExpression(condition, term, No) =>
+      val (tuples, delta) = arithmeticMin(variable, term)
+      conditionalMin(variable, condition, tuples, delta)
     // additions
     case Plus(left, right) =>
       val (tuples1, delta1) = arithmeticMin(variable, left)
       val (tuples2, delta2) = arithmeticMin(variable, right)
       (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
-    case Minus(term, ConditionalExpression(condition, _, _)) =>
+    case Minus(term, ConditionalExpression(condition, _, No)) =>
+      // TODO: left of conditional is constant.
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples, delta1) = arithmeticMin(variable, term)
@@ -90,18 +99,44 @@ object MaximumElimination
       else (Set.empty, 1)
   }
 
-  protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Set[(Expression, Expression)], Int) = expression match {
+  protected def conditionalMin(variable: VariableIdentifier, condition: Expression, tuples0: Tuples, delta0: Int): (Tuples, Int) = condition match {
+    case And(left, right) =>
+      val (tuples1, delta1) = conditionalMin(variable, left, tuples0, delta0)
+      val (tuples2, delta2) = conditionalMin(variable, right, tuples1, delta1)
+      (tuples2, delta2)
+    case Or(left, right) =>
+      val (tuples1, delta1) = conditionalMin(variable, left, tuples0, delta0)
+      val (tuples2, delta2) = conditionalMin(variable, right, tuples0, delta0)
+      (tuples1 ++ tuples2, lcm(delta1, delta2))
+    case _ =>
+      val (expressions, delta1) = booleanMin(variable, condition)
+      // TODO: Handle unsoundness
+      if (tuples0.isEmpty) (toTuples(expressions), lcm(delta0, delta1))
+      else if (expressions.isEmpty) (tuples0, lcm(delta0, delta1))
+      else {
+        val negated = Not(condition)
+        val parts = for ((expression, _) <- tuples0) yield negated.transform {
+          case `variable` => expression
+          case other => other
+        }
+        val filter = Or(parts)
+        val tuples1 = toTuples(expressions, filter)
+        (tuples0 ++ tuples1, lcm(delta0, delta1))
+      }
+  }
+
+  protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Tuples, Int) = expression match {
     // conditional expressions
-    case ConditionalExpression(condition, _, _) =>
-      val (expressions, delta) = booleanMax(variable, condition)
-      (toTuples(expressions), delta)
+    case ConditionalExpression(condition, term, No) =>
+      val (tuples, delta) = arithmeticMax(variable, term)
+      conditionalMax(variable, condition, tuples, delta)
     // additions
     case Plus(left, right) =>
       val (tuples1, delta1) = arithmeticMax(variable, left)
       val (tuples2, delta2) = arithmeticMax(variable, right)
       (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
-    case Minus(term, ConditionalExpression(condition, _, _)) =>
+    case Minus(term, ConditionalExpression(condition, _, No)) =>
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples, delta1) = arithmeticMax(variable, term)
@@ -113,7 +148,33 @@ object MaximumElimination
       else (Set.empty, 1)
   }
 
+  protected def conditionalMax(variable: VariableIdentifier, condition: Expression, tuples0: Tuples, delta0: Int): (Tuples, Int) = condition match {
+    case And(left, right) =>
+      val (tuples1, delta1) = conditionalMax(variable, left, tuples0, delta0)
+      val (tuples2, delta2) = conditionalMax(variable, right, tuples1, delta1)
+      (tuples2, delta2)
+    case Or(left, right) =>
+      val (tuples1, delta1) = conditionalMax(variable, left, tuples0, delta0)
+      val (tuples2, delta2) = conditionalMax(variable, right, tuples0, delta0)
+      (tuples1 ++ tuples2, lcm(delta1, delta2))
+    case _ =>
+      val (expressions, delta1) = booleanMax(variable, condition)
+      // TODO: Handle unsoundness
+      if (tuples0.isEmpty) (toTuples(expressions), lcm(delta0, delta1))
+      else if (expressions.isEmpty) (tuples0, lcm(delta0, delta1))
+      else {
+        val negated = Not(condition)
+        val parts = for ((expression, _) <- tuples0) yield negated.transform {
+          case `variable` => expression
+          case other => other
+        }
+        val filter = Or(parts)
+        val tuples1 = toTuples(expressions, filter)
+        (tuples0 ++ tuples1, lcm(delta0, delta1))
+      }
+  }
+
   @inline
-  protected def toTuples(expressions: Set[Expression]): Set[(Expression, Expression)] =
-    for (expression <- expressions) yield (expression, True)
+  protected def toTuples(expressions: Set[Expression], condition: Expression = True): Tuples =
+    for (expression <- expressions) yield (expression, condition)
 }
