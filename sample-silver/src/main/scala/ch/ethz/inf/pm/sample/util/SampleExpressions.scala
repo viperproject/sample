@@ -414,12 +414,14 @@ object SampleExpressions {
       case Min(No, _) => No
       case Min(_, No) => No
       case Min(left, right) if left == right => left
-      // simplify minima
+      // simplify maxima
       case Max(Literal(a: Int), Literal(b: Int)) =>
         if (a < b) Literal(b)
         else Literal(a)
       case Max(No, term) => term
       case Max(term, No) => term
+      case Max(ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
+        ConditionalExpression(simplify(Or(c1, c2)), l1, No)
       case Max(left, right) if left == right => left
       // simplify reference comparision expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
