@@ -109,6 +109,11 @@ object Context {
     }
   }
 
+  def getQuantified(expression: Expression): Seq[VariableIdentifier] = {
+    val identifiers = expression.ids
+    receivers.values.flatten.filter(identifiers.contains).toSeq
+  }
+
   def getReceiver: Option[sil.FuncLike] = {
     val names = receivers.keys
     if (names.isEmpty) None
