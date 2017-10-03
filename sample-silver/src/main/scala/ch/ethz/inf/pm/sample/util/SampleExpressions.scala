@@ -125,6 +125,16 @@ object SampleExpressions {
     }
   }
 
+  object Divide {
+    def apply(left: Expression, right: Expression): BinaryArithmeticExpression =
+      Operation(left, right, ArithmeticOperator./)
+
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case Operation(left, right, ArithmeticOperator./) => Some(left, right)
+      case _ => None
+    }
+  }
+
   object Modulo {
     def apply(left: Expression, right: Expression): BinaryArithmeticExpression =
       Operation(left, right, ArithmeticOperator.%)
