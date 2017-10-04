@@ -61,7 +61,7 @@ object MaximumElimination
         case `variable` => Plus(expression, Literal(i))
         case constraint@Comparison(_, _, _) =>
           // TODO: More aggressive optimisation?
-          val formula = Exists(quantified, And(constraint, condition))
+          val formula = simplify(Exists(quantified, And(constraint, condition)))
           val eliminated = QuantifierElimination.eliminate(formula)
           eliminated match {
             case False => False
@@ -78,7 +78,7 @@ object MaximumElimination
 
   protected def arithmeticMin(variable: VariableIdentifier, expression: Expression): (Tuples, Int) = expression match {
     // conditional expressions
-    case ConditionalExpression(condition, term, No) =>
+    case ConditionalExpression(condition, term, No | Zero) =>
       val (tuples, delta) = arithmeticMin(variable, term)
       conditionalMin(variable, condition, tuples, delta)
     // additions
@@ -87,7 +87,7 @@ object MaximumElimination
       val (tuples2, delta2) = arithmeticMin(variable, right)
       (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
-    case Minus(term, ConditionalExpression(condition, _, No)) =>
+    case Minus(term, ConditionalExpression(condition, _, No | Zero)) =>
       // TODO: left of conditional is constant.
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
@@ -129,7 +129,7 @@ object MaximumElimination
 
   protected def arithmeticMax(variable: VariableIdentifier, expression: Expression): (Tuples, Int) = expression match {
     // conditional expressions
-    case ConditionalExpression(condition, term, No) =>
+    case ConditionalExpression(condition, term, No | Zero) =>
       val (tuples, delta) = arithmeticMax(variable, term)
       conditionalMax(variable, condition, tuples, delta)
     // additions
@@ -138,7 +138,7 @@ object MaximumElimination
       val (tuples2, delta2) = arithmeticMax(variable, right)
       (tuples1 ++ tuples2, lcm(delta1, delta2))
     // subtractions
-    case Minus(term, ConditionalExpression(condition, _, No)) =>
+    case Minus(term, ConditionalExpression(condition, _, No | Zero)) =>
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples, delta1) = arithmeticMax(variable, term)
