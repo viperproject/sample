@@ -315,15 +315,15 @@ object SampleExpressions {
     */
   def simplify(expression: Expression, collect: Boolean = false): Expression = {
     // collect variables and constants if corresponding flag is set
-    def collected = if (collect) expression.typ match {
-      case IntType => Collected(expression).toExpression
-      case BoolType => expression.transform {
+    def collected = if (collect) {
+      val transformed = expression.transform {
         case Comparison(left, right, operator) =>
           val collected = Collected(left) - Collected(right)
           Comparison(collected.toExpression, Zero, operator)
         case other => other
       }
-      case _ => expression
+      if (transformed.typ == IntType) Collected(transformed).toExpression
+      else transformed
     } else expression
 
     // perform some simplifying rewritings that preserve equivalence
