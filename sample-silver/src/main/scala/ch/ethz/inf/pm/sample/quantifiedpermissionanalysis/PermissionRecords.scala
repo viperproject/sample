@@ -121,6 +121,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     case _: VariableIdentifier => this
     case BinaryBooleanExpression(left, right, _) => read(left).read(right)
     case ReferenceComparisonExpression(left, right, _) => read(left).read(right)
+    case UnaryArithmeticExpression(argument, _, _) => read(argument)
     case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
     case NegatedBooleanExpression(argument) => read(argument)
     case FieldAccessExpression(receiver, field) =>

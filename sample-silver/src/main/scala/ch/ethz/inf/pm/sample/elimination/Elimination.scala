@@ -15,9 +15,50 @@ trait Elimination {
   def eliminate(expression: Expression): Expression
 
   protected def normalize(variable: VariableIdentifier, expression: Expression): Expression = {
-    val nnf = toNegatedNormalForm(expression)
+    val eliminated = eliminateDivisions(expression)
+    val nnf = toNegatedNormalForm(eliminated)
     val collected = collectVariable(variable, nnf)
     normalizeCoefficient(variable, collected)
+  }
+
+  /**
+    * Returns an expression that is semantically equivalent to the given
+    * expression but ideally does not contain any divisions anymore. Currently
+    * this method recursively multiplies out divisions by constants appearing on
+    * either side of a comparison.
+    *
+    * @param expression The expression to process.
+    * @return The resulting expression.
+    */
+  protected def eliminateDivisions(expression: Expression): Expression = {
+    // helper function that determines by what factor the expression needs to
+    // be multiplied in order to eliminate all divisions
+    def quotient(expression: Expression): Int = expression match {
+      case Negate(argument) => quotient(argument)
+      case Divide(term, Literal(i: Int)) => i * quotient(term)
+      case Operation(left, right, _) => lcm(quotient(left), quotient(right))
+      case _ => 1
+    }
+
+    // multiplies the given expression by the given factor in order to eliminate
+    // all divisions
+    def multiply(expression: Expression, factor: Int): Expression =
+      if (factor == 1) expression
+      else expression match {
+        case Negate(argument) => Negate(multiply(argument, factor))
+        case Divide(term, Literal(i: Int)) => multiply(term, factor / i)
+        case Operation(left, right, operator) => Operation(multiply(left, factor), multiply(right, factor), operator)
+        case _ => Times(Literal(factor), expression)
+      }
+
+    expression.transform {
+      case Comparison(left, right, operator) =>
+        val factor = lcm(quotient(left), quotient(right))
+        val newLeft = multiply(left, factor)
+        val newRight = multiply(right, factor)
+        Comparison(newLeft, newRight, operator)
+      case other => other
+    }
   }
 
   /**
