@@ -73,6 +73,13 @@ object MaximumElimination
     simplify(maximum, collect = true)
   }
 
+  override protected def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = expression match {
+    case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
+      val normalized = normalizeCoefficient(variable, condition)
+      ConditionalExpression(normalized, term, ignore)
+    case _ => super.normalizeCoefficient(variable, expression)
+  }
+
   protected def analyzeArithmetic(variable: VariableIdentifier, expression: Expression, smallest: Boolean): (Tuples, Expression, Int) = expression match {
     // conditional expression
     case ConditionalExpression(condition, term, ignore@(Zero | No)) => condition match {
@@ -92,6 +99,7 @@ object MaximumElimination
         val (tuples2, pp, delta2) = analyzeArithmetic(variable, term, smallest)
         val (set, projection1, delta1) = analyzeBoolean(variable, condition, smallest)
         // check whether it is sound to optimize
+        // TODO: Fix this.
         val transformed = pp.transform {
           case Divides(Literal(value: Int), `variable`) => False
           case NotDivides(Literal(value: Int), `variable`) => False

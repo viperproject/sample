@@ -40,6 +40,21 @@ object SampleExpressions {
   val One: Constant = Literal(1)
 
   /**
+    * An expression representing an integer constant with the value three.
+    */
+  val Two: Constant = Literal(2)
+
+  /**
+    * An expression representing an integer constant with the value three.
+    */
+  val Three: Constant = Literal(3)
+
+  /**
+    * An expression representing an integer constant with the value four.
+    */
+  val Four: Constant = Literal(4)
+
+  /**
     * An expression representing no permission.
     */
   val No: FractionalPermissionExpression = FractionalPermissionExpression(Zero, One)
@@ -433,11 +448,13 @@ object SampleExpressions {
       case Max(ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
         ConditionalExpression(simplify(Or(c1, c2)), l1, No)
       case Max(left, right) if left == right => left
-      // simplify reference comparision expressions
+      // simplify reference comparison expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
         Literal(operator == ReferenceOperator.==)
       // simplify conditional expressions
       case ConditionalExpression(_, left, right) if left == right => left
+      case ConditionalExpression(left, ConditionalExpression(right, term, No), No) =>
+        ConditionalExpression(And(left, right), term, No)
       case original@ConditionalExpression(condition, left, right) => condition match {
         // constant folding
         case True => left
@@ -624,6 +641,14 @@ object SampleExpressions {
       case constant: Constant => Collected(Map.empty, constant)
       case permission: FractionalPermissionExpression => Collected(Map.empty, permission)
       case other => Collected(Map.empty, other)
+    }
+
+    def collect(variable: VariableIdentifier, expression: Expression): Expression = {
+      val collected = Collected(expression)
+      val coefficient = collected.coefficients.getOrElse(variable, 0)
+      val left = Times(Literal(coefficient), variable)
+      val right = collected.drop(variable).toExpression
+      Plus(left, right)
     }
   }
 
