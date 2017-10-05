@@ -33,45 +33,46 @@ object MaximumElimination
     case Negate(argument) => Negate(eliminate(argument))
   }
 
-  private def eliminateMaximum(variable: VariableIdentifier, expression: Expression): Expression = {
-    // normalize expression
-    val normalized = normalize(variable, expression)
-    // compute projections, set of interesting expressions and delta
-    val (minExpressions, negative, minDelta) = analyzeArithmetic(variable, normalized, smallest = true)
-    val (maxExpressions, positive, maxDelta) = analyzeArithmetic(variable, normalized, smallest = false)
-    // pick smaller set of expressions and the corresponding delta and projection
-    val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
-      (minExpressions, minDelta, negative)
-    } else {
-      (maxExpressions, maxDelta, positive)
-    }
-    // compute maximum corresponding to unbounded solutions
-    val unbounded = for (i <- 0 until delta) yield
-      projection.transform {
-        case `variable` => Literal(i)
-        case other => other
+  private def eliminateMaximum(variable: VariableIdentifier, expression: Expression): Expression =
+    if (expression.contains(_ == variable)) {
+      // normalize expression
+      val normalized = normalize(variable, expression)
+      // compute projections, set of interesting expressions and delta
+      val (minExpressions, negative, minDelta) = analyzeArithmetic(variable, normalized, smallest = true)
+      val (maxExpressions, positive, maxDelta) = analyzeArithmetic(variable, normalized, smallest = false)
+      // pick smaller set of expressions and the corresponding delta and projection
+      val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
+        (minExpressions, minDelta, negative)
+      } else {
+        (maxExpressions, maxDelta, positive)
       }
-    // compute maximum corresponding to bounded solutions
-    val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
-      val quantified = Context.getQuantified(condition)
-      val result = normalized.transform {
-        case `variable` => Plus(expression, Literal(i))
-        case constraint@Comparison(_, _, _) =>
-          // TODO: More aggressive optimisation?
-          val formula = simplify(Exists(quantified, And(constraint, condition)))
-          val eliminated = QuantifierElimination.eliminate(formula)
-          eliminated match {
-            case False => False
-            case _ => constraint
-          }
-        case other => other
+      // compute maximum corresponding to unbounded solutions
+      val unbounded = for (i <- 0 until delta) yield
+        projection.transform {
+          case `variable` => Literal(i)
+          case other => other
+        }
+      // compute maximum corresponding to bounded solutions
+      val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
+        val quantified = Context.getQuantified(condition)
+        val result = normalized.transform {
+          case `variable` => Plus(expression, Literal(i))
+          case constraint@Comparison(_, _, _) =>
+            // TODO: More aggressive optimisation?
+            val formula = simplify(Exists(quantified, And(constraint, condition)))
+            val eliminated = QuantifierElimination.eliminate(formula)
+            eliminated match {
+              case False => False
+              case _ => constraint
+            }
+          case other => other
+        }
+        result
       }
-      result
-    }
-    // build and simplify final expression
-    val maximum = Max(unbounded ++ bounded)
-    simplify(maximum, collect = true)
-  }
+      // build and simplify final expression
+      val maximum = Max(unbounded ++ bounded)
+      simplify(maximum, collect = true)
+    } else expression
 
   override protected def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = expression match {
     case ConditionalExpression(condition, term, ignore@(Zero | No)) =>

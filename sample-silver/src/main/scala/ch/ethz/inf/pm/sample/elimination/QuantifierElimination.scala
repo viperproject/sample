@@ -32,36 +32,37 @@ object QuantifierElimination
     case Or(left, right) => Or(eliminate(left), eliminate(right))
   }
 
-  private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression = {
-    // normalize expression
-    val normalized = normalize(variable, expression)
-    // compute projections, set of interesting expressions and delta
-    val (minExpressions, negative, minDelta) = analyzeBoolean(variable, normalized, smallest = true)
-    val (maxExpressions, positive, maxDelta) = analyzeBoolean(variable, normalized, smallest = false)
-    // check whether there is a trivial unbounded solution
-    if (negative == True || positive == True) True
-    else {
-      // pick smaller set of expressions and the corresponding delta and projection
-      val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
-        (minExpressions, minDelta, negative)
-      } else {
-        (maxExpressions, maxDelta, positive)
+  private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression =
+    if (expression.contains(_ == variable)) {
+      // normalize expression
+      val normalized = normalize(variable, expression)
+      // compute projections, set of interesting expressions and delta
+      val (minExpressions, negative, minDelta) = analyzeBoolean(variable, normalized, smallest = true)
+      val (maxExpressions, positive, maxDelta) = analyzeBoolean(variable, normalized, smallest = false)
+      // check whether there is a trivial unbounded solution
+      if (negative == True || positive == True) True
+      else {
+        // pick smaller set of expressions and the corresponding delta and projection
+        val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
+          (minExpressions, minDelta, negative)
+        } else {
+          (maxExpressions, maxDelta, positive)
+        }
+        // compute disjuncts corresponding to unbounded solutions
+        val unbounded = for (i <- 0 until delta) yield
+          projection.transform {
+            case `variable` => Literal(i)
+            case other => other
+          }
+        // compute disjuncts corresponding to bounded solutions
+        val bounded = for (e <- expressions; i <- 0 until delta) yield
+          normalized.transform {
+            case `variable` => Plus(e, Literal(i))
+            case other => other
+          }
+        // build and simplify final expression
+        val disjunction = Or(unbounded ++ bounded)
+        simplify(disjunction, collect = true)
       }
-      // compute disjuncts corresponding to unbounded solutions
-      val unbounded = for (i <- 0 until delta) yield
-        projection.transform {
-          case `variable` => Literal(i)
-          case other => other
-        }
-      // compute disjuncts corresponding to bounded solutions
-      val bounded = for (e <- expressions; i <- 0 until delta) yield
-        normalized.transform {
-          case `variable` => Plus(e, Literal(i))
-          case other => other
-        }
-      // build and simplify final expression
-      val disjunction = Or(unbounded ++ bounded)
-      simplify(disjunction, collect = true)
-    }
-  }
+    } else expression
 }
