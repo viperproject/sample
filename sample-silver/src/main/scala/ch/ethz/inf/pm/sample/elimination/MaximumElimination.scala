@@ -141,7 +141,7 @@ object MaximumElimination
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term, smallest)
-      val (set2, projection2, delta2) = analyzeBoolean(variable, condition, smallest)
+      val (set2, projection2, delta2) = analyzeBoolean(variable, negated, smallest)
       val tuples = tuples1 ++ toTuples(set2)
       val projection = Minus(projection1, ConditionalExpression(projection2, conditional.left, conditional.right))
       val delta = lcm(delta1, delta2)
