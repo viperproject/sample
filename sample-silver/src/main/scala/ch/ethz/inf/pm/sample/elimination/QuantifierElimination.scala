@@ -35,15 +35,12 @@ object QuantifierElimination
   private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression = {
     // normalize expression
     val normalized = normalize(variable, expression)
-    // compute projections
-    lazy val negative = negativeInfiniteProjection(variable, normalized)
-    lazy val positive = positiveInfiniteProjection(variable, normalized)
+    // compute projections, set of interesting expressions and delta
+    val (minExpressions, negative, minDelta) = analyzeBoolean(variable, normalized, smallest = true)
+    val (maxExpressions, positive, maxDelta) = analyzeBoolean(variable, normalized, smallest = false)
     // check whether there is a trivial unbounded solution
     if (negative == True || positive == True) True
     else {
-      // compute set of interesting expressions and delta
-      val (minExpressions, minDelta) = booleanMin(variable, normalized)
-      val (maxExpressions, maxDelta) = booleanMax(variable, normalized)
       // pick smaller set of expressions and the corresponding delta and projection
       val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
         (minExpressions, minDelta, negative)

@@ -151,116 +151,59 @@ trait Elimination {
     simplify(And(transformed, constraint))
   }
 
-  protected def booleanMin(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {
+  /**
+    * The first return value is the set of so-called interesting expressions.
+    *
+    * Depending on whether we are interested in a smallest or a largest
+    * solution, the second return value is the negative or positive infinite
+    * projection of the expression. The negative infinite projection of an
+    * expression E with respect to a variable x is an expression E' that is
+    * equivalent to E for sufficiently small values of x. Analogously, the
+    * positive infinite projection E' is equivalent to E for sufficiently large
+    * values of x.
+    *
+    * The third return value is the delta that indicates the least common
+    * multiple of all values appearing in divisibility expressions.
+    *
+    * @param variable   The variable to eliminate.
+    * @param expression The expression.
+    * @param smallest   The flag indicating whether we are interested in a
+    *                   smallest or largest solution.
+    * @return
+    */
+  protected def analyzeBoolean(variable: VariableIdentifier, expression: Expression, smallest: Boolean): (Set[Expression], Expression, Int) = expression match {
     // divisibility expressions
-    case Divides(Literal(value: Int), `variable`) => (Set.empty, value)
-    case NotDivides(Literal(value: Int), `variable`) => (Set.empty, value)
+    case Divides(Literal(value: Int), `variable`) => (Set.empty, expression, value)
+    case NotDivides(Literal(value: Int), `variable`) => (Set.empty, expression, value)
     // comparison expressions
-    case Comparison(`variable`, term, operator) => operator match {
-      case ArithmeticOperator.== => (Set(term), 1)
-      case ArithmeticOperator.!= => (Set(Minus(term, One)), 1)
-      case ArithmeticOperator.< => (Set(Minus(term, One)), 1)
-      case ArithmeticOperator.<= => (Set(term), 1)
-      case ArithmeticOperator.> => (Set.empty, 1)
-      case ArithmeticOperator.>= => (Set.empty, 1)
-    }
+    case Comparison(`variable`, term, operator) =>
+      if (smallest) operator match {
+        case ArithmeticOperator.== => (Set(term), False, 1)
+        case ArithmeticOperator.!= => (Set(Plus(term, One)), True, 1)
+        case ArithmeticOperator.< => (Set.empty, True, 1)
+        case ArithmeticOperator.<= => (Set.empty, True, 1)
+        case ArithmeticOperator.> => (Set(Plus(term, One)), False, 1)
+        case ArithmeticOperator.>= => (Set(term), False, 1)
+      } else operator match {
+        case ArithmeticOperator.== => (Set(term), False, 1)
+        case ArithmeticOperator.!= => (Set(Minus(term, One)), True, 1)
+        case ArithmeticOperator.< => (Set(Minus(term, One)), False, 1)
+        case ArithmeticOperator.<= => (Set(term), False, 1)
+        case ArithmeticOperator.> => (Set.empty, True, 1)
+        case ArithmeticOperator.>= => (Set.empty, True, 1)
+      }
     // conjunctions and disjunctions
-    case BinaryBooleanExpression(left, right, _) =>
-      val (leftSet, leftDelta) = booleanMin(variable, left)
-      val (rightSet, rightDelta) = booleanMin(variable, right)
-      (leftSet ++ rightSet, lcm(leftDelta, rightDelta))
-    // expressions not depending on the variable
+    case BinaryBooleanExpression(left, right, operator) =>
+      val (set1, projection1, delta1) = analyzeBoolean(variable, left, smallest)
+      val (set2, projection2, delta2) = analyzeBoolean(variable, right, smallest)
+      val set = set1 ++ set2
+      val projection = BinaryBooleanExpression(projection1, projection2, operator)
+      val delta = lcm(delta1, delta2)
+      (set, projection, delta)
+    // expressions not depending on the variable to eliminate.
     case _ =>
       if (expression.contains(_ == variable)) ???
-      else (Set.empty, 1)
-  }
-
-  protected def booleanMax(variable: VariableIdentifier, expression: Expression): (Set[Expression], Int) = expression match {
-    // divisibility expressions
-    case Divides(Literal(value: Int), `variable`) => (Set.empty, value)
-    case NotDivides(Literal(value: Int), `variable`) => (Set.empty, value)
-    // comparison expressions
-    case Comparison(`variable`, term, operator) => operator match {
-      case ArithmeticOperator.== => (Set(term), 1)
-      case ArithmeticOperator.!= => (Set(Plus(term, One)), 1)
-      case ArithmeticOperator.< => (Set.empty, 1)
-      case ArithmeticOperator.<= => (Set.empty, 1)
-      case ArithmeticOperator.> => (Set(Plus(term, One)), 1)
-      case ArithmeticOperator.>= => (Set(term), 1)
-    }
-    // conjunctions and disjunctions
-    case BinaryBooleanExpression(left, right, _) =>
-      val (leftSet, leftDelta) = booleanMax(variable, left)
-      val (rightSet, rightDelta) = booleanMax(variable, right)
-      (leftSet ++ rightSet, lcm(leftDelta, rightDelta))
-    // expressions not depending on the variable
-    case _ =>
-      if (expression.contains(_ == variable)) ???
-      else (Set.empty, 1)
-  }
-
-  /**
-    * Returns the negative infinite projection of the given expression with
-    * respect to the given variable.
-    *
-    * The negative infinite projection of an expression E with respect to a
-    * variable x is an expression E' that is equivalent to E for sufficiently
-    * small values of x.
-    *
-    * @param variable   The variable.
-    * @param expression The expression.
-    * @return The negative infinite projection of the expression.
-    */
-  protected def negativeInfiniteProjection(variable: VariableIdentifier, expression: Expression): Expression = {
-    // projected expression
-    val projected = expression.transform {
-      // project comparisons
-      case Comparison(`variable`, _, operator) => operator match {
-        case ArithmeticOperator.< | ArithmeticOperator.<= | ArithmeticOperator.!= => True
-        case _ => False
-      }
-      case Comparison(_, `variable`, operator) => operator match {
-        case ArithmeticOperator.> | ArithmeticOperator.>= | ArithmeticOperator.!= => True
-        case _ => False
-      }
-      // leave rest unchanged
-      case other => other
-    }
-    // simplify projected expression in order to fold the constants that were
-    // introduced by the projection
-    simplify(projected)
-  }
-
-  /**
-    * Returns the positive infinite projection of the given expression with
-    * respect to the given variable.
-    *
-    * The positive infinite projection of an expression E with respect to a
-    * variable x is an expression E' that is equivalent to E for sufficiently
-    * large values of x.
-    *
-    * @param variable   The variable.
-    * @param expression The expression.
-    * @return The positive infinite projection of the expression.
-    */
-  protected def positiveInfiniteProjection(variable: VariableIdentifier, expression: Expression): Expression = {
-    // project expression
-    val projected = expression.transform {
-      // project comparisons
-      case Comparison(`variable`, _, operator) => operator match {
-        case ArithmeticOperator.> | ArithmeticOperator.>= | ArithmeticOperator.!= => True
-        case _ => False
-      }
-      case Comparison(_, `variable`, operator) => operator match {
-        case ArithmeticOperator.< | ArithmeticOperator.<= | ArithmeticOperator.!= => True
-        case _ => False
-      }
-      // leave rest unchanged
-      case other => other
-    }
-    // simplify projection expression in order to fold the constants that were
-    // introduced by the projection
-    simplify(projected)
+      else (Set.empty, expression, 1)
   }
 }
 
