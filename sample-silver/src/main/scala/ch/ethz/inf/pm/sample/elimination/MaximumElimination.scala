@@ -68,7 +68,7 @@ object MaximumElimination
         result
       }
       // build and simplify final expression
-      val maximum = Max(unbounded ++ bounded)
+      val maximum = MaxList(unbounded ++ bounded)
       simplify(maximum, collect = true)
     } else expression
 
@@ -116,7 +116,7 @@ object MaximumElimination
             case `variable` => expression
             case other => other
           }
-          Ors(parts)
+          OrList(parts)
         } else True
         val tuples1 = toTuples(set, filter)
         // return result

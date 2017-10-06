@@ -268,13 +268,13 @@ object SampleExpressions {
     }
   }
 
-  object Ands {
+  object AndList {
     def apply(expressions: Iterable[Expression]): Expression =
       if (expressions.isEmpty) True
       else expressions.reduce((left, right) => And(left, right))
 
     def unapply(argument: Expression): Option[List[Expression]] =  argument match {
-      case And(Ands(left), Ands(right)) => Some(left ++ right)
+      case And(AndList(left), AndList(right)) => Some(left ++ right)
       case _ if argument.typ.isBooleanType => Some(List(argument))
       case _ => None
     }
@@ -290,13 +290,13 @@ object SampleExpressions {
     }
   }
 
-  object Ors {
+  object OrList {
     def apply(expressions: Iterable[Expression]): Expression =
       if (expressions.isEmpty) False
       else expressions.reduce((left, right) => Or(left, right))
 
     def unapply(argument: Expression): Option[List[Expression]] = argument match {
-      case Or(Ors(left), Ors(right)) => Some(left ++ right)
+      case Or(OrList(left), OrList(right)) => Some(left ++ right)
       case _ if argument.typ.isBooleanType => Some(List(argument))
       case _ => None
     }
@@ -428,7 +428,7 @@ object SampleExpressions {
         case (False, _) => False
         case (_, False) => False
         // eliminate duplicates
-        case (Ands(ls), Ands(rs)) => Ands((ls ++ rs).distinct)
+        case (AndList(ls), AndList(rs)) => AndList((ls ++ rs).distinct)
       }
       // simplify disjunctions
       case Or(left, right) => (left, right) match {
@@ -438,7 +438,7 @@ object SampleExpressions {
         case (False, _) => right
         case (_, False) => left
         // eliminate duplicates
-        case (Ors(ls), Ors(rs)) => Ors((ls ++ rs).distinct)
+        case (OrList(ls), OrList(rs)) => OrList((ls ++ rs).distinct)
       }
       // simplify boolean negations
       case original@Not(argument) => argument match {
@@ -455,21 +455,25 @@ object SampleExpressions {
         case _ => original
       }
       // simplify minima
-      case Min(Literal(a: Int), Literal(b: Int)) =>
-        if (a < b) Literal(a)
-        else Literal(b)
-      case Min(No, _) => No
-      case Min(_, No) => No
-      case Min(left, right) if left == right => left
+      case Min(left, right) => (left, right) match {
+        case (Literal(a: Int), Literal(b: Int)) =>
+          if (a < b) Literal(a)
+          else Literal(b)
+        case (No, _) => No
+        case (_, No) => No
+        case (MinList(ls), MinList(rs)) => MinList((ls ++ rs).distinct)
+      }
       // simplify maxima
-      case Max(Literal(a: Int), Literal(b: Int)) =>
-        if (a < b) Literal(b)
-        else Literal(a)
-      case Max(No, term) => term
-      case Max(term, No) => term
-      case Max(ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
-        ConditionalExpression(simplify(Or(c1, c2)), l1, No)
-      case Max(left, right) if left == right => left
+      case Max(left, right) => (left, right) match {
+        case (Literal(a: Int), Literal(b: Int)) =>
+          if (a < b) Literal(b)
+          else Literal(a)
+        case (No, _) => right
+        case (_, No) => left
+        case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
+          ConditionalExpression(simplify(Or(c1, c2)), l1, No)
+        case (MaxList(ls), MaxList(rs)) => MaxList((ls ++ rs).distinct)
+      }
       // simplify reference comparison expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
         Literal(operator == ReferenceOperator.==)

@@ -81,9 +81,15 @@ case class Min(left: Expression, right: Expression)
   override def toString: String = s"min($left, $right)"
 }
 
-object Min {
+object MinList {
   def apply(expressions: Iterable[Expression]): Expression =
     expressions.reduce((left, right) => Min(left, right))
+
+  def unapply(argument: Expression): Option[List[Expression]] = argument match {
+    case Min(MinList(left), MinList(right)) => Some(left ++ right)
+    case _ if argument.typ.isNumericalType => Some(List(argument))
+    case _ => None
+  }
 }
 
 case class Max(left: Expression, right: Expression)
@@ -97,7 +103,13 @@ case class Max(left: Expression, right: Expression)
   override def toString: String = s"max($left, $right)"
 }
 
-object Max {
+object MaxList {
   def apply(expressions: Iterable[Expression]): Expression =
     expressions.reduce((left, right) => Max(left, right))
+
+  def unapply(argument: Expression): Option[List[Expression]] = argument match {
+    case Max(MaxList(left), MaxList(right)) => Some(left ++ right)
+    case _ if argument.typ.isNumericalType => Some(List(argument))
+    case _ => None
+  }
 }

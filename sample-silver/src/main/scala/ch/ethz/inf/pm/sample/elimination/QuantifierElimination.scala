@@ -61,7 +61,7 @@ object QuantifierElimination
             case other => other
           }
         // build and simplify final expression
-        val disjunction = Ors(unbounded ++ bounded)
+        val disjunction = OrList(unbounded ++ bounded)
         simplify(disjunction, collect = true)
       }
     } else expression
