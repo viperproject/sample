@@ -162,10 +162,9 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
 
   }
 
-  override def assumeArithmeticExpression(condition: BinaryArithmeticExpression): S = {
-    val invalidLeft = condition.left.ids.exists(_.isInstanceOf[FieldIdentifier])
-    val invalidRight = condition.right.ids.exists(_.isInstanceOf[FieldIdentifier])
-    if (invalidLeft || invalidRight) this
+  override def assumeArithmeticExpression(condition: Expression): S = {
+    val invalid = condition.ids.exists(_.isInstanceOf[FieldIdentifier])
+    if (invalid) this
     else copy(domain = domain.assume(condition))
   }
 

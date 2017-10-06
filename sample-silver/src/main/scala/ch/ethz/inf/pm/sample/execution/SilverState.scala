@@ -276,6 +276,7 @@ trait Simplifications[S <: SilverState[S]]
   override def assume(condition: Expression): S = condition match {
     case Constant("true", _, _) => this
     case Constant("false", _, _) => bottom()
+    case _: VariableIdentifier => assumeArithmeticExpression(condition)
     case expression: ReferenceComparisonExpression => assumeReferenceExpression(expression)
     case expression: BinaryArithmeticExpression => assumeArithmeticExpression(expression)
     case BinaryBooleanExpression(left, right, operator) => operator match {
@@ -285,6 +286,7 @@ trait Simplifications[S <: SilverState[S]]
     case NegatedBooleanExpression(argument) => argument match {
       case Constant("true", typ, pp) => assume(Constant("false", typ, pp))
       case Constant("false", typ, pp) => assume(Constant("true", typ, pp))
+      case _: VariableIdentifier => assumeArithmeticExpression(condition)
       case ReferenceComparisonExpression(left, right, operator) =>
         val negatedOperator = ReferenceOperator.negate(operator)
         assume(ReferenceComparisonExpression(left, right, negatedOperator))
@@ -301,7 +303,7 @@ trait Simplifications[S <: SilverState[S]]
   }
 
   /**
-    * Assumes that the given reference comparision expression holds.
+    * Assumes that the given reference comparison expression holds.
     *
     * @param condition The assumed condition.
     * @return The state after assuming the condition.
@@ -314,5 +316,5 @@ trait Simplifications[S <: SilverState[S]]
     * @param condition The assumed condition.
     * @return The state after assuming the condition.
     */
-  def assumeArithmeticExpression(condition: BinaryArithmeticExpression): S = this
+  def assumeArithmeticExpression(condition: Expression): S = this
 }
