@@ -72,6 +72,15 @@ object MaximumElimination
       simplify(maximum, collect = true)
     } else expression
 
+  override protected def toNegatedNormalForm(expression: Expression): Expression = expression match {
+    case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
+      val normalized = toNegatedNormalForm(condition)
+      ConditionalExpression(normalized, term, ignore)
+    case _ if expression.typ.isBooleanType =>
+      super.toNegatedNormalForm(expression)
+    case _ => ???
+  }
+
   override protected def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = expression match {
     case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
       val normalized = normalizeCoefficient(variable, condition)
