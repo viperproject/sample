@@ -8,11 +8,12 @@ package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSampleConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, PermType}
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.PermissionTree._
 import ch.ethz.inf.pm.sample.util.SampleExpressions
 import viper.silver.{ast => sil}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -93,7 +94,7 @@ object SpecificationGenerator {
 
           val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
           val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-          val permission = convert(simplify(simplified))
+          val permission = convert(frame(simplify(simplified)))
           val body = sil.FieldAccessPredicate(location, permission)()
 
           if (quantified.isEmpty) body
@@ -103,6 +104,21 @@ object SpecificationGenerator {
           }
       }
     }
+
+  private def frame(expression: Expression): Expression = expression.transform {
+    case comparison@Comparison(_, _, _) =>
+      val accesses = mutable.Set[Expression]()
+      comparison.foreach {
+        case access@FieldAccessExpression(_, _) => accesses.add(access)
+        case _ => // do nothing
+      }
+      if (accesses.isEmpty) comparison
+      else {
+        val constraints = accesses.map(x => Greater(CurrentPermission(x, PermType), No))
+        And(AndList(constraints), comparison)
+      }
+    case other => other
+  }
 
   private def convert(expression: Expression): sil.Exp =
     Converter.convert(expression)

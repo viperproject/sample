@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.silver
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.SampleExpressions
+import viper.silver.ast.LocationAccess
 import viper.silver.{ast => sil}
 
 trait SampleConverter {
@@ -88,6 +89,12 @@ trait DefaultSampleConverter
     // other expressions
     case ConditionalExpression(condition, left, right) =>
       sil.CondExp(convert(condition), convert(left), convert(right))()
+    case CurrentPermission(location, _) =>
+      val loc = convert(location) match {
+        case access: LocationAccess => access
+        case _ => ???
+      }
+      sil.CurrentPerm(loc)()
     case _ => ???
   }
 
