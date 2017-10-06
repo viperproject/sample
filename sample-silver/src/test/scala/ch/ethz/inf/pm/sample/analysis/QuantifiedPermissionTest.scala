@@ -8,10 +8,11 @@ package ch.ethz.inf.pm.sample.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.inference.SilverExtender
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.{QuantifiedPermissionsAnalysisRunner, QuantifiedPermissionState}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.{QuantifiedPermissionState, QuantifiedPermissionsAnalysisRunner}
 import ch.ethz.inf.pm.sample.util.Verifiers
 import viper.silver.{ast => sil}
 import viper.silver.testing._
+import viper.silver.utility.TimingUtils
 import viper.silver.verifier._
 
 /**
