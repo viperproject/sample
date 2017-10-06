@@ -104,16 +104,25 @@ trait Elimination {
     * @return The resulting expression.
     */
   protected def collectVariable(variable: VariableIdentifier, expression: Expression): Expression = expression.transform {
-    case Divides(left, right) => Divides(left, Collected.collect(variable, right))
-    case NotDivides(left, right) => NotDivides(left, Collected.collect(variable, right))
+    case Divides(left, right) =>
+      val collected = Collected(right)
+      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) True
+      else Divides(left, collected.toExpression(variable))
+    case NotDivides(left, right) =>
+      val collected = Collected(right)
+      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) True
+      else NotDivides(left, collected.toExpression(variable))
     case Comparison(left, right, operator) if left.contains(_ == variable) || right.contains(_ == variable) =>
       val collected = Collected(left) - Collected(right)
-      val factor = collected.coefficients.getOrElse(variable, 0)
-      val positive = if (factor >= 0) -collected else collected
-      val newLeft = Times(Literal(math.abs(factor)), variable)
-      val newRight = positive.drop(variable).toExpression
-      val newOperator = if (factor >= 0) operator else ArithmeticOperator.flip(operator)
-      simplify(Comparison(newLeft, newRight, newOperator))
+      if (collected.rest.contains(_ == variable)) True
+      else {
+        val factor = collected.coefficients.getOrElse(variable, 0)
+        val positive = if (factor >= 0) -collected else collected
+        val newLeft = Times(Literal(math.abs(factor)), variable)
+        val newRight = positive.drop(variable).toExpression
+        val newOperator = if (factor >= 0) operator else ArithmeticOperator.flip(operator)
+        simplify(Comparison(newLeft, newRight, newOperator))
+      }
     case other => other
   }
 

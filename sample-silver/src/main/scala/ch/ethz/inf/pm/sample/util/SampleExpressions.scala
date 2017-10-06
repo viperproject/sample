@@ -622,6 +622,13 @@ object SampleExpressions {
       val parts = filtered.map { case (variable, coefficient) => Times(Literal(coefficient), variable) }
       Plus(Plus(parts), rest)
     }
+
+    def toExpression(variable: VariableIdentifier): Expression = {
+      val coefficient = coefficients.getOrElse(variable, 0)
+      val left = Times(Literal(coefficient), variable)
+      val right = drop(variable).toExpression
+      Plus(left, right)
+    }
   }
 
   object Collected {
@@ -634,14 +641,6 @@ object SampleExpressions {
       case constant: Constant => Collected(Map.empty, constant)
       case permission: FractionalPermissionExpression => Collected(Map.empty, permission)
       case other => Collected(Map.empty, other)
-    }
-
-    def collect(variable: VariableIdentifier, expression: Expression): Expression = {
-      val collected = Collected(expression)
-      val coefficient = collected.coefficients.getOrElse(variable, 0)
-      val left = Times(Literal(coefficient), variable)
-      val right = collected.drop(variable).toExpression
-      Plus(left, right)
     }
   }
 
