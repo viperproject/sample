@@ -180,7 +180,7 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
     val numerical = Context.getNumericalResult()
     val domain = numerical.preStateAt(pp).domain
     val constraints = domain.getConstraints(domain.ids.toSet)
-    val invariant = And(constraints)
+    val invariant = Ands(constraints)
 
     val forgotten = inner.forget(changing, invariant)
 

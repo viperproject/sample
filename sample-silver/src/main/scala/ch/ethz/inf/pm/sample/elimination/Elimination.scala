@@ -173,8 +173,8 @@ trait Elimination {
     */
   protected def analyzeBoolean(variable: VariableIdentifier, expression: Expression, smallest: Boolean): (Set[Expression], Expression, Int) = expression match {
     // divisibility expressions
-    case Divides(Literal(value: Int), `variable`) => (Set.empty, expression, value)
-    case NotDivides(Literal(value: Int), `variable`) => (Set.empty, expression, value)
+    case Divides(Literal(value: Int), _) => (Set.empty, expression, value)
+    case NotDivides(Literal(value: Int), _) => (Set.empty, expression, value)
     // comparison expressions
     case Comparison(`variable`, term, operator) =>
       if (smallest) operator match {

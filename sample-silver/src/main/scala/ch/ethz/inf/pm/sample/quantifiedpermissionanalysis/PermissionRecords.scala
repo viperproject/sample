@@ -138,7 +138,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     case FunctionCallExpression(name, arguments, _, _) =>
       val quantified = Context.getVariables(name)
       val zipped = quantified zip arguments
-      And(zipped.map { case (q, a) => Equal(q, a) })
+      Ands(zipped.map { case (q, a) => Equal(q, a) })
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionRecords = {

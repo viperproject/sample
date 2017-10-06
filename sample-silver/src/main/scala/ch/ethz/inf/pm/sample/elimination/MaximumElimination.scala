@@ -35,17 +35,11 @@ object MaximumElimination
 
   private def eliminateMaximum(variable: VariableIdentifier, expression: Expression): Expression =
     if (expression.contains(_ == variable)) {
+      println(s"max $variable :: $expression")
       // normalize expression
       val normalized = normalize(variable, expression)
       // compute projections, set of interesting expressions and delta
-      val (minExpressions, negative, minDelta) = analyzeArithmetic(variable, normalized, smallest = true)
-      val (maxExpressions, positive, maxDelta) = analyzeArithmetic(variable, normalized, smallest = false)
-      // pick smaller set of expressions and the corresponding delta and projection
-      val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
-        (minExpressions, minDelta, negative)
-      } else {
-        (maxExpressions, maxDelta, positive)
-      }
+      val (expressions, projection, delta) = analyzeArithmetic(variable, normalized, smallest = true)
       // compute maximum corresponding to unbounded solutions
       val unbounded = for (i <- 0 until delta) yield
         projection.transform {
@@ -53,7 +47,11 @@ object MaximumElimination
           case other => other
         }
       // compute maximum corresponding to bounded solutions
+      var count = 0
       val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
+        count = count + 1
+        println(s"count: $count")
+        println(s"($expression, $condition), delta=$i")
         val quantified = Context.getQuantified(condition)
         val result = normalized.transform {
           case `variable` => Plus(expression, Literal(i))
@@ -118,7 +116,7 @@ object MaximumElimination
             case `variable` => expression
             case other => other
           }
-          Or(parts)
+          Ors(parts)
         } else True
         val tuples1 = toTuples(set, filter)
         // return result

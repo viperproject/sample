@@ -262,12 +262,20 @@ object SampleExpressions {
     def apply(left: Expression, right: Expression): BinaryBooleanExpression =
       BinaryBooleanExpression(left, right, BooleanOperator.&&)
 
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.&&) => Some(left, right)
+      case _ => None
+    }
+  }
+
+  object Ands {
     def apply(expressions: Iterable[Expression]): Expression =
       if (expressions.isEmpty) True
       else expressions.reduce((left, right) => And(left, right))
 
-    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.&&) => Some(left, right)
+    def unapply(argument: Expression): Option[List[Expression]] =  argument match {
+      case And(Ands(left), Ands(right)) => Some(left ++ right)
+      case _ if argument.typ.isBooleanType => Some(List(argument))
       case _ => None
     }
   }
@@ -276,12 +284,20 @@ object SampleExpressions {
     def apply(left: Expression, right: Expression): BinaryBooleanExpression =
       BinaryBooleanExpression(left, right, BooleanOperator.||)
 
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case BinaryBooleanExpression(left, right, BooleanOperator.||) => Some(left, right)
+      case _ => None
+    }
+  }
+
+  object Ors {
     def apply(expressions: Iterable[Expression]): Expression =
       if (expressions.isEmpty) False
       else expressions.reduce((left, right) => Or(left, right))
 
-    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
-      case BinaryBooleanExpression(left, right, BooleanOperator.||) => Some(left, right)
+    def unapply(argument: Expression): Option[List[Expression]] = argument match {
+      case Or(Ors(left), Ors(right)) => Some(left ++ right)
+      case _ if argument.typ.isBooleanType => Some(List(argument))
       case _ => None
     }
   }
@@ -405,18 +421,24 @@ object SampleExpressions {
       case Comparison(Minus(left, right), Zero, operator) =>
         Comparison(left, right, operator)
       // simplify conjunctions
-      case original@And(left, right) => simplifyConjunction(left, right)
+      case And(left, right) => (left, right) match {
+        // constant folding
+        case (True, _) => right
+        case (_, True) => left
+        case (False, _) => False
+        case (_, False) => False
+        // eliminate duplicates
+        case (Ands(ls), Ands(rs)) => Ands((ls ++ rs).distinct)
+      }
       // simplify disjunctions
-      case original@Or(left, right) => (left, right) match {
+      case Or(left, right) => (left, right) match {
         // constant folding
         case (True, _) => True
         case (_, True) => True
         case (False, _) => right
         case (_, False) => left
-        // syntactic simplification
-        case _ if left == right => left
-        // no simplification
-        case _ => original
+        // eliminate duplicates
+        case (Ors(ls), Ors(rs)) => Ors((ls ++ rs).distinct)
       }
       // simplify boolean negations
       case original@Not(argument) => argument match {
@@ -467,39 +489,6 @@ object SampleExpressions {
       // no simplification
       case original => original
     }
-  }
-
-  def simplifyConjunction(left: Expression, right: Expression): Expression = (left, right) match {
-    // constant folding
-    case (True, _) => right
-    case (_, True) => left
-    case (False, _) => False
-    case (_, False) => False
-    // syntactic simplification
-    case _ if left == right => left
-    // conflicting comparisons
-    case (Comparison(l1, r1, op1), Comparison(l2, r2, op2)) =>
-      if (l1 == l2 && r1 == r2) (op1, op2) match {
-        case (ArithmeticOperator.==, ArithmeticOperator.!=) |
-             (ArithmeticOperator.==, ArithmeticOperator.<) |
-             (ArithmeticOperator.==, ArithmeticOperator.>) |
-             (ArithmeticOperator.!=, ArithmeticOperator.==) |
-             (ArithmeticOperator.<, ArithmeticOperator.==) |
-             (ArithmeticOperator.<, ArithmeticOperator.>) |
-             (ArithmeticOperator.<, ArithmeticOperator.>=) |
-             (ArithmeticOperator.<=, ArithmeticOperator.>) |
-             (ArithmeticOperator.>, ArithmeticOperator.==) |
-             (ArithmeticOperator.>, ArithmeticOperator.<) |
-             (ArithmeticOperator.>, ArithmeticOperator.<=) |
-             (ArithmeticOperator.>=, ArithmeticOperator.<) => False
-        case _ => And(left, right)
-      }
-      else if (l1 == r2 && l2 == r1) {
-        val newOperator = ArithmeticOperator.flip(op2)
-        val newRight = Comparison(r2, l2, newOperator)
-        simplifyConjunction(left, newRight)
-      } else And(left, right)
-    case _ => And(left, right)
   }
 
   /**
