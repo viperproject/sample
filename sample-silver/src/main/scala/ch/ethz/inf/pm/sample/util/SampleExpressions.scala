@@ -470,8 +470,8 @@ object SampleExpressions {
           else Literal(a)
         case (No, _) => right
         case (_, No) => left
-        case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
-          ConditionalExpression(simplify(Or(c1, c2)), l1, No)
+        // case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
+        //   ConditionalExpression(simplify(Or(c1, c2)), l1, No)
         case (MaxList(ls), MaxList(rs)) => MaxList((ls ++ rs).distinct)
       }
       // simplify reference comparison expressions
