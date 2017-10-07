@@ -479,17 +479,10 @@ object SampleExpressions {
         Literal(operator == ReferenceOperator.==)
       // simplify conditional expressions
       case ConditionalExpression(_, left, right) if left == right => left
+      case ConditionalExpression(True, term, _) => term
+      case ConditionalExpression(False, _, term) => term
       case ConditionalExpression(left, ConditionalExpression(right, term, No), No) =>
         ConditionalExpression(And(left, right), term, No)
-      case original@ConditionalExpression(condition, left, right) => condition match {
-        // constant folding
-        case True => left
-        case False => right
-        // syntactic simplification
-        case Not(argument) => ConditionalExpression(argument, right, left)
-        // no simplification
-        case _ => original
-      }
       // no simplification
       case original => original
     }
