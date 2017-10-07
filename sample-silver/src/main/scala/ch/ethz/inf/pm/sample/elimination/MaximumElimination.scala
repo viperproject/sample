@@ -48,20 +48,20 @@ object MaximumElimination
         }
       // compute maximum corresponding to bounded solutions
       var count = 0
-      val bounded = for ((expression, condition) <- expressions; i <- 0 until delta) yield {
+      val bounded = for ((expression, constraint) <- expressions; i <- 0 until delta) yield {
         count = count + 1
-        println(s"count: $count")
-        println(s"($expression, $condition), delta=$i")
-        val quantified = Context.getQuantified(condition)
         val result = normalized.transform {
           case `variable` => Plus(expression, Literal(i))
-          case constraint@Comparison(_, _, _) =>
-            // TODO: More aggressive optimisation?
-            val formula = simplify(Exists(quantified, And(constraint, condition)))
+          case original@ConditionalExpression(condition, left, ignore@(Zero | No)) =>
+            // check whether the condition is satisfiable under the constraint
+            val body = And(constraint, condition)
+            val variables = body.ids.toSet.toSeq.collect { case variable: VariableIdentifier => variable }
+            val formula = simplify(Exists(variables, body))
             val eliminated = QuantifierElimination.eliminate(formula)
+            // ignore condition if it is not satisfiable
             eliminated match {
-              case False => False
-              case _ => constraint
+              case False => ignore
+              case _ => original
             }
           case other => other
         }
@@ -104,16 +104,10 @@ object MaximumElimination
         analyzeArithmetic(variable, rewritten, smallest)
       case _ =>
         // analyze term and condition
-        val (tuples2, pp, delta2) = analyzeArithmetic(variable, term, smallest)
+        val (tuples2, projection2, delta2) = analyzeArithmetic(variable, term, smallest)
         val (set, projection1, delta1) = analyzeBoolean(variable, condition, smallest)
         // check whether it is sound to optimize
-        // TODO: Fix this.
-        val transformed = pp.transform {
-          case Divides(Literal(value: Int), `variable`) => False
-          case NotDivides(Literal(value: Int), `variable`) => False
-          case other => other
-        }
-        val simplified = simplify(transformed)
+        val simplified = simplify(projection2)
         val optimize = simplified match {
           case `ignore` => true
           case _ => false
@@ -130,7 +124,7 @@ object MaximumElimination
         val tuples1 = toTuples(set, filter)
         // return result
         val tuples = tuples1 ++ tuples2
-        val projection = ConditionalExpression(projection1, pp, ignore)
+        val projection = ConditionalExpression(projection1, projection2, ignore)
         val delta = lcm(delta1, delta2)
         (tuples, projection, delta)
     }
