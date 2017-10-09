@@ -73,6 +73,10 @@ object MaximumElimination
     } else expression
 
   override protected def toNegatedNormalForm(expression: Expression): Expression = expression match {
+    case Max(left, right) =>
+      val normalizedLeft = toNegatedNormalForm(left)
+      val normalizedRight = toNegatedNormalForm(right)
+      Max(normalizedLeft, normalizedRight)
     case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
       val normalized = toNegatedNormalForm(condition)
       ConditionalExpression(normalized, term, ignore)
@@ -82,6 +86,10 @@ object MaximumElimination
   }
 
   override protected def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = expression match {
+    case Max(left, right) =>
+      val normalizedLeft = normalizeCoefficient(variable, left)
+      val normalizedRight = normalizeCoefficient(variable, right)
+      Max(normalizedLeft, normalizedRight)
     case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
       val normalized = normalizeCoefficient(variable, condition)
       ConditionalExpression(normalized, term, ignore)
