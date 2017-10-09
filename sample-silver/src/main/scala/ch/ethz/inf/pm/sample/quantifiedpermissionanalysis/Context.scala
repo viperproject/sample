@@ -55,6 +55,10 @@ object Context {
     */
   def setProgram(program: sil.Program): Unit = {
     this.program = program
+
+    identifiers = Set.empty
+    receivers = Map.empty
+
     // Add all existing identifiers to the identifiers set (fields, domain
     // names, method names, function names etc.)
     identifiers ++= program.fields.map(_.name)
@@ -189,16 +193,45 @@ object Context {
   }
 
   /* ------------------------------------------------------------------------- *
+   * uninterpreted functions
+   */
+
+  private var uninterpreted: Map[String, String] = Map()
+
+  def getUninterpreted(functionName: String, fieldName: String): String = {
+    val name = functionName + "_" + fieldName
+    uninterpreted.get(name) match {
+      case Some(existing) => existing
+      case None =>
+        // get new unique identifier
+        val unique = uniqueIdentifier(name)
+        uninterpreted = uninterpreted + (name -> unique)
+
+        val function = program.findDomainFunction(functionName)
+        val field = program.findField(fieldName)
+
+        // generate new uninterpreted function
+        val generated = sil.Function(
+          name = unique,
+          formalArgs = function.formalArgs,
+          typ = field.typ,
+          pres = Seq.empty,
+          posts = Seq.empty,
+          decs = None,
+          body = None
+        )()
+
+        functions += (unique -> generated)
+
+        unique
+    }
+  }
+
+  /* ------------------------------------------------------------------------- *
    * code below has not been cleaned up
    */
 
-  private var boundaryFunction: Option[sil.Function] = None
-
   private var quantifiedVariables: Map[sil.Type, Seq[sil.LocalVarDecl]] = Map()
-
-  private var fieldAccessFunctions: Map[String, sil.Function] = Map()
-
-  private var fieldAccessFunctionsInMethod: Map[String, Set[(String, sil.Function)]] = Map()
 
   private var sets: Map[(ProgramPoint, Expression), sil.LocalVarDecl] = Map()
 
@@ -225,11 +258,6 @@ object Context {
     identifiers --= quantifiedVariables.values.flatten.map(_.name)
     quantifiedVariables = Map()
     sets = Map()
-  }
-
-  private def typeToVarPrefix(typ: sil.Type): Char = typ match {
-    case sil.Int => 'q'
-    case _ => DefaultSilverConverter.convert(typ).name.toLowerCase()(0)
   }
 
   private def uniqueIdentifier(name: String, i: Option[Int] = None, markAsTaken: Boolean = true): String = {

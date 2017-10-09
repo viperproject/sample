@@ -33,8 +33,9 @@ object SpecificationGenerator {
     * @param records The permission records.
     * @return The generated specifications.
     */
-  def generate(records: PermissionRecords): Seq[sil.Exp] =
-    records.fields.map { field =>
+  def generate(records: PermissionRecords): Seq[sil.Exp] = {
+    val inhaleExhale = mutable.ListBuffer[sil.Exp]()
+    val specifications = records.fields.map { field =>
       // get tree and plug in zero as the initial permissions
       val tree = records(field).transform {
         case Initial => Empty
@@ -43,7 +44,8 @@ object SpecificationGenerator {
       val expression = tree.simplify.toExpression
 
       Context.getReceiver match {
-        case None => sil.TrueLit()()
+        case None =>
+          sil.TrueLit()()
         case Some(receiver) =>
           val variables = Context.getVariables(receiver.name)
 
@@ -94,7 +96,12 @@ object SpecificationGenerator {
 
           val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
           val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-          val permission = convert(frame(simplify(simplified)))
+          val (framed, constraints) = frame(simplify(simplified))
+
+          val converted = constraints.map { c => sil.InhaleExhaleExp(convert(c), sil.TrueLit()())() }
+          inhaleExhale.appendAll(converted)
+
+          val permission = convert(framed)
           val body = sil.FieldAccessPredicate(location, permission)()
 
           if (quantified.isEmpty) body
@@ -105,19 +112,27 @@ object SpecificationGenerator {
       }
     }
 
-  private def frame(expression: Expression): Expression = expression.transform {
-    case comparison@Comparison(_, _, _) =>
-      val accesses = mutable.Set[Expression]()
-      comparison.foreach {
-        case access@FieldAccessExpression(_, _) => accesses.add(access)
-        case _ => // do nothing
+    specifications ++ inhaleExhale
+  }
+
+  private def frame(expression: Expression): (Expression, Seq[Expression]) = {
+    val constraints = mutable.ListBuffer[Expression]()
+
+    val transformed = expression.transform {
+      case access@FieldAccessExpression(receiver, field) => receiver match {
+        case FunctionCallExpression(name, arguments, _, _) =>
+          val name2 = Context.getUninterpreted(name, field.name)
+          val uninterpreted = FunctionCallExpression(name2, arguments, field.typ)
+
+          val constraint = Equal(access, uninterpreted)
+          constraints.append(constraint)
+
+          uninterpreted
       }
-      if (accesses.isEmpty) comparison
-      else {
-        val constraints = accesses.map(x => Greater(CurrentPermission(x, PermType), No))
-        And(AndList(constraints), comparison)
-      }
-    case other => other
+      case other => other
+    }
+
+    (transformed, constraints)
   }
 
   private def convert(expression: Expression): sil.Exp =

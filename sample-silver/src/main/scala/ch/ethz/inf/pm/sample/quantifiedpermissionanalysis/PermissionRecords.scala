@@ -83,6 +83,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
   }
 
   def inhale(expression: Expression): PermissionRecords = expression match {
+    case True => this
+    case False => bottom()
     case BinaryBooleanExpression(left, right, operator) => operator match {
       case BooleanOperator.&& => inhale(left).inhale(right)
       case BooleanOperator.|| => inhale(left) lub inhale(right)
@@ -93,6 +95,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       // TODO: replace receiver by condition
       val leaf = Leaf(receiver, permission)
       update(field, Subtraction(_, leaf))
+    case _ => assume(expression)
   }
 
   def exhale(expression: Expression): PermissionRecords = expression match {
