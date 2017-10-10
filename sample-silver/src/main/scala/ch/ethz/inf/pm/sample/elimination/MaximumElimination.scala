@@ -23,17 +23,26 @@ object MaximumElimination
 
   type Tuples = Set[(Expression, Expression)]
 
-  override def eliminate(expression: Expression): Expression = expression match {
+  override def eliminate(expression: Expression): Expression = eliminate(expression, True)
+
+  /**
+    * Eliminates the maximum of the given expression.
+    *
+    * @param expression The expression to process.
+    * @param fact       Some true fact that can be used for optimizations.
+    * @return The resulting expression.
+    */
+  def eliminate(expression: Expression, fact: Expression): Expression = expression match {
     case BigMax(variables, body) =>
       variables.foldLeft(body) {
         case (eliminated, variable) =>
-          eliminateMaximum(variable, eliminated)
+          eliminateMaximum(variable, eliminated, fact)
       }
     case BigMin(variables, body) => eliminate(Negate(BigMax(variables, Negate(body))))
     case Negate(argument) => Negate(eliminate(argument))
   }
 
-  private def eliminateMaximum(variable: VariableIdentifier, expression: Expression): Expression =
+  private def eliminateMaximum(variable: VariableIdentifier, expression: Expression, fact: Expression): Expression =
     if (expression.contains(_ == variable)) {
       println(s"max $variable :: $expression")
       // normalize expression
@@ -54,7 +63,7 @@ object MaximumElimination
           case `variable` => Plus(expression, Literal(i))
           case original@ConditionalExpression(condition, left, ignore@(Zero | No)) =>
             // check whether the condition is satisfiable under the constraint
-            val body = And(constraint, condition)
+            val body = And(fact, And(constraint, condition))
             val variables = body.ids.toSet.toSeq.collect { case variable: VariableIdentifier => variable }
             val formula = simplify(Exists(variables, body))
             val eliminated = QuantifierElimination.eliminate(formula)

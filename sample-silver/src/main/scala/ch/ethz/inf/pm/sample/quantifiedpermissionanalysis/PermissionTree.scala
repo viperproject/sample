@@ -65,6 +65,19 @@ sealed trait PermissionTree {
   }
 
   def forget(variables: Seq[VariableIdentifier], invariant: Expression): PermissionTree = {
+
+    val AndList(conjuncts) = invariant
+    val changing = variables.toSet[Identifier]
+    val (invariants, facts) = conjuncts.foldLeft(List.empty[Expression], List.empty[Expression]) {
+      case ((invariants, facts), conjunct) =>
+        val identifiers = conjunct.ids.toSet
+        val interesting = (identifiers intersect changing).nonEmpty
+        if (interesting) (conjunct :: invariants, facts)
+        else (invariants, conjunct :: facts)
+    }
+
+    val fact = AndList(facts)
+
     // rewrite tree to pairs of conditions and permission amounts
     val rewritten = rewrite.map { case (c, p) => (SampleExpressions.simplify(c), p) }
     // filter all uninteresting pairs
@@ -76,9 +89,9 @@ sealed trait PermissionTree {
     // process remaining pairs
     if (filtered.isEmpty) Empty
     else filtered.map { case (c, p) =>
-      val body = ConditionalExpression(And(invariant, c), p, No)
+      val body = ConditionalExpression(And(AndList(invariants), c), p, No)
       val maximum = BigMax(variables, body)
-      val eliminated = eliminate(maximum)
+      val eliminated = eliminate(maximum, fact)
       toTree(eliminated)
     }.reduce(Maximum)
   }

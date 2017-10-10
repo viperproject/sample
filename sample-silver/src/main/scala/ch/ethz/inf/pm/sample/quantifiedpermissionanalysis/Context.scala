@@ -11,10 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.QuantifiedPermissionsParameters._
 import viper.silver.ast.Function
-import viper.silver.cfg.LoopHeadBlock
 import viper.silver.{ast => sil}
-
-import scala.collection.GenTraversableOnce
 
 /**
   * @author Jerome Dohrau
@@ -57,6 +54,9 @@ object Context {
     this.program = program
 
     identifiers = Set.empty
+    uninterpreted = Map.empty
+    functions = Map.empty
+    maxFunction = None
     receivers = Map.empty
 
     // Add all existing identifiers to the identifiers set (fields, domain
