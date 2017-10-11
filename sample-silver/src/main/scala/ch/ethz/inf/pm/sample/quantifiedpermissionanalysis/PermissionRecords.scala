@@ -92,8 +92,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = FractionalPermissionExpression(numerator, denominator)
-      // TODO: replace receiver by condition
-      val leaf = Leaf(receiver, permission)
+      val condition = receiverToCondition(receiver)
+      val leaf = Leaf(condition, permission)
       update(field, Subtraction(_, leaf))
     case _ => assume(expression)
   }
@@ -106,9 +106,10 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
     case FieldAccessPredicate(location, numerator, denominator, _) =>
       val FieldAccessExpression(receiver, field) = location
       val permission = FractionalPermissionExpression(numerator, denominator)
-      // TODO: replace receiver by condition
-      val leaf = Leaf(receiver, permission)
+      val condition = receiverToCondition(receiver)
+      val leaf = Leaf(condition, permission)
       update(field, Addition(_, leaf))
+    case _ => this
   }
 
   def read(expression: Expression): PermissionRecords = {
