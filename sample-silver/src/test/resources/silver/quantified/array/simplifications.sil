@@ -12,15 +12,19 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method main(a: Array)
+method access(a: Array, i: Int, j: Int)
 {
-    var i: Int
-    var l: Int
+    loc(a, i).val := 0
+    loc(a, j).val := 0
+    loc(a, i).val := 0
+}
+
+method bar(a: Array, i: Int, v: Int)
+{
     var t: Int
-
-    i := 0
-    l := length(a)
-
-    exhale acc(loc(a, i).val, 1 / 2)
-    t := loc(a, i).val
+    if (0 <= v) {
+        loc(a, i).val := v
+    } else {
+        loc(a, i).val := -v
+    }
 }

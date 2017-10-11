@@ -12,15 +12,24 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
+method main_expected(a: Array)
+    requires forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val)
+    ensures true
+
 method main(a: Array)
 {
     var i: Int
     var l: Int
-    var t: Int
+    var k: Int
 
     i := 0
-    l := length(a)
+    k := length(a)
+    l := k
 
-    exhale acc(loc(a, i).val, 1 / 2)
-    t := loc(a, i).val
+    while (l > 0)
+    {
+        loc(a, i).val := 0
+        i := i + 1
+        l := l - 1
+    }
 }

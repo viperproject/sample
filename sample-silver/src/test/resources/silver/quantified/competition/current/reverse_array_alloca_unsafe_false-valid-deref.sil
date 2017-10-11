@@ -15,12 +15,20 @@ domain Array
 method main(a: Array)
 {
     var i: Int
+    var j: Int
     var l: Int
     var t: Int
 
-    i := 0
     l := length(a)
+    i := 0
+    j := l - 1
 
-    exhale acc(loc(a, i).val, 1 / 2)
-    t := loc(a, i).val
+    while (i < j)
+    {
+        t := loc(a, i).val
+        loc(a, i).val := loc(a, j).val
+        loc(a, j).val := t
+        i := i + 1
+        j := j + 1
+    }
 }

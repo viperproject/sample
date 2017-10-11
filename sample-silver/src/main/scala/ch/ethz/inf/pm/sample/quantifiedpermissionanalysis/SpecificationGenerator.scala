@@ -96,7 +96,7 @@ object SpecificationGenerator {
 
           val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
           val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-          val (framed, constraints) = frame(simplify(simplified))
+          val (framed, constraints) = frame(simplify(pretty(simplify(simplified), variables)))
 
           val converted = constraints.map { c => sil.InhaleExhaleExp(convert(c), sil.TrueLit()())() }
           inhaleExhale.appendAll(converted)
@@ -112,7 +112,7 @@ object SpecificationGenerator {
       }
     }
 
-    specifications ++ inhaleExhale
+    specifications ++ inhaleExhale.distinct
   }
 
   private def frame(expression: Expression): (Expression, Seq[Expression]) = {

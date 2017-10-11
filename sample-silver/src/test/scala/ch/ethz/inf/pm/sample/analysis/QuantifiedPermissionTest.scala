@@ -57,7 +57,10 @@ abstract class InferenceTest[S <: State[S]]
       println(extendedWithChecks)
 
       val verifier = carbon
+
+      verifier.start()
       val result = verifier.verify(extendedWithChecks)
+      verifier.stop()
 
       result match {
         case Success => Seq.empty
@@ -106,7 +109,7 @@ abstract class InferenceTest[S <: State[S]]
 class QuantifiedPermissionTest
   extends InferenceTest[QuantifiedPermissionState] {
 
-  override def testDirectories: Seq[String] = Seq("silver/quantified")
+  override def testDirectories: Seq[String] = Seq("silver/quantified/competition/current")
 
   override def inference: SilverExtender[QuantifiedPermissionState] = QuantifiedPermissionsAnalysisRunner
 }
