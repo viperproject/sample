@@ -60,7 +60,9 @@ object MaximumElimination
       val bounded = for ((expression, constraint) <- expressions; i <- 0 until delta) yield {
         count = count + 1
         val result = normalized.transform {
-          case `variable` => Plus(expression, Literal(i))
+          case `variable` =>
+            if (i == 0) expression
+            else Plus(expression, Literal(i))
           case original@ConditionalExpression(condition, left, ignore@(Zero | No)) =>
             // check whether the condition is satisfiable under the constraint
             val body = And(fact, And(constraint, condition))

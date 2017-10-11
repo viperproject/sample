@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.elimination
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 import ch.ethz.inf.pm.sample.util.Math.lcm
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 
@@ -211,6 +212,9 @@ trait Elimination {
       val projection = BinaryBooleanExpression(projection1, projection2, operator)
       val delta = lcm(delta1, delta2)
       (set, projection, delta)
+    // boolean variables
+    case `variable` if variable.typ.isBooleanType => (Set(`variable`), False, 1)
+    case Not(`variable`) if variable.typ.isBooleanType => (Set.empty, True, 1)
     // expressions not depending on the variable to eliminate.
     case _ =>
       if (expression.contains(_ == variable)) ???

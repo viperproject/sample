@@ -33,7 +33,8 @@ object QuantifierElimination
   }
 
   private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression =
-    if (expression.contains(_ == variable)) {
+    if (!expression.contains(_ == variable)) expression
+    else {
       // normalize expression
       val normalized = normalize(variable, expression)
       // compute projections, set of interesting expressions and delta
@@ -57,12 +58,14 @@ object QuantifierElimination
         // compute disjuncts corresponding to bounded solutions
         val bounded = for (e <- expressions; i <- 0 until delta) yield
           normalized.transform {
-            case `variable` => Plus(e, Literal(i))
+            case `variable` =>
+              if (i == 0) e
+              else Plus(e, Literal(i))
             case other => other
           }
         // build and simplify final expression
         val disjunction = OrList(unbounded ++ bounded)
         simplify(disjunction, collect = true)
       }
-    } else expression
+    }
 }
