@@ -109,7 +109,7 @@ sealed trait PermissionTree {
       val rewrittenRight = right.rewrite
       for ((constraint1, permission1) <- rewrittenLeft;
            (constraint2, permission2) <- rewrittenRight)
-        yield (Or(constraint1, constraint2), Plus(permission1, permission2))
+        yield (And(constraint1, constraint2), Plus(permission1, permission2))
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
