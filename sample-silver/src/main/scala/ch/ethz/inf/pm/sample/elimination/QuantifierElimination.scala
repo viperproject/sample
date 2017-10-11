@@ -44,7 +44,8 @@ object QuantifierElimination
       if (negative == True || positive == True) True
       else {
         // pick smaller set of expressions and the corresponding delta and projection
-        val (expressions, delta, projection) = if (minExpressions.size < maxExpressions.size) {
+        val smallest = minExpressions.size <= maxExpressions.size
+        val (expressions, delta, projection) = if (smallest) {
           (minExpressions, minDelta, negative)
         } else {
           (maxExpressions, maxDelta, positive)
@@ -60,7 +61,8 @@ object QuantifierElimination
           normalized.transform {
             case `variable` =>
               if (i == 0) e
-              else Plus(e, Literal(i))
+              else if (smallest) Plus(e, Literal(i))
+              else Minus(e, Literal(i))
             case other => other
           }
         // build and simplify final expression
