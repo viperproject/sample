@@ -88,6 +88,16 @@ object SampleExpressions {
     }
   }
 
+  object Permission {
+    def apply(numerator: Int, denominator: Int): FractionalPermissionExpression =
+      FractionalPermissionExpression(Literal(numerator), Literal(denominator))
+
+    def unapply(argument: Expression): Option[(Int, Int)] = argument match {
+      case FractionalPermissionExpression(Literal(numerator: Int), Literal(denominator: Int)) => Some(numerator, denominator)
+      case _ => None
+    }
+  }
+
   /* ---------------------------------------------------------------------------
    * Arithmetic Operations
    */
@@ -383,6 +393,20 @@ object SampleExpressions {
         case (_, Negate(argument)) => Minus(left, argument)
         case (Times(Literal(a: Int), term), _) if a < 0 => Minus(right, Times(Literal(-a), term))
         case (_, Times(Literal(a: Int), term)) if a < 0 => Minus(left, Times(Literal(-a), term))
+        case (Permission(ln, ld), Permission(rn, rd)) =>
+          val d = lcm(ld, rd)
+          val n = ln * d / ld + rn * d / rd
+          val x = gcd(n, d)
+          Permission(n / x, d / x)
+        case _ => original
+      }
+      // simplify subtractions
+      case original@Minus(left, right) => (left, right) match {
+        case (Permission(ln, ld), Permission(rn, rd)) =>
+          val d = lcm(ld, rd)
+          val n = ln * d / ld - rn * d / rd
+          val x = gcd(n, d)
+          Permission(n / x, d / x)
         case _ => original
       }
       // simplify multiplications
@@ -487,6 +511,10 @@ object SampleExpressions {
 
           MaxList((ls ++ rs).distinct)
       }
+      // bounding expressions
+      case Bound(Permission(a, b)) =>
+        if (a * b <= 0) No
+        else Permission(a, b)
       // simplify reference comparison expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
         Literal(operator == ReferenceOperator.==)
@@ -508,14 +536,14 @@ object SampleExpressions {
       val keys = collected.coefficients.filter { case (v, c) => variables.contains(v) && c != 0 }.keys
       val c0 = if (keys.isEmpty) comparison else {
 
-        val x = keys.foldLeft(1) { (f, k) => f * collected.coefficients(k) }
-        val f = if (x < 0) -1 else 1
+        val product = keys.foldLeft(1) { (current, id) => current * collected.coefficients(id) }
+        val factor = if (product < 0) -1 else 1
 
-        val terms = keys.map { k => Times(Literal(f * collected.coefficients(k)), k) }
+        val terms = keys.map { id => Times(Literal(factor * collected.coefficients(id)), id) }
         val newLeft = Plus(terms)
 
-        val b = if (x < 0) collected else -collected
-        val rest = keys.foldLeft(b) { case (r, k) => r.drop(k) }
+        val adjusted = if (product < 0) collected else -collected
+        val rest = keys.foldLeft(adjusted) { case (current, id) => current.drop(id) }
 
         val newRight = rest.toExpression
         simplify(Comparison(newLeft, newRight, operator))
