@@ -361,8 +361,11 @@ object SampleExpressions {
     collected.transform {
       // simplify unary operators
       case UnaryArithmeticExpression(argument, ArithmeticOperator.+, _) => argument
-      case original@Negate(argument) => argument match {
+      case original@Negate(argument) =>
+        println(original)
+        argument match {
         case Literal(value: Int) => Literal(-value)
+        case Times(Literal(value: Int), term) => Times(Literal(-value), term)
         case Negate(nested) => nested
         case _ => original
       }
@@ -373,6 +376,8 @@ object SampleExpressions {
         case (Literal(a: Int), Literal(b: Int)) => Literal(a + b)
         case (Literal(a: Int), Plus(term, Literal(b: Int))) => Plus(term, Literal(a + b))
         case (Plus(term, Literal(b: Int)), Literal(a: Int)) => Plus(term, Literal(a + b))
+        case (Literal(a: Int), _) if a < 0 => Minus(right, Literal(-a))
+        case (_, Literal(a: Int)) if a < 0 => Minus(left, Literal(-a))
         case (Literal(_), _) => Plus(right, left)
         case (Negate(argument), _) => Minus(right, argument)
         case (_, Negate(argument)) => Minus(left, argument)
@@ -386,6 +391,8 @@ object SampleExpressions {
         case (_, Zero) => Zero
         case (One, _) => right
         case (_, One) => left
+        case (Literal(-1), Negate(term)) => term
+        case (Negate(term), Literal(-1)) => term
         case (Literal(-1), _) => Negate(right)
         case (_, Literal(-1)) => Negate(left)
         case _ => original
@@ -472,7 +479,13 @@ object SampleExpressions {
         case (_, No) => left
         // case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
         //   ConditionalExpression(simplify(Or(c1, c2)), l1, No)
-        case (MaxList(ls), MaxList(rs)) => MaxList((ls ++ rs).distinct)
+        case (MaxList(ls), MaxList(rs)) =>
+
+          /*def add(x: Expression, xs: List[Expression]): List[Expression] = xs.foldLeft((x, List.empty)) {
+            case ((x, ys),)
+          }*/
+
+          MaxList((ls ++ rs).distinct)
       }
       // simplify reference comparison expressions
       case ReferenceComparisonExpression(left, right, operator) if left == right =>
@@ -488,55 +501,47 @@ object SampleExpressions {
     }
   }
 
-  /**
-    *
-    * @param expression
-    * @param precedence
-    * @return
-    */
-  def pretty(expression: Expression, precedence: Int = 0): String = {
-    val parentPrecedence = precedence
+  def pretty(expression: Expression, variables: Seq[VariableIdentifier]): Expression = expression.transform {
+    case comparison@Comparison(left, right, operator) =>
+      // put all variables of interest on one side
+      val collected = Collected(left) - Collected(right)
+      val keys = collected.coefficients.filter { case (v, c) => variables.contains(v) && c != 0 }.keys
+      val c0 = if (keys.isEmpty) comparison else {
 
-    def recurse(expression: Expression): String = {
-      val precedence = expression match {
-        case Literal(_) => 100
-        case FractionalPermissionExpression(_, _) => 100
-        case Variable(_, _) => 100
-        case Times(_, _) => 7
-        case Plus(_, _) => 6
-        case Minus(_, _) => 5
-        case Comparison(_, _, _) => 4
-        case Not(_) => 3
-        case And(_, _) => 2
-        case Or(_, _) => 1
-        case _ => 0
+        val x = keys.foldLeft(1) { (f, k) => f * collected.coefficients(k) }
+        val f = if (x < 0) -1 else 1
+
+        val terms = keys.map { k => Times(Literal(f * collected.coefficients(k)), k) }
+        val newLeft = Plus(terms)
+
+        val b = if (x < 0) collected else -collected
+        val rest = keys.foldLeft(b) { case (r, k) => r.drop(k) }
+
+        val newRight = rest.toExpression
+        simplify(Comparison(newLeft, newRight, operator))
       }
-      if (precedence >= parentPrecedence && precedence != 0) pretty(expression, precedence)
-      else "(" + pretty(expression, precedence) + ")"
-    }
 
-    expression match {
-      // comparisons
-      case Comparison(left, right, operator) =>
-        val operatorString = operator match {
-          case ArithmeticOperator.> => ">"
-          case ArithmeticOperator.>= => "≥"
-          case ArithmeticOperator.< => "<"
-          case ArithmeticOperator.<= => "≤"
-          case ArithmeticOperator.== => "="
-          case ArithmeticOperator.!= => "≠"
+      // remove unnecessary negations
+      val c1 = c0 match {
+        case Comparison(Negate(left), Negate(right), operator) => Comparison(right, left, operator)
+        case Comparison(Negate(term), Zero, operator) => Comparison(Zero, term, operator)
+        case Comparison(Zero, Negate(term), operator) => Comparison(term, Zero, operator)
+        case other => other
+      }
+
+      // modify inequalities s.t. the smaller term is always on the left hand side
+      c1 match {
+        case original@Comparison(left, right, operator) => operator match {
+          case ArithmeticOperator.> | ArithmeticOperator.>= =>
+            val flipped = ArithmeticOperator.flip(operator)
+            Comparison(right, left, flipped)
+          case _ => original
         }
-        recurse(left) + operatorString + recurse(right)
-      // logical
-      case Not(argument) => "¬" + recurse(argument)
-      case And(left, right) => recurse(left) + "∧" + recurse(right)
-      case Or(left, right) => recurse(left) + "∨" + recurse(right)
-      // quantifiers
-      case Exists(variables, body) => "∃" + variables.mkString(",") + ":" + recurse(body)
-      case ForAll(variables, body) => "∀" + variables.mkString(",") + ":" + recurse(body)
-      case other => other.toString
-    }
+        case other => other
+      }
+    case other => other
   }
+
 
   /**
     * Represents the sum of the rest and all variables contained in the map
