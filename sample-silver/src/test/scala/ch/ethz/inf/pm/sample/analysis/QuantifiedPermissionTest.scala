@@ -109,7 +109,7 @@ abstract class InferenceTest[S <: State[S]]
 class QuantifiedPermissionTest
   extends InferenceTest[QuantifiedPermissionState] {
 
-  override def testDirectories: Seq[String] = Seq("silver/quantified/competition/current")
+  override def testDirectories: Seq[String] = Seq("silver/quantified/")
 
   override def inference: SilverExtender[QuantifiedPermissionState] = QuantifiedPermissionsAnalysisRunner
 }
