@@ -170,12 +170,18 @@ object MaximumElimination
       (tuples, projection, delta)
     // subtractions
     case Bound(Minus(term, conditional@ConditionalExpression(condition, _, Zero | No))) =>
-      // TODO: left of conditional is constant
-      // TODO: Remove expressions from set2 that make term zero
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term, smallest)
       val (set2, projection2, delta2) = analyzeBoolean(variable, negated, smallest)
+      // only keep expressions from s2 that make term non-zero
+      val tuples2 = set2.map { expression =>
+        val transformed = term.transform {
+          case `variable` => expression
+          case other => other
+        }
+        (expression, NotEqual(transformed, No))
+      }
       val tuples = tuples1 ++ toTuples(set2)
       val projection = Minus(projection1, ConditionalExpression(projection2, conditional.left, conditional.right))
       val delta = lcm(delta1, delta2)

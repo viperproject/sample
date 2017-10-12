@@ -8,7 +8,8 @@ package ch.ethz.inf.pm.sample.util
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType, PermType}
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
 
 /**
   * Some utility functions for sample expressions.
@@ -73,6 +74,8 @@ object SampleExpressions {
 
     def unapply(argument: Expression): Option[Any] = argument match {
       case Constant(value, IntType, _) => Some(value.toInt)
+      // TODO: This is here since the numerator of fractional permissions sometimes is permission typed.
+      case Constant(value, PermType, _) => Some(value.toInt)
       case Constant(value, BoolType, _) => Some(value.toBoolean)
       case _ => None
     }
@@ -393,12 +396,18 @@ object SampleExpressions {
         case (_, Negate(argument)) => Minus(left, argument)
         case (Times(Literal(a: Int), term), _) if a < 0 => Minus(right, Times(Literal(-a), term))
         case (_, Times(Literal(a: Int), term)) if a < 0 => Minus(left, Times(Literal(-a), term))
+        case (No, _) => right
+        case (_, No) => left
         case (Permission(ln, ld), Permission(rn, rd)) =>
           val d = lcm(ld, rd)
           val n = ln * d / ld + rn * d / rd
           val x = gcd(n, d)
           Permission(n / x, d / x)
-        case _ => original
+        case _ =>
+          if (original.typ == PermType) {
+            println(original)
+          }
+          original
       }
       // simplify subtractions
       case original@Minus(left, right) => (left, right) match {
@@ -407,7 +416,14 @@ object SampleExpressions {
           val n = ln * d / ld - rn * d / rd
           val x = gcd(n, d)
           Permission(n / x, d / x)
-        case _ => original
+        case (ConditionalExpression(c1, l1, r1), ConditionalExpression(c2, l2, r2)) if c1 == c2 =>
+          val rewritten = ConditionalExpression(c1, Minus(l1, l2), Minus(r1, r2))
+          simplify(rewritten)
+        case _ =>
+          if (original.typ == PermType) {
+            println(original)
+          }
+          original
       }
       // simplify multiplications
       case original@Times(left, right) => (left, right) match {
@@ -492,6 +508,7 @@ object SampleExpressions {
           else Literal(b)
         case (No, _) => No
         case (_, No) => No
+
         case (MinList(ls), MinList(rs)) => MinList((ls ++ rs).distinct)
       }
       // simplify maxima
@@ -504,12 +521,44 @@ object SampleExpressions {
         // case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
         //   ConditionalExpression(simplify(Or(c1, c2)), l1, No)
         case (MaxList(ls), MaxList(rs)) =>
+          // TODO: This is specific for the quantified permission analysis.
+          val read = Variable(Context.getReadVariable.name, PermType)
 
-          /*def add(x: Expression, xs: List[Expression]): List[Expression] = xs.foldLeft((x, List.empty)) {
-            case ((x, ys),)
-          }*/
+          def compare(left: Expression, right: Expression): (Boolean, Boolean) = (left, right) match {
+            case (Literal(v1: Int), Literal(v2: Int)) => (v1 <= v2, v2 <= v1)
+            case (Permission(n1, d1), Permission(n2, d2)) =>
+              val v1 = n1 * d2
+              val v2 = n2 * d1
+              (v1 <= v2, v2 <= v1)
+            case (`read`, Permission(n, d)) =>
+              val leq = 0 < n * d
+              (leq, !leq)
+            case (Permission(n, d), `read`) =>
+              val geq = 0 < n * d
+              (!geq, geq)
+            case (ConditionalExpression(c1, l1, r1), ConditionalExpression(c2, l2, r2)) if c1 == c2 =>
+              val (leq1, geq1) = compare(l1, l2)
+              val (leq2, geq2) = compare(r1, r2)
+              (leq1 && leq2, geq1 && geq2)
+            case _ => (false, false)
+          }
 
-          MaxList((ls ++ rs).distinct)
+          def add(element: Expression, list: List[Expression]): List[Expression] = {
+            val (keep, updated) = list.foldLeft((true, List.empty[Expression])) { case ((keep, partial), current) =>
+              val (leq, geq) = compare(element, current)
+              println(s"compare(\n   $element,\n   $current)\n = ($leq, $geq)")
+              if (geq) (keep, partial)
+              else if (leq) (false, current :: partial)
+              else (keep, current :: partial)
+            }
+
+            if (keep) element :: updated
+            else updated
+          }
+
+          val merged = ls.foldLeft(rs) { case (result, element) => add(element, result) }
+
+          MaxList(merged)
       }
       // bounding expressions
       case Bound(Permission(a, b)) =>
