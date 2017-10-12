@@ -7,7 +7,7 @@
 package ch.ethz.inf.pm.sample.elimination
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
+import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.{Context, QuantifiedPermissionsParameters}
 import ch.ethz.inf.pm.sample.util.Math.lcm
 import ch.ethz.inf.pm.sample.util.SampleExpressions
 
@@ -75,7 +75,11 @@ object MaximumElimination
             // ignore condition if it is not satisfiable
             eliminated match {
               case False => ignore
-              case _ => original
+              case _ =>
+                if (QuantifiedPermissionsParameters.ADD_COLLECTED_CONSTRAINTS) {
+                  val newCondition = simplify(And(condition, constraint))
+                  ConditionalExpression(newCondition, left, ignore)
+                } else original
             }
           case other => other
         }
