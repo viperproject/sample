@@ -146,6 +146,7 @@ object Converter
   extends DefaultSampleConverter {
 
   override def convert(expression: Expression): sil.Exp = expression match {
+    case Bound(permission) => max(convert(permission), sil.NoPerm()())
     case Max(left, right) => max(convert(left), convert(right))
     case FunctionCallExpression(name, parameters, typ, pp) =>
       val function = Context.getFunction(name)

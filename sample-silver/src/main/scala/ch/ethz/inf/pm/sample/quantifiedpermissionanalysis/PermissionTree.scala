@@ -103,13 +103,19 @@ sealed trait PermissionTree {
       val placeholder = VariableIdentifier("π")(PermType)
       Set((True, placeholder))
     case Leaf(condition, permission) =>
-      Set((condition, permission))
+      Set((condition, permission), (Not(condition), Zero))
     case Addition(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
       for ((constraint1, permission1) <- rewrittenLeft;
            (constraint2, permission2) <- rewrittenRight)
         yield (And(constraint1, constraint2), Plus(permission1, permission2))
+    case Subtraction(left, right) =>
+      val rewrittenLeft = left.rewrite
+      val rewrittenRight = right.rewrite
+      for ((constraint1, permission1) <- rewrittenLeft;
+           (constraint2, permission2) <- rewrittenRight)
+        yield (And(constraint1, constraint2), Bound(Minus(permission1, permission2)))
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite

@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.sample.util
 
 import viper.carbon.CarbonVerifier
 import viper.silicon.Silicon
+import viper.silver.reporter.NoopReporter
 import viper.silver.verifier.Verifier
 
 /**
@@ -23,6 +24,7 @@ object Verifiers {
     */
   def silicon: Verifier = {
     val instance = new Silicon()
+    instance.parseCommandLine(Seq("--ignoreFile", "dummy.sil"))
     instance
   }
 
