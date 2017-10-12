@@ -375,7 +375,6 @@ object SampleExpressions {
       // simplify unary operators
       case UnaryArithmeticExpression(argument, ArithmeticOperator.+, _) => argument
       case original@Negate(argument) =>
-        println(original)
         argument match {
         case Literal(value: Int) => Literal(-value)
         case Times(Literal(value: Int), term) => Times(Literal(-value), term)
@@ -403,11 +402,7 @@ object SampleExpressions {
           val n = ln * d / ld + rn * d / rd
           val x = gcd(n, d)
           Permission(n / x, d / x)
-        case _ =>
-          if (original.typ == PermType) {
-            println(original)
-          }
-          original
+        case _ => original
       }
       // simplify subtractions
       case original@Minus(left, right) => (left, right) match {
@@ -419,11 +414,7 @@ object SampleExpressions {
         case (ConditionalExpression(c1, l1, r1), ConditionalExpression(c2, l2, r2)) if c1 == c2 =>
           val rewritten = ConditionalExpression(c1, Minus(l1, l2), Minus(r1, r2))
           simplify(rewritten)
-        case _ =>
-          if (original.typ == PermType) {
-            println(original)
-          }
-          original
+        case _ => original
       }
       // simplify multiplications
       case original@Times(left, right) => (left, right) match {
@@ -546,7 +537,6 @@ object SampleExpressions {
           def add(element: Expression, list: List[Expression]): List[Expression] = {
             val (keep, updated) = list.foldLeft((true, List.empty[Expression])) { case ((keep, partial), current) =>
               val (leq, geq) = compare(element, current)
-              println(s"compare(\n   $element,\n   $current)\n = ($leq, $geq)")
               if (geq) (keep, partial)
               else if (leq) (false, current :: partial)
               else (keep, current :: partial)
