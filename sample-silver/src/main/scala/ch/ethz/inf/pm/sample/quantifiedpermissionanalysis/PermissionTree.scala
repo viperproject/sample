@@ -103,7 +103,7 @@ sealed trait PermissionTree {
       val placeholder = VariableIdentifier("π")(PermType)
       Set((True, placeholder))
     case Leaf(condition, permission) =>
-      Set((condition, permission), (Not(condition), No))
+      Set((True, ConditionalExpression(condition, permission, No)))
     case Addition(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite

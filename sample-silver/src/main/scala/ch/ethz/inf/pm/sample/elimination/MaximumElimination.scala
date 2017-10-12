@@ -44,11 +44,14 @@ object MaximumElimination
 
   private def eliminateMaximum(variable: VariableIdentifier, expression: Expression, fact: Expression): Expression =
     if (expression.contains(_ == variable)) {
+      println("----------")
       println(s"max $variable :: $expression")
       // normalize expression
       val normalized = normalize(variable, expression)
       // compute projections, set of interesting expressions and delta
       val (expressions, projection, delta) = analyzeArithmetic(variable, normalized, smallest = true)
+      println(s"norm: $normalized")
+      println(s"set: $expressions")
       // compute maximum corresponding to unbounded solutions
       val unbounded = for (i <- 0 until delta) yield
         projection.transform {
@@ -80,7 +83,9 @@ object MaximumElimination
       }
       // build and simplify final expression
       val maximum = MaxList(unbounded ++ bounded)
-      simplify(maximum, collect = true)
+      val r = simplify(maximum, collect = true)
+      println(s"res = $r")
+      r
     } else expression
 
   override protected def toNegatedNormalForm(expression: Expression): Expression = expression match {
@@ -164,7 +169,7 @@ object MaximumElimination
       val delta = lcm(delta1, delta2)
       (tuples, projection, delta)
     // subtractions
-    case Minus(term, conditional@ConditionalExpression(condition, _, Zero | No)) =>
+    case Bound(Minus(term, conditional@ConditionalExpression(condition, _, Zero | No))) =>
       // TODO: left of conditional is constant
       // TODO: Remove expressions from set2 that make term zero
       // negate condition since the conditional appears in a negative position
