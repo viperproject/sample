@@ -28,6 +28,8 @@ object QuantifiedPermissionsParameters {
 
   val ADD_COLLECTED_CONSTRAINTS = true
 
+  val ADD_ALL_INVARIANTS = false
+
   val numericalEntryStateBuilder = ApronPolyhedraAnalysisEntryState
   type NumericalDomainType = Apron.Polyhedra
   type NumericalStateType = ApronPolyhedraAnalysisState
