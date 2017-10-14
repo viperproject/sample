@@ -101,13 +101,16 @@ object SpecificationGenerator {
           val converted = constraints.map { c => sil.InhaleExhaleExp(convert(c), sil.TrueLit()())() }
           inhaleExhale.appendAll(converted)
 
-          val permission = convert(framed)
-          val body = sil.FieldAccessPredicate(location, permission)()
-
-          if (quantified.isEmpty) body
-          else {
-            val triggers = Seq.empty
-            sil.Forall(quantified, triggers, body)()
+          framed match {
+            case No => convert(True)
+            case _ =>
+              val permission = convert(framed)
+              val body = sil.FieldAccessPredicate(location, permission)()
+              if (quantified.isEmpty) body
+              else {
+                val triggers = Seq.empty
+                sil.Forall(quantified, triggers, body)()
+              }
           }
       }
     }
