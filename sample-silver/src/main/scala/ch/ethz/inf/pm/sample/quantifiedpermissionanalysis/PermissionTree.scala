@@ -139,6 +139,8 @@ sealed trait PermissionTree {
       // TODO: Left is constant
       Leaf(condition, left)
     case Max(left, right) => Maximum(toTree(left), toTree(right))
+    // note: it's okay to drop the bound since subtractions in trees are bounded implicitly
+    case Bound(Minus(left, right)) => Subtraction(toTree(left), toTree(right))
     case No => Empty
     case _ => ???
   }
