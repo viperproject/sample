@@ -69,7 +69,7 @@ object MaximumElimination
           case original@ConditionalExpression(condition, left, ignore@(Zero | No)) =>
             // check whether the condition is satisfiable under the constraint
             val body = And(fact, And(constraint, condition))
-            val variables = body.ids.toSet.toSeq.collect { case variable: VariableIdentifier => variable }
+            val variables = body.ids.toSet.toSeq.collect { case variable: VariableIdentifier if variable.typ.isNumericalType => variable }
             val formula = simplify(Exists(variables, body))
             val eliminated = QuantifierElimination.eliminate(formula)
             // ignore condition if it is not satisfiable
@@ -103,17 +103,6 @@ object MaximumElimination
     case _ if expression.typ.isBooleanType =>
       super.toNegatedNormalForm(expression)
     case _ => ???
-  }
-
-  override protected def normalizeCoefficient(variable: VariableIdentifier, expression: Expression): Expression = expression match {
-    case Max(left, right) =>
-      val normalizedLeft = normalizeCoefficient(variable, left)
-      val normalizedRight = normalizeCoefficient(variable, right)
-      Max(normalizedLeft, normalizedRight)
-    case ConditionalExpression(condition, term, ignore@(Zero | No)) =>
-      val normalized = normalizeCoefficient(variable, condition)
-      ConditionalExpression(normalized, term, ignore)
-    case _ => super.normalizeCoefficient(variable, expression)
   }
 
   protected def analyzeArithmetic(variable: VariableIdentifier, expression: Expression, smallest: Boolean): (Tuples, Expression, Int) = expression match {

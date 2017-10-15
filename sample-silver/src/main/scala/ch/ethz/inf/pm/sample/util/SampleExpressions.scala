@@ -393,6 +393,7 @@ object SampleExpressions {
         case (Literal(_), _) => Plus(right, left)
         case (Negate(argument), _) => Minus(right, argument)
         case (_, Negate(argument)) => Minus(left, argument)
+        case (Minus(term, Literal(a: Int)), Literal(b: Int)) => Plus(term, Literal(b - a))
         case (Times(Literal(a: Int), term), _) if a < 0 => Minus(right, Times(Literal(-a), term))
         case (_, Times(Literal(a: Int), term)) if a < 0 => Minus(left, Times(Literal(-a), term))
         case (No, _) => right
@@ -406,6 +407,9 @@ object SampleExpressions {
       }
       // simplify subtractions
       case original@Minus(left, right) => (left, right) match {
+        case (_, Zero) => left
+        case (Zero, _) => Negate(right)
+        case (Literal(a: Int), Literal(b: Int)) => Literal(a - b)
         case (Permission(ln, ld), Permission(rn, rd)) =>
           val d = lcm(ld, rd)
           val n = ln * d / ld - rn * d / rd

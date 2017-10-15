@@ -26,7 +26,7 @@ object QuantifiedPermissionsParameters {
 
   val OVERAPPROXIMATE_FIELD_ACCESSES_IN_SPECIFICATIONS = true
 
-  val ADD_COLLECTED_CONSTRAINTS = true
+  val ADD_COLLECTED_CONSTRAINTS = false
 
   val ADD_ALL_INVARIANTS = false
 

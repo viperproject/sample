@@ -12,51 +12,29 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method bubblesort(a: Array)
+method main_expected(a: Array, read: Perm)
+    requires none < read && read < write
+    requires forall q: Int :: 0 <= q && q < length(a) && 1 <= length(a) ==> acc(loc(a, q).val, read)
+    ensures true
+
+method main(a: Array) returns (x: Int)
 {
-    var i: Int
-    var j: Int
-    var n: Int
+    var l: Int
+    l := length(a)
+    if (l <= 0) {
+        x := (-1)
+    } else {k
+        var y: Int
+        x := 0;
+        y := l - 1;
 
-    i := 1
-    n := length(a)
-
-    while (i < n)
-    {
-        j := 0
-        while (j < n - i)
+        while (x != y)
         {
-            var u: Int
-            var v: Int
-
-            u := loc(a, j).val
-            v := loc(a, j + 1).val
-
-            if (v < u) {
-                loc(a, j).val := v
-                loc(a, j + 1).val := u
+            if (loc(a, x).val <= loc(a, y).val) {
+                x := x + 1
+            } else {
+                y := y - 1
             }
-
-            j := j + 1
         }
-        i := i + 1
     }
 }
-
-/*method main(a: Array)
-{
-    var i: Int
-    var l: Int
-    var t: Int
-
-    i := 0
-    l := length(a)
-
-    while (i < l - 1)
-    {
-        inhale acc(loc(a, i).val)
-        t := loc(a, i).val
-        exhale acc(loc(a, i).val)
-        i := i + 1
-    }
-}*/

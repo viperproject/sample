@@ -147,6 +147,7 @@ trait Elimination {
     }
     // compute least common multiple
     val factor = lcm(coefficients)
+    val constraint = if (factor == 1) True else Divides(Literal(factor), variable)
     // normalize coefficients
     val transformed = expression.transform {
       case original@Comparison(left, right, operator) => left match {
@@ -156,11 +157,14 @@ trait Elimination {
           Comparison(variable, Times(Literal(factor / value), right), operator)
         case _ => original
       }
+      case ConditionalExpression(condition, left, right) =>
+        val newCondition = simplify(And(condition, constraint))
+        ConditionalExpression(newCondition, left, right)
       case original => original
     }
     //
-    val constraint = if (factor == 1) True else Divides(Literal(factor), variable)
-    simplify(And(transformed, constraint))
+    if (expression.typ.isBooleanType) simplify(And(transformed, constraint))
+    else transformed
   }
 
   /**
