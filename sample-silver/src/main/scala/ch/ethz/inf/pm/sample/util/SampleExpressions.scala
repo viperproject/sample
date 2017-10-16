@@ -578,18 +578,15 @@ object SampleExpressions {
       val collected = Collected(left) - Collected(right)
       val keys = collected.coefficients.filter { case (v, c) => variables.contains(v) && c != 0 }.keys
       val c0 = if (keys.isEmpty) comparison else {
-
         val product = keys.foldLeft(1) { (current, id) => current * collected.coefficients(id) }
         val factor = if (product < 0) -1 else 1
-
         val terms = keys.map { id => Times(Literal(factor * collected.coefficients(id)), id) }
         val newLeft = Plus(terms)
-
         val adjusted = if (product < 0) collected else -collected
         val rest = keys.foldLeft(adjusted) { case (current, id) => current.drop(id) }
-
         val newRight = rest.toExpression
-        simplify(Comparison(newLeft, newRight, operator))
+        val newOperator = if (product < 0) ArithmeticOperator.flip(operator) else operator
+        simplify(Comparison(newLeft, newRight, newOperator))
       }
 
       // remove unnecessary negations
