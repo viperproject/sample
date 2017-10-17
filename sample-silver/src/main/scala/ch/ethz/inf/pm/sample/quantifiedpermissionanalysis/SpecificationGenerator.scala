@@ -27,6 +27,22 @@ object SpecificationGenerator {
 
   import SampleExpressions._
 
+  def slice(variable: VariableIdentifier, expression: Expression): Set[(Expression, Expression)] = {
+    var values = Set.empty[Expression]
+    expression.foreach {
+      case Equal(`variable`, value) => values = values + value
+      case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => ??? // should not occur
+      case _ => // do nothing
+    }
+    for (value <- values) yield {
+      val transformed = expression.transform {
+        case Equal(`variable`, term) => Literal(term == value)
+        case other => other
+      }
+      (value, simplify(transformed))
+    }
+  }
+
   /**
     * Generates the specifications corresponding to the given permission
     * records.
@@ -34,9 +50,8 @@ object SpecificationGenerator {
     * @param records The permission records.
     * @return The generated specifications.
     */
-  def generate(records: PermissionRecords): Seq[sil.Exp] = {
-    val inhaleExhale = mutable.ListBuffer[sil.Exp]()
-    val specifications = records.fields.map { field =>
+  def generate(records: PermissionRecords): Seq[sil.Exp] =
+    records.fields.flatMap { field =>
       // get tree and plug in zero as the initial permissions
       val tree = records(field).transform {
         case Initial => Empty
@@ -46,78 +61,68 @@ object SpecificationGenerator {
 
       Context.getReceiver match {
         case None =>
-          sil.TrueLit()()
+          Seq.empty
         case Some(receiver) =>
           val variables = Context.getVariables(receiver.name)
 
-          val quantified = ListBuffer[sil.LocalVarDecl]()
-          val arguments = ListBuffer[sil.Exp]()
 
-          val zipped = variables zip receiver.formalArgs
-          val simplified = zipped.foldLeft(expression) {
-            case (current, (variable, parameter)) =>
-              // collect terms
-              var terms = Option(Set.empty[Expression])
-              current.foreach {
-                case Equal(`variable`, term) =>
-                  terms match {
-                    case Some(set) => terms = Some(set + term)
-                    case None => // do nothing
-                  }
-                case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) =>
-                  terms = None
-                case _ => // do nothing
-              }
-
-              terms match {
-                case Some(set) if set.size == 1 =>
-                  val term = set.head
-                  // add argument
-                  val argument = convert(term)
-                  arguments.append(argument)
-                  // return
-                  val transformed = current.transform {
-                    case `variable` => term
-                    case other => other
-                  }
-                  simplify(transformed)
-                case _ =>
-                  // add quantified variable
-                  val name = variable.name
-                  val typ = parameter.typ
-                  val declaration = sil.LocalVarDecl(name, typ)()
-                  quantified.append(declaration)
-                  // add argument
-                  val argument = sil.LocalVar(name)(typ)
-                  arguments.append(argument)
-                  // return
-                  current
+          val blubb = variables.foldRight(Set((List.empty[Expression], expression))) {
+            case (variable, set) =>
+              if (variable.typ == IntType) {
+                set.map { case (arguments, current) => (variable :: arguments, current)}
+              } else {
+                // do some slicing
+                set.flatMap { case (arguments, current) =>
+                  val sliced = slice(variable, current)
+                  sliced.map { case (argument, updated) => (argument :: arguments, updated) }
+                }
               }
           }
 
-          val application = sil.FuncLikeApp(receiver, arguments, Map.empty)
-          val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
-          val (framed, constraints) = frame(simplify(pretty(simplify(simplified), variables)))
+          val simplified = blubb.map { case (arguments, updated) =>
+            arguments.foldRight((List.empty[Expression], updated)) { case (argument, (list, current)) =>
+              if (variables.contains(argument)) {
+                // collect terms
+                var collected = Option(Set.empty[Expression])
+                current.foreach {
+                  case Equal(`argument`, term) =>
+                    collected match {
+                      case Some(terms) => collected = Some(terms + term)
+                      case None => // do nothing
+                    }
+                  case Comparison(left, right, _) if left.contains(_ == argument) || right.contains(_ == argument) =>
+                    collected = None
+                  case _ => // do nothing
+                }
+                collected match {
+                  case Some(terms) if terms.size == 1 =>
+                    val term = terms.head
+                    val transformed = current.transform {
+                      case `argument` => term
+                      case other => other
+                    }
+                    val simplified = simplify(transformed)
+                    (term :: list, simplified)
+                  case _ => (argument :: list, current)
+                }
+              }else (argument :: list, current)
+            }
+          }
 
-          val converted = constraints.map { c => sil.InhaleExhaleExp(convert(c), sil.TrueLit()())() }
-          inhaleExhale.appendAll(converted)
+          for ((arguments, updated) <- simplified) yield {
+            val application = sil.FuncLikeApp(receiver, arguments.map(convert), Map.empty)
+            val location = sil.FieldAccess(application, sil.Field(field.getName, convert(field.typ))())()
 
-          framed match {
-            case No => convert(True)
-            case _ =>
-              val permission = convert(framed)
-              val body = sil.FieldAccessPredicate(location, permission)()
-              if (quantified.isEmpty) body
-              else {
-                val triggers = Seq.empty
-                sil.Forall(quantified, triggers, body)()
-              }
+            val prettified = simplify(pretty(simplify(updated), variables))
+            val permission = convert(prettified)
+
+            val quantified = arguments.filter(variables.contains(_)).map { variable => sil.LocalVarDecl(variable.toString, sil.Int)() }
+            val body = sil.FieldAccessPredicate(location, permission)()
+            if (quantified.isEmpty) body
+            else sil.Forall(quantified, Seq.empty, body)()
           }
       }
     }
-
-    specifications ++ inhaleExhale.distinct
-  }
 
   private def frame(expression: Expression): (Expression, Seq[Expression]) = {
     val constraints = mutable.ListBuffer[Expression]()
