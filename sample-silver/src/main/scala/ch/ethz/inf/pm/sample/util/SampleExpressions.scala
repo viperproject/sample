@@ -358,6 +358,9 @@ object SampleExpressions {
     * @return The simplified expression.
     */
   def simplify(expression: Expression, collect: Boolean = false): Expression = {
+    // TODO: This is specific for the quantified permission analysis.
+    val read = Variable(Context.getReadVariable.name, PermType)
+
     // collect variables and constants if corresponding flag is set
     def collected = if (collect) {
       val transformed = expression.transform {
@@ -460,6 +463,24 @@ object SampleExpressions {
         case ArithmeticOperator.> => False
         case ArithmeticOperator.>= => True
       }
+      case Comparison(Permission(n1, d1), Permission(n2, d2), operator) => operator match {
+        case ArithmeticOperator. == => Literal(n1 * d2 == n2 * d1)
+        case ArithmeticOperator. != => Literal(n1 * d2 != n2 * d1)
+        case ArithmeticOperator. < => Literal(n1 * d2 < n2 * d1)
+        case ArithmeticOperator. <= => Literal(n1 * d2 <= n2 * d1)
+        case ArithmeticOperator. > => Literal(n1 * d2 > n2 * d1)
+        case ArithmeticOperator. >= => Literal(n1 * d2 >= n2 * d1)
+      }
+      case original@Comparison(`read`, Permission(n, d), operator) => operator match {
+          case ArithmeticOperator.< | ArithmeticOperator.<= => if (0 < n * d) True else False
+          case ArithmeticOperator.> | ArithmeticOperator.>= => if (n * d <= 0) True else False
+          case _ => original
+        }
+      case original@Comparison(Permission(n, d), `read`, operator) => operator match {
+        case ArithmeticOperator.< | ArithmeticOperator.<= => if (n * d <= 0) True else False
+        case ArithmeticOperator.> | ArithmeticOperator.>= => if (0 < n * d) True else False
+        case _ => original
+      }
       case Comparison(Minus(left, right), Zero, operator) =>
         Comparison(left, right, operator)
       // simplify conjunctions
@@ -516,9 +537,6 @@ object SampleExpressions {
         // case (ConditionalExpression(c1, l1, No), ConditionalExpression(c2, l2, No)) if l1 == l2 =>
         //   ConditionalExpression(simplify(Or(c1, c2)), l1, No)
         case (MaxList(ls), MaxList(rs)) =>
-          // TODO: This is specific for the quantified permission analysis.
-          val read = Variable(Context.getReadVariable.name, PermType)
-
           def compare(left: Expression, right: Expression): (Boolean, Boolean) = (left, right) match {
             case (Literal(v1: Int), Literal(v2: Int)) => (v1 <= v2, v2 <= v1)
             case (Permission(n1, d1), Permission(n2, d2)) =>
@@ -535,7 +553,8 @@ object SampleExpressions {
               val (leq1, geq1) = compare(l1, l2)
               val (leq2, geq2) = compare(r1, r2)
               (leq1 && leq2, geq1 && geq2)
-            case _ => (false, false)
+            case _ =>
+              if (left == right) (true, true) else (false, false)
           }
 
           def add(element: Expression, list: List[Expression]): List[Expression] = {

@@ -44,14 +44,10 @@ object MaximumElimination
 
   private def eliminateMaximum(variable: VariableIdentifier, expression: Expression, fact: Expression): Expression =
     if (expression.contains(_ == variable)) {
-      println("----------")
-      println(s"max $variable :: $expression")
       // normalize expression
       val normalized = normalize(variable, expression)
       // compute projections, set of interesting expressions and delta
       val (expressions, projection, delta) = analyzeArithmetic(variable, normalized, smallest = true)
-      println(s"norm: $normalized")
-      println(s"set: $expressions")
       // compute maximum corresponding to unbounded solutions
       val unbounded = for (i <- 0 until delta) yield
         projection.transform {
@@ -88,11 +84,13 @@ object MaximumElimination
       // build and simplify final expression
       val maximum = MaxList(unbounded ++ bounded)
       val r = simplify(maximum, collect = true)
-      println(s"res = $r")
       r
     } else expression
 
-  override protected def toNegatedNormalForm(expression: Expression): Expression = expression match {
+  override def toNegatedNormalForm(expression: Expression): Expression = expression match {
+    case _: VariableIdentifier |
+         _: FractionalPermissionExpression =>
+      expression
     case Max(left, right) =>
       val normalizedLeft = toNegatedNormalForm(left)
       val normalizedRight = toNegatedNormalForm(right)
@@ -121,8 +119,8 @@ object MaximumElimination
         analyzeArithmetic(variable, rewritten, smallest)
       case _ =>
         // analyze term and condition
-        val (tuples2, projection2, delta2) = analyzeArithmetic(variable, term, smallest)
         val (set, projection1, delta1) = analyzeBoolean(variable, condition, smallest)
+        val (tuples2, projection2, delta2) = analyzeArithmetic(variable, term, smallest)
         // check whether it is sound to optimize
         val simplified = simplify(projection2)
         val optimize = simplified match {
@@ -138,6 +136,7 @@ object MaximumElimination
           }
           OrList(parts)
         } else True
+
         val tuples1 = toTuples(set, filter)
         // return result
         val tuples = tuples1 ++ tuples2

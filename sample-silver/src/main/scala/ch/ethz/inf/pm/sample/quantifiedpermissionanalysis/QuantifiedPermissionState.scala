@@ -121,8 +121,8 @@ case class QuantifiedPermissionState(pp: ProgramPoint,
 
   override def assume(condition: Expression): S = {
     logger.trace(s"assume(condition)")
-    val newHead = records.head.assume(condition).read(condition)
-    copy(records = newHead :: records.tail)
+    val newRecords = records.map(_.assume(condition).read(condition))
+    copy(records = newRecords)
   }
 
   override def assignVariable(target: Expression, value: Expression): S = {

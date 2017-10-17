@@ -22,6 +22,7 @@ sealed trait PermissionTree {
 
   import SampleExpressions._
   import MaximumElimination.eliminate
+  import MaximumElimination.toNegatedNormalForm
 
   def assume(condition: Expression) = Conditional(condition, this, Empty)
 
@@ -91,7 +92,19 @@ sealed trait PermissionTree {
     if (filtered.isEmpty) Empty
     else filtered.map { case (c, p) =>
       val body = ConditionalExpression(And(AndList(invariants), c), p, No)
-      val maximum = BigMax(variables, body)
+      val nnf = toNegatedNormalForm(body)
+      // TODO: Allow to also not over-approximate field accesses
+      val approximated = nnf.transform {
+        case comparison@Comparison(_, _, _) =>
+          val approximate = comparison.contains {
+            case FieldAccessExpression(_, _) => true
+            case _ => false
+          }
+          if (approximate) True
+          else comparison
+        case other => other
+      }
+      val maximum = BigMax(variables, approximated)
       val eliminated = eliminate(maximum, fact)
       toTree(eliminated)
     }.reduce(Maximum)
