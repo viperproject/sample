@@ -173,7 +173,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
   }
 
   def transformExpressions(f: Expression => Expression): PermissionRecords = transform {
-    case Leaf(receiver, permission) => Leaf(receiver.transform(f), permission)
+    case Leaf(receiver, permission) => Leaf(receiver.transform(f), permission.transform(f))
     case Conditional(condition, left, right) => Conditional(condition.transform(f), left, right)
     case tree => tree
   }

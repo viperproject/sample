@@ -74,7 +74,8 @@ trait Elimination {
     // handle negations
     case Not(argument) => argument match {
       // boolean variables
-      case _: VariableIdentifier => expression
+      case _: Constant |
+           _: VariableIdentifier => expression
       // apply de morgan's rule to conjuncts and disjuncts
       case BinaryBooleanExpression(left, right, operation) =>
         val newLeft = toNegatedNormalForm(Not(left))
