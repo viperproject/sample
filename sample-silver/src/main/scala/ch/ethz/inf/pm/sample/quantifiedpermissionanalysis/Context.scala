@@ -64,7 +64,12 @@ object Context {
     identifiers ++= program.fields.map(_.name)
     identifiers ++= program.methods.flatMap(_.formalArgs.map(_.name))
     identifiers ++= program.methods.flatMap(_.formalReturns.map(_.name))
-    identifiers ++= program.methods.flatMap(_.body.scopedDecls.map(_.name))
+    identifiers ++= program.methods.flatMap { method =>
+      val body = method.body
+      val decls = body.map(_.scopedDecls).getOrElse(Seq.empty)
+      val names = decls.map(_.name)
+      names
+    }
     identifiers ++= program.methods.map(_.name)
     identifiers ++= program.functions.map(_.name)
     identifiers ++= program.predicates.map(_.name)

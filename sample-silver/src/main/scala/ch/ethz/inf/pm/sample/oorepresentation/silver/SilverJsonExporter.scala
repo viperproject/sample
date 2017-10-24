@@ -41,7 +41,7 @@ trait SilverJsonExporter[S <: State[S]]
 
   override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
     if (inferred.nonEmpty) {
-      val position = method.body.pos
+      val position = method.body.get.pos
       preconditions.get(position) match {
         case Some(entry) => preconditions = preconditions + (position -> (method.pres, inferred ++ entry._2))
         case None => preconditions = preconditions + (position -> (method.pres, inferred))
@@ -50,7 +50,7 @@ trait SilverJsonExporter[S <: State[S]]
 
   override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
     if (inferred.nonEmpty) {
-      val position = method.body.pos
+      val position = method.body.get.pos
       postconditions.get(position) match {
         case Some(entry) => postconditions = postconditions + (position -> (method.posts, inferred ++ entry._2))
         case None => postconditions = postconditions + (position -> (method.posts, inferred))

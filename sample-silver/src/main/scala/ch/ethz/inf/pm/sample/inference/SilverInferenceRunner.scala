@@ -216,7 +216,7 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
       formalArgs = inferArguments(method, result),
       pres = inferPreconditions(method, result),
       posts = inferPostconditions(method, result),
-      body = extendBody(method.body, result)
+      body = method.body.map(extendBody(_, result))
     )(method.pos, method.info, method.errT)
   }
 
@@ -353,7 +353,7 @@ trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
     val exit = lastPosition(result.cfg.exit.get)
     exportPreconditions(method, inferPreconditions(method, result))
     exportPostconditions(method, inferPostconditions(method, result))
-    exportStatement(method.body, result)
+    method.body.foreach(exportStatement(_, result))
   }
 
   /**

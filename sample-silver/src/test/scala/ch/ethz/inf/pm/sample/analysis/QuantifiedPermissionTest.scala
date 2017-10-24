@@ -74,7 +74,7 @@ abstract class InferenceTest[S <: State[S]]
     def createChecks(inferred: sil.Method, expected: sil.Method): Seq[sil.Method] = {
       val name = inferred.name
       val parameters = inferred.formalArgs
-      val body = sil.Seqn(Seq.empty, Seq.empty)()
+      val body = Some(sil.Seqn(Seq.empty, Seq.empty)())
 
       val check0 = sil.Method(name + "_pre_inferred_implies_expected", parameters, Seq.empty, inferred.pres, expected.pres, body)()
       val check1 = sil.Method(name + "_pre_expected_implies_inferred", parameters, Seq.empty, expected.pres, inferred.pres, body)()
