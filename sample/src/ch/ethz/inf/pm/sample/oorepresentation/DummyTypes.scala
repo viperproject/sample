@@ -17,6 +17,8 @@ object DummyTypeMap extends TypeMap {
 
   override val Boolean: Type = DummyBooleanType
 
+  override val Perm: Type = DummyPermTye
+
   override val Bottom: Type = DummyBottomType
 
   override val Top: Type = DummyTopType
@@ -143,4 +145,12 @@ case object DummyStringType extends DummyType {
 
   override def isStringType = true
 
+}
+
+/** A dummy perm type. */
+case object DummyPermTye extends DummyType {
+
+  def name = "Perm"
+
+  override def isNumericalType: Boolean = true
 }
