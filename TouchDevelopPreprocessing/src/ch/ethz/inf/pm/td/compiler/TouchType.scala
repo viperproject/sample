@@ -300,7 +300,7 @@ object TouchTypeMap extends TypeMap {
   override val Float: Type = TNumber
   override val String: Type = TString
   override val Boolean: Type = TBoolean
-  override val Perm: Type = ???
+  override val Perm: Type = TopTouchType
   override val Bottom: Type = BottomTouchType
   override val Top: Type = TopTouchType
 }
