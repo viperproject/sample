@@ -286,7 +286,7 @@ object SampleExpressions {
       if (expressions.isEmpty) True
       else expressions.reduce((left, right) => And(left, right))
 
-    def unapply(argument: Expression): Option[List[Expression]] =  argument match {
+    def unapply(argument: Expression): Option[List[Expression]] = argument match {
       case And(AndList(left), AndList(right)) => Some(left ++ right)
       case _ if argument.typ.isBooleanType => Some(List(argument))
       case _ => None
@@ -379,11 +379,11 @@ object SampleExpressions {
       case UnaryArithmeticExpression(argument, ArithmeticOperator.+, _) => argument
       case original@Negate(argument) =>
         argument match {
-        case Literal(value: Int) => Literal(-value)
-        case Times(Literal(value: Int), term) => Times(Literal(-value), term)
-        case Negate(nested) => nested
-        case _ => original
-      }
+          case Literal(value: Int) => Literal(-value)
+          case Times(Literal(value: Int), term) => Times(Literal(-value), term)
+          case Negate(nested) => nested
+          case _ => original
+        }
       // simplify additions
       case original@Plus(left, right) => (left, right) match {
         case (Zero, _) => right
@@ -464,18 +464,18 @@ object SampleExpressions {
         case ArithmeticOperator.>= => True
       }
       case Comparison(Permission(n1, d1), Permission(n2, d2), operator) => operator match {
-        case ArithmeticOperator. == => Literal(n1 * d2 == n2 * d1)
-        case ArithmeticOperator. != => Literal(n1 * d2 != n2 * d1)
-        case ArithmeticOperator. < => Literal(n1 * d2 < n2 * d1)
-        case ArithmeticOperator. <= => Literal(n1 * d2 <= n2 * d1)
-        case ArithmeticOperator. > => Literal(n1 * d2 > n2 * d1)
-        case ArithmeticOperator. >= => Literal(n1 * d2 >= n2 * d1)
+        case ArithmeticOperator.== => Literal(n1 * d2 == n2 * d1)
+        case ArithmeticOperator.!= => Literal(n1 * d2 != n2 * d1)
+        case ArithmeticOperator.< => Literal(n1 * d2 < n2 * d1)
+        case ArithmeticOperator.<= => Literal(n1 * d2 <= n2 * d1)
+        case ArithmeticOperator.> => Literal(n1 * d2 > n2 * d1)
+        case ArithmeticOperator.>= => Literal(n1 * d2 >= n2 * d1)
       }
       case original@Comparison(`read`, Permission(n, d), operator) => operator match {
-          case ArithmeticOperator.< | ArithmeticOperator.<= => if (0 < n * d) True else False
-          case ArithmeticOperator.> | ArithmeticOperator.>= => if (n * d <= 0) True else False
-          case _ => original
-        }
+        case ArithmeticOperator.< | ArithmeticOperator.<= => if (0 < n * d) True else False
+        case ArithmeticOperator.> | ArithmeticOperator.>= => if (n * d <= 0) True else False
+        case _ => original
+      }
       case original@Comparison(Permission(n, d), `read`, operator) => operator match {
         case ArithmeticOperator.< | ArithmeticOperator.<= => if (n * d <= 0) True else False
         case ArithmeticOperator.> | ArithmeticOperator.>= => if (0 < n * d) True else False
@@ -574,7 +574,7 @@ object SampleExpressions {
           MaxList(merged)
       }
       // bounding expressions
-      case Bound(Permission(a, b)) =>
+      case BoundedPermissionExpression(Permission(a, b)) =>
         if (a * b <= 0) No
         else Permission(a, b)
       // simplify reference comparison expressions

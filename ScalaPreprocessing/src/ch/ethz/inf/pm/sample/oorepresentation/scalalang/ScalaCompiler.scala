@@ -153,6 +153,7 @@ case class ScalaTypeMap(topType: Type) extends TypeMap {
   override val Float: Type = ???
   override val String: Type = ???
   override val Boolean: Type = ???
+  override val Perm: Type = ???
   override val Bottom: Type = ???
   override val Top: Type = ???
 }

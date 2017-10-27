@@ -686,6 +686,55 @@ case class ConditionalExpression(condition: Expression, left: Expression, right:
 }
 
 /**
+  * A permission typed expression.
+  *
+  * @author Jerome Dohrau
+  */
+trait PermissionExpression
+  extends Expression {
+
+  override def typ = SystemParameters.tm.Perm
+}
+
+/**
+  * An expression representing a fractional permission.
+  *
+  * @param left  The expression representing the numerator.
+  * @param right The expression representing the denominator.
+  * @author Jerome Dohrau
+  */
+case class FractionalPermissionExpression(left: Expression, right: Expression)
+  extends PermissionExpression
+    with BinaryExpression {
+
+  override def transform(f: (Expression) => Expression): Expression =
+    f(FractionalPermissionExpression(left.transform(f), right.transform(f)))
+
+  override def toString: String = s"$left/$right"
+}
+
+/**
+  * An expression representing the maximum of a permission and no permission.
+  * This is useful to ensure that permissions are non-negative.
+  *
+  * @param permission
+  * @author Jerome Dohrau
+  */
+case class BoundedPermissionExpression(permission: Expression)
+  extends PermissionExpression {
+
+  override def pp: ProgramPoint = permission.pp
+
+  override def ids: IdentifierSet = permission.ids
+
+  override def transform(f: (Expression) => Expression): Expression =
+    f(BoundedPermissionExpression(permission.transform(f)))
+
+  override def contains(f: (Expression) => Boolean): Boolean =
+    f(this) || permission.contains(f)
+}
+
+/**
   * A permission expression returning the current amount of permission for
   * the location specified in the argument.
   *
@@ -793,6 +842,8 @@ trait TypeMap {
   val String: Type
 
   val Boolean: Type
+
+  val Perm: Type
 
   val Bottom: Type
 

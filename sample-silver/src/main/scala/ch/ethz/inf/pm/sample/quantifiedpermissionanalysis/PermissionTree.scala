@@ -131,7 +131,7 @@ sealed trait PermissionTree {
       val rewrittenRight = right.rewrite
       for ((constraint1, permission1) <- rewrittenLeft;
            (constraint2, permission2) <- rewrittenRight)
-        yield (And(constraint1, constraint2), Bound(Minus(permission1, permission2)))
+        yield (And(constraint1, constraint2), BoundedPermissionExpression(Minus(permission1, permission2)))
     case Maximum(left, right) =>
       val rewrittenLeft = left.rewrite
       val rewrittenRight = right.rewrite
@@ -155,7 +155,7 @@ sealed trait PermissionTree {
       Leaf(condition, left)
     case Max(left, right) => Maximum(toTree(left), toTree(right))
     // note: it's okay to drop the bound since subtractions in trees are bounded implicitly
-    case Bound(Minus(left, right)) => Subtraction(toTree(left), toTree(right))
+    case BoundedPermissionExpression(Minus(left, right)) => Subtraction(toTree(left), toTree(right))
     case No => Empty
     case _ => ???
   }
@@ -164,7 +164,7 @@ sealed trait PermissionTree {
     case Empty => No
     case Leaf(condition, permission) => ConditionalExpression(condition, permission, No)
     case Addition(left, right) => Plus(left.toExpression, right.toExpression)
-    case Subtraction(left, right) => Bound(Minus(left.toExpression, right.toExpression))
+    case Subtraction(left, right) => BoundedPermissionExpression(Minus(left.toExpression, right.toExpression))
     case Maximum(left, right) => Max(left.toExpression, right.toExpression)
     case Conditional(condition, left, right) => ConditionalExpression(condition, left.toExpression, right.toExpression)
   }

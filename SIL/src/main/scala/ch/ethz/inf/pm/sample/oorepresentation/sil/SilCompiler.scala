@@ -99,6 +99,7 @@ object SilTypeMap extends TypeMap {
   override val Float: Type = TopType
   override val String: Type = TopType
   override val Boolean: Type = BoolType
+  override val Perm: Type = ???
   override val Bottom: Type = BottomType
   override val Top: Type = TopType
 }

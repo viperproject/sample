@@ -161,7 +161,7 @@ object MaximumElimination
       val delta = lcm(delta1, delta2)
       (tuples, projection, delta)
     // subtractions
-    case Bound(Minus(term, conditional@ConditionalExpression(condition, _, Zero | No))) =>
+    case BoundedPermissionExpression(Minus(term, conditional@ConditionalExpression(condition, _, Zero | No))) =>
       // negate condition since the conditional appears in a negative position
       val negated = toNegatedNormalForm(Not(condition))
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term, smallest)
