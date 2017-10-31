@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.permissionanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.ExpressionSetFactory._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverMethodDeclaration, SilverMethods}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{PermType, SilverMethodDeclaration, SilverMethods}
 
 /** Super trait for all silver commands.
   */
@@ -68,10 +68,9 @@ case class LeaveLoopCommand() extends SilverCommand
   * A command issued when a method is left and we return into the caller.
   *
   * @param methodDeclaration the method declaration of the called method
-  * @param methodCall the statement that called the method
+  * @param methodCall        the statement that called the method
   * @param targetExpressions The target expressions that will receive the callee's returns
-  * @param exitState the exit state of the called method. E.g CfgResult.exitState()
-  *
+  * @param exitState         the exit state of the called method. E.g CfgResult.exitState()
   * @author Flurin Rindisbacher
   */
 case class ReturnFromMethodCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, targetExpressions: Seq[ExpressionSet], exitState: S) extends SilverCommand
@@ -81,11 +80,10 @@ case class ReturnFromMethodCommand[S](methodDeclaration: SilverMethodDeclaration
   * has been fully analyzed and the entry state should be merged back into the caller. This is the dual to ReturnFromMethodCommand
   * in the forward analysis.
   *
-  * @param methodDeclaration the method declaration of the called method
-  * @param methodCall the statement that called the method
+  * @param methodDeclaration    the method declaration of the called method
+  * @param methodCall           the statement that called the method
   * @param parameterExpressions The parameters expressions that will receive the states of the callee's parameters.
-  * @param entryState the exit state of the called method. E.g CfgResult.exitState()
-  *
+  * @param entryState           the exit state of the called method. E.g CfgResult.exitState()
   * @author Flurin Rindisbacher
   */
 case class CallMethodBackwardsCommand[S](methodDeclaration: SilverMethodDeclaration, methodCall: MethodCall, parameterExpressions: Seq[ExpressionSet], entryState: S) extends SilverCommand
@@ -138,13 +136,16 @@ object SilverSemantics extends NativeMethodSemantics {
                                                           programPoint: ProgramPoint,
                                                           state: S): Option[S] = {
     (operator, parameters) match {
+      case ("/", right :: Nil) if returnType == PermType =>
+        Some(state.setExpression(createFractionalPermission(expression, right, returnType)))
       case ("&&", right :: Nil) =>
         Some(state.setExpression(createBooleanBinaryExpression(expression, right, BooleanOperator.&&)))
       case ("==" | "!=" | "<" | "<!" | ">" | ">=", right :: Nil) =>
         Some(state.setExpression(createBinaryArithmeticExpression(expression, right, ArithmeticOperator.withName(operator))))
       case _ =>
         SilverMethods.values.find(_.toString == operator) match {
-          case Some(SilverMethods.access) => Some(state.setExpression(createFieldAccessPredicate(expression, parameters.head, parameters(1), returnType)))
+          case Some(SilverMethods.access) =>
+            Some(state.setExpression(createFieldAccessPredicate(expression, parameters.head, returnType)))
           case Some(SilverMethods.permission) => Some(state.setExpression(createCurrentPermission(expression, returnType)))
           case Some(SilverMethods.inhale) => Some(state.command(InhaleCommand(expression)))
           case Some(SilverMethods.exhale) => Some(state.command(ExhaleCommand(expression)))

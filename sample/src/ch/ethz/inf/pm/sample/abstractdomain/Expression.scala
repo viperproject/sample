@@ -641,21 +641,24 @@ case class BinaryNondeterministicExpression(left: Expression, right: Expression,
 /**
   * A field access predicate used in inhale and exhale expressions.
   *
-  * @param location    The location for which we inhale or exhale the permission.
-  * @param numerator   The numerator of the inhaled or exhaled permission.
-  * @param denominator The denominator of the inhaled or exhaled permission.
-  * @param typ         The type of the field access predicate.
+  * @param location   The location for which we inhale or exhale the permission.
+  * @param permission The inhaled or exhaled permission.
+  * @author Jerome Dohrau
   * @author Caterina Urban
+  *
   */
-case class FieldAccessPredicate(location: Expression, numerator: Expression, denominator: Expression, typ: Type)
+case class FieldAccessPredicate(location: Expression, permission: Expression)
   extends Expression {
-  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessPredicate(location.transform(f), numerator.transform(f), denominator.transform(f), typ))
 
-  override def ids: IdentifierSet = location.ids ++ numerator.ids ++ denominator.ids
+  override def typ: Type = SystemParameters.tm.Boolean
 
   override def pp: ProgramPoint = location.pp
 
-  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f) || numerator.contains(f) || denominator.contains(f)
+  override def ids: IdentifierSet = location.ids ++ permission.ids
+
+  override def transform(f: (Expression) => Expression): Expression = f(FieldAccessPredicate(location.transform(f), permission.transform(f)))
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || location.contains(f) || permission.contains(f)
 }
 
 /**

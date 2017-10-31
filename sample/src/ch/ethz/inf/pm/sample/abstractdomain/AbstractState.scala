@@ -72,17 +72,22 @@ object ExpressionSetFactory {
     } else left.top()
   }
 
-  /** @author Caterina Urban */
-  def createFieldAccessPredicate(ids: ExpressionSet, nums: ExpressionSet, dens: ExpressionSet, ty: Type) : ExpressionSet = {
-    if (!ids.isTop && !nums.isTop && !dens.isTop) {
-      var result = new ExpressionSet(ty)
-      for (id <- ids.toSetOrFail)
-        for (num <- nums.toSetOrFail)
-          for (den <- dens.toSetOrFail)
-            result = result.add(FieldAccessPredicate(id, num, den, ty))
+  def createFractionalPermission(numerators: ExpressionSet, denominators: ExpressionSet, typ: Type): ExpressionSet = {
+    var result = new ExpressionSet(typ)
+    if (!numerators.isTop && !denominators.isTop) {
+      for (numerator <- numerators.toSetOrFail; denominator <- denominators.toSetOrFail)
+        result = result.add(FractionalPermissionExpression(numerator, denominator))
       result
-    } else ids.top()
+    } else result.top()
   }
+
+  def createFieldAccessPredicate(locations: ExpressionSet, permissions: ExpressionSet, typ: Type): ExpressionSet =
+    if (!locations.isTop && !permissions.isTop) {
+      var result = new ExpressionSet(typ)
+      for (location <- locations.toSetOrFail; permission <- permissions.toSetOrFail)
+        result = result.add(FieldAccessPredicate(location, permission))
+      result
+    } else locations.top()
 
   def createCurrentPermission(ids: ExpressionSet, typ: Type): ExpressionSet = {
     if (!ids.isTop) {
@@ -150,13 +155,13 @@ object ExpressionSetFactory {
 }
 
 case class ExpressionSet(
-    typ: Type,
+                          typ: Type,
                           s: SetDomain.Default[Expression] = SetDomain.Default.Bottom())
   extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
   def expressions: SetDomain.Default[Expression] = _2
 
-  override def factory(): ExpressionSet = new ExpressionSet(typ.top(),s.top())
+  override def factory(): ExpressionSet = new ExpressionSet(typ.top(), s.top())
 
   def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
 
@@ -186,7 +191,7 @@ case class ExpressionSet(
   def _1: Type = typ
 
   def not(): ExpressionSet = {
-    var result:SetDomain.Default[Expression] = this._2.bottom()
+    var result: SetDomain.Default[Expression] = this._2.bottom()
     for (key <- toSetOrFail)
       result = result.+(NegatedBooleanExpression(key))
     new ExpressionSet(typ, result)
@@ -196,7 +201,7 @@ case class ExpressionSet(
 
   def merge(r: Replacement): ExpressionSet = this._2 match {
     case SetDomain.Default.Bottom() => this
-    case SetDomain.Default.Top()    => this
+    case SetDomain.Default.Top() => this
     case SetDomain.Default.Inner(v) =>
 
       if (r.isEmpty()) return this
@@ -217,7 +222,7 @@ case class ExpressionSet(
   def isUnitExprSet: Boolean = this == ExpressionSetFactory.unitExpr
 
   /** Returns a single expression iff this has exactly one expression */
-  def getSingle:Option[Expression] = {
+  def getSingle: Option[Expression] = {
     s match {
       case SetDomain.Default.Inner(x) if x.size == 1 =>
         Some(x.head)
@@ -266,9 +271,9 @@ I <: HeapIdentifier[I]](
                          domain: HeapAndAnotherDomain[N, H, I],
                          expr: ExpressionSet)
   extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N, H, I]]
-  with SimpleState[AbstractState[N, H, I]]
-  with SingleLineRepresentation
-  with LatticeWithReplacement[AbstractState[N, H, I]] {
+    with SimpleState[AbstractState[N, H, I]]
+    with SingleLineRepresentation
+    with LatticeWithReplacement[AbstractState[N, H, I]] {
 
   def _2: ExpressionSet = expr
 
@@ -520,8 +525,8 @@ I <: HeapIdentifier[I]](
   def _1: HeapAndAnotherDomain[N, H, I] = domain
 
   /**
-   * Removes all variables satisfying filter
-   */
+    * Removes all variables satisfying filter
+    */
   def pruneVariables(filter: VariableIdentifier => Boolean): AbstractState[N, H, I] = {
 
     var curState = domain
@@ -556,8 +561,8 @@ I <: HeapIdentifier[I]](
   }
 
   /**
-   * Performs abstract garbage collection
-   */
+    * Performs abstract garbage collection
+    */
   def pruneUnreachableHeap(): AbstractState[N, H, I] = ???
 
   override def glb(other: AbstractState[N, H, I]): AbstractState[N, H, I] = glbWithReplacement(other)._1

@@ -89,9 +89,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       case BooleanOperator.&& => inhale(left).inhale(right)
       case BooleanOperator.|| => inhale(left) lub inhale(right)
     }
-    case FieldAccessPredicate(location, numerator, denominator, _) =>
+    case FieldAccessPredicate(location, permission) =>
       val FieldAccessExpression(receiver, field) = location
-      val permission = FractionalPermissionExpression(numerator, denominator)
       val condition = receiverToCondition(receiver)
       val leaf = Leaf(condition, permission)
       update(field, Subtraction(_, leaf))
@@ -103,9 +102,8 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       case BooleanOperator.&& => exhale(left).exhale(right)
       case BooleanOperator.|| => exhale(left) lub exhale(right)
     }
-    case FieldAccessPredicate(location, numerator, denominator, _) =>
+    case FieldAccessPredicate(location, permission) =>
       val FieldAccessExpression(receiver, field) = location
-      val permission = FractionalPermissionExpression(numerator, denominator)
       val condition = receiverToCondition(receiver)
       val leaf = Leaf(condition, permission)
       update(field, Addition(_, leaf))
@@ -134,7 +132,7 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       update(field, Maximum(_, leaf)).read(receiver)
     case FunctionCallExpression(_, arguments, _, _) =>
       arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
-    case FieldAccessPredicate(FieldAccessExpression(receiver, _), _, _, _) => read(receiver)
+    case FieldAccessPredicate(FieldAccessExpression(receiver, _), _) => read(receiver)
     case _ => ???
   }
 

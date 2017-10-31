@@ -136,11 +136,11 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case sil.Bool => sample.BoolType
     case sil.Int => sample.IntType
     case sil.Ref => refType
+    case sil.Perm => sample.PermType
     case sil.DomainType(name, _) => sample.DomType(name)
 
     // Stubs
-    case sil.Perm |
-         sil.TypeVar(_) |
+    case sil.TypeVar(_) |
          sil.SeqType(_) |
          sil.SetType(_) |
          sil.MultisetType(_) =>
@@ -184,12 +184,12 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
 
     case sil.MethodCall(method, args, targets) => {
       val call = sample.MethodCall(
-          pp = go(s.pos),
-          method = makeVariable(s.pos, sil.Ref, method),
-          parametricTypes = Nil,
-          parameters = args.map(go).toList,
-          returnedType = sample.TopType,
-          targets = targets.map(go).toList)
+        pp = go(s.pos),
+        method = makeVariable(s.pos, sil.Ref, method),
+        parametricTypes = Nil,
+        parameters = args.map(go).toList,
+        returnedType = sample.TopType,
+        targets = targets.map(go).toList)
       Seq(call)
     }
 
@@ -267,32 +267,23 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case sil.Unfolding(acc, inner) =>
       go(inner)
 
-    // Access predicates
-    // @author Caterina Urban
+    // access predicates
+    case sil.FieldAccessPredicate(location, permission) => makeNativeMethodCall(
+      pos = go(e.pos),
+      name = SilverMethods.access.toString,
+      args = go(location) :: go(permission) :: Nil,
+      returnType = sample.PermType
+    )
 
-    case sil.FieldAccessPredicate(loc, perm) => perm match {
-      case _: sil.FullPerm |
-           _: sil.NoPerm |
-           _: sil.LocalVar => makeNativeMethodCall(
-        pos = go(e.pos),
-        name = SilverMethods.access.toString,
-        args = go(loc) :: go(perm) :: sample.ConstantStatement(go(perm.pos), "1", sample.IntType) :: Nil,
-        returnType = sample.PermType)
-      case perm: sil.FractionalPerm => makeNativeMethodCall(
-        pos = go(e.pos),
-        name = SilverMethods.access.toString,
-        args = go(loc) :: go(perm.left) :: go(perm.right) :: Nil,
-        returnType = sample.PermType)
-      case add: sil.PermAdd =>
-        // acc(a.f, p + q) -> acc(a.f, p) && acc(a.f, q)
-        val left = sil.FieldAccessPredicate(loc, add.left)(e.pos)
-        val right = sil.FieldAccessPredicate(loc, add.right)(e.pos)
-        go(sil.And(left, right)(add.pos))
-      case _ =>
-        throw new NotImplementedError("A sil.PermExp conversion is missing!")
-    }
-    case e: sil.FullPerm => sample.ConstantStatement(go(e.pos), "1", sample.PermType)
-    case e: sil.NoPerm => sample.ConstantStatement(go(e.pos), "0", sample.PermType)
+    // permission expressions
+    case sil.FullPerm() => go(sil.FractionalPerm(sil.IntLit(1)(), sil.IntLit(1)())())
+    case sil.NoPerm() => go(sil.FractionalPerm(sil.IntLit(0)(), sil.IntLit(1)())())
+    case sil.FractionalPerm(left, right) => makeNativeMethodCall(
+      pos = go(e.pos),
+      name = ???,
+      args = go(left) :: go(right) :: Nil,
+      returnType = sample.PermType
+    )
 
     case sil.CurrentPerm(loc: sil.Exp) => makeNativeMethodCall(
       pos = go(e.pos),
@@ -307,7 +298,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
     case e: sil.SeqLength => // sequence length, e.g., |this.data|
       makeVariable(e.pos, e.typ, e.toString)
     case sil.SeqIndex(sequence, index) =>
-        sample.FieldAccess(go(e.pos), go(sequence), "[]", go(e.typ))
+      sample.FieldAccess(go(e.pos), go(sequence), "[]", go(e.typ))
     case e: sil.SeqExp => throw new NotImplementedError("A sil.SeqExp conversion is missing!")
 
     // Stubs
@@ -328,67 +319,6 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
          sil.ExplicitMultiset(_) |
          sil.ExplicitSet(_) => ???
   }
-
-  /*private def convertCfg(b: sil.Block)(
-    implicit cfg: sample.ControlFlowGraph,
-    indices: mutable.Map[sil.Block, Int] = mutable.Map.empty): Int = {
-    if (indices.contains(b)) indices(b)
-    else {
-      val stmts = b match {
-        case b: sil.ConditionalBlock =>
-          b.stmt.children.flatMap(go).toList ++ (go(b.cond) :: Nil)
-        case b: sil.StatementBlock =>
-          b.stmt.children.flatMap(go).toList
-        case lb: sil.LoopBlock =>
-          // generate method call for all invariants
-          val pp = if (lb.invs.isEmpty) TaggedProgramPoint(go(lb.pos), "invariant") else go(lb.invs.head.pos)
-          val invariants = makeNativeMethodCall(
-            pos = pp,
-            name = SilverMethods.invariant.toString,
-            args = Seq(makeConjunction(lb.invs)),
-            returnType = sample.TopType)
-          invariants :: go(lb.cond) :: Nil
-        case b: sil.Fresh =>
-          sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
-        case b: sil.Constraining =>
-          sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
-        //case b: sil.ConstrainingBlock =>
-        //  throw new IllegalArgumentException("The implementation for sil.ConstrainingBlock is missing.")
-      }
-      // Create new node and register its index *before* recursing
-      val index = cfg.addNode(stmts)
-      indices.update(b, index)
-      b match {
-        case b: sil.ConditionalBlock =>
-          cfg.addEdge(index, convertCfg(b.thn), Some(true))
-          cfg.addEdge(index, convertCfg(b.els), Some(false))
-        case b: sil.LoopBlock =>
-          cfg.addEdge(index, convertCfg(b.body), Some(true))
-          // In the SIL CFG, there are no explicit edges from blocks at
-          // the end of the loop back to the containing loop block.
-          // For Sample, we need to add them explicitly.
-          // Thus, find all terminal blocks reachable from the loop body block
-          // and add a back-edge.
-          val terminalBodyBlocks = sil.utility.ControlFlowGraph
-            .collectBlocks(b.body).filter(_.isInstanceOf[sil.TerminalBlock])
-
-          for (terminalBlock <- terminalBodyBlocks) {
-            // Only add a back-edge if there is no back edge already. If there
-            // is a back edge then it is the terminal block of an inner loop.
-            val terminalIndex = convertCfg(terminalBlock)
-            val hasBackEdge = cfg.edges.exists { case (from, _, _) => from == terminalIndex}
-            if (!hasBackEdge) cfg.addEdge(terminalIndex, index, None)
-          }
-
-          cfg.addEdge(index, convertCfg(b.succ), Some(false))
-        case _ =>
-          // TODO: Should handle FreshReadPermBlock
-          for (succ <- b.succs)
-            cfg.addEdge(index, convertCfg(succ.dest), None)
-      }
-      index
-    }
-  }*/
 
   /** Flattens a SIL conjunction into a sequence of expressions.
     *

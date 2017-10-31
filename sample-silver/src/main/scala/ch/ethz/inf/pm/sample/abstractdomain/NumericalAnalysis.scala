@@ -173,7 +173,7 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
    */
 
   override def inhale(expression: Expression): S = expression match {
-    case _: FieldAccessPredicate => this
+    case FieldAccessPredicate(_, _) => this
     case BinaryBooleanExpression(left, right, operator) => operator match {
       case BooleanOperator.&& => inhale(left).inhale(right)
       case BooleanOperator.|| => inhale(left) lub inhale(right)
@@ -182,7 +182,7 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
   }
 
   override def exhale(expression: Expression): S = expression match {
-    case _: FieldAccessPredicate => this
+    case FieldAccessPredicate(_, _) => this
     case BinaryBooleanExpression(left, right, operator) => operator match {
       case BooleanOperator.&& => exhale(left).exhale(right)
       case BooleanOperator.|| => exhale(left) lub exhale(right)

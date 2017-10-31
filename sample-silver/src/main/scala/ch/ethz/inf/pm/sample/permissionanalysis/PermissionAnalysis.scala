@@ -205,13 +205,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
     expression match {
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         inhale(right).inhale(left)
-      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
+      case FieldAccessPredicate(identifier, amount) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is inhaled
-        val inhaled = permission(numerator, denominator)
+        val inhaled = permission(amount)
         // add permission to all paths that must alias
-
         val updated = stack.mapPermissions { (path, tree) =>
           if (mustBeSame(postAliases, path, location))
             (tree.permission minus inhaled) lub Permission.none
@@ -232,11 +231,11 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
       case BinaryBooleanExpression(left, right, BooleanOperator.&&) =>
         // inhale both sides of the conjunction
         _exhale(left)._exhale(right)
-      case FieldAccessPredicate(identifier, numerator, denominator, _) =>
+      case FieldAccessPredicate(identifier, amount) =>
         // get access path
         val location = path(identifier)
         // get the amount of permission that is exhaled
-        val exhaled = permission(numerator, denominator)
+        val exhaled = permission(amount)
         // subtract permission form all paths that may alias
         val updated = stack.mapPermissions { (path, tree) =>
           if (mustBeSame(preAliases, path, location)) {
@@ -551,20 +550,12 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
     case _ => throw new IllegalArgumentException("Expected an access path identifier")
   }
 
-  /** Returns a permission where the amount corresponds to the fraction
-    * represented by the specified numerator and denominator.
-    *
-    * @param numerator   The numerator of the fraction.
-    * @param denominator The denominator of the fraction.
-    */
-  private def permission(numerator: Expression, denominator: Expression): Permission =
-    (numerator, denominator) match {
-      case (Constant(nValue, _, _), Constant(dValue, _, _)) =>
-        Permission.fractional(nValue.toInt, dValue.toInt)
-      case (VariableIdentifier("read", _), Constant("1", _, _)) =>
-        Permission.read
-      case _ => ??? // TODO: support more cases
+  private def permission(expression: Expression): Permission = expression match {
+    case FractionalPermissionExpression(left, right) => (left, right) match {
+      case (Constant(numerator, _, _), Constant(denominator, _, _)) =>
+        Permission.fractional(numerator.toInt, denominator.toInt)
     }
+  }
 
   /** Adds read permission for all access paths appearing in the specified
     * expression.

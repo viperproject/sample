@@ -291,7 +291,7 @@ trait AliasGraph[T <: AliasGraph[T]]
       (updated, substitution)
     case comparison: ReferenceComparisonExpression =>
       assumeComparison(comparison)
-    case FieldAccessPredicate(location, _, _, _) =>
+    case FieldAccessPredicate(location, _) =>
       // evaluate location to trigger its materialization
       val (updated, _, substitution) = evaluate(location)
       (updated, substitution)
@@ -305,7 +305,7 @@ trait AliasGraph[T <: AliasGraph[T]]
       val (updated, substitution2) = domain.exhale(right)
       val substitution = substitution1 compose substitution2
       (updated, substitution)
-    case FieldAccessPredicate(location, _, _, _) =>
+    case FieldAccessPredicate(location, _) =>
       havoc(location)
     case _ => ???
   }
