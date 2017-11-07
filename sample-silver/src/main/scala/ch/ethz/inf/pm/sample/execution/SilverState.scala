@@ -258,7 +258,7 @@ trait Simplifications[S <: SilverState[S]]
   this: S =>
 
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
-    val result = Constant(value, typ, pp)
+    val result = Constant(value, typ)(pp)
     setExpression(ExpressionSet(result))
   }
 
@@ -274,8 +274,8 @@ trait Simplifications[S <: SilverState[S]]
   }
 
   override def assume(condition: Expression): S = condition match {
-    case Constant("true", _, _) => this
-    case Constant("false", _, _) => bottom()
+    case Constant("true", _) => this
+    case Constant("false", _) => bottom()
     case _: VariableIdentifier => assumeArithmeticExpression(condition)
     case expression: ReferenceComparisonExpression => assumeReferenceExpression(expression)
     case expression: BinaryArithmeticExpression => assumeArithmeticExpression(expression)
@@ -284,8 +284,8 @@ trait Simplifications[S <: SilverState[S]]
       case BooleanOperator.|| => assume(left) lub assume(right)
     }
     case NegatedBooleanExpression(argument) => argument match {
-      case Constant("true", typ, pp) => assume(Constant("false", typ, pp))
-      case Constant("false", typ, pp) => assume(Constant("true", typ, pp))
+      case Constant("true", typ) => assume(Constant("false", typ)())
+      case Constant("false", typ) => assume(Constant("true", typ)())
       case _: VariableIdentifier => assumeArithmeticExpression(condition)
       case ReferenceComparisonExpression(left, right, operator) =>
         val negatedOperator = ReferenceOperator.negate(operator)

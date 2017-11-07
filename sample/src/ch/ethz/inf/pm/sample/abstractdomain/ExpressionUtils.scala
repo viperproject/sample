@@ -33,8 +33,8 @@ object ExpSimplifier {
       // Push negations inward if possible
       case e @ NegatedBooleanExpression(negExp) => negExp match {
         case NegatedBooleanExpression(innerExp) => innerExp
-        case Constant("true", typ, pp) => Constant("false", typ, pp)
-        case Constant("false", typ, pp) => Constant("true", typ, pp)
+        case Constant("true", typ) => Constant("false", typ)()
+        case Constant("false", typ) => Constant("true", typ)()
         case BinaryArithmeticExpression(l, r, o) =>
           BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o))
         case ReferenceComparisonExpression(l, r, o) =>
@@ -52,26 +52,26 @@ object ExpSimplifier {
         if left.typ.isBooleanType && right.typ.isBooleanType &&
           (op == ArithmeticOperator.== || op == ArithmeticOperator.!=) =>
         (left, right, op) match {
-          case (_, Constant("1", _, _), ArithmeticOperator.==) => left
-          case (Constant("1", _, _), _, ArithmeticOperator.==) => right
-          case (_, Constant("0", _, _), ArithmeticOperator.==) => NegatedBooleanExpression(left)
-          case (Constant("0", _, _), _, ArithmeticOperator.==) => NegatedBooleanExpression(right)
+          case (_, Constant("1", _), ArithmeticOperator.==) => left
+          case (Constant("1", _), _, ArithmeticOperator.==) => right
+          case (_, Constant("0", _), ArithmeticOperator.==) => NegatedBooleanExpression(left)
+          case (Constant("0", _), _, ArithmeticOperator.==) => NegatedBooleanExpression(right)
 
-          case (_, Constant("1", _, _), ArithmeticOperator.!=) => NegatedBooleanExpression(left)
-          case (Constant("1", _, _), _, ArithmeticOperator.!=) => NegatedBooleanExpression(right)
-          case (_, Constant("0", _, _), ArithmeticOperator.!=) => left
-          case (Constant("0", _, _), _, ArithmeticOperator.!=) => right
+          case (_, Constant("1", _), ArithmeticOperator.!=) => NegatedBooleanExpression(left)
+          case (Constant("1", _), _, ArithmeticOperator.!=) => NegatedBooleanExpression(right)
+          case (_, Constant("0", _), ArithmeticOperator.!=) => left
+          case (Constant("0", _), _, ArithmeticOperator.!=) => right
           case _ => b
         }
 
       // Binary arithmetic expressions
-      case BinaryArithmeticExpression(Constant("0", _, _), right, `+`) => right
-      case BinaryArithmeticExpression(left, Constant("0", _, _), `+`) => left
-      case BinaryArithmeticExpression(left, Constant("0", _, _), `-`) => left
-      case BinaryArithmeticExpression(Constant("1", _, _), right, `*`) => right
-      case BinaryArithmeticExpression(left, Constant("1", _, _), `*`) => left
-      case BinaryArithmeticExpression(c@Constant("0", _, _), _, `*`) => c
-      case BinaryArithmeticExpression(_, c@Constant("0", _, _), `*`) => c
+      case BinaryArithmeticExpression(Constant("0", _), right, `+`) => right
+      case BinaryArithmeticExpression(left, Constant("0", _), `+`) => left
+      case BinaryArithmeticExpression(left, Constant("0", _), `-`) => left
+      case BinaryArithmeticExpression(Constant("1", _), right, `*`) => right
+      case BinaryArithmeticExpression(left, Constant("1", _), `*`) => left
+      case BinaryArithmeticExpression(c@Constant("0", _), _, `*`) => c
+      case BinaryArithmeticExpression(_, c@Constant("0", _), `*`) => c
 
       // Everything else
       case e => e
@@ -93,7 +93,7 @@ object ExpPrettyPrinter extends Function[Expression, String] {
   def apply(exp: Expression): String = exp match {
     case BinaryArithmeticExpression(left, right, op) =>
       this(left) + " " + this(op) + " " + this(right)
-    case Constant(value, _, _) => value
+    case Constant(value, _) => value
     case _ => exp.toString // Fallback
   }
 

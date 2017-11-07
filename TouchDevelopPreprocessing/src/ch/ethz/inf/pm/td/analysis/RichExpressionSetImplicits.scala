@@ -25,10 +25,10 @@ trait RichExpressionSetImplicits {
     toRichExpression(value.head) ndToIncl toRichExpression(value.last)
 
   implicit def toRichExpression(value: Int): RichExpressionSet =
-    RichExpressionSet(new ExpressionSet(TNumber).add(Constant(value.toString, TNumber)))
+    RichExpressionSet(new ExpressionSet(TNumber).add(Constant(value.toString, TNumber)()))
 
   implicit def toRichExpression(value: Double): RichExpressionSet =
-    RichExpressionSet(new ExpressionSet(TNumber).add(Constant(value.toString, TNumber)))
+    RichExpressionSet(new ExpressionSet(TNumber).add(Constant(value.toString, TNumber)()))
 
   implicit def toRichExpression(value: Expression): RichExpressionSet =
     RichExpressionSet(new ExpressionSet(value.typ).add(value))
@@ -38,26 +38,26 @@ trait RichExpressionSetImplicits {
 
   /*-- Constants --*/
 
-  def String(a: String)(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant(a, TString, pp))
+  def String(a: String)(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant(a, TString)(pp))
 
-  def True(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("true", TBoolean, pp))
+  def True(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("true", TBoolean)(pp))
 
   def Bottom(typ: TouchType): RichExpressionSet = toRichExpression(new ExpressionSet(typ).bottom())
 
-  def PositiveInfinity(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("posinfty", TNumber, pp))
+  def PositiveInfinity(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("posinfty", TNumber)(pp))
 
-  def NegativeInfinity(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("neginfty", TNumber, pp))
+  def NegativeInfinity(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("neginfty", TNumber)(pp))
 
   def Default(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpressionSet = {
     typ match {
-      case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber, pp)))
+      case TNumber =>   toRichExpression(ExpressionSet(Constant("0", TNumber)(pp)))
       case TBoolean =>  toRichExpression(new ExpressionSet(TBoolean).add(False))
-      case TString =>   toRichExpression(ExpressionSet(Constant("", TString, pp)))
+      case TString =>   toRichExpression(ExpressionSet(Constant("", TString)(pp)))
       case _ =>         toRichExpression(Invalid(typ,cause))
     }
   }
 
-  def False(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("false", TBoolean, pp))
+  def False(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(Constant("false", TBoolean)(pp))
 
   def Invalid(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpressionSet = toRichExpression(InvalidExpression(typ, cause, pp))
 

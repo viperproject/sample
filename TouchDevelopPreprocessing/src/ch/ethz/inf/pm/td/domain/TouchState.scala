@@ -311,40 +311,40 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
         assumeSimplified(b)
 
       // Boolean constants
-      case Constant("true", _, _) => this
-      case Constant("false", _, _) => this.bottom()
-      case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
-      case NegatedBooleanExpression(Constant("false", _, _)) => this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) if a == b =>
+      case Constant("true", _) => this
+      case Constant("false", _) => this.bottom()
+      case NegatedBooleanExpression(Constant("true", _)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false", _)) => this
+      case BinaryArithmeticExpression(Constant(a, _), Constant(b, _), ArithmeticOperator.==) if a == b =>
         this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.!=) if a == b =>
+      case BinaryArithmeticExpression(Constant(a, _), Constant(b, _), ArithmeticOperator.!=) if a == b =>
         bottom()
-      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.==) if a == b =>
+      case ReferenceComparisonExpression(Constant(a, _), Constant(b, _), ReferenceOperator.==) if a == b =>
         this
-      case ReferenceComparisonExpression(Constant(a, _, _), Constant(b, _, _), ReferenceOperator.!=) if a == b =>
+      case ReferenceComparisonExpression(Constant(a, _), Constant(b, _), ReferenceOperator.!=) if a == b =>
         bottom()
-      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.==) if a == b =>
+      case BinaryStringExpression(Constant(a, _), Constant(b, _), StringOperator.==) if a == b =>
         this
-      case BinaryStringExpression(Constant(a, _, _), Constant(b, _, _), StringOperator.!=) if a == b =>
+      case BinaryStringExpression(Constant(a, _), Constant(b, _), StringOperator.!=) if a == b =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.==) =>
+      case BinaryArithmeticExpression(Constant("true", _), Constant("false", _), ArithmeticOperator.==) =>
         bottom()
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.==) =>
+      case BinaryArithmeticExpression(Constant("false", _), Constant("true", _), ArithmeticOperator.==) =>
         bottom()
-      case BinaryArithmeticExpression(Constant("true", _, _), Constant("false", _, _), ArithmeticOperator.!=) =>
+      case BinaryArithmeticExpression(Constant("true", _), Constant("false", _), ArithmeticOperator.!=) =>
         this
-      case BinaryArithmeticExpression(Constant("false", _, _), Constant("true", _, _), ArithmeticOperator.!=) =>
+      case BinaryArithmeticExpression(Constant("false", _), Constant("true", _), ArithmeticOperator.!=) =>
         this
 
       // Boolean variables
       case x: Identifier =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
-        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.!=))
         res
 
       case NegatedBooleanExpression(x: Identifier) =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
-        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.==))
         res
 
       // And and Or
@@ -508,7 +508,7 @@ trait TouchState[S <: SemanticDomain[S], T <: TouchState[S, T]]
     * @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    this.setExpression(ExpressionSet(Constant(value, typ, pp)))
+    this.setExpression(ExpressionSet(Constant(value, typ)(pp)))
   }
 
   /**

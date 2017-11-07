@@ -17,11 +17,11 @@ trait NumericalDomainTest[T <: NumericalDomain[T]] extends SemanticDomainTest[T]
   override lazy val typ = SystemParameters.tm.Int
 
   override def values = super.values ++ Set(
-    Constant("0", typ),
-    Constant("2", typ),
-    Constant("-2", typ),
-    Constant(Int.MaxValue.toString, typ),
-    Constant(Int.MinValue.toString, typ)
+    Constant("0", typ)(),
+    Constant("2", typ)(),
+    Constant("-2", typ)(),
+    Constant(Int.MaxValue.toString, typ)(),
+    Constant(Int.MinValue.toString, typ)()
   )
 
 }

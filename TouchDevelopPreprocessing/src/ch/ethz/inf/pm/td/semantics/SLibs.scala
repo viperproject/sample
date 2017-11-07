@@ -29,7 +29,7 @@ object SLibs extends ASingleton {
       override def isSingleton: Boolean = true
     }
 
-    state.setExpression(ExpressionSet(Constant("", typ, pp)))
+    state.setExpression(ExpressionSet(Constant("", typ)(pp)))
 
   }
 }

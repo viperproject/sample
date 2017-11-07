@@ -95,9 +95,9 @@ object RichNativeSemantics extends RichExpressionSetImplicits {
 
   def Default[S <: State[S]](typ: TouchType)(implicit s: S, pp: ProgramPoint): S = {
     s.setExpression(typ.name match {
-      case "String" => ExpressionSet(Constant("", typ, pp))
-      case "Number" => ExpressionSet(Constant("0", typ, pp))
-      case "Boolean" => ExpressionSet(Constant("false", typ, pp))
+      case "String" => ExpressionSet(Constant("", typ)(pp))
+      case "Number" => ExpressionSet(Constant("0", typ)(pp))
+      case "Boolean" => ExpressionSet(Constant("false", typ)(pp))
       case _ => ExpressionSet(InvalidExpression(typ, "May be uninitialized", pp))
     })
   }
@@ -110,9 +110,9 @@ object RichNativeSemantics extends RichExpressionSetImplicits {
                          initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     typ match {
-      case TNumber => s.setExpression(ExpressionSet(Constant("0", TNumber, pp)))
+      case TNumber => s.setExpression(ExpressionSet(Constant("0", TNumber)(pp)))
       case TBoolean => s.setExpression(new ExpressionSet(TBoolean).add(False))
-      case TString => s.setExpression(ExpressionSet(Constant("", TString, pp)))
+      case TString => s.setExpression(ExpressionSet(Constant("", TString)(pp)))
       case anyTyp:AAny =>
 
         var curState = s

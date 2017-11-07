@@ -62,20 +62,20 @@ case class NonDeterminismWrapper[X <: NumericalDomain.Relational[X]](wrapped:X)
           newState = newStateLeft.lub(newStateRight)
         case NondeterministicOperator.toExcl =>
           ndExpr.left match {
-            case Constant("neginfty", _, _) => ()
+            case Constant("neginfty", _) => ()
             case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=))
           }
           ndExpr.right match {
-            case Constant("posinfty", _, _) => ()
+            case Constant("posinfty", _) => ()
             case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<))
           }
         case NondeterministicOperator.toIncl =>
           ndExpr.left match {
-            case Constant("neginfty", _, _) => ()
+            case Constant("neginfty", _) => ()
             case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=))
           }
           ndExpr.right match {
-            case Constant("posinfty",_,_) => ()
+            case Constant("posinfty",_) => ()
             case _ => newState = newState.assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=))
           }
       }

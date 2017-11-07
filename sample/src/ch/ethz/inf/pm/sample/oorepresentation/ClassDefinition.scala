@@ -150,7 +150,7 @@ class MethodDeclaration(
         .createVariableForArgument(variable, ownerType)
         .assume(ExpressionSet(ReferenceComparisonExpression(
         thisVarId,
-        Constant("null", ownerType, programpoint),
+        Constant("null", ownerType)(programpoint),
           ReferenceOperator.!=)))
     }
     result

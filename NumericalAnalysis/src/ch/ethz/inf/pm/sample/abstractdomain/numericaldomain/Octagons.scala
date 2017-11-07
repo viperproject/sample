@@ -380,9 +380,9 @@ object Octagons {
       * @return The resulting interval.
       */
     def evaluate(expr: Expression): Interval = expr match {
-      case Constant("true", _, _) => Interval.One
-      case Constant("false", _, _) => Interval.Zero
-      case Constant(value, _, _) => toInterval(value)
+      case Constant("true", _) => Interval.One
+      case Constant("false", _) => Interval.Zero
+      case Constant(value, _) => toInterval(value)
       case id: Identifier => evaluate(id)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.+, _) => evaluate(arg)
       case UnaryArithmeticExpression(arg, ArithmeticOperator.-, _) => -evaluate(arg)
@@ -1019,7 +1019,7 @@ object Octagons {
     /** A helper function that constructs a constant from the given value.
       */
     def makeConstant(value: Double): Expression =
-      Constant(value.toString, SystemParameters.tm.Int)
+      Constant(value.toString, SystemParameters.tm.Int)()
   }
 
   /**
@@ -1468,7 +1468,7 @@ object IntegerOctagons {
       closed.orElse(open).get
 
     override def makeConstant(value: Double): Expression =
-      Constant(value.toInt.toString, SystemParameters.tm.Int)
+      Constant(value.toInt.toString, SystemParameters.tm.Int)()
 
     override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): IntegerOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))
@@ -1599,7 +1599,7 @@ object DoubleOctagons {
       closed.orElse(open).get
 
     override def makeConstant(value: Double): Expression =
-      Constant(value.toString, SystemParameters.tm.Int)
+      Constant(value.toString, SystemParameters.tm.Int)()
 
     override protected def copy(newEnv: Environment, from: List[Int], to: List[Int]): DoubleOctagons = {
       val newClosed = closed.map(dbm => getDbm.factory(newEnv.size).copy(dbm, from, to))

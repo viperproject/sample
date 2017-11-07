@@ -73,7 +73,7 @@ object DefaultSilConverter extends SilConverter with LazyLogging {
       fields = Nil,
       methods = Nil,
       pack = sample.PackageIdentifier,
-      inv = sample.Constant("true", sample.BoolType, go(p.pos)))
+      inv = sample.Constant("true", sample.BoolType)(go(p.pos)))
 
     // Only translate the methods and fields once we have the ClassDefinition
     classDef.fields = p.fields.map(go).toList

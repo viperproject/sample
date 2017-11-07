@@ -200,7 +200,7 @@ object SemanticDomain {
     override def ids = IdentifierSet.Bottom
     override def getPossibleConstants(id: Identifier) = SetDomain.Default.Bottom[Constant]()
 
-    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set(Constant("false", SystemParameters.tm.Boolean))
+    override def getConstraints(ids: Set[Identifier]): Set[Expression] = Set(Constant("false", SystemParameters.tm.Boolean)())
 
   }
 

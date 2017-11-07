@@ -164,7 +164,7 @@ case class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     map.getOrElse(id,dom.top()).getPossibleConstants
 
   private def eval(expr: Expression): T = expr match {
-    case Constant(constant, typ, pp) =>
+    case Constant(constant, typ) =>
       dom.singleton(constant)
     case AbstractOperator(left, List(right), Nil, AbstractOperatorIdentifiers.stringConcatenation, _) =>
       eval(left).concat(eval(right))
@@ -259,7 +259,7 @@ object StringKSetDomain {
 
     override def cap: StringKSetDomain = if (value.size > k) top() else this
 
-    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_, SystemParameters.tm.String)))
+    override def getPossibleConstants = SetDomain.Default.Inner(value.map(Constant(_, SystemParameters.tm.String)()))
 
   }
 

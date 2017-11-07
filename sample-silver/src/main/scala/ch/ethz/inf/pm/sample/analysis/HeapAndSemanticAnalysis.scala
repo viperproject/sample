@@ -216,7 +216,7 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     logger.trace(s"evalConstant($value)")
 
-    val constant = Constant(value, typ, pp)
+    val constant = Constant(value, typ)(pp)
     copy(expr = ExpressionSet(constant))
   }
 

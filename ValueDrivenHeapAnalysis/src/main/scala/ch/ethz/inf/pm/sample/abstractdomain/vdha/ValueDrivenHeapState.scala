@@ -163,8 +163,8 @@ trait ValueDrivenHeapState[
             val isCertainlyFalse = condHeap.assume(normalRight).isBottom
             val isCertainlyTrue = condHeap.assume(NegatedBooleanExpression(normalRight)).isBottom
             Seq(condHeap.map(state => {
-              if (isCertainlyFalse) state.assign(variable, Constant("false", left.typ, normalRight.pp))
-              else if (isCertainlyTrue) state.assign(variable, Constant("true", left.typ, normalRight.pp))
+              if (isCertainlyFalse) state.assign(variable, Constant("false", left.typ)(normalRight.pp))
+              else if (isCertainlyTrue) state.assign(variable, Constant("true", left.typ)(normalRight.pp))
               // When neither is certain, fall back to an assignment.
               // The variable will be set to top unless the semantic domain
               // can actually handle the right-hand side.
@@ -389,7 +389,7 @@ trait ValueDrivenHeapState[
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     if (this.isBottom) return this
-    this.setExpression(ExpressionSet(Constant(value, typ, pp)))
+    this.setExpression(ExpressionSet(Constant(value, typ)(pp)))
   }
 
   def assume(cond: Expression): T =

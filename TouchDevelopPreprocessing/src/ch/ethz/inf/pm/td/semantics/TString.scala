@@ -176,7 +176,7 @@ object TString extends Default_TString {
             curState = New[S](typ)(curState,pp)
             val absColl = curState.expr
             for (c <- coll) {
-              curState = typ.Insert[S](absColl,typ.Count[S](absColl), Constant(c,TString,pp))(curState,pp)
+              curState = typ.Insert[S](absColl,typ.Count[S](absColl), Constant(c,TString)(pp))(curState,pp)
               curState = typ.IncreaseLength[S](absColl)(curState,pp)
             }
             curState.setExpression(absColl)

@@ -192,8 +192,8 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     val cond = ExpSimplifier.simplify(_cond)
 
     val result: CondHeapGraphSeq[S] = cond match {
-      case Constant("false", _, _) => CondHeapGraphSeq(Seq())(lattice)
-      case Constant("true", _, _) => this
+      case Constant("false", _) => CondHeapGraphSeq(Seq())(lattice)
+      case Constant("true", _) => this
       case VariableIdentifier(_, _)
            | NegatedBooleanExpression(VariableIdentifier(_, _))
            | BinaryArithmeticExpression(_, _, _) =>
@@ -210,7 +210,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       case ReferenceComparisonExpression(left, right, op) =>
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
-            case (Constant("null", _, _)) => NullVertex
+            case (Constant("null", _)) => NullVertex
             case AccessPathIdentifier(path) => condHeap.takenPath(path.map(_.getName)).target
           }
 

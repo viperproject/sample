@@ -50,17 +50,17 @@ object DefaultSampleConverter extends SampleConverter {
       case ArithmeticOperator.`+` => go(inner)
       case ArithmeticOperator.`-` => sil.Minus(go(inner))()
     }
-    case sample.Constant(c, typ, pp) => typ match {
+    case sample.Constant(c, typ) => typ match {
       case sample.BoolType => c match {
-        case "0" | "false" => sil.FalseLit()(go(pp))
-        case "1" | "true" => sil.TrueLit()(go(pp))
+        case "0" | "false" => sil.FalseLit()(go(e.pp))
+        case "1" | "true" => sil.TrueLit()(go(e.pp))
         case _ => sys.error(s"unexpected boolean constant '$c'")
       }
       case sample.IntType =>
         // Apron only uses floating point values
         sil.IntLit(c.toFloat.toInt)()
       case t: sample.RefType => c match {
-        case "null" => sil.NullLit()(go(pp))
+        case "null" => sil.NullLit()(go(e.pp))
         case _ => sys.error(s"unexpected reference constant '$c'")
       }
       case _ => sys.error(s"unexpected constant type $typ")

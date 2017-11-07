@@ -30,7 +30,7 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Mat
 
   def makeVarId(name: String, typ: Type): VariableIdentifier = VariableIdentifier(name)(typ)
 
-  def makeConst(value: String, typ: Type) = Constant(value.toString, typ, DummyProgramPoint)
+  def makeConst(value: String, typ: Type) = Constant(value.toString, typ)(DummyProgramPoint)
 
   def translate(iFace: Apron.Polyhedra): Set[String] = {
     val translator = ApronInterfaceTranslator()(iFace.asInstanceOf[Apron.Polyhedra.Inner])

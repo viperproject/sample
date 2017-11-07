@@ -67,16 +67,16 @@ object SampleExpressions {
 
   object Literal {
     def apply(value: Int): Constant =
-      Constant(value.toString, IntType)
+      Constant(value.toString, IntType)()
 
     def apply(value: Boolean): Constant =
-      Constant(value.toString, BoolType)
+      Constant(value.toString, BoolType)()
 
     def unapply(argument: Expression): Option[Any] = argument match {
-      case Constant(value, IntType, _) => Some(value.toInt)
+      case Constant(value, IntType) => Some(value.toInt)
       // TODO: This is here since the numerator of fractional permissions sometimes is permission typed.
-      case Constant(value, PermType, _) => Some(value.toInt)
-      case Constant(value, BoolType, _) => Some(value.toBoolean)
+      case Constant(value, PermType) => Some(value.toInt)
+      case Constant(value, BoolType) => Some(value.toBoolean)
       case _ => None
     }
   }

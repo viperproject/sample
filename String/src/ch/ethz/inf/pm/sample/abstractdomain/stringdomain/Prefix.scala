@@ -117,9 +117,9 @@ class Prefix (val map: Map[Identifier, PrefixDomain] = Map.empty[Identifier, Pre
       val l: List[Expression] = parameters
       if (l.size != 2) return new PrefixDomain().top()
       l.head match {
-        case Constant(s1, _, _) =>
+        case Constant(s1, _) =>
           l.apply(1) match {
-            case Constant(s2, _, _) =>
+            case Constant(s2, _) =>
               val beginIndex = Integer.decode(s1).intValue()
               val endIndex = Integer.decode(s2).intValue()
               val str = this.eval(thisExpr).stringValue

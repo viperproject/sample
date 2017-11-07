@@ -461,7 +461,7 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
    
    private def eval(expr : Expression) : BricksDomain = expr match {
 	   	case x : Identifier => this.get(x)
-	    case Constant(x,_,_) =>
+	    case Constant(x,_) =>
 	      val result = new BricksDomain()
 	      result.bricksList = List(new Brick(1, 1, Set(x)))
 	      result
@@ -477,9 +477,9 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
 	      val l : List[Expression] = parameters
 	      if(l.size != 2) return new BricksDomain().top()
         l.head match {
-    	    case Constant(s1, _, _) =>
+    	    case Constant(s1, _) =>
 		      l.apply(1) match {
-		    	    case Constant(s2, _, _) =>
+		    	    case Constant(s2, _) =>
 		    	    	  val beginIndex = Integer.decode(s1).intValue()
 	    	    	  	  val endIndex = Integer.decode(s2).intValue()
 					      val left = this.eval(thisExpr)

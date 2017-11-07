@@ -126,11 +126,11 @@ object Normalizer {
         case _ => None
       }
 
-    case Constant("true", t, pp) => Some(Monomial(Nil,1.0))
+    case Constant("true", t) => Some(Monomial(Nil,1.0))
 
-    case Constant("false", t, pp) => Some(Monomial(Nil,0.0))
+    case Constant("false", t) => Some(Monomial(Nil,0.0))
 
-    case Constant(c, t, pp) => try {
+    case Constant(c, t) => try {
       Some(Monomial(Nil, c.toDouble))
     } catch {
       case e: NumberFormatException => None
@@ -177,7 +177,7 @@ object Normalizer {
           case None =>
             None
           case Some(Monomial(variables, const)) =>
-            val constExp = Constant(const.toString, exp.typ, exp.pp)
+            val constExp = Constant(const.toString, exp.typ)(exp.pp)
             variables.length match {
               case 0 =>
                 Some(constExp)
@@ -185,7 +185,7 @@ object Normalizer {
               case 1 =>
                 var result: BinaryArithmeticExpression = null
                 for ((coef, id) <- variables) {
-                  val coefExp = Constant(coef.toString, exp.typ, exp.pp)
+                  val coefExp = Constant(coef.toString, exp.typ)(exp.pp)
                   val coefAndVarExp: BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*)
                   result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+)
                 }

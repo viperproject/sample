@@ -54,7 +54,7 @@ object Apron {
     override def add(ids: Set[Identifier]): T =
       factory(new Abstract1(manager,makeEnvironment(ids)), IdentifierSet.Inner(ids))
 
-    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false", SystemParameters.tm.Boolean))
+    override def getConstraints(ids: Set[Identifier]) = Set(Constant("false", SystemParameters.tm.Boolean)())
 
   }
 
@@ -294,7 +294,7 @@ object Apron {
     override def getPossibleConstants(id: Identifier): Default[Constant] = {
       val interval = apronState.getBound(manager,id.getName)
       if (interval.inf() == interval.sup()) {
-        SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString, SystemParameters.tm.Int)))
+        SetDomain.Default.Inner(Set(Constant(interval.inf.asInstanceOf[DoubleScalar].get().toString, SystemParameters.tm.Int)()))
       } else {
         SetDomain.Default.Top[Constant]()
       }

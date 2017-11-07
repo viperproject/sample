@@ -121,7 +121,7 @@ class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) exten
 
 	override def identifier: VariableIdentifier = VariableIdentifier(name)(top)
 
-	override def constant(value: String): Constant = Constant(value, top)
+	override def constant(value: String): Constant = Constant(value, top)()
 
 	override def restrictions: List[Restriction] = {
 		ranges.map {

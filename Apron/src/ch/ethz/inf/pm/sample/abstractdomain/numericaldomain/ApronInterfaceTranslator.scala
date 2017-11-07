@@ -65,8 +65,8 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
 
     // Add the constant to the LHS or RHS of the inequality,
     // depending on whether it is positive or negative
-    val sampleConst = Constant(const.toString, typ, DummyProgramPoint)
-    val sampleNegConst = Constant(negateCoeff(const).toString, typ, DummyProgramPoint)
+    val sampleConst = Constant(const.toString, typ)()
+    val sampleNegConst = Constant(negateCoeff(const).toString, typ)()
 
     if (const.cmp(new DoubleScalar(0)) > 0) {
       if (rightExps.isEmpty) {
@@ -78,7 +78,7 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
     } else if (const.cmp(new DoubleScalar(0)) < 0)
       rightExps ::= sampleNegConst
 
-    val zero = Constant("0", typ, DummyProgramPoint)
+    val zero = Constant("0", typ)()
     val result = BinaryArithmeticExpression(
       left = BinaryArithmeticExpression(leftExps, ArithmeticOperator.`+`, zero),
       right = BinaryArithmeticExpression(rightExps, ArithmeticOperator.`+`, zero),
@@ -97,7 +97,7 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
    */
   def translateTerm(t: Linterm1): Expression = {
     val id = resolve(t.getVariable)
-    val coeff = Constant(t.coeff.toString, id.typ, id.pp)
+    val coeff = Constant(t.coeff.toString, id.typ)(id.pp)
     BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*)
   }
 
@@ -154,11 +154,11 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
   }
 
   def toTexpr1Node(e: Expression): List[Texpr1Node] = e match {
-    case Constant("posinfty", typ, p) =>
+    case Constant("posinfty", typ) =>
       val a = new DoubleScalar()
       a.setInfty(1)
       List(new Texpr1CstNode(a))
-    case Constant("neginfty", typ, p) =>
+    case Constant("neginfty", typ) =>
       val a = new DoubleScalar()
       a.setInfty(-1)
       List(new Texpr1CstNode(a))
@@ -169,7 +169,7 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
         (setId.value map {
           x: Identifier => new Texpr1VarNode(x.getName)
         }).toList
-    case Constant(v, typ, p) =>
+    case Constant(v, typ) =>
       if (typ.isNumericalType)
         v match {
           case "true" => List(new Texpr1CstNode(new DoubleScalar(1)))
@@ -247,7 +247,7 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
             // EPSILON should be the smallest representable number. (actually, we are generating A - B - EPSILON >= 0)
 
             val sExpr1 = new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-)
-            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.typ, sExpr1.pp), ArithmeticOperator.-)
+            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.typ)(sExpr1.pp), ArithmeticOperator.-)
             for (e <- this.toTexpr1Node(sExpr2)) yield {
               new Tcons1(env, Tcons1.SUPEQ, e)
             }
@@ -261,9 +261,9 @@ case class ApronInterfaceTranslator()(apronInterface: Apron.Inner[_, _]) extends
       toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op)), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) => toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.==), env)
     case x: Expression =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.!=), env)
     case _ =>
       logger.debug("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))

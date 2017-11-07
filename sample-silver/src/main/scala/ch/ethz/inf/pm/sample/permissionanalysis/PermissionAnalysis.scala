@@ -460,7 +460,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
     */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     logger.trace("evalConstant")
-    val constant = Constant(value, typ, pp)
+    val constant = Constant(value, typ)(pp)
     copy(result = ExpressionSet(constant))
   }
 
@@ -552,7 +552,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
 
   private def permission(expression: Expression): Permission = expression match {
     case FractionalPermissionExpression(left, right) => (left, right) match {
-      case (Constant(numerator, _, _), Constant(denominator, _, _)) =>
+      case (Constant(numerator, _), Constant(denominator, _)) =>
         Permission.fractional(numerator.toInt, denominator.toInt)
     }
   }
@@ -565,7 +565,7 @@ trait PermissionAnalysisState[T <: PermissionAnalysisState[T, A, May, Must], A <
   private def read(expression: Expression): T = {
     val ids = expression.transform {
       // ignore all current permission expressions
-      case CurrentPermission(_, typ) => Constant("ignore", typ)
+      case CurrentPermission(_, typ) => Constant("ignore", typ)()
       case e => e
     }.ids.getNonTop
 

@@ -58,7 +58,7 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
 
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): S = {
     logger.trace(s"evalConstant($value)")
-    copy(expr = ExpressionSet(Constant(value, typ, pp)))
+    copy(expr = ExpressionSet(Constant(value, typ)(pp)))
   }
 
   override def getVariableValue(id: Identifier): S = {

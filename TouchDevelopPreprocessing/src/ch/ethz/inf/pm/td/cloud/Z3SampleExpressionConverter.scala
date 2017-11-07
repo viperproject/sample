@@ -55,9 +55,9 @@ case class Z3SampleExpressionConverter() extends Z3Prover.ExpressionConverter[Ex
         "(" + convertAO(op) + " " + convert(left) + " " + convert(right) + ")"
       case UnaryArithmeticExpression(left, op, _) =>
         "(" + convertAO(op) + " " + convert(left) + ")"
-      case Constant(constant, typ, _) if typ.isStringType =>
+      case Constant(constant, typ) if typ.isStringType =>
         "\"" + constant + "\""
-      case Constant(constant, typ, _) if !typ.isStringType =>
+      case Constant(constant, typ) if !typ.isStringType =>
         constant
       case VariableIdentifier(name, _) =>
         name

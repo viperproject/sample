@@ -131,13 +131,13 @@ object CloudAnalysisState {
             case ArithmeticOperator.!= => Unequal(l, r)
           }
         case UnaryArithmeticExpression(left, op, _) => ???
-        case Constant(constant, typ, _) if typ.isStringType =>
+        case Constant(constant, typ) if typ.isStringType =>
           StringConst(constant)
-        case Constant("true", typ, _) if typ.isBooleanType =>
+        case Constant("true", typ) if typ.isBooleanType =>
           True
-        case Constant("true", typ, _) if typ.isBooleanType =>
+        case Constant("true", typ) if typ.isBooleanType =>
           False
-        case Constant(v, typ, _) if typ.isNumericalType =>
+        case Constant(v, typ) if typ.isNumericalType =>
           IntConst(v.toInt)
         case FieldIdentifier(_, name, _) =>
           val (eventID, typ, num) = CloudArgumentFieldNames.deconstruct(name)
@@ -268,9 +268,9 @@ object CloudAnalysisState {
 
     val events =
       constants.map {
-        case Constant(c, _, _) if c.nonEmpty =>
+        case Constant(c, _) if c.nonEmpty =>
           stringToEvent(c)
-        case Constant(c, _, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
+        case Constant(c, _) if c.isEmpty => // Constant may be empty when this is (potentially) the first event
           InitialEvent
       }
 
@@ -302,7 +302,7 @@ object CloudAnalysisState {
       AssignField[S](
         helpers,
         SHelpers.field_last_operation,
-        toRichExpression(Constant(pp.toString, TString, pp))
+        toRichExpression(Constant(pp.toString, TString)(pp))
       )(assignedState, pp)
 
     res

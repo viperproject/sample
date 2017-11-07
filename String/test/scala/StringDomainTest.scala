@@ -16,9 +16,9 @@ import ch.ethz.inf.pm.sample.test.SemanticDomainTest
 trait StringDomainTest[T <: StringDomain[T]] extends SemanticDomainTest[T] {
   override def typ: Type = SystemParameters.tm.String
   override def values = super.values ++ Set(
-    Constant("a",typ),
-    Constant("bbbbbbbbbbbbbbbbbbbbbb",typ),
-    Constant("",typ)
+    Constant("a",typ)(),
+    Constant("bbbbbbbbbbbbbbbbbbbbbb",typ)(),
+    Constant("",typ)()
   )
 }
 

@@ -22,7 +22,7 @@ object ExpressionSetFactory {
 
   def createFunctionCallExpression(functionName: String, argumentExpressions: Seq[ExpressionSet], typ: Type, pp: ProgramPoint): ExpressionSet = {
     ExpressionSet((for (arguments <- expand(argumentExpressions)) yield {
-      FunctionCallExpression(functionName, arguments, typ, pp)
+      FunctionCallExpression(functionName, arguments, typ)(pp)
     }).toSeq)
   }
 
@@ -433,7 +433,7 @@ I <: HeapIdentifier[I]](
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
     if (isBottom) return this
-    setExpression(ExpressionSet(Constant(value, typ, pp)))
+    setExpression(ExpressionSet(Constant(value, typ)(pp)))
   }
 
   def setExpression(value: ExpressionSet): AbstractState[N, H, I] = {

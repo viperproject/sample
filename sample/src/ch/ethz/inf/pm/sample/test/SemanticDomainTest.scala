@@ -47,7 +47,7 @@ trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
   test("Assuming false gives bottom") {
     for (a <- instances) {
       assert {
-        a.assume(Constant("false", SystemParameters.tm.Boolean)).isBottom
+        a.assume(Constant("false", SystemParameters.tm.Boolean)()).isBottom
       }
     }
   }
@@ -55,7 +55,7 @@ trait SemanticDomainTest[T <: SemanticDomain[T]] extends LatticeTest[T] {
   test("Assuming true gives identity") {
     for (a <- instances) {
       assert {
-        a.assume(Constant("true", SystemParameters.tm.Boolean)) == a
+        a.assume(Constant("true", SystemParameters.tm.Boolean)()) == a
       }
     }
   }

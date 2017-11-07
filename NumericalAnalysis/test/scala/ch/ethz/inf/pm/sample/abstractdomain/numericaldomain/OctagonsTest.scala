@@ -45,7 +45,7 @@ class OctagonsTest
     )
 
   def constant(value: Int): Constant =
-    Constant(value.toString, SystemParameters.tm.Int)
+    Constant(value.toString, SystemParameters.tm.Int)()
 
   def variable(name: String): Identifier =
     VariableIdentifier(name)(SystemParameters.tm.Int)

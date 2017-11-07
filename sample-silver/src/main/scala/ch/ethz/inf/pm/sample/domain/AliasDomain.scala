@@ -258,13 +258,13 @@ trait AliasGraph[T <: AliasGraph[T]]
   }
 
   override def inhale(condition: Expression): (T, Substitution) = condition match {
-    case Constant("true", _, _) => (this, identity)
-    case Constant("false", _, _) => (bottom(), identity)
+    case Constant("true", _) => (this, identity)
+    case Constant("false", _) => (bottom(), identity)
     case _: Identifier => (this, identity)
     case _: BinaryArithmeticExpression => (this, identity)
     case NegatedBooleanExpression(argument) => argument match {
-      case Constant("true", typ, pp) => inhale(Constant("false", typ, pp))
-      case Constant("false", typ, pp) => inhale(Constant("true", typ, pp))
+      case Constant("true", typ) => inhale(Constant("false", typ)())
+      case Constant("false", typ) => inhale(Constant("true", typ)())
       case NegatedBooleanExpression(doublyNegated) => inhale(doublyNegated)
       case BinaryBooleanExpression(left, right, operator) =>
         val negatedLeft = NegatedBooleanExpression(left)
@@ -362,7 +362,7 @@ trait AliasGraph[T <: AliasGraph[T]]
       case NewNode =>
         val values = Set(UnknownNode: HeapNode)
         (this, values, identity)
-      case Constant("null", _, _) =>
+      case Constant("null", _) =>
         val values = Set(NullNode: HeapNode)
         (this, values, identity)
       case variable: VariableIdentifier =>
@@ -801,7 +801,7 @@ case class MayAliasGraph(isTop: Boolean = false,
   private def filter(target: Expression, receivers: Set[HeapNode], mask: Set[HeapNode]): MayAliasGraph = {
     if (isTop || isBottom) this
     else target match {
-      case Constant("null", _, _) => this
+      case Constant("null", _) => this
       case variable: VariableIdentifier =>
         val values = store.getOrElse(variable, Set.empty) & mask
         if (values.isEmpty) bottom()
@@ -957,7 +957,7 @@ case class MustAliasGraph(isTop: Boolean = false,
   private def filter(target: Expression, receivers: Set[HeapNode], mask: Set[HeapNode]): MustAliasGraph =
     if (isTop || isBottom) this
     else target match {
-      case Constant("null", _, _) => this
+      case Constant("null", _) => this
       case variable: VariableIdentifier =>
         val values = store.getOrElse(variable, Set.empty) & mask
         val newStore = store + (variable -> values)

@@ -129,13 +129,11 @@ object SpecificationGenerator {
 
     val transformed = expression.transform {
       case access@FieldAccessExpression(receiver, field) => receiver match {
-        case FunctionCallExpression(name, arguments, _, _) =>
+        case FunctionCallExpression(name, arguments, _) =>
           val name2 = Context.getUninterpreted(name, field.name)
-          val uninterpreted = FunctionCallExpression(name2, arguments, field.typ)
-
+          val uninterpreted = FunctionCallExpression(name2, arguments, field.typ)()
           val constraint = Equal(access, uninterpreted)
           constraints.append(constraint)
-
           uninterpreted
       }
       case other => other
@@ -157,7 +155,7 @@ object Converter
   override def convert(expression: Expression): sil.Exp = expression match {
     case BoundedPermissionExpression(permission) => max(convert(permission), sil.NoPerm()())
     case Max(left, right) => max(convert(left), convert(right))
-    case FunctionCallExpression(name, parameters, typ, pp) =>
+    case FunctionCallExpression(name, parameters, typ) =>
       val function = Context.getFunction(name)
       sil.FuncLikeApp(function, parameters.map(convert), Map.empty[sil.TypeVar, sil.Type])
     case _ => super.convert(expression)

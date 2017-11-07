@@ -130,14 +130,14 @@ case class PermissionRecords(map: Map[Identifier, PermissionTree] = Map.empty,
       val condition = receiverToCondition(receiver)
       val leaf = Leaf(condition, permission)
       update(field, Maximum(_, leaf)).read(receiver)
-    case FunctionCallExpression(_, arguments, _, _) =>
+    case FunctionCallExpression(_, arguments, _) =>
       arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
     case FieldAccessPredicate(FieldAccessExpression(receiver, _), _) => read(receiver)
     case _ => ???
   }
 
   def receiverToCondition(receiver: Expression): Expression = receiver match {
-    case FunctionCallExpression(name, arguments, _, _) =>
+    case FunctionCallExpression(name, arguments, _) =>
       val quantified = Context.getVariables(name)
       val zipped = quantified zip arguments
       AndList(zipped.map { case (q, a) => Equal(q, a) })

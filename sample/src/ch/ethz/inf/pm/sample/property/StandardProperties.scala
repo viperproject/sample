@@ -28,7 +28,7 @@ object DivisionByZero extends Visitor {
       for(divisor <- state1.expr.toSetOrFail) {
         if(! state1.assume(
           new ExpressionSet(SystemParameters.tm.Bottom).add(
-            new BinaryArithmeticExpression(divisor, Constant("0", SystemParameters.tm.Int), ArithmeticOperator.==)
+            new BinaryArithmeticExpression(divisor, Constant("0", SystemParameters.tm.Int)(), ArithmeticOperator.==)
             )
            ).lessEqual(state.bottom())) {
           printer.add(WarningProgramPoint(statement.getPC(), "Possible division by 0"))

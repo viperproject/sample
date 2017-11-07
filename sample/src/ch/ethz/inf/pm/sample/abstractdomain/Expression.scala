@@ -368,24 +368,22 @@ object BinaryArithmeticExpression {
 /**
   * A unary arithmetic expression, e.g. -A1
   *
-  * @param left      The operand
-  * @param op        The identifier of the operation
-  * @param returntyp The type of the returned value
+  * @param left The operand
+  * @param op   The identifier of the operation
+  * @param typ  The type of the returned value
   * @author Pietro Ferrara
   * @since 0.1
   */
-case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, returntyp: Type) extends Expression {
+case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, typ: Type) extends Expression {
 
   def pp: ProgramPoint = left.pp
-
-  def typ: Type = returntyp
 
   def ids: IdentifierSet = left.ids
 
   override def toString: String = op.toString + left.toString
 
   override def transform(f: (Expression => Expression)): Expression =
-    f(UnaryArithmeticExpression(left.transform(f), op, returntyp))
+    f(UnaryArithmeticExpression(left.transform(f), op, typ))
 
   def contains(f: (Expression => Boolean)): Boolean = f(this) || left.contains(f)
 
@@ -396,13 +394,11 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
   *
   * @param constant The constant
   * @param typ      The type of the constant
+  *
   * @author Pietro Ferrara
   * @since 0.1
   */
-case class Constant(
-                     constant: String,
-                     typ: Type,
-                     pp: ProgramPoint = DummyProgramPoint)
+case class Constant(constant: String, typ: Type)(val pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
   def ids = IdentifierSet.Bottom
@@ -410,7 +406,7 @@ case class Constant(
   override def hashCode(): Int = constant.hashCode()
 
   override def equals(o: Any): Boolean = o match {
-    case Constant(c, t, _) => constant.equals(c) && typ.equals(t)
+    case Constant(c, t) => constant.equals(c) && typ.equals(t)
     case _ => false
   }
 
@@ -788,12 +784,12 @@ case class BinaryStringExpression(left: Expression, right: Expression, op: Strin
   *                  call.
   * @author Severin Münger
   */
-case class FunctionCallExpression(name: String, arguments: Seq[Expression] = Seq.empty, typ: Type, pp: ProgramPoint = DummyProgramPoint)
+case class FunctionCallExpression(name: String, arguments: Seq[Expression] = Seq.empty, typ: Type)(val pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
   override def ids: IdentifierSet = arguments.foldLeft[IdentifierSet](IdentifierSet.Bottom)((ids, param) => ids ++ param.ids)
 
-  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(name, arguments.map(param => param.transform(f)), typ, pp))
+  override def transform(f: (Expression) => Expression): Expression = f(FunctionCallExpression(name, arguments.map(param => param.transform(f)), typ)(pp))
 
   override def contains(f: (Expression) => Boolean): Boolean = f(this) || arguments.exists(param => param.contains(f))
 
@@ -873,7 +869,7 @@ object ExpressionFactory {
   }
 
   @inline def True(implicit pp: ProgramPoint): Expression =
-    Constant("true", SystemParameters.tm.Boolean, pp)
+    Constant("true", SystemParameters.tm.Boolean)(pp)
 
   @inline def Var(name: String, typ: Type)(implicit pp: ProgramPoint): Expression =
     VariableIdentifier(name)(typ, pp)
@@ -916,13 +912,13 @@ object ExpressionFactory {
   @inline implicit def toExpression(e: RichExpression): Expression = e.expr
 
   @inline implicit def toRichExpression(e: Int)(implicit pp: ProgramPoint): RichExpression =
-    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int)(pp))
 
   @inline implicit def toRichExpression(e: String)(implicit pp: ProgramPoint): RichExpression =
-    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int)(pp))
 
   @inline implicit def toRichExpression(e: Boolean)(implicit pp: ProgramPoint): RichExpression =
-    RichExpression(Constant(e.toString, SystemParameters.tm.Int, pp))
+    RichExpression(Constant(e.toString, SystemParameters.tm.Int)(pp))
 
   @inline def not(expr: Expression): Expression = {
     NegatedBooleanExpression(expr)

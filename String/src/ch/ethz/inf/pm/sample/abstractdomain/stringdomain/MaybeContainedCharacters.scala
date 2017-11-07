@@ -38,41 +38,41 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
 
   override def assumeSimplified(expr: Expression): MaybeContainedCharacters = expr match {
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
-        case Constant(s, _, _) =>
+        case Constant(s, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
           this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.>=) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2), ArithmeticOperator.>=) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
-        case Constant(s, _, _) =>
+        case Constant(s, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
           this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
+    AbstractOperatorIdentifiers.stringIndexof, _), Constant("0", typ2), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
-        case Constant(s, _, _) =>
+        case Constant(s, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
           this.add(thisExpr, this.get(thisExpr).-(c));
         case _ => this;
       }
     case BinaryArithmeticExpression(AbstractOperator(thisExpr: Identifier, parameters, _,
-    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2, pp), ArithmeticOperator.<) =>
+    AbstractOperatorIdentifiers.stringLastindexof, _), Constant("0", typ2), ArithmeticOperator.<) =>
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
-        case Constant(s, _, _) =>
+        case Constant(s, _) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
           this.add(thisExpr, this.get(thisExpr).-(c));
         case _ => this;
@@ -81,7 +81,7 @@ class MaybeContainedCharacters(val map: Map[Identifier, CharacterSet] = Map.empt
       val l: List[Expression] = parameters
       if (l.size != 1) return this
       l.head match {
-        case Constant(s, typ2, pp) =>
+        case Constant(s, typ2) =>
           val c = Integer.decode(s).intValue().asInstanceOf[Char]
           this.add(thisExpr, this.get(thisExpr).+(c));
         case _ => this;

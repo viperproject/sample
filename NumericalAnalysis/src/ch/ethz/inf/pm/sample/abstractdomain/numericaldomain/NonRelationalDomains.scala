@@ -93,9 +93,9 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
       case BinaryBooleanExpression(left, right, _) => evalBoolean(expr)
       case NegatedBooleanExpression(left) => evalBoolean(expr)
       case BinaryArithmeticExpression(left, right, op) => dom.top()
-      case c@Constant("true", typ, pp) => dom.evalConstant(1)
-      case c@Constant("false", typ, pp) => dom.evalConstant(0)
-      case c@Constant(constant, typ, pp) => dom.evalConstant(c)
+      case c@Constant("true", typ) => dom.evalConstant(1)
+      case c@Constant("false", typ) => dom.evalConstant(0)
+      case c@Constant(constant, typ) => dom.evalConstant(c)
       case x: Identifier => this.get(x)
       case xs: HeapIdSetDomain[_] =>
         var result = dom.bottom()
@@ -111,22 +111,22 @@ case class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N
     expr match {
 
       // Boolean constants
-      case Constant("true", _, _) => this
-      case Constant("false", _, _) => this.bottom()
-      case NegatedBooleanExpression(Constant("true", _, _)) => this.bottom()
-      case NegatedBooleanExpression(Constant("false", _, _)) => this
-      case BinaryArithmeticExpression(Constant(a, _, _), Constant(b, _, _), ArithmeticOperator.==) =>
+      case Constant("true", _) => this
+      case Constant("false", _) => this.bottom()
+      case NegatedBooleanExpression(Constant("true", _)) => this.bottom()
+      case NegatedBooleanExpression(Constant("false", _)) => this
+      case BinaryArithmeticExpression(Constant(a, _), Constant(b, _), ArithmeticOperator.==) =>
         if (a == b) this else bottom()
 
       // Boolean variables
       case x: Identifier =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
-        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=))
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.!=))
         res
 
       case NegatedBooleanExpression(x: Identifier) =>
         if (SystemParameters.DEBUG) assert(x.typ.isBooleanType)
-        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+        val res = assume(BinaryArithmeticExpression(x, Constant("0", x.typ)(x.pp), ArithmeticOperator.==))
         res
 
       // And and Or
@@ -470,7 +470,7 @@ object Sign {
     override def toString = "+"
 
     override def asConstraint(id: Identifier): Option[Expression] =
-      Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.>))
+      Some(BinaryArithmeticExpression(id, Constant("0", id.typ)(), ArithmeticOperator.>))
 
     def getPossibleConstants = SetDomain.Default.Top()
   }
@@ -514,7 +514,7 @@ object Sign {
     override def toString = "-"
 
     override def asConstraint(id: Identifier): Option[Expression] =
-      Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.<))
+      Some(BinaryArithmeticExpression(id, Constant("0", id.typ)(), ArithmeticOperator.<))
 
     def getPossibleConstants = SetDomain.Default.Top()
 
@@ -552,9 +552,9 @@ object Sign {
     override def toString = "0"
 
     override def asConstraint(id: Identifier): Option[Expression] =
-      Some(BinaryArithmeticExpression(id, Constant("0", id.typ), ArithmeticOperator.==))
+      Some(BinaryArithmeticExpression(id, Constant("0", id.typ)(), ArithmeticOperator.==))
 
-    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", SystemParameters.tm.Int)))
+    def getPossibleConstants = SetDomain.Default.Inner(Set(Constant("0", SystemParameters.tm.Int)()))
 
   }
 
@@ -697,8 +697,8 @@ object IntegerInterval {
     override def asConstraint(id: Identifier): Option[Expression] = {
       if (this.isBottom) return None
       if (left == Int.MinValue && right == Int.MaxValue) return None
-      val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ), id, ArithmeticOperator.<=)
-      val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ), ArithmeticOperator.<=)
+      val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ)(), id, ArithmeticOperator.<=)
+      val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ)(), ArithmeticOperator.<=)
       if (right == Int.MaxValue) return Some(lowerBound)
       if (left == Int.MinValue) return Some(upperBound)
       Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
@@ -720,7 +720,7 @@ object IntegerInterval {
 
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)()))
       else
         SetDomain.Default.Top()
     }
@@ -892,8 +892,8 @@ object DoubleInterval {
 
     /** Returns the constraint expressed by this interval on a given identifier, if some (None if unconstrained) */
     override def asConstraint(id: Identifier): Option[Expression] = {
-      val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ), id, ArithmeticOperator.<=)
-      val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ), ArithmeticOperator.<=)
+      val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ)(), id, ArithmeticOperator.<=)
+      val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ)(), ArithmeticOperator.<=)
       if (right == Double.PositiveInfinity) return Some(lowerBound)
       if (left == Double.NegativeInfinity) return Some(upperBound)
       Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
@@ -901,7 +901,7 @@ object DoubleInterval {
 
     def getPossibleConstants = {
       if (left == right)
-        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)))
+        SetDomain.Default.Inner(Set(Constant(left.toString, SystemParameters.tm.Int)()))
       else
         SetDomain.Default.Top()
     }

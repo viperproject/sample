@@ -442,7 +442,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionSetImplicits with To
       val typ = GRef(this0.typ.asInstanceOf[AAny])
       if (objs.nonEmpty && strs.nonEmpty) {
         val objExpr = ExpressionSet(TString, SetDomain.Default.Inner(objs.toSet))
-        val strExpr = ExpressionSet(TString, SetDomain.Default.Inner(strs.map(Constant(_, TString))))
+        val strExpr = ExpressionSet(TString, SetDomain.Default.Inner(strs.map(Constant(_, TString)())))
         New[S](typ, Map(typ.field__receiver -> objExpr, typ.field__field -> strExpr))
       } else {
         Reporter.reportImpreciseSemantics("We could not determine the contents of a reference, this could be unsound", pp)
