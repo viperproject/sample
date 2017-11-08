@@ -57,7 +57,9 @@ object SpecificationGenerator {
         case Initial => Empty
         case other => other
       }
-      val expression = tree.simplify.toExpression
+
+      val rewritten = for ((cond, exp) <- tree.simplify.rewrite) yield ConditionalExpression(cond, exp, No)
+      val expression = MaxList(rewritten)
 
       Context.getReceiver match {
         case None =>
