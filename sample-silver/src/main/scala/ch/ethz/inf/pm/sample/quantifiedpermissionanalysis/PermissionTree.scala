@@ -24,7 +24,7 @@ sealed trait PermissionTree {
   import MaximumElimination.eliminate
   import MaximumElimination.toNegatedNormalForm
 
-  def assume(condition: Expression) = Conditional(approximate(condition), this, Empty)
+  def assume(condition: Expression): PermissionTree = Conditional(approximate(condition), this, Empty)
 
   def simplify: PermissionTree = transform {
     case Maximum(left, Empty) => left
@@ -98,21 +98,22 @@ sealed trait PermissionTree {
     }.reduce(Maximum)
   }
 
-  def approximate(expression: Expression): Expression = {
-    val nnf = toNegatedNormalForm(expression)
-    nnf.transform {
-      case comparison@Comparison(_, _, _) =>
-        val approximate = comparison.contains {
-          case FieldAccessExpression(_, _) => true
-          case _ => false
-        }
-        if (approximate) True
-        else comparison
-      case other => other
-    }
-  }
+  def approximate(expression: Expression): Expression =
+    if (QuantifiedPermissionsParameters.OVERAPPROXIMATE_FIELD_ACCESSES_IN_SPECIFICATIONS) {
+      val nnf = toNegatedNormalForm(expression)
+      nnf.transform {
+        case comparison@Comparison(_, _, _) =>
+          val approximate = comparison.contains {
+            case FieldAccessExpression(_, _) => true
+            case _ => false
+          }
+          if (approximate) True
+          else comparison
+        case other => other
+      }
+    } else expression
 
-  private def rewrite: Set[(Expression, Expression)] = this match {
+  def rewrite: Set[(Expression, Expression)] = this match {
     case Empty =>
       Set((True, No))
     case Initial =>
