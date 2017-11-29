@@ -206,14 +206,6 @@ trait InterproceduralSilverInferenceRunner[S <: State[S]]
     // return extended program
     program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
-
-  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
-    program.methods.foreach { method =>
-      val identifier = SilverIdentifier(method.name)
-      resultsToWorkWith = results.getTaggedResults(identifier).values.toSeq
-      exportMethod(method, results.getResult(identifier))
-    }
-  }
 }
 
 /**
@@ -244,7 +236,7 @@ trait InterproceduralSilverBottomUpInferenceRunner[S <: State[S]]
     program.copy(methods = extendedMethods)(program.pos, program.info, program.errT)
   }
 
-  override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+  protected override def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
     program.methods.foreach { method =>
       val identifier = SilverIdentifier(method.name)
       val result = results.getResult(identifier)

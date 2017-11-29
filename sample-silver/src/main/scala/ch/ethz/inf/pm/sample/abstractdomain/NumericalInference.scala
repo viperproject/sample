@@ -162,10 +162,11 @@ object InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
 
   override val analysis: BottomUpAnalysis[IntegerOctagonAnalysisState] = SimpleInterproceduralSilverForwardBottomUpAnalysis(IntegerOctagonAnalysisEntryState)
 
-  override def main(args: Array[String]): Unit = {
+  override def main(arguments: Array[String]): Unit = {
     // run the analysis and print result as json
-    val extended = export(args)
-    println(specificationsAsJson((new File(args(0)).toPath).toString))
+    export(arguments)
+    val string = getString((new File(arguments(0)).toPath).toString)
+    println(string)
   }
 }
 

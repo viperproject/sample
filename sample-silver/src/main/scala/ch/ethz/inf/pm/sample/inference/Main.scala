@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.analysis._
 import ch.ethz.inf.pm.sample.domain.{HeapNode, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.Compilable
-import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverIdentifier, SilverJsonExporter}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverIdentifier}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Context
 import ch.ethz.inf.pm.sample.permissionanalysis.{PermissionAnalysis, PermissionAnalysisEntryStateBuilder, PermissionInferenceRunner}
@@ -59,9 +59,9 @@ object Main {
 
   /**
     * The permission inference.
+    * TODO: Make it export JSON again.
     */
   val permission = new PermissionInferenceRunner[P, A, May, Must]
-    with SilverJsonExporter[P]
     with SilverExtender[P] {
 
     override def extendMethod(method: sil.Method, result: CfgResult[P]): sil.Method = {
@@ -70,11 +70,11 @@ object Main {
       super.extendMethod(method, result)
     }
 
-    override def exportMethod(method: sil.Method, result: CfgResult[P]): Unit = {
+    /*override def exportMethod(method: sil.Method, result: CfgResult[P]): Unit = {
       // TODO: There might be a better place to set the current method.
       Context.setMethod(SilverIdentifier(method.name))
       super.exportMethod(method, result)
-    }
+    }*/
 
     override val analysis: SilverAnalysis[P] = PermissionAnalysis[P, A, May, Must](
       aliasAnalysisStateBuilder = AliasAnalysisEntryStateBuilder(),
@@ -84,9 +84,9 @@ object Main {
 
   /**
     * An inference that infers the values of numerical variables and fields.
+    * TODO: Make it export json again.
     */
   val numerical = new SilverInferenceRunner[V]
-    with SilverJsonExporter[V]
     with SilverExtender[V] {
 
     override val analysis: SilverAnalysis[V] = SimpleSilverForwardAnalysis(
@@ -149,11 +149,11 @@ object Main {
       val extended = permission.extendProgram(numericalProgram, permissionResults)
       println(extended)
     } else {
-      // export as json
-      numerical.exportProgram(program, numericalResults)
+      // TODO: export as json
+      /*numerical.exportProgram(program, numericalResults)
       permission.extractSpecifications(numerical)
       permission.exportProgram(program, permissionResults)
-      println(permission.specificationsAsJson(file))
+      println(permission.specificationsAsJson(file))*/
     }
   }
 }

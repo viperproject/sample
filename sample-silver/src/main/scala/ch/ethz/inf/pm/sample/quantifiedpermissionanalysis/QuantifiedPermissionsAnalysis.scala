@@ -64,7 +64,7 @@ object QuantifiedPermissionsAnalysisRunner
     super.extendMethod(method, cfgResult)
   }
 
-  override def inferArguments(method: sil.Method, result: CfgResult[QuantifiedPermissionState]): Seq[sil.LocalVarDecl] = {
+  override def inferParameters(method: sil.Method, result: CfgResult[QuantifiedPermissionState]): Seq[sil.LocalVarDecl] = {
     // TODO: Add ghost sets parameters.
 
     val position = firstPosition(result.cfg.entry)

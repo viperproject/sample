@@ -7,144 +7,125 @@
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.execution.ProgramResult
 import ch.ethz.inf.pm.sample.inference.SilverExporter
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JNothing, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.prettyRender
+import viper.silver.ast.Program
 import viper.silver.ast.pretty.FastPrettyPrinter.{pretty => prettyPrint}
 import viper.silver.{ast => sil}
 
+
 /**
-  * Exports the changes to an extended program as json. For programs that did
-  * already contain some specifications we do not export new specifications but
-  * report an error (in json format). All changes and errors are accompanied by
-  * a Position in the original silver program.
-  *
-  * See section 5.2.3 in Ruben K&auml;lin's thesis for the definition of the
-  * JSON output.
+  * Infers specifications for a Viper program and exports them as JSON.
   *
   * @tparam S The type of the state.
+  * @author Jerome Dohrau
   * @author Flurin Rindisbacher
   */
 trait SilverJsonExporter[S <: State[S]]
   extends SilverExporter[S] {
 
-  def extractSpecifications(other: SilverJsonExporter[_]): Unit = {
-    preconditions = other.preconditions
-    postconditions = other.postconditions
-    invariants = other.invariants
+  private var parameters: JValue = JNothing
+  private var preconditions: JValue = JNothing
+  private var postconditions: JValue = JNothing
+  private var invariants: JValue = JNothing
+  private var errors: JValue = JNothing
+
+  def getJson(file: String): JValue = errors match {
+    case JNothing =>
+      ("type" -> "inference") ~
+        ("file" -> file) ~
+        ("parameters" -> parameters) ~
+        ("preconditions" -> preconditions) ~
+        ("postconditions" -> postconditions) ~
+        ("invariants" -> invariants)
+    case _ =>
+      ("type" -> "error") ~
+        ("file" -> file) ~
+        ("errors" -> errors)
   }
 
-  private var preconditions: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
-  private var postconditions: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
-  private var invariants: Map[sil.Position, (Seq[sil.Exp], Seq[sil.Exp])] = Map.empty
+  def getString(file: String): String = prettyRender(getJson(file))
 
-  override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
-    if (inferred.nonEmpty) {
-      val position = method.body.get.pos
-      preconditions.get(position) match {
-        case Some(entry) => preconditions = preconditions + (position -> (method.pres, inferred ++ entry._2))
-        case None => preconditions = preconditions + (position -> (method.pres, inferred))
-      }
-    }
+  override protected def exportProgram(program: Program, results: ProgramResult[S]): Unit = {
+    // reset
+    parameters = JNothing
+    preconditions = JNothing
+    postconditions = JNothing
+    invariants = JNothing
+    errors = JNothing
 
-  override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
-    if (inferred.nonEmpty) {
-      val position = method.body.get.pos
-      postconditions.get(position) match {
-        case Some(entry) => postconditions = postconditions + (position -> (method.posts, inferred ++ entry._2))
-        case None => postconditions = postconditions + (position -> (method.posts, inferred))
-      }
-    }
-
-  override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit =
-    if (inferred.nonEmpty) {
-      val position = loop.body.pos
-      invariants.get(position) match {
-        case Some(entry) => invariants = invariants + (position -> (loop.invs, inferred ++ entry._2))
-        case None => invariants = invariants + (position -> (loop.invs, inferred))
-      }
-    }
-
-  // For debugging/development you may want to enable prettyRender to have a look at the JSON
-  //private def render = prettyRender _
-  private def render = prettyRender _
-
-  private val ErrorTag = "Error"
-  private val SampleInferenceTag = "SpecificationInference"
-  private val SampleInferenceErrorTag = "sample.error.inferenceOmitted"
-  private val JsonKeyPreconditions = "preconditions"
-  private val JsonKeyPostconditions = "postconditions"
-  private val JsonKeyInvariants = "invariants"
-
-  /**
-    * Convert Seq[Exp] to the JValue for json export.
-    * arg consists of (position, (old specifications, new specifications))
-    *
-    * @param keyword They keyword to prefix the specs. Usually "invariant", "requires" or "ensures"
-    * @param arg     (position, (old specifications, new specifications))
-    * @return A JValue representing the list of specifications
-    */
-  private def specToJsonDSL(keyword: String)(arg: (sil.Position, (Seq[sil.Exp], Seq[sil.Exp]))): JValue = arg match {
-    case (pos: sil.Position, (_, specifications: Seq[sil.Exp])) =>
-      val (start, _) = formatPosition(pos)
-      ("position" -> start) ~
-        ("specifications" -> specifications.map(spec => s"$keyword ${prettyPrint(spec)}"))
+    super.exportProgram(program, results)
   }
 
-  /**
-    * Formats a Position to the format the IDE expects. The format is LINE_NO:COLUMN_NO.
-    * If they are not known &lt;unknown line&gt; and &lt;unknown column&gt; are used.
-    * See section 5.2.3 in Ruben K&auml;lin's thesis.
-    *
-    * @param pos The position to format
-    * @return A tuple containing the formatted start and end locations as a string.
-    */
-  private def formatPosition(pos: sil.Position): (String, String) = pos match {
-    case sil.SourcePosition(_, start, end) =>
-      (s"${start.line}:${start.column}",
-        if (end.isDefined)
-          s"${end.get.line}:${end.get.column}"
-        else
-          "<unknown line>:<unknown column>")
+  protected override def exportParameters(method: sil.Method, inferred: Seq[sil.LocalVarDecl]): Unit =
+    parameters = parameters ++ generate(method.pos, inferred, method.formalArgs)
 
-    case s: sil.HasLineColumn => (s"${s.line}:${s.column}", "<unknown line>:<unknown column>")
-    case _ => ("<unknown line>:<unknown column>", "<unknown line>:<unknown column>")
+  protected override def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
+    preconditions = preconditions ++ generate(method.pos, inferred, method.pres)
+
+  protected override def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit =
+    postconditions = postconditions ++ generate(method.pos, inferred, method.posts)
+
+  protected override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit =
+    invariants = invariants ++ generate(loop.pos, inferred, loop.invs)
+
+  private def generate[T <: sil.Node with sil.Positioned](position: sil.Position, inferred: Seq[T], existing: Seq[T]): JValue = {
+    val (insertions, additions, deletions) = difference(inferred, existing)
+    // format insertions
+    val formattedInsertions = insertions
+      .groupBy { case (_, position) => position }
+      .map { case (position, list) =>
+        val specifications = list.map { case (node, _) => prettyPrint(node) }
+        ("action" -> "insert") ~ ("position" -> format(position)) ~ ("specifications" -> specifications)
+      }
+    // format additions
+    val formattedAdditions = if (additions.isEmpty) JNothing else {
+      val specifications = additions.map { node => prettyPrint(node) }
+      ("action" -> "append") ~ ("position" -> format(position)) ~ ("specifications" -> specifications)
+    }
+    // format deletions
+    val formattedDeletions = deletions.map { node => ("action" -> "delete") ~ ("position" -> format(node.pos)) }
+
+    JNothing ++ formattedInsertions ++ formattedAdditions ++ formattedDeletions
   }
 
   /**
-    * Exports the specifications for the extended program or an error message. Both in JSON format.
+    * Given a list of inferred specifications and a list of existing specifications, this method tries to determine a
+    * set of inserting, appending and deletion actions that turn the existing specifications into the inferred ones.
     *
-    * @param file The path to the file for which the JSON is exported
-    * @return A JSON-string according to the VIPER IDE protocol
+    * @param inferred The list of inferred specifications.
+    * @param existing The list of existing specifications.
+    * @tparam T The type of the specifications.
+    * @return (insert, append, delete)
     */
-  def specificationsAsJson(file: String): String = {
-    val existing = preconditions.values.map(_._1).find(_.nonEmpty)
-      .orElse(postconditions.values.map(_._1).find(_.nonEmpty))
-      .orElse(invariants.values.map(_._1).find(_.nonEmpty))
-
-    existing match {
-      case Some(e) =>
-        val (start, end) = formatPosition(e.head.pos)
-        render(
-          ("type" -> ErrorTag) ~
-            ("file" -> file) ~
-            ("errors" ->
-              List(
-                ("start" -> start) ~
-                  ("end" -> end) ~
-                  ("tag" -> SampleInferenceErrorTag) ~
-                  ("message" -> "Inference omitted since some specifications already exist.")
-              ))
-        )
-      case None =>
-        render(
-          ("type" -> SampleInferenceTag) ~
-            ("file" -> file) ~
-            (JsonKeyPreconditions -> preconditions.map(specToJsonDSL("requires"))) ~
-            (JsonKeyPostconditions -> postconditions.map(specToJsonDSL("ensures"))) ~
-            (JsonKeyInvariants -> invariants.map(specToJsonDSL("invariant")))
-        )
+  private def difference[T <: sil.Positioned](inferred: Seq[T], existing: Seq[T]): (Seq[(T, sil.Position)], Seq[T], Seq[T]) =
+    if (existing.isEmpty) (Seq.empty, inferred, Seq.empty)
+    else if (inferred.isEmpty) (Seq.empty, Seq.empty, existing)
+    else {
+      val node = inferred.head
+      val index = existing.indexOf(node)
+      if (index == -1) {
+        // the element does not exist
+        val a = Seq((node, existing.head.pos))
+        val (insert, append, delete) = difference(inferred.tail, existing)
+        (a ++ insert, append, delete)
+      } else {
+        // the element exists
+        val (before, rest) = existing.splitAt(index)
+        val (insert, append, delete) = difference(inferred.tail, rest.tail)
+        (insert, append, before ++ delete)
+      }
     }
+
+  private def format(position: sil.Position): JValue = position match {
+    case sil.SourcePosition(_, start, end) => end match {
+      case Some(existing) => ("start" -> format(start)) ~ ("end" -> format(existing))
+      case None => format(start)
+    }
+    case position: sil.HasLineColumn => ("line" -> position.line) ~ ("column" -> position.column)
+    case _ => "unknown"
   }
 }

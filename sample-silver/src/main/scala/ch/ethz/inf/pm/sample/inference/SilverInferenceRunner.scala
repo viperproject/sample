@@ -43,6 +43,16 @@ trait SilverInferenceRunner[S <: State[S]] extends
   SilverAnalysisRunner[S] {
 
   /**
+    * Infers a list of parameters for the given method using the given analysis
+    * result.
+    *
+    * @param method The method for which the parameters are inferred.
+    * @param result The analysis result.
+    * @return The inferred parameters.
+    */
+  def inferParameters(method: sil.Method, result: CfgResult[S]): Seq[sil.LocalVarDecl] = method.formalArgs
+
+  /**
     * Infers a list of preconditions for the given method using the given
     * analysis result.
     *
@@ -82,16 +92,6 @@ trait SilverInferenceRunner[S <: State[S]] extends
     * @return The inferred fields.
     */
   def inferFields(newStmt: sil.NewStmt, position: BlockPosition, result: CfgResult[S]): Seq[sil.Field] = newStmt.fields
-
-  /**
-    * Infers a list of arguments for the given method using the given analysis
-    * result.
-    *
-    * @param method The method for which the arguments are inferred.
-    * @param result The analysis result.
-    * @return The inferred arguments.
-    */
-  def inferArguments(method: sil.Method, result: CfgResult[S]): Seq[sil.LocalVarDecl] = method.formalArgs
 
   /* ------------------------------------------------------------------------- *
    * Helper Functions
@@ -213,7 +213,7 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
 
     // return extended method
     method.copy(
-      formalArgs = inferArguments(method, result),
+      formalArgs = inferParameters(method, result),
       pres = inferPreconditions(method, result),
       posts = inferPostconditions(method, result),
       body = method.body.map(extendBody(_, result))
@@ -289,92 +289,87 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
   */
 trait SilverExporter[S <: State[S]] extends SilverInferenceRunner[S] {
 
-  def export(args: Array[String]): Unit = {
-    val compilable = Compilable.Path(new File(args(0)).toPath)
+  def export(arguments: Array[String]): Unit = {
+    val compilable = Compilable.Path(new File(arguments(0)).toPath)
     val program = compile(compilable)
     val results = run(program)
     exportProgram(program, results)
   }
 
   /**
-    * Exports the inferred preconditions for the given method.
+    * Exports the inferred parameters of the given method.
     *
-    * @param method        The method for which the preconditions are inferred.
-    * @param preconditions The inferred preconditions.
+    * @param method   The method.
+    * @param inferred The inferred parameters.
     */
-  def exportPreconditions(method: sil.Method, preconditions: Seq[sil.Exp]): Unit = {}
+  protected def exportParameters(method: sil.Method, inferred: Seq[sil.LocalVarDecl]): Unit = {}
 
   /**
-    * Exports the inferred postconditions for the given method.
+    * Exports the inferred preconditions of the given method.
     *
-    * @param method         The method for which the postconditions are inferred.
-    * @param postconditions The inferred postconditions.
+    * @param method   The method.
+    * @param inferred The inferred preconditions.
     */
-  def exportPostconditions(method: sil.Method, postconditions: Seq[sil.Exp]): Unit = {}
+  protected def exportPreconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {}
 
   /**
-    * Exports the inferred invariants for the given while loop.
+    * Exports the inferred postconditions of the given method.
     *
-    * @param loop       The while loop for which the invariants are inferred.
-    * @param invariants The inferred invariants.
+    * @param method   The method.
+    * @param inferred The inferred postconditions.
     */
-  def exportInvariants(loop: sil.While, invariants: Seq[sil.Exp]): Unit = {}
+  protected def exportPostconditions(method: sil.Method, inferred: Seq[sil.Exp]): Unit = {}
 
   /**
-    * Exports the inferred fields for the given new-statement.
+    * Exports the inferred invariants of the given while loop.
     *
-    * @param newStmt The new-statement for which the fields are inferred.
-    * @param fields  The inferred fields.
+    * @param loop     The while loop.
+    * @param inferred The inferred invariants.
     */
-  def exportFields(newStmt: sil.NewStmt, fields: Seq[sil.Field]): Unit = {}
+  protected def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit = {}
 
   /**
-    * Recursively infers and exports all inferred specifications for the given
-    * program using the given analysis result.
+    * Infers and exports specifications for the given program using the given analysis result.
     *
     * @param program The program.
     * @param results The analysis result.
     */
-  def exportProgram(program: sil.Program, results: ProgramResult[S]): Unit =
+  protected def exportProgram(program: sil.Program, results: ProgramResult[S]): Unit = {
     program.methods.foreach { method =>
       val identifier = SilverIdentifier(method.name)
       val result = results.getResult(identifier)
       exportMethod(method, result)
     }
+  }
 
   /**
-    * Recursively infers and exports all inferred specifications for the given
-    * method using the given analysis result.
+    * Infers and exports specifications for the given method using the given analysis results.
     *
     * @param method The method.
     * @param result The analysis result.
     */
-  def exportMethod(method: sil.Method, result: CfgResult[S]): Unit = {
-    val exit = lastPosition(result.cfg.exit.get)
+  protected def exportMethod(method: sil.Method, result: CfgResult[S]): Unit = {
+    exportParameters(method, inferParameters(method, result))
     exportPreconditions(method, inferPreconditions(method, result))
     exportPostconditions(method, inferPostconditions(method, result))
-    method.body.foreach(exportStatement(_, result))
+    method.body.foreach { statement => exportStatement(statement, result) }
   }
 
   /**
-    * Recursively infers and exports all inferred specifications for the given
-    * statement using the given analysis result.
+    * Recursively infers and exports specifications for the given statement using the given analysis result.
     *
     * @param statement The statement.
     * @param result    The analysis result.
     */
-  def exportStatement(statement: sil.Stmt, result: CfgResult[S]): Unit = statement match {
+  protected def exportStatement(statement: sil.Stmt, result: CfgResult[S]): Unit = statement match {
     case sil.Seqn(statements, _) =>
       statements.foreach { statement => exportStatement(statement, result) }
-    case sil.If(_, body1, body2) =>
-      exportStatement(body1, result)
-      exportStatement(body2, result)
+    case sil.If(_, statement1, statement2) =>
+      exportStatement(statement1, result)
+      exportStatement(statement2, result)
     case loop: sil.While =>
       exportInvariants(loop, inferInvariants(loop, result))
       exportStatement(loop.body, result)
-    case newStatement: sil.NewStmt =>
-      val position = getPosition(statement, result.cfg).asInstanceOf[BlockPosition]
-      exportFields(newStatement, inferFields(newStatement, position, result))
     case _ =>
   }
 
