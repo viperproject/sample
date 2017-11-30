@@ -31,6 +31,7 @@ trait SilverJsonExporter[S <: State[S]]
   private var preconditions: JValue = JNothing
   private var postconditions: JValue = JNothing
   private var invariants: JValue = JNothing
+  private var replacements: JValue = JNothing
   private var errors: JValue = JNothing
 
   def getJson(file: String): JValue = errors match {
@@ -40,7 +41,8 @@ trait SilverJsonExporter[S <: State[S]]
         ("parameters" -> parameters) ~
         ("preconditions" -> preconditions) ~
         ("postconditions" -> postconditions) ~
-        ("invariants" -> invariants)
+        ("invariants" -> invariants) ~
+        ("replacements" -> replacements)
     case _ =>
       ("type" -> "error") ~
         ("file" -> file) ~
@@ -55,6 +57,7 @@ trait SilverJsonExporter[S <: State[S]]
     preconditions = JNothing
     postconditions = JNothing
     invariants = JNothing
+    replacements = JNothing
     errors = JNothing
 
     super.exportProgram(program, results)
@@ -72,7 +75,7 @@ trait SilverJsonExporter[S <: State[S]]
   protected override def exportInvariants(loop: sil.While, inferred: Seq[sil.Exp]): Unit =
     invariants = invariants ++ generate(loop.pos, inferred, loop.invs)
 
-  private def generate[T <: sil.Node with sil.Positioned](position: sil.Position, inferred: Seq[T], existing: Seq[T]): JValue = {
+  protected def generate[T <: sil.Node with sil.Positioned](position: sil.Position, inferred: Seq[T], existing: Seq[T]): JValue = {
     val (insertions, additions, deletions) = difference(inferred, existing)
     // format insertions
     val formattedInsertions = insertions
@@ -101,7 +104,7 @@ trait SilverJsonExporter[S <: State[S]]
     * @tparam T The type of the specifications.
     * @return (insert, append, delete)
     */
-  private def difference[T <: sil.Positioned](inferred: Seq[T], existing: Seq[T]): (Seq[(T, sil.Position)], Seq[T], Seq[T]) =
+  protected def difference[T <: sil.Positioned](inferred: Seq[T], existing: Seq[T]): (Seq[(T, sil.Position)], Seq[T], Seq[T]) =
     if (existing.isEmpty) (Seq.empty, inferred, Seq.empty)
     else if (inferred.isEmpty) (Seq.empty, Seq.empty, existing)
     else {
@@ -120,7 +123,12 @@ trait SilverJsonExporter[S <: State[S]]
       }
     }
 
-  private def format(position: sil.Position): JValue = position match {
+  protected def exportReplacement(node: sil.Node with sil.Positioned, replacement: sil.Node): Unit = {
+    val json = ("position" -> format(node.pos)) ~ ("replacement" -> prettyPrint(replacement))
+    replacements = replacements ++ json
+  }
+
+  protected def format(position: sil.Position): JValue = position match {
     case sil.SourcePosition(_, start, end) => end match {
       case Some(existing) => ("start" -> format(start)) ~ ("end" -> format(existing))
       case None => format(start)
