@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.elimination
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.{Context, QuantifiedPermissionsParameters}
 import ch.ethz.inf.pm.sample.util.Math.lcm
 import ch.ethz.inf.pm.sample.util.SampleExpressions
 
@@ -55,9 +54,7 @@ object MaximumElimination
           case other => other
         }
       // compute maximum corresponding to bounded solutions
-      var count = 0
       val bounded = for ((expression, constraint) <- expressions; i <- 0 until delta) yield {
-        count = count + 1
         val result = normalized.transform {
           case `variable` =>
             if (i == 0) expression
@@ -72,7 +69,7 @@ object MaximumElimination
             eliminated match {
               case False => ignore
               case _ =>
-                if (QuantifiedPermissionsParameters.ADD_COLLECTED_CONSTRAINTS) {
+                if (true) { // QuantifiedPermissionsParameters.ADD_COLLECTED_CONSTRAINTS
                   val newCondition = simplify(And(condition, constraint))
                   ConditionalExpression(newCondition, left, ignore)
                 } else original

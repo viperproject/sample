@@ -145,7 +145,7 @@ trait SilverState[S <: SilverState[S]]
     * @param expression The expression representing the invariant.
     * @return The state after processing the invariant.
     */
-  def invariant(expression: Expression): S = exhale(expression).inhale(expression)
+  def invariant(expression: Expression): S = assume(expression)
 
   /**
     * Processes the given invariant.
@@ -299,7 +299,9 @@ trait Simplifications[S <: SilverState[S]]
         val negatedOperator = BooleanOperator.negate(operator)
         assume(BinaryBooleanExpression(negatedLeft, negatedRight, negatedOperator))
       case NegatedBooleanExpression(argument) => assume(argument)
+      case _ => ???
     }
+    case FunctionCallExpression(_, _, _) => this
   }
 
   /**

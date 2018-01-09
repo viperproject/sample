@@ -4,45 +4,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package ch.ethz.inf.pm.sample.quantifiedpermissionanalysis
+package ch.ethz.inf.pm.sample.qp
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.permissionanalysis._
 import viper.silver.cfg._
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
-/**
-  * An interpreter used for the quantified permission inference. It visits every
-  * block only once and traverses the control flow graph from the exit block to
-  * the entry block while prioritizing all blocks from inner loops over the
-  * blocks of the outer loops.
-  *
-  * @param cfg     The control flow graph.
-  * @param initial The initial state.
-  * @author Jerome Dohrau
-  * @author Severin Münger
-  */
-case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPermissionState)
-  extends SilverInterpreter[QuantifiedPermissionState] {
-
-  type S = QuantifiedPermissionState
+case class QpInterpreter[D <: QpDomain[D]](cfg: SampleCfg, initial: QpState[D])
+  extends SilverInterpreter[QpState[D]] {
 
   override def cfg(current: WorklistElement): SampleCfg = cfg
 
-  override def initial(cfg: SampleCfg): S = initial
+  override def initial(cfg: SampleCfg): QpState[D] = initial
 
-  override protected def initializeResult(cfg: SampleCfg, state: S): CfgResult[S] = {
-    val result = FinalCfgResult[S](cfg)
+  override def initializeResult(cfg: SampleCfg, state: QpState[D]): CfgResult[QpState[D]] = {
+    val result = FinalCfgResult[QpState[D]](cfg)
     result.initialize(state)
     result
   }
 
-  override def execute(): CfgResult[S] = {
+  override def execute(): CfgResult[QpState[D]] = {
     // initialize
     implicit val result = initializeResult(cfg, initial.bottom())
     implicit val visited = mutable.Set[SampleBlock]()
@@ -58,7 +44,7 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
       visited.add(current)
 
       val state = result.exitState(current)
-      val states = ListBuffer(state)
+      val states = mutable.ListBuffer(state)
       current match {
         case StatementBlock(statements) =>
           // execute statements
@@ -96,10 +82,6 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
             states.append(predecessor)
             predecessor
           }
-          // TODO: Maybe we do not want to introduce a new state?
-          val changing = cfg.changingVariables(current)
-          val projected = successor.project(changing)
-          states.append(projected)
       }
 
       val reversed = states.reverse
@@ -132,10 +114,8 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
             val outEdges = cfg.outEdges(predecessor)
             val afterBlocks = outEdges.filter(_.isOut).map(_.target)
             if (afterBlocks.forall(visited.contains)) {
-              // propagate state into the loop
-              val changing = cfg.changingVariables(loop)
-              val innerState = processed.second.project(changing)
               // enqueue inner blocks
+              val innerState = processed.reset()
               val innerEdges = cfg.inEdges(predecessor).filterNot(_.isIn)
               innerEdges.foreach { innerEdge =>
                 val innerBlock = innerEdge.source
@@ -159,7 +139,7 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @param state The state.
     * @return The state after processing the edge.
     */
-  protected def processEdge(edge: SampleEdge, state: S): S = {
+  protected def processEdge(edge: SampleEdge, state: QpState[D]): QpState[D] = {
     // filter state if there is a condition
     val filtered = edge match {
       case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, state)
@@ -167,7 +147,10 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     }
     // adapt state according to the kind of the edge
     edge.kind match {
-      case Kind.In => filtered.command(EnterLoopCommand())
+      case Kind.In =>
+        val changing = cfg.changingVariables(edge.target)
+        val position = BlockPosition(edge.target, 0)
+        filtered.enterLoop(changing, position)
       case Kind.Out => filtered.command(LeaveLoopCommand())
       case _ => filtered
     }
@@ -181,7 +164,7 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @param state     The state.
     * @return The state after executing the statement.
     */
-  protected def executeStatement(statement: Statement, state: S): S = {
+  protected def executeStatement(statement: Statement, state: QpState[D]): QpState[D] = {
     val successor = state.before(ProgramPointUtils.identifyingPP(statement))
     val predecessor = statement.backwardSemantics(successor)
     predecessor
@@ -196,9 +179,9 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @param state    The state.
     * @return The state after executing the command.
     */
-  protected def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: S): S = {
+  protected def executeCommand(command: (ExpressionSet) => Command, argument: Statement, state: QpState[D]): QpState[D] = {
     val successor = state.before(ProgramPointUtils.identifyingPP(argument))
-    val evaluated: S = argument.backwardSemantics(successor)
+    val evaluated = argument.backwardSemantics(successor)
     val expression = evaluated.expr
     val predecessor = evaluated.command(command(expression))
     predecessor
@@ -212,7 +195,7 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @param state     The state.
     * @return The state after assuming the condition.
     */
-  protected def assumeCondition(condition: Statement, state: S): S = {
+  protected def assumeCondition(condition: Statement, state: QpState[D]): QpState[D] = {
     val predecessor = state.before(ProgramPointUtils.identifyingPP(condition))
     condition.forwardSemantics(predecessor).testTrue()
   }
@@ -225,7 +208,7 @@ case class QuantifiedPermissionInterpreter(cfg: SampleCfg, initial: QuantifiedPe
     * @param state  The state.
     * @param result The implicitly passed result.
     */
-  private def updateExitState(block: SampleBlock, state: S)(implicit result: CfgResult[S]): Unit = {
+  private def updateExitState(block: SampleBlock, state: QpState[D])(implicit result: CfgResult[QpState[D]]): Unit = {
     val states = result.getStates(block)
     val updated = states.init :+ (states.last lub state)
     result.setStates(block, updated)

@@ -692,7 +692,7 @@ case class ConditionalExpression(condition: Expression, left: Expression, right:
 trait PermissionExpression
   extends Expression {
 
-  override def typ = SystemParameters.tm.Perm
+  override def typ: Type = SystemParameters.tm.Perm
 }
 
 /**

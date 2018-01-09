@@ -9,7 +9,6 @@ package ch.ethz.inf.pm.sample.util
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType, PermType}
-import ch.ethz.inf.pm.sample.quantifiedpermissionanalysis.Context
 
 /**
   * Some utility functions for sample expressions.
@@ -346,6 +345,31 @@ object SampleExpressions {
   }
 
   /* ---------------------------------------------------------------------------
+   * Expresssions for QP
+   */
+
+  object Leaf {
+    def apply(condition: Expression, permission: Expression): ConditionalExpression =
+      ConditionalExpression(condition, permission, No)
+
+    def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case ConditionalExpression(condition, permission@Permission(_, _), No) => Some(condition, permission)
+      case _ => None
+    }
+  }
+
+  object NonLeaf {
+    def apply(condition: Expression, left: Expression, right: Expression): ConditionalExpression =
+      ConditionalExpression(condition, left, right)
+
+    def unapply(argument: Expression): Option[(Expression, Expression, Expression)] = argument match {
+      case Leaf(_, _) => None
+      case ConditionalExpression(condition, left, right) => Some(condition, left, right)
+      case _ => None
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
    * Utility Functions
    */
 
@@ -359,7 +383,7 @@ object SampleExpressions {
     */
   def simplify(expression: Expression, collect: Boolean = false): Expression = {
     // TODO: This is specific for the quantified permission analysis.
-    val read = Variable(Context.getReadVariable.name, PermType)
+    val read = Variable("read", PermType) // Context.getReadVariable.name
 
     // collect variables and constants if corresponding flag is set
     def collected = if (collect) {
