@@ -91,7 +91,6 @@ object QpElimination extends LazyLogging {
     // rewrite conditional
     case ConditionalExpression(condition, left, right) =>
       if (condition.contains(_ == variable)) {
-        // TODO: Do we have to transform the negated condition into NNF?
         val newLeft = eliminateMaximum(variable, left, And(context, condition))
         val newRight = eliminateMaximum(variable, right, And(context, Not(condition)))
         Max(newLeft, newRight)
@@ -291,10 +290,37 @@ object QpElimination extends LazyLogging {
     * @return A triple with the described properties.
     */
   private def analyzeArithmetic(variable: VariableIdentifier, expression: Expression): (Tuples, Expression, Int) = expression match {
+    // rewrite conjunction to nested conditional
+    case ConditionalExpression(And(left, right), term, No) =>
+      analyzeArithmetic(variable, ConditionalExpression(left, ConditionalExpression(right, term, No), No))
+    // rewrite disjunction to maximum over conditionals
+    case ConditionalExpression(Or(left, right), term, No) =>
+      analyzeArithmetic(variable, Max(ConditionalExpression(left, term, No), ConditionalExpression(right, term, No)))
     // analyze leaf expression
     case Leaf(condition, permission) =>
       val (set, projection, delta) = analyzeBoolean(variable, condition)
       (toTuples(set), Leaf(projection, permission), delta)
+    // analyze conditional expression
+    case NonLeaf(condition, term, No) =>
+      // analyze term and condition
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term)
+      val (tuples2, projection2, delta2) = {
+        val (set, projection, delta) = analyzeBoolean(variable, condition)
+        // check whether it is sound to optimize
+        val simplified = QpMath.simplify(projection1)
+        val filter = simplified match {
+          case No =>
+            val negated = Not(condition)
+            val disjuncts = for ((expression, _) <- tuples1) yield negated.transform {
+              case `variable` => expression
+              case other => other
+            }
+            OrList(disjuncts)
+          case _ => True
+        }
+        (toTuples(set, filter), projection, delta)
+      }
+      (tuples1 ++ tuples2, NonLeaf(projection2, projection1, No), lcm(delta1, delta2))
     // analyze addition
     case Plus(left, right) =>
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
@@ -321,34 +347,6 @@ object QpElimination extends LazyLogging {
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
       val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right)
       (tuples1 ++ tuples2, Max(projection1, projection2), lcm(delta1, delta2))
-    // analyze conditional expression
-    case NonLeaf(condition, term, No) => condition match {
-      // rewrite conjunction to nested conditional
-      case And(left, right) => analyzeArithmetic(variable, NonLeaf(left, NonLeaf(right, term, No), No))
-      // rewrite disjunction to maximum over conditionals
-      case Or(left, right) => analyzeArithmetic(variable, Max(NonLeaf(left, term, No), NonLeaf(right, term, No)))
-      // default
-      case _ =>
-        // analyze term and condition
-        val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term)
-        val (tuples2, projection2, delta2) = {
-          val (set, projection, delta) = analyzeBoolean(variable, condition)
-          // check whether it is sound to optimize
-          val simplified = QpMath.simplify(projection1)
-          val filter = simplified match {
-            case No =>
-              val negated = Not(condition)
-              val disjuncts = for ((expression, _) <- tuples1) yield negated.transform {
-                case `variable` => expression
-                case other => other
-              }
-              OrList(disjuncts)
-            case _ => True
-          }
-          (toTuples(set, filter), projection, delta)
-        }
-        (tuples1 ++ tuples2, NonLeaf(projection2, projection1, No), lcm(delta1, delta2))
-    }
   }
 
   /**
