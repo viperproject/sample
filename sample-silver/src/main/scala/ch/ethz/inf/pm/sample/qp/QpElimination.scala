@@ -138,57 +138,6 @@ object QpElimination extends LazyLogging {
       QpMath.simplify(maximum)
   }
 
-  private def eliminateExtremum(variable: VariableIdentifier, expression: Expression, maximum: Boolean): Expression =
-    if (!expression.contains(_ == variable)) expression
-    else {
-      // normalize expression
-      val normalized = normalize(variable, expression)
-      // compute boundary expressions, projection, and delta
-      val (expressions, projection, delta) = analyzeArithmetic(variable, normalized)
-      // compute unbounded solutions
-      val unbounded = for (i <- 0 until delta) yield projection.transform {
-        case `variable` => Literal(i)
-        case other => other
-      }
-      // compute bounded solutions
-      val bounded = for ((boundary, constraint) <- expressions;
-                         i <- 0 until delta) yield {
-        // construct candidate solution
-        val candidate = normalized.transform {
-          case `variable` => Plus(boundary, Literal(i))
-          case other => other
-        }
-        // simplify candidate and check whether conditions contradict the collected constraint
-        val simplified = QpMath.simplify(candidate)
-        simplified.transform {
-          case original@ConditionalExpression(condition, term, No) =>
-            // TODO: Add constraints?
-            val body = And(condition, constraint)
-            val variables = body.ids.toSet.collect {
-              case variable: VariableIdentifier if variable.typ.isNumericalType => variable
-            }
-            val formula = Exists(variables.toSeq, body)
-            val eliminated = QpElimination.eliminate(formula)
-            eliminated match {
-              case False => No
-              case _ => original
-            }
-          case other => other
-        }
-      }
-      // compute final extremum
-      val terms = unbounded ++ bounded
-      val extremum = if (maximum) MaxList(terms) else MinList(terms)
-      val result = QpMath.simplify(extremum)
-
-      logger.trace(s"${
-        if (maximum) "max" else "min"
-      } $variable :: $expression")
-      logger.trace(s"res = $result")
-
-      result
-    }
-
   /**
     * Returns an expression that is equivalent to the given expression where no maximum or conditional is nested inside
     * a minimum, no minimum is nested inside a maximum, and no addition is nested inside a subtraction, and the right-
