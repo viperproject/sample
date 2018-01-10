@@ -27,108 +27,21 @@ object QpElimination extends LazyLogging {
     println(result)
   }
 
-  def foo(variable: VariableIdentifier, expression: Expression, context: Expression): Expression = expression match {
-    case Max(left, right) =>
-      // TODO: Add "l>r" and "l<=r" to condition and check how this affects the result.
-      val newLeft = foo(variable, left, context)
-      val newRIght = foo(variable, right, context)
-      Max(newLeft, newRIght)
-    case ConditionalExpression(condition, left, right) =>
-      if (condition.contains(_ == variable)) {
-        // TODO: Do we have to compute NNF of negated condition?
-        val newLeft = foo(variable, left, And(context, condition))
-        val newRight = foo(variable, right, And(context, Not(condition)))
-        Max(newLeft, newRight)
-      } else {
-        val newLeft = foo(variable, left, context)
-        val newRight = foo(variable, right, context)
-        ConditionalExpression(condition, newLeft, newRight)
+  def eliminate(expression: Expression): Expression = expression.transform {
+    // iteratively eliminate existential quantifier
+    case Exists(variables, body) =>
+      variables.foldLeft(body) { case (eliminated, variable) =>
+        val simplified = QpMath.simplify(eliminated)
+        eliminateExistential(variable, simplified)
       }
-    case _ => ???
-  }
-
-  def rewrite(expression: Expression): Expression = expression.transform {
-    case Plus(left, right) => rewritePlus(left, right)
-    case Minus(left, right) => rewriteMinus(left, right)
-    case Min(left, right) => rewriteMin(left, right)
+    // iteratively eliminate unbounded maximum
+    case BigMax(variables, body) =>
+      variables.foldLeft(body) { case (eliminated, variable) =>
+        val simplified = QpMath.simplify(eliminated)
+        val rewritten = rewrite(simplified)
+        eliminateMaximum(variable, rewritten, True)
+      }
     case other => other
-  }
-
-  /**
-    * Returns an expression that is equivalent to the addition of the given left and right expression where the maximum
-    * is recursively distributed over all maxima and conditionals appearing at the top level.
-    *
-    * @param left  The left argument to the addition.
-    * @param right The right argument to the addition.
-    * @return An expression that is equivalent to the addition of the given expressions.
-    */
-  def rewritePlus(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute addition over maxima
-    case (Max(l, r), e) => Max(rewritePlus(l, e), rewritePlus(r, e))
-    case (e, Max(l, r)) => Max(rewritePlus(e, l), rewritePlus(e, r))
-    // distribute addition over conditionals
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
-    // default action: do nothing
-    case _ => Plus(left, right)
-  }
-
-  /**
-    * Returns an expression that is equivalent to the subtraction of the given right expression from the left expression
-    * where the subtraction is recursively distributed over all maxima and conditionals appearing at the top level and
-    * ensures that the right-hand side of subtractions are only leaf expressions.
-    *
-    * @param left  The left argument to the subtraction.
-    * @param right The right argument to the subtraction.
-    * @return An expression that is equivalent to the subtraction of the given expressions.
-    */
-  def rewriteMinus(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute subtraction over maxima and flip extremum if it appears in negative position
-    case (Max(l, r), e) => Max(rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, Max(l, r)) => rewriteMinus(rewriteMinus(e, l), rewriteMinus(r, e))
-    // distribute subtraction over conditionals
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMinus(e, l), rewriteMinus(e, r))
-    //
-    case (e, Plus(l, r)) => rewriteMinus(rewriteMinus(e, l), r)
-    case (e, Minus(l, r)) => rewritePlus(rewriteMinus(e, l), r)
-    // default action: do nothing
-    case _ => Minus(left, right)
-  }
-
-  /**
-    * Returns an expression that is equivalent to the minimum of the given left and right expression where the minimum
-    * is recursively distributed over all maxima and conditionals appearing at the top level.
-    *
-    * @param left  The left argument to the minimum.
-    * @param right The right argument to the minimum.
-    * @return An expression that is equivalent to the minimum of the given expressions.
-    */
-  private def rewriteMin(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute minimum over maxima
-    case (Max(l, r), e) => Max(rewriteMin(l, e), rewriteMin(r, e))
-    case (e, Max(l, r)) => Max(rewriteMin(e, l), rewriteMin(r, e))
-    // distribute minimum over conditionals
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMin(l, e), rewriteMin(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMin(e, l), rewriteMin(e, r))
-    // default action: do nothing
-    case _ => Min(left, right)
-  }
-
-  def eliminate(expression: Expression): Expression = {
-    val simplified = QpMath.simplify(expression)
-    simplified.transform {
-      case Exists(variables, body) => variables.foldLeft(body) {
-        case (eliminated, variable) => eliminateExistential(variable, eliminated)
-      }
-      case BigMin(variables, body) => variables.foldLeft(body) {
-        case (eliminated, variable) => eliminateExtremum(variable, eliminated, maximum = false)
-      }
-      case BigMax(variables, body) => variables.foldLeft(body) {
-        case (eliminated, variable) => eliminateExtremum(variable, eliminated, maximum = true)
-      }
-      case other => other
-    }
   }
 
   private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression =
@@ -164,13 +77,70 @@ object QpElimination extends LazyLogging {
       }
     }
 
+  private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression): Expression = body match {
+    // rewrite maximum
+    case Max(left, right) =>
+      // TODO: Check whether adding the conditions "left>right" and "left<=right" helps.
+      val newLeft = eliminateMaximum(variable, left, context)
+      val newRight = eliminateMaximum(variable, right, context)
+      Max(newLeft, newRight)
+    // rewrite conditional
+    case ConditionalExpression(condition, left, right) =>
+      if (condition.contains(_ == variable)) {
+        // TODO: Do we have to transform the negated condition into NNF?
+        val newLeft = eliminateMaximum(variable, left, And(context, condition))
+        val newRight = eliminateMaximum(variable, right, And(context, Not(condition)))
+        Max(newLeft, newRight)
+      } else {
+        val newLeft = eliminateMaximum(variable, left, context)
+        val newRight = eliminateMaximum(variable, right, context)
+        ConditionalExpression(condition, newLeft, newRight)
+      }
+    case _ =>
+      // normalize expression and compute tuples, projection, and delta
+      val normalized = normalize(variable, body)
+      val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
+      // compute unbounded solutions
+      val unbounded = for (i <- 0 until delta) yield projection.transform {
+        case `variable` => Literal(i)
+        case other => other
+      }
+      // compute bounded solutions
+      val bounded = for ((boundary, constraint) <- tuples; i <- 0 until delta) yield {
+        // construct candidate solution
+        val candidate = normalized.transform {
+          case `variable` => Plus(boundary, Literal(i))
+          case other => other
+        }
+        // simplify candidate
+        val simplified = QpMath.simplify(candidate)
+        simplified.transform {
+          case original@ConditionalExpression(condition, term, No) =>
+            // TODO: Add constraint?
+            // check whether condition is satisfiable under collected constraint
+            val body = And(condition, constraint)
+            val variables = body.ids.toSet.toSeq.collect { case v: VariableIdentifier if v.typ.isNumericalType => v }
+            val eliminated = eliminate(Exists(variables, body))
+            // ignore conditional if condition is not satisfiable
+            eliminated match {
+              case False => No
+              case _ => original
+            }
+          case other => other
+        }
+      }
+      // compute and simplify final expression
+      val maximum = MaxList(unbounded ++ bounded)
+      QpMath.simplify(maximum)
+  }
+
   private def eliminateExtremum(variable: VariableIdentifier, expression: Expression, maximum: Boolean): Expression =
     if (!expression.contains(_ == variable)) expression
     else {
       // normalize expression
       val normalized = normalize(variable, expression)
       // compute boundary expressions, projection, and delta
-      val (expressions, projection, delta) = analyzeArithmetic(variable, normalized, maximum)
+      val (expressions, projection, delta) = analyzeArithmetic(variable, normalized)
       // compute unbounded solutions
       val unbounded = for (i <- 0 until delta) yield projection.transform {
         case `variable` => Literal(i)
@@ -215,6 +185,88 @@ object QpElimination extends LazyLogging {
       result
     }
 
+  /**
+    * Returns an expression that is equivalent to the given expression where no maximum or conditional is nested inside
+    * a minimum, no minimum is nested inside a maximum, and no addition is nested inside a subtraction, and the right-
+    * hand side of every subtraction is a simple leaf expression.
+    *
+    * @param expression The expression.
+    * @return An expression that is equivalent to the given expression.
+    */
+  private def rewrite(expression: Expression): Expression = expression.transform {
+    case Plus(left, right) => rewritePlus(left, right)
+    case Minus(left, right) => rewriteMinus(left, right)
+    case Min(left, right) => rewriteMin(left, right)
+    case other => other
+  }
+
+  /**
+    * Returns an expression that is equivalent to the addition of the given left and right expression where the maximum
+    * is recursively distributed over all maxima and conditionals appearing at the top level.
+    *
+    * @param left  The left argument to the addition.
+    * @param right The right argument to the addition.
+    * @return An expression that is equivalent to the addition of the given expressions.
+    */
+  private def rewritePlus(left: Expression, right: Expression): Expression = (left, right) match {
+    // distribute addition over minimum
+    case (Min(l, r), e) => Min(rewritePlus(l, e), rewritePlus(r, e))
+    case (e, Min(l, r)) => Min(rewritePlus(e, l), rewritePlus(e, r))
+    // distribute addition over maximum
+    case (Max(l, r), e) => Max(rewritePlus(l, e), rewritePlus(r, e))
+    case (e, Max(l, r)) => Max(rewritePlus(e, l), rewritePlus(e, r))
+    // distribute addition over conditional
+    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
+    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
+    // default action: do nothing
+    case _ => Plus(left, right)
+  }
+
+  /**
+    * Returns an expression that is equivalent to the subtraction of the given right expression from the left expression
+    * where the subtraction is recursively distributed over all maxima and conditionals appearing at the top level and
+    * ensures that the right-hand side of subtractions are only leaf expressions.
+    *
+    * @param left  The left argument to the subtraction.
+    * @param right The right argument to the subtraction.
+    * @return An expression that is equivalent to the subtraction of the given expressions.
+    */
+  private def rewriteMinus(left: Expression, right: Expression): Expression = (left, right) match {
+    // distribute subtraction over minimum and flip it to maximum if it appears on the rhs
+    case (Min(l, r), e) => Min(rewriteMinus(l, e), rewriteMin(r, e))
+    case (e, Min(l, r)) => Max(rewriteMin(e, l), rewriteMinus(e, r))
+    // distribute subtraction over maxima and flip extremum if it appears in negative position
+    case (Max(l, r), e) => Max(rewriteMinus(l, e), rewriteMinus(r, e))
+    case (e, Max(l, r)) => rewriteMinus(rewriteMinus(e, l), rewriteMinus(r, e))
+    // distribute subtraction over conditional
+    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMinus(l, e), rewriteMinus(r, e))
+    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMinus(e, l), rewriteMinus(e, r))
+    // push addition inside subtraction
+    case (e, Plus(l, r)) => rewriteMinus(rewriteMinus(e, l), r)
+    // rewrite nested subtraction
+    case (e, Minus(l, r)) => rewritePlus(rewriteMinus(e, l), r)
+    // default action: do nothing
+    case _ => Minus(left, right)
+  }
+
+  /**
+    * Returns an expression that is equivalent to the minimum of the given left and right expression where the minimum
+    * is recursively distributed over all maxima and conditionals appearing at the top level.
+    *
+    * @param left  The left argument to the minimum.
+    * @param right The right argument to the minimum.
+    * @return An expression that is equivalent to the minimum of the given expressions.
+    */
+  private def rewriteMin(left: Expression, right: Expression): Expression = (left, right) match {
+    // distribute minimum over maximum
+    case (Max(l, r), e) => Max(rewriteMin(l, e), rewriteMin(r, e))
+    case (e, Max(l, r)) => Max(rewriteMin(e, l), rewriteMin(r, e))
+    // distribute minimum over conditional
+    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMin(l, e), rewriteMin(r, e))
+    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMin(e, l), rewriteMin(e, r))
+    // default action: do nothing
+    case _ => Min(left, right)
+  }
 
   private def normalize(variable: VariableIdentifier, expression: Expression): Expression = {
     val nnf = QpMath.toNnf(expression)
@@ -269,89 +321,100 @@ object QpElimination extends LazyLogging {
   }
 
   /**
-    * The first return value is the set of so-called interesting expressions.
+    * Analyzes the given arithmetic expression and returns a triple containing a set, an expression, and an integer with
+    * the following properties.
     *
-    * Depending on whether we are interested in a smallest or a largest solution, the second return value is the
-    * negative or positive infinite projection of the expression. The negative infinite projection of an expression E
-    * with respect to a variable x is an expression E' that is equivalent to E for sufficiently small values  of x.
-    * Analogously, the positive infinite projection E' is equivalent to E for sufficiently large values of x.
+    * The first value of the triple is a set of tuples. Each tuple contains a boundary value and a boolean condition
+    * under which it is interesting to look at that boundary value.
     *
-    * The third return value is the delta that indicates the least common multiple of all values appearing in
-    * divisibility expressions.
+    * The second value of the triple is the negative (?) infinite projection of the expression. The negative infinite
+    * projection of an expression E with respect to a variable x is an expression E' that is equivalent to E for
+    * sufficiently small values of x.
+    *
+    * The third return value is the least common multiple of all values appearing in divisibility expressions.
     *
     * @param variable   The variable to eliminate.
-    * @param expression The expression.
-    * @return
+    * @param expression The arithmetic expression.
+    * @return A triple with the described properties.
     */
-  private def analyzeArithmetic(variable: VariableIdentifier, expression: Expression, maximum: Boolean): (Tuples, Expression, Int) = expression match {
-    // conditional expression
-    case ConditionalExpression(condition, term, No) => condition match {
-      case And(left, right) =>
-        // rewrite to nested conditional
-        val partial = ConditionalExpression(right, term, No)
-        val rewritten = ConditionalExpression(left, partial, No)
-        analyzeArithmetic(variable, rewritten, maximum)
-      case Or(left, right) =>
-        // TODO: Check whether this is a correct transformation
-        // rewrite to maximum/minimum of two conditionals
-        val conditional1 = ConditionalExpression(left, term, No)
-        val conditional2 = ConditionalExpression(right, term, No)
-        val rewritten = if (maximum) Max(conditional1, conditional2) else Min(conditional1, conditional2)
-        analyzeArithmetic(variable, rewritten, maximum)
-      case _ =>
-        // analyze condition and term
-        val (set, projection1, delta1) = analyzeBoolean(variable, condition, QpParameters.SMALLEST_SOLUTION)
-        val (tuples2, projection2, delta2) = analyzeArithmetic(variable, term, maximum)
-
-        // TODO: Is this also sound when we project the delta?
-        val optimize = QpMath.simplify(projection2) match {
-          case No => true
-          case _ => false
-        }
-
-        // add conditions used to optimize
-        val filter = if (optimize) {
-          val negated = Not(condition)
-          val parts = for ((expression, _) <- tuples2) yield negated.transform {
-            case `variable` => expression
-            case other => other
-          }
-          OrList(parts)
-        } else True
-
-        val tuples = toTuples(set, filter) ++ tuples2
-        val projection = ConditionalExpression(projection1, projection2, No)
-        (tuples, projection, lcm(delta1, delta2))
-    }
-    // maxima
-    case Max(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left, maximum)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right, maximum)
-      (tuples1 ++ tuples2, Max(projection1, projection2), lcm(delta1, delta2))
-    // minima
-    case Min(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left, maximum)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right, maximum)
-      (tuples1 ++ tuples2, Min(projection1, projection2), lcm(delta1, delta2))
-    // additions
+  private def analyzeArithmetic(variable: VariableIdentifier, expression: Expression): (Tuples, Expression, Int) = expression match {
+    // analyze leaf expression
+    case Leaf(condition, permission) =>
+      val (set, projection, delta) = analyzeBoolean(variable, condition)
+      (toTuples(set), Leaf(projection, permission), delta)
+    // analyze addition
     case Plus(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left, maximum)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right, maximum)
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
       (tuples1 ++ tuples2, Plus(projection1, projection2), lcm(delta1, delta2))
-    // subtractions
-    case Minus(left, right) =>
-      // TODO: Add constraints for optimization
-      // TODO: Is it correct to make the second call to analyzeArithmetic with !maximum?
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left, maximum)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right, !maximum)
+    // case analyze subtraction
+    case Minus(left, right@Leaf(condition, permission)) =>
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
+      val (tuples2, projection2, delta2) = {
+        // TODO: Add optimization
+        // the condition is negated since we are interested in making it false
+        val negated = QpMath.toNnf(Not(condition))
+        val (set, projection, delta) = analyzeBoolean(variable, negated)
+        (toTuples(set), Leaf(Not(projection), permission), delta)
+      }
       (tuples1 ++ tuples2, Minus(projection1, projection2), lcm(delta1, delta2))
-    // expressions not depending on the variable to eliminate.
-    case _ =>
-      if (expression.contains(_ == variable)) ???
-      else (Set.empty, expression, 1)
+    // analyze minimum
+    case Min(left, right) =>
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
+      (tuples1 ++ tuples2, Min(projection1, projection2), lcm(delta1, delta2))
+    // analyze maximum
+    case Max(left, right) =>
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
+      (tuples1 ++ tuples2, Max(projection1, projection2), lcm(delta1, delta2))
+    // analyze conditional expression
+    case NonLeaf(condition, term, No) => condition match {
+      // rewrite conjunction to nested conditional
+      case And(left, right) => analyzeArithmetic(variable, NonLeaf(left, NonLeaf(right, term, No), No))
+      // rewrite disjunction to maximum over conditionals
+      case Or(left, right) => analyzeArithmetic(variable, Max(NonLeaf(left, term, No), NonLeaf(right, term, No)))
+      // default
+      case _ =>
+        // analyze term and condition
+        val (tuples1, projection1, delta1) = analyzeArithmetic(variable, term)
+        val (tuples2, projection2, delta2) = {
+          val (set, projection, delta) = analyzeBoolean(variable, condition)
+          // check whether it is sound to optimize
+          val simplified = QpMath.simplify(projection1)
+          val filter = simplified match {
+            case No =>
+              val negated = Not(condition)
+              val disjuncts = for ((expression, _) <- tuples1) yield negated.transform {
+                case `variable` => expression
+                case other => other
+              }
+              OrList(disjuncts)
+            case _ => True
+          }
+          (toTuples(set, filter), projection, delta)
+        }
+        (tuples1 ++ tuples2, NonLeaf(projection2, projection1, No), lcm(delta1, delta2))
+    }
   }
 
-  private def analyzeBoolean(variable: VariableIdentifier, expression: Expression, smallest: Boolean): (Set[Expression], Expression, Int) = expression match {
+  /**
+    * Analyzes the given boolean expression and returns a triple containing a set, an expression, and an integer with
+    * the following properties.
+    *
+    * The first value of the triple is a set containing the so-called boundary values.
+    *
+    * Depending on whether we are interested in a smallest or a largest solution, the second value of the triple is the
+    * negative or positive infinite projection of the given expression.
+    *
+    * The third vlaue of the triple is the least common multiple of all values appearing in divisibility expressions.
+    *
+    * @param variable   The variable to eliminate.
+    * @param expression The boolean expression.
+    * @param smallest   The flag indicating whether we are interested in a smallest or a largest solution.
+    * @return A triple with the described properties.
+    */
+  private def analyzeBoolean(variable: VariableIdentifier, expression: Expression, smallest: Boolean = QpParameters.SMALLEST_SOLUTION): (Set[Expression], Expression, Int) = expression match {
     // divisibility expressions
     case Divides(Literal(value: Int), _) => (Set.empty, expression, value)
     case NotDivides(Literal(value: Int), _) => (Set.empty, expression, value)
