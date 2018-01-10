@@ -28,27 +28,24 @@ object QpElimination extends LazyLogging {
   }
 
   def eliminate(expression: Expression): Expression = expression.transform {
-    // iteratively eliminate existential quantifier
-    case Exists(variables, body) =>
-      variables.foldLeft(body) { case (eliminated, variable) =>
-        val simplified = QpMath.simplify(eliminated)
-        eliminateExistential(variable, simplified)
-      }
-    // iteratively eliminate unbounded maximum
-    case BigMax(variables, body) =>
-      variables.foldLeft(body) { case (eliminated, variable) =>
-        val simplified = QpMath.simplify(eliminated)
-        val rewritten = rewrite(simplified)
-        eliminateMaximum(variable, rewritten, True)
-      }
+    case ForAll(variables, body) => Not(eliminateExistential(variables, Not(body)))
+    case Exists(variables, body) => eliminateExistential(variables, body)
+    case BigMin(variables, body) => Negate(eliminateMaximum(variables, Negate(body)))
+    case BigMax(variables, body) => eliminateMaximum(variables, body)
     case other => other
   }
 
-  private def eliminateExistential(variable: VariableIdentifier, expression: Expression): Expression =
-    if (!expression.contains(_ == variable)) expression
+  private def eliminateExistential(variables: Seq[VariableIdentifier], body: Expression): Expression =
+    variables.foldLeft(body) { case (eliminated, variable) =>
+      val simplified = QpMath.simplify(eliminated)
+      eliminateExistential(variable, simplified)
+    }
+
+  private def eliminateExistential(variable: VariableIdentifier, body: Expression): Expression =
+    if (!body.contains(_ == variable)) body
     else {
       // normalize expression
-      val normalized = normalize(variable, expression)
+      val normalized = normalize(variable, body)
       // compute boundary expressions, projection, and delta
       val (expressions1, projection1, delta1) = analyzeBoolean(variable, normalized, smallest = true)
       val (expressions2, projection2, delta2) = analyzeBoolean(variable, normalized, smallest = false)
@@ -75,6 +72,13 @@ object QpElimination extends LazyLogging {
         val disjunction = OrList(unbounded ++ bounded)
         QpMath.simplify(disjunction)
       }
+    }
+
+  private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression): Expression =
+    variables.foldLeft(body) { case (eliminated, variable) =>
+      val simplified = QpMath.simplify(eliminated)
+      val rewritten = rewrite(simplified)
+      eliminateMaximum(variable, rewritten, True)
     }
 
   private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression): Expression = body match {
