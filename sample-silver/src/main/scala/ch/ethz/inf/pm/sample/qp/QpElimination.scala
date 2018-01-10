@@ -102,7 +102,7 @@ object QpElimination extends LazyLogging {
       }
     case _ =>
       // normalize expression and compute tuples, projection, and delta
-      val normalized = normalize(variable, body)
+      val normalized = normalize(variable, NonLeaf(context, body, No))
       val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
       // compute unbounded solutions
       val unbounded = for (i <- 0 until delta) yield projection.transform {
@@ -297,12 +297,12 @@ object QpElimination extends LazyLogging {
       (toTuples(set), Leaf(projection, permission), delta)
     // analyze addition
     case Plus(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right)
       (tuples1 ++ tuples2, Plus(projection1, projection2), lcm(delta1, delta2))
     // case analyze subtraction
-    case Minus(left, right@Leaf(condition, permission)) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
+    case Minus(left, Leaf(condition, permission)) =>
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
       val (tuples2, projection2, delta2) = {
         // TODO: Add optimization
         // the condition is negated since we are interested in making it false
@@ -313,13 +313,13 @@ object QpElimination extends LazyLogging {
       (tuples1 ++ tuples2, Minus(projection1, projection2), lcm(delta1, delta2))
     // analyze minimum
     case Min(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right)
       (tuples1 ++ tuples2, Min(projection1, projection2), lcm(delta1, delta2))
     // analyze maximum
     case Max(left, right) =>
-      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, expression)
-      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, expression)
+      val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
+      val (tuples2, projection2, delta2) = analyzeArithmetic(variable, right)
       (tuples1 ++ tuples2, Max(projection1, projection2), lcm(delta1, delta2))
     // analyze conditional expression
     case NonLeaf(condition, term, No) => condition match {
