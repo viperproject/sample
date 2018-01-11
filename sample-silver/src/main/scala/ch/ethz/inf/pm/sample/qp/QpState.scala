@@ -233,7 +233,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
       QpSpecification(records = newRecords).read(expression)
   }
 
-  override def merge(changing: Seq[VariableIdentifier], position: CfgPosition, inner: QpSpecification): QpSpecification = {
+  override def merge(changing: Seq[VariableIdentifier], position: CfgPosition, loop: QpSpecification): QpSpecification = {
     // get loop invariant
     lazy val invariant = {
       val numerical = QpContext.getNumerical
@@ -245,42 +245,48 @@ case class QpSpecification(under: List[Expression] = List.empty,
     val overapproximate = if (over.isEmpty) invariant else AndList(over)
     val underapproximate = if (under.isEmpty) False else AndList(under)
 
-    val (newRecords, b) = (records, inner.records) match {
+    val (outer, inner) = (records, loop.records) match {
       case (MapDomain.Inner(m1, default), MapDomain.Inner(m2, _)) =>
         val keys = m1.keySet ++ m2.keySet
-        val (a, b) = keys.foldLeft((Map.empty[VariableIdentifier, QpRecord], Map.empty[VariableIdentifier, QpRecord])) { case ((r1, rb), key) =>
-          val outerOriginal = records.get(key)
-          val innerOriginal = inner.records.get(key)
-          if (outerOriginal.isTop || innerOriginal.isTop) ???
-          else if (outerOriginal.isBottom || innerOriginal.isBottom) ???
-          else {
-            val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate)
-            val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate)
+        val (outer, inner) = keys.foldLeft((Map.empty[VariableIdentifier, QpRecord], Map.empty[VariableIdentifier, QpRecord])) {
+          case ((outerResult, innerResult), key) =>
+            val outerOriginal = records.get(key)
+            val innerOriginal = loop.records.get(key)
+            if (outerOriginal.isTop || innerOriginal.isTop) ???
+            else if (outerOriginal.isBottom || innerOriginal.isBottom) ???
+            else {
+              val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate)
+              val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate)
 
-            // combine preconditions
-            val precondition = {
-              val loop = innerProjected.precondition
-              val propagated = Minus(outerProjected.precondition, innerProjected.difference)
-              val ConditionalExpression(Not(condition), after, _) = outerOriginal.precondition
-              ConditionalExpression(condition, Max(loop, propagated), after)
+              // combine preconditions
+              val precondition = {
+                val loop = innerProjected.precondition
+                val propagated = Minus(outerProjected.precondition, innerProjected.difference)
+                val ConditionalExpression(Not(condition), after, _) = outerOriginal.precondition
+                ConditionalExpression(condition, Max(loop, propagated), after)
+              }
+              // combine differences
+              val difference = {
+                val loop = innerProjected.difference
+                val propagated = outerProjected.difference
+                val ConditionalExpression(Not(condition), after, _) = outerOriginal.difference
+                ConditionalExpression(condition, Plus(loop, propagated), after)
+              }
+
+              val combined = QpRecord(precondition, difference)
+              val invariant = {
+                val ConditionalExpression(condition, _, _) = innerOriginal.precondition
+                innerProjected.assume(condition)
+              }
+              (outerResult.updated(key, combined), innerResult.updated(key, invariant))
             }
-            // combine differences
-            val difference = {
-              val loop = innerProjected.difference
-              val propagated = outerProjected.difference
-              val ConditionalExpression(Not(condition), after, _) = outerOriginal.difference
-              ConditionalExpression(condition, Plus(loop, propagated), after)
-            }
-            val combined = QpRecord(precondition, difference)
-            (r1.updated(key, combined), rb.updated(key, innerProjected))
-          }
         }
-        (MapDomain.Inner(a, default), MapDomain.Inner(b, default))
+        (MapDomain.Inner(outer, default), MapDomain.Inner(inner, default))
       case _ => ???
     }
 
-    QpContext.setInvariant(position, QpSpecification(records = b))
-    QpSpecification(records = newRecords)
+    QpContext.setInvariant(position, QpSpecification(records = inner))
+    QpSpecification(records = outer)
   }
 
   def read(expression: Expression): QpSpecification = access(expression, Permission(1, 100))
