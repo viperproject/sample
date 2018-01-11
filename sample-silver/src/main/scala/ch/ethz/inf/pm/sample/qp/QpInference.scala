@@ -21,7 +21,7 @@ object QpParameters {
 
   val SMALLEST_SOLUTION = true
 
-  val SLICE_ARRAYS = true
+  val SLICE_ARRAYS = false
 
   type NumericalState = IntegerOctagonAnalysisState
 
@@ -60,9 +60,9 @@ object QpInference
   override def inferInvariants(loop: While, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
     val position = getLoopPosition(loop, result.cfg)
     val invariant = QpContext.getInvariant(position)
-    val preconditions = QpConverter.generatePreconditions(invariant)
-    val postconditions = QpConverter.generatePostconditions(invariant)
-    loop.invs ++ preconditions
+    val preconditions: Seq[sil.Exp] = QpConverter.generatePreconditions(invariant).map { expression => sil.InhaleExhaleExp(expression, sil.TrueLit()())() }
+    val postconditions: Seq[sil.Exp] = QpConverter.generatePostconditions(invariant).map { expression => sil.InhaleExhaleExp(sil.TrueLit()(), expression)() }
+    loop.invs ++ preconditions ++ postconditions
   }
 
   private object QpConverter
@@ -99,34 +99,40 @@ object QpInference
     def generate(map: Map[VariableIdentifier, Expression]): Seq[sil.Exp] = QpContext.getReceiver match {
       case None => Seq.empty
       case Some(function) =>
-        val quantified = QpContext.getQuantified(function.name)
-        val variables = quantified.map { declaration =>
+        val declarations = QpContext.getQuantified(function.name)
+        val variables = declarations.map { declaration =>
           val typ = DefaultSilverConverter.convert(declaration.typ)
           VariableIdentifier(declaration.name)(typ)
         }
 
         map.toSeq.flatMap { case (field, permission) =>
-
-          // slice arrays
+          // slice specification
           val sliced = variables.foldRight(Set((List.empty[Expression], permission))) {
-            case (variable, set) =>
-              if (variable.typ == IntType || !QpParameters.SLICE_ARRAYS) {
-                set.map { case (arguments, expression) =>
-                  (variable :: arguments, expression)
-                }
-              } else {
-                set.flatMap { case (arguments, expression) =>
-                  val sliced = slice(variable, expression)
-                  sliced.map { case (argument, updated) => (argument :: arguments, updated) }
-                }
+            case (variable, set) => set.flatMap { case (arguments, expression) =>
+              // collect all values
+              var values = Set.empty[Expression]
+              expression.foreach {
+                case Equal(`variable`, value) => values = values + value
+                case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => ??? // should not happen
+                case _ => // do nothing
               }
+              // slice if there is only one value or array slicing is enabled
+              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType
+              if (values.size == 1 || slice) {
+                for (value <- values) yield {
+                  val transformed = expression.transform {
+                    case Equal(`variable`, term) => Literal(term == value)
+                    case other => other
+                  }
+                  (value :: arguments, transformed)
+                }
+              } else Seq((variable :: arguments, expression))
+            }
           }
 
           for ((arguments, updated) <- sliced) yield {
             // simplify expression
             val simplified = QpMath.simplify(updated)
-            println(s"expression: $updated")
-            println(s"simplified: $simplified")
             // compute location of field access predicate
             val application = sil.FuncLikeApp(function, arguments.map(convert), Map.empty)
             val typ = convert(field.typ)
@@ -135,7 +141,9 @@ object QpInference
             val converted = convert(simplified)
             val body = sil.FieldAccessPredicate(location, converted)()
             // create and return quantified expression
-            sil.Forall(quantified, Seq.empty, body)()
+            val quantified = arguments.filter(variables.contains(_)).map { variable => sil.LocalVarDecl(variable.toString, sil.Int)() }
+            if (quantified.isEmpty) body
+            else sil.Forall(quantified, Seq.empty, body)()
           }
         }
     }
