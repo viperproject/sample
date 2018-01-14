@@ -1,0 +1,20 @@
+field val: Int
+
+domain Array
+{
+    function loc(a: Array, i: Int): Ref
+    function length(a: Array): Int
+    function get_index(r: Ref): Int
+    function get_array(r: Ref): Array
+
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_length { forall a: Array :: 0 <= length(a) }
+}
+
+method main(a: Array, i: Int, j: Int) {
+    inhale acc(loc(a, i).val, 1 / 2)
+    loc(a, i).val := 0
+    loc(a, j).val := 0
+    exhale acc(loc(a, j).val, 1 / 3)
+}
