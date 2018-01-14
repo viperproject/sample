@@ -6,15 +6,16 @@
 
 package ch.ethz.inf.pm.sample.qp
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
-import ch.ethz.inf.pm.sample.execution.{CfgResult, FinalResultForwardInterpreter, SilverAnalysis, SilverEntryStateBuilder}
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.qp.QpParameters.PermissionState
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
-import viper.silver.ast.While
+import viper.silver.ast.{Method, Program, While}
 import viper.silver.{ast => sil}
 
 object QpParameters {
@@ -32,6 +33,18 @@ object QpParameters {
   val permissionEntry = QpEntryState
 }
 
+object X {
+  def main(args: Array[String]): Unit = {
+    SystemParameters.tm = SilverTypeMap
+    var c = Equal(Variable("a", PermType), Zero)
+    val x = Max(No, Negate(ConditionalExpression(c, Permission(1, 1), No)))
+    val y = QpMath.simplify(x)
+
+    println(x)
+    println(y)
+  }
+}
+
 object QpInference
   extends SilverExtender[PermissionState] {
 
@@ -41,6 +54,18 @@ object QpInference
     val program = super.compile(compilable)
     QpContext.setProgram(program)
     program
+  }
+
+  override def extendProgram(program: Program, results: ProgramResult[PermissionState]) = {
+    val extended = super.extendProgram(program, results)
+    val functions = QpContext.getAuxiliaryFunctions
+    extended.copy(functions = extended.functions ++ functions)(pos = extended.pos, info = extended.info, errT = extended.errT)
+  }
+
+  override def inferParameters(method: Method, result: CfgResult[PermissionState]): Seq[sil.LocalVarDecl] = {
+    // TODO: Only add read parameter when it's actually needed.
+    val inferred = Seq(QpContext.getReadParameter)
+    method.formalArgs ++ inferred
   }
 
   override def inferPreconditions(method: sil.Method, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
@@ -67,22 +92,6 @@ object QpInference
 
   private object QpConverter
     extends DefaultSampleConverter {
-
-    def slice(variable: VariableIdentifier, expression: Expression): Set[(Expression, Expression)] = {
-      var values = Set.empty[Expression]
-      expression.foreach {
-        case Equal(`variable`, value) => values = values + value
-        case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => ??? // should not happen
-        case _ => // do nothing
-      }
-      for (value <- values) yield {
-        val transformed = expression.transform {
-          case Equal(`variable`, term) => Literal(term == value)
-          case other => other
-        }
-        (value, transformed)
-      }
-    }
 
     def generatePreconditions(domain: QpSpecification): Seq[sil.Exp] = domain.records match {
       case MapDomain.Top(_) => Seq.empty
@@ -111,13 +120,14 @@ object QpInference
             case (variable, set) => set.flatMap { case (arguments, expression) =>
               // collect all values
               var values = Set.empty[Expression]
+              var inequality = false
               expression.foreach {
                 case Equal(`variable`, value) => values = values + value
-                case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => ??? // should not happen
+                case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => inequality = true
                 case _ => // do nothing
               }
               // slice if there is only one value or array slicing is enabled
-              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType
+              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType && !inequality
               if (values.size == 1 || slice) {
                 for (value <- values) yield {
                   val transformed = expression.transform {
@@ -133,6 +143,9 @@ object QpInference
           for ((arguments, updated) <- sliced) yield {
             // simplify expression
             val simplified = QpMath.simplify(updated)
+            println("----")
+            println(s"updated: $updated")
+            println(s"simplified: $simplified")
             // compute location of field access predicate
             val application = sil.FuncLikeApp(function, arguments.map(convert), Map.empty)
             val typ = convert(field.typ)

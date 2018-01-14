@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.qp
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
 import ch.ethz.inf.pm.sample.execution.{CfgPosition, SilverState, Simplifications}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.DefaultSilverConverter
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 import com.typesafe.scalalogging.LazyLogging
@@ -242,8 +242,8 @@ case class QpSpecification(under: List[Expression] = List.empty,
       AndList(constraints)
     }
     // try to extract over- and underapproximate loop invariants
-    val overapproximate = if (over.isEmpty) invariant else AndList(over)
-    val underapproximate = if (under.isEmpty) False else AndList(under)
+    val overapproximate = if (loop.over.isEmpty) invariant else AndList(loop.over)
+    val underapproximate = if (loop.under.isEmpty) False else AndList(loop.under)
 
     val (outer, inner) = (records, loop.records) match {
       case (MapDomain.Inner(m1, default), MapDomain.Inner(m2, _)) =>
@@ -263,6 +263,11 @@ case class QpSpecification(under: List[Expression] = List.empty,
                 val loop = innerProjected.precondition
                 val propagated = Minus(outerProjected.precondition, innerProjected.difference)
                 val ConditionalExpression(Not(condition), after, _) = outerOriginal.precondition
+
+                println("----")
+                println(s"loop: $loop")
+                println(s"propagated: $propagated")
+                println("----")
                 ConditionalExpression(condition, Max(loop, propagated), after)
               }
               // combine differences
@@ -289,7 +294,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
     QpSpecification(records = outer)
   }
 
-  def read(expression: Expression): QpSpecification = access(expression, Permission(1, 100))
+  def read(expression: Expression): QpSpecification = access(expression, readParameter)
 
   def write(expression: Expression): QpSpecification = access(expression, Full)
 
@@ -308,6 +313,11 @@ case class QpSpecification(under: List[Expression] = List.empty,
       val newRecords = records.update(field, _.assert(leaf))
       QpSpecification(records = newRecords)
     case _ => ???
+  }
+
+  private def readParameter: VariableIdentifier = {
+    val declaration = QpContext.getReadParameter
+    VariableIdentifier(declaration.name)(PermType)
   }
 
   private def toLeaf(condition: Expression, permission: Expression): Expression =

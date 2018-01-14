@@ -9,7 +9,7 @@ package ch.ethz.inf.pm.sample.qp
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
 import ch.ethz.inf.pm.sample.qp.QpMath.Collected
-import ch.ethz.inf.pm.sample.util.Math.lcm
+import ch.ethz.inf.pm.sample.util.Math._
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 import com.typesafe.scalalogging.LazyLogging
 
@@ -146,6 +146,7 @@ object QpElimination extends LazyLogging {
     * @return An expression that is equivalent to the given expression.
     */
   private def rewrite(expression: Expression): Expression = expression.transform {
+    case Negate(argument) => rewriteMinus(No, argument)
     case Plus(left, right) => rewritePlus(left, right)
     case Minus(left, right) => rewriteMinus(left, right)
     case Min(left, right) => rewriteMin(left, right)
@@ -170,6 +171,12 @@ object QpElimination extends LazyLogging {
     // distribute addition over conditional
     case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
     case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
+    // add constants
+    case (Permission(n1, d1), Permission(n2, d2)) =>
+      val d = lcm(d1, d2)
+      val n = n1 * d / d1 + n2 * d / d2
+      val f = gcd(n, d)
+      Permission(n / f, d / f)
     // default action: do nothing
     case _ => Plus(left, right)
   }
@@ -197,6 +204,12 @@ object QpElimination extends LazyLogging {
     case (e, Plus(l, r)) => rewriteMinus(rewriteMinus(e, l), r)
     // rewrite nested subtraction
     case (e, Minus(l, r)) => rewritePlus(rewriteMinus(e, l), r)
+    // subtract constants
+    case (Permission(n1, d1), Permission(n2, d2)) =>
+      val d = lcm(d1, d2)
+      val n = n1 * d / d1 - n2 * d / d2
+      val f = gcd(n, d)
+      Permission(n / f, d / f)
     // default action: do nothing
     case _ => Minus(left, right)
   }
@@ -223,7 +236,12 @@ object QpElimination extends LazyLogging {
   private def normalize(variable: VariableIdentifier, expression: Expression): Expression = {
     val nnf = QpMath.toNnf(expression)
     val collected = collectVariable(variable, nnf)
-    normalizeCoefficient(variable, collected)
+    val normalized = normalizeCoefficient(variable, collected)
+    println("---")
+    println(s"nnf: $nnf")
+    println(s"coll: $collected")
+    println(s"nrom: $normalized")
+    normalized
   }
 
   def collectVariable(variable: VariableIdentifier, expression: Expression): Expression = expression.transform {
@@ -260,7 +278,8 @@ object QpElimination extends LazyLogging {
         case `variable` =>
           Comparison(variable, Times(Literal(factor), right), operator)
         case Times(Literal(value: Int), `variable`) =>
-          Comparison(variable, Times(Literal(factor / value), right), operator)
+          if (value == 0) Zero
+          else Comparison(variable, Times(Literal(factor / value), right), operator)
         case _ => original
       }
       case original => original
@@ -321,6 +340,9 @@ object QpElimination extends LazyLogging {
         (toTuples(set, filter), projection, delta)
       }
       (tuples1 ++ tuples2, NonLeaf(projection2, projection1, No), lcm(delta1, delta2))
+    // analyze constant
+    case constant@Permission(_, _) =>
+      (Set.empty, constant, 1)
     // analyze addition
     case Plus(left, right) =>
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)

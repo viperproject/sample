@@ -34,9 +34,9 @@ object QpMath {
     }
     // transform subexpressions
     case BinaryBooleanExpression(left, right, operator) =>
-      val newLewft = toNnf(left)
+      val newLeft = toNnf(left)
       val newRight = toNnf(right)
-      BinaryBooleanExpression(newLewft, newRight, operator)
+      BinaryBooleanExpression(newLeft, newRight, operator)
     // TODO: Do we need this once we do the rewriting?
     case Max(left, right) => Max(toNnf(left), toNnf(right))
     case Min(left, right) => Min(toNnf(left), toNnf(right))
@@ -62,33 +62,37 @@ object QpMath {
       case _ => original
     }
     // simplify conjunctions
-    case And(left, right) => (left, right) match {
+    case original@And(left, right) => (left, right) match {
       // constant folding
       case (True, _) => right
       case (_, True) => left
       case (False, _) => False
       case (_, False) => False
       // default action
-      case _ => And(left, right)
+      case _ => original
     }
     // simplify disjunctions
-    case Or(left, right) => (left, right) match {
+    case original@Or(left, right) => (left, right) match {
       // constant folding
       case (True, _) => True
       case (_, True) => True
       case (False, _) => right
       case (_, False) => left
       // default action
-      case _ => Or(left, right)
+      case _ => original
     }
     // simplify negations
-    case Negate(argument) => argument match {
+    case original@Negate(argument) => argument match {
+      // constant folding
       case Literal(v: Int) => Literal(-v)
+      case Permission(n, d) => Permission(-n, d)
+      // drop double negations
       case Negate(negated) => negated
-      case _ => Negate(argument)
+      // default action
+      case _ => original
     }
     // simplify additions
-    case Plus(left, right) => (left, right) match {
+    case original@Plus(left, right) => (left, right) match {
       // integers
       case (Zero, _) => right
       case (_, Zero) => left
@@ -105,32 +109,35 @@ object QpMath {
         val f = gcd(n, d)
         Permission(n / f, d / f)
       // default action
-      case _ => Plus(left, right)
+      case _ => original
     }
     // simplify subtractions
-    case Minus(left, right) => (left, right) match {
+    case original@Minus(left, right) => (left, right) match {
       // integers
+      case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 - v2)
       case (Zero, _) => Negate(right)
       case (_, Zero) => left
-      case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 - v2)
       // permissions
-      case (No, _) => Negate(right)
-      case (_, No) => left
       case (Permission(n1, d1), Permission(n2, d2)) =>
         val d = lcm(d1, d2)
         val n = n1 * d / d1 - n2 * d / d2
         val f = gcd(n, d)
         Permission(n / f, d / f)
+      case (No, _) => Negate(right)
+      case (_, No) => left
       // default action
-      case _ => Minus(left, right)
+      case _ => original
     }
     // simplify multiplications
-    case Times(left, right) => (left, right) match {
+    case original@Times(left, right) => (left, right) match {
       // integers
+      case (Zero, _) => Zero
+      case (_, Zero) => Zero
       case (One, _) => right
       case (_, One) => left
+      case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 * v2)
       // default action
-      case _ => Times(left, right)
+      case _ => original
     }
     // simplify modulo
     case original@Modulo(left, right) => (left, right) match {
@@ -147,16 +154,22 @@ object QpMath {
     }
     // simplify maxima
     case original@Max(left, right) =>
-      val (smaller, larger) = compare(left, right)
-      if (smaller) right
-      else if (larger) left
-      else original
+      if (left == right) left
+      else {
+        val (smaller, larger) = compare(left, right)
+        if (smaller) right
+        else if (larger) left
+        else original
+      }
     // simplify minima
     case original@Min(left, right) =>
-      val (smaller, larger) = compare(left, right)
-      if (smaller) left
-      else if (larger) right
-      else original
+      if (left == right) left
+      else {
+        val (smaller, larger) = compare(left, right)
+        if (smaller) left
+        else if (larger) right
+        else original
+      }
     // simplify comparisons
     case Comparison(Literal(v1: Int), Literal(v2: Int), operator) => operator match {
       case ArithmeticOperator.== => Literal(v1 == v2)
@@ -166,14 +179,6 @@ object QpMath {
       case ArithmeticOperator.> => Literal(v1 > v2)
       case ArithmeticOperator.>= => Literal(v1 >= v2)
     }
-    case Comparison(left, right, operator) if left == right => operator match {
-      case ArithmeticOperator.== => True
-      case ArithmeticOperator.!= => False
-      case ArithmeticOperator.< => False
-      case ArithmeticOperator.<= => True
-      case ArithmeticOperator.> => False
-      case ArithmeticOperator.>= => True
-    }
     case Comparison(Permission(n1, d1), Permission(n2, d2), operator) => operator match {
       case ArithmeticOperator.== => Literal(n1 * d2 == n2 * d1)
       case ArithmeticOperator.!= => Literal(n1 * d2 != n2 * d1)
@@ -181,6 +186,14 @@ object QpMath {
       case ArithmeticOperator.<= => Literal(n1 * d2 <= n2 * d1)
       case ArithmeticOperator.> => Literal(n1 * d2 > n2 * d1)
       case ArithmeticOperator.>= => Literal(n1 * d2 >= n2 * d1)
+    }
+    case Comparison(left, right, operator) if left == right => operator match {
+      case ArithmeticOperator.== => True
+      case ArithmeticOperator.!= => False
+      case ArithmeticOperator.< => False
+      case ArithmeticOperator.<= => True
+      case ArithmeticOperator.> => False
+      case ArithmeticOperator.>= => True
     }
     // simplify conditional expressions
     case ConditionalExpression(True, term, _) => term
@@ -200,9 +213,12 @@ object QpMath {
   private def bounds(expression: Expression): (Expression, Expression) = expression match {
     case Literal(v: Int) => (Literal(v), Literal(v))
     case Permission(n, d) => (Permission(n, d), Permission(n, d))
+    case variable: VariableIdentifier if variable.name == QpContext.getReadParameter.name => (variable, variable)
     case Negate(argument) =>
-      val (lower, upper) = bounds(argument)
-      (upper, lower)
+      val (lowerArgument, upperArgument) = bounds(argument)
+      val lower = simplification(Negate(upperArgument))
+      val upper = simplification(Negate(lowerArgument))
+      (lower, upper)
     case Plus(left, right) =>
       val (leftLower, leftUpper) = bounds(left)
       val (rightLower, rightUpper) = bounds(right)
@@ -246,7 +262,7 @@ object QpMath {
 
   private def lessEqual(left: Expression, right: Expression): Boolean = (left, right) match {
     case (Literal(v1: Int), Literal(v2: Int)) => v1 <= v2
-    case (Permission(n1, d1), Permission(n2, d2)) => n1.toLong * d2 <= n2 * d1
+    case (Permission(n1, d1), Permission(n2, d2)) => n1.toLong * d2 <= n2.toLong * d1
     case _ => false
   }
 

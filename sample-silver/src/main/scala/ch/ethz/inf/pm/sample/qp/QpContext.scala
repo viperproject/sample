@@ -19,6 +19,8 @@ object QpContext
 
   val MIN_FUNCTION_NAME = "min"
 
+  val READ_PARAMETER_NAME = "read"
+
   var numerical: Map[String, CfgResult[QpParameters.NumericalState]] = Map.empty
 
   var invariants: Map[CfgPosition, QpSpecification] = Map.empty
@@ -61,6 +63,8 @@ object QpContext
       declarations
   }
 
+  def getReadParameter: sil.LocalVarDecl = getVariable(READ_PARAMETER_NAME).get
+
   def getMaxFunction: sil.Function = getAuxiliaryFunction(MAX_FUNCTION_NAME).get
 
   def getMinFunction: sil.Function = getAuxiliaryFunction(MIN_FUNCTION_NAME).get
@@ -71,6 +75,13 @@ object QpContext
     numerical = Map.empty
     receivers = Map.empty
     quantified = Map.empty
+  }
+
+  override protected def computeVariable(name: String): Option[sil.LocalVarDecl] = name match {
+    case READ_PARAMETER_NAME =>
+      val variable = sil.LocalVarDecl(uniqueIdentifier(name), sil.Perm)()
+      Some(variable)
+    case _ => super.computeVariable(name)
   }
 
   override protected def computeFunction(name: String): Option[sil.Function] = name match {
@@ -119,6 +130,8 @@ trait Context {
 
   protected var identifiers: Set[String] = Set.empty
 
+  protected var variables: Map[String, sil.LocalVarDecl] = Map.empty
+
   protected var functions: Map[String, sil.Function] = Map.empty
 
   def setProgram(current: sil.Program): Unit = program match {
@@ -151,6 +164,14 @@ trait Context {
 
   def getFunction(name: String): Option[sil.FuncLike] = program.flatMap { program => program.findFunctionOptionally(name).orElse(program.findDomainFunctionOptionally(name)) }
 
+  def getVariable(name: String): Option[sil.LocalVarDecl] = variables.get(name) match {
+    case Some(existing) => Some(existing)
+    case None =>
+      val variable = computeVariable(name)
+      variable.foreach { variable => variables = variables.updated(name, variable) }
+      variable
+  }
+
   def getAuxiliaryFunction(name: String): Option[sil.Function] = functions.get(name) match {
     case Some(existing) => Some(existing)
     case None =>
@@ -159,6 +180,8 @@ trait Context {
       function
   }
 
+  def getAuxiliaryFunctions: Iterable[sil.Function] = functions.values
+
   def getDomainFunction(name: String): sil.DomainFunc =
     program.get.findDomainFunction(name)
 
@@ -166,8 +189,11 @@ trait Context {
     program = None
     method = None
     identifiers = Set.empty
+    variables = Map.empty
     functions = Map.empty
   }
+
+  protected def computeVariable(name: String): Option[sil.LocalVarDecl] = None
 
   protected def computeFunction(name: String): Option[sil.Function] = None
 
