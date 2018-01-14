@@ -8,6 +8,7 @@ package ch.ethz.inf.pm.sample.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.inference.SilverExtender
+import ch.ethz.inf.pm.sample.qp.{QpInference, QpParameters, QpState}
 import ch.ethz.inf.pm.sample.util.Verifiers
 import viper.silver.{ast => sil}
 import viper.silver.testing._
@@ -100,15 +101,11 @@ abstract class InferenceTest[S <: State[S]]
 
 }
 
-/**
-  * Tests for the quantified permission analysis.
-  *
-  * @author Jerome Dohrau
-  *         *
-  *         class QuantifiedPermissionTest
-  *         extends InferenceTest[QuantifiedPermissionState] {
-  *         *
-  *         override def testDirectories: Seq[String] = Seq("silver/quantified/")
-  *         *
-  *         override def inference: SilverExtender[QuantifiedPermissionState] = QuantifiedPermissionsAnalysisRunner
-  *         }*/
+class QpTest
+  extends InferenceTest[QpParameters.PermissionState] {
+
+  override def testDirectories: Seq[String] = Seq("silver/qp/")
+
+  override def inference: SilverExtender[QpParameters.PermissionState] = QpInference
+
+}
