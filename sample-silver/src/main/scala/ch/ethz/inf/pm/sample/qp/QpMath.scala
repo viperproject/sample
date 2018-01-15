@@ -131,11 +131,13 @@ object QpMath {
     // simplify multiplications
     case original@Times(left, right) => (left, right) match {
       // integers
+      case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 * v2)
       case (Zero, _) => Zero
       case (_, Zero) => Zero
       case (One, _) => right
       case (_, One) => left
-      case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 * v2)
+      case (Literal(-1), term) => simplification(Negate(right))
+      case (_, Literal(-1)) => simplification(Negate(left))
       // default action
       case _ => original
     }
@@ -213,7 +215,7 @@ object QpMath {
   private def bounds(expression: Expression): (Expression, Expression) = expression match {
     case Literal(v: Int) => (Literal(v), Literal(v))
     case Permission(n, d) => (Permission(n, d), Permission(n, d))
-    case variable: VariableIdentifier if variable.name == QpContext.getReadParameter.name => (variable, variable)
+    case ReadParameter(variable) => (variable, variable)
     case Negate(argument) =>
       val (lowerArgument, upperArgument) = bounds(argument)
       val lower = simplification(Negate(upperArgument))

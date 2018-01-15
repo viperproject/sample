@@ -235,12 +235,23 @@ case class QpSpecification(under: List[Expression] = List.empty,
 
   override def merge(changing: Seq[VariableIdentifier], position: CfgPosition, loop: QpSpecification): QpSpecification = {
     // get loop invariant
-    lazy val invariant = {
+    lazy val conjuncts = {
       val numerical = QpContext.getNumerical
       val domain = numerical.preStateAt(position).domain
-      val constraints = domain.getConstraints(domain.ids.toSet)
-      AndList(constraints)
+      domain.getConstraints(domain.ids.toSet)
     }
+
+    val variables = changing.toSet[Identifier]
+    val (invariant, fact) = if (QpParameters.ADD_ALL_INVARIANTS) (AndList(conjuncts), True: Expression) else {
+      conjuncts.foldLeft((True: Expression, True: Expression)) {
+        case ((invariant, fact), conjunct) =>
+          val identifiers = conjunct.ids.toSet
+          val interesting = (identifiers intersect variables).nonEmpty
+          if (interesting) (And(conjunct, invariant), fact)
+          else (invariant, And(conjunct, fact))
+      }
+    }
+
     // try to extract over- and underapproximate loop invariants
     val overapproximate = if (loop.over.isEmpty) invariant else AndList(loop.over)
     val underapproximate = if (loop.under.isEmpty) False else AndList(loop.under)
@@ -255,14 +266,14 @@ case class QpSpecification(under: List[Expression] = List.empty,
             if (outerOriginal.isTop || innerOriginal.isTop) ???
             else if (outerOriginal.isBottom || innerOriginal.isBottom) ???
             else {
-              val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate)
-              val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate)
+              val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate, fact)
+              val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate, fact)
 
               // combine preconditions
               val precondition = {
                 val loop = innerProjected.precondition
                 val propagated = Minus(outerProjected.precondition, innerProjected.difference)
-                val ConditionalExpression(Not(condition), after, _) = outerOriginal.precondition
+                val (Not(condition), after) = foo(outerOriginal.precondition)
 
                 println("----")
                 println(s"loop: $loop")
@@ -274,7 +285,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
               val difference = {
                 val loop = innerProjected.difference
                 val propagated = outerProjected.difference
-                val ConditionalExpression(Not(condition), after, _) = outerOriginal.difference
+                val (Not(condition), after) = foo(outerOriginal.difference)
                 ConditionalExpression(condition, Plus(loop, propagated), after)
               }
 
@@ -292,6 +303,11 @@ case class QpSpecification(under: List[Expression] = List.empty,
 
     QpContext.setInvariant(position, QpSpecification(records = inner))
     QpSpecification(records = outer)
+  }
+
+  private def foo(expression: Expression): (Expression, Expression) = expression match {
+    case ConditionalExpression(condition, after, No) => (condition, after)
+    case Max(left, Leaf(_, _)) => foo(left)
   }
 
   def read(expression: Expression): QpSpecification = access(expression, readParameter)
@@ -393,15 +409,18 @@ case class QpRecord(precondition: Expression = No,
     }
   }
 
-  def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression): QpRecord = {
+  // TODO: Use fact
+  def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression, fact: Expression): QpRecord = {
     val newPrecondition = {
-      val formula = BigMax(changing, ConditionalExpression(over, precondition, No))
-      QpElimination.eliminate(formula)
+      val approximated = QpElimination.approximate(precondition)
+      val formula = BigMax(changing, ConditionalExpression(over, approximated, No))
+      QpElimination.eliminate(formula, fact)
     }
     val newDifference = {
+      // TODO: Approximate
       val negative = Min(BigMin(changing, ConditionalExpression(over, difference, No)), No)
       val positive = Max(BigMax(changing, ConditionalExpression(under, Max(difference, No), No)), No)
-      QpElimination.eliminate(Plus(negative, positive))
+      QpElimination.eliminate(Plus(negative, positive), fact)
     }
     copy(precondition = newPrecondition, difference = newDifference)
   }

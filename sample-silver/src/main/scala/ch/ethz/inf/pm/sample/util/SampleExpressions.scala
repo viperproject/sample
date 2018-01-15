@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.util
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{BoolType, IntType, PermType}
+import ch.ethz.inf.pm.sample.qp.QpContext
 
 /**
   * Some utility functions for sample expressions.
@@ -348,11 +349,22 @@ object SampleExpressions {
    * Expresssions for QP
    */
 
+  object ReadParameter {
+    def apply(): VariableIdentifier =
+      VariableIdentifier(QpContext.getReadParameter.name)(PermType)
+
+    def unapply(argument: Expression): Option[VariableIdentifier] = argument match {
+      case variable: VariableIdentifier if variable.name == QpContext.getReadParameter.name => Some(variable)
+      case _ => None
+    }
+  }
+
   object Leaf {
     def apply(condition: Expression, permission: Expression): ConditionalExpression =
       ConditionalExpression(condition, permission, No)
 
     def unapply(argument: Expression): Option[(Expression, Expression)] = argument match {
+      case ConditionalExpression(condition, ReadParameter(variable), No) => Some(condition, variable)
       case ConditionalExpression(condition, permission@Permission(_, _), No) => Some(condition, permission)
       case _ => None
     }

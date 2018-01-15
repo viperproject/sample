@@ -24,6 +24,8 @@ object QpParameters {
 
   val SLICE_ARRAYS = false
 
+  val ADD_ALL_INVARIANTS = false
+
   type NumericalState = IntegerOctagonAnalysisState
 
   type PermissionState = QpState[QpSpecification]
@@ -87,7 +89,13 @@ object QpInference
     val invariant = QpContext.getInvariant(position)
     val preconditions: Seq[sil.Exp] = QpConverter.generatePreconditions(invariant).map { expression => sil.InhaleExhaleExp(expression, sil.TrueLit()())() }
     val postconditions: Seq[sil.Exp] = QpConverter.generatePostconditions(invariant).map { expression => sil.InhaleExhaleExp(sil.TrueLit()(), expression)() }
-    loop.invs ++ preconditions ++ postconditions
+
+    val numerical = QpContext.getNumerical
+    val domain = numerical.preStateAt(position).domain
+    val constraints = domain.getConstraints(domain.ids.toSet)
+    val converted = constraints.map(DefaultSampleConverter.convert)
+
+    loop.invs ++ converted ++ preconditions ++ postconditions
   }
 
   private object QpConverter
@@ -115,6 +123,7 @@ object QpInference
         }
 
         map.toSeq.flatMap { case (field, permission) =>
+          println(s"permission: $permission")
           // slice specification
           val sliced = variables.foldRight(Set((List.empty[Expression], permission))) {
             case (variable, set) => set.flatMap { case (arguments, expression) =>
@@ -127,8 +136,8 @@ object QpInference
                 case _ => // do nothing
               }
               // slice if there is only one value or array slicing is enabled
-              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType && !inequality
-              if (values.size == 1 || slice) {
+              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType
+              if ((values.size == 1 || slice) && !inequality) {
                 for (value <- values) yield {
                   val transformed = expression.transform {
                     case Equal(`variable`, term) => Literal(term == value)
