@@ -7,7 +7,6 @@
 package ch.ethz.inf.pm.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.silver.IntType
 import ch.ethz.inf.pm.sample.qp.QpMath.{Collected}
 import ch.ethz.inf.pm.sample.util.Math._
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
@@ -70,7 +69,7 @@ object QpElimination extends LazyLogging {
     variables.foldLeft(simplified) { case (eliminated, variable) =>
       val rewritten = rewrite(simplified)
       println("---")
-      println(s"input: $rewritten")
+      println(s"max ${variables.mkString(", ")} :: $rewritten")
       val x = eliminateMaximum(variable, rewritten, True, fact)
       val res = QpMath.simplify(x)
       println(s"output: $res")
@@ -105,7 +104,6 @@ object QpElimination extends LazyLogging {
         case `variable` => Literal(i)
         case other => other
       }
-      println(s"normalized: $normalized")
       // compute bounded solutions
       val bounded = for ((boundary, constraint) <- tuples; i <- 0 until delta) yield {
         // construct candidate solution
@@ -115,7 +113,7 @@ object QpElimination extends LazyLogging {
         }
         // simplify candidate
         val simplified = QpMath.simplify(candidate)
-        val x = simplified.transform {
+        simplified.transform {
           case original@ConditionalExpression(condition, term, No) =>
             // TODO: Add constraint?
             // check whether condition is satisfiable under collected constraint
@@ -129,8 +127,6 @@ object QpElimination extends LazyLogging {
             }
           case other => other
         }
-        println(s"$boundary --> $x")
-        x
       }
       // compute final expression
       MaxList(unbounded ++ bounded)

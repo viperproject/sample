@@ -155,14 +155,21 @@ object QpMath {
       case _ => original
     }
     // simplify maxima
-    case original@Max(left, right) =>
-      if (left == right) left
-      else {
-        val (smaller, larger) = compare(left, right)
-        if (smaller) right
-        else if (larger) left
-        else original
+    case original@Max(MaxList(ls), MaxList(rs)) =>
+
+      def add(element: Expression, list: List[Expression]): List[Expression] = {
+        val (keep, filtered) = list.foldLeft((true, List.empty[Expression])) {
+          case ((keep, partial), current) =>
+            val (leq, geq) = compare(element, current)
+            if (geq) (keep, partial)
+            else if (leq) (false, current :: partial)
+            else (keep, current :: partial)
+        }
+        if (keep) element :: filtered else filtered
       }
+
+      val merged = ls.foldLeft(rs) { case (list, element) => add(element, list) }
+      MaxList(merged)
     // simplify minima
     case original@Min(left, right) =>
       if (left == right) left
@@ -254,17 +261,23 @@ object QpMath {
     case _ => ???
   }
 
-  private def compare(left: Expression, right: Expression): (Boolean, Boolean) = {
-    val (leftLower, leftUpper) = bounds(left)
-    val (rightLower, rightUpper) = bounds(right)
-    val smaller = lessEqual(leftUpper, rightLower)
-    val larger = lessEqual(rightUpper, leftLower)
-    (smaller, larger)
+  private def compare(left: Expression, right: Expression): (Boolean, Boolean) = (left, right) match {
+    case (ConditionalExpression(c1, t1, No), ConditionalExpression(c2, t2, No)) if c1 == c2 => compare(t1, t2)
+    case _ =>
+      if (left == right) (true, true) else {
+        val (leftLower, leftUpper) = bounds(left)
+        val (rightLower, rightUpper) = bounds(right)
+        val leq = lessEqual(leftUpper, rightLower)
+        val geq = lessEqual(rightUpper, leftLower)
+        (leq, geq)
+      }
   }
 
   private def lessEqual(left: Expression, right: Expression): Boolean = (left, right) match {
     case (Literal(v1: Int), Literal(v2: Int)) => v1 <= v2
     case (Permission(n1, d1), Permission(n2, d2)) => n1.toLong * d2 <= n2.toLong * d1
+    case (Permission(n, d), ReadParameter(_)) => n * d <= 0
+    case (ReadParameter(_), Permission(n, d)) => 0 < n * d
     case _ => false
   }
 
