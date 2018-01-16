@@ -26,6 +26,8 @@ object QpParameters {
 
   val ADD_ALL_INVARIANTS = false
 
+  val CONDITIONAL_INVARIANTS = false
+
   type NumericalState = IntegerOctagonAnalysisState
 
   type PermissionState = QpState[QpSpecification]

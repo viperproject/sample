@@ -273,26 +273,34 @@ case class QpSpecification(under: List[Expression] = List.empty,
               val precondition = {
                 val loop = innerProjected.precondition
                 val propagated = Minus(outerProjected.precondition, innerProjected.difference)
-                val (Not(condition), after) = foo(outerOriginal.precondition)
-
-                println("----")
-                println(s"loop: $loop")
-                println(s"propagated: $propagated")
-                println("----")
-                ConditionalExpression(condition, Max(loop, propagated), after)
+                val projected = Max(loop, propagated)
+                if (QpParameters.CONDITIONAL_INVARIANTS) {
+                  // val (Not(condition), after) = getAfter(outerOriginal.precondition)
+                  // ConditionalExpression(condition, projected, after)
+                  ???
+                }
+                else projected
               }
               // combine differences
               val difference = {
                 val loop = innerProjected.difference
                 val propagated = outerProjected.difference
-                val (Not(condition), after) = foo(outerOriginal.difference)
-                ConditionalExpression(condition, Plus(loop, propagated), after)
+
+                val projected = Plus(loop, propagated)
+                if (QpParameters.CONDITIONAL_INVARIANTS) {
+                  // val (Not(condition), after) = getAfter(outerOriginal.difference)
+                  // ConditionalExpression(condition, Plus(loop, propagated), after)
+                  ???
+                } else projected
               }
 
               val combined = QpRecord(precondition, difference)
               val invariant = {
-                val ConditionalExpression(condition, _, _) = innerOriginal.precondition
-                innerProjected.assume(condition)
+                if (QpParameters.CONDITIONAL_INVARIANTS) {
+                  // val (conditoin, _) = getAfter(innerOriginal.precondition)
+                  // innerProjected.assume(condition)
+                  ???
+                } else innerProjected
               }
               (outerResult.updated(key, combined), innerResult.updated(key, invariant))
             }
@@ -305,9 +313,9 @@ case class QpSpecification(under: List[Expression] = List.empty,
     QpSpecification(records = outer)
   }
 
-  private def foo(expression: Expression): (Expression, Expression) = expression match {
+  private def getAfter(expression: Expression): (Expression, Expression) = expression match {
     case ConditionalExpression(condition, after, No) => (condition, after)
-    case Max(left, Leaf(_, _)) => foo(left)
+    case Max(left, Leaf(_, _)) => getAfter(left)
   }
 
   def read(expression: Expression): QpSpecification = access(expression, readParameter)

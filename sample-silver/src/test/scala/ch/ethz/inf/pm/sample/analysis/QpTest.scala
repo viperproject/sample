@@ -23,6 +23,9 @@ import viper.silver.verifier._
 abstract class InferenceTest[S <: State[S]]
   extends AnnotationBasedTestSuite {
 
+
+  override val defaultTestPattern: String = ".*\\.(vpr)"
+
   def inference: SilverExtender[S]
 
   override def systemsUnderTest: Seq[SystemUnderTest] = Seq(InferenceUnderTest(inference))
