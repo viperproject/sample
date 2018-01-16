@@ -65,6 +65,13 @@ object QpContext
 
   def getReadParameter: sil.LocalVarDecl = getVariable(READ_PARAMETER_NAME).get
 
+  def getBounds: Seq[sil.Exp] = {
+    val read = sil.LocalVar(QpContext.getReadParameter.name)(sil.Perm)
+    val lower = sil.PermLtCmp(sil.NoPerm()(), read)()
+    val upper = sil.PermLtCmp(read, sil.FullPerm()())()
+    Seq(sil.And(lower, upper)())
+  }
+
   def getMaxFunction: sil.Function = getAuxiliaryFunction(MAX_FUNCTION_NAME).get
 
   def getMinFunction: sil.Function = getAuxiliaryFunction(MIN_FUNCTION_NAME).get

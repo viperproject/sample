@@ -76,14 +76,15 @@ object QpInference
     val position = firstPosition(result.cfg.entry)
     val state = result.preStateAt(position)
     val inferred = QpConverter.generatePreconditions(state.stack.get())
-    method.pres ++ inferred
+    val bounds = QpContext.getBounds
+    bounds ++ inferred ++ method.pres
   }
 
   override def inferPostconditions(method: sil.Method, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
     val position = firstPosition(result.cfg.entry)
     val state = result.preStateAt(position)
     val inferred = QpConverter.generatePostconditions(state.stack.get())
-    method.posts ++ inferred
+    inferred ++ method.posts
   }
 
   override def inferInvariants(loop: While, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
@@ -95,9 +96,9 @@ object QpInference
     val numerical = QpContext.getNumerical
     val domain = numerical.preStateAt(position).domain
     val constraints = domain.getConstraints(domain.ids.toSet)
-    val converted = constraints.map(DefaultSampleConverter.convert)
+    val converted = constraints.map(DefaultSampleConverter.convert).toSeq
 
-    loop.invs ++ converted ++ preconditions ++ postconditions
+    converted ++ preconditions ++ postconditions ++ loop.invs
   }
 
   private object QpConverter

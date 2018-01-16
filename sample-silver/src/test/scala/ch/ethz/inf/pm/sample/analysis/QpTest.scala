@@ -8,7 +8,7 @@ package ch.ethz.inf.pm.sample.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.inference.SilverExtender
-import ch.ethz.inf.pm.sample.qp.{QpInference, QpParameters, QpState}
+import ch.ethz.inf.pm.sample.qp.{QpContext, QpInference, QpParameters, QpState}
 import ch.ethz.inf.pm.sample.util.Verifiers
 import viper.silver.{ast => sil}
 import viper.silver.testing._
@@ -47,6 +47,7 @@ abstract class InferenceTest[S <: State[S]]
         .foldLeft(Map.empty[String, sil.Method]) { (result, method) => result + (method.name.dropRight(9) -> method) }
 
       val filtered = program.copy(methods = methods)(program.pos, program.info, program.errT)
+      QpContext.setProgram(filtered)
       val extended = inference.extend(filtered)
 
       val checks = extended.methods.flatMap { inferred =>
@@ -78,11 +79,12 @@ abstract class InferenceTest[S <: State[S]]
       val name = inferred.name
       val parameters = inferred.formalArgs
       val body = Some(sil.Seqn(Seq.empty, Seq.empty)())
+      val bounds = QpContext.getBounds
 
-      val check0 = sil.Method(name + "_pre_inferred_implies_expected", parameters, Seq.empty, inferred.pres, expected.pres, body)()
-      val check1 = sil.Method(name + "_pre_expected_implies_inferred", parameters, Seq.empty, expected.pres, inferred.pres, body)()
-      val check2 = sil.Method(name + "_post_inferred_implies_expected", parameters, Seq.empty, inferred.posts, expected.posts, body)()
-      val check3 = sil.Method(name + "_post_expected_implies_inferred", parameters, Seq.empty, expected.posts, inferred.posts, body)()
+      val check0 = sil.Method(name + "_pre_inferred_implies_expected", parameters, Seq.empty, bounds ++ inferred.pres, expected.pres, body)()
+      val check1 = sil.Method(name + "_pre_expected_implies_inferred", parameters, Seq.empty, bounds ++ expected.pres, inferred.pres, body)()
+      val check2 = sil.Method(name + "_post_inferred_implies_expected", parameters, Seq.empty, bounds ++ inferred.posts, expected.posts, body)()
+      val check3 = sil.Method(name + "_post_expected_implies_inferred", parameters, Seq.empty, bounds ++ expected.posts, inferred.posts, body)()
 
       Seq(check0, check1, check2, check3)
     }
