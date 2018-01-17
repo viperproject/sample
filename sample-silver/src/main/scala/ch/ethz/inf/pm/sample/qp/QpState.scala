@@ -216,7 +216,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
     case FunctionCallExpression("over", arguments, _) => copy(over = over ++ arguments)
     case _ =>
       val newRecords = records.map { case (_, record) => record.assume(condition) }
-      QpSpecification(records = newRecords).read(condition)
+      copy(records = newRecords).read(condition)
   }
 
   override def inhale(expression: Expression): QpSpecification = expression match {
@@ -297,7 +297,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
               val combined = QpRecord(precondition, difference)
               val invariant = {
                 if (QpParameters.CONDITIONAL_INVARIANTS) {
-                  // val (conditoin, _) = getAfter(innerOriginal.precondition)
+                  // val (condition, _) = getAfter(innerOriginal.precondition)
                   // innerProjected.assume(condition)
                   ???
                 } else innerProjected
@@ -335,7 +335,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
     case FieldAccessExpression(receiver, field) =>
       val leaf = toLeaf(toCondition(receiver), permission)
       val newRecords = records.update(field, _.assert(leaf))
-      QpSpecification(records = newRecords)
+      copy(records = newRecords)
     case _ => ???
   }
 

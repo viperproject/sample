@@ -7,7 +7,8 @@
 package ch.ethz.inf.pm.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.qp.QpMath.{Collected}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
+import ch.ethz.inf.pm.sample.qp.QpMath.Collected
 import ch.ethz.inf.pm.sample.util.Math._
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 import com.typesafe.scalalogging.LazyLogging
@@ -66,10 +67,12 @@ object QpElimination extends LazyLogging {
 
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
+    println("***")
+    println(s"max ${variables.mkString(", ")} :: $simplified")
     variables.foldLeft(simplified) { case (eliminated, variable) =>
-      val rewritten = rewrite(simplified)
+      val rewritten = rewrite(eliminated)
       println("---")
-      println(s"max ${variables.mkString(", ")} :: $rewritten")
+      println(s"max ${variable} :: $rewritten")
       val x = eliminateMaximum(variable, rewritten, True, fact)
       val res = QpMath.simplify(x)
       println(s"output: $res")
@@ -98,7 +101,9 @@ object QpElimination extends LazyLogging {
     case _ =>
       // normalize expression and compute tuples, projection, and delta
       val normalized = normalize(variable, NonLeaf(context, body, No))
+      println(s"normalized: $normalized")
       val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
+      println(s"tuples: ${tuples.mkString(", ")}")
       // compute unbounded solutions
       val unbounded = for (i <- 0 until delta) yield projection.transform {
         case `variable` => Literal(i)
@@ -140,12 +145,14 @@ object QpElimination extends LazyLogging {
     * @param expression The expression.
     * @return An expression that is equivalent to the given expression.
     */
-  private def rewrite(expression: Expression): Expression = expression.transform {
-    case Negate(argument) => rewriteMinus(No, argument)
-    case Plus(left, right) => rewritePlus(left, right)
-    case Minus(left, right) => rewriteMinus(left, right)
-    case Min(left, right) => rewriteMin(left, right)
-    case other => other
+  private def rewrite(expression: Expression): Expression = expression.transform { original =>
+    if (original.typ == PermType) original match {
+      case Negate(argument) => rewriteMinus(No, argument)
+      case Plus(left, right) => rewritePlus(left, right)
+      case Minus(left, right) => rewriteMinus(left, right)
+      case Min(left, right) => rewriteMin(left, right)
+      case other => other
+    } else original
   }
 
   /**
@@ -330,7 +337,7 @@ object QpElimination extends LazyLogging {
 
     //
     val constraint = if (factor == 1) True else Divides(Literal(factor), variable)
-    if (expression.typ.isBooleanType) QpMath.simplify(And(transformed, constraint))
+    if (expression.typ.isBooleanType) And(transformed, constraint)
     else ConditionalExpression(constraint, transformed, No)
   }
 

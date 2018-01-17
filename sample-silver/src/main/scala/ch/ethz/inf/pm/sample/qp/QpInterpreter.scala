@@ -109,7 +109,7 @@ case class QpInterpreter[D <: QpDomain[D]](cfg: SampleCfg, initial: QpState[D])
           // enqueue predecessor block
           worklist.push(predecessor)
         } else predecessor match {
-          case loop@LoopHeadBlock(_, _) =>
+          case LoopHeadBlock(_, _) =>
             // check if all blocks after the loop have been processed
             val outEdges = cfg.outEdges(predecessor)
             val afterBlocks = outEdges.filter(_.isOut).map(_.target)
@@ -140,17 +140,21 @@ case class QpInterpreter[D <: QpDomain[D]](cfg: SampleCfg, initial: QpState[D])
     * @return The state after processing the edge.
     */
   protected def processEdge(edge: SampleEdge, state: QpState[D]): QpState[D] = {
-    // filter state if there is a condition
-    val filtered = edge match {
-      case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, state)
-      case UnconditionalEdge(_, _, _) => state
-    }
-    // adapt state according to the kind of the edge
-    edge.kind match {
+    // enter loop if it is an in-edge
+    val entered = edge.kind match {
       case Kind.In =>
         val changing = cfg.changingVariables(edge.target)
         val position = BlockPosition(edge.target, 0)
-        filtered.enterLoop(changing, position)
+        state.enterLoop(changing, position)
+      case _ => state
+    }
+    // filter state if there is a condition
+    val filtered = edge match {
+      case ConditionalEdge(condition, _, _, _) => assumeCondition(condition, entered)
+      case UnconditionalEdge(_, _, _) => entered
+    }
+    // exit loop if it is an out-edge
+    edge.kind match {
       case Kind.Out => filtered.command(LeaveLoopCommand())
       case _ => filtered
     }
