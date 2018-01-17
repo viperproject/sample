@@ -67,16 +67,10 @@ object QpElimination extends LazyLogging {
 
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
-    println("***")
-    println(s"max ${variables.mkString(", ")} :: $simplified")
-    variables.foldLeft(simplified) { case (eliminated, variable) =>
-      val rewritten = rewrite(eliminated)
-      println("---")
-      println(s"max ${variable} :: $rewritten")
-      val x = eliminateMaximum(variable, rewritten, True, fact)
-      val res = QpMath.simplify(x)
-      println(s"output: $res")
-      res
+    variables.foldLeft(simplified) { case (current, variable) =>
+      val rewritten = rewrite(current)
+      val eliminated = eliminateMaximum(variable, rewritten, True, fact)
+      QpMath.simplify(eliminated)
     }
   }
 
@@ -101,9 +95,7 @@ object QpElimination extends LazyLogging {
     case _ =>
       // normalize expression and compute tuples, projection, and delta
       val normalized = normalize(variable, NonLeaf(context, body, No))
-      println(s"normalized: $normalized")
       val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
-      println(s"tuples: ${tuples.mkString(", ")}")
       // compute unbounded solutions
       val unbounded = for (i <- 0 until delta) yield projection.transform {
         case `variable` => Literal(i)
@@ -198,7 +190,7 @@ object QpElimination extends LazyLogging {
     case (e, Min(l, r)) => Max(rewriteMin(e, l), rewriteMinus(e, r))
     // distribute subtraction over maxima and flip extremum if it appears in negative position
     case (Max(l, r), e) => Max(rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, Max(l, r)) => rewriteMinus(rewriteMinus(e, l), rewriteMinus(r, e))
+    case (e, Max(l, r)) => Min(rewriteMinus(e, l), rewriteMinus(r, e))
     // distribute subtraction over conditional
     case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMinus(l, e), rewriteMinus(r, e))
     case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMinus(e, l), rewriteMinus(e, r))
