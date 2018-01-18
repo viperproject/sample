@@ -28,25 +28,13 @@ object QpParameters {
 
   val CONDITIONAL_INVARIANTS = false
 
-  type NumericalState = IntegerOctagonAnalysisState
+  type NumericalState = ApronPolyhedraAnalysisState
 
   type PermissionState = QpState[QpSpecification]
 
-  val numericalEntry = IntegerOctagonAnalysisEntryState
+  val numericalEntry = ApronPolyhedraAnalysisEntryState
 
   val permissionEntry = QpEntryState
-}
-
-object X {
-  def main(args: Array[String]): Unit = {
-    SystemParameters.tm = SilverTypeMap
-    var c = Equal(Variable("a", PermType), Zero)
-    val x = Max(No, Negate(ConditionalExpression(c, Permission(1, 1), No)))
-    val y = QpMath.simplify(x)
-
-    println(x)
-    println(y)
-  }
 }
 
 object QpInference
@@ -64,6 +52,11 @@ object QpInference
     val extended = super.extendProgram(program, results)
     val functions = QpContext.getAuxiliaryFunctions
     extended.copy(functions = extended.functions ++ functions)(pos = extended.pos, info = extended.info, errT = extended.errT)
+  }
+
+  override def extendMethod(method: Method, result: CfgResult[PermissionState]): Method = {
+    QpContext.setMethod(method.name)
+    super.extendMethod(method, result)
   }
 
   override def inferParameters(method: Method, result: CfgResult[PermissionState]): Seq[sil.LocalVarDecl] = {
@@ -155,20 +148,20 @@ object QpInference
           for ((arguments, updated) <- sliced) yield {
             // simplify expression
             val simplified = QpMath.simplify(updated)
-            println("----")
-            println(s"updated: $updated")
-            println(s"simplified: $simplified")
             // compute location of field access predicate
             val application = sil.FuncLikeApp(function, arguments.map(convert), Map.empty)
             val typ = convert(field.typ)
             val location = sil.FieldAccess(application, sil.Field(field.name, typ)())()
             // create field access predicate
-            val converted = convert(simplified)
-            val body = sil.FieldAccessPredicate(location, converted)()
-            // create and return quantified expression
-            val quantified = arguments.filter(variables.contains(_)).map { variable => sil.LocalVarDecl(variable.toString, sil.Int)() }
-            if (quantified.isEmpty) body
-            else sil.Forall(quantified, Seq.empty, body)()
+            if (simplified == No) sil.TrueLit()()
+            else {
+              val converted = convert(simplified)
+              val body = sil.FieldAccessPredicate(location, converted)()
+              // create and return quantified expression
+              val quantified = arguments.filter(variables.contains(_)).map { variable => sil.LocalVarDecl(variable.toString, sil.Int)() }
+              if (quantified.isEmpty) body
+              else sil.Forall(quantified, Seq.empty, body)()
+            }
           }
         }
     }
@@ -239,3 +232,4 @@ object QpEntryState
     super.build(program, method).copy(stack = StackDomain(record))
   }
 }
+

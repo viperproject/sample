@@ -13,6 +13,15 @@ import ch.ethz.inf.pm.sample.util.SampleExpressions._
 
 object QpMath {
 
+  def prettify(expression: Expression): Expression = expression.transform {
+    case original@Comparison(left, right, operator) =>
+      val (left1, right1, operator1) = operator match {
+        case ArithmeticOperator.> | ArithmeticOperator.>= => (right, left, ArithmeticOperator.flip(operator))
+        case _ => (left, right, operator)
+      }
+      ???
+    case other => other
+  }
 
   def simplify(expression: Expression): Expression = {
     expression.transform(simplification)

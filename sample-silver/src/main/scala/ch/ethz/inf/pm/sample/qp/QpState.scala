@@ -9,6 +9,7 @@ package ch.ethz.inf.pm.sample.qp
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
 import ch.ethz.inf.pm.sample.execution.{CfgPosition, SilverState, Simplifications}
+import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, PermType}
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
@@ -128,6 +129,11 @@ case class QpState[D <: QpDomain[D]](pp: ProgramPoint,
    * SILVER STATE FUNCTIONS
    */
 
+  override def invariant(expression: Expression): QpState[D] = {
+    logger.trace(s"invariant($expression)")
+    copy(stack = stack.update(_.invariant(expression)))
+  }
+
   override def inhale(expression: Expression): QpState[D] = {
     logger.trace(s"inhale($expression)")
     copy(stack = stack.update(_.inhale(expression)))
@@ -166,6 +172,8 @@ trait QpDomain[D <: QpDomain[D]]
   extends Lattice[D] {
 
   this: D =>
+
+  def invariant(expression: Expression): D
 
   def assign(target: Expression, value: Expression): D
 
@@ -211,12 +219,15 @@ case class QpSpecification(under: List[Expression] = List.empty,
     QpSpecification(records = newRecords).write(target).read(value)
   }
 
-  override def assume(condition: Expression): QpSpecification = condition match {
+  override def invariant(expression: Expression): QpSpecification = expression match {
     case FunctionCallExpression("under", arguments, _) => copy(under = under ++ arguments)
     case FunctionCallExpression("over", arguments, _) => copy(over = over ++ arguments)
-    case _ =>
-      val newRecords = records.map { case (_, record) => record.assume(condition) }
-      copy(records = newRecords).read(condition)
+    case _ => copy(over = expression :: over)
+  }
+
+  override def assume(condition: Expression): QpSpecification = {
+    val newRecords = records.map { case (_, record) => record.assume(condition) }
+    copy(records = newRecords).read(condition)
   }
 
   override def inhale(expression: Expression): QpSpecification = expression match {
@@ -302,6 +313,14 @@ case class QpSpecification(under: List[Expression] = List.empty,
                   ???
                 } else innerProjected
               }
+
+              println("--- precondition ---")
+              println(s"outer original: ${outerOriginal.precondition}")
+              println(s"outer projected: ${outerProjected.precondition}")
+              println(s"inner original: ${innerOriginal.precondition}")
+              println(s"inner projected: ${innerProjected.precondition}")
+              println(s"combined: $precondition")
+
               (outerResult.updated(key, combined), innerResult.updated(key, invariant))
             }
         }
@@ -311,11 +330,6 @@ case class QpSpecification(under: List[Expression] = List.empty,
 
     QpContext.setInvariant(position, QpSpecification(records = inner))
     QpSpecification(records = outer)
-  }
-
-  private def getAfter(expression: Expression): (Expression, Expression) = expression match {
-    case ConditionalExpression(condition, after, No) => (condition, after)
-    case Max(left, Leaf(_, _)) => getAfter(left)
   }
 
   def read(expression: Expression): QpSpecification = access(expression, readParameter)
@@ -376,15 +390,19 @@ case class QpRecord(precondition: Expression = No,
   override def lub(other: QpRecord): QpRecord =
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
-    else {
-      def merge(left: Expression, right: Expression): Expression = (left, right) match {
-        case (ConditionalExpression(condition, positive, No), ConditionalExpression(Not(negated), negative, No)) if condition == negated => ConditionalExpression(condition, positive, negative)
-        case (ConditionalExpression(Not(negated), negative, No), ConditionalExpression(condition, positive, No)) if condition == negated => ConditionalExpression(condition, positive, negative)
-        case _ => ???
-      }
-
-      QpRecord(precondition = merge(precondition, other.precondition), difference = merge(difference, other.difference))
+    else (precondition, other.precondition) match {
+      case (Max(precondition1, leaf1), Max(precondition2, leaf2)) if leaf1 == leaf2 =>
+        val stripped = copy(precondition = precondition1) lub other.copy(precondition = precondition2)
+        stripped.assert(leaf1)
+      case _ =>
+        def merge(left: Expression, right: Expression): Expression = (left, right) match {
+          case (ConditionalExpression(condition, positive, No), ConditionalExpression(Not(negated), negative, No)) if condition == negated => ConditionalExpression(condition, positive, negative)
+          case (ConditionalExpression(Not(negated), negative, No), ConditionalExpression(condition, positive, No)) if condition == negated => ConditionalExpression(condition, positive, negative)
+          case _ => ???
+        }
+        QpRecord(precondition = merge(precondition, other.precondition), difference = merge(difference, other.difference))
     }
+
 
   override def glb(other: QpRecord): QpRecord = ???
 
@@ -417,7 +435,6 @@ case class QpRecord(precondition: Expression = No,
     }
   }
 
-  // TODO: Use fact
   def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression, fact: Expression): QpRecord = {
     val newPrecondition = {
       val approximated = QpElimination.approximate(precondition)
@@ -443,4 +460,3 @@ case class QpRecord(precondition: Expression = No,
     if (isTop || isBottom) this else copy(precondition = f1(precondition), difference = f2(difference))
 
 }
-

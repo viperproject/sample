@@ -67,11 +67,12 @@ object QpElimination extends LazyLogging {
 
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
-    variables.foldLeft(simplified) { case (current, variable) =>
+    val result = variables.foldLeft(simplified) { case (current, variable) =>
       val rewritten = rewrite(current)
       val eliminated = eliminateMaximum(variable, rewritten, True, fact)
       QpMath.simplify(eliminated)
     }
+    QpMath.prettify(result)
   }
 
   private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression, fact: Expression): Expression = body match {
@@ -236,6 +237,10 @@ object QpElimination extends LazyLogging {
     case ConditionalExpression(condition, left, No) =>
       val approximated = approximateBoolean(condition, overapproximate = true)
       ConditionalExpression(approximated, approximateArithmetic(left), No)
+    case ConditionalExpression(condition, left, right) =>
+      val newLeft = approximateArithmetic(ConditionalExpression(condition, left, No))
+      val newRight = approximateArithmetic(ConditionalExpression(Not(condition), left, No))
+      Max(newLeft, newRight)
     case Minus(left, right) =>
       val newLeft = approximateArithmetic(left)
       val newRight = right match {
