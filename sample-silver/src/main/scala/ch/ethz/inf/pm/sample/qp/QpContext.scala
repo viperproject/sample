@@ -50,6 +50,8 @@ object QpContext
 
   def getInvariant(position: CfgPosition): QpSpecification = invariants(position)
 
+  def getAllQuantified: Seq[sil.LocalVarDecl] = quantified.values.flatten.toSeq.distinct
+
   def getQuantified(name: String): Seq[sil.LocalVarDecl] = quantified.get(name) match {
     case Some(existing) => existing
     case None =>

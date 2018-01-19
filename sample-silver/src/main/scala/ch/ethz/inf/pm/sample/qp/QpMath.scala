@@ -13,14 +13,35 @@ import ch.ethz.inf.pm.sample.util.SampleExpressions._
 
 object QpMath {
 
-  def prettify(expression: Expression): Expression = expression.transform {
-    case original@Comparison(left, right, operator) =>
-      val (left1, right1, operator1) = operator match {
-        case ArithmeticOperator.> | ArithmeticOperator.>= => (right, left, ArithmeticOperator.flip(operator))
-        case _ => (left, right, operator)
-      }
-      ???
-    case other => other
+  def prettify(expression: Expression): Expression = {
+    val quantified = QpContext.getAllQuantified.map { declaration => declaration.name }
+
+    val transformed = expression.transform {
+      case original@Comparison(left, right, operator) =>
+        val collected = Collected(Minus(left, right))
+
+        val (l1, r1) = {
+          val c1 = collected.coefficients.filter { case (variable, factor) => factor != 0 && quantified.contains(variable.name) }
+          val c2 = collected.coefficients.filter { case (variable, factor) => factor != 0 && !quantified.contains(variable.name) }
+          if (c1.isEmpty) (Collected(c2, Zero), Collected(Map.empty, collected.rest).negate())
+          else (Collected(c1, Zero), Collected(c2, collected.rest).negate())
+        }
+
+        val product = l1.coefficients.values.product
+        val (l2, r2) = if (product < 0) (r1.negate(), l1.negate()) else (l1, r1)
+
+        val newLeft = l2.toExpression
+        val newRight = r2.toExpression
+
+        operator match {
+          case ArithmeticOperator.> | ArithmeticOperator.>= =>
+            val flipped = ArithmeticOperator.flip(operator)
+            Comparison(newRight, newLeft, flipped)
+          case _ => Comparison(newLeft, newRight, operator)
+        }
+      case other => other
+    }
+    simplify(transformed)
   }
 
   def simplify(expression: Expression): Expression = {
@@ -71,24 +92,22 @@ object QpMath {
       case _ => original
     }
     // simplify conjunctions
-    case original@And(left, right) => (left, right) match {
+    case And(left, right) => (left, right) match {
       // constant folding
       case (True, _) => right
       case (_, True) => left
       case (False, _) => False
       case (_, False) => False
-      // default action
-      case _ => original
+      case (AndList(ls), AndList(rs)) => AndList((ls ++ rs).distinct)
     }
     // simplify disjunctions
-    case original@Or(left, right) => (left, right) match {
+    case Or(left, right) => (left, right) match {
       // constant folding
       case (True, _) => True
       case (_, True) => True
       case (False, _) => right
       case (_, False) => left
-      // default action
-      case _ => original
+      case (OrList(ls), OrList(rs)) => OrList((ls ++ rs).distinct)
     }
     // simplify negations
     case original@Negate(argument) => argument match {
@@ -106,9 +125,11 @@ object QpMath {
       case (Zero, _) => right
       case (_, Zero) => left
       case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 + v2)
-      case (Literal(v1: Int), Plus(e, Literal(v2: Int))) => Plus(e, Literal(v1 + v2))
-      case (Plus(e, Literal(v1: Int)), Literal(v2: Int)) => Plus(e, Literal(v1 + v2))
-      case (Plus(e1, Literal(v1: Int)), Plus(e2, Literal(v2: Int))) => Plus(Plus(e1, e2), Literal(v1 + v2))
+      case (Literal(v1: Int), Plus(e, Literal(v2: Int))) => simplification(Plus(e, Literal(v1 + v2)))
+      case (Plus(e, Literal(v1: Int)), Literal(v2: Int)) => simplification(Plus(e, Literal(v1 + v2)))
+      case (Plus(e1, Literal(v1: Int)), Plus(e2, Literal(v2: Int))) => simplification(Plus(Plus(e1, e2), Literal(v1 + v2)))
+      case (_, Literal(v: Int)) if v < 0 => Minus(left, Literal(-v))
+      case (Literal(v: Int), _) if v < 0 => Minus(right, Literal(-v))
       // permissions
       case (No, _) => right
       case (_, No) => left
@@ -213,11 +234,12 @@ object QpMath {
       case ArithmeticOperator.> => False
       case ArithmeticOperator.>= => True
     }
+    case Comparison(Literal(v: Int), right, ArithmeticOperator.<) => Comparison(Literal(v + 1), right, ArithmeticOperator.<=)
     // simplify conditional expressions
     case ConditionalExpression(True, term, _) => term
     case ConditionalExpression(False, _, term) => term
     case ConditionalExpression(_, left, right) if left == right => left
-    case ConditionalExpression(left, ConditionalExpression(right, term, No), No) => ConditionalExpression(And(left, right), term, No)
+    case ConditionalExpression(left, ConditionalExpression(right, term, No), No) => ConditionalExpression(simplification(And(left, right)), term, No)
     // default: no simplification
     case other => other
   }

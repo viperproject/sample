@@ -277,7 +277,9 @@ case class QpSpecification(under: List[Expression] = List.empty,
             if (outerOriginal.isTop || innerOriginal.isTop) ???
             else if (outerOriginal.isBottom || innerOriginal.isBottom) ???
             else {
+              println("-- project outer --")
               val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate, fact)
+              println("-- project inner --")
               val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate, fact)
 
               // combine preconditions
@@ -332,23 +334,26 @@ case class QpSpecification(under: List[Expression] = List.empty,
     QpSpecification(records = outer)
   }
 
-  def read(expression: Expression): QpSpecification = access(expression, readParameter)
+  def read(expression: Expression, condition: Expression = True): QpSpecification = access(expression, readParameter, condition)
 
-  def write(expression: Expression): QpSpecification = access(expression, Full)
+  def write(expression: Expression, condition: Expression = True): QpSpecification = access(expression, Full, condition)
 
-  def access(expression: Expression, permission: Expression): QpSpecification = expression match {
+  // TODO: What if the condition is heap dependent?
+  def access(expression: Expression, permission: Expression, condition: Expression): QpSpecification = expression match {
     case _: Constant => this
     case _: VariableIdentifier => this
-    case NegatedBooleanExpression(argument) => read(argument)
-    case BinaryBooleanExpression(left, right, _) => read(left).read(right)
-    case UnaryArithmeticExpression(argument, _, _) => read(argument)
-    case BinaryArithmeticExpression(left, right, _) => read(left).read(right)
-    case ReferenceComparisonExpression(left, right, _) => read(left).read(right)
-    case FunctionCallExpression(_, arguments, _) => arguments.foldLeft(this) { case (updated, argument) => updated.read(argument) }
-    case FieldAccessPredicate(FieldAccessExpression(receiver, _), _) => read(receiver)
+    case Not(argument) => read(argument, condition)
+    case And(left, right) => read(right, And(condition, left)).read(left, condition)
+    case Or(left, right) => read(right, And(condition, Not(left))).read(left, condition)
+    case UnaryArithmeticExpression(argument, _, _) => read(argument, condition)
+    case BinaryArithmeticExpression(left, right, _) => read(right, condition).read(left, condition)
+    case ReferenceComparisonExpression(left, right, _) => read(right, condition).read(left, condition)
+    case FunctionCallExpression(_, arguments, _) => arguments.foldRight(this) { case (argument, updated) => updated.read(argument, condition) }
+    case FieldAccessPredicate(FieldAccessExpression(receiver, _), _) => read(receiver, condition)
     case FieldAccessExpression(receiver, field) =>
       val leaf = toLeaf(toCondition(receiver), permission)
-      val newRecords = records.update(field, _.assert(leaf))
+      val assertion = ConditionalExpression(condition, leaf, No)
+      val newRecords = records.update(field, _.assert(assertion))
       copy(records = newRecords)
     case _ => ???
   }
@@ -438,6 +443,8 @@ case class QpRecord(precondition: Expression = No,
   def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression, fact: Expression): QpRecord = {
     val newPrecondition = {
       val approximated = QpElimination.approximate(precondition)
+      println(s"precondiiton: $precondition")
+      println(s"approximated: $approximated")
       val formula = BigMax(changing, ConditionalExpression(over, approximated, No))
       QpElimination.eliminate(formula, fact)
     }

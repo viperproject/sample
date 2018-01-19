@@ -67,8 +67,12 @@ object QpElimination extends LazyLogging {
 
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
+    println(s"body: $body")
+    println(s"simplified: $simplified")
     val result = variables.foldLeft(simplified) { case (current, variable) =>
       val rewritten = rewrite(current)
+      println(s"eliminate $variable")
+      println(s"rewritten: $rewritten")
       val eliminated = eliminateMaximum(variable, rewritten, True, fact)
       QpMath.simplify(eliminated)
     }
@@ -95,7 +99,8 @@ object QpElimination extends LazyLogging {
       }
     case _ =>
       // normalize expression and compute tuples, projection, and delta
-      val normalized = normalize(variable, NonLeaf(context, body, No))
+      var x = QpMath.simplify( NonLeaf(context, body, No))
+      val normalized = normalize(variable, x)
       val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
       // compute unbounded solutions
       val unbounded = for (i <- 0 until delta) yield projection.transform {
@@ -127,7 +132,14 @@ object QpElimination extends LazyLogging {
         }
       }
       // compute final expression
-      MaxList(unbounded ++ bounded)
+      val res = MaxList(unbounded ++ bounded)
+      println("###")
+      println(x)
+      println(normalized)
+      println(res)
+      println(QpMath.simplify(res))
+      println("###")
+      res
   }
 
   /**
@@ -220,7 +232,7 @@ object QpElimination extends LazyLogging {
   private def rewriteMin(left: Expression, right: Expression): Expression = (left, right) match {
     // distribute minimum over maximum
     case (Max(l, r), e) => Max(rewriteMin(l, e), rewriteMin(r, e))
-    case (e, Max(l, r)) => Max(rewriteMin(e, l), rewriteMin(r, e))
+    case (e, Max(l, r)) => Max(rewriteMin(e, l), rewriteMin(e, r))
     // distribute minimum over conditional
     case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMin(l, e), rewriteMin(r, e))
     case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMin(e, l), rewriteMin(e, r))
@@ -229,7 +241,10 @@ object QpElimination extends LazyLogging {
   }
 
   def approximate(expression: Expression): Expression = {
-    val rewritten = rewrite(expression)
+    val simplified = QpMath.simplify(expression)
+    println(s"sf $simplified")
+    val rewritten = rewrite(simplified)
+    println(s"rww: $rewritten")
     approximateArithmetic(rewritten)
   }
 
