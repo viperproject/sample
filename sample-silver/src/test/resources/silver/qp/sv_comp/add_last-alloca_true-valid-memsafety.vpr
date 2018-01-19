@@ -21,7 +21,7 @@ method main(a: Array)
     var i: Int
     var l: Int
 
-    i :=0
+    i := 0
     l := length(a)
 
     while (i < l)
