@@ -158,7 +158,7 @@ object QpInference
               val converted = convert(simplified)
               val body = sil.FieldAccessPredicate(location, converted)()
               // create and return quantified expression
-              val quantified = arguments.filter(variables.contains(_)).map { variable => sil.LocalVarDecl(variable.toString, sil.Int)() }
+              val quantified = arguments.flatMap { argument => declarations.find { declaration => declaration.name == argument.toString }}
               if (quantified.isEmpty) body
               else sil.Forall(quantified, Seq.empty, body)()
             }
