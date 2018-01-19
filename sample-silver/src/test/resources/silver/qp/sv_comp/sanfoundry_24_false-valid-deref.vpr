@@ -1,0 +1,48 @@
+field val: Int
+
+domain Array
+{
+    function loc(a: Array, i: Int): Ref
+    function length(a: Array): Int
+    function get_index(r: Ref): Int
+    function get_array(r: Ref): Array
+
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_length { forall a: Array :: 0 <= length(a) }
+}
+
+method main_expected(a: Array, read: Perm)
+    requires forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
+    ensures forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
+
+method main(a: Array)
+{
+    var i: Int
+    var l: Int
+    var t: Int
+
+    l := length(a)
+
+    i := 0
+    while (i < l)
+    {
+        if (loc(a, i).val % 2 == 0)
+        {
+            t := loc(a, i).val
+            // print_even(t)
+        }
+        i := i + 1
+    }
+
+    i := 0
+    while (i < l)
+    {
+        if (loc(a, i).val % 2 != 0)
+        {
+            t := loc(a, i).val
+            // print_odd(t)
+        }
+        i := i + 1
+    }
+}
