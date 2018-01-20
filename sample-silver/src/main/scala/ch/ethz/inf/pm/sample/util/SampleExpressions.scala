@@ -346,7 +346,7 @@ object SampleExpressions {
   }
 
   /* ---------------------------------------------------------------------------
-   * Expresssions for QP
+   * Expressions for QP
    */
 
   object ReadParameter {

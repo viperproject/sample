@@ -23,7 +23,8 @@ object QpMath {
         val (l1, r1) = {
           val c1 = collected.coefficients.filter { case (variable, factor) => factor != 0 && quantified.contains(variable.name) }
           val c2 = collected.coefficients.filter { case (variable, factor) => factor != 0 && !quantified.contains(variable.name) }
-          if (c1.isEmpty) (Collected(c2, Zero), Collected(Map.empty, collected.rest).negate())
+          if (c1.isEmpty && c2.isEmpty) (Collected(Map.empty, collected.rest), Collected(Map.empty, Zero))
+          else if (c1.isEmpty) (Collected(c2, Zero), Collected(Map.empty, collected.rest).negate())
           else (Collected(c1, Zero), Collected(c2, collected.rest).negate())
         }
 

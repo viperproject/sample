@@ -231,6 +231,8 @@ case class QpSpecification(under: List[Expression] = List.empty,
   }
 
   override def inhale(expression: Expression): QpSpecification = expression match {
+    case True => this
+    case False => bottom()
     case FieldAccessPredicate(FieldAccessExpression(receiver, _), permission) =>
       val leaf = toLeaf(toCondition(receiver), permission)
       val newRecords = records.map { case (_, record) => record.gain(leaf) }

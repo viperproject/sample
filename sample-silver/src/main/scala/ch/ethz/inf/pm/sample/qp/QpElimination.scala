@@ -254,7 +254,7 @@ object QpElimination extends LazyLogging {
       ConditionalExpression(approximated, approximateArithmetic(left), No)
     case ConditionalExpression(condition, left, right) =>
       val newLeft = approximateArithmetic(ConditionalExpression(condition, left, No))
-      val newRight = approximateArithmetic(ConditionalExpression(Not(condition), left, No))
+      val newRight = approximateArithmetic(ConditionalExpression(Not(condition), right, No))
       Max(newLeft, newRight)
     case Minus(left, right) =>
       val newLeft = approximateArithmetic(left)
