@@ -20,9 +20,13 @@ import viper.silver.{ast => sil}
 
 object QpParameters {
 
+  val NUMBER_OF_WARMUP_RUNS = 0
+
+  val NUMBER_OF_RUNS = 1
+
   val SMALLEST_SOLUTION = true
 
-  val SLICE_ARRAYS = false
+  val SLICE_ARRAYS = true
 
   val ADD_ALL_INVARIANTS = false
 
@@ -48,13 +52,50 @@ object QpInference
     program
   }
 
-  override def extendProgram(program: Program, results: ProgramResult[PermissionState]) = {
+  override def extend(program: Program): sil.Program = {
+
+    val warmup = QpParameters.NUMBER_OF_WARMUP_RUNS
+    val runs = QpParameters.NUMBER_OF_RUNS
+
+    var result = program
+
+    var total = 0L
+    var min = Long.MaxValue
+    var max = Long.MinValue
+
+    for (i <- 0 until warmup + runs) {
+      val t0 = System.nanoTime()
+      result = super.extend(program)
+      val t1 = System.nanoTime()
+
+      if (i == warmup) println("--- end of warmup ---")
+
+      val time = t1 - t0
+      println(s"time: $time")
+
+      if (i >= warmup) {
+        total = total + time
+        min = math.min(min, time)
+        max = math.max(max, time)
+      }
+    }
+
+    val avg = total / runs
+
+    println(s"avg: ${avg / 1000000L}.${(avg / 1000L) % 1000L}ms")
+    println(s"min: ${min / 1000000L}.${(min / 1000L) % 1000L}ms")
+    println(s"max: ${max / 1000000L}.${(max / 1000L) % 1000L}ms")
+
+    result
+  }
+
+  override def extendProgram(program: Program, results: ProgramResult[PermissionState]): sil.Program = {
     val extended = super.extendProgram(program, results)
     val functions = QpContext.getAuxiliaryFunctions
     extended.copy(functions = extended.functions ++ functions)(pos = extended.pos, info = extended.info, errT = extended.errT)
   }
 
-  override def extendMethod(method: Method, result: CfgResult[PermissionState]): Method = {
+  override def extendMethod(method: Method, result: CfgResult[PermissionState]): sil.Method = {
     QpContext.setMethod(method.name)
     super.extendMethod(method, result)
   }
@@ -119,7 +160,6 @@ object QpInference
         }
 
         map.toSeq.flatMap { case (field, permission) =>
-          println(s"permission: $permission")
           // slice specification
           val sliced = variables.foldRight(Set((List.empty[Expression], permission))) {
             case (variable, set) => set.flatMap { case (arguments, expression) =>

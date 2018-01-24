@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
 import ch.ethz.inf.pm.sample.qp.QpMath.Collected
 import ch.ethz.inf.pm.sample.util.Math._
@@ -37,9 +38,10 @@ object QpElimination extends LazyLogging {
     else {
       // normalize expression
       val normalized = normalize(variable, body)
+      val approximated = approximateBoolean(normalized, true)
       // compute boundary expressions, projection, and delta
-      val (expressions1, projection1, delta1) = analyzeBoolean(variable, normalized, smallest = true)
-      val (expressions2, projection2, delta2) = analyzeBoolean(variable, normalized, smallest = false)
+      val (expressions1, projection1, delta1) = analyzeBoolean(variable, approximated, smallest = true)
+      val (expressions2, projection2, delta2) = analyzeBoolean(variable, approximated, smallest = false)
       // check whether there is a trivial unbounded solution
       if (projection1 == True || projection2 == True) True
       else {
@@ -67,12 +69,8 @@ object QpElimination extends LazyLogging {
 
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
-    println(s"body: $body")
-    println(s"simplified: $simplified")
     val result = variables.foldLeft(simplified) { case (current, variable) =>
       val rewritten = rewrite(current)
-      println(s"eliminate $variable")
-      println(s"rewritten: $rewritten")
       val eliminated = eliminateMaximum(variable, rewritten, True, fact)
       QpMath.simplify(eliminated)
     }
@@ -97,20 +95,25 @@ object QpElimination extends LazyLogging {
         val newRight = eliminateMaximum(variable, right, context, fact)
         ConditionalExpression(condition, newLeft, newRight)
       }
+    case No => No
     case _ =>
       // normalize expression and compute tuples, projection, and delta
-      var x = QpMath.simplify( NonLeaf(context, body, No))
-      val normalized = normalize(variable, x)
-      val (tuples, projection, delta) = analyzeArithmetic(variable, normalized)
+      val formula = NonLeaf(context, body, No)
+      val normalized = normalize(variable, formula)
+      val approximated = approximateArithmetic(normalized)
+      val (tuples, projection, delta) = analyzeArithmetic(variable, approximated)
       // compute unbounded solutions
-      val unbounded = for (i <- 0 until delta) yield projection.transform {
+
+      val sp = QpMath.simplify(projection)
+
+      val unbounded = for (i <- 0 until delta) yield sp.transform {
         case `variable` => Literal(i)
         case other => other
       }
       // compute bounded solutions
       val bounded = for ((boundary, constraint) <- tuples; i <- 0 until delta) yield {
         // construct candidate solution
-        val candidate = normalized.transform {
+        val candidate = approximated.transform {
           case `variable` => Plus(boundary, Literal(i))
           case other => other
         }
@@ -132,14 +135,7 @@ object QpElimination extends LazyLogging {
         }
       }
       // compute final expression
-      val res = MaxList(unbounded ++ bounded)
-      println("###")
-      println(x)
-      println(normalized)
-      println(res)
-      println(QpMath.simplify(res))
-      println("###")
-      res
+      MaxList(unbounded ++ bounded)
   }
 
   /**
@@ -152,12 +148,22 @@ object QpElimination extends LazyLogging {
     */
   private def rewrite(expression: Expression): Expression = expression.transform { original =>
     if (original.typ == PermType) original match {
-      case Negate(argument) => rewriteMinus(No, argument)
+      case Negate(argument) => rewriteNegation(argument)
       case Plus(left, right) => rewritePlus(left, right)
       case Minus(left, right) => rewriteMinus(left, right)
       case Min(left, right) => rewriteMin(left, right)
       case other => other
     } else original
+  }
+
+  private def rewriteNegation(argument: Expression): Expression = argument match {
+    case Min(l, r) => Max(rewriteNegation(l), rewriteNegation(r))
+    case Max(l, r) => Min(rewriteNegation(l), rewriteNegation(r))
+    case NonLeaf(b, l, r) => ConditionalExpression(b, rewriteNegation(l), rewriteNegation(r))
+    case Plus(l, r) => rewriteMinus(rewriteNegation(l), r)
+    case Minus(l, r) => rewriteMinus(r, l)
+    case Permission(n, d) => Permission(-n, d)
+    case _ => Negate(argument)
   }
 
   /**
@@ -177,7 +183,7 @@ object QpElimination extends LazyLogging {
     case (e, Max(l, r)) => Max(rewritePlus(e, l), rewritePlus(e, r))
     // distribute addition over conditional
     case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
+    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(e, l), rewritePlus(e, r))
     // add constants
     case (Permission(n1, d1), Permission(n2, d2)) =>
       val d = lcm(d1, d2)
@@ -199,18 +205,19 @@ object QpElimination extends LazyLogging {
     */
   private def rewriteMinus(left: Expression, right: Expression): Expression = (left, right) match {
     // distribute subtraction over minimum and flip it to maximum if it appears on the rhs
-    case (Min(l, r), e) => Min(rewriteMinus(l, e), rewriteMin(r, e))
-    case (e, Min(l, r)) => Max(rewriteMin(e, l), rewriteMinus(e, r))
+    case (Min(l, r), e) => Min(rewriteMinus(l, e), rewriteMinus(r, e))
+    case (e, Min(l, r)) => Max(rewriteMinus(e, l), rewriteMinus(e, r))
     // distribute subtraction over maxima and flip extremum if it appears in negative position
     case (Max(l, r), e) => Max(rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, Max(l, r)) => Min(rewriteMinus(e, l), rewriteMinus(r, e))
+    case (e, Max(l, r)) => Min(rewriteMinus(e, l), rewriteMinus(e, r))
     // distribute subtraction over conditional
     case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMinus(l, e), rewriteMinus(r, e))
     case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMinus(e, l), rewriteMinus(e, r))
     // push addition inside subtraction
     case (e, Plus(l, r)) => rewriteMinus(rewriteMinus(e, l), r)
     // rewrite nested subtraction
-    case (e, Minus(l, r)) => rewritePlus(rewriteMinus(e, l), r)
+    case (e, Minus(l, r)) => rewriteMinus(rewritePlus(e, r), l)
+    case (e, Negate(a)) => rewritePlus(e, a)
     // subtract constants
     case (Permission(n1, d1), Permission(n2, d2)) =>
       val d = lcm(d1, d2)
@@ -242,9 +249,7 @@ object QpElimination extends LazyLogging {
 
   def approximate(expression: Expression): Expression = {
     val simplified = QpMath.simplify(expression)
-    println(s"sf $simplified")
     val rewritten = rewrite(simplified)
-    println(s"rww: $rewritten")
     approximateArithmetic(rewritten)
   }
 
@@ -266,6 +271,7 @@ object QpElimination extends LazyLogging {
           ConditionalExpression(approximated, permission, No)
       }
       Minus(newLeft, newRight)
+    case Negate(argument) => approximateArithmetic(Minus(No, argument))
     case permission@Permission(_, _) => permission
     case ReadParameter(variable) => variable
     case Plus(left, right) => Plus(approximateArithmetic(left), approximateArithmetic(right))
@@ -290,6 +296,16 @@ object QpElimination extends LazyLogging {
         }
         if (approximate) Literal(overapproximate)
         else comparison
+      case ApproximatedExpression(variable, expression) => expression match {
+        case Comparison(left, Divide(`variable`, Literal(v: Int)), operator) =>
+          val comparisons = for (i <- 0 until v) yield {
+            val expression = Plus(Times(Literal(v), left), Literal(i))
+            val flipped = ArithmeticOperator.flip(operator)
+            Comparison(variable, expression, flipped)
+          }
+          OrList(comparisons)
+        case _ => Literal(overapproximate)
+      }
       case other => other
     }
   }
@@ -302,17 +318,17 @@ object QpElimination extends LazyLogging {
 
   // TODO: Approximate the currently not implemented cases
   def collectVariable(variable: VariableIdentifier, expression: Expression): Expression = expression.transform {
-    case Divides(left, right) =>
+    case original@Divides(left, right) =>
       val collected = Collected(right)
-      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) ???
+      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) ApproximatedExpression(variable, original)
       else Divides(left, collected.toExpression(variable))
-    case NotDivides(left, right) =>
+    case original@NotDivides(left, right) =>
       val collected = Collected(right)
-      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) ???
+      if (left.contains(_ == variable) || collected.rest.contains(_ == variable)) ApproximatedExpression(variable, original)
       else NotDivides(left, collected.toExpression(variable))
-    case Comparison(left, right, operator) if left.contains(_ == variable) || right.contains(_ == variable) =>
+    case original@Comparison(left, right, operator) if left.contains(_ == variable) || right.contains(_ == variable) =>
       val collected = Collected(Minus(left, right))
-      if (collected.rest.contains(_ == variable)) ???
+      if (collected.rest.contains(_ == variable)) ApproximatedExpression(variable, original)
       else {
         val factor = collected.coefficients.getOrElse(variable, 0)
         val positive = if (factor >= 0) collected.negate() else collected
@@ -366,7 +382,7 @@ object QpElimination extends LazyLogging {
     *
     * The third return value is the least common multiple of all values appearing in divisibility expressions.
     *
-    * @param variable   The variable to eliminate.
+    * @param variable   The variable to emaxte.
     * @param expression The arithmetic expression.
     * @return A triple with the described properties.
     */
@@ -421,6 +437,7 @@ object QpElimination extends LazyLogging {
         (toTuples(set), Leaf(Not(projection), permission), delta)
       }
       (tuples1 ++ tuples2, Minus(projection1, projection2), lcm(delta1, delta2))
+    case Negate(leaf@Leaf(_, _)) => analyzeArithmetic(variable, Minus(No, leaf))
     // analyze minimum
     case Min(left, right) =>
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
@@ -442,7 +459,7 @@ object QpElimination extends LazyLogging {
     * Depending on whether we are interested in a smallest or a largest solution, the second value of the triple is the
     * negative or positive infinite projection of the given expression.
     *
-    * The third vlaue of the triple is the least common multiple of all values appearing in divisibility expressions.
+    * The third value of the triple is the least common multiple of all values appearing in divisibility expressions.
     *
     * @param variable   The variable to eliminate.
     * @param expression The boolean expression.
@@ -491,5 +508,18 @@ object QpElimination extends LazyLogging {
   protected def toTuples(expressions: Set[Expression], condition: Expression = True): Tuples =
     for (expression <- expressions) yield (expression, condition)
 
+}
 
+case class ApproximatedExpression(variable: VariableIdentifier, expression: Expression)
+  extends Expression {
+
+  override def typ: Type = expression.typ
+
+  override def transform(f: (Expression) => Expression): Expression = f(ApproximatedExpression(variable, expression.transform(f)))
+
+  override def ids: IdentifierSet = expression.ids
+
+  override def pp: ProgramPoint = expression.pp
+
+  override def contains(f: (Expression) => Boolean): Boolean = f(this) || expression.contains(f)
 }

@@ -279,9 +279,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
             if (outerOriginal.isTop || innerOriginal.isTop) ???
             else if (outerOriginal.isBottom || innerOriginal.isBottom) ???
             else {
-              println("-- project outer --")
               val outerProjected = outerOriginal.project(changing, overapproximate, underapproximate, fact)
-              println("-- project inner --")
               val innerProjected = innerOriginal.project(changing, overapproximate, underapproximate, fact)
 
               // combine preconditions
@@ -317,13 +315,6 @@ case class QpSpecification(under: List[Expression] = List.empty,
                   ???
                 } else innerProjected
               }
-
-              println("--- precondition ---")
-              println(s"outer original: ${outerOriginal.precondition}")
-              println(s"outer projected: ${outerProjected.precondition}")
-              println(s"inner original: ${innerOriginal.precondition}")
-              println(s"inner projected: ${innerProjected.precondition}")
-              println(s"combined: $precondition")
 
               (outerResult.updated(key, combined), innerResult.updated(key, invariant))
             }
@@ -445,15 +436,13 @@ case class QpRecord(precondition: Expression = No,
   def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression, fact: Expression): QpRecord = {
     val newPrecondition = {
       val approximated = QpElimination.approximate(precondition)
-      println(s"precondiiton: $precondition")
-      println(s"approximated: $approximated")
       val formula = BigMax(changing, ConditionalExpression(over, approximated, No))
       QpElimination.eliminate(formula, fact)
     }
     val newDifference = {
       // TODO: Approximate
-      val negative = Min(BigMin(changing, ConditionalExpression(over, difference, No)), No)
-      val positive = Max(BigMax(changing, ConditionalExpression(under, Max(difference, No), No)), No)
+      val negative = BigMin(changing, ConditionalExpression(over, Min(difference, No), No))
+      val positive = BigMax(changing, ConditionalExpression(under, Max(difference, No), No))
       QpElimination.eliminate(Plus(negative, positive), fact)
     }
     copy(precondition = newPrecondition, difference = newDifference)
