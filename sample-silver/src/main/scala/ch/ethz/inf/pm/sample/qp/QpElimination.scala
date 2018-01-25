@@ -70,72 +70,74 @@ object QpElimination extends LazyLogging {
   private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
     val simplified = QpMath.simplify(body)
     val result = variables.foldLeft(simplified) { case (current, variable) =>
-      val rewritten = rewrite(current)
+      val rewritten = rewrite(variable, current)
       val eliminated = eliminateMaximum(variable, rewritten, True, fact)
       QpMath.simplify(eliminated)
     }
     QpMath.prettify(result)
   }
 
-  private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression, fact: Expression): Expression = body match {
-    // rewrite maximum
-    case Max(left, right) =>
-      // TODO: Check whether adding the conditions "left>right" and "left<=right" helps.
-      val newLeft = eliminateMaximum(variable, left, context, fact)
-      val newRight = eliminateMaximum(variable, right, context, fact)
-      Max(newLeft, newRight)
-    // rewrite conditional
-    case NonLeaf(condition, left, right) =>
-      if (condition.contains(_ == variable)) {
-        val newLeft = eliminateMaximum(variable, left, And(context, condition), fact)
-        val newRight = eliminateMaximum(variable, right, And(context, Not(condition)), fact)
-        Max(newLeft, newRight)
-      } else {
+  private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression, fact: Expression): Expression = {
+    val rewrite = body.contains(_ == variable)
+    body match {
+      // rewrite maximum
+      case Max(left, right) if rewrite =>
+        // TODO: Check whether adding the conditions "left>right" and "left<=right" helps.
         val newLeft = eliminateMaximum(variable, left, context, fact)
         val newRight = eliminateMaximum(variable, right, context, fact)
-        ConditionalExpression(condition, newLeft, newRight)
-      }
-    case No => No
-    case _ =>
-      // normalize expression and compute tuples, projection, and delta
-      val formula = NonLeaf(context, body, No)
-      val normalized = normalize(variable, formula)
-      val approximated = approximateArithmetic(normalized)
-      val (tuples, projection, delta) = analyzeArithmetic(variable, approximated)
-      // compute unbounded solutions
+        Max(newLeft, newRight)
+      // rewrite conditional
+      case NonLeaf(condition, left, right) if rewrite =>
+        if (condition.contains(_ == variable)) {
+          val newLeft = eliminateMaximum(variable, left, And(context, condition), fact)
+          val newRight = eliminateMaximum(variable, right, And(context, Not(condition)), fact)
+          Max(newLeft, newRight)
+        } else {
+          val newLeft = eliminateMaximum(variable, left, context, fact)
+          val newRight = eliminateMaximum(variable, right, context, fact)
+          ConditionalExpression(condition, newLeft, newRight)
+        }
+      case No => No
+      case _ =>
+        // normalize expression and compute tuples, projection, and delta
+        val formula = NonLeaf(context, body, No)
+        val normalized = normalize(variable, formula)
+        val approximated = approximateArithmetic(normalized, over = true)
+        val (tuples, projection, delta) = analyzeArithmetic(variable, approximated)
+        // compute unbounded solutions
+        val sp = QpMath.simplify(projection)
 
-      val sp = QpMath.simplify(projection)
-
-      val unbounded = for (i <- 0 until delta) yield sp.transform {
-        case `variable` => Literal(i)
-        case other => other
-      }
-      // compute bounded solutions
-      val bounded = for ((boundary, constraint) <- tuples; i <- 0 until delta) yield {
-        // construct candidate solution
-        val candidate = approximated.transform {
-          case `variable` => Plus(boundary, Literal(i))
+        val unbounded = for (i <- 0 until delta) yield sp.transform {
+          case `variable` => Literal(i)
           case other => other
         }
-        // simplify candidate
-        val simplified = QpMath.simplify(candidate)
-        simplified.transform {
-          case original@ConditionalExpression(condition, term, No) =>
-            // TODO: Add constraint?
-            // check whether condition is satisfiable under collected constraint
-            val body = And(And(condition, constraint), fact)
-            val variables = body.ids.toSet.toSeq.collect { case v: VariableIdentifier if v.typ.isNumericalType => v }
-            val eliminated = eliminate(Exists(variables, body))
-            // ignore conditional if condition is not satisfiable
-            eliminated match {
-              case False => No
-              case _ => original
-            }
-          case other => other
+        // compute bounded solutions
+        val bounded = for ((boundary, constraint) <- tuples; i <- 0 until delta) yield {
+          // construct candidate solution
+          val candidate = approximated.transform {
+            case `variable` => Plus(boundary, Literal(i))
+            case other => other
+          }
+          // simplify candidate
+          val simplified = QpMath.simplify(candidate)
+          simplified.transform {
+            case original@ConditionalExpression(condition, term, No) =>
+              // TODO: Add constraint?
+              // check whether condition is satisfiable under collected constraint
+              val body = And(And(condition, constraint), fact)
+              val variables = body.ids.toSet.toSeq.collect { case v: VariableIdentifier if v.typ.isNumericalType => v }
+              val eliminated = eliminate(Exists(variables, body))
+              // ignore conditional if condition is not satisfiable
+              eliminated match {
+                case False => No
+                case _ => original
+              }
+            case other => other
+          }
         }
-      }
-      // compute final expression
-      MaxList(unbounded ++ bounded)
+        // compute final expression
+        MaxList(unbounded ++ bounded)
+    }
   }
 
   /**
@@ -143,170 +145,146 @@ object QpElimination extends LazyLogging {
     * a minimum, no minimum is nested inside a maximum, and no addition is nested inside a subtraction, and the right-
     * hand side of every subtraction is a simple leaf expression.
     *
+    * @param variable
     * @param expression The expression.
     * @return An expression that is equivalent to the given expression.
     */
-  private def rewrite(expression: Expression): Expression = expression.transform { original =>
+  private def rewrite(variable: VariableIdentifier, expression: Expression): Expression = expression.transform { original =>
     if (original.typ == PermType) original match {
-      case Negate(argument) => rewriteNegation(argument)
-      case Plus(left, right) => rewritePlus(left, right)
-      case Minus(left, right) => rewriteMinus(left, right)
-      case Min(left, right) => rewriteMin(left, right)
+      case Negate(argument) => rewriteNegation(variable, argument)
+      case Plus(left, right) => rewritePlus(variable, left, right)
+      case Minus(left, right) => rewriteMinus(variable, left, right)
+      case Min(left, right) => rewriteMin(variable, left, right)
       case other => other
     } else original
   }
 
-  private def rewriteNegation(argument: Expression): Expression = argument match {
-    case Min(l, r) => Max(rewriteNegation(l), rewriteNegation(r))
-    case Max(l, r) => Min(rewriteNegation(l), rewriteNegation(r))
-    case NonLeaf(b, l, r) => ConditionalExpression(b, rewriteNegation(l), rewriteNegation(r))
-    case Plus(l, r) => rewriteMinus(rewriteNegation(l), r)
-    case Minus(l, r) => rewriteMinus(r, l)
-    case Permission(n, d) => Permission(-n, d)
-    case _ => Negate(argument)
+  private def rewriteNegation(variable: VariableIdentifier, argument: Expression): Expression =
+    if (argument.contains(_ == variable)) argument match {
+      case Min(e1, e2) => Max(rewriteNegation(variable, e1), rewriteNegation(variable, e2))
+      case Max(e1, e2) => Min(rewriteNegation(variable, e1), rewriteNegation(variable, e2))
+      case NonLeaf(b, e1, e2) => ConditionalExpression(b, rewriteNegation(variable, e1), rewriteNegation(variable, e2))
+      case Plus(e1, e2) => rewriteMinus(variable, rewriteNegation(variable, e1), e2)
+      case Minus(e1, e2) => rewriteMinus(variable, e2, e1)
+      case _ => Negate(argument)
+    } else argument match {
+      case Permission(n, d) => Permission(-n, d)
+      case _ => Negate(argument)
+    }
+
+
+
+  private def rewritePlus(variable: VariableIdentifier, left: Expression, right: Expression): Expression = {
+    // check whether variable appears in addition
+    val rewriteLeft = left.contains(_ == variable)
+    val rewriteRight = right.contains(_ == variable)
+    if (rewriteLeft || rewriteRight) (left, right) match {
+      // distribute addition over minimum
+      case (Min(e1, e2), _) if rewriteLeft => Min(rewritePlus(variable, e1, right), rewritePlus(variable, e2, right))
+      case (_, Min(e1, e2)) if rewriteRight => Min(rewritePlus(variable, left, e1), rewritePlus(variable, left, e2))
+      // distribute addition over maximum
+      case (Max(e1, e2), _) if rewriteLeft => Max(rewritePlus(variable, e1, right), rewritePlus(variable, e2, right))
+      case (_, Max(e1, e2)) if rewriteRight => Max(rewritePlus(variable, left, e1), rewritePlus(variable, left, e2))
+      // distribute addition over conditional
+      case (NonLeaf(b, e1, e2), _) if rewriteLeft => ConditionalExpression(b, rewritePlus(variable, e1, right), rewritePlus(variable, e2, right))
+      case (_, NonLeaf(b, e1, e2)) if rewriteRight => ConditionalExpression(b, rewritePlus(variable, left, e1), rewritePlus(variable, left, e2))
+      // default: do nothing
+      case _ => Plus(left, right)
+    } else {
+      // leave unchanged if variable does not appear in addition
+      Plus(left, right)
+    }
   }
 
-  /**
-    * Returns an expression that is equivalent to the addition of the given left and right expression where the maximum
-    * is recursively distributed over all maxima and conditionals appearing at the top level.
-    *
-    * @param left  The left argument to the addition.
-    * @param right The right argument to the addition.
-    * @return An expression that is equivalent to the addition of the given expressions.
-    */
-  private def rewritePlus(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute addition over minimum
-    case (Min(l, r), e) => Min(rewritePlus(l, e), rewritePlus(r, e))
-    case (e, Min(l, r)) => Min(rewritePlus(e, l), rewritePlus(e, r))
-    // distribute addition over maximum
-    case (Max(l, r), e) => Max(rewritePlus(l, e), rewritePlus(r, e))
-    case (e, Max(l, r)) => Max(rewritePlus(e, l), rewritePlus(e, r))
-    // distribute addition over conditional
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewritePlus(l, e), rewritePlus(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewritePlus(e, l), rewritePlus(e, r))
-    // add constants
-    case (Permission(n1, d1), Permission(n2, d2)) =>
-      val d = lcm(d1, d2)
-      val n = n1 * d / d1 + n2 * d / d2
-      val f = gcd(n, d)
-      Permission(n / f, d / f)
-    // default action: do nothing
-    case _ => Plus(left, right)
+  private def rewriteMinus(variable: VariableIdentifier, left: Expression, right: Expression): Expression = {
+    // check whether variable appears in subtraction
+    val rewriteLeft = left.contains(_ == variable)
+    val rewriteRight = right.contains(_ == variable)
+    if (rewriteLeft || rewriteRight) (left, right) match {
+      // distribute subtraction over minimum
+      case (Min(e1, e2), _) if rewriteLeft => Min(rewriteMinus(variable, e1, right), rewriteMinus(variable, e2, right))
+      case (_, Min(e1, e2)) if rewriteRight => Max(rewriteMinus(variable, left, e1), rewriteMinus(variable, left, e2))
+      // distribute subtraction over maximum
+      case (Max(e1, e2), _) if rewriteLeft => Max(rewriteMinus(variable, e1, right), rewriteMinus(variable, e2, right))
+      case (_, Max(e1, e2)) if rewriteRight => Min(rewriteMinus(variable, left, e1), rewriteMinus(variable, left, e2))
+      // distribute subtraction over conditional
+      case (NonLeaf(b, e1, e2), _) if rewriteLeft => ConditionalExpression(b, rewriteMinus(variable, e1, right), rewriteMinus(variable, e2, right))
+      case (_, NonLeaf(b, e1, e2)) if rewriteRight => ConditionalExpression(b, rewriteMinus(variable, left, e1), rewriteMinus(variable, left, e2))
+      // push addition inside subtraction
+      case (_,Plus(e1, e2)) if rewriteRight => rewriteMinus(variable, rewriteMinus(variable, left, e1), e2)
+      // rewrite nested subtraction
+      case (_, Minus(e1, e2)) if rewriteRight => rewriteMinus(variable, rewritePlus(variable, left, e2), e1)
+      case (_, Negate(argument)) if rewriteRight => rewritePlus(variable, left, argument)
+      // default: do nothing
+      case _ => Minus(left, right)
+    } else {
+      // leave unchanged if variable does not appear in subtraction
+      Minus(left, right)
+    }
   }
 
-  /**
-    * Returns an expression that is equivalent to the subtraction of the given right expression from the left expression
-    * where the subtraction is recursively distributed over all maxima and conditionals appearing at the top level and
-    * ensures that the right-hand side of subtractions are only leaf expressions.
-    *
-    * @param left  The left argument to the subtraction.
-    * @param right The right argument to the subtraction.
-    * @return An expression that is equivalent to the subtraction of the given expressions.
-    */
-  private def rewriteMinus(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute subtraction over minimum and flip it to maximum if it appears on the rhs
-    case (Min(l, r), e) => Min(rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, Min(l, r)) => Max(rewriteMinus(e, l), rewriteMinus(e, r))
-    // distribute subtraction over maxima and flip extremum if it appears in negative position
-    case (Max(l, r), e) => Max(rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, Max(l, r)) => Min(rewriteMinus(e, l), rewriteMinus(e, r))
-    // distribute subtraction over conditional
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMinus(l, e), rewriteMinus(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMinus(e, l), rewriteMinus(e, r))
-    // push addition inside subtraction
-    case (e, Plus(l, r)) => rewriteMinus(rewriteMinus(e, l), r)
-    // rewrite nested subtraction
-    case (e, Minus(l, r)) => rewriteMinus(rewritePlus(e, r), l)
-    case (e, Negate(a)) => rewritePlus(e, a)
-    // subtract constants
-    case (Permission(n1, d1), Permission(n2, d2)) =>
-      val d = lcm(d1, d2)
-      val n = n1 * d / d1 - n2 * d / d2
-      val f = gcd(n, d)
-      Permission(n / f, d / f)
-    // default action: do nothing
-    case _ => Minus(left, right)
-  }
-
-  /**
-    * Returns an expression that is equivalent to the minimum of the given left and right expression where the minimum
-    * is recursively distributed over all maxima and conditionals appearing at the top level.
-    *
-    * @param left  The left argument to the minimum.
-    * @param right The right argument to the minimum.
-    * @return An expression that is equivalent to the minimum of the given expressions.
-    */
-  private def rewriteMin(left: Expression, right: Expression): Expression = (left, right) match {
-    // distribute minimum over maximum
-    case (Max(l, r), e) => Max(rewriteMin(l, e), rewriteMin(r, e))
-    case (e, Max(l, r)) => Max(rewriteMin(e, l), rewriteMin(e, r))
-    // distribute minimum over conditional
-    case (NonLeaf(b, l, r), e) => ConditionalExpression(b, rewriteMin(l, e), rewriteMin(r, e))
-    case (e, NonLeaf(b, l, r)) => ConditionalExpression(b, rewriteMin(e, l), rewriteMin(e, r))
-    // default action: do nothing
-    case _ => Min(left, right)
+  private def rewriteMin(variable: VariableIdentifier, left: Expression, right: Expression): Expression = {
+    // check whether variable appears in minimum
+    val rewriteLeft = left.contains(_ == variable)
+    val rewriteRight = right.contains(_ == variable)
+    if (rewriteLeft || rewriteRight) (left, right) match {
+      // distribute minimum over maximum
+      case (Min(e1, e2), _) if rewriteLeft => Max(rewriteMin(variable, e1, right), rewriteMin(variable, e2, right))
+      case (_, Min(e1, e2)) if rewriteRight => Max(rewriteMin(variable, left, e1), rewriteMin(variable, left, e2))
+      // distribute minimum over conditional
+      case (NonLeaf(b, e1, e2), _) if rewriteLeft => ConditionalExpression(b, rewriteMin(variable, e1, right), rewriteMin(variable, e2, right))
+      case (_, NonLeaf(b, e1, e2)) if rewriteRight => ConditionalExpression(b, rewriteMin(variable, left, e1), rewriteMin(variable, right, e2))
+      // default: do nothing
+      case _ => Min(left, right)
+    } else {
+      // leave unchanged if variable does not appear in minimum
+      Min(left, right)
+    }
   }
 
   def approximate(expression: Expression): Expression = {
     val simplified = QpMath.simplify(expression)
-    val rewritten = rewrite(simplified)
-    approximateArithmetic(rewritten)
+    approximateArithmetic(simplified, true)
   }
 
-  private def approximateArithmetic(expression: Expression): Expression = expression match {
+  def approximateArithmetic(expression: Expression, over: Boolean): Expression = expression match {
+    case Permission(_, _) | ReadParameter(_) => expression
     case ConditionalExpression(condition, left, No) =>
-      val approximated = approximateBoolean(condition, overapproximate = true)
-      ConditionalExpression(approximated, approximateArithmetic(left), No)
+      val newCondition = approximateBoolean(condition, over)
+      val newLeft = approximateArithmetic(left, over)
+      ConditionalExpression(newCondition, newLeft, No)
     case ConditionalExpression(condition, left, right) =>
-      val newLeft = approximateArithmetic(ConditionalExpression(condition, left, No))
-      val newRight = approximateArithmetic(ConditionalExpression(Not(condition), right, No))
+      val newLeft = ConditionalExpression(approximateBoolean(condition, over), approximateArithmetic(left, over), No)
+      val newRight = ConditionalExpression(approximateBoolean(Not(condition), over), approximateArithmetic(right, over), No)
       Max(newLeft, newRight)
-    case Minus(left, right) =>
-      val newLeft = approximateArithmetic(left)
-      val newRight = right match {
-        case permission@Permission(_, _) => permission
-        case ReadParameter(variable) => variable
-        case Leaf(condition, permission) =>
-          val approximated = approximateBoolean(condition, overapproximate = false)
-          ConditionalExpression(approximated, permission, No)
-      }
-      Minus(newLeft, newRight)
-    case Negate(argument) => approximateArithmetic(Minus(No, argument))
-    case permission@Permission(_, _) => permission
-    case ReadParameter(variable) => variable
-    case Plus(left, right) => Plus(approximateArithmetic(left), approximateArithmetic(right))
-    case Min(left, right) => Min(approximateArithmetic(left), approximateArithmetic(right))
-    case Max(left, right) => Max(approximateArithmetic(left), approximateArithmetic(right))
+    case Plus(left, right) => Plus(approximateArithmetic(left, over), approximateArithmetic(right, over))
+    case Minus(left, right) => Minus(approximateArithmetic(left, over), approximateArithmetic(right, !over))
+    case Negate(argument) => Negate(approximateArithmetic(argument, !over))
+    case Min(left, right) => Min(approximateArithmetic(left, over), approximateArithmetic(right, over))
+    case Max(left, right) => Max(approximateArithmetic(left, over), approximateArithmetic(right, over))
   }
 
-  /**
-    * Approximates the heap dependent parts of the given condition.
-    *
-    * @param expression      The condition to approximate.
-    * @param overapproximate The flag indicating whether to over- or underapproximate.
-    * @return The approximated condition.
-    */
-  private def approximateBoolean(expression: Expression, overapproximate: Boolean): Expression = {
-    val nnf = QpMath.toNnf(expression)
-    nnf.transform {
-      case comparison@Comparison(_, _, _) =>
-        val approximate = comparison.contains {
-          case FieldAccessExpression(_, _) => true
-          case _ => false
-        }
-        if (approximate) Literal(overapproximate)
-        else comparison
-      case ApproximatedExpression(variable, expression) => expression match {
-        case Comparison(left, Divide(`variable`, Literal(v: Int)), operator) =>
-          val comparisons = for (i <- 0 until v) yield {
-            val expression = Plus(Times(Literal(v), left), Literal(i))
-            val flipped = ArithmeticOperator.flip(operator)
-            Comparison(variable, expression, flipped)
-          }
-          OrList(comparisons)
-        case _ => Literal(overapproximate)
+  private def approximateBoolean(expression: Expression, over: Boolean): Expression = expression match {
+    case True | False => expression
+    case Not(argument) => Not(approximateBoolean(argument, !over))
+    case And(left, right) => And(approximateBoolean(left, over), approximateBoolean(right, over))
+    case Or(left, right) => Or(approximateBoolean(left, over), approximateBoolean(right, over))
+    case comparison@Comparison(_, _, _) =>
+      val approximate = comparison.contains {
+        case FieldAccessExpression(_, _) => true
+        case _ => false
       }
-      case other => other
+      if (approximate) Literal(over)
+      else comparison
+    case ApproximatedExpression(variable, wrapped) => wrapped match {
+      case Comparison(left, Divide(`variable`, Literal(v: Int)), operator) if over =>
+        val comparisons = for (i <- 0 until v) yield {
+          val expression = Plus(Times(Literal(v), left), Literal(i))
+          val flipped = ArithmeticOperator.flip(operator)
+          Comparison(variable, expression, flipped)
+        }
+        OrList(comparisons)
+      case _ => Literal(over)
     }
   }
 

@@ -7,6 +7,7 @@
 package ch.ethz.inf.pm.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.util.Maps
 import ch.ethz.inf.pm.sample.util.Math._
@@ -127,6 +128,8 @@ object QpMath {
     }
     // simplify additions
     case original@Plus(left, right) => (left, right) match {
+      case (MaxList(ls), Minus(e, MaxList(rs))) if ls.toSet == rs.toSet => e
+      case (Minus(e, MaxList(ls)), MaxList(rs)) if ls.toSet == rs.toSet => e
       // integers
       case (Zero, _) => right
       case (_, Zero) => left
@@ -158,10 +161,9 @@ object QpMath {
     }
     // simplify subtractions
     case original@Minus(left, right) => (left, right) match {
-      case _ if left == right => original.typ match {
-        case IntType => Zero
-        case PermType => No
-      }
+      case (MaxList(ls), MaxList(rs)) if ls.toSet == rs.toSet => nothing(original.typ)
+      case (Plus(e, MaxList(ls)), MaxList(rs)) if ls.toSet == rs.toSet => e
+      case (Plus(MaxList(ls), e), MaxList(rs)) if ls.toSet == rs.toSet => e
       // integers
       case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 - v2)
       case (Zero, _) => Negate(right)
@@ -212,7 +214,12 @@ object QpMath {
       // no simplification
       case _ => original
     }
+
+    //case Max(ConditionalExpression(c1, e1, No), ConditionalExpression(c2, e2, No)) if e1 == e2 =>
+    //ConditionalExpression(Or(c1, c2), e1, No)
+
     // simplify maxima
+
     case original@Max(MaxList(ls), MaxList(rs)) =>
 
       def add(element: Expression, list: List[Expression]): List[Expression] = {
@@ -270,6 +277,11 @@ object QpMath {
     case ConditionalExpression(left, ConditionalExpression(right, term, No), No) => ConditionalExpression(simplification(And(left, right)), term, No)
     // default: no simplification
     case other => other
+  }
+
+  private def nothing(typ: Type): Expression = typ match {
+    case IntType => Zero
+    case PermType => No
   }
 
   /**

@@ -240,10 +240,12 @@ case class QpSpecification(under: List[Expression] = List.empty,
   }
 
   override def exhale(expression: Expression): QpSpecification = expression match {
+    case And(left, right) => exhale(right).exhale(left)
     case FieldAccessPredicate(FieldAccessExpression(receiver, _), permission) =>
       val leaf = toLeaf(toCondition(receiver), permission)
       val newRecords = records.map { case (_, record) => record.lose(leaf) }
       QpSpecification(records = newRecords).read(expression)
+    case other => read(other)
   }
 
   override def merge(changing: Seq[VariableIdentifier], position: CfgPosition, loop: QpSpecification): QpSpecification = {
@@ -307,7 +309,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
                 } else projected
               }
 
-              val combined = QpRecord(precondition, difference)
+              val combined = QpRecord(QpMath.simplify(precondition), difference)
               val invariant = {
                 if (QpParameters.CONDITIONAL_INVARIANTS) {
                   // val (condition, _) = getAfter(innerOriginal.precondition)

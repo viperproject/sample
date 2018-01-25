@@ -6,7 +6,6 @@
 
 package ch.ethz.inf.pm.sample.qp
 
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
 import ch.ethz.inf.pm.sample.execution._
@@ -26,7 +25,7 @@ object QpParameters {
 
   val SMALLEST_SOLUTION = true
 
-  val SLICE_ARRAYS = true
+  val SLICE_ARRAYS = false
 
   val ADD_ALL_INVARIANTS = false
 
@@ -171,8 +170,9 @@ object QpInference
                 case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => inequality = true
                 case _ => // do nothing
               }
+              // TODO: What with parts that don't depend on sliced variable?
               // slice if there is only one value or array slicing is enabled
-              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType
+              val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType && values.nonEmpty
               if ((values.size == 1 || slice) && !inequality) {
                 for (value <- values) yield {
                   val transformed = expression.transform {
