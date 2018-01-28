@@ -161,6 +161,7 @@ object QpMath {
     }
     // simplify subtractions
     case original@Minus(left, right) => (left, right) match {
+      case (PlusList(ls), PlusList(rs)) if ls.sortBy(_.toString) == rs.sortBy(_.toString) => nothing(original.typ)
       case (MaxList(ls), MaxList(rs)) if ls.toSet == rs.toSet => nothing(original.typ)
       case (Plus(e, MaxList(ls)), MaxList(rs)) if ls.toSet == rs.toSet => e
       case (Plus(MaxList(ls), e), MaxList(rs)) if ls.toSet == rs.toSet => e

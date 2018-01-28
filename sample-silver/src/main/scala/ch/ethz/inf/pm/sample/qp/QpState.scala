@@ -233,9 +233,9 @@ case class QpSpecification(under: List[Expression] = List.empty,
   override def inhale(expression: Expression): QpSpecification = expression match {
     case True => this
     case False => bottom()
-    case FieldAccessPredicate(FieldAccessExpression(receiver, _), permission) =>
+    case FieldAccessPredicate(access@FieldAccessExpression(receiver, _), permission) =>
       val leaf = toLeaf(toCondition(receiver), permission)
-      val newRecords = records.map { case (_, record) => record.gain(leaf) }
+      val newRecords = records.map { case (_, record) => record.gain(leaf).havoc(access) }
       QpSpecification(records = newRecords).read(expression)
   }
 
@@ -245,7 +245,9 @@ case class QpSpecification(under: List[Expression] = List.empty,
       val leaf = toLeaf(toCondition(receiver), permission)
       val newRecords = records.map { case (_, record) => record.lose(leaf) }
       QpSpecification(records = newRecords).read(expression)
-    case other => read(other)
+    case other =>
+      val newRecords = records.map { case (_, record) => record.assume(other) }
+      QpSpecification(records = newRecords).read(other)
   }
 
   override def merge(changing: Seq[VariableIdentifier], position: CfgPosition, loop: QpSpecification): QpSpecification = {
@@ -415,6 +417,9 @@ case class QpRecord(precondition: Expression = No,
 
   def assume(condition: Expression): QpRecord = update(ConditionalExpression(condition, _, No))
 
+  // TODO: Havoc delta
+  def havoc(access: Expression): QpRecord = update(pre => QpElimination.havoc(pre, access, over = true), identity)
+
   def gain(leaf: Expression): QpRecord = update(pre => Max(Minus(pre, leaf), No), diff => Plus(diff, leaf))
 
   def lose(leaf: Expression): QpRecord = update(pre => Plus(pre, leaf), diff => Minus(diff, leaf))
@@ -437,15 +442,25 @@ case class QpRecord(precondition: Expression = No,
 
   def project(changing: Seq[VariableIdentifier], over: Expression, under: Expression, fact: Expression): QpRecord = {
     val newPrecondition = {
-      val approximated = QpElimination.approximate(precondition)
+      val approximated = QpElimination.approximateArithmetic(precondition, over = true)
       val formula = BigMax(changing, ConditionalExpression(over, approximated, No))
-      QpElimination.eliminate(formula, fact)
+      QpElimination.eliminate(formula, fact, over = true)
     }
     val newDifference = {
-      // TODO: Approximate
-      val negative = BigMin(changing, ConditionalExpression(over, Min(difference, No), No))
-      val positive = BigMax(changing, ConditionalExpression(under, Max(difference, No), No))
-      QpElimination.eliminate(Plus(negative, positive), fact)
+      // compute under-approximate projection of the net gain
+      val negative = {
+        val approximated = QpElimination.approximateArithmetic(difference, over = true)
+        val formula = BigMin(changing, ConditionalExpression(over, Min(approximated, No), No))
+        QpElimination.eliminate(formula, fact, over = true)
+      }
+      // compute over-approximate projection fo the net loss
+      val positive = {
+        val approximated = QpElimination.approximateArithmetic(difference, over = false)
+        val formula = BigMax(changing, ConditionalExpression(under, Max(approximated, No), No))
+        QpElimination.eliminate(formula, fact, over = false)
+      }
+      // return projected net difference
+      Plus(negative, positive)
     }
     copy(precondition = newPrecondition, difference = newDifference)
   }

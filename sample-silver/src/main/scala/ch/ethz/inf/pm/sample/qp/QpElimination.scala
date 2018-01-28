@@ -18,12 +18,12 @@ object QpElimination extends LazyLogging {
 
   type Tuples = Set[(Expression, Expression)]
 
-  def eliminate(expression: Expression, fact: Expression = True): Expression = expression.transform {
+  def eliminate(expression: Expression, fact: Expression = True, over: Boolean): Expression = expression.transform {
     // TODO: Do we need facts for quantifiers?
     case ForAll(variables, body) => Not(eliminateExistential(variables, Not(body)))
     case Exists(variables, body) => eliminateExistential(variables, body)
-    case BigMin(variables, body) => Negate(eliminateMaximum(variables, Negate(body), fact))
-    case BigMax(variables, body) => eliminateMaximum(variables, body, fact)
+    case BigMin(variables, body) => Negate(eliminateMaximum(variables, Negate(body), fact, over))
+    case BigMax(variables, body) => eliminateMaximum(variables, body, fact, over)
     case other => other
   }
 
@@ -67,34 +67,37 @@ object QpElimination extends LazyLogging {
       }
     }
 
-  private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression): Expression = {
+  private def eliminateMaximum(variables: Seq[VariableIdentifier], body: Expression, fact: Expression, over: Boolean): Expression = {
     val simplified = QpMath.simplify(body)
     val result = variables.foldLeft(simplified) { case (current, variable) =>
       val rewritten = rewrite(variable, current)
-      val eliminated = eliminateMaximum(variable, rewritten, True, fact)
+      println(s"-- $variable ---")
+      println(current)
+      println(rewritten)
+      val eliminated = eliminateMaximum(variable, rewritten, True, fact, over)
       QpMath.simplify(eliminated)
     }
     QpMath.prettify(result)
   }
 
-  private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression, fact: Expression): Expression = {
+  private def eliminateMaximum(variable: VariableIdentifier, body: Expression, context: Expression, fact: Expression, over: Boolean): Expression = {
     val rewrite = body.contains(_ == variable)
     body match {
       // rewrite maximum
       case Max(left, right) if rewrite =>
         // TODO: Check whether adding the conditions "left>right" and "left<=right" helps.
-        val newLeft = eliminateMaximum(variable, left, context, fact)
-        val newRight = eliminateMaximum(variable, right, context, fact)
+        val newLeft = eliminateMaximum(variable, left, context, fact, over)
+        val newRight = eliminateMaximum(variable, right, context, fact, over)
         Max(newLeft, newRight)
       // rewrite conditional
       case NonLeaf(condition, left, right) if rewrite =>
         if (condition.contains(_ == variable)) {
-          val newLeft = eliminateMaximum(variable, left, And(context, condition), fact)
-          val newRight = eliminateMaximum(variable, right, And(context, Not(condition)), fact)
+          val newLeft = eliminateMaximum(variable, left, And(context, condition), fact, over)
+          val newRight = eliminateMaximum(variable, right, And(context, Not(condition)), fact, over)
           Max(newLeft, newRight)
         } else {
-          val newLeft = eliminateMaximum(variable, left, context, fact)
-          val newRight = eliminateMaximum(variable, right, context, fact)
+          val newLeft = eliminateMaximum(variable, left, context, fact, over)
+          val newRight = eliminateMaximum(variable, right, context, fact, over)
           ConditionalExpression(condition, newLeft, newRight)
         }
       case No => No
@@ -102,7 +105,7 @@ object QpElimination extends LazyLogging {
         // normalize expression and compute tuples, projection, and delta
         val formula = NonLeaf(context, body, No)
         val normalized = normalize(variable, formula)
-        val approximated = approximateArithmetic(normalized, over = true)
+        val approximated = approximateArithmetic(normalized, over)
         val (tuples, projection, delta) = analyzeArithmetic(variable, approximated)
         // compute unbounded solutions
         val sp = QpMath.simplify(projection)
@@ -126,7 +129,7 @@ object QpElimination extends LazyLogging {
               // check whether condition is satisfiable under collected constraint
               val body = And(And(condition, constraint), fact)
               val variables = body.ids.toSet.toSeq.collect { case v: VariableIdentifier if v.typ.isNumericalType => v }
-              val eliminated = eliminate(Exists(variables, body))
+              val eliminated = eliminate(Exists(variables, body), over = over) // TODO: Always overapproximate?
               // ignore conditional if condition is not satisfiable
               eliminated match {
                 case False => No
@@ -166,13 +169,12 @@ object QpElimination extends LazyLogging {
       case NonLeaf(b, e1, e2) => ConditionalExpression(b, rewriteNegation(variable, e1), rewriteNegation(variable, e2))
       case Plus(e1, e2) => rewriteMinus(variable, rewriteNegation(variable, e1), e2)
       case Minus(e1, e2) => rewriteMinus(variable, e2, e1)
+      case Negate(a) => a
       case _ => Negate(argument)
     } else argument match {
       case Permission(n, d) => Permission(-n, d)
       case _ => Negate(argument)
     }
-
-
 
   private def rewritePlus(variable: VariableIdentifier, left: Expression, right: Expression): Expression = {
     // check whether variable appears in addition
@@ -242,9 +244,40 @@ object QpElimination extends LazyLogging {
     }
   }
 
-  def approximate(expression: Expression): Expression = {
-    val simplified = QpMath.simplify(expression)
-    approximateArithmetic(simplified, true)
+  def havoc(expression: Expression, access: Expression, over: Boolean): Expression = expression match {
+    // havoc arithmetic expressions
+    case Permission(_, _) | ReadParameter(_) => expression
+    case ConditionalExpression(condition, left, No) =>
+      val newCondition = havoc(condition, access, over)
+      val newLeft = havoc(left, access, over)
+      ConditionalExpression(newCondition, newLeft, No)
+    case ConditionalExpression(condition, left, right) =>
+      val newLeft = ConditionalExpression(havoc(condition, access, over), havoc(left, access, over), No)
+      val newRight = ConditionalExpression(havoc(Not(condition), access, over), havoc(right, access, over), No)
+      Max(newLeft, newRight)
+    case Plus(left, right) => Plus(havoc(left, access, over), havoc(right, access, over))
+    case Minus(left, right) => Minus(havoc(left, access, over), havoc(right, access, over))
+    case Negate(argument) => Negate(havoc(argument, access, !over))
+    case Min(left, right) => Min(havoc(left, access, over), havoc(right, access, over))
+    case Max(left, right) => Max(havoc(left, access, over), havoc(right, access, over))
+    // havoc boolean expressions
+    case True | False => expression
+    case Not(argument) => Not(havoc(argument, access, !over))
+    case And(left, right) => And(havoc(left, access, over), havoc(right, access, over))
+    case Or(left, right) => Or(havoc(left, access, over), havoc(right, access, over))
+    case comparison@Comparison(_, _, _) =>
+      var conditions = List.empty[Expression]
+      val FieldAccessExpression(FunctionCallExpression(name, arguments, _), field) = access
+      comparison.foreach {
+        case FieldAccessExpression(FunctionCallExpression(`name`, args, _), `field`) =>
+            val zipped = args zip arguments
+            val condition = AndList(zipped.map { case (a, b) => Equal(a, b) })
+            conditions = condition :: conditions
+
+        case _ => // do nothing
+      }
+      val disjunction = OrList(conditions)
+      ConditionalExpression(disjunction, Literal(over), comparison)
   }
 
   def approximateArithmetic(expression: Expression, over: Boolean): Expression = expression match {
@@ -264,7 +297,7 @@ object QpElimination extends LazyLogging {
     case Max(left, right) => Max(approximateArithmetic(left, over), approximateArithmetic(right, over))
   }
 
-  private def approximateBoolean(expression: Expression, over: Boolean): Expression = expression match {
+  def approximateBoolean(expression: Expression, over: Boolean): Expression = expression match {
     case True | False => expression
     case Not(argument) => Not(approximateBoolean(argument, !over))
     case And(left, right) => And(approximateBoolean(left, over), approximateBoolean(right, over))
@@ -365,6 +398,7 @@ object QpElimination extends LazyLogging {
     * @return A triple with the described properties.
     */
   private def analyzeArithmetic(variable: VariableIdentifier, expression: Expression): (Tuples, Expression, Int) = expression match {
+    case _ if !expression.contains(_ == variable) => (Set.empty, expression, 1)
     // rewrite conjunction to nested conditional
     case ConditionalExpression(And(left, right), term, No) =>
       analyzeArithmetic(variable, ConditionalExpression(left, ConditionalExpression(right, term, No), No))

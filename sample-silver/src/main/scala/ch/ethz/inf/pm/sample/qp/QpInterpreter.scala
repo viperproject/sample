@@ -107,7 +107,7 @@ case class QpInterpreter[D <: QpDomain[D]](cfg: SampleCfg, initial: QpState[D])
         // check whether all dependencies have been processed
         if (cfg.successors(predecessor).forall(visited.contains)) {
           // enqueue predecessor block
-          worklist.push(predecessor)
+          if (!worklist.contains(predecessor)) worklist.push(predecessor)
         } else predecessor match {
           case LoopHeadBlock(_, _) =>
             // check if all blocks after the loop have been processed
@@ -120,7 +120,7 @@ case class QpInterpreter[D <: QpDomain[D]](cfg: SampleCfg, initial: QpState[D])
               innerEdges.foreach { innerEdge =>
                 val innerBlock = innerEdge.source
                 updateExitState(innerBlock, innerState)
-                worklist.push(innerBlock)
+                if (!worklist.contains(innerBlock)) worklist.push(innerBlock)
               }
             }
           case _ => // do nothing
