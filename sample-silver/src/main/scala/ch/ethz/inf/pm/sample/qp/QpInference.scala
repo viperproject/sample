@@ -28,11 +28,11 @@ object QpParameters {
 
   val CONDITIONAL_INVARIANTS = false
 
-  type NumericalState = ApronPolyhedraAnalysisState
+  type NumericalState = IntegerOctagonAnalysisState
 
   type PermissionState = QpState[QpSpecification]
 
-  val numericalEntry = ApronPolyhedraAnalysisEntryState
+  val numericalEntry = IntegerOctagonAnalysisEntryState
 
   val permissionEntry = QpEntryState
 }
