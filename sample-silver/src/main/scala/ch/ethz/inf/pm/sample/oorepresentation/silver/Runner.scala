@@ -26,7 +26,7 @@ trait SilverAnalysisRunner[S <: State[S]] {
   /**
     * The compiler.
     */
-  val compiler: SilverCompiler = new SilverCompiler()
+  val compiler: SilverCompiler.type = SilverCompiler
 
   /**
     * The analysis to run.

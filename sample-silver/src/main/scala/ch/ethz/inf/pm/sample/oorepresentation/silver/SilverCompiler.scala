@@ -6,15 +6,18 @@
 
 package ch.ethz.inf.pm.sample.oorepresentation.silver
 
+import java.io.File
+
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.nio.file.{Files, Paths}
 import java.text.ParseException
 
+import ch.ethz.inf.pm.sample.SystemParameters
+
 import scala.io.Source
-import viper.silver.parser.{FastParser, _}
+import viper.silver.parser._
 import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.TypeMap
 import ch.ethz.inf.pm.sample.permissionanalysis.SilverSemantics
 import viper.silver.ast.SourcePosition
@@ -22,15 +25,26 @@ import viper.silver.verifier.ParseError
 
 /**
   * TODO: Make the silver compiler extend the compiler interface once the rest of Sample also uses the new control flow graph
+  * TODO: Does not support directories (multiple files) as input at the moment.
+  * TODO: Contains absolutely no error handling.
   */
-class SilverCompiler {
+object SilverCompiler {
+
+  def compile(filename: String): sil.Program = {
+    val file = new File(filename)
+    val path = file.toPath
+    val compilable = Compilable.Path(path)
+    compile(compilable)
+  }
 
   /**
-    * TODO: Does not support directories (multiple files) as input at the moment.
-    * TODO: Contains absolutely no error handling.
+    * Compiles the given compilable.
+    *
+    * @param compilable
+    * @return
     */
   def compile(compilable: Compilable): sil.Program = {
-    val (parseResult, label) = compilable match {
+    val (result, label) = compilable match {
       case Compilable.Path(file) =>
         val input = Source.fromInputStream(Files.newInputStream(file)).mkString
         (FastParser.parse(input, file), file)
@@ -39,7 +53,7 @@ class SilverCompiler {
         (FastParser.parse(input, Paths.get(".").toAbsolutePath().normalize()), label)
       case _ => throw new UnsupportedOperationException("Compilable " + compilable + " not supported by this compiler")
     }
-    val parsed = parseResult match {
+    val parsed = result match {
       case fastparse.core.Parsed.Success(e: PProgram, _) =>
         e.initProperties()
         e

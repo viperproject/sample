@@ -13,7 +13,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.analysis._
 import ch.ethz.inf.pm.sample.domain.{HeapNode, MayAliasGraph, MustAliasGraph}
 import ch.ethz.inf.pm.sample.execution.{CfgResult, SilverAnalysis, SimpleSilverForwardAnalysis}
-import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSampleConverter, SilverCompiler, SilverIdentifier}
 import ch.ethz.inf.pm.sample.permissionanalysis.PermissionAnalysisState.SimplePermissionAnalysisState
 import ch.ethz.inf.pm.sample.permissionanalysis.util.Context
@@ -130,9 +129,8 @@ object Main {
     val pretty = args.length > 1 && args(1) == "--pretty"
 
     // compile program
-    val compiler = new SilverCompiler()
-    val compilable = Compilable.Path(new File(file).toPath)
-    val program = compiler.compile(compilable)
+    val compiler = SilverCompiler
+    val program = compiler.compile(file)
 
     // flurin's inference
     /*val interproceduralResults = interprocedural.run(program)
