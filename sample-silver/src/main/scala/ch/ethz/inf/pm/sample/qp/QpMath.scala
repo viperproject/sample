@@ -7,6 +7,8 @@
 package ch.ethz.inf.pm.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.util.Maps
 import ch.ethz.inf.pm.sample.util.Math._
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
@@ -17,6 +19,10 @@ object QpMath {
     val quantified = QpContext.getAllQuantified.map { declaration => declaration.name }
 
     val transformed = expression.transform {
+      case Modulo(left, right) =>
+        val newLeft = Collected(left).toExpression
+        val newRight = Collected(right).toExpression
+        Modulo(newLeft, newRight)
       case original@Comparison(left, right, operator) =>
         val collected = Collected(Minus(left, right))
 
@@ -122,6 +128,8 @@ object QpMath {
     }
     // simplify additions
     case original@Plus(left, right) => (left, right) match {
+      case (MaxList(ls), Minus(e, MaxList(rs))) if ls.toSet == rs.toSet => e
+      case (Minus(e, MaxList(ls)), MaxList(rs)) if ls.toSet == rs.toSet => e
       // integers
       case (Zero, _) => right
       case (_, Zero) => left
@@ -139,11 +147,24 @@ object QpMath {
         val n = n1 * d / d1 + n2 * d / d2
         val f = gcd(n, d)
         Permission(n / f, d / f)
+      // simplify negations
+      case (Negate(n1), Negate(n2)) => Negate(Plus(n1, n2))
+      case (_, Negate(negated)) => simplification(Minus(left, negated))
+      case (Negate(negated), _) => simplification(Minus(right, negated))
+      // simplify conditionals
+      case (ConditionalExpression(c1, l1, r1), ConditionalExpression(c2, l2, r2)) if c1 == c2 =>
+        val newLeft = simplification(Plus(l1, l2))
+        val newRight = simplification(Plus(r1, r2))
+        ConditionalExpression(c1, newLeft, newRight)
       // default action
       case _ => original
     }
     // simplify subtractions
     case original@Minus(left, right) => (left, right) match {
+      case (PlusList(ls), PlusList(rs)) if ls.sortBy(_.toString) == rs.sortBy(_.toString) => nothing(original.typ)
+      case (MaxList(ls), MaxList(rs)) if ls.toSet == rs.toSet => nothing(original.typ)
+      case (Plus(e, MaxList(ls)), MaxList(rs)) if ls.toSet == rs.toSet => e
+      case (Plus(MaxList(ls), e), MaxList(rs)) if ls.toSet == rs.toSet => e
       // integers
       case (Literal(v1: Int), Literal(v2: Int)) => Literal(v1 - v2)
       case (Zero, _) => Negate(right)
@@ -154,8 +175,17 @@ object QpMath {
         val n = n1 * d / d1 - n2 * d / d2
         val f = gcd(n, d)
         Permission(n / f, d / f)
-      case (No, _) => Negate(right)
+      case (No, _) => simplification(Negate(right))
       case (_, No) => left
+      // simplify negations
+      case (Negate(n1), Negate(n2)) => Minus(n2, n1)
+      case (_, Negate(negated)) => Plus(left, negated)
+      case (Negate(negated), _) => Negate(Plus(negated, right))
+      // simplify conditionals
+      case (ConditionalExpression(c1, l1, r1), ConditionalExpression(c2, l2, r2)) if c1 == c2 =>
+        val newLeft = simplification(Minus(l1, l2))
+        val newRight = simplification(Minus(r1, r2))
+        ConditionalExpression(c1, newLeft, newRight)
       // default action
       case _ => original
     }
@@ -185,12 +215,17 @@ object QpMath {
       // no simplification
       case _ => original
     }
+
+    //case Max(ConditionalExpression(c1, e1, No), ConditionalExpression(c2, e2, No)) if e1 == e2 =>
+    //ConditionalExpression(Or(c1, c2), e1, No)
+
     // simplify maxima
+
     case original@Max(MaxList(ls), MaxList(rs)) =>
 
       def add(element: Expression, list: List[Expression]): List[Expression] = {
-        val (keep, filtered) = list.foldLeft((true, List.empty[Expression])) {
-          case ((keep, partial), current) =>
+        val (keep, filtered) = list.foldRight((true, List.empty[Expression])) {
+          case (current, (keep, partial)) =>
             val (leq, geq) = compare(element, current)
             if (geq) (keep, partial)
             else if (leq) (false, current :: partial)
@@ -199,7 +234,7 @@ object QpMath {
         if (keep) element :: filtered else filtered
       }
 
-      val merged = ls.foldLeft(rs) { case (list, element) => add(element, list) }
+      val merged = ls.foldRight(rs) { case (element, list) => add(element, list) }
       MaxList(merged)
     // simplify minima
     case original@Min(left, right) =>
@@ -243,6 +278,11 @@ object QpMath {
     case ConditionalExpression(left, ConditionalExpression(right, term, No), No) => ConditionalExpression(simplification(And(left, right)), term, No)
     // default: no simplification
     case other => other
+  }
+
+  private def nothing(typ: Type): Expression = typ match {
+    case IntType => Zero
+    case PermType => No
   }
 
   /**
@@ -295,6 +335,18 @@ object QpMath {
 
   private def compare(left: Expression, right: Expression): (Boolean, Boolean) = (left, right) match {
     case (ConditionalExpression(c1, t1, No), ConditionalExpression(c2, t2, No)) if c1 == c2 => compare(t1, t2)
+    case (Plus(expression, ReadParameter(_)), _) =>
+      val (_, geq) = compare(expression, right)
+      (false, geq)
+    case (Plus(ReadParameter(_), expression), _) =>
+      val (_, geq) = compare(expression, right)
+      (false, geq)
+    case (_, Plus(expression, ReadParameter(_))) =>
+      val (leq, _) = compare(left, expression)
+      (leq, false)
+    case (_, Plus(ReadParameter(_), expression)) =>
+      val (leq, _) = compare(left, expression)
+      (leq, false)
     case _ =>
       if (left == right) (true, true) else {
         val (leftLower, leftUpper) = bounds(left)
@@ -326,7 +378,7 @@ object QpMath {
         val newRest = simplification(Times(Literal(v), rest))
         Collected(newCoefficients, newRest)
       case (Collected(map, Literal(v: Int)), _) if map.isEmpty => other times this
-      case _ => ???
+      case _ => Collected(Map.empty, Times(toExpression, other.toExpression))
     }
 
     def negate(): Collected = {

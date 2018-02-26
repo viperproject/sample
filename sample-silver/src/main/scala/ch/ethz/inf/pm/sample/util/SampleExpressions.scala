@@ -129,6 +129,14 @@ object SampleExpressions {
     }
   }
 
+  object PlusList {
+    def unapply(argument: Expression): Option[List[Expression]] = argument match {
+      case Plus(PlusList(left), PlusList(right)) => Some(left ++ right)
+      case _ if argument.typ.isNumericalType => Some(List(argument))
+      case _ => None
+    }
+  }
+
   object Minus {
     def apply(left: Expression, right: Expression): BinaryArithmeticExpression =
       Operation(left, right, ArithmeticOperator.-)
