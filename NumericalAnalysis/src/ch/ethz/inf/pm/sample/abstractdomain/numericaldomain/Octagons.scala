@@ -144,6 +144,7 @@ object Octagons {
     def epsilon: Interval
 
     override def assumeSimplified(expression: Expression): S = expression match {
+      case _: FieldAccessPredicate => this
       case _: ReferenceComparisonExpression => this
       case _ =>
         val nonExisting = expression.ids.getNonTop

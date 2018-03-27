@@ -84,6 +84,9 @@ object Enumerator {
     if (enumerator.isEmpty) Flattened(empty, enumerator)
     else Flattened(enumerator.get, enumerator.next)
 
+  def joined[A](first: Enumerator[A], second: Enumerator[A]): Enumerator[A] =
+    Joined(first, second)
+
   def product[A, B, C](first: Enumerator[A], second: Enumerator[B], f: (A, B) => C): Enumerator[C] =
     Product(first, second, f)
 
@@ -169,6 +172,24 @@ object Enumerator {
     }
 
     override def reset: Enumerator[A] = flattened(base.reset)
+  }
+
+  private case class Joined[A](first: Enumerator[A], second: Enumerator[A]) extends Enumerator[A] {
+
+    override def isEmpty: Boolean = first.isEmpty && second.isEmpty
+
+    override def size: Int = first.size + second.size
+
+    override def get: A = first.getOption.getOrElse(second.get)
+
+    override def next: Enumerator[A] = {
+      val updated = if (first.nonEmpty) first.next else first
+      if (updated.nonEmpty) Joined(updated, second)
+      else Joined(updated, second.next)
+    }
+
+    override def reset: Enumerator[A] = Joined(first.reset, second.reset)
+
   }
 
   private case class Product[A, B, C](first: Enumerator[A], second: Enumerator[B], f: (A, B) => C) extends Enumerator[C] {

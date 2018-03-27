@@ -14,7 +14,7 @@ object Main {
     val filename = arguments(0)
 
     val program = SilverCompiler.compile(filename)
-    val extended = SimpleInference.extend(program)
+    val extended = ExtendedInference.extend(program)
 
     extended match {
       case Some(existing) =>

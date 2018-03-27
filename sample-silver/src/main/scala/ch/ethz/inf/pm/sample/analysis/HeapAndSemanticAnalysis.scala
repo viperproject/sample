@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.domain.HeapNode.NewNode
 import ch.ethz.inf.pm.sample.domain.{HeapAndSemanticDomain, HeapDomain, HeapNode, MayAliasGraph}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.inference.SilverSpecification
+import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverSpecification}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
@@ -375,4 +375,10 @@ object HeapAndOctagonAnalysis
       results.getResult(method).print()
     }
   }
+}
+
+object HeapAndOctagonInference
+  extends SilverExtender[SimpleHeapAndSemanticAnalysisState[MayAliasGraph, IntegerOctagons, HeapNode]] {
+
+  override val analysis: SilverAnalysis[SimpleHeapAndSemanticAnalysisState[MayAliasGraph, IntegerOctagons, HeapNode]] = SimpleSilverForwardAnalysis(HeapAndOctagonAnalysisEntryState)
 }
