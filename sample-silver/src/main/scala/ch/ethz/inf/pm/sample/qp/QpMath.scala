@@ -105,7 +105,19 @@ object QpMath {
       case (_, True) => left
       case (False, _) => False
       case (_, False) => False
-      case (AndList(ls), AndList(rs)) => AndList((ls ++ rs).distinct)
+      case (AndList(ls), AndList(rs)) =>
+
+        def add(element: Expression, list: List[Expression]): List[Expression] = {
+          val (drop, filtered) = list.foldRight((false, List.empty[Expression])) {
+            case (current, (drop, partial)) =>
+              if (implies(element, current)) (drop, partial)
+              else (drop || implies(current, element), current :: partial)
+          }
+          if (drop) filtered else element :: filtered
+        }
+
+        val merged = ls.foldRight(rs) { case (element, list) => add(element, list) }
+        AndList(merged)
     }
     // simplify disjunctions
     case Or(left, right) => (left, right) match {
@@ -276,6 +288,10 @@ object QpMath {
     case ConditionalExpression(False, _, term) => term
     case ConditionalExpression(_, left, right) if left == right => left
     case ConditionalExpression(left, ConditionalExpression(right, term, No), No) => ConditionalExpression(simplification(And(left, right)), term, No)
+    case ConditionalExpression(condition, Max(left, right), No) =>
+      val l = simplification(ConditionalExpression(condition, left, No))
+      val r = simplification(ConditionalExpression(condition, right, No))
+      Max(l, r)
     // default: no simplification
     case other => other
   }
@@ -349,11 +365,14 @@ object QpMath {
       (leq, false)
     case _ =>
       if (left == right) (true, true) else {
+        lazy val leq1 = lessEqual(left, right)
+        lazy val geq2 = lessEqual(right, left)
+
         val (leftLower, leftUpper) = bounds(left)
         val (rightLower, rightUpper) = bounds(right)
         val leq = lessEqual(leftUpper, rightLower)
         val geq = lessEqual(rightUpper, leftLower)
-        (leq, geq)
+        (leq1 || leq, geq2 || geq)
       }
   }
 
@@ -362,6 +381,27 @@ object QpMath {
     case (Permission(n1, d1), Permission(n2, d2)) => n1.toLong * d2 <= n2.toLong * d1
     case (Permission(n, d), ReadParameter(_)) => n * d <= 0
     case (ReadParameter(_), Permission(n, d)) => 0 < n * d
+    case (ConditionalExpression(c1, e1, No), ConditionalExpression(c2, e2, No)) =>
+      implies(c1, c2) && lessEqual(e1, e2)
+    case _ => false
+  }
+
+  private def implies(left: Expression, right: Expression): Boolean = (left, right) match {
+    case _ if left == right => true
+    case (Comparison(l1, r1, ArithmeticOperator.<), Comparison(l2, r2, ArithmeticOperator.<=)) if l1 == l2 && r1 == r2 => true
+    case (Comparison(l, e1, op1@(ArithmeticOperator.< | ArithmeticOperator.<=)), Comparison(r, e2, op2)) if e1 == e2 && op1 == op2 =>
+      val difference = simplify(Collected(Minus(l, r)).toExpression)
+      difference match {
+        case Literal(v: Int) => v <= 0
+        case _ => false
+      }
+    case (Comparison(e1, l, op1@(ArithmeticOperator.< | ArithmeticOperator.<=)), Comparison(e2, r, op2)) if e1 == e2 && op1 == op2 =>
+      val difference = simplify(Collected(Minus(r, l)).toExpression)
+      difference match {
+        case Literal(v: Int) => v <= 0
+        case _ => false
+      }
+    case (AndList(ls), AndList(rs)) => rs.toSet.subsetOf(ls.toSet)
     case _ => false
   }
 
@@ -391,15 +431,15 @@ object QpMath {
 
     def toExpression: Expression = {
       val filtered = coefficients.filter { case (_, coefficient) => coefficient != 0 }
-      val parts = filtered.map { case (variable, coefficient) => simplification(Times(Literal(coefficient), variable)) }
-      simplification(Plus(Plus(parts), rest))
+      val parts = filtered.map { case (variable, coefficient) => Times(Literal(coefficient), variable) }
+      simplify(Plus(Plus(parts), rest))
     }
 
     def toExpression(variable: VariableIdentifier): Expression = {
       val coefficient = coefficients.getOrElse(variable, 0)
-      val left = simplification(Times(Literal(coefficient), variable))
+      val left = Times(Literal(coefficient), variable)
       val right = drop(variable).toExpression
-      simplification(Plus(left, right))
+      simplify(Plus(left, right))
     }
   }
 

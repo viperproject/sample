@@ -71,9 +71,6 @@ object QpElimination extends LazyLogging {
     val simplified = QpMath.simplify(body)
     val result = variables.foldLeft(simplified) { case (current, variable) =>
       val rewritten = rewrite(variable, current)
-      println(s"-- $variable ---")
-      println(current)
-      println(rewritten)
       val eliminated = eliminateMaximum(variable, rewritten, True, fact, over)
       QpMath.simplify(eliminated)
     }
@@ -276,8 +273,12 @@ object QpElimination extends LazyLogging {
 
         case _ => // do nothing
       }
-      val disjunction = OrList(conditions)
-      ConditionalExpression(disjunction, Literal(over), comparison)
+
+      if (conditions.isEmpty) comparison
+      else {
+        val disjunction = OrList(conditions)
+        ConditionalExpression(disjunction, Literal(over), comparison)
+      }
   }
 
   def approximateArithmetic(expression: Expression, over: Boolean): Expression = expression match {
@@ -298,7 +299,7 @@ object QpElimination extends LazyLogging {
   }
 
   def approximateBoolean(expression: Expression, over: Boolean): Expression = expression match {
-    case True | False => expression
+    case True | False | _: VariableIdentifier => expression
     case Not(argument) => Not(approximateBoolean(argument, !over))
     case And(left, right) => And(approximateBoolean(left, over), approximateBoolean(right, over))
     case Or(left, right) => Or(approximateBoolean(left, over), approximateBoolean(right, over))
@@ -442,7 +443,6 @@ object QpElimination extends LazyLogging {
     case Minus(left, Leaf(condition, permission)) =>
       val (tuples1, projection1, delta1) = analyzeArithmetic(variable, left)
       val (tuples2, projection2, delta2) = {
-        // TODO: Add optimization
         // the condition is negated since we are interested in making it false
         val negated = QpMath.toNnf(Not(condition))
         val (set, projection, delta) = analyzeBoolean(variable, negated)

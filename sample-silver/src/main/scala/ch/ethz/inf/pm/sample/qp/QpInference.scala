@@ -6,6 +6,8 @@
 
 package ch.ethz.inf.pm.sample.qp
 
+import java.io.{File, PrintWriter}
+
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
 import ch.ethz.inf.pm.sample.execution._
@@ -14,14 +16,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import ch.ethz.inf.pm.sample.qp.QpParameters.PermissionState
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
-import viper.silver.ast.{Method, Program, While}
 import viper.silver.{ast => sil}
 
 object QpParameters {
 
-  val NUMBER_OF_WARMUP_RUNS = 0
+  val NUMBER_OF_WARMUP_RUNS = 50
 
-  val NUMBER_OF_RUNS = 1
+  val NUMBER_OF_RUNS = 100
 
   val SMALLEST_SOLUTION = true
 
@@ -31,11 +32,13 @@ object QpParameters {
 
   val CONDITIONAL_INVARIANTS = false
 
-  type NumericalState = IntegerOctagonAnalysisState
+  //type NumericalState = IntegerOctagonAnalysisState
+  type NumericalState = ApronPolyhedraAnalysisState
 
   type PermissionState = QpState[QpSpecification]
 
-  val numericalEntry = IntegerOctagonAnalysisEntryState
+  //val numericalEntry = IntegerOctagonAnalysisEntryState
+  val numericalEntry = ApronPolyhedraAnalysisEntryState
 
   val permissionEntry = QpEntryState
 }
@@ -45,64 +48,163 @@ object QpInference
 
   override val analysis = QpAnalysis()
 
+  var sourceFilename = ""
+
+  var timing = false
+
+  var save = false
+
+  var warmupRuns = QpParameters.NUMBER_OF_WARMUP_RUNS
+
+  var normalRuns = QpParameters.NUMBER_OF_RUNS
+
+  override def main(arguments: Array[String]): Unit = {
+    require(arguments.nonEmpty, "No file or directory specified.")
+    val filename = arguments(0)
+    val file = new File(filename)
+    require(file.exists, s"File or directory '$filename' does not exist.")
+
+    processOptions(arguments.tail.toList)
+
+    // get files
+    val files =
+      if (file.isFile) Array(file)
+      else  file.listFiles
+        .filter(_.isFile)
+        .filter(_.getAbsolutePath.endsWith(".vpr"))
+
+    for (current <- files) {
+      println(current)
+      val extended = extend(current)
+
+      if (save) {
+        val original = current.getAbsolutePath()
+        val parts = original.split("\\.")
+        val filename = parts.init.mkString(".") + ".out"
+        val output = new PrintWriter(new File(filename))
+        output.write(extended.toString)
+        output.close()
+      } else {
+        printExtended(extended)
+      }
+    }
+  }
+
+  def processOptions(arguments: List[String]): Unit = arguments match {
+    case "--time" :: rest =>
+      timing = true
+      processOptions(rest)
+    case "--save" :: rest =>
+      save = true
+      processOptions(rest)
+    case "-warmup" :: value :: rest =>
+      warmupRuns = Integer.valueOf(value)
+      processOptions(rest)
+    case "-runs" :: value :: rest =>
+      normalRuns = Integer.valueOf(value)
+      processOptions(rest)
+    case unknown :: rest =>
+      println(s"Unknown option: $unknown")
+      processOptions(rest)
+    case Nil => // do nothing
+  }
+
   override def compile(compilable: Compilable): sil.Program = {
     val program = super.compile(compilable)
     QpContext.setProgram(program)
     program
   }
 
-  override def extend(program: Program): sil.Program = {
-
-    val warmup = QpParameters.NUMBER_OF_WARMUP_RUNS
-    val runs = QpParameters.NUMBER_OF_RUNS
-
+  override def extend(program: sil.Program): sil.Program = {
     var result = program
 
-    var total = 0L
-    var min = Long.MaxValue
-    var max = Long.MinValue
+    var totalTime = 0L
+    var minTime = Long.MaxValue
+    var maxTime = Long.MinValue
 
-    for (i <- 0 until warmup + runs) {
+    if (!timing) {
+      warmupRuns = 0
+      normalRuns = 1
+    }
+
+    val totalRuns = warmupRuns + normalRuns
+
+    if (timing && warmupRuns > 0) {
+      println("--- warmup phase --- ")
+    }
+
+    for (i <- 0 until totalRuns) {
+
       val t0 = System.nanoTime()
       result = super.extend(program)
       val t1 = System.nanoTime()
-
-      if (i == warmup) println("--- end of warmup ---")
-
       val time = t1 - t0
-      println(s"time: $time")
 
-      if (i >= warmup) {
-        total = total + time
-        min = math.min(min, time)
-        max = math.max(max, time)
+      if (timing) {
+        if (i == warmupRuns) println("--- end of warmup ---")
+        println(s"time: $time")
+
+        if (i >= warmupRuns) {
+          totalTime = totalTime + time
+          minTime = math.min(minTime, time)
+          maxTime = math.max(maxTime, time)
+        }
       }
     }
 
-    val avg = total / runs
-
-    println(s"avg: ${avg / 1000000L}.${(avg / 1000L) % 1000L}ms")
-    println(s"min: ${min / 1000000L}.${(min / 1000L) % 1000L}ms")
-    println(s"max: ${max / 1000000L}.${(max / 1000L) % 1000L}ms")
+    if (timing) {
+      val avgTime = totalTime / normalRuns
+      println("--- timing result ---")
+      println(s"avg: ${avgTime / 1000000L}.${(avgTime / 1000L) % 1000L}ms")
+      println(s"min: ${minTime / 1000000L}.${(minTime / 1000L) % 1000L}ms")
+      println(s"max: ${maxTime / 1000000L}.${(maxTime / 1000L) % 1000L}ms")
+    }
 
     result
   }
 
-  override def extendProgram(program: Program, results: ProgramResult[PermissionState]): sil.Program = {
+  override def extendProgram(program: sil.Program, results: ProgramResult[PermissionState]): sil.Program = {
     val extended = super.extendProgram(program, results)
     val functions = QpContext.getAuxiliaryFunctions
     extended.copy(functions = extended.functions ++ functions)(pos = extended.pos, info = extended.info, errT = extended.errT)
   }
 
-  override def extendMethod(method: Method, result: CfgResult[PermissionState]): sil.Method = {
+  override def extendMethod(method: sil.Method, result: CfgResult[PermissionState]): sil.Method = {
     QpContext.setMethod(method.name)
     super.extendMethod(method, result)
   }
 
-  override def inferParameters(method: Method, result: CfgResult[PermissionState]): Seq[sil.LocalVarDecl] = {
-    // TODO: Only add read parameter when it's actually needed.
+  override def inferParameters(method: sil.Method, result: CfgResult[PermissionState]): Seq[sil.LocalVarDecl] = {
     val inferred = Seq(QpContext.getReadParameter)
     method.formalArgs ++ inferred
+  }
+
+  override def extendStatement(statement: sil.Stmt, result: CfgResult[PermissionState]): sil.Stmt = statement match {
+    case loop: sil.While =>
+      val position = getLoopPosition(loop, result.cfg)
+      // get loop pre- and postcondition
+      val specifications = QpContext.getInvariant(position)
+      val preconditions = QpConverter.generatePreconditions(specifications)
+      val postconditions = QpConverter.generatePostconditions(specifications)
+      // extend invariants with numerical invariants
+      val invariants = {
+        val state = QpContext.getNumerical.preStateAt(position)
+        val domain = state.domain
+        val constraints = domain.getConstraints(domain.ids.toSet)
+        val inferred = constraints.map(DefaultSampleConverter.convert).toSeq
+        inferred ++ loop.invs
+      }
+      // add loop pre- and postconditions as comments
+      val info = {
+        val pres = preconditions.map { condition => s"requires $condition" }
+        val posts = postconditions.map { condition => s"ensures $condition" }
+        sil.MakeInfoPair(loop.info, sil.SimpleInfo(pres ++ posts))
+      }
+      // extend body
+      val body = extendBody(loop.body, result)
+      // construct extended loop
+      sil.While(loop.cond, invariants, body)(loop.pos, info)
+    case _ => super.extendStatement(statement, result)
   }
 
   override def inferPreconditions(method: sil.Method, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
@@ -118,20 +220,6 @@ object QpInference
     val state = result.preStateAt(position)
     val inferred = QpConverter.generatePostconditions(state.stack.get())
     inferred ++ method.posts
-  }
-
-  override def inferInvariants(loop: While, result: CfgResult[PermissionState]): Seq[sil.Exp] = {
-    val position = getLoopPosition(loop, result.cfg)
-    val invariant = QpContext.getInvariant(position)
-    val preconditions: Seq[sil.Exp] = QpConverter.generatePreconditions(invariant).map { expression => sil.InhaleExhaleExp(expression, sil.TrueLit()())() }
-    val postconditions: Seq[sil.Exp] = QpConverter.generatePostconditions(invariant).map { expression => sil.InhaleExhaleExp(sil.TrueLit()(), expression)() }
-
-    val numerical = QpContext.getNumerical
-    val domain = numerical.preStateAt(position).domain
-    val constraints = domain.getConstraints(domain.ids.toSet)
-    val converted = constraints.map(DefaultSampleConverter.convert).toSeq
-
-    converted ++ preconditions ++ postconditions ++ loop.invs
   }
 
   private object QpConverter
@@ -170,7 +258,6 @@ object QpInference
                 case Comparison(left, right, _) if left.contains(_ == variable) || right.contains(_ == variable) => inequality = true
                 case _ => // do nothing
               }
-              // TODO: What with parts that don't depend on sliced variable?
               // slice if there is only one value or array slicing is enabled
               val slice = QpParameters.SLICE_ARRAYS && !variable.typ.isNumericalType && values.nonEmpty
               if ((values.size == 1 || slice) && !inequality) {

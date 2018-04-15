@@ -168,7 +168,12 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
   }
 
   def extend(arguments: Array[String]): sil.Program = {
-    val path = new File(arguments(0)).toPath
+    val file = new File(arguments(0))
+    extend(file)
+  }
+
+  def extend(file: File): sil.Program = {
+    val path = file.toPath
     val compilable = Compilable.Path(path)
     val program = compile(compilable)
     extend(program)
@@ -208,9 +213,6 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
   def extendMethod(method: sil.Method, result: CfgResult[S]): sil.Method = {
     val entry = firstPosition(result.cfg.entry)
     val exit = lastPosition(result.cfg.exit.get)
-
-    // TODO: Handle arguments.
-
     // return extended method
     method.copy(
       formalArgs = inferParameters(method, result),

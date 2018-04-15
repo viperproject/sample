@@ -146,8 +146,6 @@ case class QpState[D <: QpDomain[D]](pp: ProgramPoint,
 
   override def enterLoop(): QpState[D] = ???
 
-  // TODO: Project out changing variables.
-  // TODO: If no variables change make sure we take care of the changing heap.
   def enterLoop(changing: Seq[VariableIdentifier], position: CfgPosition): QpState[D] = {
     logger.trace(s"enterLoop($changing)")
     val newStack = stack.pop { case (inner, outer) => outer.merge(changing, position, inner) }
@@ -335,7 +333,6 @@ case class QpSpecification(under: List[Expression] = List.empty,
 
   def write(expression: Expression, condition: Expression = True): QpSpecification = access(expression, Full, condition)
 
-  // TODO: What if the condition is heap dependent?
   def access(expression: Expression, permission: Expression, condition: Expression): QpSpecification = expression match {
     case _: Constant => this
     case _: VariableIdentifier => this
@@ -417,8 +414,7 @@ case class QpRecord(precondition: Expression = No,
 
   def assume(condition: Expression): QpRecord = update(ConditionalExpression(condition, _, No))
 
-  // TODO: Havoc delta
-  def havoc(access: Expression): QpRecord = update(pre => QpElimination.havoc(pre, access, over = true), identity)
+  def havoc(access: Expression): QpRecord = update(pre => QpElimination.havoc(pre, access, over = true), diff => QpElimination.havoc(diff, access, over = false))
 
   def gain(leaf: Expression): QpRecord = update(pre => Max(Minus(pre, leaf), No), diff => Plus(diff, leaf))
 
