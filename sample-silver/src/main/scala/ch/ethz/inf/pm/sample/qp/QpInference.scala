@@ -129,9 +129,9 @@ object QpInference
 
     val totalRuns = warmupRuns + normalRuns
 
-    if (timing && warmupRuns > 0) {
+    /*if (timing && warmupRuns > 0) {
       println("--- warmup phase --- ")
-    }
+    }*/
 
     for (i <- 0 until totalRuns) {
 
@@ -141,8 +141,8 @@ object QpInference
       val time = t1 - t0
 
       if (timing) {
-        if (i == warmupRuns) println("--- end of warmup ---")
-        println(s"time: $time")
+        /*if (i == warmupRuns) println("--- end of warmup ---")
+        println(s"time: $time")*/
 
         if (i >= warmupRuns) {
           totalTime = totalTime + time
