@@ -77,13 +77,13 @@ class CarbonWithPermissionAnalysis(private var debugInfo: Seq[(String, Any)] = N
     val preMethods = extendedProgram.methods.filter(preMap contains _.name).map {
       method =>
         val preMethod = preMap(method.name)
-        preMethod.copy(posts = method.pres)(preMethod.pos, preMethod.info, preMethod.errT)
+        preMethod.copy(posts = method.pres)(preMethod.pos, preMethod.info, preMethod.errT, preMethod.is_cached)
     }
     // methods that check against expected postconditions
     val postMethods = extendedProgram.methods.filter(postMap contains _.name).map {
       method =>
         val postMethod = postMap(method.name)
-        postMethod.copy(pres = method.posts)(postMethod.pos, postMethod.info, postMethod.errT)
+        postMethod.copy(pres = method.posts)(postMethod.pos, postMethod.info, postMethod.errT, postMethod.is_cached)
     }
 
     // program with checks against expected pre- and postconditions added

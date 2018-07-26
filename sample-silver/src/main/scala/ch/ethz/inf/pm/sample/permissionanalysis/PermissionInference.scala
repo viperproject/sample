@@ -332,7 +332,7 @@ trait PermissionInferenceSilverExtender[T <: PermissionAnalysisState[T, A, May, 
       extended.copy(
         pres = preconditions,
         formalArgs = arguments
-      )(extended.pos, extended.info, extended.errT)
+      )(extended.pos, extended.info, extended.errT, method.is_cached)
     } else extended
   }
 
