@@ -58,7 +58,7 @@ trait InvariantInference extends Inference {
         val updated = context.addVariables(variables).setPreconditions(method.pres).setPostconditions(method.posts)
         extendBody(body, updated)
       }
-      .map { body => method.copy(body = Some(body))(method.pos, method.info, method.errT, method.is_cached) }
+      .map { body => method.copy(body = Some(body))(method.pos, method.info, method.errT) }
 
   def extendBody(body: sil.Seqn, context: Context): Option[sil.Seqn] = extendStatement(body, context) match {
     case Some(sequence: sil.Seqn) => Some(sequence)
@@ -364,13 +364,13 @@ object ExtendedInference extends Inference {
 
   override def extendMethod(method: sil.Method, program: sil.Program): Option[sil.Method] = {
 
-    val updated = method.copy(pres = permissions(method.pres), posts = permissions(method.posts))(method.pos, method.info, method.errT, method.is_cached)
+    val updated = method.copy(pres = permissions(method.pres), posts = permissions(method.posts))(method.pos, method.info, method.errT)
     val extended = PermissionInvariantInference.extendMethod(updated, program)
 
     extended.foreach { m => println("permission:\n" + m) }
 
     extended.flatMap { extended =>
-      val updated = extended.copy(pres = method.pres, posts = method.posts)(method.pos, method.info, method.errT, method.is_cached)
+      val updated = extended.copy(pres = method.pres, posts = method.posts)(method.pos, method.info, method.errT)
       val result = NumericalInvariantInference.extendMethod(updated, program)
       result.foreach { m => println("permission:\n" + m) }
       result

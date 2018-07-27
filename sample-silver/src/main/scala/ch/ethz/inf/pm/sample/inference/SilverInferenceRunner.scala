@@ -219,7 +219,7 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
       pres = inferPreconditions(method, result),
       posts = inferPostconditions(method, result),
       body = method.body.map(extendBody(_, result))
-    )(method.pos, method.info, method.errT, method.is_cached)
+    )(method.pos, method.info, method.errT)
   }
 
   /**
