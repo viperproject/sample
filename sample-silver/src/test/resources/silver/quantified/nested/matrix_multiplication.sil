@@ -1,0 +1,48 @@
+field val: Int
+
+domain Matrix
+{
+    function loc(m: Matrix, i: Int, j: Int): Ref
+    function width(m: Matrix): Int
+    function height(m: Matrix): Int
+
+    axiom axiom_width { forall m: Matrix :: 0 <= width(m) }
+    axiom axiom_height { forall m: Matrix :: 0 <= height(m) }
+}
+
+method multiply(a: Matrix, b: Matrix, c: Matrix)
+{
+    var i: Int
+    var j: Int
+    var k: Int
+    var t: Int
+
+    var aw: Int
+    var ah: Int
+    var bw: Int
+    var bh: Int
+
+    aw := width(a)
+    ah := height(a)
+    bw := width(b)
+    bh := height(b)
+
+    i := 0
+    while (i < ah)
+    {
+        j := 0
+        while (j < bw)
+        {
+            t := 0
+            k := 0
+            while (k < aw)
+            {
+                t := t + loc(a, i, k).val * loc(b, k, j).val
+                k := k + 1
+            }
+            loc(c, i, j).val := t
+            j := j + 1
+        }
+        i := i + 1
+    }
+}

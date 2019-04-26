@@ -12,24 +12,26 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-// not precise
-method main_expected(a: Array, v: Int, read: Perm)
-    requires forall q: Int :: 0 <= q ==> acc(loc(a, q).val, read)
-    ensures forall q: Int :: 0 <= q ==> acc(loc(a, q).val, read)
-
-method cstrchr(a: Array, v: Int) returns (i: Int)
+method copy_odd(a: Array, b: Array, l: Int)
 {
-    var l: Int
+    var i: Int
+    var j: Int
 
-    i := 0
-    l := length(a)
-
-    while (i < l && loc(a, i).val != v)
+    i := 1
+    j := 0
+    while (i < l)
     {
-        i := i + 1
+        loc(a, j).val := loc(b, i).val
+        i := i + 2
+        j := j + 1
     }
 
-    if (loc(a, i).val != v) {
-        i := -1
+    i := 1
+    j := 0
+    while (i < l)
+    {
+        assert loc(a, j).val == loc(b, 2 * j + 1).val
+        i := i + 2
+        j := j + 1
     }
 }

@@ -12,24 +12,24 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-// not precise
-method main_expected(a: Array, v: Int, read: Perm)
-    requires forall q: Int :: 0 <= q ==> acc(loc(a, q).val, read)
-    ensures forall q: Int :: 0 <= q ==> acc(loc(a, q).val, read)
-
-method cstrchr(a: Array, v: Int) returns (i: Int)
+method init_even(a: Array)
 {
+    var i: Int
     var l: Int
 
-    i := 0
     l := length(a)
 
-    while (i < l && loc(a, i).val != v)
+    i := 0
+    while (i < l)
     {
-        i := i + 1
+        loc(a, i).val := 1
+        i := i + 2
     }
 
-    if (loc(a, i).val != v) {
-        i := -1
+    i := 1
+    while (i < l)
+    {
+        assert loc(a, i).val == 1
+        i := i + 2
     }
 }

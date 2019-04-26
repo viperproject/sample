@@ -12,24 +12,8 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method cbzero_expected(a: Array)
-    requires forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val)
-    ensures forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val)
-
-method cbzero(a: Array)
+method exhale_read(a: Array, i: Int) returns (r: Int)
 {
-    var i: Int
-    var l: Int
-    var k: Int
-
-    i := 0
-    k := length(a)
-    l := k
-
-    while (l > 0)
-    {
-        loc(a, i).val := 0
-        i := i + 1
-        l := l - 1
-    }
+    exhale acc(loc(a, i).val, 1 / 2)
+    r := loc(a, i).val
 }

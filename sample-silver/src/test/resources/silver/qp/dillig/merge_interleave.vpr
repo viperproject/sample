@@ -12,25 +12,29 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method stroeder_expected(a: Array, read: Perm)
-    requires forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
-    ensures forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
-
-method stroeder(a: Array) returns (r: Int)
+method merge_interleave(a: Array, b: Array, r: Array, l: Int, k: Int)
 {
     var i: Int
-    var l: Int
-    var p: Int
 
     i := 0
-    r := 0
-    l := length(a)
-
     while (i < l)
     {
-        p := loc(a, i).val
-        p := p + 2
-        r := r + p
-        i := i + 1
+        loc(r, i).val := loc(a, i).val
+        i := i + 2
+    }
+
+    i := 1
+    while (i < l)
+    {
+        loc(r, i).val := loc(b, i).val
+        i := i + 2
+    }
+
+    if (0 <= k && k < l) {
+        if (k % 2 == 0) {
+            assert loc(r, k).val == loc(a, k).val
+        } else {
+            assert loc(r, k).val == loc(b, k).val
+        }
     }
 }

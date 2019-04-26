@@ -1,0 +1,45 @@
+field val: Int
+
+domain Array
+{
+    function loc(a: Array, i: Int): Ref
+    function length(a: Array): Int
+    function get_index(r: Ref): Int
+    function get_array(r: Ref): Array
+
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
+    axiom axiom_length { forall a: Array :: 0 <= length(a) }
+}
+
+function under(e: Bool): Bool { true }
+
+method vector_add_body(a: Array, b: Array, c: Array, i: Int)
+{
+    loc(a, i).val := loc(b, i).val + loc(c, i).val
+}
+
+method vector_add(a: Array, b: Array, c: Array, l: Int)
+{
+    var i: Int
+
+    i := 0
+    while (i < l)
+        invariant under(0 <= i && i <= l)
+    {
+        exhale acc(loc(a, i).val)
+        exhale acc(loc(b, i).val, 1 / 2)
+        exhale acc(loc(c, i).val, 1 / 2)
+        i := i + 1
+    }
+
+    i := 0
+    while (i < l)
+        invariant under(0 <= i && i <= l)
+    {
+        inhale acc(loc(a, i).val)
+        inhale acc(loc(b, i).val, 1 / 2)
+        inhale acc(loc(c, i).val, 1 / 2)
+        i := i + 1
+    }
+}

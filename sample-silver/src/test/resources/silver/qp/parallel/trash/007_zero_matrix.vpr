@@ -1,0 +1,34 @@
+field val: Int
+
+domain Matrix
+{
+    function loc(m: Matrix, i: Int, j: Int): Ref
+    function width(m: Matrix): Int
+    function height(m: Matrix): Int
+
+    axiom axiom_width { forall m: Matrix :: 0 <= width(m) }
+    axiom axiom_height { forall m: Matrix :: 0 <= height(m) }
+}
+
+method zero_matrix(a: Matrix)
+{
+    var i: Int
+    var j: Int
+    var m: Int
+    var n: Int
+
+    m := width(a)
+    n := height(a)
+
+    i := 0
+    while (i < m)
+    {
+        j := 0
+        while (j < n)
+        {
+            loc(a, i, j).val := 0
+            j := j + 1
+        }
+        i := i + 1
+    }
+}

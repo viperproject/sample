@@ -7,27 +7,26 @@ domain Array
     function get_index(r: Ref): Int
     function get_array(r: Ref): Array
 
-    axiom axiom_array { forall a: Array, i: Int :: { loc(a, i) } get_array(loc(a, i)) == a }
-    axiom axiom_index { forall a: Array, i: Int :: { loc(a, i) } get_index(loc(a, i)) == i }
+    axiom axiom_array { forall a: Array, i: Int :: get_array(loc(a, i)) == a }
+    axiom axiom_index { forall a: Array, i: Int :: get_index(loc(a, i)) == i }
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method array_01(a: Array) returns (res: Int)
+method even0(a: Array)
 {
     var i: Int
     var l: Int
+    var t: Int
 
     i := 0
     l := length(a)
 
-    res := 0
-
     while (i < l)
     {
-        while (0 < loc(a, i).val)
-        {
-            loc(a, i).val := loc(a, i).val - 1
-            res := res + 1
+        if (i % 2 == 0) {
+            t := loc(a, i).val
+        } else {
+            loc(a, i).val := t
         }
         i := i + 1
     }

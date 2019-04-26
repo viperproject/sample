@@ -12,11 +12,11 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method main_expected(a: Array, read: Perm)
+method sanfoundry_24_expected(a: Array, read: Perm)
     requires forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
     ensures forall q: Int :: 0 <= q && q < length(a) ==> acc(loc(a, q).val, read)
 
-method main(a: Array)
+method sanfoundry_24(a: Array)
 {
     var i: Int
     var l: Int

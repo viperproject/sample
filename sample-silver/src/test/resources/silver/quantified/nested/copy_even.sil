@@ -48,3 +48,36 @@ method copy_even_b(a: Array)
         i := i + 2
     }
 }
+
+method copy_even_c(a: Array)
+{
+    var i: Int
+    var n: Int
+    var t: Int
+
+    i := 0
+    n := length(a)
+
+    while (i < (n - 1) / 2)
+    {
+        loc(a, 2 * i + 1).val := loc(a, 2 * i).val
+        i := i + 1
+    }
+}
+
+method copy_even_d(a: Array)
+{
+    var i: Int
+    var n: Int
+    var t: Int
+
+    i := 0
+    n := length(a)
+
+    while (i < n - 1)
+    {
+        exhale acc(loc(a, i).val, 1 / 100)
+        exhale acc(loc(a, i + 1).val)
+        i := i + 2
+    }
+}

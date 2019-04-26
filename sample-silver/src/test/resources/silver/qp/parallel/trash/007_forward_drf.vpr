@@ -12,22 +12,9 @@ domain Array
     axiom axiom_length { forall a: Array :: 0 <= length(a) }
 }
 
-method main_expected(a: Array, read: Perm)
-    requires forall q1: Int :: 0 <= q1 && q1 < length(a) ==> acc(loc(a, q1).val)
-    ensures forall q1: Int :: 0 <= q1 && q1 < length(a) ==> acc(loc(a, q1).val)
-
-method add_last(a: Array)
+method forward_drf(a: Array, b: Array, c: Array, n: Int)
 {
     var i: Int
-    var l: Int
-    var t: Int
 
-    i := 0
-    l := length(a)
 
-    while (i < l)
-    {
-        loc(a, i).val := loc(a, i).val + loc(a, l - 1).val
-        i := i + 1
-    }
 }
