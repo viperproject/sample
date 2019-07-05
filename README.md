@@ -2,6 +2,7 @@
 based on the [abstract interpretation](http://en.wikipedia.org/wiki/Abstract_interpretation) theory.
 This analyzer is generic with respect to:
 
+* the **heap analysis** that approximates all runtime heap structures
 * the **semantic domain** that infers the property of interest
   (that can be about numerical information like [Apron](http://apron.cri.ensmp.fr/library/), string values, types, ...),
 * the analyzed **language** since Sample works on an intermediate language called Simple
