@@ -747,7 +747,7 @@ sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval]
 
   def bottom() = DoubleInterval.Bottom
 
-  def evalConstant(value: Constant) = {
+  def evalConstant(value: Constant): DoubleInterval = {
     try {
       evalConstant(value.constant.toDouble)
     } catch {
@@ -755,7 +755,7 @@ sealed trait DoubleInterval extends NonRelationalNumericalDomain[DoubleInterval]
     }
   }
 
-  def evalConstant(value: Double) =
+  def evalConstant(value: Double): DoubleInterval =
     if (value == 0) DoubleInterval.Zero
     else DoubleInterval.Inner(value, value)
 
@@ -865,7 +865,7 @@ object DoubleInterval {
     private def min(a: Double, b: Double, c: Double, d: Double): Double =
       Math.min(Math.min(a, b), Math.min(c, d))
 
-    def divide(other: DoubleInterval) =
+    def divide(other: DoubleInterval): DoubleInterval =
       other match {
         case Bottom => Bottom
         case Top => Top
@@ -949,7 +949,8 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
     }
   }
 
-  def getInitialState(): BoxedNonRelationalNumericalDomain[D] = new BoxedNonRelationalNumericalDomain(domain.asInstanceOf[D])
+  def getInitialState(): BoxedNonRelationalNumericalDomain[D] =
+    new BoxedNonRelationalNumericalDomain(domain).asInstanceOf[BoxedNonRelationalNumericalDomain[D]]
 
   override def reset(): Unit = ()
 

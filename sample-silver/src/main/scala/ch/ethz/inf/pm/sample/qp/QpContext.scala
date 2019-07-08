@@ -110,7 +110,6 @@ object QpContext
         typ = sil.Perm,
         pres = Seq.empty,
         posts = Seq.empty,
-        decs = None,
         body = Some(sil.CondExp(sil.PermGtCmp(variable0, variable1)(), variable0, variable1)())
       )()
       Some(function)
@@ -127,7 +126,6 @@ object QpContext
         typ = sil.Perm,
         pres = Seq.empty,
         posts = Seq.empty,
-        decs = None,
         body = Some(sil.CondExp(sil.PermGtCmp(variable0, variable1)(), variable1, variable0)())
       )()
       Some(function)

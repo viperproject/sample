@@ -8,8 +8,6 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import java.util.function.BinaryOperator
-
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier.FieldIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.execution._
@@ -69,28 +67,24 @@ trait NumericalAnalysisState[S <: NumericalAnalysisState[S, D], D <: NumericalDo
   }
 
   override def lub(other: S): S = {
-    logger.trace(s"lub($this, $other)")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else copy(domain = domain lub other.domain)
   }
 
   override def glb(other: S): S = {
-    logger.trace(s"glb($this, $other)")
     if (isBottom || other.isTop) this
     else if (isTop || other.isBottom) other
     else copy(domain = domain glb other.domain)
   }
 
   override def widening(other: S): S = {
-    logger.trace(s"widening($this, $other)")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else copy(domain = domain widening other.domain)
   }
 
   override def lessEqual(other: S): Boolean = {
-    logger.trace(s"lessEqual($this, $other)")
     if (isBottom || other.isTop) true
     else if (isTop || other.isBottom) false
     else domain lessEqual other.domain

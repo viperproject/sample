@@ -139,28 +139,28 @@ trait LiveVariableAnalysisState[S <: LiveVariableAnalysisState[S]]
   override def bottom(): S = copy(isTop = false, isBottom = true)
 
   override def lub(other: S): S = {
-    logger.trace(s"lub($this, $other)")
+    //logger.trace(s"lub($this, $other)")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else copy(domain = domain lub other.domain)
   }
 
   override def glb(other: S): S = {
-    logger.trace(s"glb($this, $other)")
+    //logger.trace(s"glb($this, $other)")
     if (isBottom || other.isTop) this
     else if (isTop || other.isBottom) other
     else copy(domain = domain glb other.domain)
   }
 
   override def widening(other: S): S = {
-    logger.trace(s"widening($this, $other)")
+    //logger.trace(s"widening($this, $other)")
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else copy(domain = domain ++ other.domain)
   }
 
   override def lessEqual(other: S): Boolean = {
-    logger.trace(s"lessEqual($this, $other)")
+    //logger.trace(s"lessEqual($this, $other)")
     if (isBottom || other.isTop) true
     else if (isTop || other.isBottom) false
     else domain lessEqual other.domain

@@ -8,8 +8,6 @@
 
 package ch.ethz.inf.pm.sample.inference
 
-import java.io.File
-
 import ch.ethz.inf.pm.sample.abstractdomain.InterproceduralIntegerOctagonBottomUpInferenceWithJsonExport
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.IntegerOctagons
 import ch.ethz.inf.pm.sample.analysis._

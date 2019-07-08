@@ -60,7 +60,8 @@ object SilverCompiler {
         e.initProperties()
         e
       case fastparse.core.Parsed.Failure(msg, next, extra) =>
-        throw new ParseException(s"$msg in $label at ${extra.line}:${extra.col}", 0)
+
+        throw new ParseException(s"$msg in $label", 0)
       case ParseError(msg, pos) =>
         val (line, col) = pos match {
           case SourcePosition(_, line, col) => (line, col)
@@ -71,7 +72,7 @@ object SilverCompiler {
     }
 
     Resolver(parsed).run
-    Translator(parsed, enableFunctionTerminationChecks = false).translate.get
+    Translator(parsed).translate.get
   }
 
   def toSample(program: sil.Program): SilverProgramDeclaration = {

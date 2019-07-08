@@ -6,8 +6,55 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-name := "sample"
+lazy val sample = project
+  .in(file("."))
+  .aggregate(sample_qp)
 
-version := "1.0"
+lazy val sample_core = project
+  .in(file("sample"))
+  .settings(
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % "runtime",
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2", // Logging Frontend
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5", // Testing Framework
+  )
 
-scalaVersion in ThisBuild := "2.11.8"
+lazy val sample_numerical = project
+  .in(file("NumericalAnalysis"))
+  .dependsOn(sample_core)
+
+lazy val sample_apron = project
+  .in(file("Apron"))
+  .dependsOn(sample_core)
+  .dependsOn(sample_numerical)
+
+lazy val sample_silver = project
+  .in(file("sample-silver"))
+  .dependsOn(sample_core)
+  .dependsOn(sample_numerical)
+  .dependsOn(sample_apron)
+  .dependsOn(silver)
+  .dependsOn(silicon)
+  .dependsOn(carbon)
+  .settings(
+    libraryDependencies += "org.jgrapht" % "jgrapht-core" % "0.9.1", // Graph Library used for interproc call graphs
+    libraryDependencies += "net.liftweb" %% "lift-json" % "3.3.0",
+  )
+
+lazy val sample_qp = project
+  .in(file("sample_qp"))
+  .dependsOn(sample_silver)
+  .settings(
+    // general settings
+    name := "sample_qp",
+    organization := "viper",
+    version := "0.1-SNAPSHOT",
+  )
+
+lazy val silver = project
+  .in(file("silver"))
+
+lazy val silicon = project
+  .in(file("silicon"))
+
+lazy val carbon = project
+  .in(file("carbon"))

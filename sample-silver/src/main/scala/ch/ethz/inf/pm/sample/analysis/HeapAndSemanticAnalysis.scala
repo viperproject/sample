@@ -93,30 +93,20 @@ trait HeapAndSemanticAnalysisState[T <: HeapAndSemanticAnalysisState[T, H, S, I]
   )
 
   override def lub(other: T): T = {
-    logger.trace(s"lub($this, $other)")
-
     val newDomain = domain lub other.domain
     copy(domain = newDomain)
   }
 
-  override def glb(other: T): T = {
-    logger.trace(s"glb($this, other)")
-
-    val newDomain = domain glb other.domain
+  override def glb(other: T): T = {val newDomain = domain glb other.domain
     copy(domain = newDomain)
   }
 
   override def widening(other: T): T = {
-    logger.trace(s"widening($this, other)")
-
     val newDomain = domain widening other.domain
     copy(domain = newDomain)
   }
 
-  override def lessEqual(other: T): Boolean = {
-    logger.trace(s"lessEqual($this, other)")
-
-    domain lessEqual other.domain
+  override def lessEqual(other: T): Boolean = {domain lessEqual other.domain
   }
 
   override def isBottom: Boolean = domain.isBottom

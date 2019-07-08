@@ -9,7 +9,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.oorepresentation.silver.BoolType
 
 /**
   * A quantified expression.

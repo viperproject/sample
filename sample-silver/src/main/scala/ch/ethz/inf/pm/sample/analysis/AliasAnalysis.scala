@@ -81,8 +81,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   override def bottom(): T = copy(isTop = false, isBottom = true)
 
   override def lub(other: T): T = {
-    logger.trace(s"lub($this, $other)")
-
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
@@ -100,8 +98,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   }
 
   override def glb(other: T): T = {
-    logger.trace(s"glb($this, $other)")
-
     if (isBottom || other.isTop) this
     else if (isTop || other.isBottom) other
     else {
@@ -119,8 +115,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   }
 
   override def widening(other: T): T = {
-    logger.trace(s"widening($this, $other)")
-
     if (isTop || other.isBottom) this
     else if (isBottom || other.isTop) other
     else {
@@ -138,8 +132,6 @@ trait AliasAnalysisState[T <: AliasAnalysisState[T, May, Must], May <: AliasDoma
   }
 
   override def lessEqual(other: T): Boolean = {
-    logger.trace(s"lessEqual($this, $other)")
-
     if (isBottom || other.isTop) true
     else if (isTop || other.isBottom) false
     else (may lessEqual other.may) && (must lessEqual other.must)
@@ -385,11 +377,11 @@ case class SimpleAliasAnalysisState(isTop: Boolean,
     * @return The updated state.
     */
   override def copy(isTop: Boolean = isTop,
-           isBottom: Boolean = isBottom,
-           may: MayAliasGraph = may,
-           must: MustAliasGraph = must,
-           expr: ExpressionSet = expr,
-           pp: ProgramPoint = pp): T =
+                    isBottom: Boolean = isBottom,
+                    may: MayAliasGraph = may,
+                    must: MustAliasGraph = must,
+                    expr: ExpressionSet = expr,
+                    pp: ProgramPoint = pp): T =
     SimpleAliasAnalysisState(isTop, isBottom, may, must, expr, pp)
 }
 

@@ -9,7 +9,6 @@
 package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.domain.FieldIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.silver.SilverMethodDeclaration
 import ch.ethz.inf.pm.sample.oorepresentation.silver.sample.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, MethodCall, ProgramPoint, Type}

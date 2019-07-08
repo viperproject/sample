@@ -17,12 +17,12 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{SilverIdentifier, SilverMethodDeclaration, SilverProgramDeclaration}
 import ch.ethz.inf.pm.sample.permissionanalysis.{CallMethodBackwardsCommand, ReturnFromMethodCommand}
 import com.typesafe.scalalogging.LazyLogging
-import org.jgrapht.DirectedGraph
-import org.jgrapht.alg.StrongConnectivityInspector
-import org.jgrapht.graph.DefaultDirectedGraph
+import org.jgrapht.Graph
+import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector
+import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm
+import org.jgrapht.graph.{DefaultDirectedGraph, DefaultEdge}
 import org.jgrapht.traverse.TopologicalOrderIterator
 import viper.silver.ast.utility.Functions
-import viper.silver.ast.utility.Functions.Factory
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -347,7 +347,10 @@ trait InterprocHelpers[S <: State[S]] {
         id += 1
         replacement.value(Set(variable.variable.id)) = Set(newName)
       }
-      s.copy(domain = s.domain.merge(replacement))
+      // not tested: casting as an attempt to make (broken?) type checker happy
+      val domain = s.domain
+      val newDomain = s.domain.merge(replacement)
+      s.copy(domain = newDomain.asInstanceOf[domain.type])
     case _ =>
       // for non-MergeDomains we add new variables, assign old to new and remove the now "renamed" old variables
       var id = 0
@@ -402,9 +405,9 @@ trait InterprocHelpers[S <: State[S]] {
     * @param program The program to be analyzed
     * @return Tuple of condensed call graph and map containing all method calls
     */
-  private def analyzeCallGraph(program: SilverProgramDeclaration): (DirectedGraph[mutable.Set[SilverMethodDeclaration], Functions.Edge[mutable.Set[SilverMethodDeclaration]]], CallGraphMap) = {
+  private def analyzeCallGraph(program: SilverProgramDeclaration): (Graph[mutable.Set[SilverMethodDeclaration], DefaultEdge], CallGraphMap) = {
     // Most code below was taken from ast.utility.Functions in silver re	po!
-    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, Functions.Edge[SilverMethodDeclaration]](Factory[SilverMethodDeclaration]())
+    val callGraph = new DefaultDirectedGraph[SilverMethodDeclaration, DefaultEdge](classOf[DefaultEdge])
     var callsInProgram: CallGraphMap = Map().withDefault(_ => Set())
 
     for (f <- program.methods) {
@@ -428,8 +431,8 @@ trait InterprocHelpers[S <: State[S]] {
       process(m, statement.merge)
     }
 
-    val stronglyConnectedSets = new StrongConnectivityInspector(callGraph).stronglyConnectedSets()
-    val condensedCallGraph = new DefaultDirectedGraph(Factory[mutable.Set[SilverMethodDeclaration]]())
+    val stronglyConnectedSets = new KosarajuStrongConnectivityInspector(callGraph).stronglyConnectedSets()
+    val condensedCallGraph = new DefaultDirectedGraph[mutable.Set[SilverMethodDeclaration], DefaultEdge](classOf[DefaultEdge])
 
     /* Add each SCC as a vertex to the condensed call-graph */
     for (v <- stronglyConnectedSets.asScala) {
@@ -444,8 +447,8 @@ trait InterprocHelpers[S <: State[S]] {
      * if this does not result in a cycle.
      */
     for (e <- callGraph.edgeSet().asScala) {
-      val sourceSet = condensationOf(e.source)
-      val targetSet = condensationOf(e.target)
+      val sourceSet = condensationOf(callGraph.getEdgeSource(e))
+      val targetSet = condensationOf(callGraph.getEdgeTarget(e))
 
       if (sourceSet != targetSet)
         condensedCallGraph.addEdge(sourceSet, targetSet)

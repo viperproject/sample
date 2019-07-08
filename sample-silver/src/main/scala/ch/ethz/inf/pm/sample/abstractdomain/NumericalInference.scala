@@ -13,7 +13,6 @@ import java.io.File
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{IntegerOctagons, NumericalDomain}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.{SilverExtender, SilverInferenceRunner}
-import ch.ethz.inf.pm.sample.oorepresentation.Compilable
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
 import viper.silver.{ast => sil}
 
