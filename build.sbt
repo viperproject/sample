@@ -11,7 +11,7 @@ lazy val sample = project
   .aggregate(sample_qp)
 
 lazy val sample_core = project
-  .in(file("sample"))
+  .in(file("sample_core"))
   .settings(
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % "runtime",
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2", // Logging Frontend
@@ -19,16 +19,16 @@ lazy val sample_core = project
   )
 
 lazy val sample_numerical = project
-  .in(file("NumericalAnalysis"))
+  .in(file("sample_numerical"))
   .dependsOn(sample_core)
 
 lazy val sample_apron = project
-  .in(file("Apron"))
+  .in(file("sample_apron"))
   .dependsOn(sample_core)
   .dependsOn(sample_numerical)
 
 lazy val sample_silver = project
-  .in(file("sample-silver"))
+  .in(file("sample_silver"))
   .dependsOn(sample_core)
   .dependsOn(sample_numerical)
   .dependsOn(sample_apron)

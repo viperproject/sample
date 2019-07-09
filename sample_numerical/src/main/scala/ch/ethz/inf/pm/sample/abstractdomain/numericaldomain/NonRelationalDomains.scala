@@ -949,8 +949,8 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
     }
   }
 
-  def getInitialState(): BoxedNonRelationalNumericalDomain[D] =
-    new BoxedNonRelationalNumericalDomain(domain).asInstanceOf[BoxedNonRelationalNumericalDomain[D]]
+  def getInitialState(): BoxedNonRelationalNumericalDomain[D] = ???
+    // new BoxedNonRelationalNumericalDomain(domain).asInstanceOf[BoxedNonRelationalNumericalDomain[D]]
 
   override def reset(): Unit = ()
 
