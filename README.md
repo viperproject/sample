@@ -20,9 +20,11 @@ Sample (Static Analyzer of Multiple Programming Languages) is a generic static a
 
 ## Getting Started
 
+<!--
 ### Prerequisites
 
   * [Mercurial](https://www.mercurial-scm.org/)
+-->
 
 ### Installation
 
