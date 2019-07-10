@@ -29,45 +29,35 @@ Sample (Static Analyzer of Multiple Programming Languages) is a generic static a
 
   * Clone the Sample repository (this repository).
     
-    ```
-    hg clone https://bitbucket.org/viperproject/sample
-    ```
+        hg clone https://bitbucket.org/viperproject/sample
   
   * Clone the [Silver](https://bitbucket.org/viperproject/silver) repository.
     
-    ```
-    hg clone https://bitbucket.org/viperproject/silver
-    ```
+        hg clone https://bitbucket.org/viperproject/silver
 
   * Clone the [Silicon](https://bitbucket.org/viperproject/silicon) repository.
-    
-    ```
-    hg clone https://bitbucket.org/viperproject/silicon
-    ```
+
+        hg clone https://bitbucket.org/viperproject/silicon
 
   * Clone the [Carbon](https://bitbucket.org/viperproject/carbon) repository.
  
-    ```
-    hg clone https://bitbucket.org/viperproject/carbon
-    ```
+        hg clone https://bitbucket.org/viperproject/carbon
    
   * From within the directory where you installed Sample, create symbolic links to the directories where you installed Silver, Silicon, and Carbon.
     
     **Linux / Mac:**
-    ```
-    cd sample
-    ln -s ../silver silver
-    ln -s ../silicon silicon
-    ln -s ../carbon carbon
-    ```
+
+        cd sample
+        ln -s ../silver silver
+        ln -s ../silicon silicon
+        ln -s ../carbon carbon
     
     **Windows:**
-    ```
-    cd sample
-    mklink /D silver ../silver
-    mklink /D silicon ../silicon
-    mklink /D carbon ../carbon
-    ```
+    
+        cd sample
+        mklink /D silver ../silver
+        mklink /D silicon ../silicon
+        mklink /D carbon ../carbon
 
 ### Building and Using Apron
 
