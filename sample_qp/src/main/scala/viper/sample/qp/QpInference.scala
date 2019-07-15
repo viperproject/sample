@@ -6,7 +6,7 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
 import java.io.{File, PrintWriter}
 
@@ -14,10 +14,10 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
 import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.inference.SilverExtender
-import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.silver._
-import ch.ethz.inf.pm.sample.qp.QpParameters.PermissionState
+import ch.ethz.inf.pm.sample.oorepresentation.{Compilable, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
+import viper.sample.qp.QpParameters.PermissionState
 import viper.silver.{ast => sil}
 
 object QpParameters {

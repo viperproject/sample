@@ -6,7 +6,7 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
 import ch.ethz.inf.pm.sample.execution.{CfgPosition, CfgResult}
 import viper.silver.{ast => sil}

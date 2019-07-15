@@ -6,7 +6,7 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.domain.{MapDomain, StackDomain}
@@ -16,6 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.silver.{DefaultSilverConverter, Pe
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 import com.typesafe.scalalogging.LazyLogging
+import viper.sample.qp
 
 /**
   * A state used for the quantified permission inference.
@@ -311,7 +312,7 @@ case class QpSpecification(under: List[Expression] = List.empty,
                 } else projected
               }
 
-              val combined = QpRecord(QpMath.simplify(precondition), difference)
+              val combined = qp.QpRecord(QpMath.simplify(precondition), difference)
               val invariant = {
                 if (QpParameters.CONDITIONAL_INVARIANTS) {
                   // val (condition, _) = getAfter(innerOriginal.precondition)

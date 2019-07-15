@@ -1,18 +1,10 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * Copyright (c) 2011-2019 ETH Zurich.
- */
+package viper.sample.qp
 
-package ch.ethz.inf.pm.sample.qp
-
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{Command, ExpressionSet}
 import ch.ethz.inf.pm.sample.execution.SampleCfg.{SampleBlock, SampleEdge}
 import ch.ethz.inf.pm.sample.execution._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.permissionanalysis._
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, Statement}
+import ch.ethz.inf.pm.sample.permissionanalysis.{InvariantCommand, LeaveLoopCommand, PostconditionCommand, PreconditionCommand}
 import viper.silver.cfg._
 
 import scala.collection.mutable

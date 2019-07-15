@@ -6,10 +6,10 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, NumericalAnalysisState}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Apron
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, NumericalAnalysisState}
 import ch.ethz.inf.pm.sample.execution.SilverEntryStateBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 

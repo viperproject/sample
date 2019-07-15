@@ -8,8 +8,6 @@
 
 package viper.sample.qp
 
-import ch.ethz.inf.pm.sample.qp.QpInference
-
 object Main {
   def main(arguments: Array[String]): Unit = {
     QpInference.main(arguments)

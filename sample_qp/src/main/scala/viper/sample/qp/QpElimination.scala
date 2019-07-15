@@ -6,15 +6,15 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.silver.PermType
-import ch.ethz.inf.pm.sample.qp.QpMath.Collected
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.Math._
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 import com.typesafe.scalalogging.LazyLogging
+import viper.sample.qp.QpMath.Collected
 
 object QpElimination extends LazyLogging {
 

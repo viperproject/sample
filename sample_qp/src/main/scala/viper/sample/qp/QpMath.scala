@@ -6,13 +6,13 @@
  * Copyright (c) 2011-2019 ETH Zurich.
  */
 
-package ch.ethz.inf.pm.sample.qp
+package viper.sample.qp
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.oorepresentation.silver.{IntType, PermType}
 import ch.ethz.inf.pm.sample.util.Maps
-import ch.ethz.inf.pm.sample.util.Math._
+import ch.ethz.inf.pm.sample.util.Math.{gcd, lcm}
 import ch.ethz.inf.pm.sample.util.SampleExpressions._
 
 object QpMath {
@@ -407,6 +407,13 @@ object QpMath {
     case _ => false
   }
 
+  /**
+    * Represents the sum of the rest and all variables contained in the map
+    * multiplied with their corresponding coefficients.
+    *
+    * @param coefficients The coefficient map.
+    * @param rest         The rest.
+    */
   case class Collected(coefficients: Map[VariableIdentifier, Int], rest: Expression) {
     def plus(other: Collected): Collected = {
       val newCoefficients = Maps.union[VariableIdentifier, Int](coefficients, other.coefficients, _ + _)
