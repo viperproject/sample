@@ -225,7 +225,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
       val empty = sample.EmptyStatement(go(s.pos))
       Seq(empty)
 
-    case sil.Fresh(_) | sil.Constraining(_, _) | sil.Seqn(_, _) =>
+    case sil.Seqn(_, _) =>
       ???
 
     case sil.Goto(_) |
@@ -264,7 +264,7 @@ object DefaultSilverConverter extends SilverConverter with LazyLogging {
         name = NativeMethods.cond_exp.toString,
         args = go(cond) :: go(thn) :: go(els) :: Nil,
         returnType = go(e.typ))
-    case sil.Result() =>
+    case _: sil.Result =>
       makeVariable(e.pos, e.typ, Constants.ResultVariableName)
     case sil.Unfolding(acc, inner) =>
       go(inner)

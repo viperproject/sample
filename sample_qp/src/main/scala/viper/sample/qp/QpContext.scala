@@ -71,7 +71,7 @@ object QpContext
   def getReadParameter: sil.LocalVarDecl = getVariable(READ_PARAMETER_NAME).get
 
   def getBounds: Seq[sil.Exp] = {
-    val read = sil.LocalVar(QpContext.getReadParameter.name)(sil.Perm)
+    val read = sil.LocalVar(QpContext.getReadParameter.name, sil.Perm)()
     val lower = sil.PermLtCmp(sil.NoPerm()(), read)()
     val upper = sil.PermLtCmp(read, sil.FullPerm()())()
     Seq(sil.And(lower, upper)())
@@ -102,8 +102,8 @@ object QpContext
       val name1 = uniqueIdentifier(PARAMTER_PREFIX, Some(1))
       val declaration0 = sil.LocalVarDecl(name0, sil.Perm)()
       val declaration1 = sil.LocalVarDecl(name1, sil.Perm)()
-      val variable0 = sil.LocalVar(name0)(sil.Perm)
-      val variable1 = sil.LocalVar(name1)(sil.Perm)
+      val variable0 = sil.LocalVar(name0, sil.Perm)()
+      val variable1 = sil.LocalVar(name1, sil.Perm)()
       val function = sil.Function(
         name = uniqueIdentifier(name),
         formalArgs = Seq(declaration0, declaration1),
@@ -118,8 +118,8 @@ object QpContext
       val name1 = uniqueIdentifier(PARAMTER_PREFIX, Some(1))
       val declaration0 = sil.LocalVarDecl(name0, sil.Perm)()
       val declaration1 = sil.LocalVarDecl(name1, sil.Perm)()
-      val variable0 = sil.LocalVar(name0)(sil.Perm)
-      val variable1 = sil.LocalVar(name1)(sil.Perm)
+      val variable0 = sil.LocalVar(name0, sil.Perm)()
+      val variable1 = sil.LocalVar(name1, sil.Perm)()
       val function = sil.Function(
         name = uniqueIdentifier(name),
         formalArgs = Seq(declaration0, declaration1),

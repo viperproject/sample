@@ -120,7 +120,7 @@ object ExpressionGenerator {
     sil.FieldAccess(receiver, sil.Field(name, typ)())()
 
   def access(name: String, typ: sil.Type): sil.LocalVar = {
-    sil.LocalVar(name)(typ)
+    sil.LocalVar(name, typ)()
   }
 
   def access(path: Iterable[String], typ: sil.Type): sil.Exp =
@@ -142,7 +142,7 @@ object ExpressionGenerator {
     case (sil.And(l1, r1), sil.And(l2, r2)) => equivalent(l1, r1) && equivalent(l2, r2)
     case (sil.Or(l1, r1), sil.Or(l2, r2)) => equivalent(l1, r1) && equivalent(l2, r2)
     case (sil.Not(a1), sil.Not(a2)) => equivalent(a1, a2)
-    case (sil.LocalVar(n1), sil.LocalVar(n2)) => n1 == n2
+    case (sil.LocalVar(n1, _), sil.LocalVar(n2, _)) => n1 == n2
     case (sil.Old(e1), sil.Old(e2)) => equivalent(e1, e2)
     case _ => false
   }

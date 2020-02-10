@@ -56,7 +56,7 @@ trait InvariantInference extends Inference {
     method.body
       .flatMap { body =>
         val context = Context(program)
-        val variables = method.formalArgs.map { argument => sil.LocalVar(argument.name)(argument.typ) }
+        val variables = method.formalArgs.map { argument => sil.LocalVar(argument.name, argument.typ)() }
         val updated = context.addVariables(variables).setPreconditions(method.pres).setPostconditions(method.posts)
         extendBody(body, updated)
       }
@@ -73,7 +73,7 @@ trait InvariantInference extends Inference {
       // get variables
       val variables = declarations
         .collect { case declaration: sil.LocalVarDecl => declaration }
-        .map { declaration => sil.LocalVar(declaration.name)(declaration.typ) }
+        .map { declaration => sil.LocalVar(declaration.name, declaration.typ)() }
       // split list of statements into parts containing no loops
       val parts = statements.foldRight(List.empty[sil.Stmt] :: Nil) {
         case (statement, last :: list) =>

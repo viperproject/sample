@@ -74,9 +74,9 @@ trait DefaultSampleConverter
     // variables
     case VariableIdentifier(name, _) => name match {
       case Constants.ResultVariableName =>
-        sil.Result()(convert(expression.typ), convert(expression.pp))
+        sil.Result(convert(expression.typ))(convert(expression.pp))
       case _ =>
-        sil.LocalVar(name)(convert(expression.typ), convert(expression.pp))
+        sil.LocalVar(name, convert(expression.typ))(convert(expression.pp))
     }
     // fields
     case AccessPathIdentifier(path) =>

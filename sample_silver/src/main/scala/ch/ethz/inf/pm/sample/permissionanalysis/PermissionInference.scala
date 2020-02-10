@@ -169,7 +169,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     case sil.FieldAccessPredicate(location, permission) =>
       // helper function to convert an expression into an access path
       def accessPath(expression: sil.Exp): AccessPath = expression match {
-        case sil.LocalVar(name) =>
+        case sil.LocalVar(name, _) =>
           List(VariableIdentifier(name)(RefType()))
         case sil.FieldAccess(receiver, field) =>
           val typ = Context.getField(field.name).map(_.typ).getOrElse(TopType)
@@ -184,7 +184,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
           Permission.write
         case sil.FractionalPerm(sil.IntLit(numerator), sil.IntLit(denominator)) =>
           Permission.fractional(numerator.toInt, denominator.toInt)
-        case sil.LocalVar(name) if name == "read" =>
+        case sil.LocalVar(name, _) if name == "read" =>
           Permission.read
         case sil.PermAdd(left, right) =>
           permissionAmount(left) plus permissionAmount(right)
@@ -246,7 +246,7 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
     */
   private def createSilverFieldAccess(path: AccessPath, state: T): sil.FieldAccess = {
     val receiver =
-      if (path.length == 2) sil.LocalVar(path.head.getName)(sil.Ref)
+      if (path.length == 2) sil.LocalVar(path.head.getName, sil.Ref)()
       else createSilverFieldAccess(path.init, state)
     val field = path.last
     val typ = createSilverType(field, state)
@@ -269,8 +269,8 @@ trait PermissionInferenceRunner[T <: PermissionAnalysisState[T, A, May, Must], A
         else Some(sil.FractionalPerm(sil.IntLit(numerator)(), sil.IntLit(denominator)())())
       val readAmount =
         if (rd == 0) None
-        else if (rd == 1) Some(sil.LocalVar("read")(sil.Perm))
-        else Some(sil.PermMul(sil.IntLit(rd)(), sil.LocalVar("read")(sil.Perm))())
+        else if (rd == 1) Some(sil.LocalVar("read", sil.Perm)())
+        else Some(sil.PermMul(sil.IntLit(rd)(), sil.LocalVar("read", sil.Perm)())())
 
       (fractionalAmount, readAmount) match {
         case (Some(left), Some(right)) => sil.PermAdd(left, right)()
@@ -327,7 +327,7 @@ trait PermissionInferenceSilverExtender[T <: PermissionAnalysisState[T, A, May, 
       val argument = Seq(sil.LocalVarDecl("read", sil.Perm)())
       val arguments = (extended.formalArgs ++ argument).distinct
       // add constraint for read permission to precondition
-      val variable = sil.LocalVar("read")(sil.Perm)
+      val variable = sil.LocalVar("read", sil.Perm)()
       val condition = Seq(sil.And(sil.PermLtCmp(sil.NoPerm()(), variable)(), sil.PermLtCmp(variable, sil.FullPerm()())())())
       val preconditions = condition ++ extended.pres
       // update method

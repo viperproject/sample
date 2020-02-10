@@ -264,10 +264,6 @@ trait SilverExtender[S <: State[S]] extends SilverInferenceRunner[S] {
       // extend new statement
       val extendedFields = inferFields(newStmt, position, result)
       sil.NewStmt(newStmt.lhs, extendedFields)(statement.pos, statement.info)
-    case sil.Constraining(vars, originalBody) =>
-      // recursively extend body of constraining statement
-      val extendedBody = extendBody(originalBody, result)
-      sil.Constraining(vars, extendedBody)(statement.pos, statement.info)
     case _ =>
       // do nothing
       statement
