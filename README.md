@@ -22,11 +22,11 @@ Sample (Static Analyzer of Multiple Programming Languages) is a generic static a
 
 ### Installation
 
-  * Follow the instructions to install [Silver](http://bitbucket.org/viperproject/silver), [Silicon](http://bitbucket.org/viperproject/silicon), and [Carbon](http://bitbucket.org/viperproject/carbon). It is recommended to install the Viper tools as project-named subfolders under a common Viper directory. The instructsions below assume that you have chosen such a top-level Viper folder; if you do not, you need to adapt the relative paths when you create the symbolic links as described in the following.
+  * Follow the instructions to install [Silver](https://github.com/viperproject/silver), [Silicon](https://github.com/viperproject/silicon), and [Carbon](https://github.com/viperproject/carbon). It is recommended to install the Viper tools as project-named subfolders under a common Viper directory. The instructsions below assume that you have chosen such a top-level Viper folder; if you do not, you need to adapt the relative paths when you create the symbolic links as described in the following.
 
   * Clone the Sample repository (this repository) and switch to the newly created Sample directory.
 
-        hg clone https://bitbucket.org/viperproject/sample
+        git clone https://github.com/viperproject/sample.git
         cd sample
 
   * From within the directory where you installed Sample, create symbolic links to the directories where you installed Silver, Silicon, and Carbon.
